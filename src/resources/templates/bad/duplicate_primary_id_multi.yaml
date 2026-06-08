@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# E3019 parity exercise: two resources with multiple shared BucketName scenarios
+# (both "zzz" and "aaa" appear in both). Lex-smallest is "aaa". Both engines must
+# display the same shared value.
+Conditions:
+  IsA: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  BucketA:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [IsA, "zzz-shared", "aaa-shared"]
+  BucketB:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [IsA, "aaa-shared", "zzz-shared"]

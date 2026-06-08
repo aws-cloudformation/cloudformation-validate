@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+Conditions:
+  IsUsEast1: !Equals [!Ref 'AWS::Region', 'us-east-1']
+Parameters:
+  DBPolicy:
+    Type: String
+  AutoPublishAliasParameter:
+    Type: String
+    Default: TestAliasRef
+  VpcId:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>"
+    Default: "/network/vpc/primary/id"
+  Environment:
+    Type: String
+    Default: Prod
+  MyVpc:
+    Type: AWS::EC2::VPC::Id
+  AZIds:
+    Type: CommaDelimitedList
+    Default: use1-az1,use1-az2
+Mappings:
+  StackIdMap01:
+    teststack1:
+      DeletionPolicy: Retain
+    teststack2:
+      DeletionPolicy: Delete
+Rules:
+  IsAutPublishAliasParameterProd:
+    RuleCondition: !Equals [ !Ref Environment, "Prod" ]
+    Assertions:
+      - Assert: !Not
+          - !Equals [ !Ref DBPolicy, "" ]
+Resources:
+  WaitHandleRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Ref DBPolicy
+    DeletionPolicy: "Retain"
+  WaitHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy:
+      Fn::FindInMap:
+        - "StackIdMap01"
+        - "Ref": "AWS::StackId"
+        - "DeletionPolicy"
+    DeletionPolicy: "Retain"
+  PolicyList:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: '5'
+      DBInstanceClass: db.m1.small
+      Engine: MySQL
+    UpdateReplacePolicy:
+      Fn::If:
+        - IsUsEast1
+        - "Retain"
+        - "Delete"
+    DeletionPolicy: "Retain"
+  TestStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: StateMachine
+      AutoPublishAlias: !Ref AutoPublishAliasParameter
+      Definition:
+        StartAt: MyLambdaState
+        States:
+          MyLambdaState:
+            Type: Task
+            Resource: arn:aws:lambda:us-east-1:<REDACTED>:function:print-event
+            End: true
+
+  TestLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      InlineCode: |
+        def handler(event, context):
+          print("Hello, world!")
+      AutoPublishAlias: !Ref AutoPublishAliasParameter
+
+  SecurityGroups:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Example security group
+      VpcId: !Ref VpcId
+
+  MySubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+        VpcId: !Ref MyVpc
+        CidrBlock: 10.0.0.0/8
+        AvailabilityZoneId: !Select [ 0, !Ref AZIds ]

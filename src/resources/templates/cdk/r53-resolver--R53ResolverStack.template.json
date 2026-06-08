@@ -1,0 +1,920 @@
+{
+ "Resources": {
+  "R53ResolverTestVPC9B993306": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.24.34.0/23",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/Resource"
+   }
+  },
+  "R53ResolverTestVPCPrivateSubnet1Subnet5DBB6B2C": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.24.34.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "R53ResolverTestVPC9B993306"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet1/Subnet"
+   }
+  },
+  "R53ResolverTestVPCPrivateSubnet1RouteTable6E169019": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "R53ResolverTestVPC9B993306"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet1/RouteTable"
+   }
+  },
+  "R53ResolverTestVPCPrivateSubnet1RouteTableAssociation41B46D9B": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "R53ResolverTestVPCPrivateSubnet1RouteTable6E169019"
+    },
+    "SubnetId": {
+     "Ref": "R53ResolverTestVPCPrivateSubnet1Subnet5DBB6B2C"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet1/RouteTableAssociation"
+   }
+  },
+  "R53ResolverTestVPCPrivateSubnet2Subnet495784E7": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.24.35.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "R53ResolverTestVPC9B993306"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet2/Subnet"
+   }
+  },
+  "R53ResolverTestVPCPrivateSubnet2RouteTable0899A697": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "R53ResolverTestVPC9B993306"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet2/RouteTable"
+   }
+  },
+  "R53ResolverTestVPCPrivateSubnet2RouteTableAssociation53E27A3B": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "R53ResolverTestVPCPrivateSubnet2RouteTable0899A697"
+    },
+    "SubnetId": {
+     "Ref": "R53ResolverTestVPCPrivateSubnet2Subnet495784E7"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/PrivateSubnet2/RouteTableAssociation"
+   }
+  },
+  "R53ResolverTestVPCRestrictDefaultSecurityGroupCustomResource61006742": {
+   "Type": "Custom::VpcRestrictDefaultSG",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E",
+      "Arn"
+     ]
+    },
+    "DefaultSecurityGroupId": {
+     "Fn::GetAtt": [
+      "R53ResolverTestVPC9B993306",
+      "DefaultSecurityGroup"
+     ]
+    },
+    "Account": {
+     "Ref": "AWS::AccountId"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/R53ResolverTestVPC/R53ResolverTestVPC/RestrictDefaultSecurityGroupCustomResource/Default"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyName": "Inline",
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress"
+         ],
+         "Resource": [
+          {
+           "Fn::Join": [
+            "",
+            [
+             "arn:",
+             {
+              "Ref": "AWS::Partition"
+             },
+             ":ec2:",
+             {
+              "Ref": "AWS::Region"
+             },
+             ":",
+             {
+              "Ref": "AWS::AccountId"
+             },
+             ":security-group/",
+             {
+              "Fn::GetAtt": [
+               "R53ResolverTestVPC9B993306",
+               "DefaultSecurityGroup"
+              ]
+             }
+            ]
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200.zip"
+    },
+    "Timeout": 900,
+    "MemorySize": 128,
+    "Handler": "__entrypoint__.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Description": "Lambda function for removing all inbound/outbound rules from the VPC default security group"
+   },
+   "DependsOn": [
+    "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler",
+    "aws:asset:path": "/private/var/folders/_x/fyhxn65j55n4v4d_1ptd7ckw0000gq/T/cdk-custom-resourceDZnLO4",
+    "aws:asset:property": "Code"
+   }
+  },
+  "BlockListC03D0423": {
+   "Type": "AWS::Route53Resolver::FirewallDomainList",
+   "Properties": {
+    "Domains": [
+     "example.com",
+     "example.net"
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/BlockList/Resource"
+   }
+  },
+  "BlockListRuleGroup55F6B55D": {
+   "Type": "AWS::Route53Resolver::FirewallRuleGroup",
+   "Properties": {
+    "FirewallRules": [
+     {
+      "Action": "BLOCK",
+      "BlockResponse": "NODATA",
+      "FirewallDomainListId": {
+       "Fn::GetAtt": [
+        "BlockListC03D0423",
+        "Id"
+       ]
+      },
+      "Priority": 10
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/BlockListRuleGroup/Resource"
+   }
+  },
+  "BlockListRuleGroupDirectBlockListRuleGroupAssociation40E90DB0": {
+   "Type": "AWS::Route53Resolver::FirewallRuleGroupAssociation",
+   "Properties": {
+    "FirewallRuleGroupId": {
+     "Fn::GetAtt": [
+      "BlockListRuleGroup55F6B55D",
+      "Id"
+     ]
+    },
+    "Priority": 101,
+    "VpcId": {
+     "Ref": "R53ResolverTestVPC9B993306"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/BlockListRuleGroup/DirectBlockListRuleGroupAssociation/Resource"
+   }
+  },
+  "sgoutboundendpointEC0509A3": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for outbound endpoint",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": {
+       "Fn::GetAtt": [
+        "R53ResolverTestVPC9B993306",
+        "CidrBlock"
+       ]
+      },
+      "Description": {
+       "Fn::Join": [
+        "",
+        [
+         "from ",
+         {
+          "Fn::GetAtt": [
+           "R53ResolverTestVPC9B993306",
+           "CidrBlock"
+          ]
+         },
+         ":53"
+        ]
+       ]
+      },
+      "FromPort": 53,
+      "IpProtocol": "tcp",
+      "ToPort": 53
+     },
+     {
+      "CidrIp": {
+       "Fn::GetAtt": [
+        "R53ResolverTestVPC9B993306",
+        "CidrBlock"
+       ]
+      },
+      "Description": {
+       "Fn::Join": [
+        "",
+        [
+         "from ",
+         {
+          "Fn::GetAtt": [
+           "R53ResolverTestVPC9B993306",
+           "CidrBlock"
+          ]
+         },
+         ":UDP 53"
+        ]
+       ]
+      },
+      "FromPort": 53,
+      "IpProtocol": "udp",
+      "ToPort": 53
+     }
+    ],
+    "VpcId": {
+     "Ref": "R53ResolverTestVPC9B993306"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/sg-outbound-endpoint/Resource"
+   }
+  },
+  "OutboundEndpoint": {
+   "Type": "AWS::Route53Resolver::ResolverEndpoint",
+   "Properties": {
+    "Direction": "OUTBOUND",
+    "IpAddresses": [
+     {
+      "SubnetId": {
+       "Ref": "R53ResolverTestVPCPrivateSubnet1Subnet5DBB6B2C"
+      }
+     },
+     {
+      "SubnetId": {
+       "Ref": "R53ResolverTestVPCPrivateSubnet2Subnet495784E7"
+      }
+     }
+    ],
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "sgoutboundendpointEC0509A3",
+       "GroupId"
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/OutboundEndpoint"
+   }
+  },
+  "sginboundendpoint32081788": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for inbound endpoint",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "203.0.113.0/24",
+      "Description": "from 203.0.113.0/24:53",
+      "FromPort": 53,
+      "IpProtocol": "tcp",
+      "ToPort": 53
+     },
+     {
+      "CidrIp": "203.0.113.0/24",
+      "Description": "from 203.0.113.0/24:UDP 53",
+      "FromPort": 53,
+      "IpProtocol": "udp",
+      "ToPort": 53
+     }
+    ],
+    "VpcId": {
+     "Ref": "R53ResolverTestVPC9B993306"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/sg-inbound-endpoint/Resource"
+   }
+  },
+  "InboundEndpoint": {
+   "Type": "AWS::Route53Resolver::ResolverEndpoint",
+   "Properties": {
+    "Direction": "INBOUND",
+    "IpAddresses": [
+     {
+      "SubnetId": {
+       "Ref": "R53ResolverTestVPCPrivateSubnet1Subnet5DBB6B2C"
+      }
+     },
+     {
+      "SubnetId": {
+       "Ref": "R53ResolverTestVPCPrivateSubnet2Subnet495784E7"
+      }
+     }
+    ],
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "sginboundendpoint32081788",
+       "GroupId"
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/InboundEndpoint"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/32Q3WrDMAyFn6X3jpslG+xyXfZzM1hIRm+H46idWscOtpwwQt59uM2WspaCQfKnI8nHCR+S23seL0TvIlnvI4UVH0oScs9E7z4HkAkf1q1k2Uav84zlFjtBUPpKAwU4Z4XxBB+iUjDzma2cMxIFodGsBOkt0verNb49iE/ByGzoukstOKM6sHzINvoFLfRCqSfTCNRv6A47f2nhFfxNO4Onu8NDp7nPum4NahpHFpC3EljmHZlmvh7VF0q5NR3WYB+FA7ZyDqgksUW9DT3vnlpPI7tJUx5HQrVfgseLh+mTlyH+8ziJhgs2zz1eMziOTJsa+M4tuyTh4Sx2DjGyXhM2wItj/AHU98xG+gEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "R53ResolverStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "VPCId": {
+   "Value": {
+    "Ref": "R53ResolverTestVPC9B993306"
+   }
+  },
+  "VPCLink": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://console.aws.amazon.com/vpcconsole/home/#VpcDetails:VpcId=",
+      {
+       "Ref": "R53ResolverTestVPC9B993306"
+      }
+     ]
+    ]
+   }
+  },
+  "DNSFirewallId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "BlockListRuleGroup55F6B55D",
+     "Id"
+    ]
+   }
+  },
+  "DNSFirewallLink": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://console.aws.amazon.com/vpc/home?region=",
+      {
+       "Ref": "AWS::Region"
+      },
+      "#DNSFirewallRuleGroupDetails:RulegroupId=",
+      {
+       "Fn::GetAtt": [
+        "BlockListRuleGroup55F6B55D",
+        "Id"
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  "OutboundEndpointId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "OutboundEndpoint",
+     "ResolverEndpointId"
+    ]
+   }
+  },
+  "OutboundEndpointLink": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "AWS::Region"
+      },
+      ".console.aws.amazon.com/route53resolver/home?region=",
+      {
+       "Ref": "AWS::Region"
+      },
+      "#/endpoint/",
+      {
+       "Fn::GetAtt": [
+        "OutboundEndpoint",
+        "ResolverEndpointId"
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  "InboundEndpointId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "InboundEndpoint",
+     "ResolverEndpointId"
+    ]
+   }
+  },
+  "InboundEndpointLink": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "AWS::Region"
+      },
+      ".console.aws.amazon.com/route53resolver/home?region=",
+      {
+       "Ref": "AWS::Region"
+      },
+      "#/endpoint/",
+      {
+       "Fn::GetAtt": [
+        "InboundEndpoint",
+        "ResolverEndpointId"
+       ]
+      }
+     ]
+    ]
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

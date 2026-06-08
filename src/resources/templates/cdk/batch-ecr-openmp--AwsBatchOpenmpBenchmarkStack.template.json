@@ -1,0 +1,1489 @@
+{
+ "Resources": {
+  "OpenMPRepositoryAB8BB3BC": {
+   "Type": "AWS::ECR::Repository",
+   "Properties": {
+    "EmptyOnDelete": true,
+    "LifecyclePolicy": {
+     "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Keep only 10 most recent images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":10},\"action\":{\"type\":\"expire\"}}]}"
+    },
+    "RepositoryName": "openmp-benchmark"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPRepository/Resource"
+   }
+  },
+  "OpenMPVPCF5EF58EB": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/Resource"
+   }
+  },
+  "OpenMPVPCPublicSubnet1Subnet4888FED8": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1/Subnet"
+   }
+  },
+  "OpenMPVPCPublicSubnet1RouteTableDADE381A": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1/RouteTable"
+   }
+  },
+  "OpenMPVPCPublicSubnet1RouteTableAssociationB4BDC09E": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPublicSubnet1RouteTableDADE381A"
+    },
+    "SubnetId": {
+     "Ref": "OpenMPVPCPublicSubnet1Subnet4888FED8"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1/RouteTableAssociation"
+   }
+  },
+  "OpenMPVPCPublicSubnet1DefaultRoute5FD9D646": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "OpenMPVPCIGW3DBDF942"
+    },
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPublicSubnet1RouteTableDADE381A"
+    }
+   },
+   "DependsOn": [
+    "OpenMPVPCVPCGWDD05DB82"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1/DefaultRoute"
+   }
+  },
+  "OpenMPVPCPublicSubnet1EIP53BE2C61": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1/EIP"
+   }
+  },
+  "OpenMPVPCPublicSubnet1NATGateway29BD3E8B": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "OpenMPVPCPublicSubnet1EIP53BE2C61",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "OpenMPVPCPublicSubnet1Subnet4888FED8"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1"
+     }
+    ]
+   },
+   "DependsOn": [
+    "OpenMPVPCPublicSubnet1DefaultRoute5FD9D646",
+    "OpenMPVPCPublicSubnet1RouteTableAssociationB4BDC09E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet1/NATGateway"
+   }
+  },
+  "OpenMPVPCPublicSubnet2Subnet7642A39F": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.1.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet2/Subnet"
+   }
+  },
+  "OpenMPVPCPublicSubnet2RouteTable29142B7F": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet2/RouteTable"
+   }
+  },
+  "OpenMPVPCPublicSubnet2RouteTableAssociationA72D6947": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPublicSubnet2RouteTable29142B7F"
+    },
+    "SubnetId": {
+     "Ref": "OpenMPVPCPublicSubnet2Subnet7642A39F"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet2/RouteTableAssociation"
+   }
+  },
+  "OpenMPVPCPublicSubnet2DefaultRouteF2C059E2": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "OpenMPVPCIGW3DBDF942"
+    },
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPublicSubnet2RouteTable29142B7F"
+    }
+   },
+   "DependsOn": [
+    "OpenMPVPCVPCGWDD05DB82"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PublicSubnet2/DefaultRoute"
+   }
+  },
+  "OpenMPVPCPrivateSubnet1Subnet95C8C324": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.2.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet1/Subnet"
+   }
+  },
+  "OpenMPVPCPrivateSubnet1RouteTable3DBEEA60": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet1/RouteTable"
+   }
+  },
+  "OpenMPVPCPrivateSubnet1RouteTableAssociationD2C7C327": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPrivateSubnet1RouteTable3DBEEA60"
+    },
+    "SubnetId": {
+     "Ref": "OpenMPVPCPrivateSubnet1Subnet95C8C324"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet1/RouteTableAssociation"
+   }
+  },
+  "OpenMPVPCPrivateSubnet1DefaultRoute7EB9EABF": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "OpenMPVPCPublicSubnet1NATGateway29BD3E8B"
+    },
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPrivateSubnet1RouteTable3DBEEA60"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet1/DefaultRoute"
+   }
+  },
+  "OpenMPVPCPrivateSubnet2Subnet039333AF": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.3.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet2/Subnet"
+   }
+  },
+  "OpenMPVPCPrivateSubnet2RouteTable7EFB668D": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet2/RouteTable"
+   }
+  },
+  "OpenMPVPCPrivateSubnet2RouteTableAssociation50872E14": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPrivateSubnet2RouteTable7EFB668D"
+    },
+    "SubnetId": {
+     "Ref": "OpenMPVPCPrivateSubnet2Subnet039333AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet2/RouteTableAssociation"
+   }
+  },
+  "OpenMPVPCPrivateSubnet2DefaultRouteA5C36AF6": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "OpenMPVPCPublicSubnet1NATGateway29BD3E8B"
+    },
+    "RouteTableId": {
+     "Ref": "OpenMPVPCPrivateSubnet2RouteTable7EFB668D"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/PrivateSubnet2/DefaultRoute"
+   }
+  },
+  "OpenMPVPCIGW3DBDF942": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/IGW"
+   }
+  },
+  "OpenMPVPCVPCGWDD05DB82": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "OpenMPVPCIGW3DBDF942"
+    },
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/VPCGW"
+   }
+  },
+  "OpenMPVPCRestrictDefaultSecurityGroupCustomResourceA3D51E90": {
+   "Type": "Custom::VpcRestrictDefaultSG",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E",
+      "Arn"
+     ]
+    },
+    "DefaultSecurityGroupId": {
+     "Fn::GetAtt": [
+      "OpenMPVPCF5EF58EB",
+      "DefaultSecurityGroup"
+     ]
+    },
+    "Account": {
+     "Ref": "AWS::AccountId"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPVPC/RestrictDefaultSecurityGroupCustomResource/Default"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyName": "Inline",
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress"
+         ],
+         "Resource": [
+          {
+           "Fn::Join": [
+            "",
+            [
+             "arn:",
+             {
+              "Ref": "AWS::Partition"
+             },
+             ":ec2:",
+             {
+              "Ref": "AWS::Region"
+             },
+             ":",
+             {
+              "Ref": "AWS::AccountId"
+             },
+             ":security-group/",
+             {
+              "Fn::GetAtt": [
+               "OpenMPVPCF5EF58EB",
+               "DefaultSecurityGroup"
+              ]
+             }
+            ]
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200.zip"
+    },
+    "Timeout": 900,
+    "MemorySize": 128,
+    "Handler": "__entrypoint__.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Description": "Lambda function for removing all inbound/outbound rules from the VPC default security group"
+   },
+   "DependsOn": [
+    "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler",
+    "aws:asset:path": "/private/var/folders/_x/fyhxn65j55n4v4d_1ptd7ckw0000gq/T/cdk-custom-resourceCU6a2c",
+    "aws:asset:property": "Code"
+   }
+  },
+  "BatchSecurityGroup77EC865F": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for OpenMP Batch compute environment",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "OpenMPVPCF5EF58EB"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/BatchSecurityGroup/Resource"
+   }
+  },
+  "BatchServiceRole57930367": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "batch.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSBatchServiceRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/BatchServiceRole/Resource"
+   }
+  },
+  "BatchInstanceRole8DB66C4C": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/BatchInstanceRole/Resource"
+   }
+  },
+  "BatchInstanceProfile": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "BatchInstanceRole8DB66C4C"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/BatchInstanceProfile"
+   }
+  },
+  "BatchLaunchTemplateProfile5BDFE5F8": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "BatchInstanceRole8DB66C4C"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/BatchLaunchTemplate/Profile"
+   }
+  },
+  "BatchLaunchTemplateBD674258": {
+   "Type": "AWS::EC2::LaunchTemplate",
+   "Properties": {
+    "LaunchTemplateData": {
+     "IamInstanceProfile": {
+      "Arn": {
+       "Fn::GetAtt": [
+        "BatchLaunchTemplateProfile5BDFE5F8",
+        "Arn"
+       ]
+      }
+     },
+     "ImageId": {
+      "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter"
+     },
+     "InstanceType": "c5.large",
+     "SecurityGroupIds": [
+      {
+       "Fn::GetAtt": [
+        "BatchSecurityGroup77EC865F",
+        "GroupId"
+       ]
+      }
+     ],
+     "TagSpecifications": [
+      {
+       "ResourceType": "instance",
+       "Tags": [
+        {
+         "Key": "Name",
+         "Value": "AwsBatchOpenmpBenchmarkStack/BatchLaunchTemplate"
+        }
+       ]
+      },
+      {
+       "ResourceType": "volume",
+       "Tags": [
+        {
+         "Key": "Name",
+         "Value": "AwsBatchOpenmpBenchmarkStack/BatchLaunchTemplate"
+        }
+       ]
+      }
+     ],
+     "UserData": {
+      "Fn::Base64": "#!/bin/bash"
+     }
+    },
+    "TagSpecifications": [
+     {
+      "ResourceType": "launch-template",
+      "Tags": [
+       {
+        "Key": "Name",
+        "Value": "AwsBatchOpenmpBenchmarkStack/BatchLaunchTemplate"
+       }
+      ]
+     }
+    ]
+   },
+   "DependsOn": [
+    "BatchInstanceRole8DB66C4C"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/BatchLaunchTemplate/Resource"
+   }
+  },
+  "OpenMPComputeEnvironment": {
+   "Type": "AWS::Batch::ComputeEnvironment",
+   "Properties": {
+    "ComputeResources": {
+     "InstanceRole": {
+      "Fn::GetAtt": [
+       "BatchInstanceProfile",
+       "Arn"
+      ]
+     },
+     "InstanceTypes": [
+      "c6i.large",
+      "c6i.xlarge",
+      "c6i.2xlarge",
+      "c5.large",
+      "c5.xlarge"
+     ],
+     "MaxvCpus": 256,
+     "MinvCpus": 0,
+     "SecurityGroupIds": [
+      {
+       "Fn::GetAtt": [
+        "BatchSecurityGroup77EC865F",
+        "GroupId"
+       ]
+      }
+     ],
+     "Subnets": [
+      {
+       "Ref": "OpenMPVPCPrivateSubnet1Subnet95C8C324"
+      },
+      {
+       "Ref": "OpenMPVPCPrivateSubnet2Subnet039333AF"
+      }
+     ],
+     "Type": "EC2"
+    },
+    "ServiceRole": {
+     "Fn::GetAtt": [
+      "BatchServiceRole57930367",
+      "Arn"
+     ]
+    },
+    "State": "ENABLED",
+    "Type": "MANAGED"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPComputeEnvironment"
+   }
+  },
+  "OpenMPJobQueue": {
+   "Type": "AWS::Batch::JobQueue",
+   "Properties": {
+    "ComputeEnvironmentOrder": [
+     {
+      "ComputeEnvironment": {
+       "Ref": "OpenMPComputeEnvironment"
+      },
+      "Order": 1
+     }
+    ],
+    "Priority": 1,
+    "State": "ENABLED"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPJobQueue"
+   }
+  },
+  "BatchJobRole37A83758": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/BatchJobRole/Resource"
+   }
+  },
+  "OpenMPLogGroup95FEB040": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": "/aws/batch/openmp-benchmark",
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPLogGroup/Resource"
+   }
+  },
+  "OpenMPJobDefinition": {
+   "Type": "AWS::Batch::JobDefinition",
+   "Properties": {
+    "ContainerProperties": {
+     "Command": [
+      "/usr/local/bin/openmp_benchmark",
+      "--size",
+      "Ref::size",
+      "--threads",
+      "Ref::threads",
+      "--json",
+      "Ref::json",
+      "--benchmark-type",
+      "Ref::benchmark-type",
+      "--matrix-size",
+      "Ref::matrix-size"
+     ],
+     "Environment": [
+      {
+       "Name": "AWS_DEFAULT_REGION",
+       "Value": {
+        "Ref": "AWS::Region"
+       }
+      }
+     ],
+     "ExecutionRoleArn": {
+      "Fn::GetAtt": [
+       "BatchJobRole37A83758",
+       "Arn"
+      ]
+     },
+     "Image": {
+      "Fn::Join": [
+       "",
+       [
+        {
+         "Fn::Select": [
+          4,
+          {
+           "Fn::Split": [
+            ":",
+            {
+             "Fn::GetAtt": [
+              "OpenMPRepositoryAB8BB3BC",
+              "Arn"
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        ".dkr.ecr.",
+        {
+         "Fn::Select": [
+          3,
+          {
+           "Fn::Split": [
+            ":",
+            {
+             "Fn::GetAtt": [
+              "OpenMPRepositoryAB8BB3BC",
+              "Arn"
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        ".",
+        {
+         "Ref": "AWS::URLSuffix"
+        },
+        "/",
+        {
+         "Ref": "OpenMPRepositoryAB8BB3BC"
+        },
+        ":latest"
+       ]
+      ]
+     },
+     "JobRoleArn": {
+      "Fn::GetAtt": [
+       "BatchJobRole37A83758",
+       "Arn"
+      ]
+     },
+     "LogConfiguration": {
+      "LogDriver": "awslogs",
+      "Options": {
+       "awslogs-group": {
+        "Ref": "OpenMPLogGroup95FEB040"
+       },
+       "awslogs-stream-prefix": "openmp"
+      }
+     },
+     "Memory": 4096,
+     "Vcpus": 2
+    },
+    "Parameters": {
+     "size": "600000000",
+     "threads": "0",
+     "json": "true",
+     "benchmark-type": "simple",
+     "matrix-size": "1200"
+    },
+    "Type": "container"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/OpenMPJobDefinition"
+   }
+  },
+  "JobSubmitterFunctionServiceRole55AD6E92": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/JobSubmitterFunction/ServiceRole/Resource"
+   }
+  },
+  "JobSubmitterFunctionServiceRoleDefaultPolicy4C5D0E3F": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "batch:DescribeJobs",
+        "batch:ListJobs",
+        "batch:SubmitJob"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "JobSubmitterFunctionServiceRoleDefaultPolicy4C5D0E3F",
+    "Roles": [
+     {
+      "Ref": "JobSubmitterFunctionServiceRole55AD6E92"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/JobSubmitterFunction/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "JobSubmitterFunctionFAE645C8": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": {
+      "Fn::Join": [
+       "",
+       [
+        "\nimport json\nimport boto3\nimport uuid\nfrom datetime import datetime\n\nbatch_client = boto3.client('batch')\n\ndef handler(event, context):\n    try:\n        # Parse input parameters\n        problem_size = event.get('problemSize', 100000000)\n        max_threads = event.get('maxThreads', 0)\n        instance_type = event.get('instanceType', 't3.large')\n        \n        # Map instance types to optimal vCPU counts for OpenMP\n        instance_vcpu_map = {\n            't3.medium': 2,\n            't3.large': 2,\n            't3.xlarge': 4,\n            't3a.medium': 2,\n            't3a.large': 2,\n            'c6i.large': 2,\n            'c6i.xlarge': 4,\n            'c6i.2xlarge': 8,\n            'c6i.4xlarge': 16,\n            'c6i.8xlarge': 32,\n            'c5.large': 2,\n            'c5.xlarge': 4,\n            'c5.2xlarge': 8,\n            'c5.4xlarge': 16,\n            'c5.9xlarge': 36,\n            'c5n.large': 2,\n            'c5n.xlarge': 4,\n            'c5n.2xlarge': 8\n        }\n        \n        # Determine optimal thread count\n        instance_vcpus = instance_vcpu_map.get(instance_type, 4)\n        optimal_threads = max_threads if max_threads > 0 else instance_vcpus\n        \n        # Generate unique job name\n        job_name = f\"openmp-benchmark-{uuid.uuid4().hex[:8]}\"\n        \n        # Submit batch job with dynamic resource allocation\n        response = batch_client.submit_job(\n            jobName=job_name,\n            jobQueue='",
+        {
+         "Ref": "OpenMPJobQueue"
+        },
+        "',\n            jobDefinition='",
+        {
+         "Ref": "OpenMPJobDefinition"
+        },
+        "',\n            parameters={\n                'size': str(problem_size),\n                'threads': str(optimal_threads),\n                'json': 'true'\n            },\n            containerOverrides={\n                'vcpus': instance_vcpus,\n                'memory': instance_vcpus * 2048,  # 2GB per vCPU\n                'environment': [\n                    {'name': 'AWS_BATCH_JOB_INSTANCE_TYPE', 'value': instance_type},\n                    {'name': 'OMP_NUM_THREADS', 'value': str(optimal_threads)}\n                ]\n            }\n        )\n        \n        return {\n            'statusCode': 200,\n            'body': json.dumps({\n                'jobId': response['jobId'],\n                'jobName': response['jobName'],\n                'message': 'Job submitted successfully'\n            })\n        }\n        \n    except Exception as e:\n        return {\n            'statusCode': 500,\n            'body': json.dumps({\n                'error': str(e)\n            })\n        }\n      "
+       ]
+      ]
+     }
+    },
+    "Environment": {
+     "Variables": {
+      "JOB_QUEUE": {
+       "Ref": "OpenMPJobQueue"
+      },
+      "JOB_DEFINITION": {
+       "Ref": "OpenMPJobDefinition"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "JobSubmitterFunctionServiceRole55AD6E92",
+      "Arn"
+     ]
+    },
+    "Runtime": "python3.11",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "JobSubmitterFunctionServiceRoleDefaultPolicy4C5D0E3F",
+    "JobSubmitterFunctionServiceRole55AD6E92"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/JobSubmitterFunction/Resource"
+   }
+  },
+  "JobSubmitterFunctionLogGroupF7938D09": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/lambda/",
+       {
+        "Ref": "JobSubmitterFunctionFAE645C8"
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 731
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/JobSubmitterFunction/LogGroup/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/+1W3YvjNhD/W06Ph9YtoVxL3rze7ZGyvaRJuIeapYylSaJbWTL68NY1/t+LLNnJfbJwfchDwWBpNPObT81okS1++iX78RU82xvGn26kqLJ+54A9UXi2f/XITNZvsdFWOG26sidm3ryDGsmSvCaUGKx1C3KjpWAdWRKO1hndEUqwbly3Vnco0SFZOuOREikOyDomceslWrIse1LD36sajlhor1xC5WiZEY0TWo2U4XGgPQHOHy7lXy5OR/Jr8jg80uKgzm4NFNki6983LELl/9iEocC9BYfP0E0U6yuFrtDqII7eQEQve8IEN7+DfZoF5+BEiX3XBMLGV1IwEhx5qYQRLTgM3o9mv98UNKLsRrayJ9CCkFAJKVz3p1YTTNuwFU/roOxWajZpq6GJIKtmrR7AK3aasiOa9k3xCTtYK45q1bRvcs4NWrtWhUG4iO2VWJEq5N2cN7Isx5Rfi4HXYUUspVhA413Q3uEeKoln+pmWW6uZGAFm5rC4X23C7xxsmor1P6/MA0h7BTH/PjOux5IrMSNW4Uo5NArnGoo9Lu1y54CdalSO7pB5I1z31mjflH0w9iudnhKQUj/nUq69q7RXPF6XVPWXODR6sse6keCw7IlQ1oFimNpvdJ2dhMJxwkwt+hIk0bxFcwcOpqGoJaa5FdR+rGigAuqs32oZdIK1vkZ+25FlTxojFBMNyJyxi3EWeYJAzi5nWg0KjsjH2SvmaXqmdbn5aHz+r+o7VXG+15tJxfTkKft0OtbrSkmhcD6bB9BXD+ODRMf2u0oVuDH6ICTSyBoYZ4y93o7V9Qn052TOdw4chgtkk5Wjrog50AocO2V9cVCFrhvv8F61wmg13rjioH7T1R8ePab1HR6EEiF6A5X6aLP+QR+nCynT8kUPQ4MOVUzDz8HSz4TTrUnkgUqoKw5Z/6tXY/rCW9QrJ2ZdJ1Bcopnal+bTQeDRfioDPDt4boec31+Sy/ml+M3D0cLJnmGgW7TaG4a08NbpetqO2Ygvzi+eb4xuBUdzCxZpbi26nYOjUMcxUWCgRocmbNbeNd4NVGmO2Qf7Q7tYZOF79cEKcZPCkW3j/1+rn/f33AsAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "AwsBatchOpenmpBenchmarkStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Parameters": {
+  "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Outputs": {
+  "ECRRepositoryURI": {
+   "Description": "ECR Repository URI for OpenMP container",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      {
+       "Fn::Select": [
+        4,
+        {
+         "Fn::Split": [
+          ":",
+          {
+           "Fn::GetAtt": [
+            "OpenMPRepositoryAB8BB3BC",
+            "Arn"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      ".dkr.ecr.",
+      {
+       "Fn::Select": [
+        3,
+        {
+         "Fn::Split": [
+          ":",
+          {
+           "Fn::GetAtt": [
+            "OpenMPRepositoryAB8BB3BC",
+            "Arn"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      ".",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "OpenMPRepositoryAB8BB3BC"
+      }
+     ]
+    ]
+   }
+  },
+  "JobQueueName": {
+   "Description": "Batch Job Queue Name",
+   "Value": {
+    "Ref": "OpenMPJobQueue"
+   }
+  },
+  "JobDefinitionName": {
+   "Description": "Batch Job Definition Name",
+   "Value": {
+    "Ref": "OpenMPJobDefinition"
+   }
+  },
+  "LambdaFunctionName": {
+   "Description": "Lambda function for job submission",
+   "Value": {
+    "Ref": "JobSubmitterFunctionFAE645C8"
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

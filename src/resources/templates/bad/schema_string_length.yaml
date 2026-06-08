@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: a
+      Runtime: python3.12
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          def handler(event, context):
+            return "ok"
+      Role: arn:aws:iam::123456789012:role/role

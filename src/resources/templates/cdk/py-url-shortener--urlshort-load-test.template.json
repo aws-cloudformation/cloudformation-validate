@@ -1,0 +1,246 @@
+{
+ "Resources": {
+  "generatorcluster9804CB70": {
+   "Type": "AWS::ECS::Cluster",
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/generator/cluster/Resource"
+   }
+  },
+  "generatorPingTaskTaskRoleA4886BE8": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/generator/PingTask/TaskRole/Resource"
+   }
+  },
+  "generatorPingTask1D3C2E79": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "URL",
+        "Value": "https://yourdomain.com/eb4628b6"
+       }
+      ],
+      "Essential": true,
+      "Image": {
+       "Fn::Sub": "111111111111.dkr.ecr.us-east-1.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-111111111111-us-east-1:86e62dad71942917a69c6b837fdd323d7604333806fc806ea03b1c681dda578c"
+      },
+      "Name": "Pinger"
+     }
+    ],
+    "Cpu": "256",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "generatorPingTaskExecutionRoleA7BE7F8B",
+      "Arn"
+     ]
+    },
+    "Family": "urlshortloadtestgeneratorPingTaskB09BAC0F",
+    "Memory": "512",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "generatorPingTaskTaskRoleA4886BE8",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/generator/PingTask/Resource"
+   }
+  },
+  "generatorPingTaskExecutionRoleA7BE7F8B": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/generator/PingTask/ExecutionRole/Resource"
+   }
+  },
+  "generatorPingTaskExecutionRoleDefaultPolicyA8FF7B68": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ecr:us-east-1:111111111111:repository/cdk-hnb659fds-container-assets-111111111111-us-east-1"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "ecr:GetAuthorizationToken",
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "generatorPingTaskExecutionRoleDefaultPolicyA8FF7B68",
+    "Roles": [
+     {
+      "Ref": "generatorPingTaskExecutionRoleA7BE7F8B"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/generator/PingTask/ExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "generatorserviceServiceA6AC5079": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Ref": "generatorcluster9804CB70"
+    },
+    "DeploymentConfiguration": {
+     "Alarms": {
+      "AlarmNames": [],
+      "Enable": false,
+      "Rollback": false
+     },
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DesiredCount": 5,
+    "EnableECSManagedTags": false,
+    "LaunchType": "FARGATE",
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "generatorserviceSecurityGroup3D8BECF8",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       "subnet-0096fdd5c93924860",
+       "subnet-0b4f435f11e937151",
+       "subnet-0136992e35ea88fe2"
+      ]
+     }
+    },
+    "TaskDefinition": {
+     "Ref": "generatorPingTask1D3C2E79"
+    }
+   },
+   "DependsOn": [
+    "generatorPingTaskTaskRoleA4886BE8"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/generator/service/Service"
+   }
+  },
+  "generatorserviceSecurityGroup3D8BECF8": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "urlshort-load-test/generator/service/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": "vpc-11111111111111111"
+   },
+   "DependsOn": [
+    "generatorPingTaskTaskRoleA4886BE8"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/generator/service/SecurityGroup/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/12NQU7DQAxFz9L9xDRBHABagdhVCfvKDG5wk8xUtkMVjebuKEmRKlb/+9lPrqB6KmG7wasW/qsrev6E1Bj6ztWkcRRPDq96TOQV0q4f1Ujc7hT+6itKi0YfqN2eThzYOIb54D+JwZADyR27uQ3JD3uapVvNjnGAVMd+oUseYs9+mse1ZUdejqhKprCPviN5H7Cl55nMO6jpEpUtyvSCSo58BakhPwrb9CZxvKwf70DObtEbw5ZDm91hsu8YHh6hrKDcbs7KXMgYjAeCes1f6lNU50IBAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-load-test/CDKMetadata/Default"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

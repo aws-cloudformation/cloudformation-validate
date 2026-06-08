@@ -1,0 +1,72 @@
+
+Resources:
+  KMS:
+    Type: AWS::KMS::Key
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  Table1:
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: table1
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      SSESpecification:
+        KMSMasterKeyId: !GetAtt KMS.Arn
+        SSEEnabled: true
+        # SSEType: KMS # to provide an error
+  Table2:
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: table2
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      SSESpecification:
+        KMSMasterKeyId: !GetAtt KMS.Arn
+        SSEEnabled: true
+        SSEType: AES256
+  Table3:
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: table3
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk1
+          AttributeType: S
+        - AttributeName: sk2
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: compositeIndex
+          KeySchema:
+            - AttributeName: pk
+              KeyType: HASH
+            - AttributeName: sk1
+              KeyType: HASH
+            - AttributeName: sk2
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL

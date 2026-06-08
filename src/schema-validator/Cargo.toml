@@ -1,0 +1,22 @@
+[package]
+name = "schema-validator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "schema_validator"
+path = "src/lib.rs"
+
+[dependencies]
+template-model = { path = "../template-model" }
+diagnostics = { path = "../diagnostics" }
+rules = { path = "../rules" }
+data-source = { path = "../data-source", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+log = "0.4"
+regex = "1"
+web-time = "1"
+
+[dev-dependencies]

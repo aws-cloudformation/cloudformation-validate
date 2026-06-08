@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+Conditions:
+  IsProd:
+    Fn::Equals:
+      - !Ref Env
+      - prod
+  IsProdShort: !Equals [!Ref Env, prod]
+  Combined:
+    Fn::And:
+      - !Condition IsProd
+      - Condition: IsProdShort
+Resources:
+  BucketShort:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Env}-bucket"
+      Tags:
+        - Key: Env
+          Value: !Ref Env
+  BucketLong:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: "${Env}-bucket-long"
+      Tags:
+        - Key: Env
+          Value:
+            Ref: Env
+  WithGetAtt:
+    Type: Custom::IntrinsicTest
+    Properties:
+      ShortForm: !GetAtt BucketShort.Arn
+      LongFormDotted:
+        Fn::GetAtt: BucketShort.DomainName
+      LongFormArray:
+        Fn::GetAtt:
+          - BucketLong
+          - Arn
+  WithJoin:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !Join ["-", [a, b, c]]
+      Long:
+        Fn::Join:
+          - "-"
+          - [x, y, z]
+  WithSelect:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !Select [0, [a, b]]
+      Long:
+        Fn::Select:
+          - 1
+          - [a, b]
+  WithIf:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !If [IsProd, yes, no]
+      Long:
+        Fn::If:
+          - IsProd
+          - yes-long
+          - no-long
+  WithFindInMap:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !FindInMap [MyMap, !Ref Env, key]
+      Long:
+        Fn::FindInMap:
+          - MyMap
+          - !Ref Env
+          - key
+  WithBase64:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !Base64 hello
+      Long:
+        Fn::Base64: hello-long
+  WithSplit:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !Split [",", "a,b,c"]
+      Long:
+        Fn::Split:
+          - ","
+          - "x,y,z"
+  WithImport:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !ImportValue SharedStack-Output
+      Long:
+        Fn::ImportValue: SharedStack-Output2
+  WithGetAZs:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !GetAZs us-east-1
+      Long:
+        Fn::GetAZs: us-west-2
+  WithCidr:
+    Type: Custom::IntrinsicTest
+    Properties:
+      Short: !Cidr ["10.0.0.0/16", 6, 8]
+      Long:
+        Fn::Cidr:
+          - "10.0.0.0/16"
+          - 6
+          - 8
+  SubBlock:
+    Type: Custom::IntrinsicTest
+    Properties:
+      UserData: !Sub |
+        #!/bin/bash
+        echo ${Env}
+Mappings:
+  MyMap:
+    dev:
+      key: dev-val
+    prod:
+      key: prod-val
+Outputs:
+  Out:
+    Value: !GetAtt BucketShort.Arn

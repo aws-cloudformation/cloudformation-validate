@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # F3041: writeOnlyProperties referenced in Output via GetAtt
+  CertAuth:
+    Type: AWS::ACMPCA::CertificateAuthorityActivation
+    Properties:
+      CertificateAuthorityArn: arn:aws:acm-pca:us-east-1:123456789012:certificate-authority/test
+      Certificate: test-cert-data
+Outputs:
+  WriteOnlyOutput:
+    Value: !GetAtt CertAuth.Certificate

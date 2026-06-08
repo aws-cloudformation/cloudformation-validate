@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # E3710: shutdown service
+  ShutdownResource:
+    Type: AWS::CodeStar::GitHubRepository
+    Properties:
+      RepositoryName: test
+
+  # W3696: sunset service
+  SunsetResource:
+    Type: AWS::AppMesh::Mesh
+    Properties:
+      MeshName: test
+
+  # W3697: maintenance mode service
+  MaintenanceResource:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-12345678
+      InstanceType: t3.micro
+
+  # E2533: EOL Lambda runtime
+  EolLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: eol-func
+      Runtime: dotnetcore2.1
+      Handler: index.handler
+      Code:
+        ZipFile: "test"
+      Role: arn:aws:iam::123456789012:role/role
+
+  # W2531: deprecated Lambda runtime
+  DeprecatedLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: deprecated-func
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        ZipFile: "test"
+      Role: arn:aws:iam::123456789012:role/role

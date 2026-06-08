@@ -1,0 +1,155 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  toCluster:
+    Type: String
+    Default: 'yes'
+  optionalCluster:
+    Type: String
+    Default: 'yes'
+Conditions:
+  isCluster: !Equals [!Ref 'toCluster', 'yes']
+  IsTesting: !Equals [!Ref 'AWS::Region', 'us-east-1']
+  IsOptionalCluster: !Equals [!Ref 'optionalCluster', 'yes']
+Resources:
+  MyParameterGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      Description: "MyNewParameterGroup"
+      CacheParameterGroupFamily: redis3.2
+      Properties:
+        cas_disabled: "1"
+        cluster-enabled: !If [isCluster, 'yes', !Ref 'AWS::NoValue']
+  MyClusterParameterGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      Description: "MyNewParameterGroup"
+      CacheParameterGroupFamily: redis3.2
+      Properties:
+        cas_disabled: "1"
+        cluster-enabled: 'yes'
+  MyNonClusterParameterGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Properties:
+      Description: "MyNewParameterGroup"
+      CacheParameterGroupFamily: "memcached1.4"
+      Properties:
+        cas_disabled: "1"
+        cluster-enabled: 'no'
+  MyOptionalClusterParameterGroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    Condition: IsOptionalCluster
+    Properties:
+      Description: "MyOptionalParameterGroup"
+      CacheParameterGroupFamily: "memcached1.4"
+      Properties:
+        cas_disabled: "1"
+        cluster-enabled: 'no'
+  BasicReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      AutomaticFailoverEnabled: !If [isCluster, true, false]
+      AutoMinorVersionUpgrade: true
+      CacheParameterGroupName: !If [isCluster, !Ref MyClusterParameterGroup, !Ref MyParameterGroup]
+      CacheNodeType: cache.r3.large
+      CacheSubnetGroupName: subnetgroup
+      Engine: redis
+      EngineVersion: '3.2'
+      NumNodeGroups: 2
+      ReplicasPerNodeGroup: 3
+      Port: 6379
+      PreferredMaintenanceWindow: sun:05:00-sun:09:00
+      ReplicationGroupDescription: A sample replication group
+      SecurityGroupIds:
+      - sg-12345abc
+      SnapshotRetentionLimit: 5
+      SnapshotWindow: 10:00-12:00
+  SecondReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      AutomaticFailoverEnabled: !If [isCluster, true, false]
+      AutoMinorVersionUpgrade: true
+      CacheParameterGroupName: !If [isCluster, !Ref MyClusterParameterGroup, !Ref MyParameterGroup]
+      CacheNodeType: cache.r3.large
+      CacheSubnetGroupName: subnetgroup
+      Engine: redis
+      EngineVersion: '3.2'
+      NumNodeGroups: 1
+      NumCacheClusters: 2
+      ReplicasPerNodeGroup: 3
+      Port: 6379
+      PreferredMaintenanceWindow: sun:05:00-sun:09:00
+      ReplicationGroupDescription: A sample replication group
+      SecurityGroupIds:
+      - sg-12345abc
+      SnapshotRetentionLimit: 5
+      SnapshotWindow: 10:00-12:00
+  ThirdReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      AutoMinorVersionUpgrade: true
+      CacheParameterGroupName: !Ref MyClusterParameterGroup  # Don't fail when missing
+      CacheNodeType: cache.r3.large
+      CacheSubnetGroupName: subnetgroup
+      Engine: redis
+      EngineVersion: '3.2'
+      NumNodeGroups: 2
+      NumCacheClusters: 2
+      ReplicasPerNodeGroup: 3
+      Port: 6379
+      PreferredMaintenanceWindow: sun:05:00-sun:09:00
+      ReplicationGroupDescription: A sample replication group
+      SecurityGroupIds:
+      - sg-12345abc
+      SnapshotRetentionLimit: 5
+      SnapshotWindow: 10:00-12:00
+  FourthReplicationGroup:
+    Type: "AWS::ElastiCache::ReplicationGroup"
+    Properties:
+      AtRestEncryptionEnabled: true
+      AutomaticFailoverEnabled: true
+      CacheNodeType: cache.r3.large
+      CacheParameterGroupName: !Ref "MyClusterParameterGroup"
+      CacheSubnetGroupName: subnetGroup
+      Engine: "redis"
+      EngineVersion: "4.0.10"
+      NumNodeGroups: !If [IsTesting, 1, 3]  # No Error when NumNodeGroups specified
+      ReplicasPerNodeGroup: 1
+      PreferredMaintenanceWindow: "Mon:04:00-Mon:06:00"
+      ReplicationGroupDescription: test
+      SecurityGroupIds:
+      - sg-test
+  FifthReplicationGroup:
+    Type: "AWS::ElastiCache::ReplicationGroup"
+    Condition: IsOptionalCluster
+    Properties:
+      AtRestEncryptionEnabled: true
+      AutomaticFailoverEnabled: true
+      CacheNodeType: cache.r3.large
+      CacheParameterGroupName: !Ref "MyOptionalClusterParameterGroup"
+      CacheSubnetGroupName: subnetGroup
+      Engine: "redis"
+      EngineVersion: "4.0.10"
+      NumNodeGroups: 1
+      ReplicasPerNodeGroup: 1
+      PreferredMaintenanceWindow: "Mon:04:00-Mon:06:00"
+      ReplicationGroupDescription: test
+      SecurityGroupIds:
+      - sg-test
+  SixthReplicationGroup:
+    Type: "AWS::ElastiCache::ReplicationGroup"
+    Condition: IsOptionalCluster
+    Properties:
+      AtRestEncryptionEnabled: true
+      AutomaticFailoverEnabled: true
+      CacheNodeType: cache.r3.large
+      CacheParameterGroupName: !Ref "MyNonClusterParameterGroup"
+      CacheSubnetGroupName: subnetGroup
+      Engine: "redis"
+      EngineVersion: "4.0.10"
+      NumNodeGroups: 1
+      ReplicasPerNodeGroup: 1
+      PreferredMaintenanceWindow: "Mon:04:00-Mon:06:00"
+      ReplicationGroupDescription: test
+      SecurityGroupIds:
+      - sg-test

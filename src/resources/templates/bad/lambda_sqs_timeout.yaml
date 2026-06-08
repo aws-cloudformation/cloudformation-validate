@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 10
+  Func:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: |
+          def handler(event, context): pass
+  ESM:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref Func
+      EventSourceArn: !GetAtt Queue.Arn

@@ -1,0 +1,64 @@
+name: Print build tool versions
+description: >
+  Logs the versions of every toolchain and build tool present on the runner.
+  When wasm-bindgen CLI is not installed (the common case — wasm-pack bundles
+  its own copy), the version is derived from Cargo.lock so the line is always
+  informative.
+
+inputs:
+  cargo-lock:
+    description: "Path to Cargo.lock used as a fallback source for the wasm-bindgen version"
+    required: false
+    default: "src/Cargo.lock"
+
+runs:
+  using: composite
+  steps:
+    - name: Print build tool versions
+      shell: bash
+      env:
+        CARGO_LOCK: ${{ inputs.cargo-lock }}
+      run: |
+        echo "::group::Build tool versions ($(uname -s) $(uname -m))"
+        echo "os:           $(uname -srm)"
+        if command -v rustc        >/dev/null 2>&1; then echo "rustc:        $(rustc --version)"; else echo "rustc:        not installed"; fi
+        if command -v cargo        >/dev/null 2>&1; then echo "cargo:        $(cargo --version)"; else echo "cargo:        not installed"; fi
+        if command -v rustup       >/dev/null 2>&1; then
+          echo "rustup:       $(rustup --version 2>/dev/null | head -1)"
+          echo "toolchain:    $(rustup show active-toolchain 2>/dev/null || true)"
+          echo "targets:      $(rustup target list --installed 2>/dev/null | paste -sd ' ' -)"
+        else
+          echo "rustup:       not installed"
+          echo "toolchain:    not installed"
+          echo "targets:      not installed"
+        fi
+        if command -v java         >/dev/null 2>&1; then echo "java:         $(java -version 2>&1 | head -1)"; else echo "java:         not installed"; fi
+        if command -v javac        >/dev/null 2>&1; then echo "javac:        $(javac -version 2>&1 | head -1)"; else echo "javac:        not installed"; fi
+        if command -v kotlinc      >/dev/null 2>&1; then echo "kotlinc:      $(kotlinc -version 2>&1 | head -1)"; else echo "kotlinc:      not installed"; fi
+        if command -v ktlint       >/dev/null 2>&1; then
+          ktlint_ver=$(ktlint --version 2>/dev/null | head -1)
+          echo "ktlint:       ${ktlint_ver:-(version unknown)}"
+        else
+          echo "ktlint:       not installed"
+        fi
+        if command -v gradle       >/dev/null 2>&1; then echo "gradle:       $(gradle --version 2>/dev/null | awk '/^Gradle/{print $2}')"; else echo "gradle:       not installed"; fi
+        if command -v node         >/dev/null 2>&1; then echo "node:         $(node --version)"; else echo "node:         not installed"; fi
+        if command -v npm          >/dev/null 2>&1; then echo "npm:          $(npm --version)"; else echo "npm:          not installed"; fi
+        if command -v wasm-pack    >/dev/null 2>&1; then echo "wasm-pack:    $(wasm-pack --version 2>/dev/null | head -1)"; else echo "wasm-pack:    not installed"; fi
+        if command -v wasm-bindgen >/dev/null 2>&1; then
+          echo "wasm-bindgen: $(wasm-bindgen --version 2>/dev/null | head -1)"
+        elif [ -f "$CARGO_LOCK" ]; then
+          wb_ver=$(awk '
+            /^name = "wasm-bindgen"$/ { found=1; next }
+            found && /^version = /    { gsub(/"/, "", $3); print $3; exit }
+          ' "$CARGO_LOCK")
+          if [ -n "$wb_ver" ]; then
+            echo "wasm-bindgen: $wb_ver (from $CARGO_LOCK)"
+          else
+            echo "wasm-bindgen: not installed"
+          fi
+        else
+          echo "wasm-bindgen: not installed"
+        fi
+        if command -v cargo-about  >/dev/null 2>&1; then echo "cargo-about:  $(cargo-about --version 2>/dev/null | head -1)"; else echo "cargo-about:  not installed"; fi
+        echo "::endgroup::"

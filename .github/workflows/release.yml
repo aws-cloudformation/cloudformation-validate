@@ -1,0 +1,161 @@
+name: Release
+run-name: Release ${{ inputs.tag }} ${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The tag to release (v1.0.0 for prod, v1.0.0-beta for beta)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  get-configs:
+    uses: ./.github/workflows/configs.yml
+
+  version-and-tag:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get version from Cargo.toml
+        id: get-version
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          VERSION=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
+          echo "Cargo.toml version = $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag matches version
+        run: |
+          VERSION="${{ steps.get-version.outputs.version }}"
+          TAG="${{ inputs.tag }}"
+
+          if [[ "$TAG" == "v$VERSION" ]]; then
+            echo "Tag $TAG matches version $VERSION (prod release)."
+          elif [[ "$TAG" == "v$VERSION-beta" ]]; then
+            echo "Tag $TAG matches version $VERSION (beta)."
+          else
+            echo "::error::Tag ($TAG) must be v$VERSION (prod) or v$VERSION-beta (beta)"
+            exit 1
+          fi
+
+      - name: Check tag does not already exist
+        run: |
+          if git rev-parse -q --verify "refs/tags/${{ inputs.tag }}" >/dev/null; then
+            echo "::error::Tag ${{ inputs.tag }} already exists."
+            exit 1
+          fi
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          git tag "${{ inputs.tag }}"
+          echo "Created tag from branch=$(git rev-parse --abbrev-ref HEAD), commit=$(git rev-parse HEAD), tag=$(git describe --tags --exact-match)"
+
+          git push origin "${{ inputs.tag }}"
+          echo "Pushed tag=$TAG"
+
+  release:
+    needs: [ get-configs, version-and-tag ]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+      SIGNING_KEY_PEM: signing-keys/cloudformation-validate-signing-key.pem
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Assemble release artifacts
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p release
+
+          jars=("$WORKING_DIR"/bindings-jvm/generated/cloudformation-validate-jvm-*.jar)
+          if [ ${#jars[@]} -eq 0 ]; then
+            echo "::error::No JVM jars in bindings-jvm/generated/. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          cp "${jars[@]}" release/
+
+          if [ ! -d "$WORKING_DIR/bindings-wasm/dist" ]; then
+            echo "::error::bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm.zip" dist )
+
+          ls -lh release/
+
+      - name: Generate SHA256SUMS manifest
+        run: |
+          set -euo pipefail
+          ( cd release && sha256sum -- * ) > SHA256SUMS
+          mv SHA256SUMS release/SHA256SUMS
+          echo "----- SHA256SUMS -----"
+          cat release/SHA256SUMS
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.SIGNING_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Sign the manifest with KMS
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          KMS_KEY_ALIAS: ${{ secrets.KMS_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+
+          openssl dgst -sha256 -binary release/SHA256SUMS > digest.bin
+          aws kms sign \
+            --region "$AWS_REGION" \
+            --key-id "$KMS_KEY_ALIAS" \
+            --message fileb://digest.bin \
+            --message-type DIGEST \
+            --signing-algorithm RSASSA_PKCS1_V1_5_SHA_256 \
+            --query Signature --output text | base64 -d > release/SHA256SUMS.sig
+
+      - name: Verify signature before publishing
+        run: |
+          set -euo pipefail
+          # 1) Signature must validate against the committed public key (must print: Verified OK).
+          openssl dgst -sha256 -verify "$SIGNING_KEY_PEM" -signature release/SHA256SUMS.sig release/SHA256SUMS
+          # 2) Every signed artifact must match the manifest.
+          ( cd release && sha256sum -c SHA256SUMS )
+
+      - name: Add public key to release assets
+        run: |
+          cp "$SIGNING_KEY_PEM" release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          prerelease: ${{ contains(inputs.tag, '-beta') }}
+          generate_release_notes: true
+          files: release/*
+          fail_on_unmatched_files: true

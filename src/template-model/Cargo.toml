@@ -1,0 +1,33 @@
+[package]
+name = "template-model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "template_model"
+path = "src/lib.rs"
+
+[[example]]
+name = "inspect"
+path = "src/inspect.rs"
+
+[features]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "diagnostics/wasm-bindings"]
+uniffi-bindings = ["dep:uniffi", "diagnostics/uniffi-bindings"]
+
+[dependencies]
+diagnostics = { path = "../diagnostics" }
+rules_crate = { path = "../rules", package = "rules" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+yaml-rust2 = "0.11.0"
+base64 = "0.22"
+log = "0.4"
+web-time = "1"
+tsify = { version = "0.4", optional = true, features = ["js"] }
+wasm-bindgen = { version = "0.2", optional = true }
+uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }
+
+[dev-dependencies]
+env_logger = "0.11"

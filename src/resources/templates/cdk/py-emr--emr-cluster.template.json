@@ -1,0 +1,715 @@
+{
+ "Resources": {
+  "vpcA2121C38": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "emr-cluster/vpc"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/Resource"
+   }
+  },
+  "vpcpublicSubnet1SubnetA635257E": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/17",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "emr-cluster/vpc/publicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "vpcA2121C38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet1/Subnet"
+   }
+  },
+  "vpcpublicSubnet1RouteTableA38152FE": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "emr-cluster/vpc/publicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "vpcA2121C38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet1/RouteTable"
+   }
+  },
+  "vpcpublicSubnet1RouteTableAssociationB46101B8": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "vpcpublicSubnet1RouteTableA38152FE"
+    },
+    "SubnetId": {
+     "Ref": "vpcpublicSubnet1SubnetA635257E"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet1/RouteTableAssociation"
+   }
+  },
+  "vpcpublicSubnet1DefaultRouteF0973989": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "vpcIGWE57CBDCA"
+    },
+    "RouteTableId": {
+     "Ref": "vpcpublicSubnet1RouteTableA38152FE"
+    }
+   },
+   "DependsOn": [
+    "vpcVPCGW7984C166"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet1/DefaultRoute"
+   }
+  },
+  "vpcpublicSubnet2Subnet027D165B": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.128.0/17",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "emr-cluster/vpc/publicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "vpcA2121C38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet2/Subnet"
+   }
+  },
+  "vpcpublicSubnet2RouteTableA6135437": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "emr-cluster/vpc/publicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "vpcA2121C38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet2/RouteTable"
+   }
+  },
+  "vpcpublicSubnet2RouteTableAssociation73F6478A": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "vpcpublicSubnet2RouteTableA6135437"
+    },
+    "SubnetId": {
+     "Ref": "vpcpublicSubnet2Subnet027D165B"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet2/RouteTableAssociation"
+   }
+  },
+  "vpcpublicSubnet2DefaultRoute13685A07": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "vpcIGWE57CBDCA"
+    },
+    "RouteTableId": {
+     "Ref": "vpcpublicSubnet2RouteTableA6135437"
+    }
+   },
+   "DependsOn": [
+    "vpcVPCGW7984C166"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/publicSubnet2/DefaultRoute"
+   }
+  },
+  "vpcIGWE57CBDCA": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "emr-cluster/vpc"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/IGW"
+   }
+  },
+  "vpcVPCGW7984C166": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "vpcIGWE57CBDCA"
+    },
+    "VpcId": {
+     "Ref": "vpcA2121C38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/vpc/VPCGW"
+   }
+  },
+  "emrservicerole3BE5EDAF": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "elasticmapreduce.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonElasticMapReduceRole"
+       ]
+      ]
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": "s3:GetObject",
+         "Effect": "Allow",
+         "Resource": "arn:aws:s3:::s3_bucket_scripts/*"
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "read_scripts_document"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/emr_service_role/Resource"
+   }
+  },
+  "emrjobflowrole15D4DAE5": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/emr_job_flow_role/Resource"
+   }
+  },
+  "emrjobflowprofile": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "InstanceProfileName": "emrJobFlowProfile_",
+    "Roles": [
+     {
+      "Ref": "emrjobflowrole15D4DAE5"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/emr_job_flow_profile"
+   }
+  },
+  "emrcluster": {
+   "Type": "AWS::EMR::Cluster",
+   "Properties": {
+    "Applications": [
+     {
+      "Name": "Spark"
+     }
+    ],
+    "Configurations": [
+     {
+      "Classification": "spark-env",
+      "Configurations": [
+       {
+        "Classification": "export",
+        "ConfigurationProperties": {
+         "PYSPARK_PYTHON": "/usr/bin/python3",
+         "PYSPARK_DRIVER_PYTHON": "/usr/bin/python3"
+        }
+       }
+      ]
+     },
+     {
+      "Classification": "spark-defaults",
+      "ConfigurationProperties": {
+       "spark.sql.execution.arrow.enabled": "true"
+      }
+     },
+     {
+      "Classification": "spark",
+      "ConfigurationProperties": {
+       "maximizeResourceAllocation": "true"
+      }
+     }
+    ],
+    "Instances": {
+     "CoreInstanceGroup": {
+      "InstanceCount": 3,
+      "InstanceType": "m4.large",
+      "Market": "SPOT"
+     },
+     "Ec2SubnetId": {
+      "Ref": "vpcpublicSubnet1SubnetA635257E"
+     },
+     "HadoopVersion": "Amazon",
+     "KeepJobFlowAliveWhenNoSteps": false,
+     "MasterInstanceGroup": {
+      "InstanceCount": 1,
+      "InstanceType": "m4.large",
+      "Market": "SPOT"
+     }
+    },
+    "JobFlowRole": "emrJobFlowProfile_",
+    "LogUri": {
+     "Fn::Join": [
+      "",
+      [
+       "s3://s3_bucket_logs/",
+       {
+        "Ref": "AWS::Region"
+       },
+       "/elasticmapreduce/"
+      ]
+     ]
+    },
+    "Name": "cluster_name",
+    "ReleaseLabel": "emr-6.0.0",
+    "ServiceRole": {
+     "Ref": "emrservicerole3BE5EDAF"
+    },
+    "Steps": [
+     {
+      "ActionOnFailure": "CONTINUE",
+      "HadoopJarStep": {
+       "Args": [
+        "spark-submit",
+        "--deploy-mode",
+        "cluster",
+        "s3://s3_bucket_scripts/scripts/pyspark_script.py"
+       ],
+       "Jar": "command-runner.jar"
+      },
+      "Name": "step_name"
+     }
+    ],
+    "VisibleToAllUsers": false
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/emr_cluster"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/0WNwYrCQBBEv8X7pDURP0ByEG8hLl6l09vB1knPMtNDkJB/F1E3p6p6FFUVVLsSNiscU0G/98JLB9PJkO4Ox3SZmCqYzn/k6l7PTe2a3HmhU+6U7cUW14Zs/IOd54UvbJ9SIEGToP/llzmqcVS2AxqP+PjcfNLeDOk6sNrsBAeY2vBe/+pRk6ESNzH04nl2PESoe619TsZxdi2nkCPx7JqHXYOut1BWUG5WtyRSxKwmA0P71icV8VGoDAEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "emr-cluster/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}
