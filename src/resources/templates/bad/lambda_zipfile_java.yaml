@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  LambdaFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my-function
+      Runtime: java21
+      Handler: com.example.Handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code:
+        ZipFile: "public class Handler {}"

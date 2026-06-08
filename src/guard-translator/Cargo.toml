@@ -1,0 +1,15 @@
+[package]
+name = "guard-translator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "guard_translator"
+path = "src/lib.rs"
+
+[dependencies]
+guard-lang = { git = "https://github.com/aws-cloudformation/cloudformation-guard.git", branch = "guard-lib" }
+serde = { version = "1", features = ["derive"] }
+indexmap = "1.6"
+rules = { path = "../rules" }

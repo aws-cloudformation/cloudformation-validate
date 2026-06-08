@@ -1,0 +1,251 @@
+name: Release
+run-name: Release ${{ inputs.tag }} ${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The tag to release (1.0.0 for prod, 1.0.0-beta for beta)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  get-configs:
+    uses: ./.github/workflows/configs.yml
+
+  version-and-tag:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get version from Cargo.toml
+        id: get-version
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          VERSION=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
+          echo "Cargo.toml version = $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag matches version
+        run: |
+          VERSION="${{ steps.get-version.outputs.version }}"
+          TAG="${{ inputs.tag }}"
+
+          if [[ "$TAG" == "$VERSION" ]]; then
+            echo "Tag $TAG matches version $VERSION - prod release"
+          elif [[ "$TAG" == "$VERSION-beta" ]]; then
+            echo "Tag $TAG matches version $VERSION - beta release"
+          else
+            echo "::error::Tag ($TAG) must be $VERSION (prod) or $VERSION-beta (beta)"
+            exit 1
+          fi
+
+      - name: Check tag does not already exist
+        run: |
+          if git rev-parse -q --verify "refs/tags/${{ inputs.tag }}" >/dev/null; then
+            echo "::error::Tag ${{ inputs.tag }} already exists."
+            exit 1
+          fi
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          git tag "${{ inputs.tag }}"
+          echo "Created tag from branch=$(git rev-parse --abbrev-ref HEAD), commit=$(git rev-parse HEAD), tag=$(git describe --tags --exact-match)"
+
+          git push origin "${{ inputs.tag }}"
+          echo "Pushed tag=$TAG"
+
+  release:
+    needs: [ get-configs, version-and-tag ]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Assemble release artifacts
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p release
+
+          jar="$WORKING_DIR/bindings-jvm/generated/cloudformation-validate.jar"
+          if [ ! -f "$jar" ]; then
+            echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          cp "$jar" release/
+
+          if [ ! -d "$WORKING_DIR/bindings-wasm/dist" ]; then
+            echo "::error::bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+
+          # Stamp the WASM package version to match the release tag. The committed dist
+          # carries the base version (X.Y.Z) from Cargo.toml; for prerelease tags
+          # (X.Y.Z-beta) we re-stamp here so the published package carries the actual
+          # -beta postfix. The tag is already validated to be VERSION or VERSION-beta by
+          # the version-and-tag job. Stamping before the zip ensures the signature
+          # (computed later over the zip) covers the corrected version.
+          WASM_PKG_JSON="$WORKING_DIR/bindings-wasm/dist/package.json"
+          if [ ! -f "$WASM_PKG_JSON" ]; then
+            echo "::error::$WASM_PKG_JSON not found in committed dist."
+            exit 1
+          fi
+          tmp=$(mktemp)
+          jq --arg v "${{ inputs.tag }}" '.version = $v' "$WASM_PKG_JSON" > "$tmp"
+          mv "$tmp" "$WASM_PKG_JSON"
+          echo "WASM package version stamped to ${{ inputs.tag }}:"
+          grep '"version"' "$WASM_PKG_JSON"
+
+          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate.zip" dist )
+
+          ls -lh release/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.0
+        with:
+          role-to-assume: ${{ secrets.SIGNING_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Sign artifacts with KMS
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          KMS_KEY_ALIAS: ${{ secrets.KMS_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          for f in release/*; do
+            rm -f digest.bin
+            openssl dgst -sha256 -binary "$f" > digest.bin
+
+            aws kms sign \
+              --region "$AWS_REGION" \
+              --key-id "$KMS_KEY_ALIAS" \
+              --message fileb://digest.bin \
+              --message-type DIGEST \
+              --signing-algorithm RSASSA_PKCS1_V1_5_SHA_256 \
+              --query Signature --output text | base64 -d > "$f.sig"
+
+            echo "signed: $f -> $f.sig"
+          done
+          rm -f digest.bin
+
+      - name: Verify signatures
+        env:
+          SIGNING_PUBLIC_KEY: ${{ secrets.SIGNING_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          printf '%s\n' "$SIGNING_PUBLIC_KEY" > signing-key.pem
+
+          for f in release/*; do
+            case "$f" in *.sig) continue ;; esac
+            echo "Verifying: $f"
+            result=$(openssl dgst -sha256 -verify signing-key.pem -signature "$f.sig" "$f") || true
+            echo "$result"
+            if [ "$result" != "Verified OK" ]; then
+              echo "::error::signature verification failed for $f"
+              exit 1
+            fi
+          done
+          rm -f signing-key.pem
+
+      - name: Add public key to release assets
+        env:
+          SIGNING_PUBLIC_KEY: ${{ secrets.SIGNING_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$SIGNING_PUBLIC_KEY" > release/signing-key.pem
+          fingerprint=$(openssl pkey -pubin -in release/signing-key.pem -outform DER | openssl dgst -sha256 | awk '{print $NF}')
+          printf '%s\n' "$fingerprint" > release/signing-key.pem.sha256
+          echo "public key SHA-256: $fingerprint"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag }}
+          prerelease: ${{ contains(inputs.tag, '-beta') }}
+          generate_release_notes: true
+          files: release/*
+          fail_on_unmatched_files: true
+
+  publish-npm:
+    needs: [ get-configs, version-and-tag, release ]
+    runs-on: ubuntu-latest
+    environment: release-npm
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Upgrade npm for Trusted Publishing
+        run: npm install -g npm@latest
+
+      - name: Stamp the committed dist version to match the release tag
+        working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/dist
+        run: |
+          set -euo pipefail
+          if [ ! -f package.json ]; then
+            echo "::error::committed bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          tmp=$(mktemp)
+          jq --arg v "${{ inputs.tag }}" '.version = $v' package.json > "$tmp"
+          mv "$tmp" package.json
+          grep '"version"' package.json
+
+      - name: Confirm tarball contents
+        working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/dist
+        run: npm pack --dry-run
+
+      - name: Publish to npm (OIDC Trusted Publishing + provenance)
+        working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/dist
+        run: |
+          npm publish --access public --provenance \
+            $([[ "${{ inputs.tag }}" == *-beta ]] && echo "--tag beta")
+
+      - name: Verify published provenance + integrity
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          cd "$tmp"
+          npm init -y >/dev/null
+          npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts --no-save
+          npm audit signatures

@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: test
+      Tags:
+        - Key: Env
+          Value: !FindInMap [NonExistentMap, us-east-1, AMI]

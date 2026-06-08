@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Func:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java21
+      Handler: com.example.Handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        S3Bucket: my-bucket
+        S3Key: code.jar
+      SnapStart:
+        ApplyOn: PublishedVersions

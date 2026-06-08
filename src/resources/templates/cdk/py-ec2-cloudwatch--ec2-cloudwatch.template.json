@@ -1,0 +1,1408 @@
+{
+ "Resources": {
+  "VpcFromCDKAC02ED99": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/Resource"
+   }
+  },
+  "VpcFromCDKPublicSubnet1SubnetE7F939D2": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/18",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1/Subnet"
+   }
+  },
+  "VpcFromCDKPublicSubnet1RouteTable0BDD81D8": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1/RouteTable"
+   }
+  },
+  "VpcFromCDKPublicSubnet1RouteTableAssociation616E7197": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPublicSubnet1RouteTable0BDD81D8"
+    },
+    "SubnetId": {
+     "Ref": "VpcFromCDKPublicSubnet1SubnetE7F939D2"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1/RouteTableAssociation"
+   }
+  },
+  "VpcFromCDKPublicSubnet1DefaultRoute1FF73EA6": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "VpcFromCDKIGW52BF7733"
+    },
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPublicSubnet1RouteTable0BDD81D8"
+    }
+   },
+   "DependsOn": [
+    "VpcFromCDKVPCGW6C4E6589"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1/DefaultRoute"
+   }
+  },
+  "VpcFromCDKPublicSubnet1EIP637D1D3D": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1/EIP"
+   }
+  },
+  "VpcFromCDKPublicSubnet1NATGateway291FE40B": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "VpcFromCDKPublicSubnet1EIP637D1D3D",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "VpcFromCDKPublicSubnet1SubnetE7F939D2"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1"
+     }
+    ]
+   },
+   "DependsOn": [
+    "VpcFromCDKPublicSubnet1DefaultRoute1FF73EA6",
+    "VpcFromCDKPublicSubnet1RouteTableAssociation616E7197"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet1/NATGateway"
+   }
+  },
+  "VpcFromCDKPublicSubnet2SubnetBDC76372": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.64.0/18",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2/Subnet"
+   }
+  },
+  "VpcFromCDKPublicSubnet2RouteTableF7A722BD": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2/RouteTable"
+   }
+  },
+  "VpcFromCDKPublicSubnet2RouteTableAssociation163F9AFA": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPublicSubnet2RouteTableF7A722BD"
+    },
+    "SubnetId": {
+     "Ref": "VpcFromCDKPublicSubnet2SubnetBDC76372"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2/RouteTableAssociation"
+   }
+  },
+  "VpcFromCDKPublicSubnet2DefaultRouteC022B913": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "VpcFromCDKIGW52BF7733"
+    },
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPublicSubnet2RouteTableF7A722BD"
+    }
+   },
+   "DependsOn": [
+    "VpcFromCDKVPCGW6C4E6589"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2/DefaultRoute"
+   }
+  },
+  "VpcFromCDKPublicSubnet2EIP09D8D9CE": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2/EIP"
+   }
+  },
+  "VpcFromCDKPublicSubnet2NATGateway3450887A": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "VpcFromCDKPublicSubnet2EIP09D8D9CE",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "VpcFromCDKPublicSubnet2SubnetBDC76372"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2"
+     }
+    ]
+   },
+   "DependsOn": [
+    "VpcFromCDKPublicSubnet2DefaultRouteC022B913",
+    "VpcFromCDKPublicSubnet2RouteTableAssociation163F9AFA"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PublicSubnet2/NATGateway"
+   }
+  },
+  "VpcFromCDKPrivateSubnet1SubnetE081A3F6": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.128.0/18",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet1/Subnet"
+   }
+  },
+  "VpcFromCDKPrivateSubnet1RouteTableB5578A45": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet1/RouteTable"
+   }
+  },
+  "VpcFromCDKPrivateSubnet1RouteTableAssociation7F2E7FF7": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPrivateSubnet1RouteTableB5578A45"
+    },
+    "SubnetId": {
+     "Ref": "VpcFromCDKPrivateSubnet1SubnetE081A3F6"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet1/RouteTableAssociation"
+   }
+  },
+  "VpcFromCDKPrivateSubnet1DefaultRoute3081953E": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "VpcFromCDKPublicSubnet1NATGateway291FE40B"
+    },
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPrivateSubnet1RouteTableB5578A45"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet1/DefaultRoute"
+   }
+  },
+  "VpcFromCDKPrivateSubnet2Subnet6D9A025D": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.192.0/18",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet2/Subnet"
+   }
+  },
+  "VpcFromCDKPrivateSubnet2RouteTable5CB16C6C": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet2/RouteTable"
+   }
+  },
+  "VpcFromCDKPrivateSubnet2RouteTableAssociation68ADF807": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPrivateSubnet2RouteTable5CB16C6C"
+    },
+    "SubnetId": {
+     "Ref": "VpcFromCDKPrivateSubnet2Subnet6D9A025D"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet2/RouteTableAssociation"
+   }
+  },
+  "VpcFromCDKPrivateSubnet2DefaultRoute0D482744": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "VpcFromCDKPublicSubnet2NATGateway3450887A"
+    },
+    "RouteTableId": {
+     "Ref": "VpcFromCDKPrivateSubnet2RouteTable5CB16C6C"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/PrivateSubnet2/DefaultRoute"
+   }
+  },
+  "VpcFromCDKIGW52BF7733": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/IGW"
+   }
+  },
+  "VpcFromCDKVPCGW6C4E6589": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "VpcFromCDKIGW52BF7733"
+    },
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/VPCGW"
+   }
+  },
+  "VpcFromCDKS3EndpointF02E5219": {
+   "Type": "AWS::EC2::VPCEndpoint",
+   "Properties": {
+    "RouteTableIds": [
+     {
+      "Ref": "VpcFromCDKPublicSubnet1RouteTable0BDD81D8"
+     },
+     {
+      "Ref": "VpcFromCDKPublicSubnet2RouteTableF7A722BD"
+     }
+    ],
+    "ServiceName": {
+     "Fn::Join": [
+      "",
+      [
+       "com.amazonaws.",
+       {
+        "Ref": "AWS::Region"
+       },
+       ".s3"
+      ]
+     ]
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/VpcFromCDK"
+     }
+    ],
+    "VpcEndpointType": "Gateway",
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/VpcFromCDK/S3Endpoint/Resource"
+   }
+  },
+  "BastionHostInstanceSecurityGroupE75D4274": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "ec2-cloudwatch/BastionHost/Resource/InstanceSecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "1.2.3.4/32",
+      "Description": "SSH access",
+      "FromPort": 22,
+      "IpProtocol": "tcp",
+      "ToPort": 22
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "BastionHost"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/BastionHost/Resource/InstanceSecurityGroup/Resource"
+   }
+  },
+  "BastionHostInstanceRoleDD3FA5F1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "BastionHost"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/BastionHost/Resource/InstanceRole/Resource"
+   }
+  },
+  "BastionHostInstanceRoleDefaultPolicy17347525": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ssmmessages:*",
+        "ssm:UpdateInstanceInformation",
+        "ec2messages:*"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BastionHostInstanceRoleDefaultPolicy17347525",
+    "Roles": [
+     {
+      "Ref": "BastionHostInstanceRoleDD3FA5F1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/BastionHost/Resource/InstanceRole/DefaultPolicy/Resource"
+   }
+  },
+  "BastionHostInstanceProfile770FCA07": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "BastionHostInstanceRoleDD3FA5F1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/BastionHost/Resource/InstanceProfile"
+   }
+  },
+  "BastionHost30F9ED05": {
+   "Type": "AWS::EC2::Instance",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "IamInstanceProfile": {
+     "Ref": "BastionHostInstanceProfile770FCA07"
+    },
+    "ImageId": {
+     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    "InstanceType": "t3.nano",
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "BastionHostInstanceSecurityGroupE75D4274",
+       "GroupId"
+      ]
+     }
+    ],
+    "SubnetId": {
+     "Ref": "VpcFromCDKPublicSubnet1SubnetE7F939D2"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "BastionHost"
+     }
+    ],
+    "UserData": {
+     "Fn::Base64": "#!/bin/bash"
+    }
+   },
+   "DependsOn": [
+    "BastionHostInstanceRoleDefaultPolicy17347525",
+    "BastionHostInstanceRoleDD3FA5F1"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/BastionHost/Resource/Resource"
+   }
+  },
+  "SecurityGroupDD263621": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "SecurityGroup from CDK",
+    "GroupName": "CDK SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "10.0.0.0/16",
+      "Description": "allow ssh access from the VPC",
+      "FromPort": 22,
+      "IpProtocol": "tcp",
+      "ToPort": 22
+     },
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "allow http from world",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     },
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "allow https from world",
+      "FromPort": 443,
+      "IpProtocol": "tcp",
+      "ToPort": 443
+     }
+    ],
+    "VpcId": {
+     "Ref": "VpcFromCDKAC02ED99"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/SecurityGroup/Resource"
+   }
+  },
+  "WebInstanceInstanceRole533376B2": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/WebInstance"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/WebInstance/InstanceRole/Resource"
+   }
+  },
+  "WebInstanceInstanceProfile57246EB7": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "WebInstanceInstanceRole533376B2"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/WebInstance/InstanceProfile"
+   }
+  },
+  "WebInstanceF774E10D": {
+   "Type": "AWS::EC2::Instance",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "BlockDeviceMappings": [
+     {
+      "DeviceName": "/dev/sdb",
+      "Ebs": {
+       "VolumeSize": "30",
+       "VolumeType": "gp2",
+       "DeleteOnTermination": "true"
+      }
+     }
+    ],
+    "IamInstanceProfile": {
+     "Ref": "WebInstanceInstanceProfile57246EB7"
+    },
+    "ImageId": {
+     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestamznamihvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    "InstanceType": "Write a EC2 instance type",
+    "KeyName": "Your SSH key pair name",
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "SecurityGroupDD263621",
+       "GroupId"
+      ]
+     }
+    ],
+    "SubnetId": {
+     "Ref": "VpcFromCDKPublicSubnet1SubnetE7F939D2"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ec2-cloudwatch/WebInstance"
+     }
+    ],
+    "UserData": {
+     "Fn::Base64": "#!/bin/bash"
+    }
+   },
+   "DependsOn": [
+    "WebInstanceInstanceRole533376B2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/WebInstance/Resource"
+   }
+  },
+  "ScheduleRuleDA5BD877": {
+   "Type": "AWS::Events::Rule",
+   "Properties": {
+    "ScheduleExpression": "cron(0 15 * * ? *)",
+    "State": "ENABLED",
+    "Targets": [
+     {
+      "Arn": {
+       "Fn::GetAtt": [
+        "AWSb4cf1abd4e4f4bc699441af7ccd9ec371511E620",
+        "Arn"
+       ]
+      },
+      "Id": "Target0",
+      "Input": {
+       "Fn::Join": [
+        "",
+        [
+         "{\"service\":\"EC2\",\"action\":\"stopInstances\",\"parameters\":{\"InstanceIds\":[\"",
+         {
+          "Ref": "WebInstanceF774E10D"
+         },
+         "\",\"",
+         {
+          "Ref": "BastionHost30F9ED05"
+         },
+         "\"]}}"
+        ]
+       ]
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/ScheduleRule/Resource"
+   }
+  },
+  "ScheduleRuleAllowEventRuleec2cloudwatchScheduleRuleScheduleRuleTarget0Handler5EF9EBA726A6C94B": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "AWSb4cf1abd4e4f4bc699441af7ccd9ec371511E620",
+      "Arn"
+     ]
+    },
+    "Principal": "events.amazonaws.com",
+    "SourceArn": {
+     "Fn::GetAtt": [
+      "ScheduleRuleDA5BD877",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/ScheduleRule/AllowEventRuleec2cloudwatchScheduleRuleScheduleRuleTarget0Handler5EF9EBA7"
+   }
+  },
+  "AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRole9FFE9C50": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/AWSb4cf1abd4e4f4bc699441af7ccd9ec37/ServiceRole/Resource"
+   }
+  },
+  "AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRoleDefaultPolicy4D43A7C1": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "ec2:StopInstances",
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRoleDefaultPolicy4D43A7C1",
+    "Roles": [
+     {
+      "Ref": "AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRole9FFE9C50"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/AWSb4cf1abd4e4f4bc699441af7ccd9ec37/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "AWSb4cf1abd4e4f4bc699441af7ccd9ec371511E620": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "577047e96fffc143e84bdacb28b5c6088b6b31db59cdc409b8e8a7d1eb549038.zip"
+    },
+    "Handler": "index.handler",
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRole9FFE9C50",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Timeout": 60
+   },
+   "DependsOn": [
+    "AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRoleDefaultPolicy4D43A7C1",
+    "AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRole9FFE9C50"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/AWSb4cf1abd4e4f4bc699441af7ccd9ec37/Resource",
+    "aws:asset:path": "/var/folders/_x/fyhxn65j55n4v4d_1ptd7ckw0000gq/T/jsii-kernel-WlRQVd/node_modules/aws-cdk-lib/custom-resource-handlers/dist/aws-events-targets/aws-api-handler",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "BackupVault3A9C5852": {
+   "Type": "AWS::Backup::BackupVault",
+   "Properties": {
+    "BackupVaultName": "CDK_Backup_Vault"
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/BackupVault/Resource"
+   }
+  },
+  "AWSBackupPlanD181A800": {
+   "Type": "AWS::Backup::BackupPlan",
+   "Properties": {
+    "BackupPlan": {
+     "BackupPlanName": "CDK_Backup",
+     "BackupPlanRule": [
+      {
+       "Lifecycle": {
+        "DeleteAfterDays": 130,
+        "MoveToColdStorageAfterDays": 10
+       },
+       "RuleName": "CDK_Backup_Rule",
+       "ScheduleExpression": "cron(0 16 1 1-12 ? *)",
+       "TargetBackupVault": {
+        "Fn::GetAtt": [
+         "BackupVault3A9C5852",
+         "BackupVaultName"
+        ]
+       }
+      }
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/AWS-Backup-Plan/Resource"
+   }
+  },
+  "AWSBackupPlanSelectionRole2A44F724": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "backup.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/AWS-Backup-Plan/Selection/Role/Resource"
+   }
+  },
+  "AWSBackupPlanSelectionAF95B30F": {
+   "Type": "AWS::Backup::BackupSelection",
+   "Properties": {
+    "BackupPlanId": {
+     "Fn::GetAtt": [
+      "AWSBackupPlanD181A800",
+      "BackupPlanId"
+     ]
+    },
+    "BackupSelection": {
+     "IamRoleArn": {
+      "Fn::GetAtt": [
+       "AWSBackupPlanSelectionRole2A44F724",
+       "Arn"
+      ]
+     },
+     "ListOfTags": [
+      {
+       "ConditionKey": "Name",
+       "ConditionType": "STRINGEQUALS",
+       "ConditionValue": "BastionHost"
+      }
+     ],
+     "Resources": [
+      {
+       "Fn::Join": [
+        "",
+        [
+         "arn:",
+         {
+          "Ref": "AWS::Partition"
+         },
+         ":ec2:",
+         {
+          "Ref": "AWS::Region"
+         },
+         ":",
+         {
+          "Ref": "AWS::AccountId"
+         },
+         ":instance/",
+         {
+          "Ref": "WebInstanceF774E10D"
+         }
+        ]
+       ]
+      }
+     ],
+     "SelectionName": "Selection"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/AWS-Backup-Plan/Selection/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11Q227CMAz9lr2HbID2ATDtgjRtUTvxOrnBg4zUqWIHhqr++9QU6LSnc8mJc5yZnt1P9d0NHHliN/uJd5VuSwG7V3DkzxbtTLfrxqqHL1qbB2VS5Z0tU0UovTeyIiTBD6g8jv7oLZiDdSAu0DXck8eV6eEN5BkEj3BSJroDCI6DVyQYCa+BoclZLUTA7mokUWdn3dhH2jTBkZyjV7kE7gu8BJZXR+lHrYgFyKIq0abo5PQcQ2py///GJdopB7VuizDsmdEE72wuNrJL3sTw5Tx2Cg9Iwrot0vlm6l0PdbUB3ZaOth4l0FMie/klg7F2zL36a194p3j+CcworBc9KJ7rZbJ7lCUwqgrsPjW6XWZcQ/L5R/7KgRsPNJ5kNdASPV6f/Wd1nSqQQ4o2r/OepEl5voEINQpGlUuVAltH206Zk+wC3c71dKandzff7NwkJhJXoy4G/AXs933xjgIAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "ec2-cloudwatch/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "BastionHostBastionHostIdC743CBD6": {
+   "Description": "Instance ID of the bastion host. Use this to connect via SSM Session Manager",
+   "Value": {
+    "Ref": "BastionHost30F9ED05"
+   }
+  },
+  "BastionHostinformation": {
+   "Description": "BastionHost's Public IP",
+   "Value": {
+    "Fn::GetAtt": [
+     "BastionHost30F9ED05",
+     "PublicIp"
+    ]
+   }
+  },
+  "WebHostinformation": {
+   "Description": "Web server's Public IP",
+   "Value": {
+    "Fn::GetAtt": [
+     "WebInstanceF774E10D",
+     "PublicIp"
+    ]
+   }
+  }
+ },
+ "Parameters": {
+  "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2"
+  },
+  "SsmParameterValueawsserviceamiamazonlinuxlatestamznamihvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-gp2"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

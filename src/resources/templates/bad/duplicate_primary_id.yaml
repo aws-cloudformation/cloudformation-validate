@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  BucketA:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-duplicate-bucket
+  BucketB:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-duplicate-bucket

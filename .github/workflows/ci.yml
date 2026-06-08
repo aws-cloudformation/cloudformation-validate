@@ -1,0 +1,16 @@
+name: Main CI
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    uses: ./.github/workflows/validate.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ github.sha }}

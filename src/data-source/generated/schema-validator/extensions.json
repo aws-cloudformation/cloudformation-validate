@@ -1,0 +1,6494 @@
+{
+  "Aws::Apigateway::Authorizer": [
+    {
+      "if": {
+        "properties": {
+          "Type": {
+            "enum": [
+              "TOKEN",
+              "REQUEST"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "Type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "AuthorizerResultTtlInSeconds": {
+            "maximum": 3600,
+            "minimum": 0
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Apigateway::Method": [
+    {
+      "cfnGather": {
+        "gather": {
+          "authorizer": {
+            "filter": {
+              "type": "AWS::ApiGateway::Authorizer"
+            },
+            "properties": {
+              "RestApiId": "/RestApiId"
+            },
+            "reference": "/AuthorizerId"
+          },
+          "method": {
+            "properties": {
+              "RestApiId": "/RestApiId"
+            }
+          }
+        },
+        "schema": {
+          "cfnContext": {
+            "functions": [],
+            "schema": {
+              "properties": {
+                "authorizer": {
+                  "properties": {
+                    "RestApiId": {
+                      "const": {
+                        "$data": "/method/RestApiId"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "authorizer": {
+            "filter": {
+              "type": "AWS::ApiGateway::Authorizer"
+            },
+            "properties": {
+              "Type": "/Type"
+            },
+            "reference": "/AuthorizerId"
+          },
+          "method": {
+            "properties": {
+              "AuthorizationType": "/AuthorizationType"
+            }
+          }
+        },
+        "schema": {
+          "else": {
+            "if": {
+              "properties": {
+                "method": {
+                  "properties": {
+                    "AuthorizationType": {
+                      "const": "COGNITO_USER_POOLS"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "authorizer": {
+                  "properties": {
+                    "Type": {
+                      "const": "COGNITO_USER_POOLS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "method": {
+                "properties": {
+                  "AuthorizationType": {
+                    "const": "CUSTOM"
+                  }
+                },
+                "required": [
+                  "AuthorizationType"
+                ]
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "authorizer": {
+                "properties": {
+                  "Type": {
+                    "enum": [
+                      "TOKEN",
+                      "REQUEST"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Apigateway::Restapi": [
+    {
+      "else": {
+        "required": [
+          "Name"
+        ]
+      },
+      "if": {
+        "anyOf": [
+          {
+            "required": [
+              "Body"
+            ]
+          },
+          {
+            "required": [
+              "BodyS3Location"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "Aws::Apigateway::Stage": [
+    {
+      "cfnGather": {
+        "gather": {
+          "deployment": {
+            "filter": {
+              "type": "AWS::ApiGateway::Deployment"
+            },
+            "properties": {
+              "RestApiId": "/RestApiId"
+            },
+            "reference": "/DeploymentId"
+          },
+          "stage": {
+            "properties": {
+              "RestApiId": "/RestApiId"
+            }
+          }
+        },
+        "schema": {
+          "cfnContext": {
+            "functions": [],
+            "schema": {
+              "properties": {
+                "deployment": {
+                  "properties": {
+                    "RestApiId": {
+                      "const": {
+                        "$data": "/stage/RestApiId"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Autoscaling::Autoscalinggroup": [
+    {
+      "cfnGather": {
+        "gather": {
+          "this": {
+            "properties": {
+              "MaxSize": {
+                "path": "/MaxSize"
+              },
+              "MinSize": {
+                "path": "/MinSize"
+              }
+            }
+          }
+        },
+        "schema": {
+          "properties": {
+            "this": {
+              "properties": {
+                "MaxSize": {
+                  "minimum": {
+                    "$data": "/this/MinSize"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Autoscaling::Scalingpolicy": [
+    {
+      "cfnGather": {
+        "gather": {
+          "asg": {
+            "filter": {
+              "type": "AWS::AutoScaling::AutoScalingGroup"
+            },
+            "properties": {
+              "MaxSize": "/MaxSize",
+              "MinSize": "/MinSize"
+            },
+            "reference": "/AutoScalingGroupName"
+          },
+          "policy": {
+            "properties": {
+              "PolicyType": "/PolicyType"
+            }
+          }
+        },
+        "schema": {
+          "if": {
+            "properties": {
+              "policy": {
+                "properties": {
+                  "PolicyType": {
+                    "const": "TargetTrackingScaling"
+                  }
+                },
+                "required": [
+                  "PolicyType"
+                ]
+              }
+            },
+            "required": [
+              "policy",
+              "asg"
+            ]
+          },
+          "then": {
+            "properties": {
+              "asg": {
+                "properties": {
+                  "MaxSize": {
+                    "exclusiveMinimum": {
+                      "$data": "/asg/MinSize"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Cloudwatch::Alarm": [
+    {
+      "additionalProperties": true,
+      "description": "The period, in seconds, over which the statistic is applied. This is required for an alarm based on a metric. Valid values are 10, 30, 60, and any multiple of 60.",
+      "if": {
+        "properties": {
+          "Period": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "Period"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "Period": {
+            "else": {
+              "multipleOf": 60
+            },
+            "if": {
+              "maximum": 60
+            },
+            "then": {
+              "enum": [
+                10,
+                30,
+                60
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Codebuild::Project": [
+    {
+      "if": {
+        "properties": {
+          "Type": {
+            "const": "S3",
+            "type": "string"
+          }
+        },
+        "required": [
+          "Type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "Location"
+        ]
+      }
+    }
+  ],
+  "Aws::Dynamodb::Table": [
+    {
+      "description": "When 'BillingMode' is 'PAY_PER_REQUEST' don't specify 'ProvisionedThroughput'",
+      "if": {
+        "properties": {
+          "BillingMode": {
+            "const": "PAY_PER_REQUEST"
+          }
+        },
+        "required": [
+          "BillingMode"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "ProvisionedThroughput": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "BillingMode": {
+            "const": "PROVISIONED"
+          }
+        },
+        "required": [
+          "BillingMode"
+        ]
+      },
+      "then": {
+        "required": [
+          "ProvisionedThroughput"
+        ]
+      }
+    }
+  ],
+  "Aws::Ec2::Instance": [
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "VolumeType": {
+                "const": "io1",
+                "type": "string"
+              }
+            },
+            "required": [
+              "VolumeType"
+            ]
+          },
+          "then": {
+            "properties": {
+              "Iops": {
+                "maximum": 64000,
+                "minimum": 100
+              }
+            },
+            "required": [
+              "Iops"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "VolumeType": {
+                "const": "io2",
+                "type": "string"
+              }
+            },
+            "required": [
+              "VolumeType"
+            ]
+          },
+          "then": {
+            "properties": {
+              "Iops": {
+                "maximum": 256000,
+                "minimum": 100
+              }
+            },
+            "required": [
+              "Iops"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "VolumeType": {
+                "const": "gp3",
+                "type": "string"
+              }
+            },
+            "required": [
+              "VolumeType"
+            ]
+          },
+          "then": {
+            "properties": {
+              "Iops": {
+                "maximum": 16000,
+                "minimum": 3000
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "if": {
+        "required": [
+          "PrivateIpAddress"
+        ]
+      },
+      "then": {
+        "properties": {
+          "NetworkInterfaces": {
+            "items": {
+              "properties": {
+                "PrivateIpAddress": false,
+                "PrivateIpAddresses": {
+                  "items": {
+                    "properties": {
+                      "Primary": {
+                        "enum": [
+                          false
+                        ]
+                      }
+                    }
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "PrivateIpAddresses": {
+            "items": {
+              "properties": {
+                "Primary": {
+                  "enum": [
+                    false
+                  ]
+                }
+              }
+            },
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "required": [
+            "Ebs"
+          ]
+        },
+        "required": [
+          "VirtualName"
+        ]
+      },
+      "then": {
+        "properties": {
+          "VirtualName": {
+            "pattern": "^ephemeral([0-9]|[1][0-9]|[2][0-3])$"
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Ec2::Launchtemplate": [
+    {
+      "cfnGather": {
+        "gather": {
+          "securityGroup": {
+            "filter": {
+              "type": "AWS::EC2::SecurityGroup"
+            },
+            "properties": {
+              "VpcId": "/VpcId"
+            },
+            "reference": "/LaunchTemplateData/SecurityGroupIds/*"
+          },
+          "subnet": {
+            "filter": {
+              "type": "AWS::EC2::Subnet"
+            },
+            "properties": {
+              "VpcId": "/VpcId"
+            },
+            "reference": "/LaunchTemplateData/NetworkInterfaces/*/SubnetId"
+          }
+        },
+        "schema": {
+          "cfnContext": {
+            "functions": [],
+            "schema": {
+              "if": {
+                "properties": {
+                  "securityGroup": {
+                    "required": [
+                      "VpcId"
+                    ]
+                  },
+                  "subnet": {
+                    "required": [
+                      "VpcId"
+                    ]
+                  }
+                },
+                "required": [
+                  "securityGroup",
+                  "subnet"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "securityGroup": {
+                    "properties": {
+                      "VpcId": {
+                        "const": {
+                          "$data": "/subnet/VpcId"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Ec2::Securitygroup": [
+    {
+      "else": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "ToPort": {
+                  "enum": [
+                    -1,
+                    "-1"
+                  ]
+                }
+              },
+              "required": [
+                "ToPort"
+              ]
+            },
+            "then": {
+              "properties": {
+                "FromPort": {
+                  "enum": [
+                    -1,
+                    "-1"
+                  ]
+                }
+              },
+              "required": [
+                "FromPort"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "FromPort": {
+                  "enum": [
+                    -1,
+                    "-1"
+                  ]
+                }
+              },
+              "required": [
+                "FromPort"
+              ]
+            },
+            "then": {
+              "properties": {
+                "ToPort": {
+                  "enum": [
+                    -1,
+                    "-1"
+                  ]
+                }
+              },
+              "required": [
+                "ToPort"
+              ]
+            }
+          }
+        ]
+      },
+      "if": {
+        "properties": {
+          "IpProtocol": {
+            "enum": [
+              "1",
+              "icmp"
+            ]
+          }
+        },
+        "required": [
+          "IpProtocol"
+        ]
+      },
+      "then": {
+        "if": {
+          "properties": {
+            "FromPort": {
+              "enum": [
+                -1,
+                "-1"
+              ]
+            }
+          },
+          "required": [
+            "FromPort"
+          ]
+        },
+        "then": {
+          "properties": {
+            "ToPort": {
+              "enum": [
+                -1,
+                "-1"
+              ]
+            }
+          },
+          "required": [
+            "ToPort"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "IpProtocol": {
+            "not": {
+              "enum": [
+                1,
+                "1",
+                "icmp",
+                6,
+                "6",
+                "tcp",
+                17,
+                "17",
+                "udp",
+                "TCP",
+                "UDP",
+                "ICMP"
+              ]
+            },
+            "type": [
+              "string",
+              "integer"
+            ]
+          }
+        },
+        "required": [
+          "IpProtocol"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "FromPort": false,
+          "ToPort": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "IpProtocol": {
+            "enum": [
+              1,
+              "1",
+              "icmp",
+              6,
+              "6",
+              "tcp",
+              17,
+              "17",
+              "udp"
+            ],
+            "type": [
+              "string",
+              "integer"
+            ]
+          }
+        },
+        "required": [
+          "IpProtocol"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "FromPort",
+          "ToPort"
+        ]
+      }
+    }
+  ],
+  "Aws::Ec2::Vpngateway": [
+    {
+      "enum": [
+        "ipsec.1"
+      ]
+    }
+  ],
+  "Aws::Ecs::Service": [
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": {
+              "LaunchType": {
+                "enum": [
+                  "FARGATE"
+                ]
+              },
+              "SchedulingStrategy": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "LaunchType"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "DeploymentController": {
+                "properties": {
+                  "Type": {
+                    "enum": [
+                      "CODE_DEPLOY",
+                      "EXTERNAL"
+                    ]
+                  }
+                },
+                "required": [
+                  "Type"
+                ],
+                "type": "object"
+              },
+              "SchedulingStrategy": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "DeploymentController"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "SchedulingStrategy": {
+            "const": "REPLICA"
+          }
+        }
+      }
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "service": {
+            "properties": {
+              "LaunchType": "/LaunchType"
+            }
+          },
+          "taskDef": {
+            "filter": {
+              "type": "AWS::ECS::TaskDefinition"
+            },
+            "properties": {
+              "NetworkMode": {
+                "default": null,
+                "path": "/NetworkMode"
+              },
+              "RequiresCompatibilities": "/RequiresCompatibilities"
+            },
+            "reference": "/TaskDefinition"
+          }
+        },
+        "schema": {
+          "if": {
+            "properties": {
+              "service": {
+                "properties": {
+                  "LaunchType": {
+                    "const": "FARGATE"
+                  }
+                },
+                "required": [
+                  "LaunchType"
+                ]
+              },
+              "taskDef": {
+                "properties": {
+                  "NetworkMode": {
+                    "not": {
+                      "const": "awsvpc"
+                    },
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "service",
+              "taskDef"
+            ]
+          },
+          "then": {
+            "properties": {
+              "taskDef": {
+                "properties": {
+                  "RequiresCompatibilities": {
+                    "if": {
+                      "type": "array"
+                    },
+                    "then": {
+                      "contains": {
+                        "const": "FARGATE"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "RequiresCompatibilities"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "service": {
+            "properties": {
+              "LaunchType": "/LaunchType"
+            }
+          },
+          "taskDef": {
+            "filter": {
+              "type": "AWS::ECS::TaskDefinition"
+            },
+            "properties": {
+              "ContainerDefinitions": "/ContainerDefinitions"
+            },
+            "reference": "/TaskDefinition"
+          }
+        },
+        "schema": {
+          "if": {
+            "properties": {
+              "service": {
+                "properties": {
+                  "LaunchType": {
+                    "const": "FARGATE"
+                  }
+                },
+                "required": [
+                  "LaunchType"
+                ]
+              },
+              "taskDef": {
+                "properties": {
+                  "ContainerDefinitions": {
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ContainerDefinitions"
+                ]
+              }
+            },
+            "required": [
+              "service",
+              "taskDef"
+            ]
+          },
+          "then": {
+            "properties": {
+              "taskDef": {
+                "properties": {
+                  "ContainerDefinitions": {
+                    "items": {
+                      "properties": {
+                        "LogConfiguration": {
+                          "if": {
+                            "properties": {
+                              "LogDriver": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "LogDriver"
+                            ]
+                          },
+                          "then": {
+                            "properties": {
+                              "LogDriver": {
+                                "enum": [
+                                  "awslogs",
+                                  "splunk",
+                                  "awsfirelens"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "service": {
+            "properties": {
+              "NetworkConfiguration": "/NetworkConfiguration"
+            }
+          },
+          "taskDef": {
+            "filter": {
+              "type": "AWS::ECS::TaskDefinition"
+            },
+            "properties": {
+              "NetworkMode": "/NetworkMode"
+            },
+            "reference": "/TaskDefinition"
+          }
+        },
+        "schema": {
+          "if": {
+            "properties": {
+              "taskDef": {
+                "properties": {
+                  "NetworkMode": {
+                    "const": "awsvpc",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "NetworkMode"
+                ]
+              }
+            },
+            "required": [
+              "taskDef"
+            ]
+          },
+          "then": {
+            "properties": {
+              "service": {
+                "required": [
+                  "NetworkConfiguration"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Ecs::Taskdefinition": [
+    {
+      "contains": {
+        "properties": {
+          "Essential": {
+            "oneOf": [
+              {
+                "enum": [
+                  true,
+                  "true",
+                  "True"
+                ]
+              },
+              {
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "Essential"
+        ]
+      },
+      "minItems": 1
+    },
+    {
+      "if": {
+        "properties": {
+          "Cpu": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "Memory": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "RequiresCompatibilities": {
+            "contains": {
+              "enum": [
+                "FARGATE"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "RequiresCompatibilities",
+          "Cpu",
+          "Memory"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^\\.25\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "256"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(0.5|1|2)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    512,
+                    1024,
+                    2048
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^\\.5\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "512"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(1|2|3|4)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "maximum": 4096,
+                  "minimum": 1024,
+                  "multipleOf": 1024
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^1\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "1024"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(2|3|4|5|6|7|8)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "maximum": 8192,
+                  "minimum": 2048,
+                  "multipleOf": 1024
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^2\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "2048"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(4|5|6|7|8|9|10|11|12|13|14|15|16)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "maximum": 16384,
+                  "minimum": 4096,
+                  "multipleOf": 1024
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^4\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "4096"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(8|9|1[0-9]|2[0-9]|30)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "maximum": 30720,
+                  "minimum": 8192,
+                  "multipleOf": 1024
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^8\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "8192"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(16|20|24|28|32|36|40|44|48|52|56|60)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "maximum": 61440,
+                  "minimum": 16384,
+                  "multipleOf": 4096
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "Cpu": {
+                "else": {
+                  "pattern": "^16\\s*(?i)vCpu$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "enum": [
+                    "16384"
+                  ]
+                }
+              },
+              "Memory": {
+                "else": {
+                  "pattern": "^(32|40|48|56|64|72|80|88|96|104|112|120)\\s*(?i)GB$"
+                },
+                "if": {
+                  "pattern": "^\\d+$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "then": {
+                  "maximum": 122880,
+                  "minimum": 32768,
+                  "multipleOf": 8192
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "RequiresCompatibilities": {
+            "contains": {
+              "enum": [
+                "FARGATE"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "RequiresCompatibilities"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "NetworkMode": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "NetworkMode"
+              ]
+            },
+            "required": [
+              "NetworkMode"
+            ],
+            "then": {
+              "properties": {
+                "NetworkMode": {
+                  "enum": [
+                    "awsvpc"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "NetworkMode"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "ContainerDefinitions": {
+                "items": {
+                  "properties": {
+                    "LogConfiguration": {
+                      "if": {
+                        "properties": {
+                          "LogDriver": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "LogDriver"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "LogDriver": {
+                            "enum": [
+                              "awslogs",
+                              "splunk",
+                              "awsfirelens"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "Cpu": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "required": [
+                "Cpu"
+              ]
+            },
+            "not": {
+              "required": [
+                "PlacementConstraints"
+              ]
+            },
+            "required": [
+              "Cpu",
+              "Memory"
+            ],
+            "then": {
+              "properties": {
+                "Cpu": {
+                  "else": {
+                    "pattern": "^(\\.25|\\.5|1|2|4|8|16)\\s*(?i)vCpu$"
+                  },
+                  "if": {
+                    "pattern": "^\\d+$",
+                    "type": [
+                      "integer",
+                      "string"
+                    ]
+                  },
+                  "then": {
+                    "enum": [
+                      "256",
+                      "512",
+                      "1024",
+                      "2048",
+                      "4096",
+                      "8192",
+                      "16384"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "description": "When 'awslogs' the options 'awslogs-group' and 'awslogs-region' are required",
+      "if": {
+        "properties": {
+          "LogDriver": {
+            "const": "awslogs"
+          }
+        },
+        "required": [
+          "LogDriver"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "Options": {
+            "properties": {
+              "awslogs-group": {
+                "format": "AWS::Logs::LogGroup.Name",
+                "type": "string"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "awslogs-create-group",
+                "awslogs-datetime-format",
+                "awslogs-group",
+                "awslogs-multiline-pattern",
+                "awslogs-region",
+                "awslogs-stream-prefix",
+                "max-buffer-size",
+                "mode"
+              ]
+            },
+            "required": [
+              "awslogs-group",
+              "awslogs-region"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "Options"
+        ]
+      }
+    }
+  ],
+  "Aws::Elasticache::Cachecluster": [
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Engine"
+            ]
+          },
+          "then": {
+            "properties": {
+              "Engine": {
+                "enum": [
+                  "memcached",
+                  "redis",
+                  "valkey"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "memcached"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "1.4.14",
+                  "1.4.24",
+                  "1.4.33",
+                  "1.4.34",
+                  "1.4.5",
+                  "1.5.10",
+                  "1.5.16",
+                  "1.6.12",
+                  "1.6.17",
+                  "1.6.22",
+                  "1.6.6"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "redis"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "4.0.10",
+                  "5.0.6",
+                  "6.0",
+                  "6.2",
+                  "7.0",
+                  "7.1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "valkey"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "7.2",
+                  "8.0",
+                  "8.1",
+                  "8.2",
+                  "9.0"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "description": "Automatically updated using aws api"
+    }
+  ],
+  "Aws::Elasticache::Replicationgroup": [
+    {
+      "if": {
+        "properties": {
+          "Engine": {
+            "const": "valkey"
+          }
+        },
+        "required": [
+          "Engine"
+        ]
+      },
+      "then": {
+        "required": [
+          "TransitEncryptionEnabled"
+        ]
+      }
+    }
+  ],
+  "Aws::Elasticloadbalancing::Loadbalancer": [
+    {
+      "if": {
+        "properties": {
+          "Protocol": {
+            "enum": [
+              "HTTPS",
+              "SSL"
+            ]
+          }
+        },
+        "required": [
+          "Protocol"
+        ]
+      },
+      "then": {
+        "required": [
+          "SSLCertificateId"
+        ]
+      }
+    }
+  ],
+  "Aws::Elasticloadbalancingv2::Listener": [
+    {
+      "if": {
+        "properties": {
+          "Protocol": {
+            "enum": [
+              "HTTPS",
+              "TLS"
+            ]
+          }
+        },
+        "required": [
+          "Protocol"
+        ]
+      },
+      "then": {
+        "required": [
+          "Certificates"
+        ]
+      }
+    }
+  ],
+  "Aws::Elasticloadbalancingv2::Listenerrule": [
+    {
+      "cfnGather": {
+        "gather": {
+          "targetGroup": {
+            "filter": {
+              "type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+            },
+            "properties": {
+              "Protocol": {
+                "default": null,
+                "path": "/Protocol"
+              }
+            },
+            "reference": "/Actions/*/TargetGroupArn"
+          }
+        },
+        "schema": {
+          "properties": {
+            "targetGroup": {
+              "properties": {
+                "Protocol": {
+                  "not": {
+                    "const": "GENEVE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Elasticloadbalancingv2::Loadbalancer": [
+    {
+      "if": {
+        "oneOf": [
+          {
+            "properties": {
+              "Type": {
+                "const": "application"
+              }
+            },
+            "required": [
+              "Type"
+            ]
+          },
+          {
+            "properties": {
+              "Type": false
+            }
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "SubnetMappings": {
+            "minItems": 2
+          },
+          "Subnets": {
+            "minItems": 2
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Elasticloadbalancingv2::Targetgroup": [
+    {
+      "if": {
+        "properties": {
+          "HealthCheckProtocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "HealthCheckProtocol"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "else": {
+              "properties": {
+                "Matcher": false,
+                "ProtocolVersion": false
+              }
+            },
+            "if": {
+              "properties": {
+                "HealthCheckProtocol": {
+                  "enum": [
+                    "HTTP",
+                    "HTTPS"
+                  ]
+                }
+              },
+              "required": [
+                "HealthCheckProtocol"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Protocol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Protocol"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "Port": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                },
+                "Protocol": {
+                  "enum": [
+                    "GENEVE"
+                  ]
+                }
+              },
+              "required": [
+                "Protocol"
+              ]
+            },
+            "then": {
+              "properties": {
+                "Port": {
+                  "enum": [
+                    6081,
+                    "6081"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "TargetType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "TargetType"
+        ]
+      },
+      "then": {
+        "else": {
+          "required": [
+            "Port",
+            "Protocol",
+            "VpcId"
+          ]
+        },
+        "if": {
+          "properties": {
+            "TargetType": {
+              "enum": [
+                "lambda"
+              ]
+            }
+          },
+          "required": [
+            "TargetType"
+          ]
+        },
+        "then": {
+          "properties": {
+            "HealthCheckPort": false,
+            "HealthCheckProtocol": false,
+            "Port": false,
+            "Protocol": false,
+            "ProtocolVersion": false,
+            "VpcId": false
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Lambda::Eventsourcemapping": [
+    {
+      "cfnGather": {
+        "gather": {
+          "local": {
+            "properties": {
+              "BatchSize": {
+                "path": "/BatchSize"
+              }
+            }
+          },
+          "queue": {
+            "filter": {
+              "type": "AWS::SQS::Queue"
+            },
+            "properties": {
+              "FifoQueue": {
+                "default": false,
+                "path": "/FifoQueue"
+              }
+            },
+            "reference": "/EventSourceArn"
+          }
+        },
+        "schema": {
+          "if": {
+            "properties": {
+              "queue": {
+                "properties": {
+                  "FifoQueue": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "FifoQueue"
+                ]
+              }
+            },
+            "required": [
+              "queue"
+            ]
+          },
+          "then": {
+            "properties": {
+              "local": {
+                "properties": {
+                  "BatchSize": {
+                    "maximum": 10
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "function": {
+            "filter": {
+              "type": "AWS::Lambda::Function"
+            },
+            "properties": {
+              "Timeout": {
+                "default": 3,
+                "path": "/Timeout"
+              }
+            },
+            "reference": "/FunctionName"
+          },
+          "queue": {
+            "filter": {
+              "type": "AWS::SQS::Queue"
+            },
+            "properties": {
+              "VisibilityTimeout": {
+                "default": 30,
+                "path": "/VisibilityTimeout"
+              }
+            },
+            "reference": "/EventSourceArn"
+          }
+        },
+        "schema": {
+          "if": {
+            "properties": {
+              "function": {
+                "properties": {
+                  "Timeout": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "Timeout"
+                ]
+              },
+              "queue": {
+                "properties": {
+                  "VisibilityTimeout": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "VisibilityTimeout"
+                ]
+              }
+            },
+            "required": [
+              "function",
+              "queue"
+            ]
+          },
+          "then": {
+            "properties": {
+              "queue": {
+                "properties": {
+                  "VisibilityTimeout": {
+                    "minimum": {
+                      "$data": "/function/Timeout"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "additionalProperties": true,
+      "description": "When 'EventSourceArn' is associated to SQS don't specify 'StartingPosition'",
+      "if": {
+        "properties": {
+          "EventSourceArn": {
+            "pattern": "^arn:(aws[a-zA-Z0-9-]*):sqs:([a-z]{2}(-gov)?-[a-z]+-\\d{1})?:(\\d{12})?:(.*)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "EventSourceArn"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "StartingPosition": false
+        }
+      }
+    },
+    {
+      "additionalProperties": true,
+      "description": "When 'EventSourceArn' is associate to Kinesis, Kafka, or DynamoDB you must specify 'StartingPosition'",
+      "if": {
+        "properties": {
+          "EventSourceArn": {
+            "pattern": "arn:aws.*:(kinesis|kafka|dynamodb):.*",
+            "type": "string"
+          }
+        },
+        "required": [
+          "EventSourceArn"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "StartingPosition"
+        ]
+      }
+    }
+  ],
+  "Aws::Lambda::Function": [
+    {
+      "pattern": "^(?!arn:[a-zA-Z0-9-]+:lambda:::awslayer:)"
+    },
+    {
+      "propertyNames": {
+        "not": {
+          "enum": [
+            "_HANDLER",
+            "_X_AMZN_TRACE_ID",
+            "AWS_DEFAULT_REGION",
+            "AWS_REGION",
+            "AWS_EXECUTION_ENV",
+            "AWS_LAMBDA_FUNCTION_NAME",
+            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE",
+            "AWS_LAMBDA_FUNCTION_VERSION",
+            "AWS_LAMBDA_INITIALIZATION_TYPE",
+            "AWS_LAMBDA_LOG_GROUP_NAME",
+            "AWS_LAMBDA_LOG_STREAM_NAME",
+            "AWS_ACCESS_KEY",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+            "AWS_LAMBDA_RUNTIME_API",
+            "LAMBDA_TASK_ROOT",
+            "LAMBDA_RUNTIME_DIR"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "LoggingConfig": {
+            "properties": {
+              "LogFormat": {
+                "const": "Text"
+              }
+            },
+            "required": [
+              "LogFormat"
+            ]
+          }
+        },
+        "required": [
+          "LoggingConfig"
+        ]
+      },
+      "then": {
+        "properties": {
+          "LoggingConfig": {
+            "properties": {
+              "SystemLogLevel": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "PackageType": {
+            "const": "Image"
+          }
+        },
+        "required": [
+          "PackageType"
+        ]
+      },
+      "then": {
+        "dependentExcluded": {
+          "PackageType": [
+            "Handler",
+            "Runtime",
+            "Layers"
+          ]
+        }
+      }
+    },
+    {
+      "additionalProperties": true,
+      "description": "Using the ZipFile attribute requires a javascript or python runtime to be specified",
+      "if": {
+        "properties": {
+          "Code": {
+            "additionalProperties": true,
+            "properties": {
+              "ZipFile": true
+            },
+            "required": [
+              "ZipFile"
+            ],
+            "type": "object"
+          },
+          "Runtime": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Code",
+          "Runtime"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "Runtime": {
+            "pattern": "^(nodejs.*|python.*)$"
+          },
+          "required": true
+        }
+      }
+    },
+    {
+      "additionalProperties": true,
+      "description": "Using the ZipFile attribute requires a runtime to be specified",
+      "if": {
+        "properties": {
+          "Code": {
+            "additionalProperties": true,
+            "properties": {
+              "ZipFile": true
+            },
+            "required": [
+              "ZipFile"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "Code"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "Runtime"
+        ]
+      }
+    }
+  ],
+  "Aws::Lambda::Permission": [
+    {
+      "cfnGather": {
+        "gather": {
+          "permission": {
+            "properties": {
+              "principal": "/Principal"
+            }
+          },
+          "target": {
+            "properties": {
+              "resourceType": "$type"
+            },
+            "reference": "/SourceArn"
+          }
+        },
+        "schema": {
+          "if": {
+            "required": [
+              "target"
+            ]
+          },
+          "then": {
+            "properties": {
+              "permission": {
+                "properties": {
+                  "principal": {
+                    "pattern": {
+                      "$lookup": {
+                        "key": {
+                          "$data": "/target/resourceType"
+                        },
+                        "map": {
+                          "AWS::ApiGateway::RestApi": "^apigateway\\.amazonaws\\.com$",
+                          "AWS::ApiGatewayV2::Api": "^apigateway\\.amazonaws\\.com$",
+                          "AWS::Cognito::UserPool": "^cognito-idp\\.amazonaws\\.com$",
+                          "AWS::Config::ConfigRule": "^config\\.amazonaws\\.com$",
+                          "AWS::ElasticLoadBalancingV2::TargetGroup": "^elasticloadbalancing\\.amazonaws\\.com$",
+                          "AWS::Events::Rule": "^events\\.amazonaws\\.com$",
+                          "AWS::IoT::TopicRule": "^iot\\.amazonaws\\.com$",
+                          "AWS::Logs::LogGroup": "^logs(\\.[a-z]{2}(-gov|-iso[a-z]?)?-[a-z]+-[0-9]+)?\\.amazonaws\\.com$",
+                          "AWS::S3::Bucket": "^s3\\.amazonaws\\.com$",
+                          "AWS::SNS::Topic": "^sns\\.amazonaws\\.com$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "bucket": {
+            "filter": {
+              "type": "AWS::S3::Bucket"
+            },
+            "properties": {},
+            "reference": "/SourceArn"
+          },
+          "permission": {
+            "properties": {
+              "sourceAccount": "/SourceAccount",
+              "sourceArn": "/SourceArn"
+            }
+          }
+        },
+        "schema": {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "bucket"
+                ]
+              },
+              {
+                "properties": {
+                  "permission": {
+                    "properties": {
+                      "sourceArn": {
+                        "not": {
+                          "pattern": ":\\d{12}:"
+                        },
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "sourceArn"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "permission": {
+                "required": [
+                  "sourceAccount"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Rds::Dbcluster": [
+    {
+      "if": {
+        "properties": {
+          "Engine": {
+            "enum": [
+              "aurora-mysql",
+              "aurora-postgresql"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "Engine"
+        ]
+      },
+      "then": {
+        "properties": {
+          "AllocatedStorage": false,
+          "DBClusterInstanceClass": false,
+          "Iops": false,
+          "PubliclyAccessible": false,
+          "StorageType": {
+            "if": {
+              "type": "string"
+            },
+            "then": {
+              "enum": [
+                "aurora",
+                "aurora-iopt1"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Engine": {
+            "enum": [
+              "aurora-mysql",
+              "aurora-postgresql"
+            ],
+            "type": "string"
+          },
+          "EngineMode": {
+            "enum": [
+              "serverless"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "Engine",
+          "EngineMode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "PerformanceInsightsEnabled": false,
+          "PerformanceInsightsKmsKeyId": false,
+          "PerformanceInsightsRetentionPeriod": false
+        }
+      }
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Engine"
+            ]
+          },
+          "then": {
+            "properties": {
+              "Engine": {
+                "enum": [
+                  "aurora-mysql",
+                  "aurora-postgresql",
+                  "mysql",
+                  "postgres"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-mysql"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "5.7",
+                  "5.7.12",
+                  "5.7.mysql_aurora.2.02.3",
+                  "5.7.mysql_aurora.2.03.2",
+                  "5.7.mysql_aurora.2.03.3",
+                  "5.7.mysql_aurora.2.03.4",
+                  "5.7.mysql_aurora.2.04.0",
+                  "5.7.mysql_aurora.2.04.1",
+                  "5.7.mysql_aurora.2.04.2",
+                  "5.7.mysql_aurora.2.04.3",
+                  "5.7.mysql_aurora.2.04.4",
+                  "5.7.mysql_aurora.2.04.5",
+                  "5.7.mysql_aurora.2.04.6",
+                  "5.7.mysql_aurora.2.04.7",
+                  "5.7.mysql_aurora.2.04.8",
+                  "5.7.mysql_aurora.2.04.8.3",
+                  "5.7.mysql_aurora.2.04.9",
+                  "5.7.mysql_aurora.2.05.0",
+                  "5.7.mysql_aurora.2.05.1",
+                  "5.7.mysql_aurora.2.06.0",
+                  "5.7.mysql_aurora.2.07.0",
+                  "5.7.mysql_aurora.2.07.1",
+                  "5.7.mysql_aurora.2.07.10",
+                  "5.7.mysql_aurora.2.07.2",
+                  "5.7.mysql_aurora.2.07.3",
+                  "5.7.mysql_aurora.2.07.4",
+                  "5.7.mysql_aurora.2.07.5",
+                  "5.7.mysql_aurora.2.07.6",
+                  "5.7.mysql_aurora.2.07.7",
+                  "5.7.mysql_aurora.2.07.8",
+                  "5.7.mysql_aurora.2.07.9",
+                  "5.7.mysql_aurora.2.08.0",
+                  "5.7.mysql_aurora.2.08.1",
+                  "5.7.mysql_aurora.2.08.2",
+                  "5.7.mysql_aurora.2.08.3",
+                  "5.7.mysql_aurora.2.08.4",
+                  "5.7.mysql_aurora.2.09.0",
+                  "5.7.mysql_aurora.2.09.1",
+                  "5.7.mysql_aurora.2.09.2",
+                  "5.7.mysql_aurora.2.09.3",
+                  "5.7.mysql_aurora.2.10.0",
+                  "5.7.mysql_aurora.2.10.0.1",
+                  "5.7.mysql_aurora.2.10.1",
+                  "5.7.mysql_aurora.2.10.2",
+                  "5.7.mysql_aurora.2.10.3",
+                  "5.7.mysql_aurora.2.11.0",
+                  "5.7.mysql_aurora.2.11.1",
+                  "5.7.mysql_aurora.2.11.2",
+                  "5.7.mysql_aurora.2.11.3",
+                  "5.7.mysql_aurora.2.11.4",
+                  "5.7.mysql_aurora.2.11.5",
+                  "5.7.mysql_aurora.2.11.6",
+                  "5.7.mysql_aurora.2.12.0",
+                  "5.7.mysql_aurora.2.12.0.1",
+                  "5.7.mysql_aurora.2.12.1",
+                  "5.7.mysql_aurora.2.12.2",
+                  "5.7.mysql_aurora.2.12.3",
+                  "5.7.mysql_aurora.2.12.4",
+                  "5.7.mysql_aurora.2.12.5",
+                  "5.7.mysql_aurora.2.12.6",
+                  "8.0",
+                  "8.0.mysql_aurora.3.01.0",
+                  "8.0.mysql_aurora.3.01.1",
+                  "8.0.mysql_aurora.3.02.0",
+                  "8.0.mysql_aurora.3.02.1",
+                  "8.0.mysql_aurora.3.02.2",
+                  "8.0.mysql_aurora.3.02.3",
+                  "8.0.mysql_aurora.3.03.0",
+                  "8.0.mysql_aurora.3.03.1",
+                  "8.0.mysql_aurora.3.03.2",
+                  "8.0.mysql_aurora.3.03.3",
+                  "8.0.mysql_aurora.3.04.0",
+                  "8.0.mysql_aurora.3.04.1",
+                  "8.0.mysql_aurora.3.04.2",
+                  "8.0.mysql_aurora.3.04.3",
+                  "8.0.mysql_aurora.3.04.4",
+                  "8.0.mysql_aurora.3.04.6",
+                  "8.0.mysql_aurora.3.05.0",
+                  "8.0.mysql_aurora.3.05.0.1",
+                  "8.0.mysql_aurora.3.05.1",
+                  "8.0.mysql_aurora.3.05.2",
+                  "8.0.mysql_aurora.3.06.0",
+                  "8.0.mysql_aurora.3.06.1",
+                  "8.0.mysql_aurora.3.07.0",
+                  "8.0.mysql_aurora.3.07.1",
+                  "8.0.mysql_aurora.3.08.0",
+                  "8.0.mysql_aurora.3.08.1",
+                  "8.0.mysql_aurora.3.08.2",
+                  "8.0.mysql_aurora.3.09.0",
+                  "8.0.mysql_aurora.3.10.0",
+                  "8.0.mysql_aurora.3.10.1",
+                  "8.0.mysql_aurora.3.10.2",
+                  "8.0.mysql_aurora.3.10.3",
+                  "8.0.mysql_aurora.3.10.4",
+                  "8.0.mysql_aurora.3.11.0",
+                  "8.0.mysql_aurora.3.11.1",
+                  "8.0.mysql_aurora.3.12.0"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-postgresql"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "10",
+                  "10.21",
+                  "10.7",
+                  "11",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.20",
+                  "11.21",
+                  "11.9",
+                  "12",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.20",
+                  "12.22",
+                  "12.4",
+                  "12.7",
+                  "12.8",
+                  "12.9",
+                  "13",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.18",
+                  "13.20",
+                  "13.21",
+                  "13.22",
+                  "13.23",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "13.9",
+                  "14",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.13",
+                  "14.15",
+                  "14.17",
+                  "14.18",
+                  "14.19",
+                  "14.20",
+                  "14.22",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.6",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15",
+                  "15.10",
+                  "15.12",
+                  "15.13",
+                  "15.14",
+                  "15.15",
+                  "15.17",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "15.8",
+                  "16",
+                  "16.1",
+                  "16.10",
+                  "16.10-limitless",
+                  "16.11",
+                  "16.11-limitless",
+                  "16.13",
+                  "16.2",
+                  "16.3",
+                  "16.4",
+                  "16.4-limitless",
+                  "16.6",
+                  "16.6-limitless",
+                  "16.8",
+                  "16.8-limitless",
+                  "16.9",
+                  "16.9-limitless",
+                  "17",
+                  "17.4",
+                  "17.5",
+                  "17.6",
+                  "17.7",
+                  "17.9",
+                  "9",
+                  "9.6.22"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "mysql"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "5.5.62",
+                  "5.6.51",
+                  "5.7.33",
+                  "5.7.34",
+                  "5.7.36",
+                  "5.7.37",
+                  "5.7.38",
+                  "5.7.39",
+                  "5.7.40",
+                  "5.7.41",
+                  "5.7.42",
+                  "5.7.43",
+                  "5.7.44",
+                  "5.7.44-rds.20240408",
+                  "5.7.44-rds.20240529",
+                  "5.7.44-rds.20240808",
+                  "5.7.44-rds.20250103",
+                  "5.7.44-rds.20250213",
+                  "5.7.44-rds.20250508",
+                  "5.7.44-rds.20250818",
+                  "5.7.44-rds.20251212",
+                  "5.7.44-rds.20260212",
+                  "8.0.11",
+                  "8.0.13",
+                  "8.0.15",
+                  "8.0.16",
+                  "8.0.17",
+                  "8.0.19",
+                  "8.0.20",
+                  "8.0.21",
+                  "8.0.23",
+                  "8.0.25",
+                  "8.0.26",
+                  "8.0.27",
+                  "8.0.28",
+                  "8.0.29",
+                  "8.0.30",
+                  "8.0.31",
+                  "8.0.32",
+                  "8.0.33",
+                  "8.0.34",
+                  "8.0.35",
+                  "8.0.36",
+                  "8.0.37",
+                  "8.0.39",
+                  "8.0.40",
+                  "8.0.41",
+                  "8.0.42",
+                  "8.0.43",
+                  "8.0.44",
+                  "8.0.45",
+                  "8.0.46",
+                  "8.4.3",
+                  "8.4.4",
+                  "8.4.5",
+                  "8.4.6",
+                  "8.4.7",
+                  "8.4.8",
+                  "8.4.9"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "postgres"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "10.1",
+                  "10.10",
+                  "10.11",
+                  "10.12",
+                  "10.13",
+                  "10.14",
+                  "10.15",
+                  "10.16",
+                  "10.17",
+                  "10.18",
+                  "10.19",
+                  "10.20",
+                  "10.21",
+                  "10.22",
+                  "10.23",
+                  "10.3",
+                  "10.4",
+                  "10.5",
+                  "10.6",
+                  "10.7",
+                  "10.9",
+                  "11.1",
+                  "11.10",
+                  "11.11",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.2",
+                  "11.20",
+                  "11.21",
+                  "11.22",
+                  "11.22-rds.20240418",
+                  "11.22-rds.20240509",
+                  "11.22-rds.20240808",
+                  "11.22-rds.20241121",
+                  "11.22-rds.20250220",
+                  "11.22-rds.20250508",
+                  "11.22-rds.20250814",
+                  "11.22-rds.20251114",
+                  "11.4",
+                  "11.5",
+                  "11.6",
+                  "11.7",
+                  "11.8",
+                  "11.9",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.2",
+                  "12.20",
+                  "12.21",
+                  "12.22",
+                  "12.22-rds.20250220",
+                  "12.22-rds.20250508",
+                  "12.22-rds.20250814",
+                  "12.22-rds.20251114",
+                  "12.3",
+                  "12.4",
+                  "12.5",
+                  "12.6",
+                  "12.7",
+                  "12.8",
+                  "12.9",
+                  "13.1",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.17",
+                  "13.18",
+                  "13.19",
+                  "13.2",
+                  "13.20",
+                  "13.21",
+                  "13.22",
+                  "13.23",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "13.9",
+                  "14.1",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.13",
+                  "14.14",
+                  "14.15",
+                  "14.16",
+                  "14.17",
+                  "14.18",
+                  "14.19",
+                  "14.2",
+                  "14.20",
+                  "14.21",
+                  "14.22",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.6",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15.10",
+                  "15.11",
+                  "15.12",
+                  "15.13",
+                  "15.14",
+                  "15.15",
+                  "15.16",
+                  "15.17",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "15.8",
+                  "15.9",
+                  "16.1",
+                  "16.10",
+                  "16.11",
+                  "16.12",
+                  "16.13",
+                  "16.2",
+                  "16.3",
+                  "16.4",
+                  "16.5",
+                  "16.6",
+                  "16.7",
+                  "16.8",
+                  "16.9",
+                  "17.1",
+                  "17.2",
+                  "17.3",
+                  "17.4",
+                  "17.5",
+                  "17.6",
+                  "17.7",
+                  "17.8",
+                  "17.9",
+                  "18.1",
+                  "18.2",
+                  "18.3",
+                  "9.3.1",
+                  "9.3.10",
+                  "9.3.12",
+                  "9.3.14",
+                  "9.3.16",
+                  "9.3.17",
+                  "9.3.19",
+                  "9.3.2",
+                  "9.3.20",
+                  "9.3.22",
+                  "9.3.23",
+                  "9.3.24",
+                  "9.3.25",
+                  "9.3.3",
+                  "9.3.5",
+                  "9.3.6",
+                  "9.3.9",
+                  "9.4.1",
+                  "9.4.11",
+                  "9.4.12",
+                  "9.4.14",
+                  "9.4.15",
+                  "9.4.17",
+                  "9.4.18",
+                  "9.4.19",
+                  "9.4.20",
+                  "9.4.21",
+                  "9.4.23",
+                  "9.4.24",
+                  "9.4.25",
+                  "9.4.26",
+                  "9.4.4",
+                  "9.4.5",
+                  "9.4.7",
+                  "9.4.9",
+                  "9.5.10",
+                  "9.5.12",
+                  "9.5.13",
+                  "9.5.14",
+                  "9.5.15",
+                  "9.5.16",
+                  "9.5.18",
+                  "9.5.19",
+                  "9.5.2",
+                  "9.5.20",
+                  "9.5.21",
+                  "9.5.22",
+                  "9.5.23",
+                  "9.5.24",
+                  "9.5.25",
+                  "9.5.4",
+                  "9.5.6",
+                  "9.5.7",
+                  "9.5.9",
+                  "9.6.1",
+                  "9.6.10",
+                  "9.6.11",
+                  "9.6.12",
+                  "9.6.14",
+                  "9.6.15",
+                  "9.6.16",
+                  "9.6.17",
+                  "9.6.18",
+                  "9.6.19",
+                  "9.6.2",
+                  "9.6.20",
+                  "9.6.21",
+                  "9.6.22",
+                  "9.6.23",
+                  "9.6.24",
+                  "9.6.3",
+                  "9.6.5",
+                  "9.6.6",
+                  "9.6.8",
+                  "9.6.9"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "description": "Automatically updated using aws api"
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-mysql"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "5.7",
+                  "5.7.12",
+                  "5.7.mysql_aurora.2.02.3",
+                  "5.7.mysql_aurora.2.03.2",
+                  "5.7.mysql_aurora.2.03.3",
+                  "5.7.mysql_aurora.2.03.4",
+                  "5.7.mysql_aurora.2.04.0",
+                  "5.7.mysql_aurora.2.04.1",
+                  "5.7.mysql_aurora.2.04.2",
+                  "5.7.mysql_aurora.2.04.3",
+                  "5.7.mysql_aurora.2.04.4",
+                  "5.7.mysql_aurora.2.04.5",
+                  "5.7.mysql_aurora.2.04.6",
+                  "5.7.mysql_aurora.2.04.7",
+                  "5.7.mysql_aurora.2.04.8",
+                  "5.7.mysql_aurora.2.04.8.3",
+                  "5.7.mysql_aurora.2.04.9",
+                  "5.7.mysql_aurora.2.05.0",
+                  "5.7.mysql_aurora.2.05.1",
+                  "5.7.mysql_aurora.2.06.0",
+                  "5.7.mysql_aurora.2.07.0",
+                  "5.7.mysql_aurora.2.07.1",
+                  "5.7.mysql_aurora.2.07.10",
+                  "5.7.mysql_aurora.2.07.2",
+                  "5.7.mysql_aurora.2.07.3",
+                  "5.7.mysql_aurora.2.07.4",
+                  "5.7.mysql_aurora.2.07.5",
+                  "5.7.mysql_aurora.2.07.6",
+                  "5.7.mysql_aurora.2.07.7",
+                  "5.7.mysql_aurora.2.07.8",
+                  "5.7.mysql_aurora.2.07.9",
+                  "5.7.mysql_aurora.2.08.0",
+                  "5.7.mysql_aurora.2.08.1",
+                  "5.7.mysql_aurora.2.08.2",
+                  "5.7.mysql_aurora.2.08.3",
+                  "5.7.mysql_aurora.2.08.4",
+                  "5.7.mysql_aurora.2.09.0",
+                  "5.7.mysql_aurora.2.09.1",
+                  "5.7.mysql_aurora.2.09.2",
+                  "5.7.mysql_aurora.2.09.3",
+                  "5.7.mysql_aurora.2.10.0",
+                  "5.7.mysql_aurora.2.10.0.1",
+                  "5.7.mysql_aurora.2.10.1",
+                  "5.7.mysql_aurora.2.10.2",
+                  "5.7.mysql_aurora.2.10.3",
+                  "5.7.mysql_aurora.2.11.0",
+                  "5.7.mysql_aurora.2.12.0.1",
+                  "8.0",
+                  "8.0.mysql_aurora.3.01.0",
+                  "8.0.mysql_aurora.3.01.1",
+                  "8.0.mysql_aurora.3.02.0",
+                  "8.0.mysql_aurora.3.02.1",
+                  "8.0.mysql_aurora.3.02.2",
+                  "8.0.mysql_aurora.3.02.3",
+                  "8.0.mysql_aurora.3.03.0",
+                  "8.0.mysql_aurora.3.03.1",
+                  "8.0.mysql_aurora.3.03.2",
+                  "8.0.mysql_aurora.3.03.3",
+                  "8.0.mysql_aurora.3.05.0",
+                  "8.0.mysql_aurora.3.05.0.1",
+                  "8.0.mysql_aurora.3.05.1",
+                  "8.0.mysql_aurora.3.05.2",
+                  "8.0.mysql_aurora.3.06.0",
+                  "8.0.mysql_aurora.3.06.1",
+                  "8.0.mysql_aurora.3.07.0",
+                  "8.0.mysql_aurora.3.07.1",
+                  "8.0.mysql_aurora.3.11.0"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-postgresql"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "10",
+                  "10.21",
+                  "10.7",
+                  "11",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.20",
+                  "12",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.20",
+                  "12.4",
+                  "12.7",
+                  "12.8",
+                  "13",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.18",
+                  "13.20",
+                  "13.21",
+                  "13.22",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "14",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "16",
+                  "16.1",
+                  "16.2",
+                  "16.3",
+                  "9",
+                  "9.6.22"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "mysql"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "5.5.62",
+                  "5.6.51",
+                  "5.7.33",
+                  "5.7.34",
+                  "5.7.36",
+                  "5.7.37",
+                  "5.7.38",
+                  "5.7.39",
+                  "5.7.40",
+                  "5.7.41",
+                  "5.7.42",
+                  "5.7.43",
+                  "5.7.44",
+                  "5.7.44-rds.20240408",
+                  "5.7.44-rds.20240529",
+                  "5.7.44-rds.20240808",
+                  "8.0.11",
+                  "8.0.13",
+                  "8.0.15",
+                  "8.0.16",
+                  "8.0.17",
+                  "8.0.19",
+                  "8.0.20",
+                  "8.0.21",
+                  "8.0.23",
+                  "8.0.25",
+                  "8.0.26",
+                  "8.0.27",
+                  "8.0.28",
+                  "8.0.29",
+                  "8.0.30",
+                  "8.0.31",
+                  "8.0.32",
+                  "8.0.33",
+                  "8.0.34",
+                  "8.0.35",
+                  "8.0.36",
+                  "8.0.37",
+                  "8.0.39"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "postgres"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "10.1",
+                  "10.10",
+                  "10.11",
+                  "10.12",
+                  "10.13",
+                  "10.14",
+                  "10.15",
+                  "10.16",
+                  "10.17",
+                  "10.18",
+                  "10.19",
+                  "10.20",
+                  "10.21",
+                  "10.22",
+                  "10.23",
+                  "10.3",
+                  "10.4",
+                  "10.5",
+                  "10.6",
+                  "10.7",
+                  "10.9",
+                  "11.1",
+                  "11.10",
+                  "11.11",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.2",
+                  "11.20",
+                  "11.21",
+                  "11.22",
+                  "11.22-rds.20240418",
+                  "11.22-rds.20240509",
+                  "11.22-rds.20240808",
+                  "11.4",
+                  "11.5",
+                  "11.6",
+                  "11.7",
+                  "11.8",
+                  "11.9",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.2",
+                  "12.20",
+                  "12.21",
+                  "12.3",
+                  "12.4",
+                  "12.5",
+                  "12.6",
+                  "12.7",
+                  "12.8",
+                  "12.9",
+                  "13.1",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.17",
+                  "13.19",
+                  "13.2",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "13.9",
+                  "14.1",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.13",
+                  "14.14",
+                  "14.16",
+                  "14.2",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.6",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15.11",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "15.8",
+                  "15.9",
+                  "16.1",
+                  "16.2",
+                  "16.3",
+                  "16.4",
+                  "16.5",
+                  "16.7",
+                  "17.1",
+                  "17.3",
+                  "9.3.1",
+                  "9.3.10",
+                  "9.3.12",
+                  "9.3.14",
+                  "9.3.16",
+                  "9.3.17",
+                  "9.3.19",
+                  "9.3.2",
+                  "9.3.20",
+                  "9.3.22",
+                  "9.3.23",
+                  "9.3.24",
+                  "9.3.25",
+                  "9.3.3",
+                  "9.3.5",
+                  "9.3.6",
+                  "9.3.9",
+                  "9.4.1",
+                  "9.4.11",
+                  "9.4.12",
+                  "9.4.14",
+                  "9.4.15",
+                  "9.4.17",
+                  "9.4.18",
+                  "9.4.19",
+                  "9.4.20",
+                  "9.4.21",
+                  "9.4.23",
+                  "9.4.24",
+                  "9.4.25",
+                  "9.4.26",
+                  "9.4.4",
+                  "9.4.5",
+                  "9.4.7",
+                  "9.4.9",
+                  "9.5.10",
+                  "9.5.12",
+                  "9.5.13",
+                  "9.5.14",
+                  "9.5.15",
+                  "9.5.16",
+                  "9.5.18",
+                  "9.5.19",
+                  "9.5.2",
+                  "9.5.20",
+                  "9.5.21",
+                  "9.5.22",
+                  "9.5.23",
+                  "9.5.24",
+                  "9.5.25",
+                  "9.5.4",
+                  "9.5.6",
+                  "9.5.7",
+                  "9.5.9",
+                  "9.6.1",
+                  "9.6.10",
+                  "9.6.11",
+                  "9.6.12",
+                  "9.6.14",
+                  "9.6.15",
+                  "9.6.16",
+                  "9.6.17",
+                  "9.6.18",
+                  "9.6.19",
+                  "9.6.2",
+                  "9.6.20",
+                  "9.6.21",
+                  "9.6.22",
+                  "9.6.23",
+                  "9.6.24",
+                  "9.6.3",
+                  "9.6.5",
+                  "9.6.6",
+                  "9.6.8",
+                  "9.6.9"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        }
+      ],
+      "description": "Automatically updated using aws api"
+    },
+    {
+      "additionalProperties": true,
+      "description": "If MonitoringRoleArn is specified, also set MonitoringInterval to a value other than 0",
+      "else": {
+        "if": {
+          "properties": {
+            "MonitoringInterval": {
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "MonitoringInterval"
+          ],
+          "type": "object"
+        },
+        "then": {
+          "required": [
+            "MonitoringRoleArn"
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "MonitoringRoleArn": true
+        },
+        "required": [
+          "MonitoringRoleArn"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "MonitoringInterval": {
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "MonitoringInterval"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Engine": {
+            "enum": [
+              "mysql",
+              "postgres"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "Engine"
+        ]
+      },
+      "then": {
+        "properties": {
+          "AvailabilityZones": false,
+          "BacktrackWindow": false,
+          "Domain": false,
+          "DomainIAMRoleName": false,
+          "EnableGlobalWriteForwarding": false,
+          "EnableHttpEndpoint": false,
+          "EnableIAMDatabaseAuthentication": false,
+          "EngineMode": false,
+          "GlobalClusterIdentifier": false,
+          "NetworkType": false,
+          "ReplicationSourceIdentifier": false,
+          "ScalingConfiguration": false,
+          "ServerlessV2ScalingConfiguration": false,
+          "SourceRegion": false,
+          "StorageType": {
+            "if": {
+              "type": "string"
+            },
+            "then": {
+              "enum": [
+                "io1",
+                "io2",
+                "gp3"
+              ]
+            }
+          }
+        },
+        "required": [
+          "AllocatedStorage",
+          "DBClusterInstanceClass",
+          "Iops",
+          "StorageType"
+        ]
+      }
+    },
+    {
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "EngineMode": {
+                "const": "provisioned"
+              }
+            },
+            "required": [
+              "EngineMode"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "ScalingConfiguration": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "EngineMode": {
+                "const": "serverless"
+              }
+            },
+            "required": [
+              "EngineMode"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "ServerlessV2ScalingConfiguration": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "EngineMode": false
+            },
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "ScalingConfiguration": false
+            }
+          }
+        }
+      ],
+      "description": "When creating a serverless 'EngineMode' don't specify 'ServerlessV2ScalingConfiguration'"
+    },
+    {
+      "if": {
+        "properties": {
+          "SnapshotIdentifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "SnapshotIdentifier"
+        ]
+      },
+      "then": {
+        "properties": {
+          "MasterUsername": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "SourceDBClusterIdentifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "SourceDBClusterIdentifier"
+        ]
+      },
+      "then": {
+        "properties": {
+          "MasterUserPassword": false,
+          "MasterUsername": false,
+          "StorageEncrypted": false
+        }
+      }
+    }
+  ],
+  "Aws::Rds::Dbinstance": [
+    {
+      "additionalProperties": true,
+      "description": "When creating an aurora DBInstance don't specify 'AllocatedStorage', 'CopyTagsToSnapshot', 'DeletionProtection', 'EnableIAMDatabaseAuthentication', 'MasterUserPassword', or 'StorageEncrypted'",
+      "if": {
+        "properties": {
+          "Engine": {
+            "pattern": "(aurora|aurora-mysql|aurora-postgresql)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "Engine"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "AllocatedStorage"
+              ]
+            },
+            {
+              "required": [
+                "CopyTagsToSnapshot"
+              ]
+            },
+            {
+              "required": [
+                "DeletionProtection"
+              ]
+            },
+            {
+              "required": [
+                "EnableIAMDatabaseAuthentication"
+              ]
+            },
+            {
+              "required": [
+                "MasterUserPassword"
+              ]
+            }
+          ],
+          "properties": {
+            "AllocatedStorage": true,
+            "CopyTagsToSnapshot": true,
+            "DeletionProtection": true,
+            "EnableIAMDatabaseAuthentication": true,
+            "MasterUserPassword": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Engine": {
+            "pattern": "^(?!aurora).*$",
+            "type": "string"
+          },
+          "SourceDBInstanceIdentifier": false
+        },
+        "required": [
+          "Engine"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "BackupRetentionPeriod": {
+            "maximum": 35
+          }
+        },
+        "required": [
+          "BackupRetentionPeriod"
+        ]
+      }
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "DBClusterIdentifier"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "BackupRetentionPeriod": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBClusterIdentifier": false,
+              "Engine": {
+                "pattern": "^(?!aurora).*$",
+                "type": "string"
+              },
+              "SourceDBInstanceIdentifier": false
+            },
+            "required": [
+              "Engine"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "BackupRetentionPeriod": {
+                "maximum": 35
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Engine"
+            ]
+          },
+          "then": {
+            "properties": {
+              "Engine": {
+                "enum": [
+                  "aurora-mysql",
+                  "aurora-postgresql",
+                  "custom-oracle-ee",
+                  "custom-oracle-ee-cdb",
+                  "custom-sqlserver-ee",
+                  "custom-sqlserver-se",
+                  "custom-sqlserver-web",
+                  "db2-ae",
+                  "db2-se",
+                  "mariadb",
+                  "mysql",
+                  "oracle-ee",
+                  "oracle-ee-cdb",
+                  "oracle-se2",
+                  "oracle-se2-cdb",
+                  "postgres",
+                  "sqlserver-ee",
+                  "sqlserver-ex",
+                  "sqlserver-se",
+                  "sqlserver-web"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-mysql"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "5.7",
+                  "5.7.12",
+                  "5.7.mysql_aurora.2.02.3",
+                  "5.7.mysql_aurora.2.03.2",
+                  "5.7.mysql_aurora.2.03.3",
+                  "5.7.mysql_aurora.2.03.4",
+                  "5.7.mysql_aurora.2.04.0",
+                  "5.7.mysql_aurora.2.04.1",
+                  "5.7.mysql_aurora.2.04.2",
+                  "5.7.mysql_aurora.2.04.3",
+                  "5.7.mysql_aurora.2.04.4",
+                  "5.7.mysql_aurora.2.04.5",
+                  "5.7.mysql_aurora.2.04.6",
+                  "5.7.mysql_aurora.2.04.7",
+                  "5.7.mysql_aurora.2.04.8",
+                  "5.7.mysql_aurora.2.04.8.3",
+                  "5.7.mysql_aurora.2.04.9",
+                  "5.7.mysql_aurora.2.05.0",
+                  "5.7.mysql_aurora.2.05.1",
+                  "5.7.mysql_aurora.2.06.0",
+                  "5.7.mysql_aurora.2.07.0",
+                  "5.7.mysql_aurora.2.07.1",
+                  "5.7.mysql_aurora.2.07.10",
+                  "5.7.mysql_aurora.2.07.2",
+                  "5.7.mysql_aurora.2.07.3",
+                  "5.7.mysql_aurora.2.07.4",
+                  "5.7.mysql_aurora.2.07.5",
+                  "5.7.mysql_aurora.2.07.6",
+                  "5.7.mysql_aurora.2.07.7",
+                  "5.7.mysql_aurora.2.07.8",
+                  "5.7.mysql_aurora.2.07.9",
+                  "5.7.mysql_aurora.2.08.0",
+                  "5.7.mysql_aurora.2.08.1",
+                  "5.7.mysql_aurora.2.08.2",
+                  "5.7.mysql_aurora.2.08.3",
+                  "5.7.mysql_aurora.2.08.4",
+                  "5.7.mysql_aurora.2.09.0",
+                  "5.7.mysql_aurora.2.09.1",
+                  "5.7.mysql_aurora.2.09.2",
+                  "5.7.mysql_aurora.2.09.3",
+                  "5.7.mysql_aurora.2.10.0",
+                  "5.7.mysql_aurora.2.10.0.1",
+                  "5.7.mysql_aurora.2.10.1",
+                  "5.7.mysql_aurora.2.10.2",
+                  "5.7.mysql_aurora.2.10.3",
+                  "5.7.mysql_aurora.2.11.0",
+                  "5.7.mysql_aurora.2.11.1",
+                  "5.7.mysql_aurora.2.11.2",
+                  "5.7.mysql_aurora.2.11.3",
+                  "5.7.mysql_aurora.2.11.4",
+                  "5.7.mysql_aurora.2.11.5",
+                  "5.7.mysql_aurora.2.11.6",
+                  "5.7.mysql_aurora.2.12.0",
+                  "5.7.mysql_aurora.2.12.0.1",
+                  "5.7.mysql_aurora.2.12.1",
+                  "5.7.mysql_aurora.2.12.2",
+                  "5.7.mysql_aurora.2.12.3",
+                  "5.7.mysql_aurora.2.12.4",
+                  "5.7.mysql_aurora.2.12.5",
+                  "5.7.mysql_aurora.2.12.6",
+                  "8.0",
+                  "8.0.mysql_aurora.3.01.0",
+                  "8.0.mysql_aurora.3.01.1",
+                  "8.0.mysql_aurora.3.02.0",
+                  "8.0.mysql_aurora.3.02.1",
+                  "8.0.mysql_aurora.3.02.2",
+                  "8.0.mysql_aurora.3.02.3",
+                  "8.0.mysql_aurora.3.03.0",
+                  "8.0.mysql_aurora.3.03.1",
+                  "8.0.mysql_aurora.3.03.2",
+                  "8.0.mysql_aurora.3.03.3",
+                  "8.0.mysql_aurora.3.04.0",
+                  "8.0.mysql_aurora.3.04.1",
+                  "8.0.mysql_aurora.3.04.2",
+                  "8.0.mysql_aurora.3.04.3",
+                  "8.0.mysql_aurora.3.04.4",
+                  "8.0.mysql_aurora.3.04.6",
+                  "8.0.mysql_aurora.3.05.0",
+                  "8.0.mysql_aurora.3.05.0.1",
+                  "8.0.mysql_aurora.3.05.1",
+                  "8.0.mysql_aurora.3.05.2",
+                  "8.0.mysql_aurora.3.06.0",
+                  "8.0.mysql_aurora.3.06.1",
+                  "8.0.mysql_aurora.3.07.0",
+                  "8.0.mysql_aurora.3.07.1",
+                  "8.0.mysql_aurora.3.08.0",
+                  "8.0.mysql_aurora.3.08.1",
+                  "8.0.mysql_aurora.3.08.2",
+                  "8.0.mysql_aurora.3.09.0",
+                  "8.0.mysql_aurora.3.10.0",
+                  "8.0.mysql_aurora.3.10.1",
+                  "8.0.mysql_aurora.3.10.2",
+                  "8.0.mysql_aurora.3.10.3",
+                  "8.0.mysql_aurora.3.10.4",
+                  "8.0.mysql_aurora.3.11.0",
+                  "8.0.mysql_aurora.3.11.1",
+                  "8.0.mysql_aurora.3.12.0"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-postgresql"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "10.21",
+                  "10.7",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.20",
+                  "11.21",
+                  "11.9",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.20",
+                  "12.22",
+                  "12.4",
+                  "12.7",
+                  "12.8",
+                  "12.9",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.18",
+                  "13.20",
+                  "13.21",
+                  "13.22",
+                  "13.23",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "13.9",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.13",
+                  "14.15",
+                  "14.17",
+                  "14.18",
+                  "14.19",
+                  "14.20",
+                  "14.22",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.6",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15.10",
+                  "15.12",
+                  "15.13",
+                  "15.14",
+                  "15.15",
+                  "15.17",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "15.8",
+                  "16.1",
+                  "16.10",
+                  "16.10-limitless",
+                  "16.11",
+                  "16.11-limitless",
+                  "16.13",
+                  "16.2",
+                  "16.3",
+                  "16.4",
+                  "16.4-limitless",
+                  "16.6",
+                  "16.6-limitless",
+                  "16.8",
+                  "16.8-limitless",
+                  "16.9",
+                  "16.9-limitless",
+                  "17.4",
+                  "17.5",
+                  "17.6",
+                  "17.7",
+                  "17.9",
+                  "9.6.22"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "custom-sqlserver-ee"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "15.00.4073.23.v1",
+                  "15.00.4249.2.v1",
+                  "15.00.4261.1.v1",
+                  "15.00.4312.2.v1",
+                  "15.00.4322.2.v1",
+                  "15.00.4345.5.v1",
+                  "15.00.4365.2.v1",
+                  "15.00.4390.2.v1",
+                  "15.00.4410.1.v1",
+                  "15.00.4415.2.v1",
+                  "15.00.4430.1.v1",
+                  "15.00.4435.7.v1",
+                  "15.00.4440.1.v1",
+                  "15.00.4455.2.v1",
+                  "15.00.4460.4.v1",
+                  "16.00.4085.2.v1",
+                  "16.00.4125.3.v1",
+                  "16.00.4140.3.v1",
+                  "16.00.4150.1.v1",
+                  "16.00.4165.4.v1",
+                  "16.00.4175.1.v1",
+                  "16.00.4185.3.v1",
+                  "16.00.4195.2.v1",
+                  "16.00.4200.1.v1",
+                  "16.00.4210.1.v1",
+                  "16.00.4222.2.v1",
+                  "16.00.4225.2.v1",
+                  "16.00.4230.2.v1",
+                  "16.00.4236.2.v1",
+                  "16.00.4240.4.v1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "custom-sqlserver-se"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "15.00.4073.23.v1",
+                  "15.00.4249.2.v1",
+                  "15.00.4261.1.v1",
+                  "15.00.4312.2.v1",
+                  "15.00.4322.2.v1",
+                  "15.00.4345.5.v1",
+                  "15.00.4365.2.v1",
+                  "15.00.4390.2.v1",
+                  "15.00.4410.1.v1",
+                  "15.00.4415.2.v1",
+                  "15.00.4430.1.v1",
+                  "15.00.4435.7.v1",
+                  "15.00.4440.1.v1",
+                  "15.00.4455.2.v1",
+                  "15.00.4460.4.v1",
+                  "16.00.4085.2.v1",
+                  "16.00.4125.3.v1",
+                  "16.00.4140.3.v1",
+                  "16.00.4150.1.v1",
+                  "16.00.4165.4.v1",
+                  "16.00.4175.1.v1",
+                  "16.00.4185.3.v1",
+                  "16.00.4195.2.v1",
+                  "16.00.4200.1.v1",
+                  "16.00.4210.1.v1",
+                  "16.00.4222.2.v1",
+                  "16.00.4225.2.v1",
+                  "16.00.4230.2.v1",
+                  "16.00.4236.2.v1",
+                  "16.00.4240.4.v1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "custom-sqlserver-web"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "15.00.4073.23.v1",
+                  "15.00.4249.2.v1",
+                  "15.00.4261.1.v1",
+                  "15.00.4312.2.v1",
+                  "15.00.4322.2.v1",
+                  "15.00.4345.5.v1",
+                  "15.00.4365.2.v1",
+                  "15.00.4390.2.v1",
+                  "15.00.4410.1.v1",
+                  "15.00.4415.2.v1",
+                  "15.00.4430.1.v1",
+                  "15.00.4435.7.v1",
+                  "15.00.4440.1.v1",
+                  "15.00.4455.2.v1",
+                  "15.00.4460.4.v1",
+                  "16.00.4085.2.v1",
+                  "16.00.4125.3.v1",
+                  "16.00.4140.3.v1",
+                  "16.00.4150.1.v1",
+                  "16.00.4165.4.v1",
+                  "16.00.4175.1.v1",
+                  "16.00.4185.3.v1",
+                  "16.00.4195.2.v1",
+                  "16.00.4200.1.v1",
+                  "16.00.4210.1.v1",
+                  "16.00.4222.2.v1",
+                  "16.00.4225.2.v1",
+                  "16.00.4230.2.v1",
+                  "16.00.4236.2.v1",
+                  "16.00.4240.4.v1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "db2-ae"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "11.5.9.0.sb00000000.r1",
+                  "11.5.9.0.sb00039210.r1",
+                  "11.5.9.0.sb00039340.r1",
+                  "11.5.9.0.sb00040222.r1",
+                  "11.5.9.0.sb00040226.r1",
+                  "11.5.9.0.sb00042449.r1",
+                  "11.5.9.0.sb00046591.r1",
+                  "11.5.9.0.sb00050315.r1",
+                  "11.5.9.0.sb00063198.r1",
+                  "11.5.9.0.sb00069315.r1",
+                  "11.5.9.0.sb00075854.r1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "db2-se"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "11.5.9.0.sb00000000.r1",
+                  "11.5.9.0.sb00039210.r1",
+                  "11.5.9.0.sb00039340.r1",
+                  "11.5.9.0.sb00040222.r1",
+                  "11.5.9.0.sb00040226.r1",
+                  "11.5.9.0.sb00042449.r1",
+                  "11.5.9.0.sb00046591.r1",
+                  "11.5.9.0.sb00050315.r1",
+                  "11.5.9.0.sb00063198.r1",
+                  "11.5.9.0.sb00069315.r1",
+                  "11.5.9.0.sb00075854.r1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "mariadb"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "10.0.38",
+                  "10.1.48",
+                  "10.11.10",
+                  "10.11.11",
+                  "10.11.13",
+                  "10.11.14",
+                  "10.11.15",
+                  "10.11.16",
+                  "10.11.4",
+                  "10.11.5",
+                  "10.11.6",
+                  "10.11.7",
+                  "10.11.8",
+                  "10.11.9",
+                  "10.2.44",
+                  "10.3.34",
+                  "10.3.35",
+                  "10.3.36",
+                  "10.3.37",
+                  "10.3.38",
+                  "10.3.39",
+                  "10.4.13",
+                  "10.4.18",
+                  "10.4.21",
+                  "10.4.22",
+                  "10.4.24",
+                  "10.4.25",
+                  "10.4.26",
+                  "10.4.27",
+                  "10.4.28",
+                  "10.4.29",
+                  "10.4.30",
+                  "10.4.31",
+                  "10.4.32",
+                  "10.4.33",
+                  "10.4.34",
+                  "10.5.12",
+                  "10.5.13",
+                  "10.5.15",
+                  "10.5.16",
+                  "10.5.17",
+                  "10.5.18",
+                  "10.5.19",
+                  "10.5.20",
+                  "10.5.21",
+                  "10.5.22",
+                  "10.5.23",
+                  "10.5.24",
+                  "10.5.25",
+                  "10.5.26",
+                  "10.5.27",
+                  "10.5.28",
+                  "10.5.29",
+                  "10.5.8",
+                  "10.5.9",
+                  "10.6.10",
+                  "10.6.11",
+                  "10.6.12",
+                  "10.6.13",
+                  "10.6.14",
+                  "10.6.15",
+                  "10.6.16",
+                  "10.6.17",
+                  "10.6.18",
+                  "10.6.19",
+                  "10.6.20",
+                  "10.6.21",
+                  "10.6.22",
+                  "10.6.23",
+                  "10.6.24",
+                  "10.6.25",
+                  "10.6.5",
+                  "10.6.7",
+                  "10.6.8",
+                  "10.6.9",
+                  "11.4.10",
+                  "11.4.3",
+                  "11.4.4",
+                  "11.4.5",
+                  "11.4.7",
+                  "11.4.8",
+                  "11.4.9",
+                  "11.8.3",
+                  "11.8.4",
+                  "11.8.5",
+                  "11.8.6"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "mysql"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "5.5.62",
+                  "5.6.51",
+                  "5.7.33",
+                  "5.7.34",
+                  "5.7.36",
+                  "5.7.37",
+                  "5.7.38",
+                  "5.7.39",
+                  "5.7.40",
+                  "5.7.41",
+                  "5.7.42",
+                  "5.7.43",
+                  "5.7.44",
+                  "5.7.44-rds.20240408",
+                  "5.7.44-rds.20240529",
+                  "5.7.44-rds.20240808",
+                  "5.7.44-rds.20250103",
+                  "5.7.44-rds.20250213",
+                  "5.7.44-rds.20250508",
+                  "5.7.44-rds.20250818",
+                  "5.7.44-rds.20251212",
+                  "5.7.44-rds.20260212",
+                  "8.0.11",
+                  "8.0.13",
+                  "8.0.15",
+                  "8.0.16",
+                  "8.0.17",
+                  "8.0.19",
+                  "8.0.20",
+                  "8.0.21",
+                  "8.0.23",
+                  "8.0.25",
+                  "8.0.26",
+                  "8.0.27",
+                  "8.0.28",
+                  "8.0.29",
+                  "8.0.30",
+                  "8.0.31",
+                  "8.0.32",
+                  "8.0.33",
+                  "8.0.34",
+                  "8.0.35",
+                  "8.0.36",
+                  "8.0.37",
+                  "8.0.39",
+                  "8.0.40",
+                  "8.0.41",
+                  "8.0.42",
+                  "8.0.43",
+                  "8.0.44",
+                  "8.0.45",
+                  "8.0.46",
+                  "8.4.3",
+                  "8.4.4",
+                  "8.4.5",
+                  "8.4.6",
+                  "8.4.7",
+                  "8.4.8",
+                  "8.4.9"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "postgres"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "10",
+                  "10.1",
+                  "10.10",
+                  "10.11",
+                  "10.12",
+                  "10.13",
+                  "10.14",
+                  "10.15",
+                  "10.16",
+                  "10.17",
+                  "10.18",
+                  "10.19",
+                  "10.20",
+                  "10.21",
+                  "10.22",
+                  "10.23",
+                  "10.3",
+                  "10.4",
+                  "10.5",
+                  "10.6",
+                  "10.7",
+                  "10.9",
+                  "11",
+                  "11.1",
+                  "11.10",
+                  "11.11",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.2",
+                  "11.20",
+                  "11.21",
+                  "11.22",
+                  "11.22-rds.20240418",
+                  "11.22-rds.20240509",
+                  "11.22-rds.20240808",
+                  "11.22-rds.20241121",
+                  "11.22-rds.20250220",
+                  "11.22-rds.20250508",
+                  "11.22-rds.20250814",
+                  "11.22-rds.20251114",
+                  "11.4",
+                  "11.5",
+                  "11.6",
+                  "11.7",
+                  "11.8",
+                  "11.9",
+                  "12",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.2",
+                  "12.20",
+                  "12.21",
+                  "12.22",
+                  "12.22-rds.20250220",
+                  "12.22-rds.20250508",
+                  "12.22-rds.20250814",
+                  "12.22-rds.20251114",
+                  "12.3",
+                  "12.4",
+                  "12.5",
+                  "12.6",
+                  "12.7",
+                  "12.8",
+                  "12.9",
+                  "13",
+                  "13.1",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.17",
+                  "13.18",
+                  "13.19",
+                  "13.2",
+                  "13.20",
+                  "13.21",
+                  "13.22",
+                  "13.23",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "13.9",
+                  "14",
+                  "14.1",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.13",
+                  "14.14",
+                  "14.15",
+                  "14.16",
+                  "14.17",
+                  "14.18",
+                  "14.19",
+                  "14.2",
+                  "14.20",
+                  "14.21",
+                  "14.22",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.6",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15",
+                  "15.10",
+                  "15.11",
+                  "15.12",
+                  "15.13",
+                  "15.14",
+                  "15.15",
+                  "15.16",
+                  "15.17",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "15.8",
+                  "15.9",
+                  "16",
+                  "16.1",
+                  "16.10",
+                  "16.11",
+                  "16.12",
+                  "16.13",
+                  "16.2",
+                  "16.3",
+                  "16.4",
+                  "16.5",
+                  "16.6",
+                  "16.7",
+                  "16.8",
+                  "16.9",
+                  "17",
+                  "17.1",
+                  "17.2",
+                  "17.3",
+                  "17.4",
+                  "17.5",
+                  "17.6",
+                  "17.7",
+                  "17.8",
+                  "17.9",
+                  "18",
+                  "18.1",
+                  "18.2",
+                  "18.3",
+                  "9",
+                  "9.3.1",
+                  "9.3.10",
+                  "9.3.12",
+                  "9.3.14",
+                  "9.3.16",
+                  "9.3.17",
+                  "9.3.19",
+                  "9.3.2",
+                  "9.3.20",
+                  "9.3.22",
+                  "9.3.23",
+                  "9.3.24",
+                  "9.3.25",
+                  "9.3.3",
+                  "9.3.5",
+                  "9.3.6",
+                  "9.3.9",
+                  "9.4.1",
+                  "9.4.11",
+                  "9.4.12",
+                  "9.4.14",
+                  "9.4.15",
+                  "9.4.17",
+                  "9.4.18",
+                  "9.4.19",
+                  "9.4.20",
+                  "9.4.21",
+                  "9.4.23",
+                  "9.4.24",
+                  "9.4.25",
+                  "9.4.26",
+                  "9.4.4",
+                  "9.4.5",
+                  "9.4.7",
+                  "9.4.9",
+                  "9.5.10",
+                  "9.5.12",
+                  "9.5.13",
+                  "9.5.14",
+                  "9.5.15",
+                  "9.5.16",
+                  "9.5.18",
+                  "9.5.19",
+                  "9.5.2",
+                  "9.5.20",
+                  "9.5.21",
+                  "9.5.22",
+                  "9.5.23",
+                  "9.5.24",
+                  "9.5.25",
+                  "9.5.4",
+                  "9.5.6",
+                  "9.5.7",
+                  "9.5.9",
+                  "9.6.1",
+                  "9.6.10",
+                  "9.6.11",
+                  "9.6.12",
+                  "9.6.14",
+                  "9.6.15",
+                  "9.6.16",
+                  "9.6.17",
+                  "9.6.18",
+                  "9.6.19",
+                  "9.6.2",
+                  "9.6.20",
+                  "9.6.21",
+                  "9.6.22",
+                  "9.6.23",
+                  "9.6.24",
+                  "9.6.3",
+                  "9.6.5",
+                  "9.6.6",
+                  "9.6.8",
+                  "9.6.9"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "sqlserver-ee"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "11.00.2100.60.v1",
+                  "11.00.5058.0.v1",
+                  "11.00.6020.0.v1",
+                  "11.00.6594.0.v1",
+                  "11.00.7462.6.v1",
+                  "11.00.7493.4.v1",
+                  "12.00.5000.0.v1",
+                  "12.00.5546.0.v1",
+                  "12.00.5571.0.v1",
+                  "12.00.6293.0.v1",
+                  "12.00.6329.1.v1",
+                  "12.00.6433.1.v1",
+                  "12.00.6439.10.v1",
+                  "12.00.6444.4.v1",
+                  "12.00.6449.1.v1",
+                  "13.00.2164.0.v1",
+                  "13.00.4422.0.v1",
+                  "13.00.4451.0.v1",
+                  "13.00.4466.4.v1",
+                  "13.00.4522.0.v1",
+                  "13.00.5216.0.v1",
+                  "13.00.5292.0.v1",
+                  "13.00.5366.0.v1",
+                  "13.00.5426.0.v1",
+                  "13.00.5598.27.v1",
+                  "13.00.5820.21.v1",
+                  "13.00.5850.14.v1",
+                  "13.00.5882.1.v1",
+                  "13.00.6300.2.v1",
+                  "13.00.6419.1.v1",
+                  "13.00.6430.49.v1",
+                  "13.00.6435.1.v1",
+                  "13.00.6441.1.v1",
+                  "13.00.6445.1.v1",
+                  "13.00.6450.1.v1",
+                  "13.00.6455.2.v1",
+                  "13.00.6460.7.v1",
+                  "13.00.6465.1.v1",
+                  "13.00.6470.1.v1",
+                  "13.00.6475.1.v1",
+                  "13.00.6480.4.v1",
+                  "14.00.1000.169.v1",
+                  "14.00.3015.40.v1",
+                  "14.00.3035.2.v1",
+                  "14.00.3049.1.v1",
+                  "14.00.3192.2.v1",
+                  "14.00.3223.3.v1",
+                  "14.00.3281.6.v1",
+                  "14.00.3294.2.v1",
+                  "14.00.3356.20.v1",
+                  "14.00.3381.3.v1",
+                  "14.00.3401.7.v1",
+                  "14.00.3421.10.v1",
+                  "14.00.3451.2.v1",
+                  "14.00.3460.9.v1",
+                  "14.00.3465.1.v1",
+                  "14.00.3471.2.v1",
+                  "14.00.3475.1.v1",
+                  "14.00.3480.1.v1",
+                  "14.00.3485.1.v1",
+                  "14.00.3495.9.v1",
+                  "14.00.3500.1.v1",
+                  "14.00.3505.1.v1",
+                  "14.00.3515.1.v1",
+                  "14.00.3520.4.v1",
+                  "15.00.4043.16.v1",
+                  "15.00.4073.23.v1",
+                  "15.00.4153.1.v1",
+                  "15.00.4198.2.v1",
+                  "15.00.4236.7.v1",
+                  "15.00.4312.2.v1",
+                  "15.00.4316.3.v1",
+                  "15.00.4322.2.v1",
+                  "15.00.4335.1.v1",
+                  "15.00.4345.5.v1",
+                  "15.00.4355.3.v1",
+                  "15.00.4365.2.v1",
+                  "15.00.4375.4.v1",
+                  "15.00.4382.1.v1",
+                  "15.00.4385.2.v1",
+                  "15.00.4390.2.v1",
+                  "15.00.4395.2.v1",
+                  "15.00.4410.1.v1",
+                  "15.00.4415.2.v1",
+                  "15.00.4420.2.v1",
+                  "15.00.4430.1.v1",
+                  "15.00.4435.7.v1",
+                  "15.00.4440.1.v1",
+                  "15.00.4445.1.v1",
+                  "15.00.4455.2.v1",
+                  "15.00.4460.4.v1",
+                  "16.00.4085.2.v1",
+                  "16.00.4095.4.v1",
+                  "16.00.4105.2.v1",
+                  "16.00.4115.5.v1",
+                  "16.00.4120.1.v1",
+                  "16.00.4125.3.v1",
+                  "16.00.4131.2.v1",
+                  "16.00.4135.4.v1",
+                  "16.00.4140.3.v1",
+                  "16.00.4150.1.v1",
+                  "16.00.4165.4.v1",
+                  "16.00.4175.1.v1",
+                  "16.00.4185.3.v1",
+                  "16.00.4195.2.v1",
+                  "16.00.4205.1.v1",
+                  "16.00.4210.1.v1",
+                  "16.00.4215.2.v1",
+                  "16.00.4225.2.v1",
+                  "16.00.4230.2.v1",
+                  "16.00.4236.2.v1",
+                  "16.00.4245.2.v1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "sqlserver-ex"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "11.00.2100.60.v1",
+                  "11.00.5058.0.v1",
+                  "11.00.6020.0.v1",
+                  "11.00.6594.0.v1",
+                  "11.00.7462.6.v1",
+                  "11.00.7493.4.v1",
+                  "12.00.4422.0.v1",
+                  "12.00.5000.0.v1",
+                  "12.00.5546.0.v1",
+                  "12.00.5571.0.v1",
+                  "12.00.6293.0.v1",
+                  "12.00.6329.1.v1",
+                  "12.00.6433.1.v1",
+                  "12.00.6439.10.v1",
+                  "12.00.6444.4.v1",
+                  "12.00.6449.1.v1",
+                  "13.00.2164.0.v1",
+                  "13.00.4422.0.v1",
+                  "13.00.4451.0.v1",
+                  "13.00.4466.4.v1",
+                  "13.00.4522.0.v1",
+                  "13.00.5216.0.v1",
+                  "13.00.5292.0.v1",
+                  "13.00.5366.0.v1",
+                  "13.00.5426.0.v1",
+                  "13.00.5598.27.v1",
+                  "13.00.5820.21.v1",
+                  "13.00.5850.14.v1",
+                  "13.00.5882.1.v1",
+                  "13.00.6300.2.v1",
+                  "13.00.6419.1.v1",
+                  "13.00.6430.49.v1",
+                  "13.00.6435.1.v1",
+                  "13.00.6441.1.v1",
+                  "13.00.6445.1.v1",
+                  "13.00.6450.1.v1",
+                  "13.00.6455.2.v1",
+                  "13.00.6460.7.v1",
+                  "13.00.6465.1.v1",
+                  "13.00.6470.1.v1",
+                  "13.00.6475.1.v1",
+                  "13.00.6480.4.v1",
+                  "14.00.1000.169.v1",
+                  "14.00.3015.40.v1",
+                  "14.00.3035.2.v1",
+                  "14.00.3049.1.v1",
+                  "14.00.3192.2.v1",
+                  "14.00.3223.3.v1",
+                  "14.00.3281.6.v1",
+                  "14.00.3294.2.v1",
+                  "14.00.3356.20.v1",
+                  "14.00.3381.3.v1",
+                  "14.00.3401.7.v1",
+                  "14.00.3421.10.v1",
+                  "14.00.3451.2.v1",
+                  "14.00.3460.9.v1",
+                  "14.00.3465.1.v1",
+                  "14.00.3471.2.v1",
+                  "14.00.3475.1.v1",
+                  "14.00.3480.1.v1",
+                  "14.00.3485.1.v1",
+                  "14.00.3495.9.v1",
+                  "14.00.3500.1.v1",
+                  "14.00.3505.1.v1",
+                  "14.00.3515.1.v1",
+                  "14.00.3520.4.v1",
+                  "15.00.4043.16.v1",
+                  "15.00.4073.23.v1",
+                  "15.00.4153.1.v1",
+                  "15.00.4198.2.v1",
+                  "15.00.4236.7.v1",
+                  "15.00.4312.2.v1",
+                  "15.00.4316.3.v1",
+                  "15.00.4322.2.v1",
+                  "15.00.4335.1.v1",
+                  "15.00.4345.5.v1",
+                  "15.00.4355.3.v1",
+                  "15.00.4365.2.v1",
+                  "15.00.4375.4.v1",
+                  "15.00.4382.1.v1",
+                  "15.00.4385.2.v1",
+                  "15.00.4390.2.v1",
+                  "15.00.4395.2.v1",
+                  "15.00.4410.1.v1",
+                  "15.00.4415.2.v1",
+                  "15.00.4420.2.v1",
+                  "15.00.4430.1.v1",
+                  "15.00.4435.7.v1",
+                  "15.00.4440.1.v1",
+                  "15.00.4445.1.v1",
+                  "15.00.4455.2.v1",
+                  "15.00.4460.4.v1",
+                  "16.00.4085.2.v1",
+                  "16.00.4095.4.v1",
+                  "16.00.4105.2.v1",
+                  "16.00.4115.5.v1",
+                  "16.00.4120.1.v1",
+                  "16.00.4125.3.v1",
+                  "16.00.4131.2.v1",
+                  "16.00.4135.4.v1",
+                  "16.00.4140.3.v1",
+                  "16.00.4150.1.v1",
+                  "16.00.4165.4.v1",
+                  "16.00.4175.1.v1",
+                  "16.00.4185.3.v1",
+                  "16.00.4195.2.v1",
+                  "16.00.4205.1.v1",
+                  "16.00.4210.1.v1",
+                  "16.00.4215.2.v1",
+                  "16.00.4225.2.v1",
+                  "16.00.4230.2.v1",
+                  "16.00.4236.2.v1",
+                  "16.00.4245.2.v1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "sqlserver-se"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "11.00.2100.60.v1",
+                  "11.00.5058.0.v1",
+                  "11.00.6020.0.v1",
+                  "11.00.6594.0.v1",
+                  "11.00.7462.6.v1",
+                  "11.00.7493.4.v1",
+                  "12.00.4422.0.v1",
+                  "12.00.5000.0.v1",
+                  "12.00.5546.0.v1",
+                  "12.00.5571.0.v1",
+                  "12.00.6293.0.v1",
+                  "12.00.6329.1.v1",
+                  "12.00.6433.1.v1",
+                  "12.00.6439.10.v1",
+                  "12.00.6444.4.v1",
+                  "12.00.6449.1.v1",
+                  "13.00.2164.0.v1",
+                  "13.00.4422.0.v1",
+                  "13.00.4451.0.v1",
+                  "13.00.4466.4.v1",
+                  "13.00.4522.0.v1",
+                  "13.00.5216.0.v1",
+                  "13.00.5292.0.v1",
+                  "13.00.5366.0.v1",
+                  "13.00.5426.0.v1",
+                  "13.00.5598.27.v1",
+                  "13.00.5820.21.v1",
+                  "13.00.5850.14.v1",
+                  "13.00.5882.1.v1",
+                  "13.00.6300.2.v1",
+                  "13.00.6419.1.v1",
+                  "13.00.6430.49.v1",
+                  "13.00.6435.1.v1",
+                  "13.00.6441.1.v1",
+                  "13.00.6445.1.v1",
+                  "13.00.6450.1.v1",
+                  "13.00.6455.2.v1",
+                  "13.00.6460.7.v1",
+                  "13.00.6465.1.v1",
+                  "13.00.6470.1.v1",
+                  "13.00.6475.1.v1",
+                  "13.00.6480.4.v1",
+                  "14.00.1000.169.v1",
+                  "14.00.3015.40.v1",
+                  "14.00.3035.2.v1",
+                  "14.00.3049.1.v1",
+                  "14.00.3192.2.v1",
+                  "14.00.3223.3.v1",
+                  "14.00.3281.6.v1",
+                  "14.00.3294.2.v1",
+                  "14.00.3356.20.v1",
+                  "14.00.3381.3.v1",
+                  "14.00.3401.7.v1",
+                  "14.00.3421.10.v1",
+                  "14.00.3451.2.v1",
+                  "14.00.3460.9.v1",
+                  "14.00.3465.1.v1",
+                  "14.00.3471.2.v1",
+                  "14.00.3475.1.v1",
+                  "14.00.3480.1.v1",
+                  "14.00.3485.1.v1",
+                  "14.00.3495.9.v1",
+                  "14.00.3500.1.v1",
+                  "14.00.3505.1.v1",
+                  "14.00.3515.1.v1",
+                  "14.00.3520.4.v1",
+                  "15.00.4043.16.v1",
+                  "15.00.4073.23.v1",
+                  "15.00.4153.1.v1",
+                  "15.00.4198.2.v1",
+                  "15.00.4236.7.v1",
+                  "15.00.4312.2.v1",
+                  "15.00.4316.3.v1",
+                  "15.00.4322.2.v1",
+                  "15.00.4335.1.v1",
+                  "15.00.4345.5.v1",
+                  "15.00.4355.3.v1",
+                  "15.00.4365.2.v1",
+                  "15.00.4375.4.v1",
+                  "15.00.4382.1.v1",
+                  "15.00.4385.2.v1",
+                  "15.00.4390.2.v1",
+                  "15.00.4395.2.v1",
+                  "15.00.4410.1.v1",
+                  "15.00.4415.2.v1",
+                  "15.00.4420.2.v1",
+                  "15.00.4430.1.v1",
+                  "15.00.4435.7.v1",
+                  "15.00.4440.1.v1",
+                  "15.00.4445.1.v1",
+                  "15.00.4455.2.v1",
+                  "15.00.4460.4.v1",
+                  "16.00.4085.2.v1",
+                  "16.00.4095.4.v1",
+                  "16.00.4105.2.v1",
+                  "16.00.4115.5.v1",
+                  "16.00.4120.1.v1",
+                  "16.00.4125.3.v1",
+                  "16.00.4131.2.v1",
+                  "16.00.4135.4.v1",
+                  "16.00.4140.3.v1",
+                  "16.00.4150.1.v1",
+                  "16.00.4165.4.v1",
+                  "16.00.4175.1.v1",
+                  "16.00.4185.3.v1",
+                  "16.00.4195.2.v1",
+                  "16.00.4205.1.v1",
+                  "16.00.4210.1.v1",
+                  "16.00.4215.2.v1",
+                  "16.00.4225.2.v1",
+                  "16.00.4230.2.v1",
+                  "16.00.4236.2.v1",
+                  "16.00.4245.2.v1"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "sqlserver-web"
+              },
+              "EngineVersion": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "EngineVersion": {
+                "enum": [
+                  "11.00.2100.60.v1",
+                  "11.00.5058.0.v1",
+                  "11.00.6020.0.v1",
+                  "11.00.6594.0.v1",
+                  "11.00.7462.6.v1",
+                  "11.00.7493.4.v1",
+                  "12.00.4422.0.v1",
+                  "12.00.5000.0.v1",
+                  "12.00.5546.0.v1",
+                  "12.00.5571.0.v1",
+                  "12.00.6293.0.v1",
+                  "12.00.6329.1.v1",
+                  "12.00.6433.1.v1",
+                  "12.00.6439.10.v1",
+                  "12.00.6444.4.v1",
+                  "12.00.6449.1.v1",
+                  "13.00.2164.0.v1",
+                  "13.00.4422.0.v1",
+                  "13.00.4451.0.v1",
+                  "13.00.4466.4.v1",
+                  "13.00.4522.0.v1",
+                  "13.00.5216.0.v1",
+                  "13.00.5292.0.v1",
+                  "13.00.5366.0.v1",
+                  "13.00.5426.0.v1",
+                  "13.00.5598.27.v1",
+                  "13.00.5820.21.v1",
+                  "13.00.5850.14.v1",
+                  "13.00.5882.1.v1",
+                  "13.00.6300.2.v1",
+                  "13.00.6419.1.v1",
+                  "13.00.6430.49.v1",
+                  "13.00.6435.1.v1",
+                  "13.00.6441.1.v1",
+                  "13.00.6445.1.v1",
+                  "13.00.6450.1.v1",
+                  "13.00.6455.2.v1",
+                  "13.00.6460.7.v1",
+                  "13.00.6465.1.v1",
+                  "13.00.6470.1.v1",
+                  "13.00.6475.1.v1",
+                  "13.00.6480.4.v1",
+                  "14.00.1000.169.v1",
+                  "14.00.3015.40.v1",
+                  "14.00.3035.2.v1",
+                  "14.00.3049.1.v1",
+                  "14.00.3192.2.v1",
+                  "14.00.3223.3.v1",
+                  "14.00.3281.6.v1",
+                  "14.00.3294.2.v1",
+                  "14.00.3356.20.v1",
+                  "14.00.3381.3.v1",
+                  "14.00.3401.7.v1",
+                  "14.00.3421.10.v1",
+                  "14.00.3451.2.v1",
+                  "14.00.3460.9.v1",
+                  "14.00.3465.1.v1",
+                  "14.00.3471.2.v1",
+                  "14.00.3475.1.v1",
+                  "14.00.3480.1.v1",
+                  "14.00.3485.1.v1",
+                  "14.00.3495.9.v1",
+                  "14.00.3500.1.v1",
+                  "14.00.3505.1.v1",
+                  "14.00.3515.1.v1",
+                  "14.00.3520.4.v1",
+                  "15.00.4043.16.v1",
+                  "15.00.4073.23.v1",
+                  "15.00.4153.1.v1",
+                  "15.00.4198.2.v1",
+                  "15.00.4236.7.v1",
+                  "15.00.4312.2.v1",
+                  "15.00.4316.3.v1",
+                  "15.00.4322.2.v1",
+                  "15.00.4335.1.v1",
+                  "15.00.4345.5.v1",
+                  "15.00.4355.3.v1",
+                  "15.00.4365.2.v1",
+                  "15.00.4375.4.v1",
+                  "15.00.4382.1.v1",
+                  "15.00.4385.2.v1",
+                  "15.00.4390.2.v1",
+                  "15.00.4395.2.v1",
+                  "15.00.4410.1.v1",
+                  "15.00.4415.2.v1",
+                  "15.00.4420.2.v1",
+                  "15.00.4430.1.v1",
+                  "15.00.4435.7.v1",
+                  "15.00.4440.1.v1",
+                  "15.00.4445.1.v1",
+                  "15.00.4455.2.v1",
+                  "15.00.4460.4.v1",
+                  "16.00.4085.2.v1",
+                  "16.00.4095.4.v1",
+                  "16.00.4105.2.v1",
+                  "16.00.4115.5.v1",
+                  "16.00.4120.1.v1",
+                  "16.00.4125.3.v1",
+                  "16.00.4131.2.v1",
+                  "16.00.4135.4.v1",
+                  "16.00.4140.3.v1",
+                  "16.00.4150.1.v1",
+                  "16.00.4165.4.v1",
+                  "16.00.4175.1.v1",
+                  "16.00.4185.3.v1",
+                  "16.00.4195.2.v1",
+                  "16.00.4205.1.v1",
+                  "16.00.4210.1.v1",
+                  "16.00.4215.2.v1",
+                  "16.00.4225.2.v1",
+                  "16.00.4230.2.v1",
+                  "16.00.4236.2.v1",
+                  "16.00.4245.2.v1"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "description": "Automatically updated using aws api"
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-mysql"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "5.7",
+                  "5.7.12",
+                  "5.7.mysql_aurora.2.02.3",
+                  "5.7.mysql_aurora.2.03.2",
+                  "5.7.mysql_aurora.2.03.3",
+                  "5.7.mysql_aurora.2.03.4",
+                  "5.7.mysql_aurora.2.04.0",
+                  "5.7.mysql_aurora.2.04.1",
+                  "5.7.mysql_aurora.2.04.2",
+                  "5.7.mysql_aurora.2.04.3",
+                  "5.7.mysql_aurora.2.04.4",
+                  "5.7.mysql_aurora.2.04.5",
+                  "5.7.mysql_aurora.2.04.6",
+                  "5.7.mysql_aurora.2.04.7",
+                  "5.7.mysql_aurora.2.04.8",
+                  "5.7.mysql_aurora.2.04.8.3",
+                  "5.7.mysql_aurora.2.04.9",
+                  "5.7.mysql_aurora.2.05.0",
+                  "5.7.mysql_aurora.2.05.1",
+                  "5.7.mysql_aurora.2.06.0",
+                  "5.7.mysql_aurora.2.07.0",
+                  "5.7.mysql_aurora.2.07.1",
+                  "5.7.mysql_aurora.2.07.10",
+                  "5.7.mysql_aurora.2.07.2",
+                  "5.7.mysql_aurora.2.07.3",
+                  "5.7.mysql_aurora.2.07.4",
+                  "5.7.mysql_aurora.2.07.5",
+                  "5.7.mysql_aurora.2.07.6",
+                  "5.7.mysql_aurora.2.07.7",
+                  "5.7.mysql_aurora.2.07.8",
+                  "5.7.mysql_aurora.2.07.9",
+                  "5.7.mysql_aurora.2.08.0",
+                  "5.7.mysql_aurora.2.08.1",
+                  "5.7.mysql_aurora.2.08.2",
+                  "5.7.mysql_aurora.2.08.3",
+                  "5.7.mysql_aurora.2.08.4",
+                  "5.7.mysql_aurora.2.09.0",
+                  "5.7.mysql_aurora.2.09.1",
+                  "5.7.mysql_aurora.2.09.2",
+                  "5.7.mysql_aurora.2.09.3",
+                  "5.7.mysql_aurora.2.10.0",
+                  "5.7.mysql_aurora.2.10.0.1",
+                  "5.7.mysql_aurora.2.10.1",
+                  "5.7.mysql_aurora.2.10.2",
+                  "5.7.mysql_aurora.2.10.3",
+                  "5.7.mysql_aurora.2.11.0",
+                  "5.7.mysql_aurora.2.12.0.1",
+                  "8.0",
+                  "8.0.mysql_aurora.3.01.0",
+                  "8.0.mysql_aurora.3.01.1",
+                  "8.0.mysql_aurora.3.02.0",
+                  "8.0.mysql_aurora.3.02.1",
+                  "8.0.mysql_aurora.3.02.2",
+                  "8.0.mysql_aurora.3.02.3",
+                  "8.0.mysql_aurora.3.03.0",
+                  "8.0.mysql_aurora.3.03.1",
+                  "8.0.mysql_aurora.3.03.2",
+                  "8.0.mysql_aurora.3.03.3",
+                  "8.0.mysql_aurora.3.05.0",
+                  "8.0.mysql_aurora.3.05.0.1",
+                  "8.0.mysql_aurora.3.05.1",
+                  "8.0.mysql_aurora.3.05.2",
+                  "8.0.mysql_aurora.3.06.0",
+                  "8.0.mysql_aurora.3.06.1",
+                  "8.0.mysql_aurora.3.07.0",
+                  "8.0.mysql_aurora.3.07.1",
+                  "8.0.mysql_aurora.3.11.0"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "aurora-postgresql"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "10.21",
+                  "10.7",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.20",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.20",
+                  "12.4",
+                  "12.7",
+                  "12.8",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.18",
+                  "13.20",
+                  "13.21",
+                  "13.22",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "16.1",
+                  "16.2",
+                  "16.3",
+                  "9.6.22"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "mysql"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "5.5.62",
+                  "5.6.51",
+                  "5.7.33",
+                  "5.7.34",
+                  "5.7.36",
+                  "5.7.37",
+                  "5.7.38",
+                  "5.7.39",
+                  "5.7.40",
+                  "5.7.41",
+                  "5.7.42",
+                  "5.7.43",
+                  "5.7.44",
+                  "5.7.44-rds.20240408",
+                  "5.7.44-rds.20240529",
+                  "5.7.44-rds.20240808",
+                  "8.0.11",
+                  "8.0.13",
+                  "8.0.15",
+                  "8.0.16",
+                  "8.0.17",
+                  "8.0.19",
+                  "8.0.20",
+                  "8.0.21",
+                  "8.0.23",
+                  "8.0.25",
+                  "8.0.26",
+                  "8.0.27",
+                  "8.0.28",
+                  "8.0.29",
+                  "8.0.30",
+                  "8.0.31",
+                  "8.0.32",
+                  "8.0.33",
+                  "8.0.34",
+                  "8.0.35",
+                  "8.0.36",
+                  "8.0.37",
+                  "8.0.39"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        },
+        {
+          "if": {
+            "properties": {
+              "Engine": {
+                "const": "postgres"
+              },
+              "EngineVersion": {
+                "enum": [
+                  "10",
+                  "10.1",
+                  "10.10",
+                  "10.11",
+                  "10.12",
+                  "10.13",
+                  "10.14",
+                  "10.15",
+                  "10.16",
+                  "10.17",
+                  "10.18",
+                  "10.19",
+                  "10.20",
+                  "10.21",
+                  "10.22",
+                  "10.23",
+                  "10.3",
+                  "10.4",
+                  "10.5",
+                  "10.6",
+                  "10.7",
+                  "10.9",
+                  "11",
+                  "11.1",
+                  "11.10",
+                  "11.11",
+                  "11.12",
+                  "11.13",
+                  "11.14",
+                  "11.15",
+                  "11.16",
+                  "11.17",
+                  "11.18",
+                  "11.19",
+                  "11.2",
+                  "11.20",
+                  "11.21",
+                  "11.22",
+                  "11.22-rds.20240418",
+                  "11.22-rds.20240509",
+                  "11.22-rds.20240808",
+                  "11.4",
+                  "11.5",
+                  "11.6",
+                  "11.7",
+                  "11.8",
+                  "11.9",
+                  "12",
+                  "12.10",
+                  "12.11",
+                  "12.12",
+                  "12.13",
+                  "12.14",
+                  "12.15",
+                  "12.16",
+                  "12.17",
+                  "12.18",
+                  "12.19",
+                  "12.2",
+                  "12.20",
+                  "12.21",
+                  "12.3",
+                  "12.4",
+                  "12.5",
+                  "12.6",
+                  "12.7",
+                  "12.8",
+                  "12.9",
+                  "13",
+                  "13.1",
+                  "13.10",
+                  "13.11",
+                  "13.12",
+                  "13.13",
+                  "13.14",
+                  "13.15",
+                  "13.16",
+                  "13.17",
+                  "13.19",
+                  "13.2",
+                  "13.3",
+                  "13.4",
+                  "13.5",
+                  "13.6",
+                  "13.7",
+                  "13.8",
+                  "13.9",
+                  "14",
+                  "14.1",
+                  "14.10",
+                  "14.11",
+                  "14.12",
+                  "14.13",
+                  "14.14",
+                  "14.16",
+                  "14.2",
+                  "14.3",
+                  "14.4",
+                  "14.5",
+                  "14.6",
+                  "14.7",
+                  "14.8",
+                  "14.9",
+                  "15",
+                  "15.11",
+                  "15.2",
+                  "15.3",
+                  "15.4",
+                  "15.5",
+                  "15.6",
+                  "15.7",
+                  "15.8",
+                  "15.9",
+                  "16",
+                  "16.1",
+                  "16.2",
+                  "16.3",
+                  "16.4",
+                  "16.5",
+                  "16.7",
+                  "17",
+                  "17.1",
+                  "17.3",
+                  "9",
+                  "9.3.1",
+                  "9.3.10",
+                  "9.3.12",
+                  "9.3.14",
+                  "9.3.16",
+                  "9.3.17",
+                  "9.3.19",
+                  "9.3.2",
+                  "9.3.20",
+                  "9.3.22",
+                  "9.3.23",
+                  "9.3.24",
+                  "9.3.25",
+                  "9.3.3",
+                  "9.3.5",
+                  "9.3.6",
+                  "9.3.9",
+                  "9.4.1",
+                  "9.4.11",
+                  "9.4.12",
+                  "9.4.14",
+                  "9.4.15",
+                  "9.4.17",
+                  "9.4.18",
+                  "9.4.19",
+                  "9.4.20",
+                  "9.4.21",
+                  "9.4.23",
+                  "9.4.24",
+                  "9.4.25",
+                  "9.4.26",
+                  "9.4.4",
+                  "9.4.5",
+                  "9.4.7",
+                  "9.4.9",
+                  "9.5.10",
+                  "9.5.12",
+                  "9.5.13",
+                  "9.5.14",
+                  "9.5.15",
+                  "9.5.16",
+                  "9.5.18",
+                  "9.5.19",
+                  "9.5.2",
+                  "9.5.20",
+                  "9.5.21",
+                  "9.5.22",
+                  "9.5.23",
+                  "9.5.24",
+                  "9.5.25",
+                  "9.5.4",
+                  "9.5.6",
+                  "9.5.7",
+                  "9.5.9",
+                  "9.6.1",
+                  "9.6.10",
+                  "9.6.11",
+                  "9.6.12",
+                  "9.6.14",
+                  "9.6.15",
+                  "9.6.16",
+                  "9.6.17",
+                  "9.6.18",
+                  "9.6.19",
+                  "9.6.2",
+                  "9.6.20",
+                  "9.6.21",
+                  "9.6.22",
+                  "9.6.23",
+                  "9.6.24",
+                  "9.6.3",
+                  "9.6.5",
+                  "9.6.6",
+                  "9.6.8",
+                  "9.6.9"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "required": [
+              "Engine",
+              "EngineVersion"
+            ]
+          },
+          "then": false
+        }
+      ],
+      "description": "Automatically updated using aws api"
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "cluster": {
+            "filter": {
+              "type": "AWS::RDS::DBCluster"
+            },
+            "properties": {
+              "Engine": {
+                "path": "/Engine"
+              }
+            },
+            "reference": "/DBClusterIdentifier"
+          },
+          "local": {
+            "properties": {
+              "Engine": {
+                "path": "/Engine"
+              }
+            }
+          }
+        },
+        "schema": {
+          "properties": {
+            "local": {
+              "properties": {
+                "Engine": {
+                  "const": {
+                    "$data": "/cluster/Engine"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "cluster": {
+            "filter": {
+              "type": "AWS::RDS::DBCluster"
+            },
+            "properties": {
+              "StorageEncrypted": {
+                "default": false,
+                "path": "/StorageEncrypted"
+              }
+            },
+            "reference": "/DBClusterIdentifier"
+          },
+          "local": {
+            "properties": {
+              "StorageEncrypted": {
+                "path": "/StorageEncrypted"
+              }
+            }
+          }
+        },
+        "schema": {
+          "properties": {
+            "local": {
+              "properties": {
+                "StorageEncrypted": {
+                  "const": {
+                    "$data": "/cluster/StorageEncrypted"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Engine": {
+            "pattern": "^(?!custom-).*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "KmsKeyId",
+          "Engine"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "StorageEncrypted": {
+            "enum": [
+              "true",
+              "True",
+              true
+            ]
+          }
+        },
+        "required": [
+          "StorageEncrypted"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "Engine": {
+            "pattern": "^(oracle|custom-oracle|db2)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "Engine",
+          "ReplicaMode"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "ReplicaMode": {
+            "enum": [
+              "mounted",
+              "open-read-only"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "Aws::Route53::Healthcheck": [
+    {
+      "additionalProperties": true,
+      "description": "When 'Type' is 'CLOUDWATCH_METRIC' you must specify 'AlarmIdentifier'",
+      "if": {
+        "properties": {
+          "Type": {
+            "const": "CLOUDWATCH_METRIC"
+          }
+        },
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "AlarmIdentifier"
+        ]
+      }
+    }
+  ],
+  "Aws::Route53::Recordset": [
+    {
+      "if": {
+        "properties": {
+          "AliasTarget": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "AliasTarget"
+        ]
+      },
+      "then": {
+        "properties": {
+          "TTL": false
+        }
+      }
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "A"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/ARecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "AAAA"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/AAAARecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "CAA"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/CAARecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "CNAME"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/CNAMERecord"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "DS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/DSRecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "MX"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/MXRecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "NAPTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/NAPTRRecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "NS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/NSRecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "PTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/PTRRecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "SOA"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/SOARecord"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "SPF"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/SPFRecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "SRV"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/SRVRecord"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Type": {
+                "const": "TXT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ResourceRecords": {
+                "items": {
+                  "$ref": "#/definitions/TXTRecord"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "definitions": {
+        "AAAARecord": {
+          "format": "ipv6"
+        },
+        "ARecord": {
+          "format": "ipv4"
+        },
+        "CAARecord": {
+          "pattern": "^(0|128)\\s([a-zA-Z0-9]+)\\s(\".+\")$"
+        },
+        "CNAMERecord": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DomainName"
+            },
+            {
+              "pattern": "^.*\\.acm-validations\\.aws\\.?$"
+            }
+          ]
+        },
+        "DSRecord": {},
+        "DomainName": {
+          "pattern": "^[a-zA-Z0-9\\!\"\\#\\$\\%\\&\\'\\(\\)\\*\\+\\,-\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~\\.]+$"
+        },
+        "MXRecord": {
+          "pattern": "^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{1-3}|65[0-4][0-9]{1-2}|655[0-2][0-9]|6553[0-5])\\s[a-zA-Z0-9\\!\"\\#\\$\\%\\&\\'\\(\\)\\*\\+\\,-\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~\\.]+$"
+        },
+        "NAPTRRecord": {},
+        "NSRecord": {
+          "$ref": "#/definitions/DomainName"
+        },
+        "PTRRecord": {
+          "$ref": "#/definitions/DomainName"
+        },
+        "SOARecord": {},
+        "SPFRecord": {},
+        "SRVRecord": {},
+        "TXTRecord": {
+          "pattern": "^(\"[^\"]{1,255}\" *)*\"[^\"]{1,255}\"$"
+        }
+      }
+    }
+  ],
+  "Aws::S3::Bucket": [
+    {
+      "if": {
+        "properties": {
+          "AccessControl": {
+            "not": {
+              "enum": [
+                "Private",
+                "BucketOwnerFullControl",
+                "BucketOwnerRead"
+              ]
+            },
+            "type": "string"
+          }
+        },
+        "required": [
+          "AccessControl"
+        ]
+      },
+      "then": {
+        "properties": {
+          "OwnershipControls": {
+            "properties": {
+              "Rules": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "Rules"
+            ]
+          }
+        },
+        "required": [
+          "OwnershipControls"
+        ]
+      }
+    }
+  ],
+  "Aws::Sns::Subscription": [
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "Protocol": {
+                "const": "sqs"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "Endpoint": {
+                "format": "AWS::SQS::Queue.Arn"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "Protocol": {
+                "const": "lambda"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "Endpoint": {
+                "format": "AWS::Lambda::Function.Arn"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "Aws::Sqs::Queue": [
+    {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "FifoQueue": {
+                "enum": [
+                  true,
+                  "true"
+                ]
+              }
+            },
+            "required": [
+              "FifoQueue"
+            ]
+          },
+          "then": {
+            "if": {
+              "properties": {
+                "QueueName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "QueueName"
+              ]
+            },
+            "then": {
+              "properties": {
+                "QueueName": {
+                  "pattern": "^.*\\.fifo$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "FifoQueue": {
+                "enum": [
+                  false,
+                  "false"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ContentBasedDeduplication": false,
+              "DeduplicationScope": false,
+              "FifoThroughputLimit": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "cfnGather": {
+        "gather": {
+          "dlq": {
+            "filter": {
+              "type": "AWS::SQS::Queue"
+            },
+            "properties": {
+              "fifo": {
+                "default": false,
+                "path": "/FifoQueue"
+              }
+            },
+            "reference": "/RedrivePolicy/deadLetterTargetArn"
+          },
+          "sourceQueue": {
+            "properties": {
+              "fifo": {
+                "default": false,
+                "path": "/FifoQueue"
+              }
+            }
+          }
+        },
+        "schema": {
+          "properties": {
+            "sourceQueue": {
+              "properties": {
+                "fifo": {
+                  "const": {
+                    "$data": "/dlq/fifo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

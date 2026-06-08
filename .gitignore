@@ -1,0 +1,38 @@
+# Rust
+**/target/
+**/*.rs.bk
+
+# Kotlin / Gradle
+**/.gradle/
+**/.kotlin/
+**/build/
+src/bindings-jvm/tests/kotlin/generated/
+META-INF/
+org.eclipse*
+.classpath
+src/bindings-jvm/generated/**/*
+!src/bindings-jvm/generated/*.jar
+
+# Node / WASM
+**/node_modules/
+
+# Output (regenerable)
+**/output/**
+src/data-source/upstream/
+src/data-source/generated/patched_schemas/
+src/**/reports/
+**/cdk.out/
+*.pyc
+
+# IDE
+**/*.iml
+**/.idea/
+**/.vscode
+pyproject.toml
+
+# OS
+.DS_Store
+
+# Others
+**/tmp/
+**/docs/

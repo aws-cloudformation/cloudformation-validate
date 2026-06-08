@@ -1,0 +1,39 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "Environment": {
+            "Type": "String"
+        }
+    },
+    "Conditions": {
+        "IsProduction": {"Fn::Equals": [{"Ref": "Environment"}, "prod"]},
+        "IsDev": {"Fn::Equals": [{"Ref": "Environment"}, "dev"]}
+    },
+    "Resources": {
+        "myInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "Fn::If": [
+                    "IsProduction",
+                    {
+                        "ImageId": "ami-1234567",
+                        "InstanceType": "t2.medium"
+                    },
+                    {
+                        "Fn::If": [
+                            "IsDev",
+                            {
+                                "ImageId": "ami-abcdefg",
+                                "InstanceType": "t2.xlarge"
+                            },
+                            {
+                                "ImageId": "ami-123abcd",
+                                "InstanceType": "m3.medium"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,6 @@
+let s3_buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
+
+rule s3_bucket_encryption when %s3_buckets !empty {
+    %s3_buckets.Properties.BucketEncryption exists
+        <<S3 bucket must have encryption configured>>
+}

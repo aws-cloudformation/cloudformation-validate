@@ -1,0 +1,780 @@
+{
+ "Resources": {
+  "TimeWriterDocument": {
+   "Type": "AWS::SSM::Document",
+   "Properties": {
+    "Content": {
+     "schemaVersion": "2.2",
+     "description": "Write current timestamp to a new file",
+     "parameters": {
+      "DirectoryPath": {
+       "type": "String",
+       "description": "Directory where the time files will be written",
+       "default": "/tmp/time_logs"
+      }
+     },
+     "mainSteps": [
+      {
+       "action": "aws:runShellScript",
+       "name": "writeTimeToNewFile",
+       "inputs": {
+        "runCommand": [
+         "mkdir -p {{DirectoryPath}}",
+         "TIMESTAMP=$(date +\"%Y%m%d_%H%M%S\")",
+         "FILENAME=\"time_$TIMESTAMP.txt\"",
+         "FILEPATH=\"{{DirectoryPath}}/$FILENAME\"",
+         "echo \"Creating new time file: $FILEPATH\"",
+         "date > $FILEPATH",
+         "echo \"Current time written to $FILEPATH: $(cat $FILEPATH)\"",
+         "echo \"Total files in directory: $(ls -1 {{DirectoryPath}} | wc -l)\"",
+         "echo \"Operation completed on $(hostname)\""
+        ]
+       }
+      }
+     ]
+    },
+    "DocumentType": "Command",
+    "Name": "WriteTimeToFile"
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/TimeWriterDocument"
+   }
+  },
+  "DocumentAssociation": {
+   "Type": "AWS::SSM::Association",
+   "Properties": {
+    "Name": {
+     "Ref": "TimeWriterDocument"
+    },
+    "Parameters": {
+     "DirectoryPath": [
+      "/opt/aws/time_records"
+     ]
+    },
+    "ScheduleExpression": "rate(30 minutes)",
+    "Targets": [
+     {
+      "Key": "tag:Environment",
+      "Values": [
+       "Development"
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/DocumentAssociation"
+   }
+  },
+  "SSMDocumentTestVpc2979FA29": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SsmDocumentAssociationStack/SSMDocumentTestVpc"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/Resource"
+   }
+  },
+  "SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/16",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "SsmDocumentAssociationStack/SSMDocumentTestVpc/publicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "SSMDocumentTestVpc2979FA29"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/publicSubnet1/Subnet"
+   }
+  },
+  "SSMDocumentTestVpcpublicSubnet1RouteTable4C0F352E": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SsmDocumentAssociationStack/SSMDocumentTestVpc/publicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "SSMDocumentTestVpc2979FA29"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/publicSubnet1/RouteTable"
+   }
+  },
+  "SSMDocumentTestVpcpublicSubnet1RouteTableAssociation3C51BE77": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "SSMDocumentTestVpcpublicSubnet1RouteTable4C0F352E"
+    },
+    "SubnetId": {
+     "Ref": "SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/publicSubnet1/RouteTableAssociation"
+   }
+  },
+  "SSMDocumentTestVpcpublicSubnet1DefaultRouteE60C709F": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "SSMDocumentTestVpcIGWAFEB9020"
+    },
+    "RouteTableId": {
+     "Ref": "SSMDocumentTestVpcpublicSubnet1RouteTable4C0F352E"
+    }
+   },
+   "DependsOn": [
+    "SSMDocumentTestVpcVPCGW7C58FC59"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/publicSubnet1/DefaultRoute"
+   }
+  },
+  "SSMDocumentTestVpcIGWAFEB9020": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SsmDocumentAssociationStack/SSMDocumentTestVpc"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/IGW"
+   }
+  },
+  "SSMDocumentTestVpcVPCGW7C58FC59": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "SSMDocumentTestVpcIGWAFEB9020"
+    },
+    "VpcId": {
+     "Ref": "SSMDocumentTestVpc2979FA29"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/VPCGW"
+   }
+  },
+  "SSMDocumentTestVpcRestrictDefaultSecurityGroupCustomResource7FEE11AD": {
+   "Type": "Custom::VpcRestrictDefaultSG",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E",
+      "Arn"
+     ]
+    },
+    "DefaultSecurityGroupId": {
+     "Fn::GetAtt": [
+      "SSMDocumentTestVpc2979FA29",
+      "DefaultSecurityGroup"
+     ]
+    },
+    "Account": {
+     "Ref": "AWS::AccountId"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMDocumentTestVpc/RestrictDefaultSecurityGroupCustomResource/Default"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyName": "Inline",
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": [
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress"
+         ],
+         "Resource": [
+          {
+           "Fn::Join": [
+            "",
+            [
+             "arn:",
+             {
+              "Ref": "AWS::Partition"
+             },
+             ":ec2:",
+             {
+              "Ref": "AWS::Region"
+             },
+             ":",
+             {
+              "Ref": "AWS::AccountId"
+             },
+             ":security-group/",
+             {
+              "Fn::GetAtt": [
+               "SSMDocumentTestVpc2979FA29",
+               "DefaultSecurityGroup"
+              ]
+             }
+            ]
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Role"
+   }
+  },
+  "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "7fa1e366ee8a9ded01fc355f704cff92bfd179574e6f9cfee800a3541df1b200.zip"
+    },
+    "Timeout": 900,
+    "MemorySize": 128,
+    "Handler": "__entrypoint__.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Description": "Lambda function for removing all inbound/outbound rules from the VPC default security group"
+   },
+   "DependsOn": [
+    "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/Custom::VpcRestrictDefaultSGCustomResourceProvider/Handler",
+    "aws:asset:path": "/private/var/folders/_x/fyhxn65j55n4v4d_1ptd7ckw0000gq/T/cdk-custom-resource4ixLAo",
+    "aws:asset:property": "Code"
+   }
+  },
+  "EC2SSMRole1C0EBD7B": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonSSMManagedInstanceCore"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/EC2SSMRole/Resource"
+   }
+  },
+  "SSMTestInstanceInstanceSecurityGroup68B5BAFB": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "SsmDocumentAssociationStack/SSMTestInstance/InstanceSecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Environment",
+      "Value": "Development"
+     },
+     {
+      "Key": "Name",
+      "Value": "SsmDocumentAssociationStack/SSMTestInstance"
+     }
+    ],
+    "VpcId": {
+     "Ref": "SSMDocumentTestVpc2979FA29"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMTestInstance/InstanceSecurityGroup/Resource"
+   }
+  },
+  "SSMTestInstanceInstanceProfile498EFAB5": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "EC2SSMRole1C0EBD7B"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMTestInstance/InstanceProfile"
+   }
+  },
+  "SSMTestInstanceA55C9969": {
+   "Type": "AWS::EC2::Instance",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "IamInstanceProfile": {
+     "Ref": "SSMTestInstanceInstanceProfile498EFAB5"
+    },
+    "ImageId": {
+     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    "InstanceType": "t3.nano",
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "SSMTestInstanceInstanceSecurityGroup68B5BAFB",
+       "GroupId"
+      ]
+     }
+    ],
+    "SubnetId": {
+     "Ref": "SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E"
+    },
+    "Tags": [
+     {
+      "Key": "Environment",
+      "Value": "Development"
+     },
+     {
+      "Key": "Name",
+      "Value": "SsmDocumentAssociationStack/SSMTestInstance"
+     }
+    ],
+    "UserData": {
+     "Fn::Base64": "#!/bin/bash"
+    }
+   },
+   "DependsOn": [
+    "EC2SSMRole1C0EBD7B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/SSMTestInstance/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/81S24rbMBD9ltXjorgllKXkzXFhMRQSkmUfGkKZyJNkNtLI6JLUNf73othusmU/oGDwzNHM6Mw5mmbTL1+zzw9w8RNVnSaadlm7DqBOEi7+Z+u9ydpiz9+sigY5yGLPufdWEQSy3ElU06x9rdWmFQZ+5b+9mIlHIQVDeIaAF2hGxMcdYygs7+kQ3bVdzDatYDD4ruSlqROwjDtNSnTbbptufV0WsofW16pNK+AMpGFHmkLzw/I45VyrshpiRZWba6tOQ26g7oeU9YK/Q2R1FLPgIkpB9fmp+KccvKcDl/X5Ka8qh94vuHA4cBePopP/CYteo16ZFK1sDPgCO403/IbdOfi3OAUlB3SMo3OD7EOWhwDqeH0EJfsArHDTpjUHljSAg339nupIjKWBwwg5q+8U6ol5MWs/9r7byjWq6Cg0z87G+t2FoLW95FovYtjZyNUo4YgnwW5nSadepPuB/dY98U4SmKxdWZ0WA++jwWreJHK1I1ZUg86VspHDzZhoMDXk6s4NYYDhgNXSalKE/vrM77Emd0Pt8LjTiHsqS2f3pLHr5Aq9jU6hLKIP1ozpRjyKvvPj86WzZ6rQzcGjzL3HsA5wID6kniU4MBjQpWQRQx1DJ9lWmL35T+fpNEvfw5snmrjIgQxmq/7/Bx/ggjQvBAAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "SsmDocumentAssociationStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Parameters": {
+  "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Outputs": {
+  "DocumentName": {
+   "Description": "The name of the SSM document",
+   "Value": {
+    "Ref": "TimeWriterDocument"
+   }
+  },
+  "InstanceId": {
+   "Description": "The ID of the test EC2 instance",
+   "Value": {
+    "Ref": "SSMTestInstanceA55C9969"
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

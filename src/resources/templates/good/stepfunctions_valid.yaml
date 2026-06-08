@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  SM:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString: |
+        {
+          "StartAt": "Step1",
+          "States": {
+            "Step1": {
+              "Type": "Pass",
+              "Next": "Step2"
+            },
+            "Step2": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/StepFunctionsRole"

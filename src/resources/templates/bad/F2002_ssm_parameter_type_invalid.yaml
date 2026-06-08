@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# F2002 parity exercise: AWS::SSM::Parameter::Type is NOT a valid CFN parameter type
+# (not in cfn-lint, not in AWS docs). Both engines must emit F2002.
+Parameters:
+  BadType:
+    Type: AWS::SSM::Parameter::Type
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BadType

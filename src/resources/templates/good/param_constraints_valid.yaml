@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ValidParam:
+    Type: String
+    Default: "hello"
+    AllowedPattern: "^[a-z]+$"
+    MinLength: 3
+    MaxLength: 20
+  ValidNumber:
+    Type: Number
+    Default: 50
+    MinValue: 1
+    MaxValue: 100
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
