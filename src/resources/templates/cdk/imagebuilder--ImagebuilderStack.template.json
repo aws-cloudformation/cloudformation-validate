@@ -1,0 +1,557 @@
+{
+ "Resources": {
+  "GitComponenet": {
+   "Type": "AWS::ImageBuilder::Component",
+   "Properties": {
+    "Data": "name: GitInstallationDocument\ndescription: This document installs git.\nschemaVersion: 1.0\n\nphases:\n  - name: build\n    steps:\n      - name: InstallGit\n        action: ExecuteBash\n        inputs:\n          commands:\n            - yum update -y && yum install -y git\n\n  - name: validate\n    steps:\n      - name: CheckVersion\n        action: ExecuteBash\n        inputs:\n          commands:\n            - git version",
+    "Name": "ImagebuilderStack-Git",
+    "Platform": "Linux",
+    "Version": "1.0.0"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/GitComponenet"
+   }
+  },
+  "NodejsComponenet": {
+   "Type": "AWS::ImageBuilder::Component",
+   "Properties": {
+    "Data": "name: NodejsV18InstallationDocument\ndescription: This document installs Node.js v18.\nschemaVersion: 1.0\n\nphases:\n  - name: build\n    steps:\n      - name: NodeInstallation\n        action: ExecuteBash\n        inputs:\n          commands:\n            - yum update -y && yum install -y tar\n            - touch ~/.bashrc\n            - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash\n            - source ~/.bashrc\n            - nvm install --default 18.18.2\n            - nvm alias default 18.18.2\n\n  - name: validate\n    steps:\n      - name: NodeValidation\n        action: ExecuteBash\n        inputs:\n          commands:\n            - source ~/.bashrc\n            - node -v",
+    "Name": "ImagebuilderStack-Nodejs",
+    "Platform": "Linux",
+    "Version": "1.0.0"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/NodejsComponenet"
+   }
+  },
+  "DockerComponenet": {
+   "Type": "AWS::ImageBuilder::Component",
+   "Properties": {
+    "Data": "name: DockerInstallationDocument\ndescription: This document installs docker.\nschemaVersion: 1.0\n\nphases:\n  - name: build\n    steps:\n      - name: InstallDocker\n        action: ExecuteBash\n        inputs:\n          commands:\n            - yum update -y && yum install -y docker\n\n  - name: validate\n    steps:\n      - name: CheckVersion\n        action: ExecuteBash\n        inputs:\n          commands:\n            - docker --version",
+    "Name": "ImagebuilderStack-Docker",
+    "Platform": "Linux",
+    "Version": "1.0.2"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/DockerComponenet"
+   }
+  },
+  "EcrRepoForImageBuilderCodeCatalystBF634BA6": {
+   "Type": "AWS::ECR::Repository",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/EcrRepoForImageBuilderCodeCatalyst/Resource"
+   }
+  },
+  "AmazonLinux2023withGitAndNodeRecipe": {
+   "Type": "AWS::ImageBuilder::ContainerRecipe",
+   "Properties": {
+    "Components": [
+     {
+      "ComponentArn": {
+       "Fn::GetAtt": [
+        "GitComponenet",
+        "Arn"
+       ]
+      }
+     },
+     {
+      "ComponentArn": {
+       "Fn::GetAtt": [
+        "NodejsComponenet",
+        "Arn"
+       ]
+      }
+     },
+     {
+      "ComponentArn": {
+       "Fn::GetAtt": [
+        "DockerComponenet",
+        "Arn"
+       ]
+      }
+     }
+    ],
+    "ContainerType": "DOCKER",
+    "DockerfileTemplateData": "FROM {{{ imagebuilder:parentImage }}}\n{{{ imagebuilder:environments }}}\n{{{ imagebuilder:components }}}\n",
+    "Name": "ImagebuilderStack-AmazonLinux2023WithGit",
+    "ParentImage": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:imagebuilder:",
+       {
+        "Ref": "AWS::Region"
+       },
+       ":aws:image/amazon-linux-2023-x86-latest/x.x.x"
+      ]
+     ]
+    },
+    "TargetRepository": {
+     "RepositoryName": {
+      "Ref": "EcrRepoForImageBuilderCodeCatalystBF634BA6"
+     },
+     "Service": "ECR"
+    },
+    "Version": "2.1.2"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/AmazonLinux2023withGitAndNodeRecipe"
+   }
+  },
+  "EC2InstanceProfileForImageBuilderA043DE9F": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonSSMManagedInstanceCore"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/EC2InstanceProfileForImageBuilder"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/EC2InstanceProfileForImageBuilder/Resource",
+    "cdk_nag": {
+     "rules_to_suppress": [
+      {
+       "reason": "Managed policies for ImageBuilder are used as the provide a comprehensive set of permissions to allow ImageBuilder to function in this sample",
+       "id": "AwsSolutions-IAM4"
+      }
+     ]
+    }
+   }
+  },
+  "InstanceProfileForImageBuilderC4A3DF73": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "EC2InstanceProfileForImageBuilderA043DE9F"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/InstanceProfileForImageBuilder/Resource"
+   }
+  },
+  "ImageBuilderInfraConfig": {
+   "Type": "AWS::ImageBuilder::InfrastructureConfiguration",
+   "Properties": {
+    "InstanceProfileName": {
+     "Ref": "InstanceProfileForImageBuilderC4A3DF73"
+    },
+    "Name": "ImagebuilderStack-infra"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/ImageBuilderInfraConfig"
+   }
+  },
+  "ImageBuilderDistConfig": {
+   "Type": "AWS::ImageBuilder::DistributionConfiguration",
+   "Properties": {
+    "Distributions": [
+     {
+      "ContainerDistributionConfiguration": {
+       "TargetRepository": {
+        "RepositoryName": {
+         "Ref": "EcrRepoForImageBuilderCodeCatalystBF634BA6"
+        },
+        "Service": "ECR"
+       }
+      },
+      "Region": {
+       "Ref": "AWS::Region"
+      }
+     }
+    ],
+    "Name": "ImagebuilderStack-dist"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/ImageBuilderDistConfig"
+   }
+  },
+  "AmazonLinux2023WithGitPipeline": {
+   "Type": "AWS::ImageBuilder::ImagePipeline",
+   "Properties": {
+    "ContainerRecipeArn": {
+     "Fn::GetAtt": [
+      "AmazonLinux2023withGitAndNodeRecipe",
+      "Arn"
+     ]
+    },
+    "DistributionConfigurationArn": {
+     "Fn::GetAtt": [
+      "ImageBuilderDistConfig",
+      "Arn"
+     ]
+    },
+    "InfrastructureConfigurationArn": {
+     "Fn::GetAtt": [
+      "ImageBuilderInfraConfig",
+      "Arn"
+     ]
+    },
+    "Name": "ImagebuilderStack-AmazonLinux23WithGitPipeline",
+    "Status": "ENABLED"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/AmazonLinux2023WithGitPipeline"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WOwWrEMAxEv2XvjlpCD72nl9yW9AMWxVEW7TpykOUuxfjfi9NCKQXB8GYEMz30L6/wfMJH6vxy7wLPUN4N/d3hI10Kb3ilOXNYSKEMqwxx26OQmDtADFlIJ/K8U7NGWRWTafaWlYYoK1+zonGUFr9xMuU5N/4Xjq3szDsFFqqOvEKZaI+JLepn+/il6hg3KFMMR+2hoyRD8XTWuHL4mfPHqrU6iQvBLT199D20O90Sc6dZjDeC6Vu/AKvli7AYAQAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ImagebuilderStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

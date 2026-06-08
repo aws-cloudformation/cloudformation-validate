@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform:
+  - UnsupportedTransform
+  - AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    Timeout: 3
+    Runtime: nodejs22.x
+    Environment:
+      Variables:
+        VARIABLE: VALUE
+
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: index.handler
+      Events:
+        API:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET

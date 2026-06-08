@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: my-policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource: arn:aws:s3:::my-bucket/*
+      Roles:
+        - !Ref Role
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole

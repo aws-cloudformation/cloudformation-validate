@@ -1,0 +1,46 @@
+root = true
+
+[*.{kt,kts}]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+indent_style = space
+indent_size = 4
+
+max_line_length = 120
+
+# Core ktlint style
+ktlint_code_style = ktlint_official
+
+# ---- Imports ----
+ktlint_standard_import-ordering = enabled
+ktlint_standard_no-unused-imports = enabled
+
+# ---- Spacing ----
+ktlint_standard_spacing-around-colon = enabled
+ktlint_standard_spacing-around-comma = enabled
+ktlint_standard_spacing-around-dot = enabled
+ktlint_standard_spacing-around-keyword = enabled
+ktlint_standard_spacing-around-operators = enabled
+ktlint_standard_spacing-around-parens = enabled
+ktlint_standard_spacing-around-range-operator = enabled
+
+# ---- Structure / wrapping ----
+ktlint_standard_argument-list-wrapping = enabled
+ktlint_standard_chain-wrapping = enabled
+ktlint_standard_indent = enabled
+
+# ---- Cleanliness ----
+ktlint_standard_no-multi-spaces = enabled
+ktlint_standard_no-trailing-spaces = enabled
+ktlint_standard_final-newline = enabled
+ktlint_standard_comment-spacing = enabled
+
+# ---- Disabled (incompatible with UniFFI codegen) ----
+ktlint_standard_filename = disabled
+ktlint_standard_function-naming = disabled
+ktlint_standard_property-naming = disabled
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_max-line-length = disabled
+ktlint_experimental = disabled

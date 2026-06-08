@@ -1,0 +1,35 @@
+[package]
+name = "cfn-validate"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "cfn_validate"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cfn-validate"
+path = "src/main.rs"
+
+[[bin]]
+name = "cfn-benchmark"
+path = "src/benchmark.rs"
+
+[dependencies]
+template-model = { path = "../template-model" }
+diagnostics = { path = "../diagnostics" }
+validation-engine = { path = "../validation-engine" }
+rules = { path = "../rules" }
+schema-validator = { path = "../schema-validator" }
+rego-engine = { path = "../rego-engine" }
+cel-engine = { path = "../cel-engine" }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+log = "0.4"
+env_logger = "0.11"
+
+[dev-dependencies]
+tempfile = "3"
+validation-engine = { path = "../validation-engine", features = ["test-support"] }

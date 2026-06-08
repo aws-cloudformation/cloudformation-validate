@@ -1,0 +1,92 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  myVpcId:
+    Description: MyVpc Id
+    Type: AWS::EC2::VPC::Id
+  mySecurityGroup:
+    Description: Security group to allow traffic from
+    Type: String
+  mySecurity2Group:
+    Description: Second Security Group
+    Type: String
+  mySecurity3Group:
+    Description: Third Security Group
+    Type: String
+  mySecurityGroupList:
+    Description: Security Group List
+    Type: List<Number>
+Resources:
+  mySecurityGroupNonVpc:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Special charaters like ^ and " are not supported'
+      SecurityGroupIngress:
+      -
+        IpProtocol: 1
+        SourceSecurityGroupId: 'sg-1234567'
+  mySecurityGroupVpc:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security Group Vpc'
+      VpcId: !Ref myVpcId
+      SecurityGroupIngress:
+      -
+        IpProtocol: 1
+        SourceSecurityGroupName: String
+      -
+        IpProtocol: 1
+        CidrIp: '10.0.0.0/8'
+        SourceSecurityGroupId: !Ref mySecurityGroup
+      -
+        IpProtocol: "1"
+        CidrIp: "10.0.0.0"
+      -
+        IpProtocol: 1
+        SourceSecurityGroupId: !Ref mySecurityGroupNonVpc
+      -
+        IpProtocol: 1
+        SourceSecurityGroupId: vpc-1234567
+        CidrIp: '10.0.0.0/8'
+  SecurityGroupRuleSSM:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref mySecurityGroupVpc
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: '{{resolve:ssm:mysubnet}}'
+  mySecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref mySecurityGroupVpc
+      IpProtocol: 1
+      SourceSecurityGroupId: !Ref mySecurityGroupNonVpc
+  mySecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref mySecurityGroupVpc
+      IpProtocol: 1
+      SourceSecurityGroupId: !Ref mySecurity3Group
+  mySecurityGroupIngressExclusive:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref mySecurityGroupVpc
+      GroupName: BadGroup
+  myInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-123456
+      SecurityGroupIds:
+      - !Ref mySecurityGroup
+  myLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        SecurityGroupIds:
+        - !Ref mySecurity2Group
+  myLaunchTemplate2:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        SecurityGroupIds: !Ref mySecurityGroupList

@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  OpenSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Open egress
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIpv6: '::/0'

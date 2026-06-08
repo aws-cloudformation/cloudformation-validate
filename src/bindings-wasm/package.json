@@ -1,0 +1,25 @@
+{
+  "name": "@aws/cloudformation-validate-wasm",
+  "version": "1.0.0",
+  "description": "AWS CloudFormation Validate — WASM bindings for Node.js",
+  "publisher": "aws",
+  "author": "Amazon Web Services (AWS)",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
+  "engines": {
+    "node": "^22.15.0",
+    "npm": ">=10.5.0"
+  },
+  "scripts": {
+    "build:ts": "npx tsc -p ts/tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.2",
+    "prettier": "^3.8.3"
+  }
+}

@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Test template for Tasks 6-11 rule coverage"
+Resources:
+  # E3706: MinSize > MaxSize
+  BadASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MinSize: 10
+      MaxSize: 5
+      LaunchConfigurationName: !Ref LC
+  LC:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-12345678
+      InstanceType: t2.micro
+  # E3676: HTTPS listener without certificate
+  BadListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: HTTPS
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TG
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - subnet-12345678
+        - subnet-87654321
+  TG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: vpc-12345678
+  # E3663: Lambda reserved environment key
+  BadEnvLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: bad-env
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/role"
+      Code:
+        ZipFile: "def handler(e,c): pass"
+      Environment:
+        Variables:
+          AWS_REGION: us-east-1
+  # E3685: Lambda Image with Handler
+  BadImageLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: bad-image
+      PackageType: Image
+      Handler: index.handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/role"
+      Code:
+        ImageUri: "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo:latest"
+  # E3660: RestApi without Name or Body
+  BadRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: "Missing Name"
+  # E3704: ElastiCache Valkey without TransitEncryption
+  BadValkey:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      ReplicationGroupDescription: "Valkey group"
+      Engine: valkey
+  # E3048: Fargate with PlacementConstraints
+  BadFargateService:
+    Type: AWS::ECS::Service
+    Properties:
+      LaunchType: FARGATE
+      TaskDefinition: !Ref TaskDef
+      PlacementConstraints:
+        - Type: memberOf
+          Expression: "attribute:ecs.instance-type =~ t2.*"
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - subnet-12345678
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

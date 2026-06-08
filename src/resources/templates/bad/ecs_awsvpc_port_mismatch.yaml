@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 8080

@@ -1,0 +1,22 @@
+[workspace]
+members = ["rules", "diagnostics", "template-model", "validation-engine", "rego-engine", "cel-engine", "data-source", "cfn-validate", "bindings-wasm", "bindings-jvm", "schema-validator", "guard-translator"]
+resolver = "2"
+
+[workspace.metadata]
+name = "cloudformation-validate"
+
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[profile.dev]
+incremental = true
+debug = 1
+
+[profile.release]
+debug = 0
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+strip = "debuginfo"

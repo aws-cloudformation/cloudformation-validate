@@ -1,0 +1,39 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "Environment": {
+            "Type": "String"
+        }
+    },
+    "Conditions": {
+        "TestAndString": {"Fn::And": "And"},
+        "TestAndToLittle": {"Fn::And": [{"Condition": "TestAndString"}]},
+        "TestAndBadArray": {"Fn::And": ["Test", "Test2"]},
+        "TestAndBadCondition": {
+            "Fn::And": [
+                {"Condition": "TestAndString", "Extra": "ThisIsBad"},
+                {"Bad": "TestAndString"}
+            ]
+        },
+        "TestAndNull": {"Fn::And": null},
+        "TestEqualNotArray": {"Fn::Equals": "Value"},
+        "TestEqualTooShort": {"Fn::Equals": ["1"]},
+        "TestEqualTooLong": {"Fn::Equals": ["1", "2", "3"]},
+        "TestEqualBadArgs": {
+            "Fn::Equals": [
+                [{"Ref": "AWS::Region"}],
+                {"Bad": "Value"}
+            ]
+        },
+        "TestEqualNull": {"Fn::Equals": null},
+        "TestNotEmpty": {"Fn::Not": []},
+        "TestNotNull": {"Fn::Not": null},
+        "TestIfNotArray": {"Fn::If": "string"},
+        "TestIfWrongCount": {"Fn::If": ["c", "t"]}
+    },
+    "Resources": {
+        "DummyBucket": {
+            "Type": "AWS::S3::Bucket"
+        }
+    }
+}

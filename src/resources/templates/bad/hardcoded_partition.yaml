@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: my-topic
+      KmsMasterKeyId: "arn:aws:kms:us-east-1:123456789012:key/12345"

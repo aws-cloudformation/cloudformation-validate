@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+  ExecRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ExecutionRoleArn: !GetAtt ExecRole.Arn
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
