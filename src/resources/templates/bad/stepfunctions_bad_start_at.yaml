@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  SM:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString: |
+        {
+          "StartAt": "NonExistentState",
+          "States": {
+            "HelloWorld": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/StepFunctionsRole"

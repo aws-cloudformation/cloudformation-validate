@@ -1,0 +1,394 @@
+{
+ "Resources": {
+  "CDKDataSyncS3AccessRole0C49AEBFA": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "datasync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": "CDK Datasync role for S3",
+    "RoleName": "CDKDataSyncS3Access-cdk-example-datasync-source-bucket"
+   },
+   "Metadata": {
+    "aws:cdk:path": "cdk-datasync-s3-to-s3-iam/CDKDataSyncS3AccessRole0/Resource"
+   }
+  },
+  "CDKDataSyncS3Policy034C77CD2": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:s3:::cdk-example-datasync-source-bucket"
+      },
+      {
+       "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:GetObjectTagging",
+        "s3:ListMultipartUploadParts",
+        "s3:PutObject",
+        "s3:PutObjectTagging"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:s3:::cdk-example-datasync-source-bucket/*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": "",
+    "Path": "/",
+    "Roles": [
+     {
+      "Ref": "CDKDataSyncS3AccessRole0C49AEBFA"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "cdk-datasync-s3-to-s3-iam/CDKDataSyncS3Policy0/Resource"
+   }
+  },
+  "CDKDataSyncS3AccessRole18E349368": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "datasync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": "CDK Datasync role for S3",
+    "RoleName": "CDKDataSyncS3Access-cdk-example-datasync-dest-bucket"
+   },
+   "Metadata": {
+    "aws:cdk:path": "cdk-datasync-s3-to-s3-iam/CDKDataSyncS3AccessRole1/Resource"
+   }
+  },
+  "CDKDataSyncS3Policy1E7D7BFA5": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:s3:::cdk-example-datasync-dest-bucket"
+      },
+      {
+       "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:GetObjectTagging",
+        "s3:ListMultipartUploadParts",
+        "s3:PutObject",
+        "s3:PutObjectTagging"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:s3:::cdk-example-datasync-dest-bucket/*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": "",
+    "Path": "/",
+    "Roles": [
+     {
+      "Ref": "CDKDataSyncS3AccessRole18E349368"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "cdk-datasync-s3-to-s3-iam/CDKDataSyncS3Policy1/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1XLQQrCMBBA0bN0n4y2LsR112KJB5AxiTo2zUgzoZTSu4txo6sPD34D+wPUFU5JW9frQFdYzoK2VzilC+EAi+HgVXuLpUeMePeu40B2/ugfrMr4xHm0ZThleWUp64+2HB0JcVxVN8uD42YHdQP1tnomIj3mKDR4MN++AXZB/SegAAAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "cdk-datasync-s3-to-s3-iam/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "CDKDataSyncS3Accesscdkexampledatasyncsourcebucket": {
+   "Value": {
+    "Fn::GetAtt": [
+     "CDKDataSyncS3AccessRole0C49AEBFA",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "CDKDataSyncS3Access-cdk-example-datasync-source-bucket"
+   }
+  },
+  "CDKDataSyncS3Accesscdkexampledatasyncdestbucket": {
+   "Value": {
+    "Fn::GetAtt": [
+     "CDKDataSyncS3AccessRole18E349368",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "CDKDataSyncS3Access-cdk-example-datasync-dest-bucket"
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-2"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

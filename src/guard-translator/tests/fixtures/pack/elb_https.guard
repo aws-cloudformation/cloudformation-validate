@@ -1,0 +1,6 @@
+let elbs = Resources.*[ Type == 'AWS::ElasticLoadBalancingV2::Listener' ]
+
+rule elb_https_only when %elbs !empty {
+    %elbs.Properties.Protocol == "HTTPS"
+        <<ELB listeners must use HTTPS>>
+}

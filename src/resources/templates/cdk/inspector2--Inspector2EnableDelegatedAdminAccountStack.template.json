@@ -1,0 +1,401 @@
+{
+ "Description": "Enables Amazon Inspector delegated admin on current account and sets auto-enable on all member accounts",
+ "Resources": {
+  "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableDelegatedAdminResourceRoleC8FD65F6": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "inspector2:EnableDelegatedAdminAccount",
+          "inspector2:DisableDelegatedAdminAccount",
+          "organizations:EnableAWSServiceAccess",
+          "organizations:RegisterDelegatedAdministrator",
+          "organizations:ListDelegatedAdministrators",
+          "organizations:ListAWSServiceAccessForOrganization",
+          "organizations:DescribeOrganizationalUnit",
+          "organizations:DescribeAccount",
+          "organizations:DescribeOrganization"
+         ],
+         "Effect": "Allow",
+         "Resource": "*",
+         "Sid": "PermissionsForInspectorAdmin"
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "PermissionsForInspectorAdmin"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/Inspector2EnableDelegatedAdminAccountResource/Inspector2EnableDelegatedAdminResourceRole/Resource"
+   }
+  },
+  "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResourceInspectorRole00253606": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonInspector2FullAccess"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/Inspector2EnableDelegatedAdminAccountResource/Inspector2EnableResource/InspectorRole/Resource"
+   }
+  },
+  "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResource56770C4B": {
+   "Type": "Custom::Inspector2Enable",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "AWS679f53fac002430cb0da5b7982bd22872D164C4C",
+      "Arn"
+     ]
+    },
+    "Create": "{\"service\":\"Inspector2\",\"action\":\"enable\",\"parameters\":{\"resourceTypes\":[\"ECR\",\"EC2\",\"LAMBDA\"]},\"physicalResourceId\":{\"responsePath\":\"accounts.0.accountId\"}}",
+    "Delete": "{\"service\":\"Inspector2\",\"action\":\"disable\",\"physicalResourceId\":{\"responsePath\":\"accounts.0.accountId\"},\"parameters\":{\"resourceTypes\":[\"ECR\",\"EC2\",\"LAMBDA\"]}}",
+    "InstallLatestAwsSdk": true
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/Inspector2EnableDelegatedAdminAccountResource/Inspector2EnableResource/Inspector2EnableResource/Resource/Default"
+   }
+  },
+  "Inspector2EnableDelegatedAdminAccountResource99675B1A": {
+   "Type": "Custom::Inspector2EnableDelegatedAdminAccount",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "AWS679f53fac002430cb0da5b7982bd22872D164C4C",
+      "Arn"
+     ]
+    },
+    "Create": {
+     "Fn::Join": [
+      "",
+      [
+       "{\"service\":\"Inspector2\",\"action\":\"enableDelegatedAdminAccount\",\"parameters\":{\"delegatedAdminAccountId\":\"",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       "\"},\"physicalResourceId\":{\"id\":\"eyJkZWxlZ2F0ZWRBZG1pbkFjY291bnRJZCI6IiR7VG9rZW5bQVdTLkFjY291bnRJZC4wXX0iLCJpbnNwZWN0b3IyRW5hYmxlUHJvcHMiOnsicmVzb3VyY2VUeXBlcyI6WyJFQ1IiLCJFQzIiLCJMQU1CREEiXSwibG9nUmV0ZW50aW9uIjoxfSwiYXV0b0VuYWJsZSI6eyJlYzIiOnRydWUsImVjciI6dHJ1ZSwibGFtYmRhIjp0cnVlfSwibG9nUmV0ZW50aW9uIjoxfQ==\"}}"
+      ]
+     ]
+    },
+    "Delete": {
+     "Fn::Join": [
+      "",
+      [
+       "{\"service\":\"Inspector2\",\"action\":\"disableDelegatedAdminAccount\",\"physicalResourceId\":{\"id\":\"eyJkZWxlZ2F0ZWRBZG1pbkFjY291bnRJZCI6IiR7VG9rZW5bQVdTLkFjY291bnRJZC4wXX0iLCJpbnNwZWN0b3IyRW5hYmxlUHJvcHMiOnsicmVzb3VyY2VUeXBlcyI6WyJFQ1IiLCJFQzIiLCJMQU1CREEiXSwibG9nUmV0ZW50aW9uIjoxfSwiYXV0b0VuYWJsZSI6eyJlYzIiOnRydWUsImVjciI6dHJ1ZSwibGFtYmRhIjp0cnVlfSwibG9nUmV0ZW50aW9uIjoxfQ==\"},\"parameters\":{\"delegatedAdminAccountId\":\"",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       "\"}}"
+      ]
+     ]
+    },
+    "InstallLatestAwsSdk": true
+   },
+   "DependsOn": [
+    "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResource56770C4B",
+    "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResourceInspectorRole00253606"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/Inspector2EnableDelegatedAdminAccountResource/Inspector2EnableDelegatedAdminAccountResource/Resource/Default"
+   }
+  },
+  "Inspector2EnableDelegatedAdminAccountResourceInspector2UpdateOrganizationConfigurationResourceD5D1A649": {
+   "Type": "Custom::Inspector2OrganizationConfiguration",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "AWS679f53fac002430cb0da5b7982bd22872D164C4C",
+      "Arn"
+     ]
+    },
+    "Create": "{\"service\":\"Inspector2\",\"action\":\"updateOrganizationConfiguration\",\"parameters\":{\"autoEnable\":{\"ec2\":true,\"ecr\":true,\"lambda\":true}},\"physicalResourceId\":{\"id\":\"eyJsb2dSZXRlbnRpb24iOjEsImF1dG9FbmFibGUiOnsiZWMyIjp0cnVlLCJlY3IiOnRydWUsImxhbWJkYSI6dHJ1ZX19\"}}",
+    "Update": "{\"service\":\"Inspector2\",\"action\":\"updateOrganizationConfiguration\",\"parameters\":{\"autoEnable\":{\"ec2\":true,\"ecr\":true,\"lambda\":true}},\"physicalResourceId\":{\"id\":\"eyJsb2dSZXRlbnRpb24iOjEsImF1dG9FbmFibGUiOnsiZWMyIjp0cnVlLCJlY3IiOnRydWUsImxhbWJkYSI6dHJ1ZX19\"}}",
+    "InstallLatestAwsSdk": true
+   },
+   "DependsOn": [
+    "Inspector2EnableDelegatedAdminAccountResource99675B1A",
+    "Inspector2EnableDelegatedAdminAccountResourceInspector2UpdateOrganizationConfigurationResourceCustomResourcePolicy30425999"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/Inspector2EnableDelegatedAdminAccountResource/Inspector2UpdateOrganizationConfigurationResource/Inspector2UpdateOrganizationConfigurationResource/Resource/Default"
+   }
+  },
+  "Inspector2EnableDelegatedAdminAccountResourceInspector2UpdateOrganizationConfigurationResourceCustomResourcePolicy30425999": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "inspector2:UpdateOrganizationConfiguration",
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "Inspector2EnableDelegatedAdminAccountResourceInspector2UpdateOrganizationConfigurationResourceCustomResourcePolicy30425999",
+    "Roles": [
+     {
+      "Ref": "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResourceInspectorRole00253606"
+     }
+    ]
+   },
+   "DependsOn": [
+    "Inspector2EnableDelegatedAdminAccountResource99675B1A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/Inspector2EnableDelegatedAdminAccountResource/Inspector2UpdateOrganizationConfigurationResource/Inspector2UpdateOrganizationConfigurationResource/CustomResourcePolicy/Resource"
+   }
+  },
+  "AWS679f53fac002430cb0da5b7982bd22872D164C4C": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "56f7467bbde8a5efebcf57ae9e460027607099bab9f844669dcf5d800172ee5a.zip"
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResourceInspectorRole00253606",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Timeout": 120
+   },
+   "DependsOn": [
+    "Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResourceInspectorRole00253606"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/AWS679f53fac002430cb0da5b7982bd2287/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/inspector2/node_modules/aws-cdk-lib/custom-resource-handlers/dist/custom-resources/aws-custom-resource-handler",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "AWS679f53fac002430cb0da5b7982bd2287LogRetentionCE72797A": {
+   "Type": "Custom::LogRetention",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+      "Arn"
+     ]
+    },
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/lambda/",
+       {
+        "Ref": "AWS679f53fac002430cb0da5b7982bd22872D164C4C"
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 1
+   },
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/AWS679f53fac002430cb0da5b7982bd2287/LogRetention/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+    "Roles": [
+     {
+      "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Handler": "index.handler",
+    "Runtime": "nodejs22.x",
+    "Timeout": 900,
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/inspector2/node_modules/aws-cdk-lib/custom-resource-handlers/dist/aws-logs/log-retention-handler",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/12OwWqEQBBEv2XvbSe4OeS6K+SUQ9APkNmxHXodu8GeiQTx34MaPAQa6lVB0VVi+faOrxc3W+G7oYj8wKVJzg9Qk2mePIGbrV3YjbjUGgmqXnb90sj+Z7MHrRDd+OgcLg1LiJRUPrL4xCpwQtWf4Qp2bZ0ZJcPbJmBXvGc/ULo7I4gaDD811JRIjoLPlnRsp79lhrfZqj07x/63vZy8P2mSCyxhBdGO8Gkv32WJ212exlxMWRKPhPWhv9ScSBcfAQAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "Inspector2EnableDelegatedAdminAccountStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

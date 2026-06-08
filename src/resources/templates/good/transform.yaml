@@ -1,0 +1,30 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyServerlessFunctionLogicalID:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs22.x
+      CodeUri: 's3://testBucket/mySourceCode.zip'
+  ExampleLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+        LayerName: "Example"
+        ContentUri: "./layers/example.zip"
+        CompatibleRuntimes:
+            - python3.6
+  AppName:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-west-2:<my-account-id>:applications/<app-name>
+        SemanticVersion: 1.0.0
+      Parameters:
+        Debug: 'True'
+        MemorySizeMB: '128'
+        TimeoutSec: '300'
+Outputs:
+  myOutput:
+    Value: !GetAtt [ MyServerlessFunctionLogicalID, Arn ]

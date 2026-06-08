@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${!GetAtt OtherBucket.Arn}"
+  OtherBucket:
+    Type: AWS::S3::Bucket

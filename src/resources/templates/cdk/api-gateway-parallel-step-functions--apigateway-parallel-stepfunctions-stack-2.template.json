@@ -1,0 +1,1281 @@
+{
+ "Resources": {
+  "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF": {
+   "Type": "AWS::CloudFormation::Stack",
+   "Properties": {
+    "TemplateURL": {
+     "Fn::Join": [
+      "",
+      [
+       "https://s3.",
+       {
+        "Ref": "AWS::Region"
+       },
+       ".",
+       {
+        "Ref": "AWS::URLSuffix"
+       },
+       "/",
+       {
+        "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+       },
+       "/0bcc3ef4c1f55db49deab35ab4bb69da6eb5757b13f5181a203a535da1477b3b.json"
+      ]
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda.NestedStack/nested-stack-lambda.NestedStackResource",
+    "aws:asset:path": "apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template.json",
+    "aws:asset:property": "TemplateURL"
+   }
+  },
+  "lambdafunction1ServiceRoleA9EAFFE5": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "DependsOn": [
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-1/ServiceRole/Resource"
+   }
+  },
+  "lambdafunction1SecurityGroupF7DF9E6F": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Automatic security group for Lambda Function apigatewayparallelstepfunctionsstack2lambdafunction1A0EBFC14",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Fn::GetAtt": [
+      "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+      "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13Ref"
+     ]
+    }
+   },
+   "DependsOn": [
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-1/SecurityGroup/Resource"
+   }
+  },
+  "lambdafunction1A09FC241": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "e085a90b93e5d3e56c269baf207b9eb460c9e5356302c59d9feed5d37d8a109b.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "VPC_CIDR": {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13CidrBlock"
+       ]
+      },
+      "VPC_ID": {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13Ref"
+       ]
+      }
+     }
+    },
+    "Handler": "index.main",
+    "MemorySize": 128,
+    "Role": {
+     "Fn::GetAtt": [
+      "lambdafunction1ServiceRoleA9EAFFE5",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 5,
+    "VpcConfig": {
+     "SecurityGroupIds": [
+      {
+       "Fn::GetAtt": [
+        "lambdafunction1SecurityGroupF7DF9E6F",
+        "GroupId"
+       ]
+      }
+     ],
+     "SubnetIds": [
+      {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpcprivateisolatedsubnet1Subnet1SubnetA5B4F14ARef"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpcprivateisolatedsubnet1Subnet2SubnetB741D345Ref"
+       ]
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "lambdafunction1ServiceRoleA9EAFFE5",
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-1/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/api-gateway-parallel-step-functions/my-lambda-1",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "lambdafunction1LogRetention64612A02": {
+   "Type": "Custom::LogRetention",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+      "Arn"
+     ]
+    },
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/lambda/",
+       {
+        "Ref": "lambdafunction1A09FC241"
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 1
+   },
+   "DependsOn": [
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-1/LogRetention/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+    "Roles": [
+     {
+      "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Handler": "index.handler",
+    "Runtime": "nodejs22.x",
+    "Timeout": 900,
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/api-gateway-parallel-step-functions/node_modules/aws-cdk-lib/custom-resource-handlers/dist/aws-logs/log-retention-handler",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "lambdafunction2ServiceRole380A1BE9": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "DependsOn": [
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-2/ServiceRole/Resource"
+   }
+  },
+  "lambdafunction2SecurityGroup7268045A": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Automatic security group for Lambda Function apigatewayparallelstepfunctionsstack2lambdafunction2805CB0CD",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Fn::GetAtt": [
+      "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+      "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13Ref"
+     ]
+    }
+   },
+   "DependsOn": [
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-2/SecurityGroup/Resource"
+   }
+  },
+  "lambdafunction2F899168D": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "275770ece405ec0e02943acf406dd8e4895eca0a48252f5615816402cf86800c.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "VPC_CIDR": {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13CidrBlock"
+       ]
+      },
+      "VPC_ID": {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13Ref"
+       ]
+      }
+     }
+    },
+    "Handler": "index.main",
+    "MemorySize": 128,
+    "Role": {
+     "Fn::GetAtt": [
+      "lambdafunction2ServiceRole380A1BE9",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 10,
+    "VpcConfig": {
+     "SecurityGroupIds": [
+      {
+       "Fn::GetAtt": [
+        "lambdafunction2SecurityGroup7268045A",
+        "GroupId"
+       ]
+      }
+     ],
+     "SubnetIds": [
+      {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpcprivateisolatedsubnet1Subnet1SubnetA5B4F14ARef"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF",
+        "Outputs.apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpcprivateisolatedsubnet1Subnet2SubnetB741D345Ref"
+       ]
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "lambdafunction2ServiceRole380A1BE9",
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-2/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/api-gateway-parallel-step-functions/my-lambda-2",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "lambdafunction2LogRetentionC381F2CD": {
+   "Type": "Custom::LogRetention",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+      "Arn"
+     ]
+    },
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/lambda/",
+       {
+        "Ref": "lambdafunction2F899168D"
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 1
+   },
+   "DependsOn": [
+    "nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/lambda-function-2/LogRetention/Resource"
+   }
+  },
+  "stepfunctionsloggroup6EBF6C71": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 731
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/stepfunctions-loggroup/Resource"
+   }
+  },
+  "mystatemachineRole70AA91FD": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "states.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-state-machine/Role/Resource"
+   }
+  },
+  "mystatemachineRoleDefaultPolicyEC6D0D79": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "lambdafunction1A09FC241",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "lambdafunction1A09FC241",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "lambdafunction2F899168D",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "lambdafunction2F899168D",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "logs:CreateLogDelivery",
+        "logs:GetLogDelivery",
+        "logs:UpdateLogDelivery",
+        "logs:DeleteLogDelivery",
+        "logs:ListLogDeliveries",
+        "logs:PutResourcePolicy",
+        "logs:DescribeResourcePolicies",
+        "logs:DescribeLogGroups"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "mystatemachineRoleDefaultPolicyEC6D0D79",
+    "Roles": [
+     {
+      "Ref": "mystatemachineRole70AA91FD"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-state-machine/Role/DefaultPolicy/Resource"
+   }
+  },
+  "mystatemachine15ECA539": {
+   "Type": "AWS::StepFunctions::StateMachine",
+   "Properties": {
+    "DefinitionString": {
+     "Fn::Join": [
+      "",
+      [
+       "{\"StartAt\":\"two-jobs\",\"States\":{\"two-jobs\":{\"Type\":\"Parallel\",\"ResultPath\":\"$.CombinedOutput\",\"Next\":\"merge-outcomes\",\"Branches\":[{\"StartAt\":\"quick-job: my-lambda-task\",\"States\":{\"quick-job: my-lambda-task\":{\"End\":true,\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"Resource\":\"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"",
+       {
+        "Fn::GetAtt": [
+         "lambdafunction1A09FC241",
+         "Arn"
+        ]
+       },
+       "\",\"Payload.$\":\"$\"}}}},{\"StartAt\":\"slow-job: my-lambda-task\",\"States\":{\"slow-job: my-lambda-task\":{\"End\":true,\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"Resource\":\"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"",
+       {
+        "Fn::GetAtt": [
+         "lambdafunction2F899168D",
+         "Arn"
+        ]
+       },
+       "\",\"Payload.$\":\"$\"}}}}]},\"merge-outcomes\":{\"Type\":\"Pass\",\"Parameters\":{\"normal.$\":\"$.CombinedOutput[0].Payload.body\",\"fast.$\":\"$.CombinedOutput[1].Payload.body\"},\"End\":true}}}"
+      ]
+     ]
+    },
+    "LoggingConfiguration": {
+     "Destinations": [
+      {
+       "CloudWatchLogsLogGroup": {
+        "LogGroupArn": {
+         "Fn::GetAtt": [
+          "stepfunctionsloggroup6EBF6C71",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Level": "ALL"
+    },
+    "RoleArn": {
+     "Fn::GetAtt": [
+      "mystatemachineRole70AA91FD",
+      "Arn"
+     ]
+    },
+    "StateMachineType": "EXPRESS"
+   },
+   "DependsOn": [
+    "mystatemachineRoleDefaultPolicyEC6D0D79",
+    "mystatemachineRole70AA91FD"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-state-machine/Resource"
+   }
+  },
+  "myapi4C7BF186": {
+   "Type": "AWS::ApiGateway::RestApi",
+   "Properties": {
+    "Description": "example api gateway",
+    "Name": "my-api"
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Resource"
+   }
+  },
+  "myapiCloudWatchRole095452E5": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "apigateway.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+       ]
+      ]
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/CloudWatchRole/Resource"
+   }
+  },
+  "myapiAccountEC421A0A": {
+   "Type": "AWS::ApiGateway::Account",
+   "Properties": {
+    "CloudWatchRoleArn": {
+     "Fn::GetAtt": [
+      "myapiCloudWatchRole095452E5",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "myapi4C7BF186"
+   ],
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Account"
+   }
+  },
+  "myapiDeployment92F2CB49668bc8f388b84571173cc408b70fc6fa": {
+   "Type": "AWS::ApiGateway::Deployment",
+   "Properties": {
+    "Description": "example api gateway",
+    "RestApiId": {
+     "Ref": "myapi4C7BF186"
+    }
+   },
+   "DependsOn": [
+    "myapiANYA805D87B",
+    "myapimessagesGETE09B1C35",
+    "myapimessagesE5D75039"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Deployment/Resource",
+    "aws:cdk:do-not-refactor": true
+   }
+  },
+  "myapiDeploymentStagedevB1704B15": {
+   "Type": "AWS::ApiGateway::Stage",
+   "Properties": {
+    "DeploymentId": {
+     "Ref": "myapiDeployment92F2CB49668bc8f388b84571173cc408b70fc6fa"
+    },
+    "RestApiId": {
+     "Ref": "myapi4C7BF186"
+    },
+    "StageName": "dev"
+   },
+   "DependsOn": [
+    "myapiAccountEC421A0A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/DeploymentStage.dev/Resource"
+   }
+  },
+  "myapiANYStartSyncExecutionRole7935C5BB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "apigateway.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Default/ANY/StartSyncExecutionRole/Resource"
+   }
+  },
+  "myapiANYStartSyncExecutionRoleDefaultPolicyB90843F3": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "states:StartSyncExecution",
+       "Effect": "Allow",
+       "Resource": {
+        "Ref": "mystatemachine15ECA539"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "myapiANYStartSyncExecutionRoleDefaultPolicyB90843F3",
+    "Roles": [
+     {
+      "Ref": "myapiANYStartSyncExecutionRole7935C5BB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Default/ANY/StartSyncExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "myapiANYA805D87B": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "AuthorizationType": "NONE",
+    "HttpMethod": "ANY",
+    "Integration": {
+     "Credentials": {
+      "Fn::GetAtt": [
+       "myapiANYStartSyncExecutionRole7935C5BB",
+       "Arn"
+      ]
+     },
+     "IntegrationHttpMethod": "POST",
+     "IntegrationResponses": [
+      {
+       "ResponseTemplates": {
+        "application/json": "#set($inputRoot = $input.path('$'))\n#if($input.path('$.status').toString().equals(\"FAILED\"))\n#set($context.responseOverride.status = 500)\n{\n\"error\": \"$input.path('$.error')\",\n\"cause\": \"$input.path('$.cause')\"\n}\n#else\n$input.path('$.output')\n#end"
+       },
+       "StatusCode": "200"
+      },
+      {
+       "ResponseTemplates": {
+        "application/json": "{\n            \"error\": \"Bad request!\"\n          }"
+       },
+       "SelectionPattern": "4\\d{2}",
+       "StatusCode": "400"
+      },
+      {
+       "ResponseTemplates": {
+        "application/json": "{\n          \"error\": \"$input.path('$.error')\"\n        }"
+       },
+       "SelectionPattern": "5\\d{2}",
+       "StatusCode": "500"
+      }
+     ],
+     "PassthroughBehavior": "NEVER",
+     "RequestTemplates": {
+      "application/json": {
+       "Fn::Join": [
+        "",
+        [
+         "## Velocity Template used for API Gateway request mapping template\n##\n## This template forwards the request body, header, path, and querystring\n## to the execution input of the state machine.\n##\n## \"@@\" is used here as a placeholder for '\"' to avoid using escape characters.\n\n#set($inputString = '')\n#set($includeHeaders = false)\n#set($includeQueryString = true)\n#set($includePath = true)\n#set($includeAuthorizer = false)\n#set($allParams = $input.params())\n{\n    \"stateMachineArn\": \"",
+         {
+          "Ref": "mystatemachine15ECA539"
+         },
+         "\",\n\n    #set($inputString = \"$inputString,@@body@@: $input.body\")\n\n    #if ($includeHeaders)\n        #set($inputString = \"$inputString, @@header@@:{\")\n        #foreach($paramName in $allParams.header.keySet())\n            #set($inputString = \"$inputString @@$paramName@@: @@$util.escapeJavaScript($allParams.header.get($paramName))@@\")\n            #if($foreach.hasNext)\n                #set($inputString = \"$inputString,\")\n            #end\n        #end\n        #set($inputString = \"$inputString }\")\n        \n    #end\n\n    #if ($includeQueryString)\n        #set($inputString = \"$inputString, @@querystring@@:{\")\n        #foreach($paramName in $allParams.querystring.keySet())\n            #set($inputString = \"$inputString @@$paramName@@: @@$util.escapeJavaScript($allParams.querystring.get($paramName))@@\")\n            #if($foreach.hasNext)\n                #set($inputString = \"$inputString,\")\n            #end\n        #end\n        #set($inputString = \"$inputString }\")\n    #end\n\n    #if ($includePath)\n        #set($inputString = \"$inputString, @@path@@:{\")\n        #foreach($paramName in $allParams.path.keySet())\n            #set($inputString = \"$inputString @@$paramName@@: @@$util.escapeJavaScript($allParams.path.get($paramName))@@\")\n            #if($foreach.hasNext)\n                #set($inputString = \"$inputString,\")\n            #end\n        #end\n        #set($inputString = \"$inputString }\")\n    #end\n    \n    #if ($includeAuthorizer)\n        #set($inputString = \"$inputString, @@authorizer@@:{\")\n        #foreach($paramName in $context.authorizer.keySet())\n            #set($inputString = \"$inputString @@$paramName@@: @@$util.escapeJavaScript($context.authorizer.get($paramName))@@\")\n            #if($foreach.hasNext)\n                #set($inputString = \"$inputString,\")\n            #end\n        #end\n        #set($inputString = \"$inputString }\")\n    #end\n\n    #set($requestContext = \"\")\n    ## Check if the request context should be included as part of the execution input\n    #if($requestContext && !$requestContext.empty)\n        #set($inputString = \"$inputString,\")\n        #set($inputString = \"$inputString @@requestContext@@: $requestContext\")\n    #end\n\n    #set($inputString = \"$inputString}\")\n    #set($inputString = $inputString.replaceAll(\"@@\",'\"'))\n    #set($len = $inputString.length() - 1)\n    \"input\": \"{$util.escapeJavaScript($inputString.substring(1,$len)).replaceAll(\"\\\\'\",\"'\")}\"\n}\n"
+        ]
+       ]
+      }
+     },
+     "Type": "AWS",
+     "Uri": {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":apigateway:",
+        {
+         "Ref": "AWS::Region"
+        },
+        ":states:action/StartSyncExecution"
+       ]
+      ]
+     }
+    },
+    "MethodResponses": [
+     {
+      "ResponseModels": {
+       "application/json": "Empty"
+      },
+      "StatusCode": "200"
+     },
+     {
+      "ResponseModels": {
+       "application/json": "Error"
+      },
+      "StatusCode": "400"
+     },
+     {
+      "ResponseModels": {
+       "application/json": "Error"
+      },
+      "StatusCode": "500"
+     }
+    ],
+    "ResourceId": {
+     "Fn::GetAtt": [
+      "myapi4C7BF186",
+      "RootResourceId"
+     ]
+    },
+    "RestApiId": {
+     "Ref": "myapi4C7BF186"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Default/ANY/Resource"
+   }
+  },
+  "myapimessagesE5D75039": {
+   "Type": "AWS::ApiGateway::Resource",
+   "Properties": {
+    "ParentId": {
+     "Fn::GetAtt": [
+      "myapi4C7BF186",
+      "RootResourceId"
+     ]
+    },
+    "PathPart": "messages",
+    "RestApiId": {
+     "Ref": "myapi4C7BF186"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Default/messages/Resource"
+   }
+  },
+  "myapimessagesGETE09B1C35": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "AuthorizationType": "NONE",
+    "HttpMethod": "GET",
+    "Integration": {
+     "Type": "MOCK"
+    },
+    "ResourceId": {
+     "Ref": "myapimessagesE5D75039"
+    },
+    "RestApiId": {
+     "Ref": "myapi4C7BF186"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/my-api/Default/messages/GET/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/12Q3W7CMAyFn4X7kE1lF7sFpk2TQEPtAyCTmhCaJlXtgKqq7z4ltAwmRfJnn/ycnExmb+/ydQZXmquymltzkH3BoCqxProbwJX2vYX6UILsP4NTbLyL8sSDMFDLPvcW4zjVnbdGdbG90SBosQciZJLLWAQt5CqoCnkFhAJVJvsCVWgNd1+tD00y8DgYhPWaZL/xOkdGl2xsvL7vnngQxNgcR3ck+x20YC1aUTAwbkGdjMPPFnSNjsUOiJ6U8ev3/t99ewaqSG5SIt/u4isU0BgNjFfoYnzYTNFQjsTLxqRc/nCplA+OxQc21nfJxfroHrqCQU8+NIocyYdWYYpqi3zyZRRHmtTxkcTDIFLM8bxx+lF62v8TuAk8COdLlGd6uWSZjGt2JmPmbXBsapT5rf4C/UfnnC4CAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "myapiEndpoint3628AFE3": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "myapi4C7BF186"
+      },
+      ".execute-api.",
+      {
+       "Ref": "AWS::Region"
+      },
+      ".",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "myapiDeploymentStagedevB1704B15"
+      },
+      "/"
+     ]
+    ]
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

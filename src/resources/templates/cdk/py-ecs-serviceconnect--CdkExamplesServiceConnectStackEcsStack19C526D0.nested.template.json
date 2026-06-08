@@ -1,0 +1,935 @@
+{
+ "Resources": {
+  "ECSCluster7D463CD4": {
+   "Type": "AWS::ECS::Cluster",
+   "Properties": {
+    "ClusterName": "App-Service-Connect-Cluster",
+    "ClusterSettings": [
+     {
+      "Name": "containerInsights",
+      "Value": "enabled"
+     }
+    ],
+    "ServiceConnectDefaults": {
+     "Namespace": {
+      "Fn::GetAtt": [
+       "ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE",
+       "Arn"
+      ]
+     }
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ECSCluster/Resource"
+   }
+  },
+  "ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE": {
+   "Type": "AWS::ServiceDiscovery::PrivateDnsNamespace",
+   "Properties": {
+    "Name": "scapp.local",
+    "Vpc": {
+     "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ECSCluster/DefaultServiceDiscoveryNamespace/Resource"
+   }
+  },
+  "ECSServiceLogGroupD961AA4E": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       {
+        "Ref": "ECSCluster7D463CD4"
+       },
+       "-service"
+      ]
+     ]
+    },
+    "RetentionInDays": 5
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ECSServiceLogGroup/Resource"
+   }
+  },
+  "ECSTaskIamRole84EB0A02": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/CloudWatchFullAccess"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ECSTaskIamRole/Resource"
+   }
+  },
+  "ECSTaskIamRoleDefaultPolicyCB2CF7F1": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":ecr:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":repository/",
+          {
+           "Fn::Sub": "cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}"
+          }
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "ecr:GetAuthorizationToken",
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BackendTaskDefinitionBackendContainerLogGroup5E30F6E8",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "FrontendTaskDefinitionFrontendContainerLogGroup994ED50C",
+          "Arn"
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "ECSTaskIamRoleDefaultPolicyCB2CF7F1",
+    "Roles": [
+     {
+      "Ref": "ECSTaskIamRole84EB0A02"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ECSTaskIamRole/DefaultPolicy/Resource"
+   }
+  },
+  "TaskexecutionRole978012CD": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/CloudWatchLogsFullAccess"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/TaskexecutionRole/Resource"
+   }
+  },
+  "ECSSecurityGroupA14DBE7D": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "ECS Security Group",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": {
+       "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFCidrBlock"
+      },
+      "Description": "All traffic within VPC",
+      "FromPort": 5001,
+      "IpProtocol": "tcp",
+      "ToPort": 5001
+     }
+    ],
+    "VpcId": {
+     "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ECSSecurityGroup/Resource"
+   }
+  },
+  "ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Load balancer to target",
+    "FromPort": 5000,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "ECSSecurityGroupA14DBE7D",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "PublicLBSG963B1ACE",
+      "GroupId"
+     ]
+    },
+    "ToPort": 5000
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ECSSecurityGroup/from CdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A:5000"
+   }
+  },
+  "FrontendTaskDefinition6CBC2B00": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Essential": true,
+      "Image": {
+       "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}:92f501071473429dc72dc3c514ec9ac0eb1b9d8597470c135996cbcd41bc3a1e"
+      },
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "FrontendTaskDefinitionFrontendContainerLogGroup994ED50C"
+        },
+        "awslogs-stream-prefix": "ecs-logs",
+        "awslogs-region": {
+         "Ref": "AWS::Region"
+        }
+       }
+      },
+      "Name": "frontend-app",
+      "PortMappings": [
+       {
+        "ContainerPort": 5000,
+        "HostPort": 5000,
+        "Name": "frontend",
+        "Protocol": "tcp"
+       }
+      ]
+     }
+    ],
+    "Cpu": "256",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "ECSTaskIamRole84EB0A02",
+      "Arn"
+     ]
+    },
+    "Family": "frontend",
+    "Memory": "512",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "TaskexecutionRole978012CD",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/FrontendTaskDefinition/Resource"
+   }
+  },
+  "FrontendTaskDefinitionFrontendContainerLogGroup994ED50C": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/FrontendTaskDefinition/FrontendContainer/LogGroup/Resource"
+   }
+  },
+  "BackendTaskDefinitionEC224DE6": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Essential": true,
+      "Image": {
+       "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}:ced20e9ade48280af7db61dae2d0d87049796ea5a56847b23dd3f297a299b691"
+      },
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "BackendTaskDefinitionBackendContainerLogGroup5E30F6E8"
+        },
+        "awslogs-stream-prefix": "ecs-logs",
+        "awslogs-region": {
+         "Ref": "AWS::Region"
+        }
+       }
+      },
+      "Name": "backend",
+      "PortMappings": [
+       {
+        "ContainerPort": 5001,
+        "HostPort": 5001,
+        "Name": "data",
+        "Protocol": "tcp"
+       }
+      ]
+     }
+    ],
+    "Cpu": "256",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "ECSTaskIamRole84EB0A02",
+      "Arn"
+     ]
+    },
+    "Family": "backend",
+    "Memory": "512",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "TaskexecutionRole978012CD",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/BackendTaskDefinition/Resource"
+   }
+  },
+  "BackendTaskDefinitionBackendContainerLogGroup5E30F6E8": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/BackendTaskDefinition/BackendContainer/LogGroup/Resource"
+   }
+  },
+  "FrontendServiceBC94BA93": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Ref": "ECSCluster7D463CD4"
+    },
+    "DeploymentConfiguration": {
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 100
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "HealthCheckGracePeriodSeconds": 60,
+    "LaunchType": "FARGATE",
+    "LoadBalancers": [
+     {
+      "ContainerName": "frontend-app",
+      "ContainerPort": 5000,
+      "TargetGroupArn": {
+       "Ref": "TargetGroup3D7CD9B8"
+      }
+     }
+    ],
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "ECSSecurityGroupA14DBE7D",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPrivateSubnet1Subnet06B99BD7Ref"
+       },
+       {
+        "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPrivateSubnet2SubnetD0D91FD7Ref"
+       }
+      ]
+     }
+    },
+    "ServiceConnectConfiguration": {
+     "Enabled": true,
+     "Namespace": "scapp.local",
+     "Services": [
+      {
+       "ClientAliases": [
+        {
+         "Port": 5000
+        }
+       ],
+       "PortName": "frontend"
+      }
+     ]
+    },
+    "ServiceName": "frontend-service",
+    "TaskDefinition": {
+     "Ref": "FrontendTaskDefinition6CBC2B00"
+    }
+   },
+   "DependsOn": [
+    "FrontendLBListener230479D8",
+    "ListenerRule73F9AC5E",
+    "TaskexecutionRole978012CD"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/FrontendService/Service"
+   }
+  },
+  "BackendService7A4224EE": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Ref": "ECSCluster7D463CD4"
+    },
+    "DeploymentConfiguration": {
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 100
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "LaunchType": "FARGATE",
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "ECSSecurityGroupA14DBE7D",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPrivateSubnet1Subnet06B99BD7Ref"
+       },
+       {
+        "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPrivateSubnet2SubnetD0D91FD7Ref"
+       }
+      ]
+     }
+    },
+    "ServiceConnectConfiguration": {
+     "Enabled": true,
+     "Namespace": "scapp.local",
+     "Services": [
+      {
+       "ClientAliases": [
+        {
+         "Port": 5001
+        }
+       ],
+       "PortName": "data"
+      }
+     ]
+    },
+    "ServiceName": "backend-service",
+    "TaskDefinition": {
+     "Ref": "BackendTaskDefinitionEC224DE6"
+    }
+   },
+   "DependsOn": [
+    "TaskexecutionRole978012CD"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/BackendService/Service"
+   }
+  },
+  "PublicLBSG963B1ACE": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Public LB SG",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow HTTP traffic",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     }
+    ],
+    "VpcId": {
+     "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/PublicLBSG/Resource"
+   }
+  },
+  "TargetGroup3D7CD9B8": {
+   "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+   "Properties": {
+    "HealthCheckIntervalSeconds": 6,
+    "HealthCheckPath": "/",
+    "HealthCheckPort": "5000",
+    "HealthCheckTimeoutSeconds": 5,
+    "HealthyThresholdCount": 2,
+    "Name": "ecs-target-group",
+    "Port": 80,
+    "Protocol": "HTTP",
+    "TargetGroupAttributes": [
+     {
+      "Key": "stickiness.enabled",
+      "Value": "false"
+     },
+     {
+      "Key": "deregistration_delay.timeout_seconds",
+      "Value": "120"
+     }
+    ],
+    "TargetType": "ip",
+    "UnhealthyThresholdCount": 2,
+    "VpcId": {
+     "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/TargetGroup/Resource"
+   }
+  },
+  "FrontendLB2FA80AC2": {
+   "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+   "Properties": {
+    "LoadBalancerAttributes": [
+     {
+      "Key": "deletion_protection.enabled",
+      "Value": "false"
+     },
+     {
+      "Key": "idle_timeout.timeout_seconds",
+      "Value": "30"
+     }
+    ],
+    "Scheme": "internet-facing",
+    "SecurityGroups": [
+     {
+      "Fn::GetAtt": [
+       "PublicLBSG963B1ACE",
+       "GroupId"
+      ]
+     }
+    ],
+    "Subnets": [
+     {
+      "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPublicSubnet1Subnet37F1E1BFRef"
+     },
+     {
+      "Ref": "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPublicSubnet2Subnet5DCA866ARef"
+     }
+    ],
+    "Type": "application"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/FrontendLB/Resource"
+   }
+  },
+  "FrontendLBListener230479D8": {
+   "Type": "AWS::ElasticLoadBalancingV2::Listener",
+   "Properties": {
+    "DefaultActions": [
+     {
+      "TargetGroupArn": {
+       "Ref": "TargetGroup3D7CD9B8"
+      },
+      "Type": "forward"
+     }
+    ],
+    "LoadBalancerArn": {
+     "Ref": "FrontendLB2FA80AC2"
+    },
+    "Port": 80,
+    "Protocol": "HTTP"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/FrontendLB/Listener/Resource"
+   }
+  },
+  "ListenerRule73F9AC5E": {
+   "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+   "Properties": {
+    "Actions": [
+     {
+      "TargetGroupArn": {
+       "Ref": "TargetGroup3D7CD9B8"
+      },
+      "Type": "forward"
+     }
+    ],
+    "Conditions": [
+     {
+      "Field": "path-pattern",
+      "PathPatternConfig": {
+       "Values": [
+        "*"
+       ]
+      }
+     }
+    ],
+    "ListenerArn": {
+     "Ref": "FrontendLBListener230479D8"
+    },
+    "Priority": 1
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/ListenerRule/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/31RXUsDMRD8LX1Po3cKPmuLIpRarn2XbW57rk2TI5tcOUL+u9xHyynFp52dzAzsJJfZ45PMZnDmuSqPc017GdfIHsutB3UUcObPiIplXOjAHp1YHMwFvoKrwOMO+LjEAxnyZE0n+MtY44EMugk3erfoGlLYmUaYBA+gJFa2QdfKuHHUgMel4TWckGsYHDfoJLStWMaVrd6cDXUnu+AkCE4yFlb37n5urCbV9mE9SgJVLuMWVXDk22vG/8S7qRwyJ4Ea2JPSFso9aDCKTNXkMj7XtSYF3eU7cBX6a850nahWFsqXPmGo/Nc+1RF7NKPmgm+8F2E4erqnJApkG9zQ5kfwdfB9MxN2YU3Z/1gSm9Z/WXP3ILNcZvezbyaau2A8nVAWw/wBpID8cVACAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkExamplesServiceConnectStack/EcsStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "LoadBalancerURL": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "http://",
+      {
+       "Fn::GetAtt": [
+        "FrontendLB2FA80AC2",
+        "DNSName"
+       ]
+      }
+     ]
+    ]
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-2"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef": {
+   "Type": "String"
+  },
+  "referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFCidrBlock": {
+   "Type": "String"
+  },
+  "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPrivateSubnet1Subnet06B99BD7Ref": {
+   "Type": "String"
+  },
+  "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPrivateSubnet2SubnetD0D91FD7Ref": {
+   "Type": "String"
+  },
+  "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPublicSubnet1Subnet37F1E1BFRef": {
+   "Type": "String"
+  },
+  "referencetoCdkExamplesServiceConnectStackServiceConnectVPCPublicSubnet2Subnet5DCA866ARef": {
+   "Type": "String"
+  }
+ }
+}

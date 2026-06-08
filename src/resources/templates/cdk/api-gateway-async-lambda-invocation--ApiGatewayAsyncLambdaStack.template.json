@@ -1,0 +1,617 @@
+{
+ "Resources": {
+  "apigwasynclambdatable1075CD30": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "jobId",
+      "AttributeType": "S"
+     }
+    ],
+    "KeySchema": [
+     {
+      "AttributeName": "jobId",
+      "KeyType": "HASH"
+     }
+    ],
+    "ProvisionedThroughput": {
+     "ReadCapacityUnits": 5,
+     "WriteCapacityUnits": 5
+    },
+    "TableName": "apigw-async-lambda-job-table"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-table/Resource"
+   }
+  },
+  "apigwasynclambdafnloggroup3D262524": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-fn-log-group/Resource"
+   }
+  },
+  "apigwasynclambdafnServiceRole607675A2": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-fn/ServiceRole/Resource"
+   }
+  },
+  "apigwasynclambdafnServiceRoleDefaultPolicy5AB65430": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchWriteItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "apigwasynclambdatable1075CD30",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "apigwasynclambdafnServiceRoleDefaultPolicy5AB65430",
+    "Roles": [
+     {
+      "Ref": "apigwasynclambdafnServiceRole607675A2"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-fn/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "apigwasynclambdafnAD6250E4": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "c5d52fbdf590ad6650071d90a071402cf47f0b156f2551dff1d83ef602f3fd1b.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "JOB_TABLE": {
+       "Ref": "apigwasynclambdatable1075CD30"
+      }
+     }
+    },
+    "Handler": "job_handler.handler",
+    "LoggingConfig": {
+     "LogGroup": {
+      "Ref": "apigwasynclambdafnloggroup3D262524"
+     }
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "apigwasynclambdafnServiceRole607675A2",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs20.x"
+   },
+   "DependsOn": [
+    "apigwasynclambdafnServiceRoleDefaultPolicy5AB65430",
+    "apigwasynclambdafnServiceRole607675A2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-fn/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/api-gateway-async-lambda-invocation/assets/lambda-functions",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "apigwasynclambdaapigwloggroup1E36CCD4": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 7
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw-log-group/Resource"
+   }
+  },
+  "apigwasynclambdaapigw3449931B": {
+   "Type": "AWS::ApiGateway::RestApi",
+   "Properties": {
+    "Name": "apigw-async-lambda-job-service"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Resource"
+   }
+  },
+  "apigwasynclambdaapigwCloudWatchRoleC01BF930": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "apigateway.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+       ]
+      ]
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/CloudWatchRole/Resource"
+   }
+  },
+  "apigwasynclambdaapigwAccount4D38593B": {
+   "Type": "AWS::ApiGateway::Account",
+   "Properties": {
+    "CloudWatchRoleArn": {
+     "Fn::GetAtt": [
+      "apigwasynclambdaapigwCloudWatchRoleC01BF930",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "apigwasynclambdaapigw3449931B"
+   ],
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Account"
+   }
+  },
+  "apigwasynclambdaapigwDeploymentDA408F9D41ab700bc8db89ed7cb2c6250ab97c0a": {
+   "Type": "AWS::ApiGateway::Deployment",
+   "Properties": {
+    "Description": "Automatically created by the RestApi construct",
+    "RestApiId": {
+     "Ref": "apigwasynclambdaapigw3449931B"
+    }
+   },
+   "DependsOn": [
+    "apigwasynclambdaapigwjobjobIdGETED10CC0C",
+    "apigwasynclambdaapigwjobjobId73AEE867",
+    "apigwasynclambdaapigwjobPOST79D1CAC1",
+    "apigwasynclambdaapigwjob39EDA914"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Deployment/Resource",
+    "aws:cdk:do-not-refactor": true
+   }
+  },
+  "apigwasynclambdaapigwDeploymentStageprodAE3424CD": {
+   "Type": "AWS::ApiGateway::Stage",
+   "Properties": {
+    "AccessLogSetting": {
+     "DestinationArn": {
+      "Fn::GetAtt": [
+       "apigwasynclambdaapigwloggroup1E36CCD4",
+       "Arn"
+      ]
+     },
+     "Format": "{\"requestId\":\"$context.requestId\",\"ip\":\"$context.identity.sourceIp\",\"user\":\"$context.identity.user\",\"caller\":\"$context.identity.caller\",\"requestTime\":\"$context.requestTime\",\"httpMethod\":\"$context.httpMethod\",\"resourcePath\":\"$context.resourcePath\",\"status\":\"$context.status\",\"protocol\":\"$context.protocol\",\"responseLength\":\"$context.responseLength\"}"
+    },
+    "DeploymentId": {
+     "Ref": "apigwasynclambdaapigwDeploymentDA408F9D41ab700bc8db89ed7cb2c6250ab97c0a"
+    },
+    "MethodSettings": [
+     {
+      "DataTraceEnabled": true,
+      "HttpMethod": "*",
+      "LoggingLevel": "ERROR",
+      "MetricsEnabled": true,
+      "ResourcePath": "/*"
+     }
+    ],
+    "RestApiId": {
+     "Ref": "apigwasynclambdaapigw3449931B"
+    },
+    "StageName": "prod"
+   },
+   "DependsOn": [
+    "apigwasynclambdaapigwAccount4D38593B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/DeploymentStage.prod/Resource"
+   }
+  },
+  "apigwasynclambdaapigwjob39EDA914": {
+   "Type": "AWS::ApiGateway::Resource",
+   "Properties": {
+    "ParentId": {
+     "Fn::GetAtt": [
+      "apigwasynclambdaapigw3449931B",
+      "RootResourceId"
+     ]
+    },
+    "PathPart": "job",
+    "RestApiId": {
+     "Ref": "apigwasynclambdaapigw3449931B"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Default/job/Resource"
+   }
+  },
+  "apigwasynclambdaapigwjobPOSTApiPermissionApiGatewayAsyncLambdaStackapigwasynclambdaapigw016C0147POSTjob195929C9": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "apigwasynclambdafnAD6250E4",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:execute-api:us-east-1:",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":",
+       {
+        "Ref": "apigwasynclambdaapigw3449931B"
+       },
+       "/",
+       {
+        "Ref": "apigwasynclambdaapigwDeploymentStageprodAE3424CD"
+       },
+       "/POST/job"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Default/job/POST/ApiPermission.ApiGatewayAsyncLambdaStackapigwasynclambdaapigw016C0147.POST..job"
+   }
+  },
+  "apigwasynclambdaapigwjobPOSTApiPermissionTestApiGatewayAsyncLambdaStackapigwasynclambdaapigw016C0147POSTjob01D110CD": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "apigwasynclambdafnAD6250E4",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:execute-api:us-east-1:",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":",
+       {
+        "Ref": "apigwasynclambdaapigw3449931B"
+       },
+       "/test-invoke-stage/POST/job"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Default/job/POST/ApiPermission.Test.ApiGatewayAsyncLambdaStackapigwasynclambdaapigw016C0147.POST..job"
+   }
+  },
+  "apigwasynclambdaapigwjobPOST79D1CAC1": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "AuthorizationType": "NONE",
+    "HttpMethod": "POST",
+    "Integration": {
+     "IntegrationHttpMethod": "POST",
+     "IntegrationResponses": [
+      {
+       "ResponseTemplates": {
+        "application/json": "{\"jobId\": \"$context.requestId\"}"
+       },
+       "StatusCode": "200"
+      },
+      {
+       "ResponseTemplates": {
+        "application/json": "{\n                \"error\": \"An error occurred while processing the request.\",\n                \"details\": \"$context.integrationErrorMessage\"\n              }"
+       },
+       "StatusCode": "500"
+      }
+     ],
+     "RequestParameters": {
+      "integration.request.header.X-Amz-Invocation-Type": "'Event'"
+     },
+     "RequestTemplates": {
+      "application/json": "{\n            \"jobId\": \"$context.requestId\",\n            \"body\": $input.json('$')\n          }"
+     },
+     "Type": "AWS",
+     "Uri": {
+      "Fn::Join": [
+       "",
+       [
+        "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/",
+        {
+         "Fn::GetAtt": [
+          "apigwasynclambdafnAD6250E4",
+          "Arn"
+         ]
+        },
+        "/invocations"
+       ]
+      ]
+     }
+    },
+    "MethodResponses": [
+     {
+      "StatusCode": "200"
+     },
+     {
+      "StatusCode": "500"
+     }
+    ],
+    "ResourceId": {
+     "Ref": "apigwasynclambdaapigwjob39EDA914"
+    },
+    "RestApiId": {
+     "Ref": "apigwasynclambdaapigw3449931B"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Default/job/POST/Resource"
+   }
+  },
+  "apigwasynclambdaapigwjobjobId73AEE867": {
+   "Type": "AWS::ApiGateway::Resource",
+   "Properties": {
+    "ParentId": {
+     "Ref": "apigwasynclambdaapigwjob39EDA914"
+    },
+    "PathPart": "{jobId}",
+    "RestApiId": {
+     "Ref": "apigwasynclambdaapigw3449931B"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Default/job/{jobId}/Resource"
+   }
+  },
+  "apigwasynclambdaapigwjobjobIdGETED10CC0C": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "AuthorizationType": "NONE",
+    "HttpMethod": "GET",
+    "Integration": {
+     "Credentials": {
+      "Fn::GetAtt": [
+       "ApiGatewayDynamoRole447127F0",
+       "Arn"
+      ]
+     },
+     "IntegrationHttpMethod": "POST",
+     "IntegrationResponses": [
+      {
+       "ResponseTemplates": {
+        "application/json": "{\n                \"jobId\": \"$input.path('$.Item.jobId.S')\",\n                \"status\": \"$input.path('$.Item.status.S')\",\n                \"createdAt\": \"$input.path('$.Item.createdAt.S')\"\n              }"
+       },
+       "StatusCode": "200"
+      },
+      {
+       "ResponseTemplates": {
+        "application/json": "{\"error\": \"Job not found\"}"
+       },
+       "SelectionPattern": ".*\"Item\":null.*",
+       "StatusCode": "404"
+      }
+     ],
+     "RequestTemplates": {
+      "application/json": {
+       "Fn::Join": [
+        "",
+        [
+         "{\n              \"TableName\": \"",
+         {
+          "Ref": "apigwasynclambdatable1075CD30"
+         },
+         "\",\n              \"Key\": {\n                \"jobId\": {\n                  \"S\": \"$input.params('jobId')\"\n                }\n              }\n            }"
+        ]
+       ]
+      }
+     },
+     "Type": "AWS",
+     "Uri": "arn:aws:apigateway:us-east-1:dynamodb:action/GetItem"
+    },
+    "MethodResponses": [
+     {
+      "StatusCode": "200"
+     },
+     {
+      "StatusCode": "404"
+     }
+    ],
+    "ResourceId": {
+     "Ref": "apigwasynclambdaapigwjobjobId73AEE867"
+    },
+    "RestApiId": {
+     "Ref": "apigwasynclambdaapigw3449931B"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/apigw-async-lambda-apigw/Default/job/{jobId}/GET/Resource"
+   }
+  },
+  "ApiGatewayDynamoRole447127F0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "apigateway.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": "dynamodb:GetItem",
+         "Effect": "Allow",
+         "Resource": {
+          "Fn::GetAtt": [
+           "apigwasynclambdatable1075CD30",
+           "Arn"
+          ]
+         }
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "dynamoPolicy"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/ApiGatewayDynamoRole/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/02OQWvDMAyFf0vvrjbSHXZNN7ZLx0q6e1EcLXOTWCGyF4Lxfx92VloQvE/S40kFFE/P8LjBWba66ba9qSGcHOpO4Szn0CwWB25qCF9Y96Revm2GqHpuBcKB2/eJ/ZgWV46qx6FuEMKbt9oZtml7z0eaBiNi2EZlcIBQ8Zqd9ci90Uv2ZYpKdmcUISdQJlGyg73XHbk9CikcTYuOZlwgHPLlisSVo8mJNyy1Zm+deqWx52Ug69L0rjs5bPMbK1Qk7CdN+ci1+c9c+YPcDzdptFKMN1/+NAUZ2ybHp3ejd1FZbggu8vBbFJBqcxFjtpO3zgwE1ap/VtuXlpcBAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "ApiGatewayAsyncLambdaStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "apigwasynclambdaapigwEndpointE0083C18": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "apigwasynclambdaapigw3449931B"
+      },
+      ".execute-api.us-east-1.",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "apigwasynclambdaapigwDeploymentStageprodAE3424CD"
+      },
+      "/"
+     ]
+    ]
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  StateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/StepRole"
+      DefinitionString: |
+        {
+          "StartAt": "NonExistentState",
+          "States": {
+            "DoWork": {
+              "Type": "InvalidType",
+              "End": true
+            }
+          }
+        }

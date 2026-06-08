@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  DLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: my-dlq
+  MainQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: my-queue.fifo
+      FifoQueue: true
+      RedrivePolicy:
+        deadLetterTargetArn: !Ref DLQ
+        maxReceiveCount: 5

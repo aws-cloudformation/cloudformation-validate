@@ -1,0 +1,414 @@
+{
+  "resource_lifecycle": {
+    "AWS::AppMesh::GatewayRoute": {
+      "status": "sunset",
+      "date": "2026-09-30"
+    },
+    "AWS::AppMesh::Mesh": {
+      "status": "sunset",
+      "date": "2026-09-30"
+    },
+    "AWS::AppMesh::Route": {
+      "status": "sunset",
+      "date": "2026-09-30"
+    },
+    "AWS::AppMesh::VirtualGateway": {
+      "status": "sunset",
+      "date": "2026-09-30"
+    },
+    "AWS::AppMesh::VirtualNode": {
+      "status": "sunset",
+      "date": "2026-09-30"
+    },
+    "AWS::AppMesh::VirtualRouter": {
+      "status": "sunset",
+      "date": "2026-09-30"
+    },
+    "AWS::AppMesh::VirtualService": {
+      "status": "sunset",
+      "date": "2026-09-30"
+    },
+    "AWS::AutoScaling::LaunchConfiguration": {
+      "status": "maintenance",
+      "date": "2024-10-01"
+    },
+    "AWS::Cloud9::EnvironmentEC2": {
+      "status": "maintenance",
+      "date": "2024-07-25"
+    },
+    "AWS::CodeGuruReviewer::RepositoryAssociation": {
+      "status": "maintenance",
+      "date": "2025-10-07"
+    },
+    "AWS::CodeStar::GitHubRepository": {
+      "status": "shutdown",
+      "date": "2024-07-25"
+    },
+    "AWS::Evidently::Experiment": {
+      "status": "shutdown",
+      "date": "2025-10-17"
+    },
+    "AWS::Evidently::Feature": {
+      "status": "shutdown",
+      "date": "2025-10-17"
+    },
+    "AWS::Evidently::Launch": {
+      "status": "shutdown",
+      "date": "2025-10-17"
+    },
+    "AWS::Evidently::Project": {
+      "status": "shutdown",
+      "date": "2025-10-17"
+    },
+    "AWS::Evidently::Segment": {
+      "status": "shutdown",
+      "date": "2025-10-17"
+    },
+    "AWS::FinSpace::Environment": {
+      "status": "sunset",
+      "date": "2026-10-07"
+    },
+    "AWS::Forecast::Dataset": {
+      "status": "maintenance",
+      "date": "2024-07-29"
+    },
+    "AWS::Forecast::DatasetGroup": {
+      "status": "maintenance",
+      "date": "2024-07-29"
+    },
+    "AWS::FraudDetector::Detector": {
+      "status": "sunset",
+      "date": "2025-11-07"
+    },
+    "AWS::FraudDetector::EntityType": {
+      "status": "sunset",
+      "date": "2025-11-07"
+    },
+    "AWS::FraudDetector::EventType": {
+      "status": "sunset",
+      "date": "2025-11-07"
+    },
+    "AWS::FraudDetector::Label": {
+      "status": "sunset",
+      "date": "2025-11-07"
+    },
+    "AWS::FraudDetector::List": {
+      "status": "sunset",
+      "date": "2025-11-07"
+    },
+    "AWS::FraudDetector::Outcome": {
+      "status": "sunset",
+      "date": "2025-11-07"
+    },
+    "AWS::FraudDetector::Variable": {
+      "status": "sunset",
+      "date": "2025-11-07"
+    },
+    "AWS::Greengrass::ConnectorDefinition": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::ConnectorDefinitionVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::CoreDefinition": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::CoreDefinitionVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::DeviceDefinition": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::DeviceDefinitionVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::FunctionDefinition": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::FunctionDefinitionVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::Group": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::GroupVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::LoggerDefinition": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::LoggerDefinitionVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::ResourceDefinition": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::ResourceDefinitionVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::SubscriptionDefinition": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Greengrass::SubscriptionDefinitionVersion": {
+      "status": "sunset",
+      "date": "2026-10-01"
+    },
+    "AWS::Inspector::AssessmentTarget": {
+      "status": "sunset",
+      "date": "2026-05-20"
+    },
+    "AWS::Inspector::AssessmentTemplate": {
+      "status": "sunset",
+      "date": "2026-05-20"
+    },
+    "AWS::Inspector::ResourceGroup": {
+      "status": "sunset",
+      "date": "2026-05-20"
+    },
+    "AWS::IoTAnalytics::Channel": {
+      "status": "shutdown",
+      "date": "2025-12-15"
+    },
+    "AWS::IoTAnalytics::Dataset": {
+      "status": "shutdown",
+      "date": "2025-12-15"
+    },
+    "AWS::IoTAnalytics::Datastore": {
+      "status": "shutdown",
+      "date": "2025-12-15"
+    },
+    "AWS::IoTAnalytics::Pipeline": {
+      "status": "shutdown",
+      "date": "2025-12-15"
+    },
+    "AWS::IoTEvents::AlarmModel": {
+      "status": "shutdown",
+      "date": "2026-05-20"
+    },
+    "AWS::IoTEvents::DetectorModel": {
+      "status": "shutdown",
+      "date": "2026-05-20"
+    },
+    "AWS::IoTEvents::Input": {
+      "status": "shutdown",
+      "date": "2026-05-20"
+    },
+    "AWS::IoTThingsGraph::FlowTemplate": {
+      "status": "shutdown",
+      "date": "2022-11-09"
+    },
+    "AWS::MediaStore::Container": {
+      "status": "sunset",
+      "date": "2025-11-13"
+    },
+    "AWS::OpsWorks::App": {
+      "status": "shutdown",
+      "date": "2024-05-01"
+    },
+    "AWS::OpsWorks::ElasticLoadBalancerAttachment": {
+      "status": "shutdown",
+      "date": "2024-05-01"
+    },
+    "AWS::OpsWorks::Instance": {
+      "status": "shutdown",
+      "date": "2024-05-01"
+    },
+    "AWS::OpsWorks::Layer": {
+      "status": "shutdown",
+      "date": "2024-05-01"
+    },
+    "AWS::OpsWorks::Stack": {
+      "status": "shutdown",
+      "date": "2024-05-01"
+    },
+    "AWS::OpsWorks::UserProfile": {
+      "status": "shutdown",
+      "date": "2024-05-01"
+    },
+    "AWS::OpsWorks::Volume": {
+      "status": "shutdown",
+      "date": "2024-05-01"
+    },
+    "AWS::Pinpoint::ADMChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::APNSChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::APNSSandboxChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::APNSVoipChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::APNSVoipSandboxChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::App": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::ApplicationSettings": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::BaiduChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::Campaign": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::EmailChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::EmailTemplate": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::EventStream": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::GCMChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::InAppTemplate": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::PushTemplate": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::SMSChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::Segment": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::SmsTemplate": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Pinpoint::VoiceChannel": {
+      "status": "sunset",
+      "date": "2026-10-30"
+    },
+    "AWS::Proton::EnvironmentAccountConnection": {
+      "status": "sunset",
+      "date": "2026-10-07"
+    },
+    "AWS::Proton::EnvironmentTemplate": {
+      "status": "sunset",
+      "date": "2026-10-07"
+    },
+    "AWS::Proton::ServiceTemplate": {
+      "status": "sunset",
+      "date": "2026-10-07"
+    },
+    "AWS::QLDB::Ledger": {
+      "status": "shutdown",
+      "date": "2025-07-31"
+    },
+    "AWS::QLDB::Stream": {
+      "status": "shutdown",
+      "date": "2025-07-31"
+    },
+    "AWS::SimSpaceWeaver::Simulation": {
+      "status": "sunset",
+      "date": "2026-05-20"
+    },
+    "AWS::Timestream::Database": {
+      "status": "maintenance",
+      "date": "2025-06-20"
+    },
+    "AWS::Timestream::ScheduledQuery": {
+      "status": "maintenance",
+      "date": "2025-06-20"
+    },
+    "AWS::Timestream::Table": {
+      "status": "maintenance",
+      "date": "2025-06-20"
+    },
+    "AWS::WAF::ByteMatchSet": {
+      "status": "sunset"
+    },
+    "AWS::WAF::IPSet": {
+      "status": "sunset"
+    },
+    "AWS::WAF::Rule": {
+      "status": "sunset"
+    },
+    "AWS::WAF::SizeConstraintSet": {
+      "status": "sunset"
+    },
+    "AWS::WAF::SqlInjectionMatchSet": {
+      "status": "sunset"
+    },
+    "AWS::WAF::WebACL": {
+      "status": "sunset"
+    },
+    "AWS::WAF::XssMatchSet": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::ByteMatchSet": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::GeoMatchSet": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::IPSet": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::RateBasedRule": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::RegexPatternSet": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::Rule": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::SizeConstraintSet": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::SqlInjectionMatchSet": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::WebACL": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::WebACLAssociation": {
+      "status": "sunset"
+    },
+    "AWS::WAFRegional::XssMatchSet": {
+      "status": "sunset"
+    }
+  }
+}

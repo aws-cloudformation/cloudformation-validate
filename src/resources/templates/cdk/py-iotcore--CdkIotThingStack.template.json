@@ -1,0 +1,790 @@
+{
+ "Resources": {
+  "MyCdkThing": {
+   "Type": "AWS::IoT::Thing",
+   "Properties": {
+    "ThingName": "CdkThing001"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/MyCdkThing"
+   }
+  },
+  "CdkThing001LambdaRoleD7EE5CD3": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CdkThing001LambdaRole/Resource"
+   }
+  },
+  "CdkThing001LambdaRoleDefaultPolicy59ADB8C2": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "secretsmanager:CreateSecret",
+        "secretsmanager:DeleteSecret"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:secretsmanager:*:*:secret:*"
+      },
+      {
+       "Action": [
+        "iot:CreateKeysAndCertificate",
+        "iot:UpdateCertificate"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "CdkThing001LambdaRoleDefaultPolicy59ADB8C2",
+    "Roles": [
+     {
+      "Ref": "CdkThing001LambdaRoleD7EE5CD3"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CdkThing001LambdaRole/DefaultPolicy/Resource"
+   }
+  },
+  "CertHandler220363A9": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "740b31c326e174fbf68c6969f1067f90403b5f458c9ce4a53d1ded0e5c0885e7.zip"
+    },
+    "FunctionName": "CertHandlerFunction",
+    "Handler": "cert_handler.lambda_handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CdkThing001LambdaRoleD7EE5CD3",
+      "Arn"
+     ]
+    },
+    "Runtime": "python3.11",
+    "Timeout": 60
+   },
+   "DependsOn": [
+    "CdkThing001LambdaRoleDefaultPolicy59ADB8C2",
+    "CdkThing001LambdaRoleD7EE5CD3"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CertHandler/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/python/iotcore/lambda",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "CertHandlerLogRetentionC3A70FEF": {
+   "Type": "Custom::LogRetention",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+      "Arn"
+     ]
+    },
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/lambda/",
+       {
+        "Ref": "CertHandler220363A9"
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 1
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CertHandler/LogRetention/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "logs:DeleteRetentionPolicy",
+        "logs:PutRetentionPolicy"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+    "Roles": [
+     {
+      "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Handler": "index.handler",
+    "Runtime": "nodejs18.x",
+    "Timeout": 900,
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "5bc602ecde93c947efe5899ae355f999986a1acbe610b1c0b9c468d738857555.zip"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/Resource",
+    "aws:asset:path": "/var/folders/_x/fyhxn65j55n4v4d_1ptd7ckw0000gq/T/jsii-kernel-L49pIO/node_modules/aws-cdk-lib/aws-logs/lib/log-retention-provider",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "IoTCertProviderframeworkonEventServiceRole80DDBEA7": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/IoTCertProvider/framework-onEvent/ServiceRole/Resource"
+   }
+  },
+  "IoTCertProviderframeworkonEventServiceRoleDefaultPolicy8ECC6825": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "CertHandler220363A9",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "CertHandler220363A9",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "IoTCertProviderframeworkonEventServiceRoleDefaultPolicy8ECC6825",
+    "Roles": [
+     {
+      "Ref": "IoTCertProviderframeworkonEventServiceRole80DDBEA7"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/IoTCertProvider/framework-onEvent/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "IoTCertProviderframeworkonEvent8FF1476F": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+    },
+    "Description": "AWS CDK resource provider framework - onEvent (CdkIotThingStack/IoTCertProvider)",
+    "Environment": {
+     "Variables": {
+      "USER_ON_EVENT_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "CertHandler220363A9",
+        "Arn"
+       ]
+      }
+     }
+    },
+    "Handler": "framework.onEvent",
+    "Role": {
+     "Fn::GetAtt": [
+      "IoTCertProviderframeworkonEventServiceRole80DDBEA7",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x",
+    "Timeout": 900
+   },
+   "DependsOn": [
+    "IoTCertProviderframeworkonEventServiceRoleDefaultPolicy8ECC6825",
+    "IoTCertProviderframeworkonEventServiceRole80DDBEA7"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/IoTCertProvider/framework-onEvent/Resource",
+    "aws:asset:path": "/var/folders/_x/fyhxn65j55n4v4d_1ptd7ckw0000gq/T/jsii-kernel-L49pIO/node_modules/aws-cdk-lib/custom-resources/lib/provider-framework/runtime",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "IoTCertCustomResource": {
+   "Type": "AWS::CloudFormation::CustomResource",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "IoTCertProviderframeworkonEvent8FF1476F",
+      "Arn"
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/IoTCertCustomResource/Default"
+   }
+  },
+  "CfnPolicy": {
+   "Type": "AWS::IoT::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Effect": "Allow",
+       "Action": [
+        "iot:Connect"
+       ],
+       "Resource": [
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:aws:iot:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":client/CdkThing001"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Effect": "Allow",
+       "Action": [
+        "iot:Publish"
+       ],
+       "Resource": [
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:aws:iot:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":topic/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "PolicyName": "CdkThing001IoTCertPolicy"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CfnPolicy"
+   }
+  },
+  "CdkThing001PolicyPrincipalAttachment": {
+   "Type": "AWS::IoT::PolicyPrincipalAttachment",
+   "Properties": {
+    "PolicyName": "CdkThing001IoTCertPolicy",
+    "Principal": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:iot:",
+       {
+        "Ref": "AWS::Region"
+       },
+       ":",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":cert/",
+       {
+        "Fn::GetAtt": [
+         "IoTCertCustomResource",
+         "certificateId"
+        ]
+       }
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CdkThing001PolicyPrincipalAttachment"
+   }
+  },
+  "CdkThing001ThingPrincipalAttachment": {
+   "Type": "AWS::IoT::ThingPrincipalAttachment",
+   "Properties": {
+    "Principal": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:iot:",
+       {
+        "Ref": "AWS::Region"
+       },
+       ":",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":cert/",
+       {
+        "Fn::GetAtt": [
+         "IoTCertCustomResource",
+         "certificateId"
+        ]
+       }
+      ]
+     ]
+    },
+    "ThingName": "CdkThing001"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CdkThing001ThingPrincipalAttachment"
+   }
+  },
+  "CfnRole": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "iot.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": "CDK created role for logging IoT rule event",
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents"
+         ],
+         "Effect": "Allow",
+         "Resource": "*"
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "CdkIoTCoreCloudWatchAccessPolicy"
+     }
+    ],
+    "RoleName": "CdkIoTCoreCloudWatchAccessRole"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CfnRole"
+   }
+  },
+  "CfnLogGroup": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": "CdkThing001LogGroup",
+    "RetentionInDays": 7
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CfnLogGroup"
+   }
+  },
+  "CdkIoTCoreRule": {
+   "Type": "AWS::IoT::TopicRule",
+   "Properties": {
+    "TopicRulePayload": {
+     "Actions": [
+      {
+       "CloudwatchLogs": {
+        "BatchMode": false,
+        "LogGroupName": "CdkThing001LogGroup",
+        "RoleArn": {
+         "Fn::GetAtt": [
+          "CfnRole",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Sql": "SELECT color AS rgb FROM 'device/color' WHERE temperature > 50"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CdkIoTCoreRule"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/3WPwW6DMAyGn6X34JXyBC3SdukB0d1RGgJ4hBjFzqoK8e4TtHTSpJ3+3/5+W/YB0n0K6U7fODF1nzi8wnQRbXqlb1xNSAJT3vjPDn2r8sYX5NDcf10R0BsctTuKaNMN1ova8v8xGtGU0dlZoR5gKsnZpb/q3/2zcnq41hqm9+iNIPmFbX5WnFWa2QrDcRHFGZyi6a2cNFvlqGWYztSWVqzfps/UfgSK4zyr0jLFYKxapy+i2+efL2AiCw1VeNYMRaBvrG1Q+UpewbzxOfkaH3cVd+nIv2WQHiDd774YMQnRCw4Wyof+AC1rRCN8AQAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkIotThingStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-2"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

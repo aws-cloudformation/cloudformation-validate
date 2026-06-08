@@ -1,0 +1,615 @@
+{
+ "Resources": {
+  "TableCD117FA1": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "id",
+      "AttributeType": "S"
+     }
+    ],
+    "KeySchema": [
+     {
+      "AttributeName": "id",
+      "KeyType": "HASH"
+     }
+    ],
+    "ProvisionedThroughput": {
+     "ReadCapacityUnits": 10,
+     "WriteCapacityUnits": 5
+    }
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/Table/Resource"
+   }
+  },
+  "UrlShortenerFunctionServiceRole2FBF9CDA": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerFunction/ServiceRole/Resource"
+   }
+  },
+  "UrlShortenerFunctionServiceRoleDefaultPolicy7208731A": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:Query",
+        "dynamodb:GetItem",
+        "dynamodb:Scan",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "TableCD117FA1",
+          "Arn"
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "TableCD117FA1",
+          "Arn"
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "UrlShortenerFunctionServiceRoleDefaultPolicy7208731A",
+    "Roles": [
+     {
+      "Ref": "UrlShortenerFunctionServiceRole2FBF9CDA"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerFunction/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "UrlShortenerFunctionB5E87AC1": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": "cdk-hnb659fds-assets-111111111111-us-east-1",
+     "S3Key": "fa3898effd8fd9a0fae677f79cee26aba1dc4894e8e29c1e3166be83d2284883.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "TABLE_NAME": {
+       "Ref": "TableCD117FA1"
+      }
+     }
+    },
+    "Handler": "handler.main",
+    "Role": {
+     "Fn::GetAtt": [
+      "UrlShortenerFunctionServiceRole2FBF9CDA",
+      "Arn"
+     ]
+    },
+    "Runtime": "python3.7",
+    "Timeout": 300
+   },
+   "DependsOn": [
+    "UrlShortenerFunctionServiceRoleDefaultPolicy7208731A",
+    "UrlShortenerFunctionServiceRole2FBF9CDA"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerFunction/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/python/url-shortener/lambda",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "UrlShortenerApi1FE619BE": {
+   "Type": "AWS::ApiGateway::RestApi",
+   "Properties": {
+    "Name": "UrlShortenerApi"
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Resource"
+   }
+  },
+  "UrlShortenerApiCloudWatchRole28577D98": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "apigateway.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+       ]
+      ]
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/CloudWatchRole/Resource"
+   }
+  },
+  "UrlShortenerApiAccountCF600268": {
+   "Type": "AWS::ApiGateway::Account",
+   "Properties": {
+    "CloudWatchRoleArn": {
+     "Fn::GetAtt": [
+      "UrlShortenerApiCloudWatchRole28577D98",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "UrlShortenerApi1FE619BE"
+   ],
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Account"
+   }
+  },
+  "UrlShortenerApiDeployment97FF782966d8a7a27285a49d048d420aab9f3106": {
+   "Type": "AWS::ApiGateway::Deployment",
+   "Properties": {
+    "Description": "Automatically created by the RestApi construct",
+    "RestApiId": {
+     "Ref": "UrlShortenerApi1FE619BE"
+    }
+   },
+   "DependsOn": [
+    "UrlShortenerApiproxyANY05B511A9",
+    "UrlShortenerApiproxy991A3B5C",
+    "UrlShortenerApiANY5994BD69"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Deployment/Resource",
+    "aws:cdk:do-not-refactor": true
+   }
+  },
+  "UrlShortenerApiDeploymentStageprod9A3CCA44": {
+   "Type": "AWS::ApiGateway::Stage",
+   "Properties": {
+    "DeploymentId": {
+     "Ref": "UrlShortenerApiDeployment97FF782966d8a7a27285a49d048d420aab9f3106"
+    },
+    "RestApiId": {
+     "Ref": "UrlShortenerApi1FE619BE"
+    },
+    "StageName": "prod"
+   },
+   "DependsOn": [
+    "UrlShortenerApiAccountCF600268"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/DeploymentStage.prod/Resource"
+   }
+  },
+  "UrlShortenerApiproxy991A3B5C": {
+   "Type": "AWS::ApiGateway::Resource",
+   "Properties": {
+    "ParentId": {
+     "Fn::GetAtt": [
+      "UrlShortenerApi1FE619BE",
+      "RootResourceId"
+     ]
+    },
+    "PathPart": "{proxy+}",
+    "RestApiId": {
+     "Ref": "UrlShortenerApi1FE619BE"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Default/{proxy+}/Resource"
+   }
+  },
+  "UrlShortenerApiproxyANYApiPermissionurlshortappUrlShortenerApiB1BAB0CDANYproxy8ED41C08": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "UrlShortenerFunctionB5E87AC1",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":execute-api:us-east-1:111111111111:",
+       {
+        "Ref": "UrlShortenerApi1FE619BE"
+       },
+       "/",
+       {
+        "Ref": "UrlShortenerApiDeploymentStageprod9A3CCA44"
+       },
+       "/*/*"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Default/{proxy+}/ANY/ApiPermission.urlshortappUrlShortenerApiB1BAB0CD.ANY..{proxy+}"
+   }
+  },
+  "UrlShortenerApiproxyANYApiPermissionTesturlshortappUrlShortenerApiB1BAB0CDANYproxy1B61094D": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "UrlShortenerFunctionB5E87AC1",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":execute-api:us-east-1:111111111111:",
+       {
+        "Ref": "UrlShortenerApi1FE619BE"
+       },
+       "/test-invoke-stage/*/*"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Default/{proxy+}/ANY/ApiPermission.Test.urlshortappUrlShortenerApiB1BAB0CD.ANY..{proxy+}"
+   }
+  },
+  "UrlShortenerApiproxyANY05B511A9": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "AuthorizationType": "NONE",
+    "HttpMethod": "ANY",
+    "Integration": {
+     "IntegrationHttpMethod": "POST",
+     "Type": "AWS_PROXY",
+     "Uri": {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":apigateway:us-east-1:lambda:path/2015-03-31/functions/",
+        {
+         "Fn::GetAtt": [
+          "UrlShortenerFunctionB5E87AC1",
+          "Arn"
+         ]
+        },
+        "/invocations"
+       ]
+      ]
+     }
+    },
+    "ResourceId": {
+     "Ref": "UrlShortenerApiproxy991A3B5C"
+    },
+    "RestApiId": {
+     "Ref": "UrlShortenerApi1FE619BE"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Default/{proxy+}/ANY/Resource"
+   }
+  },
+  "UrlShortenerApiANYApiPermissionurlshortappUrlShortenerApiB1BAB0CDANYB5D53F00": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "UrlShortenerFunctionB5E87AC1",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":execute-api:us-east-1:111111111111:",
+       {
+        "Ref": "UrlShortenerApi1FE619BE"
+       },
+       "/",
+       {
+        "Ref": "UrlShortenerApiDeploymentStageprod9A3CCA44"
+       },
+       "/*/"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Default/ANY/ApiPermission.urlshortappUrlShortenerApiB1BAB0CD.ANY.."
+   }
+  },
+  "UrlShortenerApiANYApiPermissionTesturlshortappUrlShortenerApiB1BAB0CDANYD47A7EFF": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "UrlShortenerFunctionB5E87AC1",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":execute-api:us-east-1:111111111111:",
+       {
+        "Ref": "UrlShortenerApi1FE619BE"
+       },
+       "/test-invoke-stage/*/"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Default/ANY/ApiPermission.Test.urlshortappUrlShortenerApiB1BAB0CD.ANY.."
+   }
+  },
+  "UrlShortenerApiANY5994BD69": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "AuthorizationType": "NONE",
+    "HttpMethod": "ANY",
+    "Integration": {
+     "IntegrationHttpMethod": "POST",
+     "Type": "AWS_PROXY",
+     "Uri": {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":apigateway:us-east-1:lambda:path/2015-03-31/functions/",
+        {
+         "Fn::GetAtt": [
+          "UrlShortenerFunctionB5E87AC1",
+          "Arn"
+         ]
+        },
+        "/invocations"
+       ]
+      ]
+     }
+    },
+    "ResourceId": {
+     "Fn::GetAtt": [
+      "UrlShortenerApi1FE619BE",
+      "RootResourceId"
+     ]
+    },
+    "RestApiId": {
+     "Ref": "UrlShortenerApi1FE619BE"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Default/ANY/Resource"
+   }
+  },
+  "UrlShortenerApiDomain85D0CE65": {
+   "Type": "AWS::ApiGateway::DomainName",
+   "Properties": {
+    "DomainName": "go.yourdomain.com",
+    "EndpointConfiguration": {
+     "Types": [
+      "REGIONAL"
+     ]
+    },
+    "RegionalCertificateArn": "arn:aws:acm:us-east-1:111111111111:certificate/11111111-1111-1111-1111-111111111111"
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Domain/Resource"
+   }
+  },
+  "UrlShortenerApiDomainMapurlshortappUrlShortenerApiB1BAB0CD7C6BCC1C": {
+   "Type": "AWS::ApiGateway::BasePathMapping",
+   "Properties": {
+    "DomainName": {
+     "Ref": "UrlShortenerApiDomain85D0CE65"
+    },
+    "RestApiId": {
+     "Ref": "UrlShortenerApi1FE619BE"
+    },
+    "Stage": {
+     "Ref": "UrlShortenerApiDeploymentStageprod9A3CCA44"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerApi/Domain/Map:--=>urlshortappUrlShortenerApiB1BAB0CD/Resource"
+   }
+  },
+  "UrlShortenerDomain9F16453F": {
+   "Type": "AWS::Route53::RecordSet",
+   "Properties": {
+    "AliasTarget": {
+     "DNSName": {
+      "Fn::GetAtt": [
+       "UrlShortenerApiDomain85D0CE65",
+       "RegionalDomainName"
+      ]
+     },
+     "HostedZoneId": {
+      "Fn::GetAtt": [
+       "UrlShortenerApiDomain85D0CE65",
+       "RegionalHostedZoneId"
+      ]
+     }
+    },
+    "HostedZoneId": "Z11FE11Z11DV1",
+    "Name": "go.yourdomain.com.",
+    "Type": "A"
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/UrlShortenerDomain/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/12Q3W7CMAyFn4X7kAEVD1CGdgVbVXaP3NSjGU1cNY5YFeXdp6RsQ7vy55+cY2cjN9u1XC3g5paqvS573chwYlBXUaMjPyoUcHPn0E4WDLWNDO/Q9CieP2yGKHowTQsyvHirWJNNrUeucDTaOU02Cg1Ghprm9zlW1Gs15blMUbjiDM4hO1mmIFwhd15dkXfgUMCgL8B4g0mGQ3au0XE56Kz4h6VS5C2LPQ49TQYtp+pDdmK45DVm+Lk2m1QjfU2/98/CMx+RO2pT6U57MqDtK5g895AloQq4O8IwaHtJ3X+lKEbyjNtChrJGRWM7WyU6Icco8gek/e4Cb54Hz1FUE3dknwq53sj1avHptF6O3rI2KOs5fgO8Yyi92QEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "urlshort-app/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "UrlShortenerApiEndpoint23405F0E": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "UrlShortenerApi1FE619BE"
+      },
+      ".execute-api.us-east-1.",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "UrlShortenerApiDeploymentStageprod9A3CCA44"
+      },
+      "/"
+     ]
+    ]
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

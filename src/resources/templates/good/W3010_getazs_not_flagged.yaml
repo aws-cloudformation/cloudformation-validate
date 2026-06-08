@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# Fn::GetAZs should NOT trigger W3010 (matches cfn-lint semantics: intrinsic values
+# are not hardcoded).
+Resources:
+  Elb:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      AvailabilityZones: !GetAZs ""
+      Listeners:
+        - InstancePort: "80"
+          LoadBalancerPort: "80"
+          Protocol: HTTP
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: vpc-0abcd1234ef567890
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]

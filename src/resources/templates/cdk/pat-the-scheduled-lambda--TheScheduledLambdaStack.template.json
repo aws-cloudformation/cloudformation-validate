@@ -1,0 +1,411 @@
+{
+  "Resources": {
+    "RequestTableC81DB378": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "KeySchema": [
+          {
+            "AttributeName": "requestid",
+            "KeyType": "HASH"
+          }
+        ],
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "requestid",
+            "AttributeType": "S"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": 5,
+          "WriteCapacityUnits": 5
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "TheScheduledLambdaStack/RequestTable/Resource"
+      }
+    },
+    "scheduledLambdaServiceRoleB98DFEFD": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheScheduledLambdaStack/scheduledLambda/ServiceRole/Resource"
+      }
+    },
+    "scheduledLambdaServiceRoleDefaultPolicyDE6B5E9F": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RequestTableC81DB378",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "scheduledLambdaServiceRoleDefaultPolicyDE6B5E9F",
+        "Roles": [
+          {
+            "Ref": "scheduledLambdaServiceRoleB98DFEFD"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheScheduledLambdaStack/scheduledLambda/ServiceRole/DefaultPolicy/Resource"
+      }
+    },
+    "scheduledLambda8A84450D": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "AssetParametersfccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6aS3Bucket9A37E6F5"
+          },
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Fn::Split": [
+                        "||",
+                        {
+                          "Ref": "AssetParametersfccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6aS3VersionKeyB28DB75F"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Fn::Split": [
+                        "||",
+                        {
+                          "Ref": "AssetParametersfccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6aS3VersionKeyB28DB75F"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "scheduledLambdaServiceRoleB98DFEFD",
+            "Arn"
+          ]
+        },
+        "Environment": {
+          "Variables": {
+            "TABLE_NAME": {
+              "Ref": "RequestTableC81DB378"
+            }
+          }
+        },
+        "Handler": "index.handler",
+        "Runtime": "nodejs12.x"
+      },
+      "DependsOn": [
+        "scheduledLambdaServiceRoleDefaultPolicyDE6B5E9F",
+        "scheduledLambdaServiceRoleB98DFEFD"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "TheScheduledLambdaStack/scheduledLambda/Resource",
+        "aws:asset:path": "/tmp/serverless/the-scheduled-lambda/typescript/lambda-fns",
+        "aws:asset:property": "Code"
+      }
+    },
+    "scheduledLambdaschedule99960653": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "rate(2 minutes)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "scheduledLambda8A84450D",
+                "Arn"
+              ]
+            },
+            "Id": "Target0"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheScheduledLambdaStack/scheduledLambda-schedule/Resource"
+      }
+    },
+    "scheduledLambdascheduleAllowEventRuleTheScheduledLambdaStackscheduledLambdaschedule2517ED8826359872": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "scheduledLambda8A84450D",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "scheduledLambdaschedule99960653",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheScheduledLambdaStack/scheduledLambda-schedule/AllowEventRuleTheScheduledLambdaStackscheduledLambdaschedule2517ED88"
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Modules": "aws-cdk=1.83.0,@aws-cdk/assets=1.83.0,@aws-cdk/aws-applicationautoscaling=1.83.0,@aws-cdk/aws-autoscaling=1.83.0,@aws-cdk/aws-autoscaling-common=1.83.0,@aws-cdk/aws-autoscaling-hooktargets=1.83.0,@aws-cdk/aws-cloudwatch=1.83.0,@aws-cdk/aws-codeguruprofiler=1.83.0,@aws-cdk/aws-dynamodb=1.83.0,@aws-cdk/aws-ec2=1.83.0,@aws-cdk/aws-ecr=1.83.0,@aws-cdk/aws-ecr-assets=1.83.0,@aws-cdk/aws-ecs=1.83.0,@aws-cdk/aws-elasticloadbalancingv2=1.83.0,@aws-cdk/aws-events=1.83.0,@aws-cdk/aws-events-targets=1.83.0,@aws-cdk/aws-iam=1.83.0,@aws-cdk/aws-kms=1.83.0,@aws-cdk/aws-lambda=1.83.0,@aws-cdk/aws-logs=1.83.0,@aws-cdk/aws-s3=1.83.0,@aws-cdk/aws-s3-assets=1.83.0,@aws-cdk/aws-servicediscovery=1.83.0,@aws-cdk/aws-sns=1.83.0,@aws-cdk/aws-sns-subscriptions=1.83.0,@aws-cdk/aws-sqs=1.83.0,@aws-cdk/aws-ssm=1.83.0,@aws-cdk/cloud-assembly-schema=1.83.0,@aws-cdk/core=1.83.0,@aws-cdk/custom-resources=1.83.0,@aws-cdk/cx-api=1.83.0,@aws-cdk/region-info=1.83.0,jsii-runtime=node.js/v22.22.2"
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheScheduledLambdaStack/CDKMetadata/Default"
+      },
+      "Condition": "CDKMetadataAvailable"
+    }
+  },
+  "Parameters": {
+    "AssetParametersfccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6aS3Bucket9A37E6F5": {
+      "Type": "String",
+      "Description": "S3 bucket for asset \"fccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6a\""
+    },
+    "AssetParametersfccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6aS3VersionKeyB28DB75F": {
+      "Type": "String",
+      "Description": "S3 key for asset version \"fccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6a\""
+    },
+    "AssetParametersfccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6aArtifactHash79DE4220": {
+      "Type": "String",
+      "Description": "Artifact hash for asset \"fccd72c2ce1888b6c8217fce01f0e35905d3c065025a088dfaf338bfa934ab6a\""
+    }
+  },
+  "Conditions": {
+    "CDKMetadataAvailable": {
+      "Fn::Or": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ca-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-northwest-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-central-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-3"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "sa-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-2"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# W3010 parity exercise: AZ literal on a resource type NOT in the rego allowlist
+# (DocDB). Previously CEL fired (any prop containing "AvailabilityZone") and rego
+# didn't. Post-fix, neither engine fires.
+Resources:
+  Cluster:
+    Type: AWS::DocDB::DBCluster
+    Properties:
+      DBClusterIdentifier: test
+      MasterUsername: admin
+      MasterUserPassword: placeholder
+      AvailabilityZones:
+        - us-east-1a
+        - us-east-1b

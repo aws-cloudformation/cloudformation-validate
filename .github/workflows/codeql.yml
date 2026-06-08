@@ -1,0 +1,94 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '24 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  get-configs:
+    uses: ./.github/workflows/configs.yml
+
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: rust
+            build-mode: none
+          - language: java-kotlin
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+          - language: actions
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup JVM toolchain
+        if: matrix.language == 'java-kotlin'
+        uses: ./.github/actions/setup-jvm-toolchain
+        with:
+          java-version: ${{ needs.get-configs.outputs.java-version }}
+          java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
+          kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
+          ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Compile Kotlin bindings for CodeQL extraction
+        if: matrix.language == 'java-kotlin'
+        shell: bash
+        env:
+          JNA_VERSION: ${{ needs.get-configs.outputs.jna-version }}
+          GSON_VERSION: ${{ needs.get-configs.outputs.gson-version }}
+        run: |
+          set -euo pipefail
+          JAR="$GITHUB_WORKSPACE/src/bindings-jvm/generated/cloudformation-validate.jar"
+          LIBS="$RUNNER_TEMP/jvm-libs"
+          SRC="$RUNNER_TEMP/jvm-src"
+          mkdir -p "$LIBS" "$SRC"
+
+          echo "Extracting Kotlin sources from $(basename "$JAR")..."
+          unzip -q -o "$JAR" '*.kt' -d "$SRC"
+
+          echo "Fetching compile-time dependencies (JNA ${JNA_VERSION}, Gson ${GSON_VERSION})..."
+          curl -sfL "https://repo1.maven.org/maven2/net/java/dev/jna/jna/${JNA_VERSION}/jna-${JNA_VERSION}.jar" -o "$LIBS/jna.jar"
+          curl -sfL "https://repo1.maven.org/maven2/com/google/code/gson/gson/${GSON_VERSION}/gson-${GSON_VERSION}.jar" -o "$LIBS/gson.jar"
+
+          echo "Compiling Kotlin sources under the CodeQL tracer..."
+          find "$SRC" -name '*.kt' -type f -print0 \
+            | xargs -0 kotlinc -classpath "$LIBS/jna.jar:$LIBS/gson.jar" -d "$RUNNER_TEMP/jvm-classes" -nowarn
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

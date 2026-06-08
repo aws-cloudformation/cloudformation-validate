@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env:
+    Type: String
+    AllowedValues:
+      - Prod
+      - Dev
+      - Staging
+Conditions:
+  IsProd:
+    Fn::Equals: [!Ref Env, Prod]
+  IsDev:
+    Fn::Equals: [!Ref Env, Dev]
+  IsStaging:
+    Fn::Equals: [!Ref Env, Staging]
+  IsProdOrStaging:
+    Fn::Or:
+      - !Condition IsProd
+      - !Condition IsStaging
+  IsNotProd:
+    Fn::Not: [!Condition IsProd]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [IsProd, prod-bucket, dev-bucket]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  Database:
+    Condition: IsProdOrStaging
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !If [IsProd, db.r5.large, db.t3.micro]
+      Engine: mysql
+      MasterUsername: admin
+      MasterUserPassword: secret
+      StorageEncrypted: true
+      AllocatedStorage: !If [IsProd, "100", "20"]
+      BackupRetentionPeriod: 7
+  DevBucket:
+    Condition: IsDev
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dev-only-bucket
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
