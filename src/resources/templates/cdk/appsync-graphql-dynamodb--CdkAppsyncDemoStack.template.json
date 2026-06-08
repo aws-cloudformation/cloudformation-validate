@@ -1,0 +1,475 @@
+{
+ "Resources": {
+  "CarTableA597893A": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "licenseplate",
+      "AttributeType": "S"
+     }
+    ],
+    "KeySchema": [
+     {
+      "AttributeName": "licenseplate",
+      "KeyType": "HASH"
+     }
+    ],
+    "ProvisionedThroughput": {
+     "ReadCapacityUnits": 2,
+     "WriteCapacityUnits": 4
+    },
+    "TableName": "cardata-cars"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarTable/Resource"
+   }
+  },
+  "DefectsTable2A57950B": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "id",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "licenseplate",
+      "AttributeType": "S"
+     }
+    ],
+    "GlobalSecondaryIndexes": [
+     {
+      "IndexName": "defect-by-licenseplate",
+      "KeySchema": [
+       {
+        "AttributeName": "licenseplate",
+        "KeyType": "HASH"
+       }
+      ],
+      "Projection": {
+       "ProjectionType": "ALL"
+      },
+      "ProvisionedThroughput": {
+       "ReadCapacityUnits": 2,
+       "WriteCapacityUnits": 4
+      }
+     }
+    ],
+    "KeySchema": [
+     {
+      "AttributeName": "id",
+      "KeyType": "HASH"
+     }
+    ],
+    "ProvisionedThroughput": {
+     "ReadCapacityUnits": 2,
+     "WriteCapacityUnits": 4
+    },
+    "TableName": "cardata-defects"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/DefectsTable/Resource"
+   }
+  },
+  "CarApiE5E7ACF5": {
+   "Type": "AWS::AppSync::GraphQLApi",
+   "Properties": {
+    "AuthenticationType": "AWS_IAM",
+    "Name": "carAPI",
+    "XrayEnabled": true
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/Resource"
+   }
+  },
+  "CarApiSchema8E4784D9": {
+   "Type": "AWS::AppSync::GraphQLSchema",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "CarApiE5E7ACF5",
+      "ApiId"
+     ]
+    },
+    "Definition": "type Car {\n\tlicenseplate: String!\n\tbrand: String!\n\ttradename: String\n\texpirydateapk: String\n\tfirstcolor: String!\n\tcylindercount: String\n\tcylindervolume: String\n\tfirstregistrationdate: String\n\tcatalogprice: String\n\tlength: String\n\twidth: String\n\tdefects: [Defect]\n}\n\ntype Defect {\n\tlicenseplate: String!\n\tdefectstartdate: String\n\tdefectdescription: String\n}\n\ntype Query {\n\tgetCar(licenseplate: String!): Car\n}\n\nschema {\n\tquery: Query\n}"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/Schema"
+   }
+  },
+  "CarApiCarsDataSourceServiceRole82F3FC8A": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/CarsDataSource/ServiceRole/Resource"
+   }
+  },
+  "CarApiCarsDataSourceServiceRoleDefaultPolicy007C80E8": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "CarTableA597893A",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "CarApiCarsDataSourceServiceRoleDefaultPolicy007C80E8",
+    "Roles": [
+     {
+      "Ref": "CarApiCarsDataSourceServiceRole82F3FC8A"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/CarsDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "CarApiCarsDataSourceD8C35DA8": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "CarApiE5E7ACF5",
+      "ApiId"
+     ]
+    },
+    "DynamoDBConfig": {
+     "AwsRegion": "eu-central-1",
+     "TableName": {
+      "Ref": "CarTableA597893A"
+     }
+    },
+    "Name": "CarsDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "CarApiCarsDataSourceServiceRole82F3FC8A",
+      "Arn"
+     ]
+    },
+    "Type": "AMAZON_DYNAMODB"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/CarsDataSource/Resource"
+   }
+  },
+  "CarApiDefectsDataSourceServiceRole7EDF6907": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/DefectsDataSource/ServiceRole/Resource"
+   }
+  },
+  "CarApiDefectsDataSourceServiceRoleDefaultPolicy8BFE0912": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "DefectsTable2A57950B",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "DefectsTable2A57950B",
+             "Arn"
+            ]
+           },
+           "/index/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "CarApiDefectsDataSourceServiceRoleDefaultPolicy8BFE0912",
+    "Roles": [
+     {
+      "Ref": "CarApiDefectsDataSourceServiceRole7EDF6907"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/DefectsDataSource/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "CarApiDefectsDataSourceEBF3B13F": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "CarApiE5E7ACF5",
+      "ApiId"
+     ]
+    },
+    "DynamoDBConfig": {
+     "AwsRegion": "eu-central-1",
+     "TableName": {
+      "Ref": "DefectsTable2A57950B"
+     }
+    },
+    "Name": "DefectsDataSource",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "CarApiDefectsDataSourceServiceRole7EDF6907",
+      "Arn"
+     ]
+    },
+    "Type": "AMAZON_DYNAMODB"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarApi/DefectsDataSource/Resource"
+   }
+  },
+  "CarsFunction7C2F2ED2": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "CarApiE5E7ACF5",
+      "ApiId"
+     ]
+    },
+    "CodeS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-eu-central-1/7acffb5c75d0916e729cf2dc9f07dd24e84dcb9863a34a62bd51b4069d803131.js"
+    },
+    "DataSourceName": "CarsDataSource",
+    "FunctionVersion": "2018-05-29",
+    "Name": "getCars",
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    }
+   },
+   "DependsOn": [
+    "CarApiCarsDataSourceD8C35DA8",
+    "CarApiSchema8E4784D9"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CarsFunction/Resource"
+   }
+  },
+  "DefectsFunction929174B7": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "CarApiE5E7ACF5",
+      "ApiId"
+     ]
+    },
+    "CodeS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-eu-central-1/bd7bf7492c66354d384e36ea4ede2f3b70b5522164c959319ddd9c8ed35ce2ea.js"
+    },
+    "DataSourceName": "DefectsDataSource",
+    "FunctionVersion": "2018-05-29",
+    "Name": "getDefects",
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    }
+   },
+   "DependsOn": [
+    "CarApiDefectsDataSourceEBF3B13F",
+    "CarApiSchema8E4784D9"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/DefectsFunction/Resource"
+   }
+  },
+  "PipelineResolverGetCars2DDF5816": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "CarApiE5E7ACF5",
+      "ApiId"
+     ]
+    },
+    "CodeS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-eu-central-1/aa2af7755cd060d6b7deaa2de00589d1dcf6d8b064c9beace04b2527d7c3ba26.js"
+    },
+    "FieldName": "getCar",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "CarsFunction7C2F2ED2",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    },
+    "TypeName": "Query"
+   },
+   "DependsOn": [
+    "CarApiSchema8E4784D9"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/PipelineResolverGetCars/Resource"
+   }
+  },
+  "PipelineResolverGetDefects032EF131": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "CarApiE5E7ACF5",
+      "ApiId"
+     ]
+    },
+    "CodeS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-eu-central-1/aa2af7755cd060d6b7deaa2de00589d1dcf6d8b064c9beace04b2527d7c3ba26.js"
+    },
+    "FieldName": "defects",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "DefectsFunction929174B7",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    },
+    "TypeName": "Car"
+   },
+   "DependsOn": [
+    "CarApiSchema8E4784D9"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/PipelineResolverGetDefects/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WOwWrDMBBEvyV3eVucHnp1YtpLD63de1jLiqNYllytlGCE/r1IItDCwswwy2NqqF9e4XmHd6r4OFdKDhB6h3xmeKdTGDeNixkHCN84KMGOZ51NZLiutGkO4d3ievlRzSpTm9PXx//U84tYkLUZ1g4tOuyNtzzz/qSmMN+85k4andqHPxp9lpO3mItOkFE3YdPHw0cmcYHQmTIz66dRkm8pFhcZ7U9IJBxBk4TRHg6ez8IdkETM4DIltb3DSeopMm1GAVd6utU1pNtdScrKeu3kIqAr+gv/Bz8uTAEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "CdkAppsyncDemoStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# E3060 parity exercise: 3+ priors where lex-sort of CIDR differs from template order.
+# SubnetD overlaps with both SubnetA (10.0.0.0/8) and SubnetB (10.0.0.0/16).
+# Template order picks SubnetA (earlier). Lexicographic on CIDR would pick "10.0.0.0/16"
+# (SubnetB) because "/16" < "/8" by string compare. This template ensures rego and cel
+# attribute the overlap to the same source subnet.
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/8"
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.0.0/8"
+      AvailabilityZone: us-east-1a
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.0.0/16"
+      AvailabilityZone: us-east-1b
+  SubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "172.16.0.0/16"
+      AvailabilityZone: us-east-1c
+  SubnetD:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: "10.0.1.0/24"
+      AvailabilityZone: us-east-1d

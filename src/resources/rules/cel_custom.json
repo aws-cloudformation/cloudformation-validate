@@ -1,0 +1,7 @@
+{"rules": [{
+    "rule_id": "CUSTOM001",
+    "severity": "ERROR",
+    "resource_type": "AWS::S3::Bucket",
+    "expression": "!has(properties.BucketEncryption)",
+    "message": "S3 bucket must have encryption configured"
+}]}

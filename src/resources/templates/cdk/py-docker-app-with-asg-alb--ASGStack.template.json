@@ -1,0 +1,635 @@
+{
+ "Resources": {
+  "appasgInstanceSecurityGroup8B8185FA": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "ASGStack/app-asg/InstanceSecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ASGStack/app-asg"
+     }
+    ],
+    "VpcId": {
+     "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/app-asg/InstanceSecurityGroup/Resource"
+   }
+  },
+  "appasgInstanceSecurityGroupfromASGStacksgalb85F2758980805783DB9D": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Load balancer to target",
+    "FromPort": 8080,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "appasgInstanceSecurityGroup8B8185FA",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "sgalbE4BDB11E",
+      "GroupId"
+     ]
+    },
+    "ToPort": 8080
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/app-asg/InstanceSecurityGroup/from ASGStacksgalb85F27589:8080"
+   }
+  },
+  "appasgInstanceRole38B934E7": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "ASGStack/app-asg"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/app-asg/InstanceRole/Resource"
+   }
+  },
+  "appasgInstanceProfile55323240": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "appasgInstanceRole38B934E7"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/app-asg/InstanceProfile"
+   }
+  },
+  "appasgLaunchConfig9EFFB3A3": {
+   "Type": "AWS::AutoScaling::LaunchConfiguration",
+   "Properties": {
+    "IamInstanceProfile": {
+     "Ref": "appasgInstanceProfile55323240"
+    },
+    "ImageId": {
+     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amihvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    "InstanceType": "r5.xlarge",
+    "KeyName": "evan",
+    "SecurityGroups": [
+     {
+      "Fn::GetAtt": [
+       "appasgInstanceSecurityGroup8B8185FA",
+       "GroupId"
+      ]
+     },
+     {
+      "Fn::GetAtt": [
+       "sgnextcloud40AB2A88",
+       "GroupId"
+      ]
+     }
+    ],
+    "UserData": {
+     "Fn::Base64": "#!/bin/bash\n#!/bin/sh\n\nyum install docker -y\nyum install -y amazon-efs-utils\n\n# makes a directory\nmkdir /nextclouddata\nmount -t efs fs-d48c7f8c:/ /nextclouddata\n\n\n# enable and start docker\nsystemctl enable docker\nsystemctl start docker\n\n# bootstraps \"docker compose\"\ncurl -L \"https://github.com/docker/compose/releases/download/1.25.0/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose\nchmod +x /usr/local/bin/docker-compose\nln -s /usr/local/bin/docker-compose /usr/bin/docker-compose\nusermod -aG docker ec2-user\n\n# Gets local-persist\ncurl -fsSL https://raw.githubusercontent.com/CWSpear/local-persist/master/scripts/install.sh | bash\ndocker volume create -d local-persist -o mountpoint=/nextclouddata/nextcloud-data --name=nextcloud-data\n\n# Heredoc for a docker-compose.yaml file\ncat << 'EOF' > /home/ec2-user/docker-compose.yaml\nversion: '2'\n\nvolumes:\n  nextcloud-data:\n    external: true\n\nservices:\n  app:\n    image: nextcloud\n    ports:\n      - 8080:80\n    volumes:\n      - nextcloud-data:/var/www/html\n    restart: always\n    environment:\n      - MYSQL_DATABASE=nextcloud\n      - MYSQL_USER=test\n      - MYSQL_PASSWORD=c5nk_iU[sCoF[2ENQT4;,{*R1%.Ngp\n      - MYSQL_HOST=rr1wr5o5m6h29hu.cdtowjdbuoax.eu-central-1.rds.amazonaws.com\nEOF\n\ndocker-compose -f /home/ec2-user/docker-compose.yaml up\n"
+    }
+   },
+   "DependsOn": [
+    "appasgInstanceRole38B934E7"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/app-asg/LaunchConfig"
+   }
+  },
+  "appasgASGE5B53758": {
+   "Type": "AWS::AutoScaling::AutoScalingGroup",
+   "Properties": {
+    "LaunchConfigurationName": {
+     "Ref": "appasgLaunchConfig9EFFB3A3"
+    },
+    "MaxSize": "1",
+    "MinSize": "1",
+    "Tags": [
+     {
+      "Key": "Name",
+      "PropagateAtLaunch": true,
+      "Value": "ASGStack/app-asg"
+     }
+    ],
+    "TargetGroupARNs": [
+     {
+      "Ref": "ALBListenerTargetGroupD5D64FBA"
+     }
+    ],
+    "VPCZoneIdentifier": [
+     {
+      "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPCPrivateSubnet1Subnet571D3690DE70C1D7"
+     },
+     {
+      "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPCPrivateSubnet2SubnetCC3D70134737B280"
+     }
+    ]
+   },
+   "UpdatePolicy": {
+    "AutoScalingScheduledAction": {
+     "IgnoreUnmodifiedGroupSizeProperties": true
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/app-asg/ASG"
+   }
+  },
+  "sgnextcloud40AB2A88": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "ASGStack/sg_nextcloud",
+    "GroupName": "sg_nextcloud",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "151.66.226.30/32",
+      "Description": "from 151.66.226.30/32:22",
+      "FromPort": 22,
+      "IpProtocol": "tcp",
+      "ToPort": 22
+     }
+    ],
+    "VpcId": {
+     "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/sg_nextcloud/Resource"
+   }
+  },
+  "sgnextcloudfromASGStacksgalb85F275898080011A1DCA": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Ingress",
+    "FromPort": 8080,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "sgnextcloud40AB2A88",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "sgalbE4BDB11E",
+      "GroupId"
+     ]
+    },
+    "ToPort": 8080
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/sg_nextcloud/from ASGStacksgalb85F27589:8080"
+   }
+  },
+  "sgalbE4BDB11E": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "ASGStack/sg_alb",
+    "GroupName": "sg_alb",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow from anyone on port 80",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     }
+    ],
+    "VpcId": {
+     "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/sg_alb/Resource"
+   }
+  },
+  "ALBAEE750D2": {
+   "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+   "Properties": {
+    "LoadBalancerAttributes": [
+     {
+      "Key": "deletion_protection.enabled",
+      "Value": "false"
+     }
+    ],
+    "Scheme": "internet-facing",
+    "SecurityGroups": [
+     {
+      "Fn::GetAtt": [
+       "sgalbE4BDB11E",
+       "GroupId"
+      ]
+     }
+    ],
+    "Subnets": [
+     {
+      "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPCPublicSubnet1Subnet770D4FF2E936B669"
+     },
+     {
+      "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPCPublicSubnet2Subnet73F96DA9C642C081"
+     }
+    ],
+    "Type": "application"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/ALB/Resource"
+   }
+  },
+  "ALBListener3B99FF85": {
+   "Type": "AWS::ElasticLoadBalancingV2::Listener",
+   "Properties": {
+    "DefaultActions": [
+     {
+      "TargetGroupArn": {
+       "Ref": "ALBListenerTargetGroupD5D64FBA"
+      },
+      "Type": "forward"
+     }
+    ],
+    "LoadBalancerArn": {
+     "Ref": "ALBAEE750D2"
+    },
+    "Port": 80,
+    "Protocol": "HTTP"
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/ALB/Listener/Resource"
+   }
+  },
+  "ALBListenerTargetGroupD5D64FBA": {
+   "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+   "Properties": {
+    "Port": 8080,
+    "Protocol": "HTTP",
+    "TargetGroupAttributes": [
+     {
+      "Key": "stickiness.enabled",
+      "Value": "false"
+     }
+    ],
+    "TargetType": "instance",
+    "VpcId": {
+     "Fn::ImportValue": "NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/ALB/Listener/TargetGroup/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/32OwW7CMBBEv4W740JQP4ByqJA4REnv1eJswhZnHdnrImT536uEgqIeepqdmbfSlLp83ej1Cq6hMO2lsHTSqREwFwXX8JkgigsGLHGv0y6Ka+7m3bs4qn3HR4hsznvHHfXRg5DjKf6LZoWm1KlBEz3J7fn+f3Dg3mMIWREMOtXO4oQ89MBBgA1W3nVkMSu0EISMddCewAIb4v671Gk3jpbMvO3ooH2bO/Tz/KVfchQE+Zd53Iv+A3yP8ly9sDlPQQUeBhT0qsbgojeYVXWTs+OXrd6UerNefQWiwkcWGlDXd/0BLzVaW48BAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "ASGStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Parameters": {
+  "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amihvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

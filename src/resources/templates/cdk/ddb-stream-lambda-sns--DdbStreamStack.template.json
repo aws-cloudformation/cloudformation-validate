@@ -1,0 +1,977 @@
+{
+ "Resources": {
+  "ddbstreamtopic7821AF6E": {
+   "Type": "AWS::SNS::Topic",
+   "Properties": {
+    "DisplayName": "SNS Topic for DDB streams",
+    "KmsMasterKeyId": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":kms:",
+       {
+        "Ref": "AWS::Region"
+       },
+       ":",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":alias/aws/sns"
+      ]
+     ]
+    },
+    "TopicName": "ddb-stream-topic"
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/ddb-stream-topic/Resource"
+   }
+  },
+  "ddbstreamtopicPolicyF344141B": {
+   "Type": "AWS::SNS::TopicPolicy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sns:Publish",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": "*",
+       "Resource": {
+        "Ref": "ddbstreamtopic7821AF6E"
+       },
+       "Sid": "AllowPublishThroughSSLOnly"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Topics": [
+     {
+      "Ref": "ddbstreamtopic7821AF6E"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/ddb-stream-topic/Policy/Resource"
+   }
+  },
+  "ddbstreaml2dlq5966ED66": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "KmsMasterKeyId": "alias/aws/sqs",
+    "MessageRetentionPeriod": 345600,
+    "QueueName": "ddb-stream-l2-dlq"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/ddb-stream-l2-dlq/Resource"
+   }
+  },
+  "itemL2TableBAC64D83": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "id",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "KeySchema": [
+     {
+      "AttributeName": "id",
+      "KeyType": "HASH"
+     }
+    ],
+    "SSESpecification": {
+     "SSEEnabled": true
+    },
+    "StreamSpecification": {
+     "StreamViewType": "NEW_AND_OLD_IMAGES"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL2Table/Resource"
+   }
+  },
+  "itemL2TableLambdaFunctionServiceRole41583A05": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL2TableLambdaFunction/ServiceRole/Resource"
+   }
+  },
+  "itemL2TableLambdaFunctionServiceRoleDefaultPolicy500DC1AA": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:ListStreams",
+        "xray:PutTelemetryRecords",
+        "xray:PutTraceSegments"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:SendMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "ddbstreaml2dlq5966ED66",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "dynamodb:DescribeStream",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "itemL2TableBAC64D83",
+         "StreamArn"
+        ]
+       }
+      },
+      {
+       "Action": "sns:Publish",
+       "Effect": "Allow",
+       "Resource": {
+        "Ref": "ddbstreamtopic7821AF6E"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "itemL2TableLambdaFunctionServiceRoleDefaultPolicy500DC1AA",
+    "Roles": [
+     {
+      "Ref": "itemL2TableLambdaFunctionServiceRole41583A05"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL2TableLambdaFunction/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "itemL2TableLambdaFunction1987B4C5": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "10de9d4d7d81b67ead20a75a5910dd49a384f76ef1da565ea7932bd5f923948b.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "SNS_TOPIC_ARN": {
+       "Ref": "ddbstreamtopic7821AF6E"
+      },
+      "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+     }
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "itemL2TableLambdaFunctionServiceRole41583A05",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs20.x",
+    "TracingConfig": {
+     "Mode": "Active"
+    }
+   },
+   "DependsOn": [
+    "itemL2TableLambdaFunctionServiceRoleDefaultPolicy500DC1AA",
+    "itemL2TableLambdaFunctionServiceRole41583A05"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL2TableLambdaFunction/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/ddb-stream-lambda-sns/resources/lambda",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "itemL2TableLambdaFunctionDynamoDBEventSourceDdbStreamStackitemL2Table0234427734A22B95": {
+   "Type": "AWS::Lambda::EventSourceMapping",
+   "Properties": {
+    "BatchSize": 100,
+    "BisectBatchOnFunctionError": true,
+    "DestinationConfig": {
+     "OnFailure": {
+      "Destination": {
+       "Fn::GetAtt": [
+        "ddbstreaml2dlq5966ED66",
+        "Arn"
+       ]
+      }
+     }
+    },
+    "EventSourceArn": {
+     "Fn::GetAtt": [
+      "itemL2TableBAC64D83",
+      "StreamArn"
+     ]
+    },
+    "FunctionName": {
+     "Ref": "itemL2TableLambdaFunction1987B4C5"
+    },
+    "MaximumRecordAgeInSeconds": 86400,
+    "MaximumRetryAttempts": 500,
+    "StartingPosition": "TRIM_HORIZON"
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL2TableLambdaFunction/DynamoDBEventSource:DdbStreamStackitemL2Table02344277/Resource"
+   }
+  },
+  "itemL3TableLambdaFunctionServiceRoleBA21B37D": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+         ],
+         "Effect": "Allow",
+         "Resource": {
+          "Fn::Join": [
+           "",
+           [
+            "arn:",
+            {
+             "Ref": "AWS::Partition"
+            },
+            ":logs:",
+            {
+             "Ref": "AWS::Region"
+            },
+            ":",
+            {
+             "Ref": "AWS::AccountId"
+            },
+            ":log-group:/aws/lambda/*"
+           ]
+          ]
+         }
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "LambdaFunctionServiceRolePolicy"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL3Table/LambdaFunctionServiceRole/Resource",
+    "guard": {
+     "SuppressedRules": [
+      "IAM_NO_INLINE_POLICY_CHECK"
+     ]
+    }
+   }
+  },
+  "itemL3TableLambdaFunctionServiceRoleDefaultPolicy3297170E": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:ListStreams",
+        "xray:PutTelemetryRecords",
+        "xray:PutTraceSegments"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "dynamodb:DescribeStream",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "itemL3TableDynamoTable6BC36F24",
+         "StreamArn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:SendMessage"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "itemL3TableSqsDlqQueueD3C251B9",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": "sns:Publish",
+       "Effect": "Allow",
+       "Resource": {
+        "Ref": "ddbstreamtopic7821AF6E"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "itemL3TableLambdaFunctionServiceRoleDefaultPolicy3297170E",
+    "Roles": [
+     {
+      "Ref": "itemL3TableLambdaFunctionServiceRoleBA21B37D"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL3Table/LambdaFunctionServiceRole/DefaultPolicy/Resource",
+    "cfn_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "W12",
+       "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray and access ENIs in a VPC."
+      }
+     ]
+    }
+   }
+  },
+  "itemL3TableLambdaFunction7B818C58": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "10de9d4d7d81b67ead20a75a5910dd49a384f76ef1da565ea7932bd5f923948b.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "SNS_TOPIC_ARN": {
+       "Ref": "ddbstreamtopic7821AF6E"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "itemL3TableLambdaFunctionServiceRoleBA21B37D",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs20.x",
+    "TracingConfig": {
+     "Mode": "Active"
+    }
+   },
+   "DependsOn": [
+    "itemL3TableLambdaFunctionServiceRoleDefaultPolicy3297170E",
+    "itemL3TableLambdaFunctionServiceRoleBA21B37D"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL3Table/LambdaFunction/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/ddb-stream-lambda-sns/resources/lambda",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code",
+    "cfn_nag": {
+     "rules_to_suppress": [
+      {
+       "id": "W58",
+       "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with tighter permissions."
+      },
+      {
+       "id": "W89",
+       "reason": "This is not a rule for the general case, just for specific use cases/industries"
+      },
+      {
+       "id": "W92",
+       "reason": "Impossible for us to define the correct concurrency for clients"
+      }
+     ]
+    }
+   }
+  },
+  "itemL3TableLambdaFunctionDynamoDBEventSourceDdbStreamStackitemL3TableDynamoTableF17D6710E0C1078B": {
+   "Type": "AWS::Lambda::EventSourceMapping",
+   "Properties": {
+    "BatchSize": 100,
+    "BisectBatchOnFunctionError": true,
+    "DestinationConfig": {
+     "OnFailure": {
+      "Destination": {
+       "Fn::GetAtt": [
+        "itemL3TableSqsDlqQueueD3C251B9",
+        "Arn"
+       ]
+      }
+     }
+    },
+    "EventSourceArn": {
+     "Fn::GetAtt": [
+      "itemL3TableDynamoTable6BC36F24",
+      "StreamArn"
+     ]
+    },
+    "FunctionName": {
+     "Ref": "itemL3TableLambdaFunction7B818C58"
+    },
+    "MaximumRecordAgeInSeconds": 86400,
+    "MaximumRetryAttempts": 500,
+    "StartingPosition": "TRIM_HORIZON"
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL3Table/LambdaFunction/DynamoDBEventSource:DdbStreamStackitemL3TableDynamoTableF17D6710/Resource"
+   }
+  },
+  "itemL3TableDynamoTable6BC36F24": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "id",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "KeySchema": [
+     {
+      "AttributeName": "id",
+      "KeyType": "HASH"
+     }
+    ],
+    "PointInTimeRecoverySpecification": {
+     "PointInTimeRecoveryEnabled": true
+    },
+    "SSESpecification": {
+     "SSEEnabled": true
+    },
+    "StreamSpecification": {
+     "StreamViewType": "NEW_AND_OLD_IMAGES"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL3Table/DynamoTable/Resource",
+    "guard": {
+     "SuppressedRules": [
+      "DYNAMODB_TABLE_ENCRYPTED_KMS"
+     ]
+    }
+   }
+  },
+  "itemL3TableSqsDlqQueueD3C251B9": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "KmsMasterKeyId": "alias/aws/sqs"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL3Table/SqsDlqQueue/Resource"
+   }
+  },
+  "itemL3TableSqsDlqQueuePolicyD287DD28": {
+   "Type": "AWS::SQS::QueuePolicy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "sqs:AddPermission",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage",
+        "sqs:RemovePermission",
+        "sqs:SendMessage",
+        "sqs:SetQueueAttributes"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":iam::",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":root"
+          ]
+         ]
+        }
+       },
+       "Resource": {
+        "Fn::GetAtt": [
+         "itemL3TableSqsDlqQueueD3C251B9",
+         "Arn"
+        ]
+       },
+       "Sid": "QueueOwnerOnlyAccess"
+      },
+      {
+       "Action": "SQS:*",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": {
+        "AWS": "*"
+       },
+       "Resource": {
+        "Fn::GetAtt": [
+         "itemL3TableSqsDlqQueueD3C251B9",
+         "Arn"
+        ]
+       },
+       "Sid": "HttpsOnly"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Queues": [
+     {
+      "Ref": "itemL3TableSqsDlqQueueD3C251B9"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/itemL3Table/SqsDlqQueue/Policy/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2VQy07DMBD8lt6dbZpy4AihcAIBSe7VxjGVm8QOWbtVZfnfke2SIiFZO7Mzfsy6AFfc3UO+wjNlvOuzQbbgaoO8Z5UgbWcuGJ5p70gRuEZPkrOnL5VIrB96kPyyiKn1jL4J3KcVVgQrkVhv+/+0nnUXhaPuWnANtkM8FIlnA45th+BerOJGahWshT+fhDJ1zPmG0yTVIdj/Vc8kjuAqna6OeEuyhN7ukUgYgscAjLZQWt4LUyIJz6JYGzxcn3m3ZrLGs02+gXz1EP6Q9GBDMMq4VmRmyw2tg/E7H5lZ4EjZdapdlHdlneRGv0bdM6U7AUdan4oCwlodScpstsrIUUCV8AcSgLZWvwEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "DdbStreamStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "itemL2TableLambdaFunctionArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "itemL2TableLambdaFunction1987B4C5",
+     "Arn"
+    ]
+   }
+  },
+  "itemL3TableLambdaFunctionArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "itemL3TableLambdaFunction7B818C58",
+     "Arn"
+    ]
+   }
+  },
+  "l3TableArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "itemL3TableDynamoTable6BC36F24",
+     "Arn"
+    ]
+   }
+  },
+  "l2TableArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "itemL2TableBAC64D83",
+     "Arn"
+    ]
+   }
+  },
+  "topicArn": {
+   "Value": {
+    "Ref": "ddbstreamtopic7821AF6E"
+   }
+  },
+  "l2DLQArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "ddbstreaml2dlq5966ED66",
+     "Arn"
+    ]
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

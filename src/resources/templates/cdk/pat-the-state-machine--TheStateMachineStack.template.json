@@ -1,0 +1,557 @@
+{
+  "Resources": {
+    "pineappleCheckLambdaHandlerServiceRoleFC4E3211": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/pineappleCheckLambdaHandler/ServiceRole/Resource"
+      }
+    },
+    "pineappleCheckLambdaHandlerFDB742D5": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "AssetParameters86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4S3Bucket29345DA7"
+          },
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Fn::Split": [
+                        "||",
+                        {
+                          "Ref": "AssetParameters86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4S3VersionKey13E1CDC6"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Fn::Split": [
+                        "||",
+                        {
+                          "Ref": "AssetParameters86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4S3VersionKey13E1CDC6"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "pineappleCheckLambdaHandlerServiceRoleFC4E3211",
+            "Arn"
+          ]
+        },
+        "Handler": "orderPizza.handler",
+        "Runtime": "nodejs12.x"
+      },
+      "DependsOn": [
+        "pineappleCheckLambdaHandlerServiceRoleFC4E3211"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/pineappleCheckLambdaHandler/Resource",
+        "aws:asset:path": "/tmp/serverless/the-state-machine/typescript/lambda-fns",
+        "aws:asset:property": "Code"
+      }
+    },
+    "StateMachineRoleB840431D": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "states.",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ".amazonaws.com"
+                    ]
+                  ]
+                }
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/StateMachine/Role/Resource"
+      }
+    },
+    "StateMachineRoleDefaultPolicyDF1E6607": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "xray:PutTraceSegments",
+                "xray:PutTelemetryRecords",
+                "xray:GetSamplingRules",
+                "xray:GetSamplingTargets"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "pineappleCheckLambdaHandlerFDB742D5",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "StateMachineRoleDefaultPolicyDF1E6607",
+        "Roles": [
+          {
+            "Ref": "StateMachineRoleB840431D"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/StateMachine/Role/DefaultPolicy/Resource"
+      }
+    },
+    "StateMachine2E01A3A5": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "StateMachineRoleB840431D",
+            "Arn"
+          ]
+        },
+        "DefinitionString": {
+          "Fn::Join": [
+            "",
+            [
+              "{\"StartAt\":\"Order Pizza Job\",\"States\":{\"Order Pizza Job\":{\"Next\":\"With Pineapple?\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"InputPath\":\"$.flavour\",\"ResultPath\":\"$.pineappleAnalysis\",\"Resource\":\"",
+              {
+                "Fn::GetAtt": [
+                  "pineappleCheckLambdaHandlerFDB742D5",
+                  "Arn"
+                ]
+              },
+              "\"},\"With Pineapple?\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.pineappleAnalysis.containsPineapple\",\"BooleanEquals\":true,\"Next\":\"Sorry, We Dont add Pineapple\"}],\"Default\":\"Lets make your pizza\"},\"Lets make your pizza\":{\"Type\":\"Succeed\",\"OutputPath\":\"$.pineappleAnalysis\"},\"Sorry, We Dont add Pineapple\":{\"Type\":\"Fail\",\"Error\":\"Failed To Make Pizza\",\"Cause\":\"They asked for Pineapple\"}},\"TimeoutSeconds\":300}"
+            ]
+          ]
+        },
+        "StateMachineType": "EXPRESS",
+        "TracingConfiguration": {
+          "Enabled": true
+        }
+      },
+      "DependsOn": [
+        "StateMachineRoleDefaultPolicyDF1E6607",
+        "StateMachineRoleB840431D"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/StateMachine/Resource"
+      }
+    },
+    "HttpApiRole79B5C31A": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "apigateway.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "states:StartSyncExecution",
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Ref": "StateMachine2E01A3A5"
+                  }
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "AllowSFNExec"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/HttpApiRole/Resource"
+      }
+    },
+    "thestatemachineapi69C81CC4": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "the-state-machine-api",
+        "ProtocolType": "HTTP"
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/the-state-machine-api/Resource"
+      }
+    },
+    "thestatemachineapiDefaultStageE23A2C15": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "thestatemachineapi69C81CC4"
+        },
+        "StageName": "$default",
+        "AutoDeploy": true
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/the-state-machine-api/DefaultStage/Resource"
+      }
+    },
+    "Integ": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "thestatemachineapi69C81CC4"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "ConnectionType": "INTERNET",
+        "CredentialsArn": {
+          "Fn::GetAtt": [
+            "HttpApiRole79B5C31A",
+            "Arn"
+          ]
+        },
+        "IntegrationSubtype": "StepFunctions-StartSyncExecution",
+        "PayloadFormatVersion": "1.0",
+        "RequestParameters": {
+          "Input": "$request.body",
+          "StateMachineArn": {
+            "Ref": "StateMachine2E01A3A5"
+          }
+        },
+        "TimeoutInMillis": 10000
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/Integ"
+      }
+    },
+    "DefaultRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "thestatemachineapi69C81CC4"
+        },
+        "RouteKey": "$default",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "Integ"
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/DefaultRoute"
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Analytics": "v2:deflate64:H4sIAAAAAAAAE11Q0WrDMAz8lr477to+7W1toKywsZJ8geaoqZrEDpbcUoz/fdhdYQwMdydO0skrvVq96pfFG9y4Mt2wjMZ51LEVMIPaMqO0Aj3ZXtXOsvhgRNUnewQPEwr6LL6CzKGUG2QXvMHMa2c7EnI2qTw8jjB9d6DjPliTy9nz5EkRTDo2biytBY9uJHMvywpLijcV5ESsSzDFG70LZkDZAaNiwfn0O48rAR5Yf5SdB3t1wz+DjnugUbXBGMRO1WdHBlUrIPgJ5ky2BPmrk4KZehC8wf261vFdZN7OlG0Zssxf9ex7kIMV7D08721cEEwpKes61BdeXtdrnd/iwkSVD1ZoQt088AdIqQ8YnQEAAA=="
+      },
+      "Metadata": {
+        "aws:cdk:path": "TheStateMachineStack/CDKMetadata/Default"
+      },
+      "Condition": "CDKMetadataAvailable"
+    }
+  },
+  "Parameters": {
+    "AssetParameters86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4S3Bucket29345DA7": {
+      "Type": "String",
+      "Description": "S3 bucket for asset \"86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4\""
+    },
+    "AssetParameters86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4S3VersionKey13E1CDC6": {
+      "Type": "String",
+      "Description": "S3 key for asset version \"86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4\""
+    },
+    "AssetParameters86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4ArtifactHashB08CD707": {
+      "Type": "String",
+      "Description": "Artifact hash for asset \"86bbf54b0bd4ccecf85d2ecc5cb12563bcd092af45115fa1898ee6b4bcfaf6c4\""
+    }
+  },
+  "Outputs": {
+    "HTTPAPIUrl": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "thestatemachineapi69C81CC4"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            },
+            "/"
+          ]
+        ]
+      }
+    }
+  },
+  "Conditions": {
+    "CDKMetadataAvailable": {
+      "Fn::Or": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "af-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ca-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-northwest-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-3"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "sa-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-2"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-2"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

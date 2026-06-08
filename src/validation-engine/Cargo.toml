@@ -1,0 +1,28 @@
+[package]
+name = "validation-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "validation_engine"
+path = "src/lib.rs"
+
+[features]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
+uniffi-bindings = ["dep:uniffi"]
+test-support = []
+
+[dependencies]
+diagnostics = { path = "../diagnostics" }
+rules = { path = "../rules" }
+template-model = { path = "../template-model" }
+schema-validator = { path = "../schema-validator" }
+guard-translator = { path = "../guard-translator" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+web-time = "1"
+tsify = { version = "0.4", optional = true, features = ["js"] }
+wasm-bindgen = { version = "0.2", optional = true }
+uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }

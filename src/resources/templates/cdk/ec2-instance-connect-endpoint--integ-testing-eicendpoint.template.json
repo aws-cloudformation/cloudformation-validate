@@ -1,0 +1,1165 @@
+{
+ "Resources": {
+  "Vpc8378EB38": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/Vpc"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/Vpc/Resource"
+   }
+  },
+  "VpcrdsSubnet1SubnetC2926CEA": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "rds"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/Vpc/rdsSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "Vpc8378EB38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/Vpc/rdsSubnet1/Subnet"
+   }
+  },
+  "VpcrdsSubnet1RouteTableE62E4ED6": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/Vpc/rdsSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "Vpc8378EB38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/Vpc/rdsSubnet1/RouteTable"
+   }
+  },
+  "VpcrdsSubnet1RouteTableAssociationE01668F2": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VpcrdsSubnet1RouteTableE62E4ED6"
+    },
+    "SubnetId": {
+     "Ref": "VpcrdsSubnet1SubnetC2926CEA"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/Vpc/rdsSubnet1/RouteTableAssociation"
+   }
+  },
+  "VpcrdsSubnet2Subnet70A835C8": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.1.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "rds"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/Vpc/rdsSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "Vpc8378EB38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/Vpc/rdsSubnet2/Subnet"
+   }
+  },
+  "VpcrdsSubnet2RouteTable3E531D9B": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/Vpc/rdsSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "Vpc8378EB38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/Vpc/rdsSubnet2/RouteTable"
+   }
+  },
+  "VpcrdsSubnet2RouteTableAssociation25A7BD68": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VpcrdsSubnet2RouteTable3E531D9B"
+    },
+    "SubnetId": {
+     "Ref": "VpcrdsSubnet2Subnet70A835C8"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/Vpc/rdsSubnet2/RouteTableAssociation"
+   }
+  },
+  "instanceInstanceSecurityGroup725C795D": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "integ-testing-eicendpoint/instance/InstanceSecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": {
+       "Fn::GetAtt": [
+        "Vpc8378EB38",
+        "CidrBlock"
+       ]
+      },
+      "Description": {
+       "Fn::Join": [
+        "",
+        [
+         "from ",
+         {
+          "Fn::GetAtt": [
+           "Vpc8378EB38",
+           "CidrBlock"
+          ]
+         },
+         ":ALL TRAFFIC"
+        ]
+       ]
+      },
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/instance"
+     }
+    ],
+    "VpcId": {
+     "Ref": "Vpc8378EB38"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/instance/InstanceSecurityGroup/Resource"
+   }
+  },
+  "instanceInstanceRoleF436EE92": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/instance"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/instance/InstanceRole/Resource"
+   }
+  },
+  "instanceInstanceProfile931F14E3": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "instanceInstanceRoleF436EE92"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/instance/InstanceProfile"
+   }
+  },
+  "instanceB7CCE687": {
+   "Type": "AWS::EC2::Instance",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "IamInstanceProfile": {
+     "Ref": "instanceInstanceProfile931F14E3"
+    },
+    "ImageId": {
+     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    "InstanceType": "t3.large",
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "instanceInstanceSecurityGroup725C795D",
+       "GroupId"
+      ]
+     }
+    ],
+    "SubnetId": {
+     "Ref": "VpcrdsSubnet1SubnetC2926CEA"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "integ-testing-eicendpoint/instance"
+     }
+    ],
+    "UserData": {
+     "Fn::Base64": "#!/bin/bash"
+    }
+   },
+   "DependsOn": [
+    "instanceInstanceRoleF436EE92"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/instance/Resource"
+   }
+  },
+  "EICEndpointRole7DC4D43E": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Role/Resource"
+   }
+  },
+  "EICEndpointRoleDefaultPolicy9C78FE54": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ec2:CreateInstanceConnectEndpoint",
+        "ec2:CreateNetworkInterface",
+        "ec2:CreateTags",
+        "ec2:DeleteInstanceConnectEndpoint"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:aws:ec2:us-east-1:",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":instance-connect-endpoint/*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:aws:ec2:us-east-1:",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":network-interface/*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:aws:ec2:us-east-1:",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":security-group/*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:aws:ec2:us-east-1:",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":subnet/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "ec2:DescribeInstanceConnectEndpoints",
+        "iam:CreateServiceLinkedRole"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EICEndpointRoleDefaultPolicy9C78FE54",
+    "Roles": [
+     {
+      "Ref": "EICEndpointRole7DC4D43E"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Role/DefaultPolicy/Resource"
+   }
+  },
+  "EICEndpointonEventHandlerC2E1F5F2": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "580e7199f29d3a4ba21264e35db2b99e791d0c4bc8d5e635d4bc85da65923391.zip"
+    },
+    "Handler": "index.on_event",
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "EICEndpointRole7DC4D43E",
+      "Arn"
+     ]
+    },
+    "Runtime": "python3.9",
+    "Timeout": 600
+   },
+   "DependsOn": [
+    "EICEndpointRoleDefaultPolicy9C78FE54",
+    "EICEndpointRole7DC4D43E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/onEventHandler/Resource"
+   }
+  },
+  "EICEndpointisCompleteHandler0273707A": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "580e7199f29d3a4ba21264e35db2b99e791d0c4bc8d5e635d4bc85da65923391.zip"
+    },
+    "Handler": "index.is_complete",
+    "MemorySize": 256,
+    "Role": {
+     "Fn::GetAtt": [
+      "EICEndpointRole7DC4D43E",
+      "Arn"
+     ]
+    },
+    "Runtime": "python3.9",
+    "Timeout": 600
+   },
+   "DependsOn": [
+    "EICEndpointRoleDefaultPolicy9C78FE54",
+    "EICEndpointRole7DC4D43E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/isCompleteHandler/Resource"
+   }
+  },
+  "EICEndpointProviderframeworkonEventServiceRoleC0D29A73": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-onEvent/ServiceRole/Resource"
+   }
+  },
+  "EICEndpointProviderframeworkonEventServiceRoleDefaultPolicy254E2AF6": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EICEndpointisCompleteHandler0273707A",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "EICEndpointonEventHandlerC2E1F5F2",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointisCompleteHandler0273707A",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointonEventHandlerC2E1F5F2",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:GetFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EICEndpointisCompleteHandler0273707A",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "EICEndpointonEventHandlerC2E1F5F2",
+          "Arn"
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "states:StartExecution",
+       "Effect": "Allow",
+       "Resource": {
+        "Ref": "EICEndpointProviderwaiterstatemachine1A139B58"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EICEndpointProviderframeworkonEventServiceRoleDefaultPolicy254E2AF6",
+    "Roles": [
+     {
+      "Ref": "EICEndpointProviderframeworkonEventServiceRoleC0D29A73"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-onEvent/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EICEndpointProviderframeworkonEventB48896C9": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "07a90cc3efdfc34da22208dcd9d211f06f5b0e01b21e778edc7c3966b1f61d57.zip"
+    },
+    "Description": "AWS CDK resource provider framework - onEvent (integ-testing-eicendpoint/EICEndpoint/Provider)",
+    "Environment": {
+     "Variables": {
+      "USER_ON_EVENT_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "EICEndpointonEventHandlerC2E1F5F2",
+        "Arn"
+       ]
+      },
+      "USER_IS_COMPLETE_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "EICEndpointisCompleteHandler0273707A",
+        "Arn"
+       ]
+      },
+      "WAITER_STATE_MACHINE_ARN": {
+       "Ref": "EICEndpointProviderwaiterstatemachine1A139B58"
+      }
+     }
+    },
+    "Handler": "framework.onEvent",
+    "LoggingConfig": {
+     "ApplicationLogLevel": "FATAL",
+     "LogFormat": "JSON"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "EICEndpointProviderframeworkonEventServiceRoleC0D29A73",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Timeout": 900
+   },
+   "DependsOn": [
+    "EICEndpointProviderframeworkonEventServiceRoleDefaultPolicy254E2AF6",
+    "EICEndpointProviderframeworkonEventServiceRoleC0D29A73"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-onEvent/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/ec2-instance-connect-endpoint/node_modules/aws-cdk-lib/custom-resources/lib/provider-framework/runtime",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "EICEndpointProviderframeworkisCompleteServiceRole0E0A4C51": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-isComplete/ServiceRole/Resource"
+   }
+  },
+  "EICEndpointProviderframeworkisCompleteServiceRoleDefaultPolicy5E52B832": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EICEndpointisCompleteHandler0273707A",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "EICEndpointonEventHandlerC2E1F5F2",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointisCompleteHandler0273707A",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointonEventHandlerC2E1F5F2",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:GetFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EICEndpointisCompleteHandler0273707A",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "EICEndpointonEventHandlerC2E1F5F2",
+          "Arn"
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EICEndpointProviderframeworkisCompleteServiceRoleDefaultPolicy5E52B832",
+    "Roles": [
+     {
+      "Ref": "EICEndpointProviderframeworkisCompleteServiceRole0E0A4C51"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-isComplete/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EICEndpointProviderframeworkisCompleteB1442B18": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "07a90cc3efdfc34da22208dcd9d211f06f5b0e01b21e778edc7c3966b1f61d57.zip"
+    },
+    "Description": "AWS CDK resource provider framework - isComplete (integ-testing-eicendpoint/EICEndpoint/Provider)",
+    "Environment": {
+     "Variables": {
+      "USER_ON_EVENT_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "EICEndpointonEventHandlerC2E1F5F2",
+        "Arn"
+       ]
+      },
+      "USER_IS_COMPLETE_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "EICEndpointisCompleteHandler0273707A",
+        "Arn"
+       ]
+      }
+     }
+    },
+    "Handler": "framework.isComplete",
+    "LoggingConfig": {
+     "ApplicationLogLevel": "FATAL",
+     "LogFormat": "JSON"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "EICEndpointProviderframeworkisCompleteServiceRole0E0A4C51",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Timeout": 900
+   },
+   "DependsOn": [
+    "EICEndpointProviderframeworkisCompleteServiceRoleDefaultPolicy5E52B832",
+    "EICEndpointProviderframeworkisCompleteServiceRole0E0A4C51"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-isComplete/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/ec2-instance-connect-endpoint/node_modules/aws-cdk-lib/custom-resources/lib/provider-framework/runtime",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "EICEndpointProviderframeworkonTimeoutServiceRole904320AB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-onTimeout/ServiceRole/Resource"
+   }
+  },
+  "EICEndpointProviderframeworkonTimeoutServiceRoleDefaultPolicyEDFD873D": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EICEndpointisCompleteHandler0273707A",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "EICEndpointonEventHandlerC2E1F5F2",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointisCompleteHandler0273707A",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointonEventHandlerC2E1F5F2",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:GetFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EICEndpointisCompleteHandler0273707A",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "EICEndpointonEventHandlerC2E1F5F2",
+          "Arn"
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EICEndpointProviderframeworkonTimeoutServiceRoleDefaultPolicyEDFD873D",
+    "Roles": [
+     {
+      "Ref": "EICEndpointProviderframeworkonTimeoutServiceRole904320AB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-onTimeout/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "EICEndpointProviderframeworkonTimeout83318112": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1"
+     },
+     "S3Key": "07a90cc3efdfc34da22208dcd9d211f06f5b0e01b21e778edc7c3966b1f61d57.zip"
+    },
+    "Description": "AWS CDK resource provider framework - onTimeout (integ-testing-eicendpoint/EICEndpoint/Provider)",
+    "Environment": {
+     "Variables": {
+      "USER_ON_EVENT_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "EICEndpointonEventHandlerC2E1F5F2",
+        "Arn"
+       ]
+      },
+      "USER_IS_COMPLETE_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "EICEndpointisCompleteHandler0273707A",
+        "Arn"
+       ]
+      }
+     }
+    },
+    "Handler": "framework.onTimeout",
+    "LoggingConfig": {
+     "ApplicationLogLevel": "FATAL",
+     "LogFormat": "JSON"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "EICEndpointProviderframeworkonTimeoutServiceRole904320AB",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Timeout": 900
+   },
+   "DependsOn": [
+    "EICEndpointProviderframeworkonTimeoutServiceRoleDefaultPolicyEDFD873D",
+    "EICEndpointProviderframeworkonTimeoutServiceRole904320AB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/framework-onTimeout/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/ec2-instance-connect-endpoint/node_modules/aws-cdk-lib/custom-resources/lib/provider-framework/runtime",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "EICEndpointProviderwaiterstatemachineRole5E284D23": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "states.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/waiter-state-machine/Role/Resource"
+   }
+  },
+  "EICEndpointProviderwaiterstatemachineRoleDefaultPolicy5AAF9088": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EICEndpointProviderframeworkisCompleteB1442B18",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "EICEndpointProviderframeworkonTimeout83318112",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointProviderframeworkisCompleteB1442B18",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EICEndpointProviderframeworkonTimeout83318112",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EICEndpointProviderwaiterstatemachineRoleDefaultPolicy5AAF9088",
+    "Roles": [
+     {
+      "Ref": "EICEndpointProviderwaiterstatemachineRole5E284D23"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/waiter-state-machine/Role/DefaultPolicy/Resource"
+   }
+  },
+  "EICEndpointProviderwaiterstatemachine1A139B58": {
+   "Type": "AWS::StepFunctions::StateMachine",
+   "Properties": {
+    "DefinitionString": {
+     "Fn::Join": [
+      "",
+      [
+       "{\"StartAt\":\"framework-isComplete-task\",\"States\":{\"framework-isComplete-task\":{\"End\":true,\"Retry\":[{\"ErrorEquals\":[\"States.ALL\"],\"IntervalSeconds\":5,\"MaxAttempts\":360,\"BackoffRate\":1}],\"Catch\":[{\"ErrorEquals\":[\"States.ALL\"],\"Next\":\"framework-onTimeout-task\"}],\"Type\":\"Task\",\"Resource\":\"",
+       {
+        "Fn::GetAtt": [
+         "EICEndpointProviderframeworkisCompleteB1442B18",
+         "Arn"
+        ]
+       },
+       "\"},\"framework-onTimeout-task\":{\"End\":true,\"Type\":\"Task\",\"Resource\":\"",
+       {
+        "Fn::GetAtt": [
+         "EICEndpointProviderframeworkonTimeout83318112",
+         "Arn"
+        ]
+       },
+       "\"}}}"
+      ]
+     ]
+    },
+    "RoleArn": {
+     "Fn::GetAtt": [
+      "EICEndpointProviderwaiterstatemachineRole5E284D23",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "EICEndpointProviderwaiterstatemachineRoleDefaultPolicy5AAF9088",
+    "EICEndpointProviderwaiterstatemachineRole5E284D23"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/Provider/waiter-state-machine/Resource"
+   }
+  },
+  "EICEndpointEICEndpointResourceBED54177": {
+   "Type": "Custom::EC2InstanceConnectEndpoint",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "EICEndpointProviderframeworkonEventB48896C9",
+      "Arn"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "VpcrdsSubnet1SubnetC2926CEA"
+    },
+    "PreserveClientIp": false
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/EICEndpoint/EICEndpointResource/Default"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/11OQWrDQAx8S+7Ktjg99JoYWnooNXZJj0Fey6kSe9estAnB+O/FTkzagmBGI400iUmens3jAs+ytNVx2XBp+kLRHgHPsuvJJqbfdhbS2m2zFLLAJ1QqYulIR/HOch+VPrFs6K7ftbWIt4zK3sGbE0VnCQqyMbBeXoOP3eT6L8yrAzC2ps/99fqM8zgLvuaGIPMN28s4ubIBZLVDEVIx6xFAVmYT7ZF0g0LQYFtWaPqX6OwULa3dzAcQpa6+dWLGeIpK72i/2dEAOYmPwU5BMgzYklIYm4+oXVSYHhaKe3Z7sFHUt7tw84jps+BPXFGAL2Sl8Pd2Oq3//jDzAZyvyBzk4ZQkZqzFQZiXITrllkx+xR+5va/Y2QEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "integ-testing-eicendpoint/CDKMetadata/Default"
+   }
+  }
+ },
+ "Parameters": {
+  "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Outputs": {
+  "InstanceId": {
+   "Value": {
+    "Ref": "instanceB7CCE687"
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

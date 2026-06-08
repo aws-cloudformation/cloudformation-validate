@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [prod, staging]
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If
+        - IsProd
+        - 12345
+        - my-staging-bucket

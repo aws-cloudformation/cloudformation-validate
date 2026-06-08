@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  ProdTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      TableName: prod-table
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment-PROD
+          Value: AppService

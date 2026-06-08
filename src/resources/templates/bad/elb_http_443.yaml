@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/my-alb/1234567890
+      Port: 443
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/my-tg/1234567890

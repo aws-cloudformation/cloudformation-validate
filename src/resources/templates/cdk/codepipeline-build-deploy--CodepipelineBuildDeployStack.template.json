@@ -1,0 +1,3286 @@
+{
+ "Resources": {
+  "repoBEC318EA": {
+   "Type": "AWS::CodeCommit::Repository",
+   "Properties": {
+    "Code": {
+     "BranchName": "main",
+     "S3": {
+      "Bucket": {
+       "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+      },
+      "Key": "ccd7228b22cd07d5792f6c4ede22cfbfdfc04a279a78dcd98523ed929b3032de.zip"
+     }
+    },
+    "RepositoryName": "simple-code-repo"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/repo/Resource"
+   }
+  },
+  "repoCodepipelineBuildDeployStackBuildDeployPipeline2B279CCCmainEventRule3F24D1E0": {
+   "Type": "AWS::Events::Rule",
+   "Properties": {
+    "EventPattern": {
+     "source": [
+      "aws.codecommit"
+     ],
+     "resources": [
+      {
+       "Fn::GetAtt": [
+        "repoBEC318EA",
+        "Arn"
+       ]
+      }
+     ],
+     "detail-type": [
+      "CodeCommit Repository State Change"
+     ],
+     "detail": {
+      "event": [
+       "referenceCreated",
+       "referenceUpdated"
+      ],
+      "referenceName": [
+       "main"
+      ]
+     }
+    },
+    "State": "ENABLED",
+    "Targets": [
+     {
+      "Arn": {
+       "Fn::Join": [
+        "",
+        [
+         "arn:",
+         {
+          "Ref": "AWS::Partition"
+         },
+         ":codepipeline:",
+         {
+          "Ref": "AWS::Region"
+         },
+         ":",
+         {
+          "Ref": "AWS::AccountId"
+         },
+         ":",
+         {
+          "Ref": "BuildDeployPipeline5EEC284B"
+         }
+        ]
+       ]
+      },
+      "Id": "Target0",
+      "RoleArn": {
+       "Fn::GetAtt": [
+        "BuildDeployPipelineEventsRoleDE5B0F8F",
+        "Arn"
+       ]
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/repo/CodepipelineBuildDeployStackBuildDeployPipeline2B279CCC-main-EventRule/Resource"
+   }
+  },
+  "imageRepo1D8A68AF": {
+   "Type": "AWS::ECR::Repository",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/imageRepo/Resource"
+   }
+  },
+  "FargateTaskDefTaskRole0B257552": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/FargateTaskDef/TaskRole/Resource"
+   }
+  },
+  "FargateTaskDefC6FB60B4": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Essential": true,
+      "Image": {
+       "Fn::Join": [
+        "",
+        [
+         {
+          "Fn::Select": [
+           4,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::GetAtt": [
+               "imageRepo1D8A68AF",
+               "Arn"
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         ".dkr.ecr.",
+         {
+          "Fn::Select": [
+           3,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::GetAtt": [
+               "imageRepo1D8A68AF",
+               "Arn"
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         ".",
+         {
+          "Ref": "AWS::URLSuffix"
+         },
+         "/",
+         {
+          "Ref": "imageRepo1D8A68AF"
+         },
+         ":latest"
+        ]
+       ]
+      },
+      "Name": "web",
+      "PortMappings": [
+       {
+        "ContainerPort": 80,
+        "Protocol": "tcp"
+       }
+      ]
+     }
+    ],
+    "Cpu": "256",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "FargateTaskDefExecutionRole272677A9",
+      "Arn"
+     ]
+    },
+    "Family": "CodepipelineBuildDeployStackFargateTaskDef1618DD8E",
+    "Memory": "512",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "FargateTaskDefTaskRole0B257552",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/FargateTaskDef/Resource"
+   }
+  },
+  "FargateTaskDefExecutionRole272677A9": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/FargateTaskDef/ExecutionRole/Resource"
+   }
+  },
+  "FargateTaskDefExecutionRoleDefaultPolicy6D29E918": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "imageRepo1D8A68AF",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": "ecr:GetAuthorizationToken",
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "FargateTaskDefExecutionRoleDefaultPolicy6D29E918",
+    "Roles": [
+     {
+      "Ref": "FargateTaskDefExecutionRole272677A9"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/FargateTaskDef/ExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "BuildImageRoleA9C72406": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "codebuild.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildImage/Role/Resource"
+   }
+  },
+  "BuildImageRoleDefaultPolicy8FF7A310": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "codecommit:GitPull",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "repoBEC318EA",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":logs:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":log-group:/aws/codebuild/",
+           {
+            "Ref": "BuildImage74257FD8"
+           },
+           ":*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":logs:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":log-group:/aws/codebuild/",
+           {
+            "Ref": "BuildImage74257FD8"
+           }
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "codebuild:BatchPutCodeCoverages",
+        "codebuild:BatchPutTestCases",
+        "codebuild:CreateReport",
+        "codebuild:CreateReportGroup",
+        "codebuild:UpdateReport"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":codebuild:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":report-group/",
+          {
+           "Ref": "BuildImage74257FD8"
+          },
+          "-*"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:CompleteLayerUpload",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "imageRepo1D8A68AF",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": "ecr:GetAuthorizationToken",
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "s3:Abort*",
+        "s3:DeleteObject*",
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineArtifactsBucket5D4A76C1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "BuildDeployPipelineArtifactsBucket5D4A76C1",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:Encrypt",
+        "kms:GenerateDataKey*",
+        "kms:ReEncrypt*"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildImageRoleDefaultPolicy8FF7A310",
+    "Roles": [
+     {
+      "Ref": "BuildImageRoleA9C72406"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildImage/Role/DefaultPolicy/Resource"
+   }
+  },
+  "BuildImage74257FD8": {
+   "Type": "AWS::CodeBuild::Project",
+   "Properties": {
+    "Artifacts": {
+     "Type": "NO_ARTIFACTS"
+    },
+    "Cache": {
+     "Type": "NO_CACHE"
+    },
+    "EncryptionKey": {
+     "Fn::GetAtt": [
+      "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+      "Arn"
+     ]
+    },
+    "Environment": {
+     "ComputeType": "BUILD_GENERAL1_SMALL",
+     "EnvironmentVariables": [
+      {
+       "Name": "AWS_ACCOUNT_ID",
+       "Type": "PLAINTEXT",
+       "Value": ""
+      },
+      {
+       "Name": "REGION",
+       "Type": "PLAINTEXT",
+       "Value": "us-east-1"
+      },
+      {
+       "Name": "IMAGE_TAG",
+       "Type": "PLAINTEXT",
+       "Value": "latest"
+      },
+      {
+       "Name": "IMAGE_REPO_NAME",
+       "Type": "PLAINTEXT",
+       "Value": {
+        "Ref": "imageRepo1D8A68AF"
+       }
+      },
+      {
+       "Name": "REPOSITORY_URI",
+       "Type": "PLAINTEXT",
+       "Value": {
+        "Fn::Join": [
+         "",
+         [
+          {
+           "Fn::Select": [
+            4,
+            {
+             "Fn::Split": [
+              ":",
+              {
+               "Fn::GetAtt": [
+                "imageRepo1D8A68AF",
+                "Arn"
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          ".dkr.ecr.",
+          {
+           "Fn::Select": [
+            3,
+            {
+             "Fn::Split": [
+              ":",
+              {
+               "Fn::GetAtt": [
+                "imageRepo1D8A68AF",
+                "Arn"
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          ".",
+          {
+           "Ref": "AWS::URLSuffix"
+          },
+          "/",
+          {
+           "Ref": "imageRepo1D8A68AF"
+          }
+         ]
+        ]
+       }
+      },
+      {
+       "Name": "TASK_DEFINITION_ARN",
+       "Type": "PLAINTEXT",
+       "Value": {
+        "Ref": "FargateTaskDefC6FB60B4"
+       }
+      },
+      {
+       "Name": "TASK_ROLE_ARN",
+       "Type": "PLAINTEXT",
+       "Value": {
+        "Fn::GetAtt": [
+         "FargateTaskDefTaskRole0B257552",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Name": "EXECUTION_ROLE_ARN",
+       "Type": "PLAINTEXT",
+       "Value": {
+        "Fn::GetAtt": [
+         "FargateTaskDefExecutionRole272677A9",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Image": "aws/codebuild/standard:7.0",
+     "ImagePullCredentialsType": "CODEBUILD",
+     "PrivilegedMode": true,
+     "Type": "LINUX_CONTAINER"
+    },
+    "ServiceRole": {
+     "Fn::GetAtt": [
+      "BuildImageRoleA9C72406",
+      "Arn"
+     ]
+    },
+    "Source": {
+     "BuildSpec": "app/buildspec.yaml",
+     "Location": {
+      "Fn::GetAtt": [
+       "repoBEC318EA",
+       "CloneUrlHttp"
+      ]
+     },
+     "Type": "CODECOMMIT"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildImage/Resource"
+   }
+  },
+  "BuildTestRoleC332A422": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "codebuild.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildTest/Role/Resource"
+   }
+  },
+  "BuildTestRoleDefaultPolicyA34B30B3": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "codecommit:GitPull",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "repoBEC318EA",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":logs:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":log-group:/aws/codebuild/",
+           {
+            "Ref": "BuildTestC9659529"
+           },
+           ":*"
+          ]
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":logs:",
+           {
+            "Ref": "AWS::Region"
+           },
+           ":",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":log-group:/aws/codebuild/",
+           {
+            "Ref": "BuildTestC9659529"
+           }
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "codebuild:BatchPutCodeCoverages",
+        "codebuild:BatchPutTestCases",
+        "codebuild:CreateReport",
+        "codebuild:CreateReportGroup",
+        "codebuild:UpdateReport"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":codebuild:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":report-group/",
+          {
+           "Ref": "BuildTestC9659529"
+          },
+          "-*"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineArtifactsBucket5D4A76C1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "BuildDeployPipelineArtifactsBucket5D4A76C1",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:Encrypt",
+        "kms:GenerateDataKey*",
+        "kms:ReEncrypt*"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildTestRoleDefaultPolicyA34B30B3",
+    "Roles": [
+     {
+      "Ref": "BuildTestRoleC332A422"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildTest/Role/DefaultPolicy/Resource"
+   }
+  },
+  "BuildTestC9659529": {
+   "Type": "AWS::CodeBuild::Project",
+   "Properties": {
+    "Artifacts": {
+     "Type": "NO_ARTIFACTS"
+    },
+    "Cache": {
+     "Type": "NO_CACHE"
+    },
+    "EncryptionKey": {
+     "Fn::GetAtt": [
+      "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+      "Arn"
+     ]
+    },
+    "Environment": {
+     "ComputeType": "BUILD_GENERAL1_SMALL",
+     "Image": "aws/codebuild/amazonlinux2-x86_64-standard:4.0",
+     "ImagePullCredentialsType": "CODEBUILD",
+     "PrivilegedMode": false,
+     "Type": "LINUX_CONTAINER"
+    },
+    "ServiceRole": {
+     "Fn::GetAtt": [
+      "BuildTestRoleC332A422",
+      "Arn"
+     ]
+    },
+    "Source": {
+     "BuildSpec": "buildspec.yaml",
+     "Location": {
+      "Fn::GetAtt": [
+       "repoBEC318EA",
+       "CloneUrlHttp"
+      ]
+     },
+     "Type": "CODECOMMIT"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildTest/Resource"
+   }
+  },
+  "BuildLambdaServiceRole8FB6C033": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildLambda/ServiceRole/Resource"
+   }
+  },
+  "BuildLambdaServiceRoleDefaultPolicyB9720C71": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "codebuild:StartBuild",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildImage74257FD8",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildLambdaServiceRoleDefaultPolicyB9720C71",
+    "Roles": [
+     {
+      "Ref": "BuildLambdaServiceRole8FB6C033"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildLambda/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "BuildLambda72E2A667": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Architectures": [
+     "arm64"
+    ],
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "98292e519a027fddd37735bc3fa779872b481d325f8aa0df23b88f3224e80403.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "REGION": "us-east-1",
+      "CODEBUILD_PROJECT_NAME": {
+       "Ref": "BuildImage74257FD8"
+      }
+     }
+    },
+    "Handler": "trigger-build.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "BuildLambdaServiceRole8FB6C033",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x"
+   },
+   "DependsOn": [
+    "BuildLambdaServiceRoleDefaultPolicyB9720C71",
+    "BuildLambdaServiceRole8FB6C033"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildLambda/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/codepipeline-build-deploy/lambda",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "BuildLambdaTriggerB4D1B83F": {
+   "Type": "Custom::AWS",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "AWS679f53fac002430cb0da5b7982bd22872D164C4C",
+      "Arn"
+     ]
+    },
+    "Create": {
+     "Fn::Join": [
+      "",
+      [
+       "{\"service\":\"Lambda\",\"action\":\"invoke\",\"physicalResourceId\":{\"id\":\"id\"},\"parameters\":{\"FunctionName\":\"",
+       {
+        "Ref": "BuildLambda72E2A667"
+       },
+       "\",\"InvocationType\":\"Event\"}}"
+      ]
+     ]
+    },
+    "Update": {
+     "Fn::Join": [
+      "",
+      [
+       "{\"service\":\"Lambda\",\"action\":\"invoke\",\"parameters\":{\"FunctionName\":\"",
+       {
+        "Ref": "BuildLambda72E2A667"
+       },
+       "\",\"InvocationType\":\"Event\"}}"
+      ]
+     ]
+    },
+    "InstallLatestAwsSdk": true
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildLambdaTrigger/Resource/Default"
+   }
+  },
+  "BuildLambdaTriggerCustomResourcePolicy465CA35F": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildLambda72E2A667",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "Roles": [
+     {
+      "Ref": "AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildLambdaTrigger/CustomResourcePolicy/Resource"
+   }
+  },
+  "AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/AWS679f53fac002430cb0da5b7982bd2287/ServiceRole/Resource"
+   }
+  },
+  "AWS679f53fac002430cb0da5b7982bd22872D164C4C": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "56f7467bbde8a5efebcf57ae9e460027607099bab9f844669dcf5d800172ee5a.zip"
+    },
+    "Handler": "index.handler",
+    "MemorySize": 512,
+    "Role": {
+     "Fn::GetAtt": [
+      "AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Timeout": 120
+   },
+   "DependsOn": [
+    "AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/AWS679f53fac002430cb0da5b7982bd2287/Resource",
+    "aws:asset:path": "/tmp/aws-cdk-examples/typescript/codepipeline-build-deploy/node_modules/aws-cdk-lib/custom-resource-handlers/dist/custom-resources/aws-custom-resource-handler",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "ClusterVpcA8CFF6E7": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.50.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc"
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/Resource"
+   }
+  },
+  "ClusterVpcPublicSubnet1Subnet6F292256": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.50.0.0/18",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1/Subnet"
+   }
+  },
+  "ClusterVpcPublicSubnet1RouteTableA4D922A0": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1/RouteTable"
+   }
+  },
+  "ClusterVpcPublicSubnet1RouteTableAssociation5AD6D21B": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "ClusterVpcPublicSubnet1RouteTableA4D922A0"
+    },
+    "SubnetId": {
+     "Ref": "ClusterVpcPublicSubnet1Subnet6F292256"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1/RouteTableAssociation"
+   }
+  },
+  "ClusterVpcPublicSubnet1DefaultRouteAFF78CE0": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "ClusterVpcIGW467AA2AB"
+    },
+    "RouteTableId": {
+     "Ref": "ClusterVpcPublicSubnet1RouteTableA4D922A0"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F",
+    "ClusterVpcVPCGW361426E5"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1/DefaultRoute"
+   }
+  },
+  "ClusterVpcPublicSubnet1EIP37B290BD": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1"
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1/EIP"
+   }
+  },
+  "ClusterVpcPublicSubnet1NATGateway69FA9C06": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "ClusterVpcPublicSubnet1EIP37B290BD",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "ClusterVpcPublicSubnet1Subnet6F292256"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1"
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F",
+    "ClusterVpcPublicSubnet1DefaultRouteAFF78CE0",
+    "ClusterVpcPublicSubnet1RouteTableAssociation5AD6D21B"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet1/NATGateway"
+   }
+  },
+  "ClusterVpcPublicSubnet2Subnet426701E5": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.50.64.0/18",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2/Subnet"
+   }
+  },
+  "ClusterVpcPublicSubnet2RouteTable12CC8384": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2/RouteTable"
+   }
+  },
+  "ClusterVpcPublicSubnet2RouteTableAssociation7ADD1D72": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "ClusterVpcPublicSubnet2RouteTable12CC8384"
+    },
+    "SubnetId": {
+     "Ref": "ClusterVpcPublicSubnet2Subnet426701E5"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2/RouteTableAssociation"
+   }
+  },
+  "ClusterVpcPublicSubnet2DefaultRouteAEC6FDD4": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "ClusterVpcIGW467AA2AB"
+    },
+    "RouteTableId": {
+     "Ref": "ClusterVpcPublicSubnet2RouteTable12CC8384"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F",
+    "ClusterVpcVPCGW361426E5"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2/DefaultRoute"
+   }
+  },
+  "ClusterVpcPublicSubnet2EIP299AF9FE": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2"
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2/EIP"
+   }
+  },
+  "ClusterVpcPublicSubnet2NATGatewayC9242BCE": {
+   "Type": "AWS::EC2::NatGateway",
+   "Properties": {
+    "AllocationId": {
+     "Fn::GetAtt": [
+      "ClusterVpcPublicSubnet2EIP299AF9FE",
+      "AllocationId"
+     ]
+    },
+    "SubnetId": {
+     "Ref": "ClusterVpcPublicSubnet2Subnet426701E5"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2"
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F",
+    "ClusterVpcPublicSubnet2DefaultRouteAEC6FDD4",
+    "ClusterVpcPublicSubnet2RouteTableAssociation7ADD1D72"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PublicSubnet2/NATGateway"
+   }
+  },
+  "ClusterVpcPrivateSubnet1Subnet505E4257": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.50.128.0/18",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet1/Subnet"
+   }
+  },
+  "ClusterVpcPrivateSubnet1RouteTable4D91A516": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet1/RouteTable"
+   }
+  },
+  "ClusterVpcPrivateSubnet1RouteTableAssociationB0545C4C": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "ClusterVpcPrivateSubnet1RouteTable4D91A516"
+    },
+    "SubnetId": {
+     "Ref": "ClusterVpcPrivateSubnet1Subnet505E4257"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet1/RouteTableAssociation"
+   }
+  },
+  "ClusterVpcPrivateSubnet1DefaultRoute6BD16184": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "ClusterVpcPublicSubnet1NATGateway69FA9C06"
+    },
+    "RouteTableId": {
+     "Ref": "ClusterVpcPrivateSubnet1RouteTable4D91A516"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet1/DefaultRoute"
+   }
+  },
+  "ClusterVpcPrivateSubnet2Subnet176BE39E": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.50.192.0/18",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Private"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Private"
+     },
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet2/Subnet"
+   }
+  },
+  "ClusterVpcPrivateSubnet2RouteTable918A9411": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet2/RouteTable"
+   }
+  },
+  "ClusterVpcPrivateSubnet2RouteTableAssociation994802D2": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "ClusterVpcPrivateSubnet2RouteTable918A9411"
+    },
+    "SubnetId": {
+     "Ref": "ClusterVpcPrivateSubnet2Subnet176BE39E"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet2/RouteTableAssociation"
+   }
+  },
+  "ClusterVpcPrivateSubnet2DefaultRouteCC18893B": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": {
+     "Ref": "ClusterVpcPublicSubnet2NATGatewayC9242BCE"
+    },
+    "RouteTableId": {
+     "Ref": "ClusterVpcPrivateSubnet2RouteTable918A9411"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/PrivateSubnet2/DefaultRoute"
+   }
+  },
+  "ClusterVpcIGW467AA2AB": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "CodepipelineBuildDeployStack/ClusterVpc"
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/IGW"
+   }
+  },
+  "ClusterVpcVPCGW361426E5": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "ClusterVpcIGW467AA2AB"
+    },
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "BuildLambdaTriggerCustomResourcePolicy465CA35F",
+    "BuildLambdaTriggerB4D1B83F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/ClusterVpc/VPCGW"
+   }
+  },
+  "BlueTargetGroupF108EB01": {
+   "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+   "Properties": {
+    "Name": "alb-blue-tg",
+    "Port": 80,
+    "Protocol": "HTTP",
+    "TargetGroupAttributes": [
+     {
+      "Key": "stickiness.enabled",
+      "Value": "false"
+     }
+    ],
+    "TargetType": "ip",
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BlueTargetGroup/Resource"
+   }
+  },
+  "GreenTargetGroupEEB2DF3E": {
+   "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+   "Properties": {
+    "Name": "alb-green-tg",
+    "Port": 80,
+    "Protocol": "HTTP",
+    "TargetGroupAttributes": [
+     {
+      "Key": "stickiness.enabled",
+      "Value": "false"
+     }
+    ],
+    "TargetType": "ip",
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/GreenTargetGroup/Resource"
+   }
+  },
+  "SecurityGroupDD263621": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "CodepipelineBuildDeployStack/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allows access on port 80/http",
+      "FromPort": 80,
+      "IpProtocol": "tcp",
+      "ToPort": 80
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/SecurityGroup/Resource"
+   }
+  },
+  "PublicAlb84330974": {
+   "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+   "Properties": {
+    "LoadBalancerAttributes": [
+     {
+      "Key": "deletion_protection.enabled",
+      "Value": "false"
+     }
+    ],
+    "Scheme": "internet-facing",
+    "SecurityGroups": [
+     {
+      "Fn::GetAtt": [
+       "SecurityGroupDD263621",
+       "GroupId"
+      ]
+     }
+    ],
+    "Subnets": [
+     {
+      "Ref": "ClusterVpcPublicSubnet1Subnet6F292256"
+     },
+     {
+      "Ref": "ClusterVpcPublicSubnet2Subnet426701E5"
+     }
+    ],
+    "Type": "application"
+   },
+   "DependsOn": [
+    "ClusterVpcPublicSubnet1DefaultRouteAFF78CE0",
+    "ClusterVpcPublicSubnet1RouteTableAssociation5AD6D21B",
+    "ClusterVpcPublicSubnet2DefaultRouteAEC6FDD4",
+    "ClusterVpcPublicSubnet2RouteTableAssociation7ADD1D72"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/PublicAlb/Resource"
+   }
+  },
+  "PublicAlbAlbListener804C1B2779": {
+   "Type": "AWS::ElasticLoadBalancingV2::Listener",
+   "Properties": {
+    "DefaultActions": [
+     {
+      "TargetGroupArn": {
+       "Ref": "BlueTargetGroupF108EB01"
+      },
+      "Type": "forward"
+     }
+    ],
+    "LoadBalancerArn": {
+     "Ref": "PublicAlb84330974"
+    },
+    "Port": 80,
+    "Protocol": "HTTP"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/PublicAlb/AlbListener80/Resource"
+   }
+  },
+  "EcsCluster97242B84": {
+   "Type": "AWS::ECS::Cluster",
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/EcsCluster/Resource"
+   }
+  },
+  "EcsCluster72B17558": {
+   "Type": "AWS::ECS::ClusterCapacityProviderAssociations",
+   "Properties": {
+    "CapacityProviders": [
+     "FARGATE",
+     "FARGATE_SPOT"
+    ],
+    "Cluster": {
+     "Ref": "EcsCluster97242B84"
+    },
+    "DefaultCapacityProviderStrategy": []
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/EcsCluster/EcsCluster"
+   }
+  },
+  "FargateServiceAC2B3B85": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Ref": "EcsCluster97242B84"
+    },
+    "DeploymentConfiguration": {
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DeploymentController": {
+     "Type": "CODE_DEPLOY"
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "HealthCheckGracePeriodSeconds": 60,
+    "LaunchType": "FARGATE",
+    "LoadBalancers": [
+     {
+      "ContainerName": "web",
+      "ContainerPort": 80,
+      "TargetGroupArn": {
+       "Ref": "BlueTargetGroupF108EB01"
+      }
+     }
+    ],
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "DISABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "FargateServiceSecurityGroup0A0E79CB",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       {
+        "Ref": "ClusterVpcPrivateSubnet1Subnet505E4257"
+       },
+       {
+        "Ref": "ClusterVpcPrivateSubnet2Subnet176BE39E"
+       }
+      ]
+     }
+    },
+    "ServiceName": "fargate-frontend-service",
+    "TaskDefinition": "CodepipelineBuildDeployStackFargateTaskDef1618DD8E"
+   },
+   "DependsOn": [
+    "FargateTaskDefExecutionRoleDefaultPolicy6D29E918",
+    "FargateTaskDefExecutionRole272677A9",
+    "FargateTaskDefC6FB60B4",
+    "FargateTaskDefTaskRole0B257552",
+    "PublicAlbAlbListener804C1B2779"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/FargateService/Service"
+   }
+  },
+  "FargateServiceSecurityGroup0A0E79CB": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "CodepipelineBuildDeployStack/FargateService/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "ClusterVpcA8CFF6E7"
+    }
+   },
+   "DependsOn": [
+    "FargateTaskDefExecutionRoleDefaultPolicy6D29E918",
+    "FargateTaskDefExecutionRole272677A9",
+    "FargateTaskDefC6FB60B4",
+    "FargateTaskDefTaskRole0B257552"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/FargateService/SecurityGroup/Resource"
+   }
+  },
+  "FargateServiceSecurityGroupfromCodepipelineBuildDeployStackSecurityGroup07B96CA880690A9743": {
+   "Type": "AWS::EC2::SecurityGroupIngress",
+   "Properties": {
+    "Description": "Load balancer to target",
+    "FromPort": 80,
+    "GroupId": {
+     "Fn::GetAtt": [
+      "FargateServiceSecurityGroup0A0E79CB",
+      "GroupId"
+     ]
+    },
+    "IpProtocol": "tcp",
+    "SourceSecurityGroupId": {
+     "Fn::GetAtt": [
+      "SecurityGroupDD263621",
+      "GroupId"
+     ]
+    },
+    "ToPort": 80
+   },
+   "DependsOn": [
+    "FargateTaskDefExecutionRoleDefaultPolicy6D29E918",
+    "FargateTaskDefExecutionRole272677A9",
+    "FargateTaskDefC6FB60B4",
+    "FargateTaskDefTaskRole0B257552"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/FargateService/SecurityGroup/from CodepipelineBuildDeployStackSecurityGroup07B96CA8:80"
+   }
+  },
+  "CodeDeployGroupServiceRole50553EBF": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "codedeploy.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AWSCodeDeployRoleForECS"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/CodeDeployGroup/ServiceRole/Resource"
+   }
+  },
+  "CodeDeployGroupApplication13EFBDA6": {
+   "Type": "AWS::CodeDeploy::Application",
+   "Properties": {
+    "ComputePlatform": "ECS"
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/CodeDeployGroup/Application/Resource"
+   }
+  },
+  "CodeDeployGroup58220FC8": {
+   "Type": "AWS::CodeDeploy::DeploymentGroup",
+   "Properties": {
+    "AlarmConfiguration": {
+     "Enabled": false
+    },
+    "ApplicationName": {
+     "Ref": "CodeDeployGroupApplication13EFBDA6"
+    },
+    "AutoRollbackConfiguration": {
+     "Enabled": true,
+     "Events": [
+      "DEPLOYMENT_FAILURE"
+     ]
+    },
+    "BlueGreenDeploymentConfiguration": {
+     "DeploymentReadyOption": {
+      "ActionOnTimeout": "CONTINUE_DEPLOYMENT",
+      "WaitTimeInMinutes": 0
+     },
+     "TerminateBlueInstancesOnDeploymentSuccess": {
+      "Action": "TERMINATE",
+      "TerminationWaitTimeInMinutes": 0
+     }
+    },
+    "DeploymentConfigName": "CodeDeployDefault.ECSAllAtOnce",
+    "DeploymentStyle": {
+     "DeploymentOption": "WITH_TRAFFIC_CONTROL",
+     "DeploymentType": "BLUE_GREEN"
+    },
+    "ECSServices": [
+     {
+      "ClusterName": {
+       "Ref": "EcsCluster97242B84"
+      },
+      "ServiceName": {
+       "Fn::GetAtt": [
+        "FargateServiceAC2B3B85",
+        "Name"
+       ]
+      }
+     }
+    ],
+    "LoadBalancerInfo": {
+     "TargetGroupPairInfoList": [
+      {
+       "ProdTrafficRoute": {
+        "ListenerArns": [
+         {
+          "Ref": "PublicAlbAlbListener804C1B2779"
+         }
+        ]
+       },
+       "TargetGroups": [
+        {
+         "Name": {
+          "Fn::GetAtt": [
+           "BlueTargetGroupF108EB01",
+           "TargetGroupName"
+          ]
+         }
+        },
+        {
+         "Name": {
+          "Fn::GetAtt": [
+           "GreenTargetGroupEEB2DF3E",
+           "TargetGroupName"
+          ]
+         }
+        }
+       ]
+      }
+     ]
+    },
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "CodeDeployGroupServiceRole50553EBF",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/CodeDeployGroup/Resource"
+   }
+  },
+  "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8": {
+   "Type": "AWS::KMS::Key",
+   "Properties": {
+    "KeyPolicy": {
+     "Statement": [
+      {
+       "Action": "kms:*",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::Join": [
+          "",
+          [
+           "arn:",
+           {
+            "Ref": "AWS::Partition"
+           },
+           ":iam::",
+           {
+            "Ref": "AWS::AccountId"
+           },
+           ":root"
+          ]
+         ]
+        }
+       },
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/ArtifactsBucketEncryptionKey/Resource"
+   }
+  },
+  "BuildDeployPipelineArtifactsBucketEncryptionKeyAliasC52C67EF": {
+   "Type": "AWS::KMS::Alias",
+   "Properties": {
+    "AliasName": "alias/codepipeline-codepipelinebuilddeploystack-builddeploypipeline-2b279ccc",
+    "TargetKeyId": {
+     "Fn::GetAtt": [
+      "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+      "Arn"
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/ArtifactsBucketEncryptionKeyAlias/Resource"
+   }
+  },
+  "BuildDeployPipelineArtifactsBucket5D4A76C1": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketEncryption": {
+     "ServerSideEncryptionConfiguration": [
+      {
+       "ServerSideEncryptionByDefault": {
+        "KMSMasterKeyID": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+          "Arn"
+         ]
+        },
+        "SSEAlgorithm": "aws:kms"
+       }
+      }
+     ]
+    },
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    }
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/ArtifactsBucket/Resource"
+   }
+  },
+  "BuildDeployPipelineArtifactsBucketPolicyC49383E9": {
+   "Type": "AWS::S3::BucketPolicy",
+   "Properties": {
+    "Bucket": {
+     "Ref": "BuildDeployPipelineArtifactsBucket5D4A76C1"
+    },
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "s3:*",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": {
+        "AWS": "*"
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineArtifactsBucket5D4A76C1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "BuildDeployPipelineArtifactsBucket5D4A76C1",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/ArtifactsBucket/Policy/Resource"
+   }
+  },
+  "BuildDeployPipelineRole3223E55F": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "codepipeline.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Role/Resource"
+   }
+  },
+  "BuildDeployPipelineRoleDefaultPolicyECF964D2": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:Abort*",
+        "s3:DeleteObject*",
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineArtifactsBucket5D4A76C1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "BuildDeployPipelineArtifactsBucket5D4A76C1",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:Encrypt",
+        "kms:GenerateDataKey*",
+        "kms:ReEncrypt*"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineBuildDockerBuildPushCodePipelineActionRole760EF965",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRole054540AB",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineSourceAppCodeCommitCodePipelineActionRoleB9EB8BA0",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineTestJestCDKCodePipelineActionRoleFA2BA8B1",
+          "Arn"
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildDeployPipelineRoleDefaultPolicyECF964D2",
+    "Roles": [
+     {
+      "Ref": "BuildDeployPipelineRole3223E55F"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Role/DefaultPolicy/Resource"
+   }
+  },
+  "BuildDeployPipeline5EEC284B": {
+   "Type": "AWS::CodePipeline::Pipeline",
+   "Properties": {
+    "ArtifactStore": {
+     "EncryptionKey": {
+      "Id": {
+       "Fn::GetAtt": [
+        "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+        "Arn"
+       ]
+      },
+      "Type": "KMS"
+     },
+     "Location": {
+      "Ref": "BuildDeployPipelineArtifactsBucket5D4A76C1"
+     },
+     "Type": "S3"
+    },
+    "Name": "ImageBuildDeployPipeline",
+    "PipelineType": "V2",
+    "RoleArn": {
+     "Fn::GetAtt": [
+      "BuildDeployPipelineRole3223E55F",
+      "Arn"
+     ]
+    },
+    "Stages": [
+     {
+      "Actions": [
+       {
+        "ActionTypeId": {
+         "Category": "Source",
+         "Owner": "AWS",
+         "Provider": "CodeCommit",
+         "Version": "1"
+        },
+        "Configuration": {
+         "RepositoryName": {
+          "Fn::GetAtt": [
+           "repoBEC318EA",
+           "Name"
+          ]
+         },
+         "BranchName": "main",
+         "PollForSourceChanges": false
+        },
+        "Name": "AppCodeCommit",
+        "OutputArtifacts": [
+         {
+          "Name": "SourceArtifact"
+         }
+        ],
+        "RoleArn": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineSourceAppCodeCommitCodePipelineActionRoleB9EB8BA0",
+          "Arn"
+         ]
+        },
+        "RunOrder": 1
+       }
+      ],
+      "Name": "Source"
+     },
+     {
+      "Actions": [
+       {
+        "ActionTypeId": {
+         "Category": "Build",
+         "Owner": "AWS",
+         "Provider": "CodeBuild",
+         "Version": "1"
+        },
+        "Configuration": {
+         "ProjectName": {
+          "Ref": "BuildTestC9659529"
+         }
+        },
+        "InputArtifacts": [
+         {
+          "Name": "SourceArtifact"
+         }
+        ],
+        "Name": "JestCDK",
+        "RoleArn": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineTestJestCDKCodePipelineActionRoleFA2BA8B1",
+          "Arn"
+         ]
+        },
+        "RunOrder": 1
+       }
+      ],
+      "Name": "Test"
+     },
+     {
+      "Actions": [
+       {
+        "ActionTypeId": {
+         "Category": "Build",
+         "Owner": "AWS",
+         "Provider": "CodeBuild",
+         "Version": "1"
+        },
+        "Configuration": {
+         "ProjectName": {
+          "Ref": "BuildImage74257FD8"
+         }
+        },
+        "InputArtifacts": [
+         {
+          "Name": "SourceArtifact"
+         }
+        ],
+        "Name": "DockerBuildPush",
+        "OutputArtifacts": [
+         {
+          "Name": "BuildArtifact"
+         }
+        ],
+        "RoleArn": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineBuildDockerBuildPushCodePipelineActionRole760EF965",
+          "Arn"
+         ]
+        },
+        "RunOrder": 1
+       }
+      ],
+      "Name": "Build"
+     },
+     {
+      "Actions": [
+       {
+        "ActionTypeId": {
+         "Category": "Deploy",
+         "Owner": "AWS",
+         "Provider": "CodeDeployToECS",
+         "Version": "1"
+        },
+        "Configuration": {
+         "ApplicationName": {
+          "Ref": "CodeDeployGroupApplication13EFBDA6"
+         },
+         "DeploymentGroupName": {
+          "Ref": "CodeDeployGroup58220FC8"
+         },
+         "TaskDefinitionTemplateArtifact": "BuildArtifact",
+         "TaskDefinitionTemplatePath": "taskdef.json",
+         "AppSpecTemplateArtifact": "BuildArtifact",
+         "AppSpecTemplatePath": "appspec.yaml"
+        },
+        "InputArtifacts": [
+         {
+          "Name": "BuildArtifact"
+         }
+        ],
+        "Name": "EcsFargateDeploy",
+        "RoleArn": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRole054540AB",
+          "Arn"
+         ]
+        },
+        "RunOrder": 1
+       }
+      ],
+      "Name": "Deploy"
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildDeployPipelineRoleDefaultPolicyECF964D2",
+    "BuildDeployPipelineRole3223E55F"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Resource"
+   }
+  },
+  "BuildDeployPipelineSourceAppCodeCommitCodePipelineActionRoleB9EB8BA0": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineRole3223E55F",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Source/AppCodeCommit/CodePipelineActionRole/Resource"
+   }
+  },
+  "BuildDeployPipelineSourceAppCodeCommitCodePipelineActionRoleDefaultPolicy773D6739": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:Abort*",
+        "s3:DeleteObject*",
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineArtifactsBucket5D4A76C1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "BuildDeployPipelineArtifactsBucket5D4A76C1",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:Encrypt",
+        "kms:GenerateDataKey*",
+        "kms:ReEncrypt*"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "codecommit:CancelUploadArchive",
+        "codecommit:GetBranch",
+        "codecommit:GetCommit",
+        "codecommit:GetUploadArchiveStatus",
+        "codecommit:UploadArchive"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "repoBEC318EA",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildDeployPipelineSourceAppCodeCommitCodePipelineActionRoleDefaultPolicy773D6739",
+    "Roles": [
+     {
+      "Ref": "BuildDeployPipelineSourceAppCodeCommitCodePipelineActionRoleB9EB8BA0"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Source/AppCodeCommit/CodePipelineActionRole/DefaultPolicy/Resource"
+   }
+  },
+  "BuildDeployPipelineEventsRoleDE5B0F8F": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "events.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/EventsRole/Resource"
+   }
+  },
+  "BuildDeployPipelineEventsRoleDefaultPolicy849508FE": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "codepipeline:StartPipelineExecution",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":codepipeline:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":",
+          {
+           "Ref": "BuildDeployPipeline5EEC284B"
+          }
+         ]
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildDeployPipelineEventsRoleDefaultPolicy849508FE",
+    "Roles": [
+     {
+      "Ref": "BuildDeployPipelineEventsRoleDE5B0F8F"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/EventsRole/DefaultPolicy/Resource"
+   }
+  },
+  "BuildDeployPipelineTestJestCDKCodePipelineActionRoleFA2BA8B1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineRole3223E55F",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Test/JestCDK/CodePipelineActionRole/Resource"
+   }
+  },
+  "BuildDeployPipelineTestJestCDKCodePipelineActionRoleDefaultPolicy15BF304F": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "codebuild:BatchGetBuilds",
+        "codebuild:StartBuild",
+        "codebuild:StopBuild"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildTestC9659529",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildDeployPipelineTestJestCDKCodePipelineActionRoleDefaultPolicy15BF304F",
+    "Roles": [
+     {
+      "Ref": "BuildDeployPipelineTestJestCDKCodePipelineActionRoleFA2BA8B1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Test/JestCDK/CodePipelineActionRole/DefaultPolicy/Resource"
+   }
+  },
+  "BuildDeployPipelineBuildDockerBuildPushCodePipelineActionRole760EF965": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineRole3223E55F",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Build/DockerBuildPush/CodePipelineActionRole/Resource"
+   }
+  },
+  "BuildDeployPipelineBuildDockerBuildPushCodePipelineActionRoleDefaultPolicy31694614": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "codebuild:BatchGetBuilds",
+        "codebuild:StartBuild",
+        "codebuild:StopBuild"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildImage74257FD8",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildDeployPipelineBuildDockerBuildPushCodePipelineActionRoleDefaultPolicy31694614",
+    "Roles": [
+     {
+      "Ref": "BuildDeployPipelineBuildDockerBuildPushCodePipelineActionRole760EF965"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Build/DockerBuildPush/CodePipelineActionRole/DefaultPolicy/Resource"
+   }
+  },
+  "BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRole054540AB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineRole3223E55F",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Deploy/EcsFargateDeploy/CodePipelineActionRole/Resource"
+   }
+  },
+  "BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRoleDefaultPolicy5E7BE922": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "codedeploy:GetApplication",
+        "codedeploy:GetApplicationRevision",
+        "codedeploy:RegisterApplicationRevision"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":codedeploy:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":application:",
+          {
+           "Ref": "CodeDeployGroupApplication13EFBDA6"
+          }
+         ]
+        ]
+       }
+      },
+      {
+       "Action": [
+        "codedeploy:CreateDeployment",
+        "codedeploy:GetDeployment"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":codedeploy:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":deploymentgroup:",
+          {
+           "Ref": "CodeDeployGroupApplication13EFBDA6"
+          },
+          "/",
+          {
+           "Ref": "CodeDeployGroup58220FC8"
+          }
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "codedeploy:GetDeploymentConfig",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          "arn:",
+          {
+           "Ref": "AWS::Partition"
+          },
+          ":codedeploy:",
+          {
+           "Ref": "AWS::Region"
+          },
+          ":",
+          {
+           "Ref": "AWS::AccountId"
+          },
+          ":deploymentconfig:CodeDeployDefault.ECSAllAtOnce"
+         ]
+        ]
+       }
+      },
+      {
+       "Action": "ecs:RegisterTaskDefinition",
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": "iam:PassRole",
+       "Condition": {
+        "StringEqualsIfExists": {
+         "iam:PassedToService": [
+          "ecs-tasks.amazonaws.com"
+         ]
+        }
+       },
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "BuildDeployPipelineArtifactsBucket5D4A76C1",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "BuildDeployPipelineArtifactsBucket5D4A76C1",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRoleDefaultPolicy5E7BE922",
+    "Roles": [
+     {
+      "Ref": "BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRole054540AB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/BuildDeployPipeline/Deploy/EcsFargateDeploy/CodePipelineActionRole/DefaultPolicy/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/31TXW/bMAz8LX1XtSHdw16T9APFhs1Iir4GtMx6bGTJEKkEgeD/PsjyEi8FChjg3flIk5S10Itv3/XXGzjyrWn2t5ZqnbYCZq/gyLvEdztgRmG9zEHxnU6raPYoK2BUBar1m5tQCZW3ZE4XufBBGd+g8V1HotMGe88kPoy+CxsUHtAJ67SJFsd30eKg0IRPkwzr9AihBcEX4P09vpEjIe+y81rxToAchrlmIwuG7P4I19CDITlVwR+owbBk9oYgJ7KavrrFcCAzdjzBQRF0Om38NEeOl9XMl1JHso1OVfDvaMZ9TnBQFrq6AZ0eozP/xjnjLbnWovizkhex0Om1N9n3Wq1VFWtLZhtrVw7qgjY+5l3VpbuiX7TZiGdzBg/PVQ6/QJ5A8AgnVQU65PnPhZ+dYHB4NpROJrYUAfOnQydqiyYGktNT8LEve/tMeHZtQOZBoQUWMtZDU4MFZ8i1h4VOy763ZMaWXyC0KOc6czpz/fTQrMYK5bT/43MfsaCbPBMuB9dgb/1JpwfD9yPMg5XvPBielcipV/QqoRTsqUdLDnWqJjT+DRMe1L5jnX7guNQclpaAx+IZDIMa7+lWoCXXKhNZfLcLyD4Gg6yXR16P2maS1DXN12rCc/F3lD7KoJxvUL/zl8NiofNz885EtyE6oQ71psS/iOBRE1YEAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "CodepipelineBuildDeployStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "PublicAlbEndpoint": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "http://",
+      {
+       "Fn::GetAtt": [
+        "PublicAlb84330974",
+        "DNSName"
+       ]
+      }
+     ]
+    ]
+   }
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

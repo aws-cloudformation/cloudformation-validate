@@ -1,0 +1,61 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DatabaseEngine:
+    Type: String
+  License:
+    Type: String
+Resources:
+  # Fails on invalid instance type
+  DBInstance1:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.m4.xlarge
+      Engine: aurora-mysql
+  # invalid Instance Type
+  DBInstance2:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.x2e.xlarge
+      Engine: oracle-se2
+      LicenseModel: bring-your-own-license
+  # db.x1e.xlarge isn't for license include
+  DBInstance3:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.x1e.xlarge
+      Engine: oracle-se2
+      LicenseModel: license-included
+  # Fails in another region
+  DBInstance4:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.x2iedn.8xlarge
+      Engine: mysql
+  # Doesn't fail when InstanceClass is wrong but the Engine can't be determined
+  DBInstance5:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: notanappropriatetype
+      Engine: !Ref DatabaseEngine
+  # Doesn't fail when InstanceClass is wrong but the LicenseModel can't be determined
+  DBInstance7:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: notanappropriatetype
+      Engine: sqlserver-se
+      LicenseModel: !Ref License
+  # Doesn't fail when LicenseModel isn't a valid value
+  DBInstance8:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: notanappropriatetype
+      Engine: sqlserver-se
+      LicenseModel: bad-license-model
+  # Doesn't fail when Egnine isn't a valid value
+  DBInstance9:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: notanappropriatetype
+      Engine: bad-ee
+      LicenseModel: license-included

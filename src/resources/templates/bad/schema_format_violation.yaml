@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-12345678
+      SubnetId: subnet-bad
+      SecurityGroupIds:
+        - sg-bad
