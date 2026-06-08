@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  R:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Properties:
+      AvailabilityZones:
+        - us-east-1a
+        - us-east-1a
+        - us-east-1b

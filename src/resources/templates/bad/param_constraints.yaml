@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  PatternParam:
+    Type: String
+    Default: "123-bad"
+    AllowedPattern: "^[a-z]+$"
+  ShortParam:
+    Type: String
+    Default: "ab"
+    MinLength: 5
+  LongParam:
+    Type: String
+    Default: "this is way too long for the limit"
+    MaxLength: 10
+  SmallNumber:
+    Type: Number
+    Default: 3
+    MinValue: 10
+  BigNumber:
+    Type: Number
+    Default: 200
+    MaxValue: 100
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket

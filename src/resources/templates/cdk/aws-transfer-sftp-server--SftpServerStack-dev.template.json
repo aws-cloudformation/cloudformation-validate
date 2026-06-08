@@ -1,0 +1,737 @@
+{
+ "Resources": {
+  "VPCB9E5F0B4": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/Resource"
+   }
+  },
+  "VPCPublicSubnet1SubnetB4246D30": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/18",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet1/Subnet"
+   }
+  },
+  "VPCPublicSubnet1RouteTableFEE4B781": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/PublicSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet1/RouteTable"
+   }
+  },
+  "VPCPublicSubnet1RouteTableAssociation0B0896DC": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VPCPublicSubnet1RouteTableFEE4B781"
+    },
+    "SubnetId": {
+     "Ref": "VPCPublicSubnet1SubnetB4246D30"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet1/RouteTableAssociation"
+   }
+  },
+  "VPCPublicSubnet1DefaultRoute91CEF279": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "VPCIGWB7E252D3"
+    },
+    "RouteTableId": {
+     "Ref": "VPCPublicSubnet1RouteTableFEE4B781"
+    }
+   },
+   "DependsOn": [
+    "VPCVPCGW99B986DC"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet1/DefaultRoute"
+   }
+  },
+  "VPCPublicSubnet2Subnet74179F39": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.64.0/18",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Public"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet2/Subnet"
+   }
+  },
+  "VPCPublicSubnet2RouteTable6F1A15F1": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/PublicSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet2/RouteTable"
+   }
+  },
+  "VPCPublicSubnet2RouteTableAssociation5A808732": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VPCPublicSubnet2RouteTable6F1A15F1"
+    },
+    "SubnetId": {
+     "Ref": "VPCPublicSubnet2Subnet74179F39"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet2/RouteTableAssociation"
+   }
+  },
+  "VPCPublicSubnet2DefaultRouteB7481BBA": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "VPCIGWB7E252D3"
+    },
+    "RouteTableId": {
+     "Ref": "VPCPublicSubnet2RouteTable6F1A15F1"
+    }
+   },
+   "DependsOn": [
+    "VPCVPCGW99B986DC"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/PublicSubnet2/DefaultRoute"
+   }
+  },
+  "VPCIsolatedSubnet1SubnetEBD00FC6": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.128.0/18",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/IsolatedSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/IsolatedSubnet1/Subnet"
+   }
+  },
+  "VPCIsolatedSubnet1RouteTableEB156210": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/IsolatedSubnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/IsolatedSubnet1/RouteTable"
+   }
+  },
+  "VPCIsolatedSubnet1RouteTableAssociationA2D18F7C": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VPCIsolatedSubnet1RouteTableEB156210"
+    },
+    "SubnetId": {
+     "Ref": "VPCIsolatedSubnet1SubnetEBD00FC6"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/IsolatedSubnet1/RouteTableAssociation"
+   }
+  },
+  "VPCIsolatedSubnet2Subnet4B1C8CAA": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.192.0/18",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/IsolatedSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/IsolatedSubnet2/Subnet"
+   }
+  },
+  "VPCIsolatedSubnet2RouteTable9B4F78DC": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC/IsolatedSubnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/IsolatedSubnet2/RouteTable"
+   }
+  },
+  "VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "VPCIsolatedSubnet2RouteTable9B4F78DC"
+    },
+    "SubnetId": {
+     "Ref": "VPCIsolatedSubnet2Subnet4B1C8CAA"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/IsolatedSubnet2/RouteTableAssociation"
+   }
+  },
+  "VPCIGWB7E252D3": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "SftpServerStack-dev/VPC"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/IGW"
+   }
+  },
+  "VPCVPCGW99B986DC": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "VPCIGWB7E252D3"
+    },
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/VPC/VPCGW"
+   }
+  },
+  "CloudWatchLoggingRole8E23D1D4": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "transfer.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": "IAM role used by AWS Transfer for logging",
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents"
+         ],
+         "Effect": "Allow",
+         "Resource": {
+          "Fn::Join": [
+           "",
+           [
+            "arn:aws:logs:us-east-1:",
+            {
+             "Ref": "AWS::AccountId"
+            },
+            ":log-group:/aws/transfer/*"
+           ]
+          ]
+         }
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "loggingRole"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/CloudWatchLoggingRole/Resource"
+   }
+  },
+  "SftpServerSG79C38856": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for SFTP server",
+    "GroupName": "SFTPServerSG",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "255.255.255.255/32",
+      "Description": "Disallow all traffic",
+      "FromPort": 252,
+      "IpProtocol": "icmp",
+      "ToPort": 86
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow SSH inbound",
+      "FromPort": 22,
+      "IpProtocol": "tcp",
+      "ToPort": 22
+     }
+    ],
+    "VpcId": {
+     "Ref": "VPCB9E5F0B4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SftpServerSG/Resource"
+   }
+  },
+  "SftpEIP1": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc"
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SftpEIP1"
+   }
+  },
+  "SftpEIP2": {
+   "Type": "AWS::EC2::EIP",
+   "Properties": {
+    "Domain": "vpc"
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SftpEIP2"
+   }
+  },
+  "SFTPServer": {
+   "Type": "AWS::Transfer::Server",
+   "Properties": {
+    "Domain": "S3",
+    "EndpointDetails": {
+     "AddressAllocationIds": [
+      {
+       "Fn::GetAtt": [
+        "SftpEIP1",
+        "AllocationId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SftpEIP2",
+        "AllocationId"
+       ]
+      }
+     ],
+     "SecurityGroupIds": [
+      {
+       "Fn::GetAtt": [
+        "SftpServerSG79C38856",
+        "GroupId"
+       ]
+      }
+     ],
+     "SubnetIds": [
+      {
+       "Ref": "VPCPublicSubnet1SubnetB4246D30"
+      },
+      {
+       "Ref": "VPCPublicSubnet2Subnet74179F39"
+      }
+     ],
+     "VpcId": {
+      "Ref": "VPCB9E5F0B4"
+     }
+    },
+    "EndpointType": "VPC",
+    "IdentityProviderType": "SERVICE_MANAGED",
+    "LoggingRole": {
+     "Fn::GetAtt": [
+      "CloudWatchLoggingRole8E23D1D4",
+      "Arn"
+     ]
+    },
+    "Protocols": [
+     "SFTP"
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SFTPServer"
+   }
+  },
+  "SftpAccessPolicy6C559C82": {
+   "Type": "AWS::IAM::ManagedPolicy",
+   "Properties": {
+    "Description": "SFTP access policy",
+    "ManagedPolicyName": "SftpAccessPolicy",
+    "Path": "/",
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:GetObject*",
+        "s3:GetBucket*",
+        "s3:List*",
+        "s3:DeleteObject*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging",
+        "s3:Abort*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "IncomingDataStack-dev:ExportsOutputFnGetAttIncomingDataBucket3554D835Arn7B042284"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "IncomingDataStack-dev:ExportsOutputFnGetAttIncomingDataBucket3554D835Arn7B042284"
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SftpAccessPolicy/Resource"
+   }
+  },
+  "SftpAccessRoleBDBB5CE1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "transfer.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Ref": "SftpAccessPolicy6C559C82"
+     }
+    ],
+    "RoleName": "SftpAccessRole"
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SftpAccessRole/Resource"
+   }
+  },
+  "SftpLogGroupC79A244B": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/transfer/",
+       {
+        "Fn::GetAtt": [
+         "SFTPServer",
+         "ServerId"
+        ]
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 30
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SftpLogGroup/Resource"
+   }
+  },
+  "SFTPUser": {
+   "Type": "AWS::Transfer::User",
+   "Properties": {
+    "HomeDirectory": {
+     "Fn::Join": [
+      "",
+      [
+       "/",
+       {
+        "Fn::ImportValue": "IncomingDataStack-dev:ExportsOutputRefIncomingDataBucket3554D8354A965D28"
+       },
+       "/incoming-data"
+      ]
+     ]
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "SftpAccessRoleBDBB5CE1",
+      "Arn"
+     ]
+    },
+    "ServerId": {
+     "Fn::GetAtt": [
+      "SFTPServer",
+      "ServerId"
+     ]
+    },
+    "SshPublicKeys": [],
+    "UserName": "sftp-user-dev"
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/SFTPUser"
+   }
+  },
+  "MetricFilter1B93B6E5": {
+   "Type": "AWS::Logs::MetricFilter",
+   "Properties": {
+    "FilterPattern": "?\"ERRORS AUTH_FAILURE\" ?\"ERROR Message\"",
+    "LogGroupName": {
+     "Ref": "SftpLogGroupC79A244B"
+    },
+    "MetricTransformations": [
+     {
+      "MetricName": "ErrorLog",
+      "MetricNamespace": "SftpServer",
+      "MetricValue": "1",
+      "Unit": "Count"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/MetricFilter/Resource"
+   }
+  },
+  "AlarmMetricFilter9DBA3966": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmDescription": "Alarm if there are too many errors in the logs",
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "DatapointsToAlarm": 1,
+    "EvaluationPeriods": 5,
+    "MetricName": "ErrorLog",
+    "Namespace": "SftpServer",
+    "Period": 300,
+    "Statistic": "Average",
+    "Threshold": 1
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/AlarmMetricFilter/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/12OQWsCMRCFf4v3mJalh15FWhGULmvrtcxmRx3NJjKZuEjIfy+7itsWAvPm4+W9KXTx8qqfJ9CFqWlOU0u1ThsBc1LQhe+EptBpezZqvnPbcq7KWFsym1g7lJ6NqvJR8BNqiyMf2SwEbwiEvHuYVcl0AcExY+kE2aEsQLCD6730vs1EwBxadKI2aCKTXBfs43mo+w/elmVWBK1Olb9dNMw1ONhjU3pLZoj/A7ISBhd2yDoNoXxB7l1fATkr6/dBp5XfP1oeeo3CZN7Jyu3D7z0rY31sOhBz0GlmgdveMoicVYXBRzbDjR9RzlGycr5BfQxPl6LQ/ZscA9GUoxNqUVe3+QNXg02EuwEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "SftpServerStack-dev/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "SFTPServerEndpoint": {
+   "Description": "Server Endpoint",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      {
+       "Fn::GetAtt": [
+        "SFTPServer",
+        "ServerId"
+       ]
+      },
+      ".server.transfer.us-east-1.amazonaws.com"
+     ]
+    ]
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

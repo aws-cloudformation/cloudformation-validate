@@ -1,0 +1,13 @@
+rule check_bucket_versioning {
+    AWS::S3::Bucket {
+        Properties.VersioningConfiguration EXISTS
+        <<S3 bucket must have versioning enabled>>
+    }
+}
+
+rule check_bucket_lifecycle {
+    AWS::S3::Bucket {
+        Properties.LifecycleConfiguration EXISTS
+        <<S3 bucket should have lifecycle rules configured>>
+    }
+}

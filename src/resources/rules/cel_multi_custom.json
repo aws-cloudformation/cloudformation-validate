@@ -1,0 +1,16 @@
+{"rules": [
+    {
+        "rule_id": "CUSTOM010",
+        "severity": "ERROR",
+        "resource_type": "AWS::S3::Bucket",
+        "expression": "!has(properties.VersioningConfiguration)",
+        "message": "S3 bucket must have versioning enabled"
+    },
+    {
+        "rule_id": "CUSTOM011",
+        "severity": "WARN",
+        "resource_type": "AWS::S3::Bucket",
+        "expression": "!has(properties.LifecycleConfiguration)",
+        "message": "S3 bucket should have lifecycle rules configured"
+    }
+]}

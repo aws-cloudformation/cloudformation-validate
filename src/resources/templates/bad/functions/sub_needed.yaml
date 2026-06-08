@@ -1,0 +1,73 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  AMIId:
+    Type: 'String'
+    Description: 'The AMI ID for the image to use.'
+Resources:
+  myInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "${AMIId}" # Sub without a variable
+      AdditionalInfo: !Sub "${AMIId}" # We add a valid sub in to silence W2001
+  myPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+      - testRole
+      PolicyName: test
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Action:
+            - "iam:UploadSSHPublicKey"
+          Resource: "arn:aws:iam::${AWS::AccountId}:user/${aws:username}-${AMIId}"
+        - Effect: "Deny"
+          Action:
+             - "iam:GetLoginProfile"
+          NotResource: "arn:aws:iam::${AWS::AccountId}:user/${aws:username}-${AMIId}"
+  mySnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: "${aws:username}-topic"
+
+  TestBadStateMachine1:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString:
+        Fn::Join:
+        - "\n"
+        - - "{"
+          - '    "StartAt": "Test",'
+          - '    "States": {'
+          - '        "Test": {'
+          - '            "End": true,'
+          - '            "Resource": "${definition_substitution_1}",'
+          - '            "ResultPath": "$.result",'
+          - '            "Type": "Task"'
+          - "        }"
+          - "    }"
+          - "}"
+      DefinitionSubstitutions:
+        definition_substitution_2: test
+      RoleArn: arn:aws:iam::123456789012:role/abc
+
+  TestBadStateMachine2:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString:
+        Fn::Join:
+        - "\n"
+        - - "{"
+          - '    "StartAt": "Test",'
+          - '    "States": {'
+          - '        "Test": {'
+          - '            "End": true,'
+          - '            "Resource": "${definition_substitution_1}",'
+          - '            "ResultPath": "$.result",'
+          - '            "Type": "Task"'
+          - "        }"
+          - "    }"
+          - "}"
+      RoleArn: arn:aws:iam::123456789012:role/abc

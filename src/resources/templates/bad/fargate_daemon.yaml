@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  FargateDaemon:
+    Type: AWS::ECS::Service
+    Properties:
+      LaunchType: FARGATE
+      SchedulingStrategy: DAEMON
+      TaskDefinition: !Ref TaskDef
+      Cluster: !Ref Cluster
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: test
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: "256"
+      Memory: "512"
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+  Cluster:
+    Type: AWS::ECS::Cluster

@@ -1,0 +1,79 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Test Good Sub Strings
+Parameters:
+  myPackage:
+    Type: String
+    Default: httpd
+    Description: Web Package
+  myAppPackage:
+    Type: String
+    Default: java
+    Description: App Package
+  mySubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+  CidrBlock:
+    Type: String
+Resources:
+  myInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            /etc/aws-signing-proxy.yml:
+              content: !Sub |
+                listen-address: 127.0.0.1
+                port: 9200
+                target: https://${mySubStack.Outputs.DomainEndpoint}
+                region: ${AWS::Region}
+                loadbalancer: ${myAlb.DNSName}
+    Properties:
+      ImageId: String
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+          - yum install ${myPackage}
+            yum install ${package}
+            yum install ${myCustomResource.Package}
+          - package: !Ref myAppPackage
+  mySubStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: String
+  myCustomResource:
+    Type: Custom::Test
+    Properties:
+      ServiceToken: Arn
+  myAlb:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      Name: !Sub ${AWS::StackName}-lb
+      Subnets: !Ref mySubnets
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-123456
+      InstanceType: t2.micro
+      UserData:
+        'Fn::Base64':
+          'Fn::Sub':
+            'Fn::Transform':  # Doesn't fail on Transform
+              Name: DynamicUserData
+  MyStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      ProductName: example
+      ProvisioningArtifactName: v1
+  myVPc2:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Fn::Sub:
+        - "${myCidr}${number}"
+        - myCidr: !Ref CidrBlock
+          number: 1
+Outputs:
+  OutputSub:
+    Value: !Sub '${MyStack.Outputs.Example}-example'

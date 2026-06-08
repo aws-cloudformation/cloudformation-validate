@@ -1,0 +1,63 @@
+name: Setup JVM toolchain
+description: >
+  Installs a consistent JVM build toolchain at the versions provided — JDK,
+  Kotlin compiler (kotlinc), ktlint, and (optionally) Gradle. Centralizes the
+  install logic so every workflow that touches the JVM bindings uses identical
+  steps and versions. Kotlin and ktlint are installed under $RUNNER_TEMP without
+  sudo so the action works on Linux, macOS, and Windows runners.
+
+inputs:
+  java-version:
+    description: "JDK major version (actions/setup-java)"
+    required: true
+  java-distribution:
+    description: "JDK distribution (actions/setup-java)"
+    required: true
+  kotlin-version:
+    description: "Kotlin compiler (kotlinc) version"
+    required: true
+  ktlint-version:
+    description: "ktlint version"
+    required: true
+  gradle-version:
+    description: >
+      Gradle version. Leave empty to skip Gradle setup — e.g. for the kotlinc/jar
+      based build.sh which does not use Gradle.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Setup JDK ${{ inputs.java-version }} (${{ inputs.java-distribution }})
+      uses: actions/setup-java@v5
+      with:
+        distribution: ${{ inputs.java-distribution }}
+        java-version: ${{ inputs.java-version }}
+
+    - name: Install Kotlin compiler ${{ inputs.kotlin-version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        VER="${{ inputs.kotlin-version }}"
+        curl -fsSL -o "$RUNNER_TEMP/kotlin-compiler.zip" \
+          "https://github.com/JetBrains/kotlin/releases/download/v${VER}/kotlin-compiler-${VER}.zip"
+        unzip -q -o "$RUNNER_TEMP/kotlin-compiler.zip" -d "$RUNNER_TEMP/kotlin"
+        echo "$RUNNER_TEMP/kotlin/kotlinc/bin" >> "$GITHUB_PATH"
+
+    - name: Install ktlint ${{ inputs.ktlint-version }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        VER="${{ inputs.ktlint-version }}"
+        mkdir -p "$RUNNER_TEMP/bin"
+        curl -fsSL -o "$RUNNER_TEMP/bin/ktlint" \
+          "https://github.com/pinterest/ktlint/releases/download/${VER}/ktlint"
+        chmod +x "$RUNNER_TEMP/bin/ktlint"
+        echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+    - name: Setup Gradle ${{ inputs.gradle-version }}
+      if: ${{ inputs.gradle-version != '' }}
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        gradle-version: ${{ inputs.gradle-version }}
