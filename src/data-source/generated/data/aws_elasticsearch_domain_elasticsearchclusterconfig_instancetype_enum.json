@@ -1,0 +1,5 @@
+{
+  "aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum": {
+    "description": "Automatically updated using update_specs_from_pricing"
+  }
+}

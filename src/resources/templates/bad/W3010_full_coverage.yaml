@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# W3010 stress: every AZ path cfn-lint flags. Both engines must emit the same
+# set of diagnostics with messages matching cfn-lint's format.
+Resources:
+  Asg:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones:
+        - us-east-1a
+        - us-east-1b
+      MinSize: "1"
+      MaxSize: "1"
+      LaunchConfigurationName: dummy
+  Host:
+    Type: AWS::EC2::Host
+    Properties:
+      AvailabilityZone: us-east-1a
+      InstanceType: mac1.metal
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: us-east-1a
+      ImageId: ami-0abcd1234ef567890
+      InstanceType: t3.micro
+  Lt:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        Placement:
+          AvailabilityZone: us-east-1a
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: vpc-0abcd1234ef567890
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: us-east-1a
+  Volume:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: us-east-1a
+      Size: 8
+  Elb:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      AvailabilityZones:
+        - us-east-1a
+      Listeners:
+        - InstancePort: "80"
+          LoadBalancerPort: "80"
+          Protocol: HTTP
+  Tg:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: vpc-0abcd1234ef567890
+      Targets:
+        - Id: i-0abcd1234ef567890
+          AvailabilityZone: us-east-1a
+  Rds:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AvailabilityZone: us-east-1a
+      DBInstanceClass: db.t3.micro
+      Engine: mysql
+      AllocatedStorage: "20"

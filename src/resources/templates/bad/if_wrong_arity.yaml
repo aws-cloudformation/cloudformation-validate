@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  IsProd:
+    Fn::Equals:
+      - a
+      - b
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::If:
+          - IsProd
+          - prod-bucket

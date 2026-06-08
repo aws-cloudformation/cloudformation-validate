@@ -1,0 +1,172 @@
+name: Build Artifacts
+run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  get-configs:
+    uses: ./.github/workflows/configs.yml
+
+  build-jvm:
+    needs: [ get-configs ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        # - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        # - { os: macos-15-intel, platform: darwin, arch: x64 }
+        # - { os: windows-latest, platform: win32, arch: x64 }
+        # - { os: windows-11-arm, platform: win32, arch: aarch64, java-distribution: microsoft }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: main
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache cargo build
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Install cargo-about ${{ needs.get-configs.outputs.cargo-about-version }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-about@${{ needs.get-configs.outputs.cargo-about-version }}
+
+    - name: Setup JVM toolchain
+      uses: ./.github/actions/setup-jvm-toolchain
+      with:
+        java-version: ${{ needs.get-configs.outputs.java-version }}
+        java-distribution: ${{ matrix.java-distribution || needs.get-configs.outputs.java-distribution }}
+        kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
+        ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Build JVM bindings
+      working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+      run: ./build.sh
+
+    - name: Upload JVM jar
+      uses: actions/upload-artifact@v7
+      with:
+        name: jvm-${{ matrix.platform }}-${{ matrix.arch }}
+        path: ${{ env.WORKING_DIR }}/bindings-jvm/generated/cloudformation-validate-jvm-*.jar
+        if-no-files-found: error
+
+  build-wasm:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: main
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache cargo build
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Install cargo-about ${{ needs.get-configs.outputs.cargo-about-version }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-about@${{ needs.get-configs.outputs.cargo-about-version }}
+
+    - name: Setup Node.js ${{ needs.get-configs.outputs.node-version }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ needs.get-configs.outputs.node-version }}
+
+    - name: Install wasm-pack ${{ needs.get-configs.outputs.wasm-pack-version }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: wasm-pack@${{ needs.get-configs.outputs.wasm-pack-version }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Build WASM bindings
+      working-directory: ${{ env.WORKING_DIR }}/bindings-wasm
+      run: ./build.sh
+
+    - name: Upload WASM dist
+      uses: actions/upload-artifact@v7
+      with:
+        name: wasm-dist
+        path: ${{ env.WORKING_DIR }}/bindings-wasm/dist
+        if-no-files-found: error
+
+  pull-request:
+    needs: [ get-configs, build-jvm, build-wasm ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: main
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v8
+      with:
+        path: incoming
+
+    - name: Stage raw bundles
+      working-directory: ${{ env.WORKING_DIR }}
+      run: |
+        rm -rf bindings-jvm/generated bindings-wasm/dist
+        mkdir -p bindings-jvm/generated bindings-wasm/dist
+        find "$GITHUB_WORKSPACE/incoming" -name 'cloudformation-validate-jvm-*.jar' \
+          -exec cp {} bindings-jvm/generated/ \;
+        cp -R "$GITHUB_WORKSPACE/incoming/wasm-dist/." bindings-wasm/dist/
+        echo "Staged JVM jars:"; ls -1 bindings-jvm/generated
+        echo "Staged WASM dist:"; ls -1 bindings-wasm/dist
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v8
+      with:
+        commit-message: 'chore: update binding bundles'
+        branch: automated/build-artifacts
+        delete-branch: true
+        title: 'chore: Update Bindings'
+        body: |
+          Automated update of the binding bundles.
+
+          * **JVM** — per-platform, self-contained jars in
+            `${{ env.WORKING_DIR }}/bindings-jvm/generated/`
+            (linux / darwin / win32 x x64 / aarch64), built via
+            `bindings-jvm/build.sh`.
+          * **WASM** — `${{ env.WORKING_DIR }}/bindings-wasm/dist/`, built via
+            `bindings-wasm/build.sh`.
+
+        labels: automated, build-artifacts
+        add-paths: |
+          ${{ env.WORKING_DIR }}/bindings-jvm/generated/**
+          ${{ env.WORKING_DIR }}/bindings-wasm/dist/**

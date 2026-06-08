@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# E1150 parity exercise: multiple distinct malformed sg- values in NetworkInterfaces
+# GroupSet on a single resource. Both engines must emit one diagnostic per distinct
+# bad value (not once per resource).
+Resources:
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0abcd1234ef567890
+      InstanceType: t3.micro
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          SubnetId: subnet-0abcd1234ef567890
+          GroupSet:
+            - sg-BADBAD1
+            - sg-BADBAD2

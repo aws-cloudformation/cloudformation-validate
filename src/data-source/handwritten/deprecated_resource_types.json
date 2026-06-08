@@ -1,0 +1,5 @@
+{
+  "deprecated_resource_types": [
+    "AWS::SDB::Domain"
+  ]
+}

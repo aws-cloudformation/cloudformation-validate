@@ -1,0 +1,5 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+    Condition: DoesNotExist

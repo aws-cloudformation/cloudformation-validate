@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Doc:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      Content:
+        schemaVersion: "2.2"
+        description: "Test document"
+        mainSteps:
+          - action: aws:runShellScript
+            name: test
+            inputs:
+              runCommand:
+                - echo hello

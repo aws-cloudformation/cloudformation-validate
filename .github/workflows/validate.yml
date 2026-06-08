@@ -1,0 +1,141 @@
+name: Validate
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to check out'
+        required: true
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to check out'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  get-configs:
+    uses: ./.github/workflows/configs.yml
+
+  lint:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Lint
+      working-directory: ${{ needs.get-configs.outputs.working-dir }}
+      run: cargo fmt --all --check
+
+  test:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache cargo build
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ needs.get-configs.outputs.working-dir }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Test
+      working-directory: ${{ needs.get-configs.outputs.working-dir }}
+      run: cargo test --locked --release --workspace
+
+  test-jvm:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache cargo build
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Setup JVM toolchain
+      uses: ./.github/actions/setup-jvm-toolchain
+      with:
+        java-version: ${{ needs.get-configs.outputs.java-version }}
+        java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
+        kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
+        ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+        gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Test
+      working-directory: ${{ env.WORKING_DIR }}/bindings-jvm/tests
+      run: ./run.sh
+
+  test-wasm:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache cargo build
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Setup Node.js ${{ needs.get-configs.outputs.node-version }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ needs.get-configs.outputs.node-version }}
+
+    - name: Install wasm-pack ${{ needs.get-configs.outputs.wasm-pack-version }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: wasm-pack@${{ needs.get-configs.outputs.wasm-pack-version }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Test
+      working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/tests
+      run: ./run.sh

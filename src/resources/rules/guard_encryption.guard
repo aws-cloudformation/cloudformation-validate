@@ -1,0 +1,6 @@
+rule check_bucket_encryption {
+    AWS::S3::Bucket {
+        Properties.BucketEncryption EXISTS
+        <<S3 bucket must have encryption configured>>
+    }
+}
