@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # F3020: dependentExcluded — ExtendedStatistic and Statistic are mutually exclusive
+  AlarmBothStats:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      ExtendedStatistic: p99
+      Threshold: 80
+
+  # F3058: requiredOr — Subnet needs at least one of CidrBlock, Ipv4IpamPoolId, etc.
+  SubnetNoCidr:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: vpc-12345678
+
+  # F3014: requiredXor — ScalingPolicy needs exactly one of ScalingTargetId or ResourceId
+  ScalingPolicyBothIds:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: test
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: target-1
+      ResourceId: resource-1
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  # F3021: dependentRequired — ResourceId requires ScalableDimension and ServiceNamespace
+  ScalingPolicyMissingDeps:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: test2
+      PolicyType: TargetTrackingScaling
+      ResourceId: resource-2

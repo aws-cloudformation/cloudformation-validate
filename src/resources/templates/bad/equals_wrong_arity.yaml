@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  Bad:
+    Fn::Equals:
+      - a
+      - b
+      - c
+Resources:
+  R:
+    Type: AWS::S3::Bucket

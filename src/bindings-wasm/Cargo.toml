@@ -1,0 +1,35 @@
+[package]
+name = "bindings-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WASM bindings for the Validation Engine"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+validation-engine = { path = "../validation-engine", features = ["wasm-bindings"] }
+diagnostics = { path = "../diagnostics", features = ["wasm-bindings"] }
+rules = { path = "../rules", features = ["wasm-bindings"] }
+template-model = { path = "../template-model", features = ["wasm-bindings"] }
+rego-engine = { path = "../rego-engine" }
+cel-engine = { path = "../cel-engine" }
+schema-validator = { path = "../schema-validator" }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+tsify = { version = "0.4", features = ["js"] }
+console_error_panic_hook = "0.1"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = [
+    "-O3",
+    "--enable-bulk-memory",
+    "--enable-simd",
+    "--enable-nontrapping-float-to-int",
+    "--enable-sign-ext",
+    "--enable-reference-types",
+    "--enable-mutable-globals",
+]

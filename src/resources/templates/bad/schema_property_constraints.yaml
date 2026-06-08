@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  PatternBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: INVALID_UPPERCASE_BUCKET
+
+  ReadOnlyProp:
+    Type: AWS::ACMPCA::Certificate
+    Properties:
+      CertificateAuthorityArn: arn:aws:acm-pca:us-east-1:123456789012:certificate-authority/test
+      CertificateSigningRequest: test
+      SigningAlgorithm: SHA256WITHRSA
+      Validity:
+        Type: DAYS
+        Value: 365
+      Arn: should-not-be-here
+
+  DeprecatedProp:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: test-workgroup
+      WorkGroupConfigurationUpdates:
+        EnforceWorkGroupConfiguration: true

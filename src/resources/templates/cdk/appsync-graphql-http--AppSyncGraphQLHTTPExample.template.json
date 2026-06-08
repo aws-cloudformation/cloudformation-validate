@@ -1,0 +1,472 @@
+{
+ "Resources": {
+  "PostsApiCdk": {
+   "Type": "AWS::AppSync::GraphQLApi",
+   "Properties": {
+    "AuthenticationType": "API_KEY",
+    "Name": "posts-api-cdk"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/PostsApiCdk"
+   }
+  },
+  "PostsApiKey": {
+   "Type": "AWS::AppSync::ApiKey",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "PostsApiCdk",
+      "ApiId"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/PostsApiKey"
+   }
+  },
+  "PostsSchema": {
+   "Type": "AWS::AppSync::GraphQLSchema",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "PostsApiCdk",
+      "ApiId"
+     ]
+    },
+    "Definition": "type Post {\n  userId: Int\n  id: Int\n  title: String\n  body: String\n}\n\ninput PostInput {\n  userId: Int!\n  title: String!\n  body: String!\n}\n\ntype Mutation {\n  save(postInput: PostInput!): Post\n  delete(id: Int!): AWSJSON\n}\n\ntype Query {\n  all: [Post]\n  getOne(id: Int!): Post\n}\n\ntype Schema {\n  query: Query\n  mutation: Mutation\n}\n"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/PostsSchema"
+   }
+  },
+  "PostsDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "PostsApiCdk",
+      "ApiId"
+     ]
+    },
+    "HttpConfig": {
+     "Endpoint": "https://jsonplaceholder.typicode.com"
+    },
+    "Name": "PostsApiDataSource",
+    "Type": "HTTP"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/PostsDataSource"
+   }
+  },
+  "GetOneQueryResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "PostsApiCdk",
+      "ApiId"
+     ]
+    },
+    "Code": "import { util } from \"@aws-appsync/utils\";\nexport function request(ctx) {\n    return {\n        method: \"GET\",\n        resourcePath: `/posts/${ctx.args.id}`,\n        params: {\n            headers: {\n                \"content-type\": \"Application/json\",\n            },\n        },\n    };\n}\nexport function response(ctx) {\n    const { result } = ctx;\n    if (result.statusCode !== 200) {\n        return util.appendError(result.body, `${result.statusCode}`);\n    }\n    const body = JSON.parse(result.body);\n    return body;\n}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2V0T25lLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiZ2V0T25lLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLE9BQU8sRUFBRSxJQUFJLEVBQUUsTUFBTSxvQkFBb0IsQ0FBQztBQUUxQyxNQUFNLFVBQVUsT0FBTyxDQUFDLEdBQVE7SUFDOUIsT0FBTztRQUNMLE1BQU0sRUFBRSxLQUFLO1FBQ2IsWUFBWSxFQUFFLFVBQVUsR0FBRyxDQUFDLElBQUksQ0FBQyxFQUFFLEVBQUU7UUFDckMsTUFBTSxFQUFFO1lBQ04sT0FBTyxFQUFFO2dCQUNQLGNBQWMsRUFBRSxrQkFBa0I7YUFDbkM7U0FDRjtLQUNGLENBQUM7QUFDSixDQUFDO0FBRUQsTUFBTSxVQUFVLFFBQVEsQ0FBQyxHQUFRO0lBQy9CLE1BQU0sRUFBRSxNQUFNLEVBQUUsR0FBRyxHQUFHLENBQUM7SUFFdkIsSUFBSSxNQUFNLENBQUMsVUFBVSxLQUFLLEdBQUcsRUFBRSxDQUFDO1FBQzlCLE9BQU8sSUFBSSxDQUFDLFdBQVcsQ0FBQyxNQUFNLENBQUMsSUFBSSxFQUFFLEdBQUcsTUFBTSxDQUFDLFVBQVUsRUFBRSxDQUFDLENBQUM7SUFDL0QsQ0FBQztJQUVELE1BQU0sSUFBSSxHQUFHLElBQUksQ0FBQyxLQUFLLENBQUMsTUFBTSxDQUFDLElBQUksQ0FBQyxDQUFDO0lBQ3JDLE9BQU8sSUFBSSxDQUFDO0FBQ2QsQ0FBQyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHV0aWwgfSBmcm9tIFwiQGF3cy1hcHBzeW5jL3V0aWxzXCI7XG5cbmV4cG9ydCBmdW5jdGlvbiByZXF1ZXN0KGN0eDogYW55KSB7XG4gIHJldHVybiB7XG4gICAgbWV0aG9kOiBcIkdFVFwiLFxuICAgIHJlc291cmNlUGF0aDogYC9wb3N0cy8ke2N0eC5hcmdzLmlkfWAsXG4gICAgcGFyYW1zOiB7XG4gICAgICBoZWFkZXJzOiB7XG4gICAgICAgIFwiY29udGVudC10eXBlXCI6IFwiQXBwbGljYXRpb24vanNvblwiLFxuICAgICAgfSxcbiAgICB9LFxuICB9O1xufVxuXG5leHBvcnQgZnVuY3Rpb24gcmVzcG9uc2UoY3R4OiBhbnkpIHtcbiAgY29uc3QgeyByZXN1bHQgfSA9IGN0eDtcblxuICBpZiAocmVzdWx0LnN0YXR1c0NvZGUgIT09IDIwMCkge1xuICAgIHJldHVybiB1dGlsLmFwcGVuZEVycm9yKHJlc3VsdC5ib2R5LCBgJHtyZXN1bHQuc3RhdHVzQ29kZX1gKTtcbiAgfVxuXG4gIGNvbnN0IGJvZHkgPSBKU09OLnBhcnNlKHJlc3VsdC5ib2R5KTtcbiAgcmV0dXJuIGJvZHk7XG59XG4iXX0=",
+    "DataSourceName": "PostsApiDataSource",
+    "FieldName": "getOne",
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    },
+    "TypeName": "Query"
+   },
+   "DependsOn": [
+    "PostsSchema"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/GetOneQueryResolver"
+   }
+  },
+  "GetAllQueryResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "PostsApiCdk",
+      "ApiId"
+     ]
+    },
+    "Code": "import { util } from \"@aws-appsync/utils\";\nexport function request(_ctx) {\n    return {\n        method: \"GET\",\n        resourcePath: \"/posts\",\n    };\n}\nexport function response(ctx) {\n    const { result } = ctx;\n    if (result.statusCode !== 200) {\n        return util.appendError(result.body, `${result.statusCode}`);\n    }\n    const body = JSON.parse(result.body);\n    return body;\n}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2V0QWxsLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiZ2V0QWxsLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLE9BQU8sRUFBRSxJQUFJLEVBQUUsTUFBTSxvQkFBb0IsQ0FBQztBQUUxQyxNQUFNLFVBQVUsT0FBTyxDQUFDLElBQVM7SUFDL0IsT0FBTztRQUNMLE1BQU0sRUFBRSxLQUFLO1FBQ2IsWUFBWSxFQUFFLFFBQVE7S0FDdkIsQ0FBQztBQUNKLENBQUM7QUFFRCxNQUFNLFVBQVUsUUFBUSxDQUFDLEdBQVE7SUFDL0IsTUFBTSxFQUFFLE1BQU0sRUFBRSxHQUFHLEdBQUcsQ0FBQztJQUV2QixJQUFJLE1BQU0sQ0FBQyxVQUFVLEtBQUssR0FBRyxFQUFFLENBQUM7UUFDOUIsT0FBTyxJQUFJLENBQUMsV0FBVyxDQUFDLE1BQU0sQ0FBQyxJQUFJLEVBQUUsR0FBRyxNQUFNLENBQUMsVUFBVSxFQUFFLENBQUMsQ0FBQztJQUMvRCxDQUFDO0lBRUQsTUFBTSxJQUFJLEdBQUcsSUFBSSxDQUFDLEtBQUssQ0FBQyxNQUFNLENBQUMsSUFBSSxDQUFDLENBQUM7SUFDckMsT0FBTyxJQUFJLENBQUM7QUFDZCxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgdXRpbCB9IGZyb20gXCJAYXdzLWFwcHN5bmMvdXRpbHNcIjtcblxuZXhwb3J0IGZ1bmN0aW9uIHJlcXVlc3QoX2N0eDogYW55KSB7XG4gIHJldHVybiB7XG4gICAgbWV0aG9kOiBcIkdFVFwiLFxuICAgIHJlc291cmNlUGF0aDogXCIvcG9zdHNcIixcbiAgfTtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIHJlc3BvbnNlKGN0eDogYW55KSB7XG4gIGNvbnN0IHsgcmVzdWx0IH0gPSBjdHg7XG5cbiAgaWYgKHJlc3VsdC5zdGF0dXNDb2RlICE9PSAyMDApIHtcbiAgICByZXR1cm4gdXRpbC5hcHBlbmRFcnJvcihyZXN1bHQuYm9keSwgYCR7cmVzdWx0LnN0YXR1c0NvZGV9YCk7XG4gIH1cblxuICBjb25zdCBib2R5ID0gSlNPTi5wYXJzZShyZXN1bHQuYm9keSk7XG4gIHJldHVybiBib2R5O1xufVxuIl19",
+    "DataSourceName": "PostsApiDataSource",
+    "FieldName": "all",
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    },
+    "TypeName": "Query"
+   },
+   "DependsOn": [
+    "PostsSchema"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/GetAllQueryResolver"
+   }
+  },
+  "SaveMutationResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "PostsApiCdk",
+      "ApiId"
+     ]
+    },
+    "Code": "import { util } from \"@aws-appsync/utils\";\nexport function request(ctx) {\n    return {\n        method: \"POST\",\n        resourcePath: \"/posts\",\n        params: {\n            headers: {\n                \"content-type\": \"Application/json\",\n            },\n            body: ctx.args.postInput,\n        },\n    };\n}\nexport function response(ctx) {\n    const { result } = ctx;\n    if (result.statusCode !== 201) {\n        return util.appendError(result.body, `${result.statusCode}`);\n    }\n    const body = JSON.parse(result.body);\n    return body;\n}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic2F2ZS5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbInNhdmUudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsT0FBTyxFQUFFLElBQUksRUFBRSxNQUFNLG9CQUFvQixDQUFDO0FBRTFDLE1BQU0sVUFBVSxPQUFPLENBQUMsR0FBUTtJQUM5QixPQUFPO1FBQ0wsTUFBTSxFQUFFLE1BQU07UUFDZCxZQUFZLEVBQUUsUUFBUTtRQUN0QixNQUFNLEVBQUU7WUFDTixPQUFPLEVBQUU7Z0JBQ1AsY0FBYyxFQUFFLGtCQUFrQjthQUNuQztZQUNELElBQUksRUFBRSxHQUFHLENBQUMsSUFBSSxDQUFDLFNBQVM7U0FDekI7S0FDRixDQUFDO0FBQ0osQ0FBQztBQUVELE1BQU0sVUFBVSxRQUFRLENBQUMsR0FBUTtJQUMvQixNQUFNLEVBQUUsTUFBTSxFQUFFLEdBQUcsR0FBRyxDQUFDO0lBRXZCLElBQUksTUFBTSxDQUFDLFVBQVUsS0FBSyxHQUFHLEVBQUUsQ0FBQztRQUM5QixPQUFPLElBQUksQ0FBQyxXQUFXLENBQUMsTUFBTSxDQUFDLElBQUksRUFBRSxHQUFHLE1BQU0sQ0FBQyxVQUFVLEVBQUUsQ0FBQyxDQUFDO0lBQy9ELENBQUM7SUFFRCxNQUFNLElBQUksR0FBRyxJQUFJLENBQUMsS0FBSyxDQUFDLE1BQU0sQ0FBQyxJQUFJLENBQUMsQ0FBQztJQUNyQyxPQUFPLElBQUksQ0FBQztBQUNkLENBQUMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1dGlsIH0gZnJvbSBcIkBhd3MtYXBwc3luYy91dGlsc1wiO1xuXG5leHBvcnQgZnVuY3Rpb24gcmVxdWVzdChjdHg6IGFueSkge1xuICByZXR1cm4ge1xuICAgIG1ldGhvZDogXCJQT1NUXCIsXG4gICAgcmVzb3VyY2VQYXRoOiBcIi9wb3N0c1wiLFxuICAgIHBhcmFtczoge1xuICAgICAgaGVhZGVyczoge1xuICAgICAgICBcImNvbnRlbnQtdHlwZVwiOiBcIkFwcGxpY2F0aW9uL2pzb25cIixcbiAgICAgIH0sXG4gICAgICBib2R5OiBjdHguYXJncy5wb3N0SW5wdXQsXG4gICAgfSxcbiAgfTtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIHJlc3BvbnNlKGN0eDogYW55KSB7XG4gIGNvbnN0IHsgcmVzdWx0IH0gPSBjdHg7XG5cbiAgaWYgKHJlc3VsdC5zdGF0dXNDb2RlICE9PSAyMDEpIHtcbiAgICByZXR1cm4gdXRpbC5hcHBlbmRFcnJvcihyZXN1bHQuYm9keSwgYCR7cmVzdWx0LnN0YXR1c0NvZGV9YCk7XG4gIH1cblxuICBjb25zdCBib2R5ID0gSlNPTi5wYXJzZShyZXN1bHQuYm9keSk7XG4gIHJldHVybiBib2R5O1xufVxuIl19",
+    "DataSourceName": "PostsApiDataSource",
+    "FieldName": "save",
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    },
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "PostsSchema"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/SaveMutationResolver"
+   }
+  },
+  "DeleteMutationResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Fn::GetAtt": [
+      "PostsApiCdk",
+      "ApiId"
+     ]
+    },
+    "Code": "import { util } from \"@aws-appsync/utils\";\nexport function request(ctx) {\n    return {\n        method: \"DELETE\",\n        resourcePath: `/posts/${ctx.args.id}`,\n        params: {\n            headers: {\n                \"content-type\": \"Application/json\",\n            },\n        },\n    };\n}\nexport function response(ctx) {\n    const { result } = ctx;\n    if (result.statusCode !== 200) {\n        return util.appendError(result.body, `${result.statusCode}`);\n    }\n    const body = JSON.parse(result.body);\n    return body;\n}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZGVsZXRlLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiZGVsZXRlLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLE9BQU8sRUFBRSxJQUFJLEVBQUUsTUFBTSxvQkFBb0IsQ0FBQztBQUUxQyxNQUFNLFVBQVUsT0FBTyxDQUFDLEdBQVE7SUFDOUIsT0FBTztRQUNMLE1BQU0sRUFBRSxRQUFRO1FBQ2hCLFlBQVksRUFBRSxVQUFVLEdBQUcsQ0FBQyxJQUFJLENBQUMsRUFBRSxFQUFFO1FBQ3JDLE1BQU0sRUFBRTtZQUNOLE9BQU8sRUFBRTtnQkFDUCxjQUFjLEVBQUUsa0JBQWtCO2FBQ25DO1NBQ0Y7S0FDRixDQUFDO0FBQ0osQ0FBQztBQUVELE1BQU0sVUFBVSxRQUFRLENBQUMsR0FBUTtJQUMvQixNQUFNLEVBQUUsTUFBTSxFQUFFLEdBQUcsR0FBRyxDQUFDO0lBRXZCLElBQUksTUFBTSxDQUFDLFVBQVUsS0FBSyxHQUFHLEVBQUUsQ0FBQztRQUM5QixPQUFPLElBQUksQ0FBQyxXQUFXLENBQUMsTUFBTSxDQUFDLElBQUksRUFBRSxHQUFHLE1BQU0sQ0FBQyxVQUFVLEVBQUUsQ0FBQyxDQUFDO0lBQy9ELENBQUM7SUFFRCxNQUFNLElBQUksR0FBRyxJQUFJLENBQUMsS0FBSyxDQUFDLE1BQU0sQ0FBQyxJQUFJLENBQUMsQ0FBQztJQUNyQyxPQUFPLElBQUksQ0FBQztBQUNkLENBQUMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1dGlsIH0gZnJvbSBcIkBhd3MtYXBwc3luYy91dGlsc1wiO1xuXG5leHBvcnQgZnVuY3Rpb24gcmVxdWVzdChjdHg6IGFueSkge1xuICByZXR1cm4ge1xuICAgIG1ldGhvZDogXCJERUxFVEVcIixcbiAgICByZXNvdXJjZVBhdGg6IGAvcG9zdHMvJHtjdHguYXJncy5pZH1gLFxuICAgIHBhcmFtczoge1xuICAgICAgaGVhZGVyczoge1xuICAgICAgICBcImNvbnRlbnQtdHlwZVwiOiBcIkFwcGxpY2F0aW9uL2pzb25cIixcbiAgICAgIH0sXG4gICAgfSxcbiAgfTtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIHJlc3BvbnNlKGN0eDogYW55KSB7XG4gIGNvbnN0IHsgcmVzdWx0IH0gPSBjdHg7XG5cbiAgaWYgKHJlc3VsdC5zdGF0dXNDb2RlICE9PSAyMDApIHtcbiAgICByZXR1cm4gdXRpbC5hcHBlbmRFcnJvcihyZXN1bHQuYm9keSwgYCR7cmVzdWx0LnN0YXR1c0NvZGV9YCk7XG4gIH1cblxuICBjb25zdCBib2R5ID0gSlNPTi5wYXJzZShyZXN1bHQuYm9keSk7XG4gIHJldHVybiBib2R5O1xufVxuIl19",
+    "DataSourceName": "PostsApiDataSource",
+    "FieldName": "delete",
+    "Runtime": {
+     "Name": "APPSYNC_JS",
+     "RuntimeVersion": "1.0.0"
+    },
+    "TypeName": "Mutation"
+   },
+   "DependsOn": [
+    "PostsSchema"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/DeleteMutationResolver"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/0WIywqDMBAAv8V7si2hh17FQg/tpeYDyjauuD6SkERFxH8voYfCwDCjQF2ucC5wjdI0gxz5A7tOaAaBa3yj93GzBvaqtfeAvns9S8+iam3p+UGb+H9tOpowjxsm1G4OhnLVFN24UDgOYV1D0MfTohRkij4yyzDbxBNB/fMXaGSgd5IAAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "AppSyncGraphQLHTTPExample/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

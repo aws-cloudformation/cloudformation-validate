@@ -1,0 +1,25 @@
+[package]
+name = "bindings-jvm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "JVM bindings for CloudFormation Validation Engine via UniFFI"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "bindings_jvm"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+validation-engine = { path = "../validation-engine", features = ["uniffi-bindings"] }
+diagnostics = { path = "../diagnostics", features = ["uniffi-bindings"] }
+rules = { path = "../rules", features = ["uniffi-bindings"] }
+template-model = { path = "../template-model", features = ["uniffi-bindings"] }
+rego-engine = { path = "../rego-engine" }
+cel-engine = { path = "../cel-engine" }
+schema-validator = { path = "../schema-validator" }
+uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", features = ["cli"] }
+thiserror = "2"

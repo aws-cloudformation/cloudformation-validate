@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Port:
+    Type: Number
+    Default: not-a-number
+    AllowedValues:
+      - abc
+      - def
+Resources:
+  R:
+    Type: AWS::CloudFormation::WaitConditionHandle

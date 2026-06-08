@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # F3018: oneOf — ImageBuilder needs exactly one of ImageName or ImageArn
+  NoImage:
+    Type: AWS::AppStream::ImageBuilder
+    Properties:
+      InstanceType: stream.standard.medium
+      Name: test-builder
+
+  # F3017: anyOf — Volume needs one of the required combos
+  NoAZ:
+    Type: AWS::EC2::Volume
+    Properties:
+      VolumeType: gp3

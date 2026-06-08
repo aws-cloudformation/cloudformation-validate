@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  LambdaFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my-function
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/lambda-role"
+      Code:
+        ZipFile: |
+          def handler(event, context):
+            return "hello"

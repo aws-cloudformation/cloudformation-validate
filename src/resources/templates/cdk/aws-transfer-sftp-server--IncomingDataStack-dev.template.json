@@ -1,0 +1,144 @@
+{
+ "Resources": {
+  "IncomingDataBucket3554D835": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketEncryption": {
+     "ServerSideEncryptionConfiguration": [
+      {
+       "ServerSideEncryptionByDefault": {
+        "SSEAlgorithm": "aws:kms"
+       }
+      }
+     ]
+    },
+    "BucketName": "sftp-server-data-bucket-undefined-us-east-1",
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "IncomingDataStack-dev/IncomingDataBucket/Resource"
+   }
+  },
+  "IncomingDataBucketPolicyCA22042A": {
+   "Type": "AWS::S3::BucketPolicy",
+   "Properties": {
+    "Bucket": {
+     "Ref": "IncomingDataBucket3554D835"
+    },
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "s3:*",
+       "Condition": {
+        "Bool": {
+         "aws:SecureTransport": "false"
+        }
+       },
+       "Effect": "Deny",
+       "Principal": {
+        "AWS": "*"
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "IncomingDataBucket3554D835",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "IncomingDataBucket3554D835",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "IncomingDataStack-dev/IncomingDataBucket/Policy/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/zPSMzKx0DNQTCwv1k1OydbNyUzSqw4uSUzO1kksL44vNtardipNzk4t0XFOy4OyIFRAfk5mciVCGMKvrdXJy09J1csq1i8zMtIDIcWs4sxM3aLSvJLM3FS9IAgNACk6ND14AAAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "IncomingDataStack-dev/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "ExportsOutputFnGetAttIncomingDataBucket3554D835Arn7B042284": {
+   "Value": {
+    "Fn::GetAtt": [
+     "IncomingDataBucket3554D835",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "IncomingDataStack-dev:ExportsOutputFnGetAttIncomingDataBucket3554D835Arn7B042284"
+   }
+  },
+  "ExportsOutputRefIncomingDataBucket3554D8354A965D28": {
+   "Value": {
+    "Ref": "IncomingDataBucket3554D835"
+   },
+   "Export": {
+    "Name": "IncomingDataStack-dev:ExportsOutputRefIncomingDataBucket3554D8354A965D28"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

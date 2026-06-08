@@ -1,0 +1,7 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Mappings:
+  BadMap:
+    Key1: value_not_a_map
+Resources:
+  R:
+    Type: AWS::S3::Bucket

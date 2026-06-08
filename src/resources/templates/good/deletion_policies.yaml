@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+  DB:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: mysql
+      MasterUsername: admin
+      MasterUserPassword: secret123
+      DBInstanceClass: db.t3.micro
+      BackupRetentionPeriod: 7

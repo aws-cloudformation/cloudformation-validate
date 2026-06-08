@@ -1,0 +1,651 @@
+{
+ "Resources": {
+  "nestedstackvpc4488A7AF": {
+   "Type": "AWS::EC2::VPC",
+   "Properties": {
+    "CidrBlock": "10.0.0.0/16",
+    "EnableDnsHostnames": true,
+    "EnableDnsSupport": true,
+    "InstanceTenancy": "default",
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/Resource"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.0.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "public-subnet-1"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet1/Subnet"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet1RouteTable518786D0": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet1/RouteTable"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet1RouteTableAssociationE08618B5": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "nestedstackvpcpublicsubnet1Subnet1RouteTable518786D0"
+    },
+    "SubnetId": {
+     "Ref": "nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet1/RouteTableAssociation"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet1DefaultRouteA3ABB16E": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "nestedstackvpcIGW1E72194C"
+    },
+    "RouteTableId": {
+     "Ref": "nestedstackvpcpublicsubnet1Subnet1RouteTable518786D0"
+    }
+   },
+   "DependsOn": [
+    "nestedstackvpcVPCGWA39BF2BE"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet1/DefaultRoute"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.1.0/24",
+    "MapPublicIpOnLaunch": true,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "public-subnet-1"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Public"
+     },
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet2/Subnet"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet2RouteTableF3884194": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet2/RouteTable"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet2RouteTableAssociation432D9A37": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "nestedstackvpcpublicsubnet1Subnet2RouteTableF3884194"
+    },
+    "SubnetId": {
+     "Ref": "nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet2/RouteTableAssociation"
+   }
+  },
+  "nestedstackvpcpublicsubnet1Subnet2DefaultRouteC44F12D1": {
+   "Type": "AWS::EC2::Route",
+   "Properties": {
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "GatewayId": {
+     "Ref": "nestedstackvpcIGW1E72194C"
+    },
+    "RouteTableId": {
+     "Ref": "nestedstackvpcpublicsubnet1Subnet2RouteTableF3884194"
+    }
+   },
+   "DependsOn": [
+    "nestedstackvpcVPCGWA39BF2BE"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/public-subnet-1Subnet2/DefaultRoute"
+   }
+  },
+  "nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      0,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.2.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "private-isolated-subnet-1"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet1/Subnet"
+   }
+  },
+  "nestedstackvpcprivateisolatedsubnet1Subnet1RouteTable5302591F": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet1"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet1/RouteTable"
+   }
+  },
+  "nestedstackvpcprivateisolatedsubnet1Subnet1RouteTableAssociation6C6975EB": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "nestedstackvpcprivateisolatedsubnet1Subnet1RouteTable5302591F"
+    },
+    "SubnetId": {
+     "Ref": "nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet1/RouteTableAssociation"
+   }
+  },
+  "nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F": {
+   "Type": "AWS::EC2::Subnet",
+   "Properties": {
+    "AvailabilityZone": {
+     "Fn::Select": [
+      1,
+      {
+       "Fn::GetAZs": ""
+      }
+     ]
+    },
+    "CidrBlock": "10.0.3.0/24",
+    "MapPublicIpOnLaunch": false,
+    "Tags": [
+     {
+      "Key": "aws-cdk:subnet-name",
+      "Value": "private-isolated-subnet-1"
+     },
+     {
+      "Key": "aws-cdk:subnet-type",
+      "Value": "Isolated"
+     },
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet2/Subnet"
+   }
+  },
+  "nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableEA03EC80": {
+   "Type": "AWS::EC2::RouteTable",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet2"
+     }
+    ],
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet2/RouteTable"
+   }
+  },
+  "nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableAssociation61E13F31": {
+   "Type": "AWS::EC2::SubnetRouteTableAssociation",
+   "Properties": {
+    "RouteTableId": {
+     "Ref": "nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableEA03EC80"
+    },
+    "SubnetId": {
+     "Ref": "nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/private-isolated-subnet-1Subnet2/RouteTableAssociation"
+   }
+  },
+  "nestedstackvpcIGW1E72194C": {
+   "Type": "AWS::EC2::InternetGateway",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/IGW"
+   }
+  },
+  "nestedstackvpcVPCGWA39BF2BE": {
+   "Type": "AWS::EC2::VPCGatewayAttachment",
+   "Properties": {
+    "InternetGatewayId": {
+     "Ref": "nestedstackvpcIGW1E72194C"
+    },
+    "VpcId": {
+     "Ref": "nestedstackvpc4488A7AF"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/nested-stack-vpc/VPCGW"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/0WNzQqDMBCEn8V7TEvooVfxUHoposVr2cQtjT+bkmyUIr57kUqFgdn5GHaUVKezPCYwhdQ0XdpbLecbBsamYjCdgCk80Cg5128j8ifVRS6KqHtrqqgJeWX7VbrIeAfd4853loXgjAW2jv5lUXg7AuP+40qMnpAvwDjBZxvdUsYM5jUg8SJKDC56g4sg16Bsw2FUSq5K2mBt6iOxHVCWP/8CUERObOsAAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "apigateway-parallel-stepfunctions-stack-2/nested-stack-lambda/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Outputs": {
+  "apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13Ref": {
+   "Value": {
+    "Ref": "nestedstackvpc4488A7AF"
+   }
+  },
+  "apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpc238BBD13CidrBlock": {
+   "Value": {
+    "Fn::GetAtt": [
+     "nestedstackvpc4488A7AF",
+     "CidrBlock"
+    ]
+   }
+  },
+  "apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpcprivateisolatedsubnet1Subnet1SubnetA5B4F14ARef": {
+   "Value": {
+    "Ref": "nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E"
+   }
+  },
+  "apigatewayparallelstepfunctionsstack2nestedstacklambdanestedstackvpcprivateisolatedsubnet1Subnet2SubnetB741D345Ref": {
+   "Value": {
+    "Ref": "nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F"
+   }
+  }
+ }
+}

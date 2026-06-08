@@ -1,0 +1,101 @@
+name: App Configs
+
+on:
+  workflow_call:
+    outputs:
+      app-name:
+        description: "Application name"
+        value: ${{ jobs.get-configs.outputs.app-name }}
+      working-dir:
+        description: "Cargo workspace root (relative to repo root)"
+        value: ${{ jobs.get-configs.outputs.working-dir }}
+      rust-toolchain:
+        description: "Rust toolchain channel (must match src/rust-toolchain.toml)"
+        value: ${{ jobs.get-configs.outputs.rust-toolchain }}
+      node-version:
+        description: "Node.js version"
+        value: ${{ jobs.get-configs.outputs.node-version }}
+      java-version:
+        description: "JDK major version"
+        value: ${{ jobs.get-configs.outputs.java-version }}
+      java-distribution:
+        description: "JDK distribution for actions/setup-java"
+        value: ${{ jobs.get-configs.outputs.java-distribution }}
+      kotlin-version:
+        description: "Kotlin compiler (kotlinc) version"
+        value: ${{ jobs.get-configs.outputs.kotlin-version }}
+      ktlint-version:
+        description: "ktlint version"
+        value: ${{ jobs.get-configs.outputs.ktlint-version }}
+      gradle-version:
+        description: "Gradle version for the JVM binding tests"
+        value: ${{ jobs.get-configs.outputs.gradle-version }}
+      jna-version:
+        description: "JNA (Java Native Access) version for the JVM bindings"
+        value: ${{ jobs.get-configs.outputs.jna-version }}
+      gson-version:
+        description: "Gson version for the JVM bindings"
+        value: ${{ jobs.get-configs.outputs.gson-version }}
+      wasm-pack-version:
+        description: "wasm-pack version"
+        value: ${{ jobs.get-configs.outputs.wasm-pack-version }}
+      cargo-about-version:
+        description: "cargo-about version"
+        value: ${{ jobs.get-configs.outputs.cargo-about-version }}
+      cargo-audit-version:
+        description: "cargo-audit version"
+        value: ${{ jobs.get-configs.outputs.cargo-audit-version }}
+
+permissions:
+  contents: read
+
+jobs:
+  get-configs:
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: 'cloudformation-validate'
+      WORKING_DIR: 'src'
+      RUST_TOOLCHAIN: '1.93.1'        # keep in sync with src/rust-toolchain.toml
+      NODE_VERSION: '22.x'
+      JAVA_VERSION: '21'
+      JAVA_DISTRIBUTION: 'corretto'
+      KOTLIN_VERSION: '2.3.10'
+      KTLINT_VERSION: '1.8.0'
+      GRADLE_VERSION: '8.14'
+      JNA_VERSION: '5.18.1'           # keep in sync with bindings-jvm/build.sh
+      GSON_VERSION: '2.14.0'          # keep in sync with bindings-jvm/build.sh
+      WASM_PACK_VERSION: '0.14.0'
+      CARGO_ABOUT_VERSION: '0.9.0'
+      CARGO_AUDIT_VERSION: '0.22.2'
+    outputs:
+      app-name: ${{ env.APP_NAME }}
+      working-dir: ${{ env.WORKING_DIR }}
+      rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
+      node-version: ${{ env.NODE_VERSION }}
+      java-version: ${{ env.JAVA_VERSION }}
+      java-distribution: ${{ env.JAVA_DISTRIBUTION }}
+      kotlin-version: ${{ env.KOTLIN_VERSION }}
+      ktlint-version: ${{ env.KTLINT_VERSION }}
+      gradle-version: ${{ env.GRADLE_VERSION }}
+      jna-version: ${{ env.JNA_VERSION }}
+      gson-version: ${{ env.GSON_VERSION }}
+      wasm-pack-version: ${{ env.WASM_PACK_VERSION }}
+      cargo-about-version: ${{ env.CARGO_ABOUT_VERSION }}
+      cargo-audit-version: ${{ env.CARGO_AUDIT_VERSION }}
+    steps:
+      - name: Provide configs
+        run: |
+          echo "app-name            = ${{ env.APP_NAME }}"
+          echo "working-dir         = ${{ env.WORKING_DIR }}"
+          echo "rust-toolchain      = ${{ env.RUST_TOOLCHAIN }}"
+          echo "node-version        = ${{ env.NODE_VERSION }}"
+          echo "java-version        = ${{ env.JAVA_VERSION }}"
+          echo "java-distribution   = ${{ env.JAVA_DISTRIBUTION }}"
+          echo "kotlin-version      = ${{ env.KOTLIN_VERSION }}"
+          echo "ktlint-version      = ${{ env.KTLINT_VERSION }}"
+          echo "gradle-version      = ${{ env.GRADLE_VERSION }}"
+          echo "jna-version         = ${{ env.JNA_VERSION }}"
+          echo "gson-version        = ${{ env.GSON_VERSION }}"
+          echo "wasm-pack-version   = ${{ env.WASM_PACK_VERSION }}"
+          echo "cargo-about-version = ${{ env.CARGO_ABOUT_VERSION }}"
+          echo "cargo-audit-version = ${{ env.CARGO_AUDIT_VERSION }}"

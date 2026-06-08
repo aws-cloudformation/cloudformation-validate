@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  SnapStartFunc:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: snap-bad
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code:
+        S3Bucket: my-bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: PublishedVersions

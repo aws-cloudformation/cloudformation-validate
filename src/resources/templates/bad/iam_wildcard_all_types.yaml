@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  WildcardUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: admin
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+  WildcardGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      Policies:
+        - PolicyName: admin
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+  WildcardManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: '*'
+            Resource: '*'
+  NotActionUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: notaction
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                NotAction: iam:*
+                Resource: '*'
