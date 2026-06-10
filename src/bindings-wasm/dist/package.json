@@ -2,8 +2,13 @@
     "name": "@aws/cloudformation-validate",
     "version": "1.0.0",
     "description": "AWS CloudFormation Validate",
+    "publisher": "aws",
     "author": "Amazon Web Services (AWS)",
     "license": "Apache-2.0",
     "main": "index.js",
-    "types": "index.d.ts"
+    "types": "index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/aws-cloudformation/cloudformation-validate.git"
+    }
 }
