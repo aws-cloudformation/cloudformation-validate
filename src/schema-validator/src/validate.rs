@@ -932,7 +932,7 @@ fn validate_prop(
 
     // Type check — coerce before rejecting since string↔number, string↔boolean,
     // bool→string, number→string are silently coerced at deploy time.
-    // Successful coercion → Warning; failed coercion → Fatal.
+    // Successful coercion → Warn; failed coercion → Fatal.
     if let Some(ref pt) = schema.prop_type {
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {

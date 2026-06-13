@@ -146,7 +146,7 @@ pub struct ValidateConfig {
     pub severity_level: Severity,
     pub parameter_overrides: HashMap<String, String>,
     pub pseudo_parameter_overrides: PseudoParameterOverrides,
-    /// When true, Warning-severity diagnostics are upgraded to Error.
+    /// When true, Warn-severity diagnostics are upgraded to Error.
     pub strict: bool,
     /// When true (default), emit all diagnostics including `RuleOrigin::Engine`.
     /// When false, `RuleOrigin::Engine` diagnostics are suppressed.
@@ -1635,7 +1635,7 @@ Resources:
         assert_eq!(
             diags[0].severity,
             Severity::Error,
-            "Warning should be upgraded to Error"
+            "Warn should be upgraded to Error"
         );
         assert_eq!(
             diags[1].severity,
@@ -1663,7 +1663,7 @@ Resources:
         assert_eq!(
             diags[0].severity,
             Severity::Warn,
-            "Warning should be preserved"
+            "Warn should be preserved"
         );
         assert_eq!(
             diags[1].severity,

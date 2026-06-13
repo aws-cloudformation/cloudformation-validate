@@ -67,8 +67,4 @@ done
 cp "$WORKSPACE/../LICENSE" "$DIST_DIR/LICENSE"
 cp "$SCRIPT_DIR/README.md" "$DIST_DIR/README.md"
 
-# ── Generate third-party licenses ────────────────────────────────────────────
-python3 "$WORKSPACE/../scripts/generate_licenses.py" wasm
-cp "$SCRIPT_DIR/THIRD-PARTY-LICENSES.txt" "$DIST_DIR/THIRD-PARTY-LICENSES.txt"
-
 echo "Build complete: $DIST_DIR ($(du -sh "$DIST_DIR" | cut -f1))"

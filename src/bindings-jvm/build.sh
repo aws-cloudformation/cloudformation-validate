@@ -117,11 +117,8 @@ find "$GENERATED_DIR" -name '*.kt' -type f | while read -r kt; do
     cp "$kt" "$BUILD_DIR/classes/$REL"
 done
 
-# Bundle license files
-python3 "$WORKSPACE/../scripts/generate_licenses.py" jvm
 mkdir -p "$BUILD_DIR/classes/META-INF"
 cp "$WORKSPACE/../LICENSE" "$BUILD_DIR/classes/META-INF/LICENSE"
-cp "$SCRIPT_DIR/THIRD-PARTY-LICENSES.txt" "$BUILD_DIR/classes/META-INF/THIRD-PARTY-LICENSES.txt"
 
 # Create manifest with version and dependency info
 VERSION=$(grep '^version' "$WORKSPACE/Cargo.toml" | head -1 | sed 's/.*"\(.*\)".*/\1/')

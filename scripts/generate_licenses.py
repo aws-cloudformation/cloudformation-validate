@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 """Generate THIRD-PARTY-LICENSES.txt for each distribution target.
 
-Runs cargo-about to collect Rust dependency licenses, sorts entries
-alphabetically by crate name, and writes one file per target:
-
-  src/THIRD-PARTY-LICENSES.txt                         (native Rust binary)
-  src/bindings-jvm/generated/THIRD-PARTY-LICENSES.txt  (JVM JAR)
-  src/bindings-wasm/dist/THIRD-PARTY-LICENSES.txt      (WASM npm package)
-
-The JVM file additionally includes Java runtime dependencies (JNA, Gson)
-that are not tracked by Cargo.
-
 Usage:
     python3 scripts/generate_licenses.py          # all targets
     python3 scripts/generate_licenses.py native   # native Rust only
@@ -23,6 +13,9 @@ import argparse
 import json
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+from collections import defaultdict
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -31,14 +24,14 @@ WORKSPACE = PROJECT_ROOT / "src"
 
 SEPARATOR = "\n\n******************************\n\n"
 
-# Workspace crates are internal — exclude from third-party license files
+# Workspace crates — exclude from third-party license files.
 WORKSPACE_CRATES = {
     "bindings-jvm", "bindings-wasm", "cel-engine", "cfn-validate",
     "data-source", "diagnostics", "guard-translator", "rego-engine",
     "rules", "schema-validator", "template-model", "validation-engine",
 }
 
-# Java runtime dependencies required by bindings-jvm consumers (not in Cargo)
+# Maven runtime dependencies the JVM JAR consumers need on their classpath.
 JVM_EXTRA_DEPS = [
     {
         "name": "com.google.code.gson:gson",
@@ -49,7 +42,7 @@ JVM_EXTRA_DEPS = [
             "                                 Apache License\n"
             "                           Version 2.0, January 2004\n"
             "                        http://www.apache.org/licenses/\n\n"
-            "   See full text in the Apache License 2.0 entries above."
+            "   See full text in any Apache License 2.0 entry in this file."
         ),
     },
     {
@@ -61,15 +54,73 @@ JVM_EXTRA_DEPS = [
             "                                 Apache License\n"
             "                           Version 2.0, January 2004\n"
             "                        http://www.apache.org/licenses/\n\n"
-            "   See full text in the Apache License 2.0 entries above."
+            "   See full text in any Apache License 2.0 entry in this file."
         ),
     },
 ]
 
+# Substrings that mark cargo-about's SPDX template fallback (no real copyright holder).
+PLACEHOLDER_MARKERS = (
+    "Copyright (c) <year>",
+    "<copyright holders>",
+    "<owner>",
+    "[year] [name",
+)
 
-def run_cargo_about(manifest_flag: str) -> dict:
-    """Run cargo-about and return parsed JSON."""
-    cmd = ["cargo", "about", "generate", "-c", "about.toml", *manifest_flag.split(), "--format", "json"]
+# Crates whose tarball doesn't ship a usable LICENSE. Each entry pins an
+# upstream URL fetched at generation time and substituted in place of
+# cargo-about's SPDX-template fallback.
+CRATE_EXTRA_ATTRIBUTIONS = {
+    ("cel-interpreter", "0.10.0"): {
+        "license_name": "MIT License",
+        "license_url": "https://raw.githubusercontent.com/cel-rust/cel-rust/cel-v0.10.0/LICENSE",
+    },
+    ("cel-parser", "0.10.1"): {
+        "license_name": "MIT License",
+        "license_url": "https://raw.githubusercontent.com/cel-rust/cel-rust/cel-parser-v0.10.1/LICENSE",
+    },
+    # chrislearn/cruet redirects to taidge/cruet (the active fork).
+    ("cruet", "0.14.0"): {
+        "license_name": "BSD-2-Clause License",
+        "license_url": "https://raw.githubusercontent.com/taidge/cruet/v0.14.0/LICENSE.md",
+    },
+    # Tarball LICENSE.txt copyright doesn't match upstream; pinned to the
+    # commit tagged for this crate release.
+    ("antlr4rust", "0.3.0-rc2"): {
+        "license_url": "https://raw.githubusercontent.com/antlr4rust/antlr4/9d34cea8de/LICENSE.txt",
+    },
+}
+
+
+def has_placeholder(text: str) -> bool:
+    return any(m in text for m in PLACEHOLDER_MARKERS)
+
+
+_license_cache: dict[str, str] = {}
+
+
+def fetch_license_text(url: str) -> str:
+    """Fetch a LICENSE file from a pinned HTTPS URL, cached per invocation."""
+    if url in _license_cache:
+        return _license_cache[url]
+    print(f"  fetching {url}")
+    req = urllib.request.Request(url, headers={"User-Agent": "cloudformation-validate-license-gen"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            text = resp.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError) as e:
+        print(f"failed to fetch {url}: {e}", file=sys.stderr)
+        sys.exit(1)
+    text = text.rstrip() + "\n"
+    _license_cache[url] = text
+    return text
+
+
+def run_cargo_about(manifest_args: list[str], targets: list[str]) -> dict:
+    """Run cargo-about and return parsed JSON. Empty `targets` disables target filtering."""
+    cmd = ["cargo", "about", "generate", "-c", "about.toml", *manifest_args, "--format", "json"]
+    for t in targets:
+        cmd.extend(["--target", t])
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=WORKSPACE)
     if result.returncode != 0:
         print(f"cargo-about failed:\n{result.stderr}", file=sys.stderr)
@@ -78,7 +129,7 @@ def run_cargo_about(manifest_flag: str) -> dict:
 
 
 def extract_entries(data: dict) -> list[tuple[str, str, str, str]]:
-    """Extract (name, version, url, license_text) from cargo-about JSON, excluding workspace crates."""
+    """Extract (name, version, url, license_text) excluding workspace crates."""
     entries = []
     for lic in data["licenses"]:
         for used in lic["used_by"]:
@@ -92,15 +143,45 @@ def extract_entries(data: dict) -> list[tuple[str, str, str, str]]:
 
 
 def _url_from_source(crate: dict) -> str | None:
-    """Extract a git URL from the cargo source field (e.g. 'git+https://...?branch=x#commit')."""
+    """Extract a git URL from cargo's source field (e.g. 'git+https://...?branch=x#commit')."""
     source = crate.get("source") or ""
     if source.startswith("git+"):
         url = source[4:]
-        # Strip ?branch=...#commit suffix
         for sep in ("?", "#"):
             url = url.split(sep)[0]
         return url
     return None
+
+
+def dedup_entries(entries: list[tuple[str, str, str, str]]) -> list[tuple[str, str, str, str]]:
+    """Per (name, version): drop placeholder-text entries when a real-text entry exists.
+
+    Preserves multiple distinct real-text entries (multi-licensed crates).
+    Keeps one placeholder if all entries are placeholders.
+    """
+    groups: dict[tuple[str, str], list[tuple[str, str, str, str]]] = defaultdict(list)
+    for e in entries:
+        groups[(e[0], e[1])].append(e)
+    result = []
+    for entries_in_group in groups.values():
+        real = [e for e in entries_in_group if not has_placeholder(e[3])]
+        result.extend(real if real else [entries_in_group[0]])
+    return result
+
+
+def apply_attribution_overrides(
+    entries: list[tuple[str, str, str, str]],
+) -> list[tuple[str, str, str, str]]:
+    """Replace placeholder text with the upstream LICENSE for crates in CRATE_EXTRA_ATTRIBUTIONS."""
+    result = []
+    for name, ver, url, text in entries:
+        override = CRATE_EXTRA_ATTRIBUTIONS.get((name, ver))
+        if override and has_placeholder(text):
+            text = fetch_license_text(override["license_url"])
+            if "license_name" in override:
+                text = f"{override['license_name']}\n\n{text}"
+        result.append((name, ver, url, text))
+    return result
 
 
 def format_output(entries: list[tuple[str, str, str, str]]) -> str:
@@ -110,11 +191,19 @@ def format_output(entries: list[tuple[str, str, str, str]]) -> str:
     return SEPARATOR.join(sections) + "\n"
 
 
-def generate(label: str, manifest_flag: str, output_path: Path, extra_deps: list[dict] | None = None):
+def generate(
+    label: str,
+    manifest_args: list[str],
+    output_path: Path,
+    targets: list[str] | None = None,
+    extra_deps: list[dict] | None = None,
+):
     """Generate a single THIRD-PARTY-LICENSES.txt."""
     print(f"Generating {label}...")
-    data = run_cargo_about(manifest_flag)
+    data = run_cargo_about(manifest_args, targets or [])
     entries = extract_entries(data)
+    entries = dedup_entries(entries)
+    entries = apply_attribution_overrides(entries)
 
     if extra_deps:
         for dep in extra_deps:
@@ -144,21 +233,31 @@ def main():
     if "native" in targets:
         generate(
             "native Rust",
-            "--workspace",
+            ["--workspace"],
             WORKSPACE / "THIRD-PARTY-LICENSES.txt",
         )
     if "jvm" in targets:
+        # https://doc.rust-lang.org/rustc/platform-support.html
         generate(
             "bindings-jvm",
-            "-m bindings-jvm/Cargo.toml",
+            ["-m", "bindings-jvm/Cargo.toml"],
             WORKSPACE / "bindings-jvm" / "THIRD-PARTY-LICENSES.txt",
+            targets=[
+                "x86_64-unknown-linux-gnu",
+                "aarch64-unknown-linux-gnu",
+                "x86_64-apple-darwin",
+                "aarch64-apple-darwin",
+                "x86_64-pc-windows-msvc",
+                "aarch64-pc-windows-msvc",
+            ],
             extra_deps=JVM_EXTRA_DEPS,
         )
     if "wasm" in targets:
         generate(
             "bindings-wasm",
-            "-m bindings-wasm/Cargo.toml",
+            ["-m", "bindings-wasm/Cargo.toml"],
             WORKSPACE / "bindings-wasm" / "THIRD-PARTY-LICENSES.txt",
+            targets=["wasm32-unknown-unknown"],
         )
     print("Done.")
 
