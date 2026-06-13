@@ -116,17 +116,9 @@ fn main() {
             }
             "--level" => {
                 i += 1;
-                validate_config.severity_level = match args.get(i).map(|s| s.as_str()) {
-                    Some("fatal") => Severity::Fatal,
-                    Some("error") => Severity::Error,
-                    Some("warning") => Severity::Warn,
-                    Some("info") => Severity::Info,
-                    Some("debug") => Severity::Debug,
-                    _ => {
-                        error!("Invalid level, expected error|warning|info|debug");
-                        process::exit(2);
-                    }
-                };
+                if let Some(val) = args.get(i) {
+                    validate_config.severity_level = Severity::from_str(val);
+                }
             }
             "--no-strict" => validate_config.strict = false,
             "--strict" => validate_config.strict = true,
@@ -352,7 +344,7 @@ fn print_help() {
     eprintln!();
     eprintln!("Output options:");
     eprintln!("  --format standard|detailed   Detail level (default: detailed)");
-    eprintln!("  --level error|warning|info|debug  Minimum severity (default: info)");
+    eprintln!("  --level fatal|error|warn|info|debug  Minimum severity (default: info)");
     eprintln!();
     eprintln!("Other options:");
     eprintln!("  --engine rego|cel             Validation engine (default: rego)");
@@ -361,7 +353,8 @@ fn print_help() {
     eprintln!("  --region REGION               Set AWS::Region pseudo-parameter");
     eprintln!("  --parameter Key=Value         Override a template parameter value (repeatable)");
     eprintln!("  --pseudo-parameter Key=Value  Override a pseudo-parameter value (repeatable)");
-    eprintln!("  --strict                      Upgrade Warning-severity diagnostics to Error");
+    eprintln!("  --strict                      Upgrade Warn-severity diagnostics to Error");
+    eprintln!("  --no-strict                   Disable strict mode (the default)");
     eprintln!(
         "  --no-engine-rules             Suppress engine-native (RuleOrigin::Engine) diagnostics"
     );

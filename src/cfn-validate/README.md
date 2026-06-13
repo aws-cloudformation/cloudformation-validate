@@ -52,7 +52,7 @@ cfn-validate <TEMPLATE|DIR> [OPTIONS]
 | Option                                       | Description                      |
 |----------------------------------------------|----------------------------------|
 | `--format standard\|detailed`                | Detail level (default: detailed) |
-| `--level fatal\|error\|warning\|info\|debug` | Minimum severity (default: info) |
+| `--level fatal\|error\|warn\|info\|debug` | Minimum severity (default: info) |
 
 **Engine options:**
 

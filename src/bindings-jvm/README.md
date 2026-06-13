@@ -27,11 +27,10 @@ for (d in report.diagnostics) {
 
 ```kotlin
 interface Engine {
-    fun validateStandard(template: File, config: ValidateConfig = ValidateConfig()): StandardReportfun validateDetailed(
-        template: File,
-        config: ValidateConfig = ValidateConfig()
-    ): DetailedReport
-    fun listRules(): List<RuleInfo>fun engineName(): String
+    fun validateStandard(template: File, config: ValidateConfig = ValidateConfig()): StandardReport
+    fun validateDetailed(template: File, config: ValidateConfig = ValidateConfig()): DetailedReport
+    fun listRules(): List<RuleInfo>
+    fun engineName(): String
 }
 ```
 

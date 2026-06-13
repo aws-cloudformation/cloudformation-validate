@@ -11,8 +11,50 @@ jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
 
-  build-jvm:
+  generate-licenses:
     needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: main
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache cargo build
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Install cargo-about ${{ needs.get-configs.outputs.cargo-about-version }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-about@${{ needs.get-configs.outputs.cargo-about-version }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Generate THIRD-PARTY-LICENSES.txt for all targets
+      run: python3 scripts/generate_licenses.py
+
+    - name: Upload license files
+      uses: actions/upload-artifact@v7
+      with:
+        name: third-party-licenses
+        path: |
+          ${{ env.WORKING_DIR }}/THIRD-PARTY-LICENSES.txt
+          ${{ env.WORKING_DIR }}/bindings-jvm/THIRD-PARTY-LICENSES.txt
+          ${{ env.WORKING_DIR }}/bindings-wasm/THIRD-PARTY-LICENSES.txt
+        if-no-files-found: error
+        retention-days: 1
+
+  build-jvm:
+    needs: [ get-configs, generate-licenses ]
     strategy:
       fail-fast: false
       matrix:
@@ -44,11 +86,6 @@ jobs:
       with:
         workspaces: ${{ env.WORKING_DIR }}
 
-    - name: Install cargo-about ${{ needs.get-configs.outputs.cargo-about-version }}
-      uses: taiki-e/install-action@v2
-      with:
-        tool: cargo-about@${{ needs.get-configs.outputs.cargo-about-version }}
-
     - name: Setup JVM toolchain
       uses: ./.github/actions/setup-jvm-toolchain
       with:
@@ -60,9 +97,28 @@ jobs:
     - name: Print build tool versions
       uses: ./.github/actions/print-build-versions
 
+    - name: Download THIRD-PARTY-LICENSES.txt
+      uses: actions/download-artifact@v8
+      with:
+        name: third-party-licenses
+        path: ${{ env.WORKING_DIR }}
+
     - name: Build JVM bindings
       working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
       run: ./build.sh
+
+    - name: Inject THIRD-PARTY-LICENSES.txt into JVM jar
+      working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+      run: |
+        set -euo pipefail
+        JAR_ABS="$(pwd)/generated/cloudformation-validate.jar"
+        LIC_ABS="$(pwd)/THIRD-PARTY-LICENSES.txt"
+        tmpdir="$(mktemp -d)"
+        mkdir -p "$tmpdir/META-INF"
+        cp "$LIC_ABS" "$tmpdir/META-INF/THIRD-PARTY-LICENSES.txt"
+        ( cd "$tmpdir" && jar uf "$JAR_ABS" META-INF/THIRD-PARTY-LICENSES.txt )
+        rm -rf "$tmpdir"
+        unzip -l "$JAR_ABS" | grep -E 'META-INF/(LICENSE|THIRD-PARTY-LICENSES.txt)$'
 
     - name: Upload JVM jar
       uses: actions/upload-artifact@v7
@@ -73,7 +129,7 @@ jobs:
         retention-days: 1
 
   build-wasm:
-    needs: [ get-configs ]
+    needs: [ get-configs, generate-licenses ]
     runs-on: ubuntu-latest
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
@@ -92,11 +148,6 @@ jobs:
       with:
         workspaces: ${{ env.WORKING_DIR }}
 
-    - name: Install cargo-about ${{ needs.get-configs.outputs.cargo-about-version }}
-      uses: taiki-e/install-action@v2
-      with:
-        tool: cargo-about@${{ needs.get-configs.outputs.cargo-about-version }}
-
     - name: Setup Node.js ${{ needs.get-configs.outputs.node-version }}
       uses: actions/setup-node@v6
       with:
@@ -110,9 +161,22 @@ jobs:
     - name: Print build tool versions
       uses: ./.github/actions/print-build-versions
 
+    - name: Download THIRD-PARTY-LICENSES.txt
+      uses: actions/download-artifact@v8
+      with:
+        name: third-party-licenses
+        path: ${{ env.WORKING_DIR }}
+
     - name: Build WASM bindings
       working-directory: ${{ env.WORKING_DIR }}/bindings-wasm
       run: ./build.sh
+
+    - name: Inject THIRD-PARTY-LICENSES.txt into WASM dist
+      working-directory: ${{ env.WORKING_DIR }}/bindings-wasm
+      run: |
+        set -euo pipefail
+        cp THIRD-PARTY-LICENSES.txt dist/THIRD-PARTY-LICENSES.txt
+        ls -la dist/
 
     - name: Upload WASM dist
       uses: actions/upload-artifact@v7
@@ -122,8 +186,56 @@ jobs:
         if-no-files-found: error
         retention-days: 1
 
+  build-cfn-validate:
+    needs: [ get-configs ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        # - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
+        - { os: macos-latest, platform: darwin, arch: aarch64 }
+        # - { os: macos-15-intel, platform: darwin, arch: x64 }
+        # - { os: windows-latest, platform: win32, arch: x64 }
+        # - { os: windows-11-arm, platform: win32, arch: aarch64 }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: main
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+
+    - name: Cache cargo build
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Print build tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Build cfn-validate
+      working-directory: ${{ env.WORKING_DIR }}/cfn-validate
+      run: ./build.sh
+
+    - name: Upload cfn-validate binary
+      uses: actions/upload-artifact@v7
+      with:
+        name: cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}
+        path: ${{ env.WORKING_DIR }}/release/cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}*
+        if-no-files-found: error
+        retention-days: 1
+
   pull-request:
-    needs: [ get-configs, build-jvm, build-wasm ]
+    needs: [ get-configs, generate-licenses, build-jvm, build-wasm, build-cfn-validate ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -140,11 +252,12 @@ jobs:
       with:
         path: incoming
 
-    - name: Merge JVM jars and stage WASM
+    - name: Stage artifacts and license files
       working-directory: ${{ env.WORKING_DIR }}
       run: |
-        rm -rf bindings-jvm/generated bindings-wasm/dist
-        mkdir -p bindings-jvm/generated bindings-wasm/dist
+        set -euo pipefail
+        rm -rf bindings-jvm/generated bindings-wasm/dist release
+        mkdir -p bindings-jvm/generated bindings-wasm/dist release
 
         shopt -s nullglob
         jars=("$GITHUB_WORKSPACE"/incoming/jvm-*/cloudformation-validate.jar)
@@ -171,8 +284,19 @@ jobs:
           "$base" "${rest[@]}"
 
         cp -R "$GITHUB_WORKSPACE/incoming/wasm-dist/." bindings-wasm/dist/
-        echo "Merged JVM jar:"; ls -1 bindings-jvm/generated
         echo "Staged WASM dist:"; ls -1 bindings-wasm/dist
+
+        for d in "$GITHUB_WORKSPACE"/incoming/cfn-validate-*/; do
+          cp -R "$d." release/
+        done
+        echo "Staged cfn-validate binaries:"; ls -1 release || true
+
+        cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/THIRD-PARTY-LICENSES.txt" THIRD-PARTY-LICENSES.txt
+        cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-jvm/THIRD-PARTY-LICENSES.txt" bindings-jvm/THIRD-PARTY-LICENSES.txt
+        cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-wasm/THIRD-PARTY-LICENSES.txt" bindings-wasm/THIRD-PARTY-LICENSES.txt
+        echo "Staged THIRD-PARTY-LICENSES.txt files."
+
+        echo "Merged JVM jar:"; ls -1 bindings-jvm/generated
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v8
@@ -182,7 +306,7 @@ jobs:
         delete-branch: true
         title: 'chore: Update Bindings'
         body: |
-          Automated update of the binding bundles.
+          Automated update of the binding bundles and CLI binaries.
 
           * **JVM** — a single multi-platform `cloudformation-validate.jar` in
             `${{ env.WORKING_DIR }}/bindings-jvm/generated/`, carrying the shared
@@ -191,8 +315,15 @@ jobs:
             natives are combined via `bindings-jvm/merge-jars.sh`.
           * **WASM** — `${{ env.WORKING_DIR }}/bindings-wasm/dist/`, built via
             `bindings-wasm/build.sh`.
-
+          * **cfn-validate CLI** — per-platform binaries in
+            `${{ env.WORKING_DIR }}/release/`, built via `cfn-validate/build.sh`.
+          * **Third-party licenses** — `THIRD-PARTY-LICENSES.txt` files
+            regenerated by the workflow via `scripts/generate_licenses.py`.
         labels: automated, build-artifacts
         add-paths: |
           ${{ env.WORKING_DIR }}/bindings-jvm/generated/**
+          ${{ env.WORKING_DIR }}/bindings-jvm/THIRD-PARTY-LICENSES.txt
           ${{ env.WORKING_DIR }}/bindings-wasm/dist/**
+          ${{ env.WORKING_DIR }}/bindings-wasm/THIRD-PARTY-LICENSES.txt
+          ${{ env.WORKING_DIR }}/release/**
+          ${{ env.WORKING_DIR }}/THIRD-PARTY-LICENSES.txt

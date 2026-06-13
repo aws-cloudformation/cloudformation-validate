@@ -19,7 +19,7 @@ Rules are organized into Rego packages by category:
 | `all_violations` | `data.all_violations.violation` | All packages at once |
 
 Rules come from four sources: handwritten Rego policies (embedded), generated data from
-[data-source](../data-source/README.md) (embedded), user-provided custom Rego policies, and Guard DSL files translated
+data-source (embedded), user-provided custom Rego policies, and Guard DSL files translated
 to Rego at engine initialization.
 
 ## Custom Builtins

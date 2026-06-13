@@ -3627,8 +3627,8 @@
         "endLine": 13,
         "endColumn": 20,
         "conditionScenario": {
-          "IsProduction": false,
-          "IsDev": false
+          "IsDev": false,
+          "IsProduction": false
         },
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Validate AMI id format",
@@ -3652,8 +3652,8 @@
         "endLine": 13,
         "endColumn": 20,
         "conditionScenario": {
-          "IsProduction": false,
-          "IsDev": true
+          "IsDev": true,
+          "IsProduction": false
         },
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Validate AMI id format",
@@ -4296,8 +4296,8 @@
         "endLine": 50,
         "endColumn": 14,
         "conditionScenario": {
-          "isPrimaryAndProduction": false,
-          "isDevelopment": false
+          "isDevelopment": false,
+          "isPrimaryAndProduction": false
         },
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Validate AMI id format",
@@ -4321,8 +4321,8 @@
         "endLine": 50,
         "endColumn": 14,
         "conditionScenario": {
-          "isPrimaryAndProduction": false,
-          "isDevelopment": true
+          "isDevelopment": true,
+          "isPrimaryAndProduction": false
         },
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Validate AMI id format",
@@ -25845,9 +25845,9 @@
         "context": {
           "actualValue": "jeAoXmadgEUYzfalKtuYjeAoXmadgEUYzfalKtuYjeAoXmadgEUYzfalKtuYjeAoXmadgEUYzfalKtuYBadRoleName",
           "extra": {
-            "min_length": 1,
             "actual_length": 91,
-            "max_length": 64
+            "max_length": 64,
+            "min_length": 1
           }
         }
       },
@@ -26557,8 +26557,8 @@
           "actualValue": "DXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheLambdaName",
           "extra": {
             "actual_length": 80,
-            "min_length": 1,
-            "max_length": 64
+            "max_length": 64,
+            "min_length": 1
           }
         }
       },
@@ -26654,9 +26654,9 @@
         "context": {
           "actualValue": "DXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbhe.handler",
           "extra": {
+            "actual_length": 148,
             "max_length": 128,
-            "min_length": 1,
-            "actual_length": 148
+            "min_length": 1
           }
         }
       },
@@ -26769,9 +26769,9 @@
         "context": {
           "actualValue": "DXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbheDXPPuqwhVLODAIIVeagGODxciscAVDptCqTYUlDZCNoFchzHdsWBvtQVHjLldJSLrjgbhe",
           "extra": {
-            "min_length": 1,
             "actual_length": 280,
-            "max_length": 256
+            "max_length": 256,
+            "min_length": 1
           }
         }
       },
@@ -32755,8 +32755,8 @@
         "context": {
           "extra": {
             "actual_count": 2,
-            "min_items": 1,
-            "max_items": 1
+            "max_items": 1,
+            "min_items": 1
           }
         }
       }
@@ -36625,8 +36625,8 @@
         "context": {
           "extra": {
             "actual_count": 2,
-            "min_items": 1,
-            "max_items": 1
+            "max_items": 1,
+            "min_items": 1
           }
         }
       },

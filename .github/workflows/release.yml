@@ -16,8 +16,15 @@ jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
 
+  validate:
+    uses: ./.github/workflows/validate.yml
+    permissions:
+      contents: read
+    with:
+      ref: main
+
   version-and-tag:
-    needs: [ get-configs ]
+    needs: [ get-configs, validate ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -105,12 +112,6 @@ jobs:
             exit 1
           fi
 
-          # Stamp the WASM package version to match the release tag. The committed dist
-          # carries the base version (X.Y.Z) from Cargo.toml; for prerelease tags
-          # (X.Y.Z-beta) we re-stamp here so the published package carries the actual
-          # -beta postfix. The tag is already validated to be VERSION or VERSION-beta by
-          # the version-and-tag job. Stamping before the zip ensures the signature
-          # (computed later over the zip) covers the corrected version.
           WASM_PKG_JSON="$WORKING_DIR/bindings-wasm/dist/package.json"
           if [ ! -f "$WASM_PKG_JSON" ]; then
             echo "::error::$WASM_PKG_JSON not found in committed dist."
@@ -123,6 +124,15 @@ jobs:
           grep '"version"' "$WASM_PKG_JSON"
 
           ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate.zip" dist )
+
+          binaries=("$WORKING_DIR"/release/cfn-validate-*)
+          if [ ${#binaries[@]} -eq 0 ]; then
+            echo "::error::No cfn-validate binaries found in $WORKING_DIR/release/. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          for bin in "${binaries[@]}"; do
+            cp "$bin" release/
+          done
 
           ls -lh release/
 
@@ -274,7 +284,7 @@ jobs:
       - name: Publish to NPM
         working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/dist
         run: |
-          npm publish --access public --provenance \
+          npm publish --access public \
             $([[ "${{ inputs.tag }}" == *-beta ]] && echo "--tag beta")
 
       - name: Verify provenance and integrity

@@ -1,7 +1,8 @@
 # cloudformation-validate
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Main CI](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml/badge.svg)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml)
+[![Main CI](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml)
 
 Fast, offline, embeddable validation for AWS CloudFormation templates.
 
@@ -43,35 +44,8 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 
 ## Installation
 
-### Build the CLI from source
-
-Requires a recent Rust toolchain. From the `src/` directory:
-
-```bash
-cd src
-cargo build --release -p cfn-validate
-# binary: target/release/cfn-validate
-```
-
-Or run it directly without installing:
-
-```bash
-cargo run -p cfn-validate -- template.yaml
-```
-
-For full build instructions — including the Node.js and JVM bindings and verifying signed release artifacts — see
-[INSTALLATION.md](INSTALLATION.md).
-
-### Node.js (WASM)
-
-The Node.js binding is published as the [`@aws/cloudformation-validate`](src/bindings-wasm/README.md) package and is
-also attached to each GitHub release as `cloudformation-validate.zip`. See the
-[bindings-wasm README](src/bindings-wasm/README.md).
-
-### JVM (Kotlin/Java)
-
-The JVM binding is distributed as `cloudformation-validate.jar`, attached to each GitHub release. See the
-[bindings-jvm README](src/bindings-jvm/README.md).
+See [INSTALLATION.md](INSTALLATION.md) for build instructions, prebuilt release artifacts (signed JVM jar, WASM zip,
+and per-platform `cfn-validate` CLI binaries), and signature verification.
 
 ## Quick start
 
@@ -171,13 +145,13 @@ See [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, a
 
 | Severity | Prefix | Source           | Meaning                                                          |
 |----------|--------|------------------|------------------------------------------------------------------|
-| Fatal    | F      | schema validator | Structural schema violation — CloudFormation will reject it      |
-| Error    | E      | engine rules     | Semantic error — likely deployment failure or incorrect behavior |
-| Warn     | W      | engine rules     | Security concern, deprecation, or risky pattern                  |
-| Info     | I      | engine rules     | Best-practice suggestion                                         |
-| Debug    | D      | engine rules     | Internal diagnostic detail                                       |
+| FATAL    | F      | schema validator | Structural schema violation — CloudFormation will reject it      |
+| ERROR    | E      | engine rules     | Semantic error — likely deployment failure or incorrect behavior |
+| WARN     | W      | engine rules     | Security concern, deprecation, or risky pattern                  |
+| INFO     | I      | engine rules     | Best-practice suggestion                                         |
+| DEBUG    | D      | engine rules     | Internal diagnostic detail                                       |
 
-The serialized form of `Warn` is `WARN`. Severity is derived from the first character of a rule ID.
+Severity is derived from the first character of a rule ID.
 
 ## Repository layout
 
@@ -196,11 +170,6 @@ This is a Cargo workspace. The main crates:
 | [guard-translator](src/guard-translator/README.md)         | Parses Guard DSL into an engine-agnostic intermediate representation            |
 | [bindings-wasm](src/bindings-wasm/README.md)               | WASM bindings for Node.js                                                        |
 | [bindings-jvm](src/bindings-jvm/README.md)                 | JVM bindings (Kotlin/Java) via UniFFI                                            |
-
-## Contributing
-
-Issues and pull requests are welcome. Please open an issue to discuss substantial changes before submitting a pull
-request. All changes run through the CI workflow defined in [`.github/workflows`](.github/workflows).
 
 ## Security
 

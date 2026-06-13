@@ -5,7 +5,24 @@ use crate::phase::Phase;
 use crate::span::SourceSpan;
 use rules::{RuleOrigin, Severity};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+
+fn serialize_sorted_optional_map<S, V>(
+    map: &Option<HashMap<String, V>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    V: Serialize,
+{
+    match map {
+        Some(m) => {
+            let sorted: BTreeMap<&String, &V> = m.iter().collect();
+            sorted.serialize(serializer)
+        }
+        None => serializer.serialize_none(),
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
@@ -34,7 +51,7 @@ pub struct ViolationContext {
     pub lifecycle: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolution_source: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, JsonValue>"))]
     pub extra: Option<HashMap<String, JsonValue>>,
 }
@@ -72,7 +89,7 @@ pub struct Diagnostic {
     pub location: Option<SourceSpan>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub related_resources: Option<Vec<RelatedResource>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
     pub condition_scenario: Option<HashMap<String, bool>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rule_description: Option<String>,
@@ -135,7 +152,7 @@ macro_rules! define_flattened_diagnostic {
             pub end_column: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
             pub related_resources: Option<Vec<RelatedResource>>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
             #[cfg_attr(
                 feature = "wasm-bindings",
                 tsify(type = "Record<string, boolean> | undefined")
