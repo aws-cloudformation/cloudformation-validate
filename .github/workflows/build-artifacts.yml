@@ -60,11 +60,7 @@ jobs:
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
-        # - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
-        # - { os: macos-15-intel, platform: darwin, arch: x64 }
-        # - { os: windows-latest, platform: win32, arch: x64 }
-        # - { os: windows-11-arm, platform: win32, arch: aarch64, java-distribution: microsoft }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -186,18 +182,14 @@ jobs:
         if-no-files-found: error
         retention-days: 1
 
-  build-cfn-validate:
-    needs: [ get-configs ]
+  build-cli:
+    needs: [ get-configs, generate-licenses ]
     strategy:
       fail-fast: false
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
-        # - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
-        # - { os: macos-15-intel, platform: darwin, arch: x64 }
-        # - { os: windows-latest, platform: win32, arch: x64 }
-        # - { os: windows-11-arm, platform: win32, arch: aarch64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -235,7 +227,7 @@ jobs:
         retention-days: 1
 
   pull-request:
-    needs: [ get-configs, generate-licenses, build-jvm, build-wasm, build-cfn-validate ]
+    needs: [ get-configs, generate-licenses, build-jvm, build-wasm, build-cli ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
