@@ -5,8 +5,8 @@ use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 use template_model::coercion::{cfn_coerce_to_number, cfn_coerce_to_string, cfn_type_compatible};
 use template_model::consts::{
-    FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE,
-    FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
+    DEFAULT_REGION, FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES,
+    FIELD_RESOURCE_TYPE, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
 };
 use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, ResolvedValue};
@@ -71,7 +71,8 @@ pub(crate) fn register_all(
     register_ip_subnet_of(rego);
     register_is_valid_cidr_strict(rego);
     register_ensure_list(rego);
-    register_input_region(rego, region_holder);
+    register_input_region(rego, region_holder.clone());
+    register_effective_region(rego, region_holder);
     register_coerce_to_number(rego);
     register_coerce_to_string(rego);
     register_cfn_type_compatible(rego);
@@ -231,16 +232,16 @@ fn register_resolve(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            if let Some(val) = model.resolve_deep(&rid, &path) {
+            if let Some(val) = model.resolve_deep(rid, path) {
                 return Ok(resolved_to_rego(&val));
             }
-            if let Some(val) = model.resolve(&rid, &path) {
+            if let Some(val) = model.resolve(rid, path) {
                 return Ok(resolved_to_rego(val));
             }
             // `Properties` wrapped in `Fn::If` stores values only under the
             // synthetic branch path — fall back to scenario resolution so the
             // rule still sees a per-branch value.
-            let scenarios = model.resolve_scenarios_json(&rid, &path);
+            let scenarios = model.resolve_scenarios_json(rid, path);
             if let Some((first, _)) = scenarios.into_iter().next() {
                 return Ok(serde_json_to_rego_value(&first));
             }
@@ -259,16 +260,16 @@ fn register_resolve_all(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            if let Some(val) = model.resolve_deep(&rid, &path) {
+            if let Some(val) = model.resolve_deep(rid, path) {
                 return Ok(Value::from(resolved_all_to_rego(&val)));
             }
-            if let Some(val) = model.resolve(&rid, &path) {
+            if let Some(val) = model.resolve(rid, path) {
                 return Ok(Value::from(resolved_all_to_rego(val)));
             }
             // `Properties` wrapped in `Fn::If` stores values under a synthetic
             // branch path. Fall back to scenario resolution so rules that walk
             // by property name still see per-branch values.
-            let scenarios = model.resolve_scenarios_json(&rid, &path);
+            let scenarios = model.resolve_scenarios_json(rid, path);
             if scenarios.is_empty() {
                 return Ok(Value::from(Vec::<Value>::new()));
             }
@@ -291,10 +292,10 @@ fn register_is_dynamic(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            if let Some(val) = model.resolve_deep(&rid, &path) {
+            if let Some(val) = model.resolve_deep(rid, path) {
                 return Ok(Value::from(contains_dynamic(&val)));
             }
-            if let Some(val) = model.resolve(&rid, &path) {
+            if let Some(val) = model.resolve(rid, path) {
                 return Ok(Value::from(contains_dynamic(val)));
             }
             Ok(Value::from(false))
@@ -312,7 +313,7 @@ fn register_is_from_parameter(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            Ok(Value::from(model.is_from_parameter(&rid, &path)))
+            Ok(Value::from(model.is_from_parameter(rid, path)))
         }),
     );
 }
@@ -327,7 +328,7 @@ fn register_is_from_intrinsic(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            Ok(Value::from(model.is_from_intrinsic(&rid, &path)))
+            Ok(Value::from(model.is_from_intrinsic(rid, path)))
         }),
     );
 }
@@ -339,9 +340,9 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
         let path = params[1].as_string()?;
 
         if path.contains("{}") {
-            let arr_path = path.split(".{}").next().unwrap_or(&path);
-            let suffix = path.splitn(2, "{}").nth(1).unwrap_or("");
-            let arr_len = match model.resolve_deep(&rid, arr_path) {
+            let arr_path = path.split(".{}").next().unwrap_or(path);
+            let suffix = path.split_once("{}").map(|x| x.1).unwrap_or("");
+            let arr_len = match model.resolve_deep(rid, arr_path) {
                 Some(ResolvedValue::List { items }) => items.len(),
                 Some(ResolvedValue::Concrete { value: v }) if v.as_array().is_some() => v.as_array().unwrap().len(),
                 _ => 0,
@@ -350,7 +351,7 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
                 let mut results: Vec<Value> = Vec::new();
                 for i in 0..arr_len {
                     let idx_path = format!("{}.{}{}", arr_path, i, suffix);
-                    let scenarios = model.resolve_scenarios_json(&rid, &idx_path);
+                    let scenarios = model.resolve_scenarios_json(rid, &idx_path);
                     for (v_json, conds) in scenarios {
                         let mut conds_map = serde_json::Map::new();
                         for (k, b) in &conds { conds_map.insert(k.clone(), serde_json::Value::Bool(*b)); }
@@ -363,7 +364,7 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
             }
         }
 
-        let scenarios = model.resolve_scenarios_json(&rid, &path);
+        let scenarios = model.resolve_scenarios_json(rid, path);
         let results: Vec<Value> = scenarios.into_iter().filter_map(|(v_json, conds)| {
             let mut conds_map = serde_json::Map::new();
             for (k, b) in &conds { conds_map.insert(k.clone(), serde_json::Value::Bool(*b)); }
@@ -409,7 +410,7 @@ fn register_follow_ref(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
             Ok(model
-                .follow_ref(&rid, &path)
+                .follow_ref(rid, path)
                 .map(Value::from)
                 .unwrap_or(Value::Undefined))
         }),
@@ -425,7 +426,7 @@ fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {
                 return Ok(Value::Undefined);
             };
             let type_name = params[0].as_string()?;
-            let ids = model.resources_of_type(&type_name);
+            let ids = model.resources_of_type(type_name);
             let set: Vec<Value> = ids
                 .iter()
                 .map(|s: &String| Value::from(s.as_str()))
@@ -446,7 +447,7 @@ fn register_ref_targets(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let targets: Vec<Value> = model
                 .graph
-                .ref_targets(&rid)
+                .ref_targets(rid)
                 .into_iter()
                 .map(Value::from)
                 .collect();
@@ -466,7 +467,7 @@ fn register_ref_sources(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let sources: Vec<Value> = model
                 .graph
-                .ref_sources(&rid)
+                .ref_sources(rid)
                 .into_iter()
                 .map(Value::from)
                 .collect();
@@ -485,7 +486,7 @@ fn register_depends_on(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let source_id = params[0].as_string()?;
             let target_id = params[1].as_string()?;
-            Ok(Value::from(model.graph.depends_on(&source_id, &target_id)))
+            Ok(Value::from(model.graph.depends_on(source_id, target_id)))
         }),
     );
 }
@@ -531,7 +532,7 @@ fn register_condition_implies(rego: &mut regorus::Engine, holder: SharedModel) {
             let antecedent = params[0].as_string()?;
             let consequent = params[1].as_string()?;
             Ok(Value::from(
-                model.conditions.condition_implies(&antecedent, &consequent),
+                model.conditions.condition_implies(antecedent, consequent),
             ))
         }),
     );
@@ -701,13 +702,13 @@ fn register_get_resource(rego: &mut regorus::Engine, holder: SharedModel) {
             for (k, v) in &res.properties {
                 props.insert(k.clone(), resolved_value_to_json_static(v));
             }
-            Ok(Value::from_json_str(
+            Value::from_json_str(
                 &serde_json::json!({
                     (FIELD_RESOURCE_TYPE): res.resource_type, (FIELD_CONDITION): res.condition,
                     (FIELD_DEPENDS_ON): res.depends_on, (FIELD_PROPERTIES): props,
                 })
                 .to_string(),
-            )?)
+            )
         }),
     );
 }
@@ -722,7 +723,7 @@ fn register_resolve_ref_target(rego: &mut regorus::Engine, holder: SharedModel) 
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            let target_id = match model.follow_ref(&rid, &path) {
+            let target_id = match model.follow_ref(rid, path) {
                 Some(t) => t.to_string(),
                 None => return Ok(Value::Undefined),
             };
@@ -734,12 +735,12 @@ fn register_resolve_ref_target(rego: &mut regorus::Engine, holder: SharedModel) 
             for (k, v) in &res.properties {
                 props.insert(k.clone(), resolved_value_to_json_static(v));
             }
-            Ok(Value::from_json_str(
+            Value::from_json_str(
                 &serde_json::json!({
                     (FIELD_RESOURCE_TYPE): res.resource_type, (FIELD_CONDITION): res.condition, (FIELD_PROPERTIES): props,
                 })
                 .to_string(),
-            )?)
+            )
         }),
     );
 }
@@ -755,8 +756,8 @@ fn register_flatten_list(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
             let val = model
-                .resolve_deep(&rid, &path)
-                .or_else(|| model.resolve(&rid, &path).cloned());
+                .resolve_deep(rid, path)
+                .or_else(|| model.resolve(rid, path).cloned());
             let Some(resolved) = val else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
@@ -950,7 +951,7 @@ fn register_cfn_type_compatible(rego: &mut regorus::Engine) {
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
             let expected = params[1].as_string()?;
-            Ok(Value::from(cfn_type_compatible(&jv, &expected)))
+            Ok(Value::from(cfn_type_compatible(&jv, expected)))
         }),
     );
 }
@@ -968,6 +969,23 @@ fn register_input_region(rego: &mut regorus::Engine, holder: SharedRegion) {
     );
 }
 
+/// Region used for region-scoped enum validation: the configured region, or
+/// the platform default ([`template_model::DEFAULT_REGION`]) when unset. This
+/// keeps the default in one place and matches the CEL engine and cfn-lint,
+/// which validate against the default region when none is configured.
+fn register_effective_region(rego: &mut regorus::Engine, holder: SharedRegion) {
+    let _ = rego.add_extension(
+        "effective_region".into(),
+        0,
+        Box::new(move |_: Vec<Value>| {
+            match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+                Some(r) => Ok(Value::from(r.as_str())),
+                None => Ok(Value::from(DEFAULT_REGION)),
+            }
+        }),
+    );
+}
+
 fn register_pipeline_artifacts(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension("pipeline_artifacts".into(), 1, Box::new(move |params: Vec<Value>| {
         let Some(model) = get_model(&holder) else { return Ok(Value::Undefined); };
@@ -978,11 +996,11 @@ fn register_pipeline_artifacts(rego: &mut regorus::Engine, holder: SharedModel) 
         };
         let stages_val = match resource.properties.get("Stages") {
             Some(ResolvedValue::Concrete { value: v }) => v.0.clone(),
-            _ => return Ok(Value::from_json_str(&serde_json::json!({"issues": []}).to_string())?),
+            _ => return Value::from_json_str(&serde_json::json!({"issues": []}).to_string()),
         };
         let stages = match stages_val.as_array() {
             Some(a) => a,
-            None => return Ok(Value::from_json_str(&serde_json::json!({"issues": []}).to_string())?),
+            None => return Value::from_json_str(&serde_json::json!({"issues": []}).to_string()),
         };
         let mut seen_outputs = HashSet::new();
         let mut issues: Vec<serde_json::Value> = Vec::new();
@@ -996,27 +1014,24 @@ fn register_pipeline_artifacts(rego: &mut regorus::Engine, holder: SharedModel) 
                 let action_name = action.get("Name").and_then(|v| v.as_str()).unwrap_or("unknown");
                 if let Some(outputs) = action.get("OutputArtifacts").and_then(|v| v.as_array()) {
                     for out in outputs {
-                        if let Some(name) = out.get("Name").and_then(|v| v.as_str()) {
-                            if !seen_outputs.insert(name.to_string()) {
+                        if let Some(name) = out.get("Name").and_then(|v| v.as_str())
+                            && !seen_outputs.insert(name.to_string()) {
                                 issues.push(serde_json::json!({"message": format!("Duplicate OutputArtifact name '{}' in stage '{}' action '{}'", name, stage_name, action_name)}));
                             }
-                        }
                     }
                 }
-                if stage_idx > 0 {
-                    if let Some(inputs) = action.get("InputArtifacts").and_then(|v| v.as_array()) {
+                if stage_idx > 0
+                    && let Some(inputs) = action.get("InputArtifacts").and_then(|v| v.as_array()) {
                         for inp in inputs {
-                            if let Some(name) = inp.get("Name").and_then(|v| v.as_str()) {
-                                if !seen_outputs.contains(name) {
+                            if let Some(name) = inp.get("Name").and_then(|v| v.as_str())
+                                && !seen_outputs.contains(name) {
                                     issues.push(serde_json::json!({"message": format!("InputArtifact '{}' in stage '{}' action '{}' does not reference a previously defined OutputArtifact", name, stage_name, action_name)}));
                                 }
-                            }
                         }
                     }
-                }
             }
         }
-        Ok(Value::from_json_str(&serde_json::json!({"issues": issues}).to_string())?)
+        Value::from_json_str(&serde_json::json!({"issues": issues}).to_string())
     }));
 }
 fn register_resolve_type(rego: &mut regorus::Engine, holder: SharedModel) {
@@ -1030,8 +1045,8 @@ fn register_resolve_type(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
             let val = model
-                .resolve_deep(&rid, &path)
-                .or_else(|| model.resolve(&rid, &path).cloned());
+                .resolve_deep(rid, path)
+                .or_else(|| model.resolve(rid, path).cloned());
             let type_str = match val {
                 Some(ResolvedValue::Concrete { value: v }) if v.is_string() => "string",
                 Some(ResolvedValue::Concrete { value: v }) if v.is_number() => "number",
@@ -1160,7 +1175,7 @@ fn register_schema_enum(rego: &mut regorus::Engine, registry: LazySchemaRegistry
                 .and_then(|i| i.property_enums.get(prop.as_ref()))
             {
                 Some(vals) => {
-                    let v: Vec<Value> = vals.iter().map(|s| json_to_value(s)).collect();
+                    let v: Vec<Value> = vals.iter().map(json_to_value).collect();
                     Ok(Value::from(v))
                 }
                 None => Ok(Value::from(Vec::<Value>::new())),
@@ -1222,7 +1237,7 @@ fn register_edges_from(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let edges: Vec<Value> = model
                 .graph
-                .outgoing(&rid)
+                .outgoing(rid)
                 .into_iter()
                 .filter_map(|e| {
                     Value::from_json_str(
@@ -1251,7 +1266,7 @@ fn register_edges_to(rego: &mut regorus::Engine, holder: SharedModel) {
             let rid = params[0].as_string()?;
             let edges: Vec<Value> = model
                 .graph
-                .incoming(&rid)
+                .incoming(rid)
                 .into_iter()
                 .filter_map(|e| {
                     Value::from_json_str(
@@ -1283,7 +1298,7 @@ fn register_make_diag(rego: &mut regorus::Engine, holder: SharedModel) {
             let span = if resource_id.is_empty() {
                 diagnostics::UNKNOWN_SPAN
             } else {
-                model.resource_span(&resource_id, "")
+                model.resource_span(resource_id, "")
             };
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
@@ -1297,7 +1312,7 @@ fn register_make_diag(rego: &mut regorus::Engine, holder: SharedModel) {
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Ok(Value::from_json_str(&obj.to_string())?)
+            Value::from_json_str(&obj.to_string())
         }),
     );
 }
@@ -1318,7 +1333,7 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
             let span = if resource_id.is_empty() {
                 diagnostics::UNKNOWN_SPAN
             } else {
-                model.resource_span(&resource_id, &prop_path)
+                model.resource_span(resource_id, prop_path)
             };
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
@@ -1332,7 +1347,7 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Ok(Value::from_json_str(&obj.to_string())?)
+            Value::from_json_str(&obj.to_string())
         }),
     );
 }
@@ -1360,7 +1375,7 @@ fn register_make_diag_full(rego: &mut regorus::Engine, holder: SharedModel) {
             let message = params[4].as_string()?;
             let fix = params[5].as_string()?;
             let doc_url = params[6].as_string()?;
-            let span = resolve_span(&model, &resource_id, &prop_path);
+            let span = resolve_span(&model, resource_id, prop_path);
             let fix_val = if fix.is_empty() {
                 serde_json::Value::Null
             } else {
@@ -1384,7 +1399,7 @@ fn register_make_diag_full(rego: &mut regorus::Engine, holder: SharedModel) {
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Ok(Value::from_json_str(&obj.to_string())?)
+            Value::from_json_str(&obj.to_string())
         }),
     );
 }
@@ -1398,7 +1413,7 @@ fn register_make_diag_related(rego: &mut regorus::Engine, holder: SharedModel) {
         let prop_path = params[3].as_string()?;
         let message = params[4].as_string()?;
         let related_str = params[5].to_json_str()?;
-        let span = resolve_span(&model, &resource_id, &prop_path);
+        let span = resolve_span(&model, resource_id, prop_path);
 
         let related_arr: Vec<serde_json::Value> = serde_json::from_str(&related_str).unwrap_or_default();
         let related: Vec<serde_json::Value> = related_arr.iter().filter_map(|r| {
@@ -1423,7 +1438,7 @@ fn register_make_diag_related(rego: &mut regorus::Engine, holder: SharedModel) {
             m.insert("end_line".into(), span.end_line.into());
             m.insert("end_column".into(), span.end_column.into());
         }
-        Ok(Value::from_json_str(&obj.to_string())?)
+        Value::from_json_str(&obj.to_string())
     }));
 }
 
@@ -1441,7 +1456,7 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
             let prop_path = params[3].as_string()?;
             let message = params[4].as_string()?;
             let conds_str = params[5].to_json_str()?;
-            let span = resolve_span(&model, &resource_id, &prop_path);
+            let span = resolve_span(&model, resource_id, prop_path);
             let conds_val: serde_json::Value =
                 serde_json::from_str(&conds_str).unwrap_or(serde_json::Value::Null);
 
@@ -1458,7 +1473,7 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
                 m.insert("end_line".into(), span.end_line.into());
                 m.insert("end_column".into(), span.end_column.into());
             }
-            Ok(Value::from_json_str(&obj.to_string())?)
+            Value::from_json_str(&obj.to_string())
         }),
     );
 }
@@ -1473,7 +1488,7 @@ fn register_estimate_string_length(rego: &mut regorus::Engine, holder: SharedMod
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            match model.estimate_string_length(&rid, &path) {
+            match model.estimate_string_length(rid, path) {
                 Some(len) => Ok(Value::from(len as i64)),
                 None => Ok(Value::Undefined),
             }
@@ -1504,18 +1519,16 @@ fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchem
             let mut map = serde_json::Map::new();
             if let Some(v) = constraints.get("minLength") {
                 map.insert("minLength".into(), v.clone());
-            } else if is_string {
-                if let Some(v) = constraints.get("minimum") {
+            } else if is_string
+                && let Some(v) = constraints.get("minimum") {
                     map.insert("minLength".into(), v.clone());
                 }
-            }
             if let Some(v) = constraints.get("maxLength") {
                 map.insert("maxLength".into(), v.clone());
-            } else if is_string {
-                if let Some(v) = constraints.get("maximum") {
+            } else if is_string
+                && let Some(v) = constraints.get("maximum") {
                     map.insert("maxLength".into(), v.clone());
                 }
-            }
             if map.is_empty() {
                 return Ok(Value::Undefined);
             }
@@ -1569,7 +1582,7 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedMo
                 let path_prefix = format!("Properties.{}", prop_key);
                 collect_unreachable_branches(
                     &model,
-                    &rid,
+                    rid,
                     prop_val,
                     &path_prefix,
                     &base_assumptions,

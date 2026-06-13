@@ -136,8 +136,8 @@ fn validate_start_at(
             format!("{}/States/{}", path_prefix, state_name)
         };
 
-        if stype == "Parallel" {
-            if let Some(branches) = state.get("Branches").and_then(|v| v.as_array()) {
+        if stype == "Parallel"
+            && let Some(branches) = state.get("Branches").and_then(|v| v.as_array()) {
                 for (i, branch) in branches.iter().enumerate() {
                     validate_start_at(
                         out,
@@ -149,11 +149,10 @@ fn validate_start_at(
                     );
                 }
             }
-        }
         if stype == "Map" {
             for key in &["ItemProcessor", "Iterator"] {
-                if let Some(proc) = state.get(key) {
-                    if proc.is_object() {
+                if let Some(proc) = state.get(key)
+                    && proc.is_object() {
                         validate_start_at(
                             out,
                             proc,
@@ -163,7 +162,6 @@ fn validate_start_at(
                             &format!("{}/{}", state_path, key),
                         );
                     }
-                }
             }
         }
     }

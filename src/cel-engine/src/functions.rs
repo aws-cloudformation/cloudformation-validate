@@ -99,8 +99,8 @@ pub fn build_custom_context(
                 let _ = ctx.add_variable("properties", json_to_cel(props));
             }
         }
-        if let Some(model) = model {
-            if let Some(res) = model.resources.get(rid) {
+        if let Some(model) = model
+            && let Some(res) = model.resources.get(rid) {
                 let resolved: HashMap<String, Value> = res
                     .properties
                     .iter()
@@ -108,7 +108,6 @@ pub fn build_custom_context(
                     .collect();
                 let _ = ctx.add_variable("resolved_properties", Value::from(resolved));
             }
-        }
     }
     ctx
 }

@@ -355,8 +355,8 @@ impl<'a> Resolver<'a> {
                 self.current_path = format!("{}.0", join_path);
                 let delim = self.resolve_node(*delim_ref);
                 // Track Fn::Join with empty delimiter for join-without-delimiter detection
-                if let ResolvedValue::Concrete { value: d } = &delim {
-                    if d.as_str() == Some("") && self.is_simple_join(*values_ref) {
+                if let ResolvedValue::Concrete { value: d } = &delim
+                    && d.as_str() == Some("") && self.is_simple_join(*values_ref) {
                         let key = self
                             .current_resource
                             .clone()
@@ -366,7 +366,6 @@ impl<'a> Resolver<'a> {
                             .or_default()
                             .push(join_path.clone());
                     }
-                }
                 self.current_path = format!("{}.1", join_path);
                 let values = self.resolve_node(*values_ref);
                 self.current_path = saved;
@@ -476,8 +475,8 @@ impl<'a> Resolver<'a> {
                         ResolvedValue::Concrete { value: i },
                         ResolvedValue::Concrete { value: l },
                     ) => {
-                        if let Some(arr) = l.as_array() {
-                            if let Some(idx) = i.as_u64() {
+                        if let Some(arr) = l.as_array()
+                            && let Some(idx) = i.as_u64() {
                                 if (idx as usize) < arr.len() {
                                     return ResolvedValue::Concrete {
                                         value: arr[idx as usize].clone().into(),
@@ -487,7 +486,6 @@ impl<'a> Resolver<'a> {
                                     reason: "Select index out of bounds".into(),
                                 };
                             }
-                        }
                         ResolvedValue::Dynamic {
                             reason: "Select on non-list value".into(),
                         }
@@ -1054,8 +1052,8 @@ impl<'a> Resolver<'a> {
         }
 
         // Overrides take precedence over AllowedValues/Default
-        if let Some(override_val) = self.parameter_overrides.get(target) {
-            if let Some(param) = self.parameters.get(target) {
+        if let Some(override_val) = self.parameter_overrides.get(target)
+            && let Some(param) = self.parameters.get(target) {
                 self.record_edge(target, RefKind::Ref, span);
                 if let Some(ref rid) = self.current_resource {
                     self.resolution_source_map.insert(
@@ -1068,7 +1066,6 @@ impl<'a> Resolver<'a> {
                     value: json_val.into(),
                 });
             }
-        }
 
         if let Some(param) = self.parameters.get(target) {
             self.record_edge(target, RefKind::Ref, span);
@@ -1557,33 +1554,30 @@ impl<'a> Resolver<'a> {
         if vars.len() == 1 && subs.is_none() {
             let var = &vars[0];
             let expected = format!("${{{}}}", var);
-            if template == expected {
-                if let Some(ref rid) = self.current_resource {
+            if template == expected
+                && let Some(ref rid) = self.current_resource {
                     self.simple_subs
                         .entry(rid.clone())
                         .or_default()
                         .push((self.current_path.clone(), var.clone()));
                 }
-            }
         }
 
-        if vars.is_empty() && subs.is_none() {
-            if let Some(ref rid) = self.current_resource {
+        if vars.is_empty() && subs.is_none()
+            && let Some(ref rid) = self.current_resource {
                 self.redundant_subs
                     .entry(rid.clone())
                     .or_default()
                     .push(self.current_path.clone());
             }
-        }
 
-        if template.contains("arn:aws:") {
-            if let Some(ref rid) = self.current_resource {
+        if template.contains("arn:aws:")
+            && let Some(ref rid) = self.current_resource {
                 self.hardcoded_partition_arns
                     .entry(rid.clone())
                     .or_default()
                     .push(self.current_path.clone());
             }
-        }
 
         let all_concrete = sub_map
             .values()
@@ -1898,23 +1892,21 @@ fn join_with_enum_list(delim: &str, items: &[ResolvedValue]) -> ResolvedValue {
 fn select_resolved(idx: &serde_json::Value, list: &ResolvedValue) -> ResolvedValue {
     match list {
         ResolvedValue::Concrete { value: l } => {
-            if let (Some(arr), Some(i)) = (l.as_array(), idx.as_u64()) {
-                if (i as usize) < arr.len() {
+            if let (Some(arr), Some(i)) = (l.as_array(), idx.as_u64())
+                && (i as usize) < arr.len() {
                     return ResolvedValue::Concrete {
                         value: arr[i as usize].clone().into(),
                     };
                 }
-            }
             ResolvedValue::Dynamic {
                 reason: "Select index out of bounds".into(),
             }
         }
         ResolvedValue::List { items } => {
-            if let Some(i) = idx.as_u64() {
-                if (i as usize) < items.len() {
+            if let Some(i) = idx.as_u64()
+                && (i as usize) < items.len() {
                     return items[i as usize].clone();
                 }
-            }
             ResolvedValue::Dynamic {
                 reason: "Select index out of bounds".into(),
             }

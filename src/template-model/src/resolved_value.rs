@@ -328,11 +328,10 @@ fn has_interpolation_variable(template: &str) -> bool {
     let bytes = template.as_bytes();
     let mut i = 0;
     while i + 1 < bytes.len() {
-        if bytes[i] == b'$' && bytes[i + 1] == b'{' {
-            if let Some(_end) = template[i + 2..].find('}') {
+        if bytes[i] == b'$' && bytes[i + 1] == b'{'
+            && let Some(_end) = template[i + 2..].find('}') {
                 return true;
             }
-        }
         i += 1;
     }
     false
@@ -356,6 +355,163 @@ fn json_value_at_path<'a>(val: &'a serde_json::Value, path: &str) -> Option<&'a 
         }
     }
     Some(current)
+}
+
+fn json_values_matching_wildcard_path(
+    val: &serde_json::Value,
+    path: &str,
+) -> Vec<serde_json::Value> {
+    let mut segments: Vec<&str> = path.split('.').collect();
+    if segments.is_empty() {
+        return vec![val.clone()];
+    }
+    let key = segments.remove(0);
+    let remaining = if segments.is_empty() {
+        String::new()
+    } else {
+        segments.join(".")
+    };
+    match val {
+        serde_json::Value::Object(map) => {
+            if let Some(child) = map.get(key) {
+                if remaining.is_empty() {
+                    vec![child.clone()]
+                } else {
+                    json_values_matching_wildcard_path(child, &remaining)
+                }
+            } else {
+                vec![]
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            if key == "{}" {
+                arr.iter()
+                    .flat_map(|item| {
+                        if remaining.is_empty() {
+                            vec![item.clone()]
+                        } else {
+                            json_values_matching_wildcard_path(item, &remaining)
+                        }
+                    })
+                    .collect()
+            } else if let Ok(idx) = key.parse::<usize>() {
+                arr.get(idx)
+                    .map(|child| {
+                        if remaining.is_empty() {
+                            vec![child.clone()]
+                        } else {
+                            json_values_matching_wildcard_path(child, &remaining)
+                        }
+                    })
+                    .unwrap_or_default()
+            } else {
+                vec![]
+            }
+        }
+        _ => vec![],
+    }
+}
+
+/// Generic cartesian product of scenario expansions with conflict detection.
+/// Each item provides its own set of scenarios. The `build_result` closure
+/// assembles the final `ResolvedValue` from the collected per-item values.
+fn expand_cartesian_scenarios<T: Clone>(
+    items: &[(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
+    base_assumptions: &HashMap<String, bool>,
+    build_result: impl Fn(Vec<(T, ResolvedValue)>) -> ResolvedValue,
+    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+) {
+    let mut combos: Vec<(Vec<(T, ResolvedValue)>, HashMap<String, bool>)> =
+        vec![(Vec::new(), base_assumptions.clone())];
+    for (key, item_scenarios) in items {
+        let mut new_combos = Vec::new();
+        for (partial, partial_conds) in &combos {
+            for (val, val_conds) in item_scenarios {
+                let mut merged = partial_conds.clone();
+                let mut conflict = false;
+                for (k, v) in val_conds {
+                    if let Some(&existing) = merged.get(k) {
+                        if existing != *v {
+                            conflict = true;
+                            break;
+                        }
+                    } else {
+                        merged.insert(k.clone(), *v);
+                    }
+                }
+                if conflict {
+                    continue;
+                }
+                let mut new_partial = partial.clone();
+                new_partial.push((key.clone(), val.clone()));
+                new_combos.push((new_partial, merged));
+            }
+        }
+        combos = new_combos;
+        if combos.len() > MAX_SCENARIO_COMBINATIONS {
+            combos.truncate(MAX_SCENARIO_COMBINATIONS);
+            break;
+        }
+    }
+    for (collected, conds) in combos {
+        results.push((build_result(collected), conds));
+    }
+}
+
+fn expand_list_scenarios(
+    items: &[ResolvedValue],
+    base_assumptions: &HashMap<String, bool>,
+    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+) {
+    let prepared: Vec<(usize, Vec<(ResolvedValue, HashMap<String, bool>)>)> = items
+        .iter()
+        .enumerate()
+        .map(|(i, item)| {
+            let mut scenarios = Vec::new();
+            collect_scenarios(item, base_assumptions, &mut scenarios);
+            if scenarios.is_empty() {
+                scenarios.push((item.clone(), base_assumptions.clone()));
+            }
+            (i, scenarios)
+        })
+        .collect();
+    expand_cartesian_scenarios(
+        &prepared,
+        base_assumptions,
+        |collected| ResolvedValue::List {
+            items: collected.into_iter().map(|(_, v)| v).collect(),
+        },
+        results,
+    );
+}
+
+fn expand_map_scenarios(
+    entries: &[MapEntry],
+    base_assumptions: &HashMap<String, bool>,
+    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+) {
+    let prepared: Vec<(String, Vec<(ResolvedValue, HashMap<String, bool>)>)> = entries
+        .iter()
+        .map(|e| {
+            let mut scenarios = Vec::new();
+            collect_scenarios(&e.value, base_assumptions, &mut scenarios);
+            if scenarios.is_empty() {
+                scenarios.push((e.value.clone(), base_assumptions.clone()));
+            }
+            (e.key.clone(), scenarios)
+        })
+        .collect();
+    expand_cartesian_scenarios(
+        &prepared,
+        base_assumptions,
+        |collected| ResolvedValue::Map {
+            entries: collected
+                .into_iter()
+                .map(|(k, v)| MapEntry { key: k, value: v })
+                .collect(),
+        },
+        results,
+    );
 }
 
 #[cfg(test)]
@@ -835,161 +991,4 @@ mod tests {
             Some("prefix-{ref:Other}-suffix".len())
         );
     }
-}
-
-fn json_values_matching_wildcard_path(
-    val: &serde_json::Value,
-    path: &str,
-) -> Vec<serde_json::Value> {
-    let mut segments: Vec<&str> = path.split('.').collect();
-    if segments.is_empty() {
-        return vec![val.clone()];
-    }
-    let key = segments.remove(0);
-    let remaining = if segments.is_empty() {
-        String::new()
-    } else {
-        segments.join(".")
-    };
-    match val {
-        serde_json::Value::Object(map) => {
-            if let Some(child) = map.get(key) {
-                if remaining.is_empty() {
-                    vec![child.clone()]
-                } else {
-                    json_values_matching_wildcard_path(child, &remaining)
-                }
-            } else {
-                vec![]
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            if key == "{}" {
-                arr.iter()
-                    .flat_map(|item| {
-                        if remaining.is_empty() {
-                            vec![item.clone()]
-                        } else {
-                            json_values_matching_wildcard_path(item, &remaining)
-                        }
-                    })
-                    .collect()
-            } else if let Ok(idx) = key.parse::<usize>() {
-                arr.get(idx)
-                    .map(|child| {
-                        if remaining.is_empty() {
-                            vec![child.clone()]
-                        } else {
-                            json_values_matching_wildcard_path(child, &remaining)
-                        }
-                    })
-                    .unwrap_or_default()
-            } else {
-                vec![]
-            }
-        }
-        _ => vec![],
-    }
-}
-
-/// Generic cartesian product of scenario expansions with conflict detection.
-/// Each item provides its own set of scenarios. The `build_result` closure
-/// assembles the final `ResolvedValue` from the collected per-item values.
-fn expand_cartesian_scenarios<T: Clone>(
-    items: &[(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
-    base_assumptions: &HashMap<String, bool>,
-    build_result: impl Fn(Vec<(T, ResolvedValue)>) -> ResolvedValue,
-    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
-) {
-    let mut combos: Vec<(Vec<(T, ResolvedValue)>, HashMap<String, bool>)> =
-        vec![(Vec::new(), base_assumptions.clone())];
-    for (key, item_scenarios) in items {
-        let mut new_combos = Vec::new();
-        for (partial, partial_conds) in &combos {
-            for (val, val_conds) in item_scenarios {
-                let mut merged = partial_conds.clone();
-                let mut conflict = false;
-                for (k, v) in val_conds {
-                    if let Some(&existing) = merged.get(k) {
-                        if existing != *v {
-                            conflict = true;
-                            break;
-                        }
-                    } else {
-                        merged.insert(k.clone(), *v);
-                    }
-                }
-                if conflict {
-                    continue;
-                }
-                let mut new_partial = partial.clone();
-                new_partial.push((key.clone(), val.clone()));
-                new_combos.push((new_partial, merged));
-            }
-        }
-        combos = new_combos;
-        if combos.len() > MAX_SCENARIO_COMBINATIONS {
-            combos.truncate(MAX_SCENARIO_COMBINATIONS);
-            break;
-        }
-    }
-    for (collected, conds) in combos {
-        results.push((build_result(collected), conds));
-    }
-}
-
-fn expand_list_scenarios(
-    items: &[ResolvedValue],
-    base_assumptions: &HashMap<String, bool>,
-    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
-) {
-    let prepared: Vec<(usize, Vec<(ResolvedValue, HashMap<String, bool>)>)> = items
-        .iter()
-        .enumerate()
-        .map(|(i, item)| {
-            let mut scenarios = Vec::new();
-            collect_scenarios(item, base_assumptions, &mut scenarios);
-            if scenarios.is_empty() {
-                scenarios.push((item.clone(), base_assumptions.clone()));
-            }
-            (i, scenarios)
-        })
-        .collect();
-    expand_cartesian_scenarios(
-        &prepared,
-        base_assumptions,
-        |collected| ResolvedValue::List {
-            items: collected.into_iter().map(|(_, v)| v).collect(),
-        },
-        results,
-    );
-}
-
-fn expand_map_scenarios(
-    entries: &[MapEntry],
-    base_assumptions: &HashMap<String, bool>,
-    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
-) {
-    let prepared: Vec<(String, Vec<(ResolvedValue, HashMap<String, bool>)>)> = entries
-        .iter()
-        .map(|e| {
-            let mut scenarios = Vec::new();
-            collect_scenarios(&e.value, base_assumptions, &mut scenarios);
-            if scenarios.is_empty() {
-                scenarios.push((e.value.clone(), base_assumptions.clone()));
-            }
-            (e.key.clone(), scenarios)
-        })
-        .collect();
-    expand_cartesian_scenarios(
-        &prepared,
-        base_assumptions,
-        |collected| ResolvedValue::Map {
-            entries: collected
-                .into_iter()
-                .map(|(k, v)| MapEntry { key: k, value: v })
-                .collect(),
-        },
-        results,
-    );
 }

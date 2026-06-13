@@ -181,6 +181,12 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
     "aws_rds_dbinstance_db_instance_class",
     "aws_rds_dbinstance_dbinstanceclass_enum",
     "aws_redshift_cluster_nodetype_enum",
+    "aws_sagemaker_processing_instancetype_enum",
+    "aws_sagemaker_hosting_instancetype_enum",
+    "aws_sagemaker_transform_instancetype_enum",
+    "aws_sagemaker_cluster_instancetype_enum",
+    "aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum",
+    "aws_opensearchservice_domain_clusterconfig_instancetype_enum",
     // Additional specs
     "iam_action_resource_patterns",
     "lambda_runtimes",

@@ -8,14 +8,14 @@ use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, Valida
 
 static SHARED_ENGINE: LazyLock<RegoEngine> =
     LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
-static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(|| SchemaValidator::new());
+static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
 fn validate_fixture(path: &str) -> ValidationReport {
     let full = format!("../resources/templates/{}", path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
     validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         &bytes,
         ValidateConfig::default(),
     )
@@ -25,7 +25,7 @@ fn validate_fixture(path: &str) -> ValidationReport {
 fn validate_with_config(path: &str, config: ValidateConfig) -> ValidationReport {
     let full = format!("../resources/templates/{}", path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
-    validation_engine::validate_bytes(&*SHARED_ENGINE, &*SHARED_SV, &bytes, config)
+    validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, config)
         .unwrap_or_else(|e| panic!("Failed to validate {}: {}", full, e))
 }
 
@@ -114,7 +114,7 @@ fn e2e_integration_ref_no_value() {
                     .map(|r| r
                         .id
                         .as_deref()
-                        .map_or(false, |id| allowed_resources.contains(&id)))
+                        .is_some_and(|id| allowed_resources.contains(&id)))
                     .unwrap_or(false)),
         "Unexpected resource with errors, got: {:?}",
         report
@@ -288,14 +288,14 @@ fn e2e_engine_reusable() {
     let bytes2 = std::fs::read("../resources/templates/good/generic.yaml").unwrap();
     let r1 = validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         &bytes1,
         ValidateConfig::default(),
     )
     .unwrap();
     let r2 = validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         &bytes2,
         ValidateConfig::default(),
     )
@@ -368,7 +368,7 @@ Resources:
 "#;
     let report = validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         input.as_bytes(),
         ValidateConfig::default(),
     )
@@ -392,7 +392,7 @@ Resources:
 "#;
     let report = validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         input.as_bytes(),
         ValidateConfig::default(),
     )
@@ -448,7 +448,7 @@ fn e2e_diagnostics_have_source_locations() {
     );
     let with_location = with_resource
         .iter()
-        .filter(|d| d.location.as_ref().map_or(false, |l| l.start_line > 0))
+        .filter(|d| d.location.as_ref().is_some_and(|l| l.start_line > 0))
         .count();
     assert!(
         with_location > 0,
@@ -488,7 +488,7 @@ fn e2e_suggested_fix_on_required_property() {
         b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Role:\n    Type: AWS::IAM::Role\n";
     let report = validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         input,
         ValidateConfig::default(),
     )
@@ -517,7 +517,7 @@ fn e2e_related_locations_on_cross_resource() {
         !e3060
             .related_resources
             .as_ref()
-            .map_or(true, |v| v.is_empty()),
+            .is_none_or(|v| v.is_empty()),
         "E3060 should have related_resources for cross-resource diagnostic"
     );
 }
@@ -648,7 +648,7 @@ fn e2e_region_restricted() {
         ..Default::default()
     };
     let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &*SHARED_SV, input, config).unwrap();
+        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, config).unwrap();
     assert!(
         has_rule(&report, "E3001"),
         "APS::Scraper in cn-north-1 should trigger E3001, got: {:?}",
@@ -660,6 +660,33 @@ fn e2e_region_restricted() {
 fn e2e_region_none_skips() {
     let report = validate_fixture("good/minimal.yaml");
     assert!(!has_rule(&report, "E3001"));
+}
+
+#[test]
+fn e2e_sagemaker_instance_types() {
+    let report = validate_fixture("bad/sagemaker_instance_types.yaml");
+    for rule in ["E3640", "E3642", "E3643", "E3644"] {
+        assert!(
+            has_rule(&report, rule),
+            "Expected {rule} for invalid SageMaker instance type, got: {:?}",
+            report.diagnostics
+        );
+    }
+}
+
+#[test]
+fn e2e_opensearch_instance_type() {
+    let report = validate_fixture("bad/opensearch_instance_type.yaml");
+    let e3653 = report
+        .diagnostics
+        .iter()
+        .filter(|d| d.rule_id == "E3653")
+        .count();
+    assert_eq!(
+        e3653, 1,
+        "Expected exactly one E3653 (only the invalid domain), got: {:?}",
+        report.diagnostics
+    );
 }
 
 #[test]
@@ -738,14 +765,14 @@ fn e2e_lambda_runtime_from_data() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  F:\n    Type: AWS::Lambda::Function\n    Properties:\n      Runtime: python3.7\n      Handler: index.handler\n      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role\n      Code:\n        ZipFile: |\n          def handler(event, context): pass\n";
     let report = validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         input,
         ValidateConfig::default(),
     )
     .unwrap();
     assert!(
-        has_rule(&report, "E2533"),
-        "python3.7 should trigger E2533 (end-of-life), got: {:?}",
+        has_rule(&report, "E2531"),
+        "python3.7 should trigger E2531 (blocked for new function creation), got: {:?}",
         report.diagnostics
     );
 }
@@ -755,7 +782,7 @@ fn e2e_schema_violations_from_multiple_services() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      NotReal: bad\n  VPC:\n    Type: AWS::EC2::VPC\n    Properties:\n      NotReal: bad\n";
     let report = validation_engine::validate_bytes(
         &*SHARED_ENGINE,
-        &*SHARED_SV,
+        &SHARED_SV,
         input,
         ValidateConfig::default(),
     )
@@ -1219,8 +1246,8 @@ fn e2e_strict_mode_in_metadata() {
         ..Default::default()
     };
     let report = validate_with_config("good/minimal.yaml", config);
-    assert_eq!(
-        report.metadata.strict, true,
+    assert!(
+        report.metadata.strict,
         "strict mode should be enabled"
     );
 }
@@ -1228,8 +1255,8 @@ fn e2e_strict_mode_in_metadata() {
 #[test]
 fn e2e_strict_mode_default_false() {
     let report = validate_fixture("good/minimal.yaml");
-    assert_eq!(
-        report.metadata.strict, false,
+    assert!(
+        !report.metadata.strict,
         "default mode should not be strict"
     );
 }
@@ -1254,7 +1281,7 @@ fn e2e_include_range_filter() {
     for d in &report.diagnostics {
         let num: u32 = d.rule_id[1..].parse().unwrap_or(0);
         assert!(
-            d.rule_id.starts_with('E') && num >= 3000 && num <= 3099,
+            d.rule_id.starts_with('E') && (3000..=3099).contains(&num),
             "Range filter E3000..E3099 should only include matching rules, got {}",
             d.rule_id
         );
@@ -1282,7 +1309,7 @@ fn e2e_exclude_range_filter() {
         if d.rule_id.starts_with('E') {
             let num: u32 = d.rule_id[1..].parse().unwrap_or(0);
             assert!(
-                num < 3000 || num > 3099,
+                !(3000..=3099).contains(&num),
                 "Exclude range E3000..E3099 should remove matching rules, got {}",
                 d.rule_id
             );
@@ -1443,7 +1470,7 @@ violation contains make_diag("C0001", "WARN", name, "Custom rule triggered") if 
     let engine = RegoEngine::new(config).unwrap();
     let bytes = std::fs::read("../resources/templates/good/minimal.yaml").unwrap();
     let report =
-        validation_engine::validate_bytes(&engine, &*SHARED_SV, &bytes, ValidateConfig::default())
+        validation_engine::validate_bytes(&engine, &SHARED_SV, &bytes, ValidateConfig::default())
             .unwrap();
     assert!(
         has_rule(&report, "C0001"),
@@ -1494,7 +1521,7 @@ fn e2e_guard_rule_source() {
     let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
     let report = validation_engine::validate_bytes(
         &engine,
-        &*SHARED_SV,
+        &SHARED_SV,
         template,
         ValidateConfig::default(),
     )
@@ -1556,7 +1583,7 @@ fn e2e_guard_rule_pack() {
             .filter(|r| {
                 r.category
                     .as_deref()
-                    .map_or(false, |c| c.starts_with("guard:"))
+                    .is_some_and(|c| c.starts_with("guard:"))
             })
             .collect();
         assert!(
@@ -1588,7 +1615,7 @@ fn e2e_guard_rule_filtering() {
         ..Default::default()
     };
     let report =
-        validation_engine::validate_bytes(&engine, &*SHARED_SV, template, validate_config).unwrap();
+        validation_engine::validate_bytes(&engine, &SHARED_SV, template, validate_config).unwrap();
     assert!(
         !report
             .diagnostics

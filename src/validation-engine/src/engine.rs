@@ -260,7 +260,7 @@ pub(crate) fn validate(
             !entry
                 .category
                 .as_deref()
-                .map_or(false, |c| excluded_cats.contains(c))
+                .is_some_and(|c| excluded_cats.contains(c))
         })
         .count() as u32;
 
@@ -358,7 +358,7 @@ pub fn validate_bytes_with_path(
                     },
                     suppressed: 0,
                     strict: config.strict,
-                    severity_level: config.severity_level.clone(),
+                    severity_level: config.severity_level,
                 },
                 performance: PerformanceMetrics {
                     schema_init: PhaseMetric { duration_ms: 0.0 },
@@ -492,7 +492,7 @@ pub(crate) fn parse_diagnostic(
         }
     };
 
-    let is_custom_or_guard = source_override.map_or(false, |o| {
+    let is_custom_or_guard = source_override.is_some_and(|o| {
         matches!(o, RuleOrigin::Custom | RuleOrigin::Guard)
     });
 
@@ -770,11 +770,10 @@ pub(crate) fn build_context(
             }
         }
         "F3032" | "E3032" => {
-            if let Some(v) = resolve_val(property_path) {
-                if let Some(arr) = v.as_array() {
+            if let Some(v) = resolve_val(property_path)
+                && let Some(arr) = v.as_array() {
                     extra.insert("actual_count".into(), serde_json::json!(arr.len()).into());
                 }
-            }
         }
         "F3002" | "E3002" | "F3020" => {
             let prop = property_path.rsplit('.').next().unwrap_or("");
@@ -840,11 +839,10 @@ pub(crate) fn build_context(
             lifecycle = Some("write-only".into());
         }
         "W2503" | "W2502" => {
-            if let Some(res) = model.resources.get(rid) {
-                if let Some(ref c) = res.condition {
+            if let Some(res) = model.resources.get(rid)
+                && let Some(ref c) = res.condition {
                     extra.insert("source_condition".into(), serde_json::json!(c).into());
                 }
-            }
         }
         _ => {}
     }
@@ -1333,8 +1331,8 @@ Resources:
         assert_eq!(report.metadata.counts.informational, 1);
         assert_eq!(report.metadata.suppressed, 3);
         assert_eq!(report.metadata.rules_evaluated, Some(50));
-        assert_eq!(
-            report.metadata.strict, false,
+        assert!(
+            !report.metadata.strict,
             "default mode should not be strict"
         );
         assert_eq!(report.metadata.severity_level, Severity::Info);
@@ -1357,8 +1355,8 @@ Resources:
         assert_eq!(report.metadata.counts.fatal, 0);
         assert_eq!(report.metadata.counts.errors, 0);
         assert_eq!(report.metadata.counts.warnings, 0);
-        assert_eq!(
-            report.metadata.strict, true,
+        assert!(
+            report.metadata.strict,
             "strict mode should be enabled"
         );
         assert_eq!(report.metadata.severity_level, Severity::Error);

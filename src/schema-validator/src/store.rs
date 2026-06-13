@@ -11,6 +11,12 @@ pub struct CompiledSchemaStore {
     region_enums: RegionEnumStore,
 }
 
+impl Default for CompiledSchemaStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CompiledSchemaStore {
     pub fn new() -> Self {
         let schemas: HashMap<String, CompiledSchema> =
@@ -32,8 +38,8 @@ impl CompiledSchemaStore {
     }
 
     pub fn load_region_data(&mut self, json_bytes: &[u8]) {
-        if let Ok(wrapper) = serde_json::from_slice::<serde_json::Value>(json_bytes) {
-            if let Some(obj) = wrapper
+        if let Ok(wrapper) = serde_json::from_slice::<serde_json::Value>(json_bytes)
+            && let Some(obj) = wrapper
                 .get("region_resource_types")
                 .and_then(|v| v.as_object())
             {
@@ -47,7 +53,6 @@ impl CompiledSchemaStore {
                     self.region_types.insert(region.clone(), type_map);
                 }
             }
-        }
     }
 
     pub fn get(&self, type_name: &str) -> Option<&CompiledSchema> {
@@ -259,11 +264,10 @@ impl ExtensionStore {
             if known_types.contains_key(&key) {
                 continue;
             }
-            if let Some(canonical) = lowercase_to_canonical.get(&key.to_lowercase()) {
-                if let Some(val) = self.extensions.remove(&key) {
+            if let Some(canonical) = lowercase_to_canonical.get(&key.to_lowercase())
+                && let Some(val) = self.extensions.remove(&key) {
                     self.extensions.insert(canonical.clone(), val);
                 }
-            }
         }
     }
 

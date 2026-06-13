@@ -1651,6 +1651,42 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "Validates RDS DB Cluster instance class",
         origin: RuleOrigin::CfnLint,
     },
+    RuleDefinition {
+        id: "E3640",
+        category: Category::Resource,
+        description: "Validate SageMaker processing instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3642",
+        category: Category::Resource,
+        description: "Validate SageMaker hosting instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3643",
+        category: Category::Resource,
+        description: "Validate SageMaker transform instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3644",
+        category: Category::Resource,
+        description: "Validate SageMaker cluster instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3652",
+        category: Category::Resource,
+        description: "Validate Elasticsearch domain cluster instance",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3653",
+        category: Category::Resource,
+        description: "Validate OpenSearch domain cluster instance type",
+        origin: RuleOrigin::CfnLint,
+    },
     // ── cfn-lint rules: info / warn ─────────────────────────────────────
     RuleDefinition {
         id: "I2003",

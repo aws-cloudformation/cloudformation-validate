@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # E3640: processing/monitoring instance types (flat nested paths)
+  MonitoringSchedule:
+    Type: AWS::SageMaker::MonitoringSchedule
+    Properties:
+      MonitoringScheduleConfig:
+        MonitoringJobDefinition:
+          MonitoringResources:
+            ClusterConfig:
+              InstanceType: ml.fake.xlarge
+  ModelQualityJobDefinition:
+    Type: AWS::SageMaker::ModelQualityJobDefinition
+    Properties:
+      JobResources:
+        ClusterConfig:
+          InstanceType: ml.m5.large
+
+  # E3642: hosting/inference instance types (ModelVariants list wildcard)
+  InferenceExperiment:
+    Type: AWS::SageMaker::InferenceExperiment
+    Properties:
+      ModelVariants:
+        - InfrastructureConfig:
+            RealTimeInferenceConfig:
+              InstanceType: ml.fake.xlarge
+        - InfrastructureConfig:
+            RealTimeInferenceConfig:
+              InstanceType: ml.m5.large
+
+  # E3643: transform instance types (ValidationProfiles list wildcard)
+  ModelPackage:
+    Type: AWS::SageMaker::ModelPackage
+    Properties:
+      ValidationSpecification:
+        ValidationProfiles:
+          - TransformJobDefinition:
+              TransformResources:
+                InstanceType: ml.bogus.large
+
+  # E3644: cluster instance types (InstanceGroups + RestrictedInstanceGroups wildcards)
+  Cluster:
+    Type: AWS::SageMaker::Cluster
+    Properties:
+      InstanceGroups:
+        - InstanceType: ml.fake.xlarge
+      RestrictedInstanceGroups:
+        - InstanceType: ml.bogus.large

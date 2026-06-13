@@ -111,7 +111,7 @@ impl SemanticModel {
                 d.severity == rules_crate::Severity::Fatal
                     && d.phase == Some(diagnostics::Phase::Parse)
             }),
-            parsed_rules: self.parsed_rules.iter().map(|r| build_rule(r)).collect(),
+            parsed_rules: self.parsed_rules.iter().map(build_rule).collect(),
             resolution_sources: self
                 .resolution_sources
                 .iter()
@@ -322,14 +322,12 @@ fn build_outputs(
         if let Some(output_name) = edge
             .source_resource
             .strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX)
-        {
-            if let RefKind::GetAtt { attr } = &edge.kind {
+            && let RefKind::GetAtt { attr } = &edge.kind {
                 output_getatt_refs
                     .entry(output_name.to_string())
                     .or_default()
                     .push((edge.target.clone(), attr.clone()));
             }
-        }
     }
 
     outputs

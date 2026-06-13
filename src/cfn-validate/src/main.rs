@@ -140,16 +140,15 @@ fn main() {
             }
             "--parameter" => {
                 i += 1;
-                if let Some(kv) = args.get(i) {
-                    if let Some((k, v)) = kv.split_once('=') {
+                if let Some(kv) = args.get(i)
+                    && let Some((k, v)) = kv.split_once('=') {
                         parameter_overrides.insert(k.to_string(), v.to_string());
                     }
-                }
             }
             "--pseudo-parameter" => {
                 i += 1;
-                if let Some(kv) = args.get(i) {
-                    if let Some((k, v)) = kv.split_once('=') {
+                if let Some(kv) = args.get(i)
+                    && let Some((k, v)) = kv.split_once('=') {
                         match k {
                             "AWS::AccountId" => {
                                 pseudo_parameter_overrides.account_id = Some(v.to_string())
@@ -178,7 +177,6 @@ fn main() {
                             }
                         }
                     }
-                }
             }
             s if !s.starts_with('-') => template_path = Some(s.to_string()),
             other => {

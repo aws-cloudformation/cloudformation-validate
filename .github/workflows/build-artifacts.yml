@@ -1,8 +1,14 @@
 name: Build Artifacts
-run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }}
+run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ github.sha }})
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
+
+concurrency:
+  group: build-artifacts
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -19,14 +25,14 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: main
+        ref: ${{ github.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Cache cargo build
+    - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ env.WORKING_DIR }}
@@ -36,10 +42,10 @@ jobs:
       with:
         tool: cargo-about@${{ needs.get-configs.outputs.cargo-about-version }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
-    - name: Generate THIRD-PARTY-LICENSES.txt for all targets
+    - name: Generate THIRD-PARTY-LICENSES
       run: python3 scripts/generate_licenses.py
 
     - name: Upload license files
@@ -70,14 +76,14 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: main
+        ref: ${{ github.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Cache cargo build
+    - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ env.WORKING_DIR }}
@@ -90,7 +96,7 @@ jobs:
         kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
         ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Download THIRD-PARTY-LICENSES.txt
@@ -132,14 +138,14 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: main
+        ref: ${{ github.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Cache cargo build
+    - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ env.WORKING_DIR }}
@@ -154,7 +160,7 @@ jobs:
       with:
         tool: wasm-pack@${{ needs.get-configs.outputs.wasm-pack-version }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Download THIRD-PARTY-LICENSES.txt
@@ -199,19 +205,19 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: main
+        ref: ${{ github.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Cache cargo build
+    - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ env.WORKING_DIR }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Build cfn-validate
@@ -237,14 +243,14 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: main
+        ref: ${{ github.sha }}
 
     - name: Download all artifacts
       uses: actions/download-artifact@v8
       with:
         path: incoming
 
-    - name: Stage artifacts and license files
+    - name: Stage artifacts
       working-directory: ${{ env.WORKING_DIR }}
       run: |
         set -euo pipefail

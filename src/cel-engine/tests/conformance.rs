@@ -5,13 +5,13 @@ mod tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(|| SchemaValidator::new());
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
         let report = validation_engine::validate_bytes(
             &engine,
-            &*SV,
+            &SV,
             template.as_bytes(),
             ValidateConfig::default(),
         )
@@ -31,7 +31,7 @@ mod tests {
             std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
         let report =
-            validation_engine::validate_bytes(&engine, &*SV, &bytes, ValidateConfig::default())
+            validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default())
                 .unwrap();
         let mut ids: Vec<String> = report
             .diagnostics
@@ -148,6 +148,27 @@ Resources:
             w2512
         );
     }
+
+    #[test]
+    fn sagemaker_instance_types_trigger_regional_enum_rules() {
+        let ids = validate_file("bad/sagemaker_instance_types.yaml");
+        for rule in ["E3640", "E3642", "E3643", "E3644"] {
+            assert!(
+                ids.contains(&rule.to_string()),
+                "Expected {rule} for invalid SageMaker instance type, got {ids:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn opensearch_invalid_instance_type_triggers_e3653() {
+        let ids = validate_file("bad/opensearch_instance_type.yaml");
+        assert_eq!(
+            ids.iter().filter(|id| *id == "E3653").count(),
+            1,
+            "Expected exactly one E3653 (only the invalid domain), got {ids:?}"
+        );
+    }
 }
 
 #[cfg(test)]
@@ -157,13 +178,13 @@ mod nested_schema_tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig};
 
-    static SV2: LazyLock<SchemaValidator> = LazyLock::new(|| SchemaValidator::new());
+    static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn diags(template: &str) -> Vec<(String, String)> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
         let report = validation_engine::validate_bytes(
             &engine,
-            &*SV2,
+            &SV2,
             template.as_bytes(),
             ValidateConfig::default(),
         )
@@ -307,7 +328,7 @@ mod guard_tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(|| SchemaValidator::new());
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     const GUARD_S3_VERSIONING: &str = r#"
 rule s3_versioning_check {
@@ -330,7 +351,7 @@ rule s3_versioning_check {
         let engine = CelEngine::new(config).unwrap();
         let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
         let report =
-            validation_engine::validate_bytes(&engine, &*SV, template, ValidateConfig::default())
+            validation_engine::validate_bytes(&engine, &SV, template, ValidateConfig::default())
                 .unwrap();
         // Verify the rule is registered with correct metadata
         let rules = engine.list_rules();
@@ -372,7 +393,7 @@ rule s3_versioning_check {
                 .filter(|r| {
                     r.category
                         .as_deref()
-                        .map_or(false, |c| c.starts_with("guard:"))
+                        .is_some_and(|c| c.starts_with("guard:"))
                 })
                 .collect();
             assert!(
@@ -404,7 +425,7 @@ rule s3_versioning_check {
             ..Default::default()
         };
         let report =
-            validation_engine::validate_bytes(&engine, &*SV, template, validate_config).unwrap();
+            validation_engine::validate_bytes(&engine, &SV, template, validate_config).unwrap();
         assert!(
             !report
                 .diagnostics
@@ -472,7 +493,7 @@ mod rule_category_tests {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
         let report = validation_engine::validate_bytes(
             &engine,
-            &*SV,
+            &SV,
             template.as_bytes(),
             ValidateConfig::default(),
         )
@@ -492,7 +513,7 @@ mod rule_category_tests {
             std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
         let report =
-            validation_engine::validate_bytes(&engine, &*SV, &bytes, ValidateConfig::default())
+            validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default())
                 .unwrap();
         let mut ids: Vec<String> = report
             .diagnostics

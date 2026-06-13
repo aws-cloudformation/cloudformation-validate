@@ -84,11 +84,11 @@ pub fn format_condition_expr(expr: &ConditionExpr) -> String {
             format!("Equals({}, {})", format_value_expr(a), format_value_expr(b))
         }
         ConditionExpr::And(exprs) => {
-            let items: Vec<String> = exprs.iter().map(|e| format_condition_expr(e)).collect();
+            let items: Vec<String> = exprs.iter().map(format_condition_expr).collect();
             format!("And({})", items.join(", "))
         }
         ConditionExpr::Or(exprs) => {
-            let items: Vec<String> = exprs.iter().map(|e| format_condition_expr(e)).collect();
+            let items: Vec<String> = exprs.iter().map(format_condition_expr).collect();
             format!("Or({})", items.join(", "))
         }
         ConditionExpr::Not(e) => format!("Not({})", format_condition_expr(e)),
@@ -124,14 +124,13 @@ impl ConditionModel {
     ) -> Self {
         let mut conditions = HashMap::new();
 
-        if ir.conditions != NULL_REF {
-            if let Some(entries) = ir.arena.as_map(ir.conditions) {
+        if ir.conditions != NULL_REF
+            && let Some(entries) = ir.arena.as_map(ir.conditions) {
                 for (name, node_ref) in entries {
                     let expr = parse_condition_expr(&ir.arena, *node_ref, parameters);
                     conditions.insert(name.clone(), expr);
                 }
             }
-        }
 
         let mutex_groups = extract_mutex_groups(&conditions);
         let implications = extract_implications(&conditions);
@@ -218,11 +217,10 @@ impl ConditionModel {
         let mut assumption_map: HashMap<usize, bool> = HashMap::new();
         for (name, val) in assumptions {
             if let Some(&idx) = name_to_idx.get(name.as_str()) {
-                if let Some(&existing) = assumption_map.get(&idx) {
-                    if existing != *val {
+                if let Some(&existing) = assumption_map.get(&idx)
+                    && existing != *val {
                         return false;
                     }
-                }
                 assumption_map.insert(idx, *val);
             }
         }
@@ -370,11 +368,10 @@ impl ConditionModel {
         let idx = relevant[rel_idx];
 
         for &val in &[false, true] {
-            if let Some(&required) = assumptions.get(&idx) {
-                if val != required {
+            if let Some(&required) = assumptions.get(&idx)
+                && val != required {
                     continue;
                 }
-            }
 
             assignment[idx] = val;
 
@@ -498,11 +495,10 @@ impl ConditionModel {
                     iterations,
                 );
                 // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
-                if let Some(eval_val) = evaluated {
-                    if eval_val != assignment[i] {
+                if let Some(eval_val) = evaluated
+                    && eval_val != assignment[i] {
                         return false;
                     }
-                }
             }
             return true;
         }
@@ -555,12 +551,11 @@ impl ConditionModel {
                     iterations,
                 );
                 // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
-                if let Some(eval_val) = evaluated {
-                    if eval_val != assignment[i] {
+                if let Some(eval_val) = evaluated
+                    && eval_val != assignment[i] {
                         consistent = false;
                         break;
                     }
-                }
             }
             if consistent {
                 return true;
@@ -831,18 +826,17 @@ pub fn parse_condition_expr(
         }
         _ => {
             // Try to parse as a map with intrinsic keys
-            if let Some(entries) = arena.as_map(node_ref) {
-                if entries.len() == 1 {
+            if let Some(entries) = arena.as_map(node_ref)
+                && entries.len() == 1 {
                     let (key, val) = &entries[0];
                     match key.as_str() {
                         "Fn::Equals" => {
-                            if let Some(arr) = arena.as_list(*val) {
-                                if arr.len() == 2 {
+                            if let Some(arr) = arena.as_list(*val)
+                                && arr.len() == 2 {
                                     let va = parse_value_expr(arena, arr[0], parameters);
                                     let vb = parse_value_expr(arena, arr[1], parameters);
                                     return ConditionExpr::Equals(va, vb);
                                 }
-                            }
                         }
                         "Fn::And" => {
                             if let Some(arr) = arena.as_list(*val) {
@@ -863,12 +857,11 @@ pub fn parse_condition_expr(
                             }
                         }
                         "Fn::Not" => {
-                            if let Some(arr) = arena.as_list(*val) {
-                                if !arr.is_empty() {
+                            if let Some(arr) = arena.as_list(*val)
+                                && !arr.is_empty() {
                                     let expr = parse_condition_expr(arena, arr[0], parameters);
                                     return ConditionExpr::Not(Box::new(expr));
                                 }
-                            }
                         }
                         "Condition" => {
                             if let Some(name) = arena.as_str(*val) {
@@ -878,7 +871,6 @@ pub fn parse_condition_expr(
                         _ => {}
                     }
                 }
-            }
             // Fallback
             ConditionExpr::Equals(ValueExpr::Other, ValueExpr::Other)
         }
@@ -1967,7 +1959,7 @@ Resources:
         }
         s.push_str("  Wide:\n    Fn::And:\n");
         for i in 0..param_count {
-            let _ = write!(s, "      - Condition: Base{i:02}\n");
+            let _ = writeln!(s, "      - Condition: Base{i:02}");
         }
         s.push_str("Resources:\n  R:\n    Type: T\n");
         s

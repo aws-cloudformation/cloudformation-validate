@@ -1,4 +1,4 @@
-name: Print build tool versions
+name: Log tool versions
 description: >
   Logs the versions of every toolchain and build tool present on the runner.
   When wasm-bindgen CLI is not installed (the common case — wasm-pack bundles
@@ -14,7 +14,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Print build tool versions
+    - name: Log tool versions
       shell: bash
       env:
         CARGO_LOCK: ${{ inputs.cargo-lock }}
@@ -23,6 +23,7 @@ runs:
         echo "os:           $(uname -srm)"
         if command -v rustc        >/dev/null 2>&1; then echo "rustc:        $(rustc --version)"; else echo "rustc:        not installed"; fi
         if command -v cargo        >/dev/null 2>&1; then echo "cargo:        $(cargo --version)"; else echo "cargo:        not installed"; fi
+        if command -v cargo-clippy >/dev/null 2>&1; then echo "clippy:       $(cargo clippy --version 2>/dev/null | head -1)"; else echo "clippy:       not installed"; fi
         if command -v rustup       >/dev/null 2>&1; then
           echo "rustup:       $(rustup --version 2>/dev/null | head -1)"
           echo "toolchain:    $(rustup show active-toolchain 2>/dev/null || true)"

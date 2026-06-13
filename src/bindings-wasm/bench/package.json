@@ -1,16 +1,16 @@
 {
-  "name": "bindings-wasm-bench",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "bench": "npx ts-node benchmark.ts"
-  },
-  "dependencies": {
-    "bindings-wasm": "file:../dist"
-  },
-  "devDependencies": {
-    "@types/node": "^22.15.0",
-    "typescript": "^5.8.2",
-    "ts-node": "^10.9.2"
-  }
+    "name": "bindings-wasm-bench",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "bench": "npx ts-node benchmark.ts"
+    },
+    "dependencies": {
+        "bindings-wasm": "file:../dist"
+    },
+    "devDependencies": {
+        "@types/node": "25.9.3",
+        "typescript": "6.0.3",
+        "ts-node": "10.9.2"
+    }
 }

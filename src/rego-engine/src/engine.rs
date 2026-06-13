@@ -90,6 +90,30 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
             &*embedded::AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM_BYTES,
         ),
         (
+            "data/aws_sagemaker_processing_instancetype_enum",
+            &*embedded::AWS_SAGEMAKER_PROCESSING_INSTANCETYPE_ENUM_BYTES,
+        ),
+        (
+            "data/aws_sagemaker_hosting_instancetype_enum",
+            &*embedded::AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM_BYTES,
+        ),
+        (
+            "data/aws_sagemaker_transform_instancetype_enum",
+            &*embedded::AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM_BYTES,
+        ),
+        (
+            "data/aws_sagemaker_cluster_instancetype_enum",
+            &*embedded::AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM_BYTES,
+        ),
+        (
+            "data/aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum",
+            &*embedded::AWS_ELASTICSEARCH_DOMAIN_ELASTICSEARCHCLUSTERCONFIG_INSTANCETYPE_ENUM_BYTES,
+        ),
+        (
+            "data/aws_opensearchservice_domain_clusterconfig_instancetype_enum",
+            &*embedded::AWS_OPENSEARCHSERVICE_DOMAIN_CLUSTERCONFIG_INSTANCETYPE_ENUM_BYTES,
+        ),
+        (
             "data/getatt_attributes",
             &*embedded::GETATT_ATTRIBUTES_BYTES,
         ),
@@ -258,7 +282,7 @@ impl RegoEngine {
                 });
         }
 
-        let _ = rego.set_input(regorus::Value::new_object());
+        rego.set_input(regorus::Value::new_object());
         let _ = rego.eval_rule("data.all_violations.violation".to_string());
 
         info!(

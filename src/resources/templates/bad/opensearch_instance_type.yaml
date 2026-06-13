@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # E3653: OpenSearch domain cluster instance type not valid for region
+  BadDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      ClusterConfig:
+        InstanceType: fake.invalid.search
+  ValidDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      ClusterConfig:
+        InstanceType: t2.micro.search
