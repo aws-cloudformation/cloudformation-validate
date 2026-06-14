@@ -27,17 +27,6 @@ impl Severity {
         }
     }
 
-    pub fn from_str(s: &str) -> Severity {
-        match s.to_uppercase().as_str() {
-            "FATAL" => Severity::Fatal,
-            "ERROR" => Severity::Error,
-            "WARN" => Severity::Warn,
-            "INFO" => Severity::Info,
-            "DEBUG" => Severity::Debug,
-            _ => panic!("Invalid severity: {}", s),
-        }
-    }
-
     pub fn from_prefix(c: char) -> Severity {
         match c.to_ascii_uppercase() {
             'F' => Severity::Fatal,
@@ -46,6 +35,21 @@ impl Severity {
             'I' => Severity::Info,
             'D' => Severity::Debug,
             _ => panic!("Invalid severity prefix: {}", c),
+        }
+    }
+}
+
+impl std::str::FromStr for Severity {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "FATAL" => Ok(Severity::Fatal),
+            "ERROR" => Ok(Severity::Error),
+            "WARN" => Ok(Severity::Warn),
+            "INFO" => Ok(Severity::Info),
+            "DEBUG" => Ok(Severity::Debug),
+            _ => Err(format!("Invalid severity: {}", s)),
         }
     }
 }
@@ -71,26 +75,30 @@ mod tests {
 
     #[test]
     fn from_str_parses_case_insensitively() {
-        assert_eq!(Severity::from_str("fatal"), Severity::Fatal);
-        assert_eq!(Severity::from_str("FATAL"), Severity::Fatal);
+        use std::str::FromStr;
 
-        assert_eq!(Severity::from_str("error"), Severity::Error);
-        assert_eq!(Severity::from_str("ERROR"), Severity::Error);
+        assert_eq!(Severity::from_str("fatal").unwrap(), Severity::Fatal);
+        assert_eq!(Severity::from_str("FATAL").unwrap(), Severity::Fatal);
 
-        assert_eq!(Severity::from_str("warn"), Severity::Warn);
-        assert_eq!(Severity::from_str("WARN"), Severity::Warn);
+        assert_eq!(Severity::from_str("error").unwrap(), Severity::Error);
+        assert_eq!(Severity::from_str("ERROR").unwrap(), Severity::Error);
 
-        assert_eq!(Severity::from_str("info"), Severity::Info);
-        assert_eq!(Severity::from_str("INFO"), Severity::Info);
+        assert_eq!(Severity::from_str("warn").unwrap(), Severity::Warn);
+        assert_eq!(Severity::from_str("WARN").unwrap(), Severity::Warn);
 
-        assert_eq!(Severity::from_str("debug"), Severity::Debug);
-        assert_eq!(Severity::from_str("DEBUG"), Severity::Debug);
+        assert_eq!(Severity::from_str("info").unwrap(), Severity::Info);
+        assert_eq!(Severity::from_str("INFO").unwrap(), Severity::Info);
+
+        assert_eq!(Severity::from_str("debug").unwrap(), Severity::Debug);
+        assert_eq!(Severity::from_str("DEBUG").unwrap(), Severity::Debug);
     }
 
     #[test]
-    #[should_panic(expected = "Invalid severity: test")]
-    fn from_str_panics_on_unknown_value() {
-        Severity::from_str("test");
+    fn from_str_errors_on_unknown_value() {
+        use std::str::FromStr;
+
+        let err = Severity::from_str("test").unwrap_err();
+        assert_eq!(err, "Invalid severity: test");
     }
 
     #[test]

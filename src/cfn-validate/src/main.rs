@@ -117,7 +117,10 @@ fn main() {
             "--level" => {
                 i += 1;
                 if let Some(val) = args.get(i) {
-                    validate_config.severity_level = Severity::from_str(val);
+                    validate_config.severity_level = val.parse::<Severity>().unwrap_or_else(|e| {
+                        error!("{}", e);
+                        process::exit(2);
+                    });
                 }
             }
             "--no-strict" => validate_config.strict = false,

@@ -447,7 +447,7 @@ pub(crate) fn parse_diagnostic(
         .get("severity")
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("Diagnostic '{}' missing required field 'severity'", rule_id))?;
-    let severity = Severity::from_str(severity_str);
+    let severity = severity_str.parse::<Severity>()?;
     let message = val
         .get("message")
         .and_then(|v| v.as_str())
