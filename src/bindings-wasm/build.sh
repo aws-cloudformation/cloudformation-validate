@@ -44,6 +44,7 @@ PKG_VERSION="$VERSION" node -e "
     name: pkg.name,
     version: process.env.PKG_VERSION,
     description: pkg.description,
+    keywords: pkg.keywords,
     author: pkg.author,
     license: pkg.license,
     engines: pkg.engines,

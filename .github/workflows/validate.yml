@@ -22,7 +22,7 @@ jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
 
-  lint:
+  format:
     needs: [ get-configs ]
     runs-on: ubuntu-latest
     steps:
@@ -35,12 +35,38 @@ jobs:
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Lint
       working-directory: ${{ needs.get-configs.outputs.working-dir }}
       run: cargo fmt --all --check
+
+  lint:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+        components: clippy
+
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ needs.get-configs.outputs.working-dir }}
+
+    - name: Log tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Clippy
+      working-directory: ${{ needs.get-configs.outputs.working-dir }}
+      run: cargo clippy --locked --all-targets --workspace -- -D warnings
 
   audit:
     needs: [ get-configs ]
@@ -60,7 +86,7 @@ jobs:
       with:
         tool: cargo-audit@${{ needs.get-configs.outputs.cargo-audit-version }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Audit dependencies for known vulnerabilities
@@ -68,7 +94,7 @@ jobs:
       run: cargo audit
 
   test:
-    needs: [ get-configs ]
+    needs: [ format, lint, audit, get-configs ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
@@ -80,12 +106,12 @@ jobs:
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Cache cargo build
+    - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ needs.get-configs.outputs.working-dir }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Test
@@ -93,7 +119,7 @@ jobs:
       run: cargo test --locked --release --workspace
 
   test-jvm:
-    needs: [ get-configs ]
+    needs: [ format, lint, audit, get-configs ]
     runs-on: ubuntu-latest
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
@@ -107,7 +133,7 @@ jobs:
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Cache cargo build
+    - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ env.WORKING_DIR }}
@@ -121,7 +147,7 @@ jobs:
         ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
         gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Test
@@ -129,7 +155,7 @@ jobs:
       run: ./run.sh
 
   test-wasm:
-    needs: [ get-configs ]
+    needs: [ format, lint, audit, get-configs ]
     runs-on: ubuntu-latest
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
@@ -143,7 +169,7 @@ jobs:
       with:
         toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
-    - name: Cache cargo build
+    - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ env.WORKING_DIR }}
@@ -158,7 +184,7 @@ jobs:
       with:
         tool: wasm-pack@${{ needs.get-configs.outputs.wasm-pack-version }}
 
-    - name: Print build tool versions
+    - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
     - name: Test

@@ -33,20 +33,24 @@ impl Category {
             Category::General => "General",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Category {
+impl std::str::FromStr for Category {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "schema" => Category::Schema,
-            "structure" => Category::Structure,
-            "intrinsic function" => Category::Intrinsic,
-            "best practice" | "best-practice" | "best_practice" => Category::BestPractice,
-            "resource" => Category::Resource,
-            "security" => Category::Security,
-            "parameter" => Category::Parameter,
-            "reference" => Category::Reference,
-            "deprecation" => Category::Deprecation,
-            "general" => Category::General,
-            _ => panic!("Invalid category: {}", s),
+            "schema" => Ok(Category::Schema),
+            "structure" => Ok(Category::Structure),
+            "intrinsic function" => Ok(Category::Intrinsic),
+            "best practice" | "best-practice" | "best_practice" => Ok(Category::BestPractice),
+            "resource" => Ok(Category::Resource),
+            "security" => Ok(Category::Security),
+            "parameter" => Ok(Category::Parameter),
+            "reference" => Ok(Category::Reference),
+            "deprecation" => Ok(Category::Deprecation),
+            "general" => Ok(Category::General),
+            _ => Err(format!("Invalid category: {}", s)),
         }
     }
 }
@@ -60,6 +64,7 @@ impl fmt::Display for Category {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn as_str_round_trips_through_from_str_for_all_variants() {
@@ -77,7 +82,7 @@ mod tests {
         ];
         for cat in all {
             assert_eq!(
-                Category::from_str(cat.as_str()),
+                Category::from_str(cat.as_str()).unwrap(),
                 cat,
                 "round-trip failed for {:?}",
                 cat
@@ -87,14 +92,20 @@ mod tests {
 
     #[test]
     fn from_str_parses_case_insensitively() {
-        assert_eq!(Category::from_str("SCHEMA"), Category::Schema);
-        assert_eq!(Category::from_str("Best Practice"), Category::BestPractice);
-        assert_eq!(Category::from_str("BEST PRACTICE"), Category::BestPractice);
+        assert_eq!(Category::from_str("SCHEMA").unwrap(), Category::Schema);
+        assert_eq!(
+            Category::from_str("Best Practice").unwrap(),
+            Category::BestPractice
+        );
+        assert_eq!(
+            Category::from_str("BEST PRACTICE").unwrap(),
+            Category::BestPractice
+        );
     }
 
     #[test]
-    #[should_panic(expected = "Invalid category: guard:test")]
-    fn from_str_panics_on_freeform_category_string() {
-        Category::from_str("guard:test");
+    fn from_str_errors_on_freeform_category_string() {
+        let err = Category::from_str("guard:test").unwrap_err();
+        assert_eq!(err, "Invalid category: guard:test");
     }
 }

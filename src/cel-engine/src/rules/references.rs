@@ -34,8 +34,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (name, res) in &m.resources {
         for dep in &res.depends_on {
-            if let Some(dep_res) = m.resources.get(dep.as_str()) {
-                if let Some(ref dep_cond) = dep_res.condition {
+            if let Some(dep_res) = m.resources.get(dep.as_str())
+                && let Some(ref dep_cond) = dep_res.condition {
                     let source_cond = res.condition.as_deref();
                     if !m
                         .conditions
@@ -66,7 +66,6 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                         }
                     }
                 }
-            }
         }
     }
 
@@ -112,8 +111,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                         .get(FIELD_SOURCE_PATH)
                         .and_then(|p| p.as_str())
                         .unwrap_or("");
-                    if let Some(target_res) = m.resources.get(target) {
-                        if let Some(ref target_cond) = target_res.condition {
+                    if let Some(target_res) = m.resources.get(target)
+                        && let Some(ref target_cond) = target_res.condition {
                             let source_cond = m
                                 .resources
                                 .get(source.as_str())
@@ -155,7 +154,6 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 }
                             }
                         }
-                    }
                 }
             }
         }
@@ -171,8 +169,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                 _ => continue,
             };
             let _ = kind_str;
-            if let Some(target_res) = m.resources.get(&edge.target) {
-                if let Some(ref target_cond) = target_res.condition {
+            if let Some(target_res) = m.resources.get(&edge.target)
+                && let Some(ref target_cond) = target_res.condition {
                     let source_cond = output.condition.as_deref();
                     let implies = match source_cond {
                         Some(sc) => m.conditions.condition_implies(sc, target_cond),
@@ -192,7 +190,6 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                         ));
                     }
                 }
-            }
         }
     }
 

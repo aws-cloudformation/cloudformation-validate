@@ -76,7 +76,7 @@ fn emit_rule(
         .as_ref()
         .and_then(|conds| find_resource_types_from_when(conds, resource_type_vars));
 
-    for (_conj_idx, disj) in rule.block.conjunctions.iter().enumerate() {
+    for disj in rule.block.conjunctions.iter() {
         for clause in disj {
             match clause {
                 RuleClauseIR::TypeBlock(tb) => {
@@ -421,7 +421,7 @@ fn emit_negated_guard_clause(
         }
         GuardClauseIR::Block(bc) => {
             for disj in &bc.block.conjunctions {
-                for inner in disj {
+                if let Some(inner) = disj.iter().next() {
                     emit_negated_guard_clause(lines, inner, indent, resource_var);
                     return;
                 }
@@ -430,7 +430,7 @@ fn emit_negated_guard_clause(
         GuardClauseIR::WhenBlock(conds, block) => {
             emit_when_conditions_body(lines, conds, indent);
             for disj in &block.conjunctions {
-                for inner in disj {
+                if let Some(inner) = disj.iter().next() {
                     emit_negated_guard_clause(lines, inner, indent, resource_var);
                     return;
                 }
@@ -525,14 +525,13 @@ fn find_resource_types_from_when(
 ) -> Option<Vec<String>> {
     for disj in conds {
         for wc in disj {
-            if let WhenClauseIR::Access(ac) = wc {
-                if let Some(QueryPartIR::Key(key)) = ac.query.first() {
+            if let WhenClauseIR::Access(ac) = wc
+                && let Some(QueryPartIR::Key(key)) = ac.query.first() {
                     let var_name = key.trim_start_matches('%');
                     if let Some(types) = resource_type_vars.get(var_name) {
                         return Some(types.clone());
                     }
                 }
-            }
         }
     }
     None

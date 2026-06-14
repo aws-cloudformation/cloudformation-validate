@@ -46,6 +46,11 @@
       "AccountId",
       "Region"
     ],
+    "AWS::AWSExternalAnthropic::Workspace": [
+      "Arn",
+      "CreatedAt",
+      "Id"
+    ],
     "AWS::AccessAnalyzer::Analyzer": [
       "Arn"
     ],
@@ -198,9 +203,6 @@
       "RoutingRuleArn",
       "RoutingRuleId"
     ],
-    "AWS::ApiGatewayV2::Stage": [
-      "Id"
-    ],
     "AWS::ApiGatewayV2::VpcLink": [
       "VpcLinkId"
     ],
@@ -349,14 +351,8 @@
     "AWS::AppStream::Stack": [
       "StorageConnectors.*.ResourceIdentifier"
     ],
-    "AWS::AppStream::StackFleetAssociation": [
-      "Id"
-    ],
-    "AWS::AppStream::StackUserAssociation": [
-      "Id"
-    ],
     "AWS::AppStream::User": [
-      "Id"
+      "Arn"
     ],
     "AWS::AppSync::Api": [
       "ApiArn",
@@ -508,6 +504,12 @@
       "ModifiedAt",
       "TransformerArn",
       "TransformerId"
+    ],
+    "AWS::BCM::Dashboard": [
+      "Arn",
+      "CreatedAt",
+      "Type",
+      "UpdatedAt"
     ],
     "AWS::BCMDataExports::Export": [
       "Export.ExportArn",
@@ -743,9 +745,16 @@
     ],
     "AWS::BedrockAgentCore::ApiKeyCredentialProvider": [
       "ApiKeySecretArn",
+      "ApiKeySecretJsonKey",
       "CreatedTime",
       "CredentialProviderArn",
       "LastUpdatedTime"
+    ],
+    "AWS::BedrockAgentCore::Browser": [
+      "BrowserArn",
+      "BrowserId",
+      "Name",
+      "Status"
     ],
     "AWS::BedrockAgentCore::BrowserCustom": [
       "BrowserArn",
@@ -773,6 +782,22 @@
       "LastUpdatedAt",
       "Status"
     ],
+    "AWS::BedrockAgentCore::ConfigurationBundle": [
+      "BundleArn",
+      "BundleId",
+      "CreatedAt",
+      "LineageMetadata",
+      "UpdatedAt",
+      "VersionId"
+    ],
+    "AWS::BedrockAgentCore::Dataset": [
+      "CreatedAt",
+      "DatasetArn",
+      "DatasetId",
+      "ExampleCount",
+      "Status",
+      "UpdatedAt"
+    ],
     "AWS::BedrockAgentCore::Evaluator": [
       "CreatedAt",
       "EvaluatorArn",
@@ -791,12 +816,25 @@
       "WorkloadIdentityDetails"
     ],
     "AWS::BedrockAgentCore::GatewayTarget": [
+      "AuthorizationData",
       "CreatedAt",
       "GatewayArn",
       "LastSynchronizedAt",
+      "PrivateEndpointManagedResources",
+      "ProtocolType",
       "Status",
       "StatusReasons",
       "TargetId",
+      "UpdatedAt"
+    ],
+    "AWS::BedrockAgentCore::Harness": [
+      "Arn",
+      "CreatedAt",
+      "Environment.AgentCoreRuntimeEnvironment.AgentRuntimeArn",
+      "Environment.AgentCoreRuntimeEnvironment.AgentRuntimeId",
+      "Environment.AgentCoreRuntimeEnvironment.AgentRuntimeName",
+      "HarnessId",
+      "Status",
       "UpdatedAt"
     ],
     "AWS::BedrockAgentCore::Memory": [
@@ -835,6 +873,8 @@
     "AWS::BedrockAgentCore::OAuth2CredentialProvider": [
       "CallbackUrl",
       "ClientSecretArn",
+      "ClientSecretJsonKey",
+      "ClientSecretSource",
       "CreatedTime",
       "CredentialProviderArn",
       "LastUpdatedTime",
@@ -847,6 +887,27 @@
       "OutputConfig",
       "Status",
       "UpdatedAt"
+    ],
+    "AWS::BedrockAgentCore::PaymentConnector": [
+      "ConnectorCreatedAt",
+      "ConnectorLastUpdatedAt",
+      "ConnectorStatus",
+      "PaymentConnectorArn",
+      "PaymentConnectorId"
+    ],
+    "AWS::BedrockAgentCore::PaymentCredentialProvider": [
+      "CreatedTime",
+      "CredentialProviderArn",
+      "LastUpdatedTime",
+      "ProviderConfigurationOutput"
+    ],
+    "AWS::BedrockAgentCore::PaymentManager": [
+      "CreatedAt",
+      "LastUpdatedAt",
+      "PaymentManagerArn",
+      "PaymentManagerId",
+      "Status",
+      "WorkloadIdentityDetails"
     ],
     "AWS::BedrockAgentCore::Policy": [
       "CreatedAt",
@@ -2826,6 +2887,7 @@
       "ConfigurationEndPoint",
       "ConfigurationEndPoint.Address",
       "ConfigurationEndPoint.Port",
+      "EffectiveDurability",
       "PrimaryEndPoint",
       "PrimaryEndPoint.Address",
       "PrimaryEndPoint.Port",
@@ -4270,7 +4332,9 @@
     "AWS::Logs::DeliverySource": [
       "Arn",
       "ResourceArns",
-      "Service"
+      "Service",
+      "Status",
+      "StatusReason"
     ],
     "AWS::Logs::Destination": [
       "Arn"
@@ -5594,6 +5658,13 @@
       "LinkStatus",
       "UpdatedTimestamp"
     ],
+    "AWS::RTBFabric::LinkRoutingRule": [
+      "Arn",
+      "CreatedTimestamp",
+      "RuleId",
+      "Status",
+      "UpdatedTimestamp"
+    ],
     "AWS::RTBFabric::OutboundExternalLink": [
       "Arn",
       "CreatedTimestamp",
@@ -5613,7 +5684,9 @@
     ],
     "AWS::RTBFabric::ResponderGateway": [
       "Arn",
+      "CertificateAssociationStatus",
       "CreatedTimestamp",
+      "ExternalInboundEndpoint",
       "GatewayId",
       "ResponderGatewayStatus",
       "UpdatedTimestamp"
@@ -5777,6 +5850,36 @@
     ],
     "AWS::ResilienceHub::ResiliencyPolicy": [
       "PolicyArn"
+    ],
+    "AWS::ResilienceHubV2::Policy": [
+      "AssociatedServiceCount",
+      "CreatedAt",
+      "PolicyArn",
+      "UpdatedAt"
+    ],
+    "AWS::ResilienceHubV2::Service": [
+      "CreatedAt",
+      "EffectivePolicyValues",
+      "ServiceArn",
+      "UpdatedAt"
+    ],
+    "AWS::ResilienceHubV2::ServiceFunction": [
+      "CreatedAt",
+      "ResourceCount",
+      "ServiceFunctionId",
+      "Source",
+      "UpdatedAt"
+    ],
+    "AWS::ResilienceHubV2::System": [
+      "CreatedAt",
+      "SystemArn",
+      "SystemId",
+      "UpdatedAt"
+    ],
+    "AWS::ResilienceHubV2::UserJourney": [
+      "CreatedAt",
+      "UpdatedAt",
+      "UserJourneyId"
     ],
     "AWS::ResourceExplorer2::DefaultViewAssociation": [
       "AssociatedAwsPrincipal"
@@ -6310,7 +6413,8 @@
       "AssociationId"
     ],
     "AWS::SSO::Application": [
-      "ApplicationArn"
+      "ApplicationArn",
+      "IdentityStoreArn"
     ],
     "AWS::SSO::Instance": [
       "IdentityStoreId",
@@ -6387,6 +6491,14 @@
       "CreationTime",
       "EndpointMetadata",
       "LastModifiedTime",
+      "Status"
+    ],
+    "AWS::SageMaker::MlflowApp": [
+      "Arn",
+      "CreationTime",
+      "LastModifiedTime",
+      "MlflowAppId",
+      "MlflowVersion",
       "Status"
     ],
     "AWS::SageMaker::MlflowTrackingServer": [
@@ -6521,6 +6633,7 @@
       "TargetDomainId",
       "VerificationDetails",
       "VerificationStatus",
+      "VerificationStatusReason",
       "VerifiedAt"
     ],
     "AWS::SecurityHub::AggregatorV2": [
@@ -6755,6 +6868,7 @@
       "Endpoint",
       "Id",
       "InfluxAuthParametersSecretArn",
+      "NextMaintenanceTime",
       "SecondaryAvailabilityZone",
       "Status"
     ],
@@ -7253,6 +7367,13 @@
     "AWS::ARCZonalShift::ZonalAutoshiftConfiguration": {
       "ResourceIdentifier": "string"
     },
+    "AWS::AWSExternalAnthropic::Workspace": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "Id": "string",
+      "Name": "string",
+      "Tags": "array"
+    },
     "AWS::AccessAnalyzer::Analyzer": {
       "AnalyzerConfiguration": "object",
       "AnalyzerName": "string",
@@ -7705,8 +7826,9 @@
       "ClientCertificateId": "string",
       "DeploymentId": "string",
       "Description": "string",
-      "Id": "string",
+      "RouteSettings": "object",
       "StageName": "string",
+      "StageVariables": "object",
       "Tags": "object"
     },
     "AWS::ApiGatewayV2::VpcLink": {
@@ -8074,20 +8196,18 @@
     },
     "AWS::AppStream::StackFleetAssociation": {
       "FleetName": "string",
-      "Id": "string",
       "StackName": "string"
     },
     "AWS::AppStream::StackUserAssociation": {
       "AuthenticationType": "string",
-      "Id": "string",
       "SendEmailNotification": "boolean",
       "StackName": "string",
       "UserName": "string"
     },
     "AWS::AppStream::User": {
+      "Arn": "string",
       "AuthenticationType": "string",
       "FirstName": "string",
-      "Id": "string",
       "LastName": "string",
       "MessageAction": "string",
       "UserName": "string"
@@ -8452,6 +8572,15 @@
       "TransformerArn": "string",
       "TransformerId": "string"
     },
+    "AWS::BCM::Dashboard": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "Description": "string",
+      "Name": "string",
+      "Tags": "array",
+      "UpdatedAt": "string",
+      "Widgets": "array"
+    },
     "AWS::BCMDataExports::Export": {
       "ExportArn": "string",
       "Tags": "array"
@@ -8801,11 +8930,19 @@
     },
     "AWS::BedrockAgentCore::ApiKeyCredentialProvider": {
       "ApiKey": "string",
+      "ApiKeySecretJsonKey": "string",
+      "ApiKeySecretSource": "string",
       "CreatedTime": "string",
       "CredentialProviderArn": "string",
       "LastUpdatedTime": "string",
       "Name": "string",
       "Tags": "array"
+    },
+    "AWS::BedrockAgentCore::Browser": {
+      "BrowserArn": "string",
+      "BrowserId": "string",
+      "Name": "string",
+      "Status": "string"
     },
     "AWS::BedrockAgentCore::BrowserCustom": {
       "CreatedAt": "string",
@@ -8818,6 +8955,32 @@
       "CreatedAt": "string",
       "FailureReason": "string",
       "LastUpdatedAt": "string"
+    },
+    "AWS::BedrockAgentCore::ConfigurationBundle": {
+      "BranchName": "string",
+      "BundleArn": "string",
+      "BundleId": "string",
+      "BundleName": "string",
+      "CommitMessage": "string",
+      "Components": "object",
+      "CreatedAt": "string",
+      "Description": "string",
+      "Tags": "array",
+      "UpdatedAt": "string",
+      "VersionId": "string"
+    },
+    "AWS::BedrockAgentCore::Dataset": {
+      "CreatedAt": "string",
+      "DatasetArn": "string",
+      "DatasetId": "string",
+      "DatasetName": "string",
+      "Description": "string",
+      "ExampleCount": "integer",
+      "KmsKeyArn": "string",
+      "SchemaType": "string",
+      "Status": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
     },
     "AWS::BedrockAgentCore::Evaluator": {
       "CreatedAt": "string",
@@ -8850,8 +9013,26 @@
       "GatewayIdentifier": "string",
       "LastSynchronizedAt": "string",
       "Name": "string",
+      "PrivateEndpointManagedResources": "array",
       "StatusReasons": "array",
       "TargetId": "string",
+      "UpdatedAt": "string"
+    },
+    "AWS::BedrockAgentCore::Harness": {
+      "AllowedTools": "array",
+      "Arn": "string",
+      "CreatedAt": "string",
+      "EnvironmentVariables": "object",
+      "ExecutionRoleArn": "string",
+      "HarnessId": "string",
+      "HarnessName": "string",
+      "MaxIterations": "integer",
+      "MaxTokens": "integer",
+      "Skills": "array",
+      "SystemPrompt": "array",
+      "Tags": "array",
+      "TimeoutSeconds": "integer",
+      "Tools": "array",
       "UpdatedAt": "string"
     },
     "AWS::BedrockAgentCore::Memory": {
@@ -8862,6 +9043,8 @@
     },
     "AWS::BedrockAgentCore::OAuth2CredentialProvider": {
       "CallbackUrl": "string",
+      "ClientSecretJsonKey": "string",
+      "ClientSecretSource": "string",
       "CreatedTime": "string",
       "CredentialProviderArn": "string",
       "CredentialProviderVendor": "string",
@@ -8874,11 +9057,39 @@
       "Description": "string",
       "EvaluationExecutionRoleArn": "string",
       "Evaluators": "array",
+      "Insights": "array",
       "OnlineEvaluationConfigArn": "string",
       "OnlineEvaluationConfigId": "string",
       "OnlineEvaluationConfigName": "string",
       "Tags": "array",
       "UpdatedAt": "string"
+    },
+    "AWS::BedrockAgentCore::PaymentConnector": {
+      "ConnectorCreatedAt": "string",
+      "ConnectorLastUpdatedAt": "string",
+      "ConnectorName": "string",
+      "CredentialProviderConfigurations": "array",
+      "Description": "string",
+      "PaymentConnectorArn": "string",
+      "PaymentConnectorId": "string",
+      "PaymentManagerId": "string"
+    },
+    "AWS::BedrockAgentCore::PaymentCredentialProvider": {
+      "CreatedTime": "string",
+      "CredentialProviderArn": "string",
+      "LastUpdatedTime": "string",
+      "Name": "string",
+      "Tags": "array"
+    },
+    "AWS::BedrockAgentCore::PaymentManager": {
+      "CreatedAt": "string",
+      "Description": "string",
+      "LastUpdatedAt": "string",
+      "Name": "string",
+      "PaymentManagerArn": "string",
+      "PaymentManagerId": "string",
+      "RoleArn": "string",
+      "Tags": "array"
     },
     "AWS::BedrockAgentCore::Policy": {
       "CreatedAt": "string",
@@ -8900,6 +9111,10 @@
       "StatusReasons": "array",
       "Tags": "array",
       "UpdatedAt": "string"
+    },
+    "AWS::BedrockAgentCore::ResourcePolicy": {
+      "Policy": "string",
+      "ResourceArn": "string"
     },
     "AWS::BedrockAgentCore::Runtime": {
       "FailureReason": "string"
@@ -10353,6 +10568,9 @@
     },
     "AWS::Connect::InstanceStorageConfig": {
       "InstanceArn": "string"
+    },
+    "AWS::Connect::IntegrationAssociation": {
+      "Tags": "array"
     },
     "AWS::Connect::Notification": {
       "Arn": "string",
@@ -12266,6 +12484,7 @@
       "LocalGatewayId": "string",
       "NatGatewayId": "string",
       "NetworkInterfaceId": "string",
+      "OdbNetworkArn": "string",
       "RouteTableId": "string",
       "TransitGatewayId": "string",
       "VpcEndpointId": "string",
@@ -12891,7 +13110,9 @@
       "DaemonTaskDefinitionArn": "string",
       "ExecutionRoleArn": "string",
       "Family": "string",
+      "IpcMode": "string",
       "Memory": "string",
+      "PidMode": "string",
       "Tags": "array",
       "TaskRoleArn": "string",
       "Volumes": "array"
@@ -13303,6 +13524,8 @@
       "CacheSubnetGroupName": "string",
       "ClusterMode": "string",
       "DataTieringEnabled": "boolean",
+      "Durability": "string",
+      "EffectiveDurability": "string",
       "Engine": "string",
       "EngineVersion": "string",
       "GlobalReplicationGroupId": "string",
@@ -16185,10 +16408,13 @@
       "Tags": "array"
     },
     "AWS::Logs::DeliverySource": {
+      "DeliverySourceConfiguration": "object",
       "LogType": "string",
       "Name": "string",
       "ResourceArns": "array",
       "Service": "string",
+      "Status": "string",
+      "StatusReason": "string",
       "Tags": "array"
     },
     "AWS::Logs::Destination": {
@@ -16505,6 +16731,7 @@
       "MediaStreamOutputConfigurations": "array",
       "MinLatency": "integer",
       "Name": "string",
+      "NdiOutputTimecodeSource": "string",
       "NdiProgramName": "string",
       "NdiSpeedHqQuality": "integer",
       "OutputArn": "string",
@@ -16614,6 +16841,7 @@
       "ConcurrentJobs": "integer",
       "Description": "string",
       "Id": "string",
+      "MaximumConcurrentFeeds": "integer",
       "Name": "string",
       "PricingPlan": "string",
       "Status": "string"
@@ -17000,8 +17228,10 @@
       "EnableCloudwatchLogsExports": "array",
       "Endpoint": "string",
       "EngineVersion": "string",
+      "GlobalClusterIdentifier": "string",
       "IamAuthEnabled": "boolean",
       "KmsKeyId": "string",
+      "NetworkType": "string",
       "Port": "string",
       "PreferredBackupWindow": "string",
       "PreferredMaintenanceWindow": "string",
@@ -17703,10 +17933,16 @@
     "AWS::OpenSearchServerless::CollectionGroup": {
       "Arn": "string",
       "Description": "string",
+      "Generation": "string",
       "Id": "string",
       "Name": "string",
       "StandbyReplicas": "string",
       "Tags": "array"
+    },
+    "AWS::OpenSearchServerless::CollectionIndex": {
+      "Id": "string",
+      "IndexName": "string",
+      "IndexSchema": "string"
     },
     "AWS::OpenSearchServerless::Index": {
       "CollectionEndpoint": "string",
@@ -17995,6 +18231,7 @@
       "Enabled": "boolean",
       "Exportable": "boolean",
       "KeyIdentifier": "string",
+      "Policy": "string",
       "ReplicationRegions": "array",
       "Tags": "array"
     },
@@ -19104,6 +19341,61 @@
       "PolicyName": "string",
       "Tier": "string"
     },
+    "AWS::ResilienceHubV2::Policy": {
+      "AssociatedServiceCount": "integer",
+      "CreatedAt": "string",
+      "Description": "string",
+      "KmsKeyId": "string",
+      "Name": "string",
+      "PolicyArn": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
+    },
+    "AWS::ResilienceHubV2::Service": {
+      "Assertions": "array",
+      "AssociatedSystems": "array",
+      "CreatedAt": "string",
+      "DependencyDiscovery": "string",
+      "Description": "string",
+      "InputSources": "array",
+      "KmsKeyId": "string",
+      "Name": "string",
+      "PolicyArn": "string",
+      "Regions": "array",
+      "ServiceArn": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
+    },
+    "AWS::ResilienceHubV2::ServiceFunction": {
+      "CreatedAt": "string",
+      "Criticality": "string",
+      "Description": "string",
+      "Name": "string",
+      "ResourceCount": "integer",
+      "ServiceArn": "string",
+      "ServiceFunctionId": "string",
+      "Source": "string",
+      "UpdatedAt": "string"
+    },
+    "AWS::ResilienceHubV2::System": {
+      "CreatedAt": "string",
+      "Description": "string",
+      "KmsKeyId": "string",
+      "Name": "string",
+      "SystemArn": "string",
+      "SystemId": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
+    },
+    "AWS::ResilienceHubV2::UserJourney": {
+      "CreatedAt": "string",
+      "Description": "string",
+      "Name": "string",
+      "PolicyArn": "string",
+      "SystemIdentifier": "string",
+      "UpdatedAt": "string",
+      "UserJourneyId": "string"
+    },
     "AWS::ResourceExplorer2::DefaultViewAssociation": {
       "AssociatedAwsPrincipal": "string",
       "ViewArn": "string"
@@ -20123,6 +20415,7 @@
       "ApplicationArn": "string",
       "ApplicationProviderArn": "string",
       "Description": "string",
+      "IdentityStoreArn": "string",
       "InstanceArn": "string",
       "Name": "string",
       "Status": "string",
@@ -20218,6 +20511,7 @@
       "DomainArn": "string",
       "DomainId": "string",
       "DomainName": "string",
+      "HomeEfsFileSystemCreation": "string",
       "HomeEfsFileSystemId": "string",
       "KmsKeyId": "string",
       "SecurityGroupIdForDomainBoundary": "string",
@@ -20278,6 +20572,20 @@
       "StatusReason": "string",
       "Tags": "array",
       "Type": "string"
+    },
+    "AWS::SageMaker::MlflowApp": {
+      "Arn": "string",
+      "ArtifactStoreUri": "string",
+      "CreationTime": "string",
+      "LastModifiedTime": "string",
+      "MlflowAppId": "string",
+      "MlflowVersion": "string",
+      "ModelRegistrationMode": "string",
+      "Name": "string",
+      "RoleArn": "string",
+      "Status": "string",
+      "Tags": "array",
+      "WeeklyMaintenanceWindowStart": "string"
     },
     "AWS::SageMaker::MlflowTrackingServer": {
       "ArtifactStoreUri": "string",
@@ -20528,6 +20836,7 @@
       "TargetDomainName": "string",
       "VerificationMethod": "string",
       "VerificationStatus": "string",
+      "VerificationStatusReason": "string",
       "VerifiedAt": "string"
     },
     "AWS::SecurityHub::AggregatorV2": {
@@ -21126,6 +21435,7 @@
       "LogDeliveryConfiguration": "object",
       "Name": "string",
       "NetworkType": "string",
+      "NextMaintenanceTime": "string",
       "Organization": "string",
       "Password": "string",
       "Port": "integer",
@@ -21261,6 +21571,7 @@
       "PrincipalEntityType": "string"
     },
     "AWS::VerifiedPermissions::Policy": {
+      "Name": "string",
       "PolicyId": "string",
       "PolicyStoreId": "string"
     },
@@ -21271,8 +21582,13 @@
       "PolicyStoreId": "string",
       "Tags": "array"
     },
+    "AWS::VerifiedPermissions::PolicyStoreAlias": {
+      "AliasName": "string",
+      "PolicyStoreId": "string"
+    },
     "AWS::VerifiedPermissions::PolicyTemplate": {
       "Description": "string",
+      "Name": "string",
       "PolicyStoreId": "string",
       "PolicyTemplateId": "string",
       "Statement": "string"

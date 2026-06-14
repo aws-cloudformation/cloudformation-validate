@@ -202,7 +202,7 @@ fn detect_cycles(edges: &[Edge], resource_ids: &BTreeSet<&str>) -> Vec<Vec<Strin
     for &id in resource_ids {
         in_degree.insert(id, 0);
     }
-    for (_, targets) in &adj {
+    for targets in adj.values() {
         for &t in targets {
             *in_degree.entry(t).or_insert(0) += 1;
         }
@@ -437,7 +437,7 @@ mod tests {
 
     #[test]
     fn graph_empty_has_no_cycles() {
-        let graph = ReferenceGraph::build(vec![], &vec!["A".into()]);
+        let graph = ReferenceGraph::build(vec![], &["A".into()]);
         assert!(graph.cycles().is_empty());
         assert!(graph.outgoing("A").is_empty());
         assert!(graph.incoming("A").is_empty());

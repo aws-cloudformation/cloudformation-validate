@@ -1,7 +1,8 @@
 use diagnostics::{
     DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport,
-    ViolationContext, apply_filters, phase_metric, resolve_section_span,
+    ViolationContext, apply_filters, is_sam_transform_error_message, phase_metric,
+    resolve_section_span,
 };
 use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, category_for_rule_id,
@@ -217,6 +218,8 @@ pub(crate) fn validate(
 
     all_diagnostics.extend(model.diagnostics.iter().cloned());
 
+    gate_sam_transform_errors(&mut all_diagnostics);
+
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
     enrich_diagnostics(
@@ -260,7 +263,7 @@ pub(crate) fn validate(
             !entry
                 .category
                 .as_deref()
-                .map_or(false, |c| excluded_cats.contains(c))
+                .is_some_and(|c| excluded_cats.contains(c))
         })
         .count() as u32;
 
@@ -358,7 +361,7 @@ pub fn validate_bytes_with_path(
                     },
                     suppressed: 0,
                     strict: config.strict,
-                    severity_level: config.severity_level.clone(),
+                    severity_level: config.severity_level,
                 },
                 performance: PerformanceMetrics {
                     schema_init: PhaseMetric { duration_ms: 0.0 },
@@ -447,7 +450,7 @@ pub(crate) fn parse_diagnostic(
         .get("severity")
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("Diagnostic '{}' missing required field 'severity'", rule_id))?;
-    let severity = Severity::from_str(severity_str);
+    let severity = severity_str.parse::<Severity>()?;
     let message = val
         .get("message")
         .and_then(|v| v.as_str())
@@ -492,7 +495,7 @@ pub(crate) fn parse_diagnostic(
         }
     };
 
-    let is_custom_or_guard = source_override.map_or(false, |o| {
+    let is_custom_or_guard = source_override.is_some_and(|o| {
         matches!(o, RuleOrigin::Custom | RuleOrigin::Guard)
     });
 
@@ -770,11 +773,10 @@ pub(crate) fn build_context(
             }
         }
         "F3032" | "E3032" => {
-            if let Some(v) = resolve_val(property_path) {
-                if let Some(arr) = v.as_array() {
+            if let Some(v) = resolve_val(property_path)
+                && let Some(arr) = v.as_array() {
                     extra.insert("actual_count".into(), serde_json::json!(arr.len()).into());
                 }
-            }
         }
         "F3002" | "E3002" | "F3020" => {
             let prop = property_path.rsplit('.').next().unwrap_or("");
@@ -840,11 +842,10 @@ pub(crate) fn build_context(
             lifecycle = Some("write-only".into());
         }
         "W2503" | "W2502" => {
-            if let Some(res) = model.resources.get(rid) {
-                if let Some(ref c) = res.condition {
+            if let Some(res) = model.resources.get(rid)
+                && let Some(ref c) = res.condition {
                     extra.insert("source_condition".into(), serde_json::json!(c).into());
                 }
-            }
         }
         _ => {}
     }
@@ -861,6 +862,20 @@ pub(crate) fn build_context(
         resolution_source: None,
         extra: if extra.is_empty() { None } else { Some(extra) },
     })
+}
+
+/// Drops every non-transform diagnostic when a SAM transform error is present.
+///
+/// A failed SAM transform stops CloudFormation before resource validation, so
+/// schema and lint findings on the untransformed template are noise. Retaining
+/// only the transform errors mirrors that short-circuit.
+fn gate_sam_transform_errors(diagnostics: &mut Vec<Diagnostic>) {
+    let has_transform_error = diagnostics
+        .iter()
+        .any(|d| is_sam_transform_error_message(&d.message));
+    if has_transform_error {
+        diagnostics.retain(|d| is_sam_transform_error_message(&d.message));
+    }
 }
 
 pub(crate) fn enrich_diagnostics(
@@ -1333,8 +1348,8 @@ Resources:
         assert_eq!(report.metadata.counts.informational, 1);
         assert_eq!(report.metadata.suppressed, 3);
         assert_eq!(report.metadata.rules_evaluated, Some(50));
-        assert_eq!(
-            report.metadata.strict, false,
+        assert!(
+            !report.metadata.strict,
             "default mode should not be strict"
         );
         assert_eq!(report.metadata.severity_level, Severity::Info);
@@ -1357,8 +1372,8 @@ Resources:
         assert_eq!(report.metadata.counts.fatal, 0);
         assert_eq!(report.metadata.counts.errors, 0);
         assert_eq!(report.metadata.counts.warnings, 0);
-        assert_eq!(
-            report.metadata.strict, true,
+        assert!(
+            report.metadata.strict,
             "strict mode should be enabled"
         );
         assert_eq!(report.metadata.severity_level, Severity::Error);
@@ -1511,6 +1526,43 @@ Resources:
             }),
             ..default_diag()
         }
+    }
+
+    fn make_transform_error_diag() -> Diagnostic {
+        Diagnostic {
+            message: format!(
+                "{} Resource with id [Fn] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
+                diagnostics::SAM_TRANSFORM_ERROR_PREFIX
+            ),
+            ..make_diag(
+                diagnostics::SAM_TRANSFORM_ERROR_RULE_ID,
+                Severity::Error,
+                1,
+                1,
+            )
+        }
+    }
+
+    #[test]
+    fn gate_drops_non_transform_diagnostics_when_transform_error_present() {
+        let mut diags = vec![
+            make_diag("E3012", Severity::Error, 5, 1),
+            make_transform_error_diag(),
+            make_diag("I9040", Severity::Info, 7, 1),
+        ];
+        gate_sam_transform_errors(&mut diags);
+        assert_eq!(diags.len(), 1);
+        assert!(is_sam_transform_error_message(&diags[0].message));
+    }
+
+    #[test]
+    fn gate_keeps_all_diagnostics_when_no_transform_error() {
+        let mut diags = vec![
+            make_diag("E3012", Severity::Error, 5, 1),
+            make_diag("I9040", Severity::Info, 7, 1),
+        ];
+        gate_sam_transform_errors(&mut diags);
+        assert_eq!(diags.len(), 2);
     }
 
     #[test]

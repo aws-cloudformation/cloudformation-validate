@@ -221,19 +221,12 @@ impl PseudoParameterOverrides {
     }
 }
 
+#[derive(Default)]
 pub struct ParseConfig {
     pub parameters: HashMap<String, String>,
     pub pseudo_parameters: PseudoParameterOverrides,
 }
 
-impl Default for ParseConfig {
-    fn default() -> Self {
-        Self {
-            parameters: HashMap::new(),
-            pseudo_parameters: PseudoParameterOverrides::default(),
-        }
-    }
-}
 
 #[must_use]
 pub struct ParseResult {
@@ -295,22 +288,20 @@ impl SemanticModel {
             &config.pseudo_parameters,
         );
         let mut resources = HashMap::new();
-        if ir.resources != NULL_REF {
-            if let Some(entries) = ir.arena.as_map(ir.resources) {
+        if ir.resources != NULL_REF
+            && let Some(entries) = ir.arena.as_map(ir.resources) {
                 // Pre-scan: identify resources with DefinitionSubstitutions
                 for (rname, rnode) in entries {
                     if let Some(props) = ir.arena.as_map(*rnode) {
                         for (key, val) in props {
-                            if key == KEY_PROPERTIES {
-                                if let Some(prop_entries) = ir.arena.as_map(*val) {
-                                    if prop_entries
+                            if key == KEY_PROPERTIES
+                                && let Some(prop_entries) = ir.arena.as_map(*val)
+                                    && prop_entries
                                         .iter()
                                         .any(|(k, _)| k == "DefinitionSubstitutions")
                                     {
                                         resolver.def_subs_resources.insert(rname.clone());
                                     }
-                                }
-                            }
                         }
                     }
                 }
@@ -320,7 +311,6 @@ impl SemanticModel {
                     resources.insert(name.clone(), resolved);
                 }
             }
-        }
         for (name, res) in &resources {
             debug!(
                 "Resolved '{}' ({}): {} properties, {} edges, condition={:?}",
@@ -337,8 +327,8 @@ impl SemanticModel {
         }
 
         let mut outputs = HashMap::new();
-        if ir.outputs != NULL_REF {
-            if let Some(entries) = ir.arena.as_map(ir.outputs) {
+        if ir.outputs != NULL_REF
+            && let Some(entries) = ir.arena.as_map(ir.outputs) {
                 for (name, node_ref) in entries.to_vec() {
                     resolver.set_current_resource(&format!(
                         "{}{}",
@@ -349,14 +339,13 @@ impl SemanticModel {
                     outputs.insert(name.clone(), resolved);
                 }
             }
-        }
 
         // Walk the Rules section so that `Ref`/`Fn::Sub`/`Fn::ValueOf` etc.
         // appearing inside rule conditions and assertions emit reference
         // edges. Without this pass, parameters used only in Rules-section
         // assertions would appear unreferenced to downstream rule checks.
-        if ir.rules != NULL_REF {
-            if let Some(rule_entries) = ir.arena.as_map(ir.rules) {
+        if ir.rules != NULL_REF
+            && let Some(rule_entries) = ir.arena.as_map(ir.rules) {
                 for (rule_name, rule_node) in rule_entries.to_vec() {
                     resolver.set_current_resource(&format!(
                         "{}{}",
@@ -371,8 +360,8 @@ impl SemanticModel {
                         resolver.resolve_node(cond_ref);
                     }
                     let assertions_ref = ir.arena.map_get(rule_node, KEY_ASSERTIONS);
-                    if let Some(assertions_ref) = assertions_ref {
-                        if let Some(assertion_items) = ir.arena.as_list(assertions_ref) {
+                    if let Some(assertions_ref) = assertions_ref
+                        && let Some(assertion_items) = ir.arena.as_list(assertions_ref) {
                             for (idx, item_ref) in assertion_items.to_vec().iter().enumerate() {
                                 if let Some(assert_ref) = ir.arena.map_get(*item_ref, KEY_ASSERT) {
                                     resolver.set_current_path(&format!(
@@ -383,10 +372,8 @@ impl SemanticModel {
                                 }
                             }
                         }
-                    }
                 }
             }
-        }
 
         info!(
             "Phase 3: Building reference graph from {} resolver edges",
@@ -447,8 +434,7 @@ impl SemanticModel {
 
         for idx in 0..ir.arena.len() {
             if let Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) = ir.arena.node(idx as NodeRef)
-            {
-                if !conditions.conditions.contains_key(cond_name) {
+                && !conditions.conditions.contains_key(cond_name) {
                     diagnostics.push(crate::make_parse_diagnostic(
                         "F1104",
                         rules_crate::Severity::Fatal,
@@ -456,7 +442,6 @@ impl SemanticModel {
                         ir.arena.span(idx as NodeRef),
                     ));
                 }
-            }
         }
         let mut output_empty_joins: Vec<String> = Vec::new();
         for (key, joins) in &resolver.empty_joins {
@@ -538,6 +523,17 @@ impl SemanticModel {
         } else {
             Vec::new()
         };
+        if is_sam {
+            let parameter_names: HashSet<String> = parameters.keys().cloned().collect();
+            diagnostics.extend(sam::collect_transform_errors(
+                &ir.arena,
+                ir.resources,
+                ir.globals,
+                &resources,
+                &parameter_names,
+                &ir.span_index,
+            ));
+        }
         let is_cdk = resources_by_type.contains_key(CDK_METADATA_TYPE);
 
         Ok(ParseResult {
@@ -623,7 +619,7 @@ impl SemanticModel {
     pub fn is_from_parameter(&self, resource_id: &str, path: &str) -> bool {
         self.resolution_sources
             .get(&(resource_id.to_string(), path.to_string()))
-            .map_or(false, |s| s.starts_with("Parameters/"))
+            .is_some_and(|s| s.starts_with("Parameters/"))
     }
 
     /// True when the value at `path` (or any ancestor up to the resource root) was
@@ -660,11 +656,9 @@ impl SemanticModel {
             if let Some(src) = self
                 .resolution_sources
                 .get(&(resource_id.to_string(), p.clone()))
-            {
-                if src.starts_with("Intrinsic/") {
+                && src.starts_with("Intrinsic/") {
                     return true;
                 }
-            }
             match p.rfind('.') {
                 Some(i) => p.truncate(i),
                 None => return false,

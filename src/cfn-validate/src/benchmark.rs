@@ -129,8 +129,8 @@ fn main() {
         severity_level,
         ..Default::default()
     };
-    if let Some(first) = templates.first() {
-        if let Ok(bytes) = fs::read(first) {
+    if let Some(first) = templates.first()
+        && let Ok(bytes) = fs::read(first) {
             let _ = SemanticModel::parse(&bytes, Default::default());
             let _ = validate_bytes_with_path(
                 engine.as_ref(),
@@ -140,7 +140,6 @@ fn main() {
                 first.display().to_string(),
             );
         }
-    }
 
     let bench_start = Instant::now();
 
@@ -673,7 +672,7 @@ fn generate_markdown(
         "| Throughput | {:.2} validations/sec |\n",
         throughput_per_sec
     ));
-    report_markdown.push_str(&format!("| Detail level | DETAILED |\n"));
+    report_markdown.push_str("| Detail level | DETAILED |\n");
 
     report_markdown.push_str("\n## Initialization (ms)\n\n");
     report_markdown
@@ -827,7 +826,7 @@ fn median_f64(vals: &[f64]) -> f64 {
     let mut sorted = vals.to_vec();
     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let n = sorted.len();
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
     } else {
         sorted[n / 2]

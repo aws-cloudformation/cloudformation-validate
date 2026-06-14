@@ -5,9 +5,9 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS,
-    FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH,
-    FIELD_TARGET, FN_REF, KEY_PROPERTIES, TRANSFORM_SERVERLESS,
+    DEFAULT_REGION, EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND,
+    FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_REF, KEY_PROPERTIES, TRANSFORM_SERVERLESS,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
@@ -142,8 +142,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
         if let Some(serde_json::Value::Array(cdefs)) =
             resolve_concrete(m, name, "Properties.ContainerDefinitions")
-        {
-            if cdefs.len() > 1
+            && cdefs.len() > 1
                 && cdefs
                     .iter()
                     .all(|c| c.get("Essential").and_then(|e| e.as_bool()) == Some(false))
@@ -157,7 +156,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::IAM::Policy") {
@@ -188,8 +186,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .as_ref()
             .and_then(|v| v.as_str())
             == Some("FARGATE")
-        {
-            if resolve_concrete(m, name, "Properties.SchedulingStrategy")
+            && resolve_concrete(m, name, "Properties.SchedulingStrategy")
                 .as_ref()
                 .and_then(|v| v.as_str())
                 == Some("DAEMON")
@@ -203,7 +200,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     Some("Use REPLICA scheduling strategy with Fargate"),
                 ));
             }
-        }
     }
 
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
@@ -216,8 +212,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 for rule in rules {
                     let from = rule.get("FromPort").and_then(|p| p.as_i64());
                     let to = rule.get("ToPort").and_then(|p| p.as_i64());
-                    if let (Some(f), Some(t)) = (from, to) {
-                        if f > t {
+                    if let (Some(f), Some(t)) = (from, to)
+                        && f > t {
                             out.push(make_resource_diagnostic(
                                 "E9002",
                                 &format!("FromPort {} is greater than ToPort {}", f, t),
@@ -227,7 +223,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 Some("Set FromPort to a value less than or equal to ToPort"),
                             ));
                         }
-                    }
                 }
             }
         }
@@ -348,8 +343,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .as_ref()
             .and_then(|v| v.as_str())
             == Some("awsvpc")
-        {
-            if let Some(serde_json::Value::Array(cdefs)) =
+            && let Some(serde_json::Value::Array(cdefs)) =
                 resolve_concrete(m, name, "Properties.ContainerDefinitions")
             {
                 for (ci, cdef) in cdefs.iter().enumerate() {
@@ -357,16 +351,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         for (pi, pm) in pms.iter().enumerate() {
                             let hp = pm.get("HostPort").and_then(|p| p.as_i64());
                             let cp = pm.get("ContainerPort").and_then(|p| p.as_i64());
-                            if let (Some(h), Some(c)) = (hp, cp) {
-                                if h != c {
+                            if let (Some(h), Some(c)) = (hp, cp)
+                                && h != c {
                                     out.push(make_resource_diagnostic("E3053", &format!("HostPort {} must equal ContainerPort {} when NetworkMode is awsvpc", h, c), m, name, &format!("Properties.ContainerDefinitions[{}].PortMappings[{}].HostPort", ci, pi), Some("Set HostPort equal to ContainerPort or remove HostPort")));
                                 }
-                            }
                         }
                     }
                 }
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::DynamoDB::Table") {
@@ -379,8 +371,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 .filter_map(|a| a.get("AttributeName").and_then(|n| n.as_str()))
                 .collect();
             for k in &ks {
-                if let Some(attr) = k.get("AttributeName").and_then(|n| n.as_str()) {
-                    if !defined.contains(attr) {
+                if let Some(attr) = k.get("AttributeName").and_then(|n| n.as_str())
+                    && !defined.contains(attr) {
                         out.push(make_resource_diagnostic(
                             "E3039",
                             &format!(
@@ -393,7 +385,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             Some("Add the attribute to AttributeDefinitions"),
                         ));
                     }
-                }
             }
         }
     }
@@ -413,8 +404,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 .get("DefaultCacheBehavior")
                 .and_then(|d| d.get("TargetOriginId"))
                 .and_then(|t| t.as_str())
-            {
-                if !origin_ids.contains(target) {
+                && !origin_ids.contains(target) {
                     out.push(make_resource_diagnostic(
                         "E3057",
                         &format!(
@@ -429,13 +419,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         ),
                     ));
                 }
-            }
         }
     }
 
     for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
-            if doc.is_object() && doc.get("Statement").is_none() {
+        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
+            && doc.is_object() && doc.get("Statement").is_none() {
                 out.push(make_resource_diagnostic(
                     "E3510",
                     "IAM identity policy must have a Statement property",
@@ -445,7 +434,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     Some("Add a Statement array to the PolicyDocument"),
                 ));
             }
-        }
     }
 
     let resource_policy_types = [
@@ -456,8 +444,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     for (rtype, path) in &resource_policy_types {
         for name in m.resources_of_type(rtype) {
-            if let Some(doc) = resolve_concrete(m, name, path) {
-                if doc.is_object() && doc.get("Statement").is_none() {
+            if let Some(doc) = resolve_concrete(m, name, path)
+                && doc.is_object() && doc.get("Statement").is_none() {
                     out.push(make_resource_diagnostic(
                         "E3512",
                         "Resource-based policy must have a Statement property",
@@ -467,7 +455,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         Some("Add a Statement array to the policy document"),
                     ));
                 }
-            }
         }
     }
 
@@ -525,8 +512,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ECR::Repository") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.RepositoryPolicyText") {
-            if doc.is_object() && doc.get("Statement").is_none() {
+        if let Some(doc) = resolve_concrete(m, name, "Properties.RepositoryPolicyText")
+            && doc.is_object() && doc.get("Statement").is_none() {
                 out.push(make_resource_diagnostic(
                     "E3513",
                     "ECR repository policy must have a Statement property",
@@ -536,7 +523,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     Some("Add a Statement array to the RepositoryPolicyText"),
                 ));
             }
-        }
     }
 
     let policy_doc_types: &[(&str, &str)] = &[
@@ -558,8 +544,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for name in m.resources_of_type(rtype) {
             let scenarios = m.resolve_scenarios_json(name, path);
             for (val, _conds) in &scenarios {
-                if let Some(ver) = val.as_str() {
-                    if ver != "2012-10-17" {
+                if let Some(ver) = val.as_str()
+                    && ver != "2012-10-17" {
                         out.push(make_resource_diagnostic(
                             "W2511",
                             &format!(
@@ -573,7 +559,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         ));
                         break;
                     }
-                }
             }
         }
     }
@@ -583,11 +568,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .as_ref()
             .and_then(|v| v.as_str())
             == Some("S3")
-        {
-            if let Some(serde_json::Value::String(loc)) =
+            && let Some(serde_json::Value::String(loc)) =
                 resolve_concrete(m, name, "Properties.Source.Location")
-            {
-                if !loc.contains('/') {
+                && !loc.contains('/') {
                     out.push(make_resource_diagnostic(
                         "E3636",
                         &format!(
@@ -600,15 +583,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         Some("Use format: my-bucket/path/to/source.zip"),
                     ));
                 }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::CodePipeline::Pipeline") {
         if let Some(serde_json::Value::Array(stages)) =
             resolve_concrete(m, name, "Properties.Stages")
-        {
-            if let Some(first) = stages.first() {
+            && let Some(first) = stages.first() {
                 let has_source = first
                     .get("Actions")
                     .and_then(|a| a.as_array())
@@ -632,17 +612,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if let Some(serde_json::Value::Object(code)) = resolve_concrete(m, name, "Properties.Code")
-        {
-            if code.contains_key("ZipFile") {
-                if let Some(serde_json::Value::String(rt)) =
+            && code.contains_key("ZipFile")
+                && let Some(serde_json::Value::String(rt)) =
                     resolve_concrete(m, name, "Properties.Runtime")
-                {
-                    if !rt.starts_with("nodejs") && !rt.starts_with("python") {
+                    && !rt.starts_with("nodejs") && !rt.starts_with("python") {
                         out.push(make_resource_diagnostic(
                             "E3071",
                             &format!(
@@ -655,19 +632,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::SQS::Queue") {
         if let Some(serde_json::Value::Bool(true)) =
             resolve_concrete(m, name, "Properties.FifoQueue")
-        {
-            if let Some(serde_json::Value::String(qname)) =
+            && let Some(serde_json::Value::String(qname)) =
                 resolve_concrete(m, name, "Properties.QueueName")
-            {
-                if !qname.ends_with(".fifo") {
+                && !qname.ends_with(".fifo") {
                     out.push(make_resource_diagnostic(
                         "E3501",
                         &format!("FIFO queue name '{}' must end with '.fifo'", qname),
@@ -677,8 +649,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         Some("Append .fifo to the queue name"),
                     ));
                 }
-            }
-        }
     }
 
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
@@ -740,24 +710,21 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for b in srta.iter().skip(i + 1) {
             let a_sub = resolve_concrete(m, a, "Properties.SubnetId");
             let b_sub = resolve_concrete(m, b, "Properties.SubnetId");
-            if a_sub.is_some() && a_sub == b_sub {
-                if !crate::functions::contains_unresolvable_content(
+            if a_sub.is_some() && a_sub == b_sub
+                && !crate::functions::contains_unresolvable_content(
                     &m.resolve_deep(a, "Properties.SubnetId")
                         .or_else(|| m.resolve(a, "Properties.SubnetId").cloned())
                         .unwrap_or(ResolvedValue::Dynamic { reason: "".into() }),
                 ) {
                     out.push(make_resource_diagnostic(
                         "E3022",
-                        &format!(
-                            "Subnet has multiple SubnetRouteTableAssociations — only one is allowed"
-                        ),
+                        "Subnet has multiple SubnetRouteTableAssociations — only one is allowed",
                         m,
                         a,
                         "Properties.SubnetId",
                         None,
                     ));
                 }
-            }
         }
     }
 
@@ -810,22 +777,17 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::S3::Bucket") {
-        if let Some(res) = m.resources.get(name.as_str()) {
-            if res.properties.contains_key("AccessControl")
+        if let Some(res) = m.resources.get(name.as_str())
+            && res.properties.contains_key("AccessControl")
                 && !res.properties.contains_key("OwnershipControls")
-            {
-                if let Some(serde_json::Value::String(ac)) =
+                && let Some(serde_json::Value::String(ac)) =
                     resolve_concrete(m, name, "Properties.AccessControl")
-                {
-                    if ac != "Private" {
+                    && ac != "Private" {
                         out.push(make_resource_diagnostic("E3045",
                             "A bucket with 'AccessControl' set should also have at least one 'OwnershipControl' configured",
                             m, name, KEY_PROPERTIES,
                             Some("Add OwnershipControls to the bucket when using AccessControl")));
                     }
-                }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::Lambda::Permission") {
@@ -833,8 +795,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .as_ref()
             .and_then(|v| v.as_str())
             == Some("s3.amazonaws.com")
-        {
-            if !m
+            && !m
                 .resources
                 .get(name.as_str())
                 .map(|r| r.properties.contains_key("SourceAccount"))
@@ -842,7 +803,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             {
                 out.push(make_resource_diagnostic("W3663", "Lambda Permission with S3 principal should have SourceAccount to prevent confused deputy", m, name, "Properties.Principal", Some("Add SourceAccount property")));
             }
-        }
     }
 
     let sub_filters = m.resources_of_type("AWS::Logs::SubscriptionFilter");
@@ -877,12 +837,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     let snapstart_runtimes = ["java11", "java17", "java21"];
     for name in m.resources_of_type("AWS::Lambda::Function") {
-        if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart") {
-            if snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions") {
-                if let Some(serde_json::Value::String(rt)) =
+        if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
+            && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions")
+                && let Some(serde_json::Value::String(rt)) =
                     resolve_concrete(m, name, "Properties.Runtime")
-                {
-                    if !snapstart_runtimes.contains(&rt.as_str()) {
+                    && !snapstart_runtimes.contains(&rt.as_str()) {
                         out.push(make_resource_diagnostic(
                             "E2530",
                             &format!("SnapStart is not supported with runtime '{}'", rt),
@@ -892,9 +851,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             Some("Use a supported Java runtime: java11, java17, java21, or java25"),
                         ));
                     }
-                }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::CloudFront::Distribution") {
@@ -931,19 +887,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::CodeBuild::Project") {
-        if let Some(target) = m.follow_ref(name, "Properties.ServiceRole") {
-            if let Some(target_res) = m.resources.get(&*target) {
-                if target_res.resource_type == "AWS::IAM::Role" {
-                    if let Some(serde_json::Value::String(path)) =
-                        resolve_concrete(m, &target, "Properties.Path")
-                    {
-                        if path != "/" {
+        if let Some(target) = m.follow_ref(name, "Properties.ServiceRole")
+            && let Some(target_res) = m.resources.get(target)
+                && target_res.resource_type == "AWS::IAM::Role"
+                    && let Some(serde_json::Value::String(path)) =
+                        resolve_concrete(m, target, "Properties.Path")
+                        && path != "/" {
                             out.push(make_resource_diagnostic("E3050", &format!("Ref to IAM role '{}' with Path '{}' — use GetAtt {}.Arn instead", target, path, target), m, name, "Properties.ServiceRole", Some("Switch from Ref to !GetAtt <Role>.Arn when Path is not '/'")));
                         }
-                    }
-                }
-            }
-        }
     }
 
     for (name, res) in &m.resources {
@@ -963,7 +914,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
-        for (prop, _) in &res.properties {
+        for prop in res.properties.keys() {
             let path = format!("Properties.{}", prop);
             let Some(rv) = m
                 .resolve_deep(name, &path)
@@ -1045,8 +996,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     for (rtype, prop_path) in instance_type_checks {
         for name in m.resources_of_type(rtype) {
-            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path) {
-                if PREV_GEN_RE.is_match(&val) {
+            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path)
+                && PREV_GEN_RE.is_match(&val) {
                     out.push(make_resource_diagnostic(
                         "I3100",
                         &format!(
@@ -1059,19 +1010,17 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         Some("Upgrade to a current generation instance type"),
                     ));
                 }
-            }
         }
     }
 
     for name in m.resources_of_type("AWS::ECS::Service") {
-        if let Some(target) = m.follow_ref(name, "Properties.TaskDefinition") {
-            if let Some(_td) = m.resources.get(&*target) {
-                if resolve_concrete(m, &target, "Properties.NetworkMode")
+        if let Some(target) = m.follow_ref(name, "Properties.TaskDefinition")
+            && let Some(_td) = m.resources.get(target)
+                && resolve_concrete(m, target, "Properties.NetworkMode")
                     .as_ref()
                     .and_then(|v| v.as_str())
                     == Some("awsvpc")
-                {
-                    if !m
+                    && !m
                         .resources
                         .get(name.as_str())
                         .map(|r| r.properties.contains_key("NetworkConfiguration"))
@@ -1079,9 +1028,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     {
                         out.push(make_resource_diagnostic("E3052", "NetworkConfiguration required when TaskDefinition NetworkMode is 'awsvpc'", m, name, "", None));
                     }
-                }
-            }
-        }
     }
 
     // Fires both when the TaskDefinition omits RequiresCompatibilities entirely and
@@ -1098,9 +1044,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             continue;
         };
         let compat_rv = m
-            .resolve_deep(&target, "Properties.RequiresCompatibilities")
+            .resolve_deep(target, "Properties.RequiresCompatibilities")
             .or_else(|| {
-                m.resolve(&target, "Properties.RequiresCompatibilities")
+                m.resolve(target, "Properties.RequiresCompatibilities")
                     .cloned()
             });
         let compat_strings: Vec<&str> = match compat_rv.as_ref() {
@@ -1117,7 +1063,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 .collect(),
             _ => Vec::new(),
         };
-        if compat_strings.iter().any(|s| *s == "FARGATE") {
+        if compat_strings.contains(&"FARGATE") {
             continue;
         }
         let rendered = if compat_strings.is_empty() {
@@ -1136,7 +1082,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             "E3054",
             &format!("{} does not contain items matching 'FARGATE'", rendered),
             m,
-            &target,
+            target,
             "Properties.RequiresCompatibilities",
             Some("Add 'FARGATE' to RequiresCompatibilities"),
         ));
@@ -1161,8 +1107,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         if let Some(outs) = action.get("OutputArtifacts").and_then(|o| o.as_array())
                         {
                             for o in outs {
-                                if let Some(n) = o.get("Name").and_then(|n| n.as_str()) {
-                                    if !seen_outputs.insert(n.to_string()) {
+                                if let Some(n) = o.get("Name").and_then(|n| n.as_str())
+                                    && !seen_outputs.insert(n.to_string()) {
                                         out.push(make_resource_diagnostic(
                                             "E3701",
                                             &format!("Duplicate OutputArtifact name '{}'", n),
@@ -1172,22 +1118,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                             None,
                                         ));
                                     }
-                                }
                             }
                         }
-                        if si > 0 {
-                            if let Some(ins) =
+                        if si > 0
+                            && let Some(ins) =
                                 action.get("InputArtifacts").and_then(|i| i.as_array())
                             {
                                 for i in ins {
-                                    if let Some(n) = i.get("Name").and_then(|n| n.as_str()) {
-                                        if !seen_outputs.contains(n) {
+                                    if let Some(n) = i.get("Name").and_then(|n| n.as_str())
+                                        && !seen_outputs.contains(n) {
                                             out.push(make_resource_diagnostic("E3701", &format!("InputArtifact '{}' in stage '{}' action '{}' does not reference a previously defined OutputArtifact", n, stage_name, aname), m, name, "", None));
                                         }
-                                    }
                                 }
                             }
-                        }
                     }
                 }
             }
@@ -1279,8 +1222,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             .get("Configuration")
                             .and_then(|c| c.get("TemplatePath"))
                             .and_then(|t| t.as_str())
-                        {
-                            if tp.contains("::") {
+                            && tp.contains("::") {
                                 let artifact = tp.split("::").next().unwrap_or("");
                                 let input_names: HashSet<&str> = action
                                     .get("InputArtifacts")
@@ -1295,7 +1237,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     out.push(make_resource_diagnostic("E3703", &format!("TemplatePath artifact '{}' is not one of the InputArtifacts", artifact), m, name, "", None));
                                 }
                             }
-                        }
                     }
                 }
             }
@@ -1303,29 +1244,26 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::Lambda::EventSourceMapping") {
-        if let Some(target) = m.follow_ref(name, "Properties.EventSourceArn") {
-            if let Some(sqs) = m.resources.get(&*target) {
-                if sqs.resource_type == "AWS::SQS::Queue" {
-                    let vis = resolve_concrete(m, &target, "Properties.VisibilityTimeout")
+        if let Some(target) = m.follow_ref(name, "Properties.EventSourceArn")
+            && let Some(sqs) = m.resources.get(target)
+                && sqs.resource_type == "AWS::SQS::Queue" {
+                    let vis = resolve_concrete(m, target, "Properties.VisibilityTimeout")
                         .and_then(|v| v.as_i64());
                     if let Some(fn_name) = m.follow_ref(name, "Properties.FunctionName") {
-                        let timeout = resolve_concrete(m, &fn_name, "Properties.Timeout")
+                        let timeout = resolve_concrete(m, fn_name, "Properties.Timeout")
                             .and_then(|v| v.as_i64())
                             .unwrap_or(3);
-                        if let Some(v) = vis {
-                            if v < timeout * 6 {
-                                out.push(make_resource_diagnostic("E3505", &format!("SQS queue '{}' VisibilityTimeout ({}) is less than Lambda function '{}' Timeout ({})", &*target, v, &*fn_name, timeout), m, name, "Properties", Some("Set the SQS VisibilityTimeout to at least the Lambda function Timeout")));
+                        if let Some(v) = vis
+                            && v < timeout * 6 {
+                                out.push(make_resource_diagnostic("E3505", &format!("SQS queue '{}' VisibilityTimeout ({}) is less than Lambda function '{}' Timeout ({})", target, v, fn_name, timeout), m, name, "Properties", Some("Set the SQS VisibilityTimeout to at least the Lambda function Timeout")));
                             }
-                        }
                     }
                 }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::SSM::Document") {
-        if let Some(content) = resolve_concrete(m, name, "Properties.Content") {
-            if content.is_object() && content.get("schemaVersion").is_none() {
+        if let Some(content) = resolve_concrete(m, name, "Properties.Content")
+            && content.is_object() && content.get("schemaVersion").is_none() {
                 out.push(make_resource_diagnostic(
                     "E3051",
                     "SSM Document Content must include 'schemaVersion'",
@@ -1335,7 +1273,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::S3::Bucket") {
@@ -1385,8 +1322,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
-        if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart") {
-            if snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions") {
+        if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
+            && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions") {
                 let version_refs = m.graph.ref_sources(name);
                 let has_ver = version_refs.iter().any(|src| {
                     m.resources
@@ -1405,7 +1342,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
-        }
     }
 
     let role_arn_props = [
@@ -1417,8 +1353,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     for (rtype, path) in &role_arn_props {
         for name in m.resources_of_type(rtype) {
-            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path) {
-                if val.starts_with("arn:") && !ARN_RE.is_match(&val) {
+            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path)
+                && val.starts_with("arn:") && !ARN_RE.is_match(&val) {
                     out.push(make_resource_diagnostic(
                         "E3511",
                         &format!("IAM Role ARN '{}' does not match expected pattern", val),
@@ -1428,21 +1364,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-            }
         }
     }
 
     for (name, res) in &m.resources {
         for (prop, val) in &res.properties {
-            if let ResolvedValue::Concrete { value: v } = val {
-                if let Some(s) = v.as_str() {
-                    if s.starts_with("arn:")
+            if let ResolvedValue::Concrete { value: v } = val
+                && let Some(s) = v.as_str()
+                    && s.starts_with("arn:")
                         && s != "*"
                         && !crate::functions::contains_unresolvable_content(val)
-                    {
-                        if prop.ends_with("Arn")
+                        && (prop.ends_with("Arn")
                             || prop.ends_with("RoleArn")
-                            || prop.ends_with("TopicArn")
+                            || prop.ends_with("TopicArn"))
                         {
                             out.push(make_resource_diagnostic(
                                 "W9002",
@@ -1457,9 +1391,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             ));
                             break;
                         }
-                    }
-                }
-            }
         }
     }
 
@@ -1518,9 +1449,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         .get(FIELD_SOURCE_PATH)
                         .and_then(|p| p.as_str())
                         .unwrap_or("");
-                    if sp.starts_with("Metadata") {
-                        if let Some(param) = m.parameters.get(target) {
-                            if param.no_echo {
+                    if sp.starts_with("Metadata")
+                        && let Some(param) = m.parameters.get(target)
+                            && param.no_echo {
                                 out.push(make_resource_diagnostic(
                                     "W2010",
                                     &format!(
@@ -1533,8 +1464,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     Some("Move the parameter reference out of Metadata or remove NoEcho"),
                                 ));
                             }
-                        }
-                    }
                 }
             }
         }
@@ -1544,9 +1473,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for (name, res) in resources {
             if let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) {
                 for edge in edges {
-                    if edge.get(FIELD_KIND).and_then(|k| k.as_str()) == Some(EDGE_KIND_SELECT) {
-                        if let Some(idx) = edge.get("index").and_then(|i| i.as_i64()) {
-                            if idx < 0 {
+                    if edge.get(FIELD_KIND).and_then(|k| k.as_str()) == Some(EDGE_KIND_SELECT)
+                        && let Some(idx) = edge.get("index").and_then(|i| i.as_i64())
+                            && idx < 0 {
                                 out.push(make_resource_diagnostic(
                                     "F1050",
                                     "Fn::Select index must be a non-negative integer",
@@ -1556,8 +1485,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     None,
                                 ));
                             }
-                        }
-                    }
                 }
             }
         }
@@ -1566,8 +1493,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
         if let Some(serde_json::Value::String(gn)) =
             resolve_concrete(m, name, "Properties.GroupName")
-        {
-            if !gn.starts_with("{{") && !SG_NAME_RE.is_match(&gn) {
+            && !gn.starts_with("{{") && !SG_NAME_RE.is_match(&gn) {
                 out.push(make_resource_diagnostic(
                     "E1153",
                     &format!("Value '{}' does not match Security Group Name format", gn),
@@ -1577,7 +1503,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     const UNIQUE_ARRAY_PROPS: &[&str] = &[
@@ -1590,7 +1515,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         "PlacementConstraints",
     ];
     for (name, res) in &m.resources {
-        for (prop, _) in &res.properties {
+        for prop in res.properties.keys() {
             if !UNIQUE_ARRAY_PROPS.contains(&prop.as_str()) {
                 continue;
             }
@@ -1682,11 +1607,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         if let Some(param) = m.parameters.get(target) {
                             if let Some(ref def) = param.default {
                                 // ImageId: only fire if Default fails AMI pattern
-                                if sp.ends_with("ImageId") && param.param_type == "String" {
-                                    if !W1030_AMI_RE.is_match(def) {
+                                if sp.ends_with("ImageId") && param.param_type == "String"
+                                    && !W1030_AMI_RE.is_match(def) {
                                         out.push(make_resource_diagnostic("W1030", &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::Image.Id' when 'Ref' is resolved", target), m, name, sp, Some("Use parameter type AWS::EC2::Image::Id")));
                                     }
-                                }
                                 // KeyName with empty default
                                 if sp.ends_with("KeyName") && def.is_empty() {
                                     out.push(make_resource_diagnostic("W1030", &format!("{{'Ref': '{}'}} is shorter than 1 when 'Ref' is resolved", target), m, name, sp, Some("Set a non-empty default or add AllowedValues")));
@@ -1695,11 +1619,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 if (sp.ends_with("CidrBlock")
                                     || sp.ends_with("DestinationCidrBlock"))
                                     && param.param_type == "String"
-                                {
-                                    if !is_valid_cidr_strict(def) {
+                                    && !is_valid_cidr_strict(def) {
                                         out.push(make_resource_diagnostic("W1030", &format!("{{'Ref': '{}'}} is not a 'ipv4-network' when 'Ref' is resolved", target), m, name, sp, Some("Validate the parameter value matches CIDR format")));
                                     }
-                                }
                             }
 
                             // SecurityGroup.Id: String parameter used where security group ID expected
@@ -1732,15 +1654,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             }
 
                             // VPC.Id: parameter default fails VPC ID pattern
-                            if sp.ends_with("VpcId") && param.param_type == "AWS::EC2::VPC::Id" {
-                                if let Some(ref def) = param.default {
-                                    if !W1030_VPC_RE.is_match(def) {
+                            if sp.ends_with("VpcId") && param.param_type == "AWS::EC2::VPC::Id"
+                                && let Some(ref def) = param.default
+                                    && !W1030_VPC_RE.is_match(def) {
                                         out.push(make_resource_diagnostic("W1030",
                                             &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-(([0-9A-Fa-f]{{8}})|([0-9A-Fa-f]{{17}}))$' when 'Ref' is resolved", target),
                                             m, name, sp, None));
                                     }
-                                }
-                            }
                         }
                     }
                 }
@@ -1775,15 +1695,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             if param.param_type != "String" {
                                 continue;
                             }
-                            if let Some(ref def) = param.default {
-                                if !W1030_ARN_RE.is_match(def) {
+                            if let Some(ref def) = param.default
+                                && !W1030_ARN_RE.is_match(def) {
                                     checked.insert(target.to_string());
                                     let param_path = format!("Parameters.{}.Default", target);
                                     out.push(make_resource_diagnostic("W1030",
                                         &format!("{{'Ref': '{}'}} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{{12}}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved", target),
                                         m, "", &param_path, Some("Ensure the parameter default matches the expected ARN pattern")));
                                 }
-                            }
                         }
                     }
                 }
@@ -2072,8 +1991,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let tg_path = format!("Properties.LoadBalancers.{}.TargetGroupArn", i);
             if let Some(tg_id) = m.follow_ref(svc_name, &tg_path) {
                 let hp_rv = m
-                    .resolve_deep(&tg_id, "Properties.HealthCheckPort")
-                    .or_else(|| m.resolve(&tg_id, "Properties.HealthCheckPort").cloned());
+                    .resolve_deep(tg_id, "Properties.HealthCheckPort")
+                    .or_else(|| m.resolve(tg_id, "Properties.HealthCheckPort").cloned());
                 let hp_str = match hp_rv.as_ref() {
                     Some(ResolvedValue::Concrete { value: v }) => {
                         v.as_str().unwrap_or("").to_string()
@@ -2092,7 +2011,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         "Properties.LoadBalancers",
                         None,
                     );
-                    let tg_span = m.resource_span(&tg_id, "Properties.HealthCheckPort");
+                    let tg_span = m.resource_span(tg_id, "Properties.HealthCheckPort");
                     diag.related_resources.get_or_insert_with(Vec::new).push(
                         diagnostics::RelatedResource {
                             resource: Some(diagnostics::ResourceRef {
@@ -2186,8 +2105,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         // usable as raw JSON — extract via the ResolvedValue tree so we don't
                         // miss statements like those with Sub'd PolicyName sibling fields.
                         if let Some(ResolvedValue::List { items }) = res.properties.get("Policies")
-                        {
-                            if let Some(ResolvedValue::Map { entries }) = items.get(idx) {
+                            && let Some(ResolvedValue::Map { entries }) = items.get(idx) {
                                 for entry in entries {
                                     if entry.key == "PolicyDocument" {
                                         let json = resolved_to_json_best_effort(&entry.value);
@@ -2202,7 +2120,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     }
                                 }
                             }
-                        }
                     }
                 }
             }
@@ -2237,9 +2154,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             if let Some(serde_json::Value::String(sub_cidr)) =
                 resolve_concrete(m, subnet_name, "Properties.CidrBlock")
-            {
-                if let Some(sub_net) = parse_ipv4_cidr(&sub_cidr) {
-                    if !is_subnet_of(sub_net, vpc_net) {
+                && let Some(sub_net) = parse_ipv4_cidr(&sub_cidr)
+                    && !is_subnet_of(sub_net, vpc_net) {
                         out.push(make_resource_diagnostic(
                             "E3059",
                             &format!(
@@ -2252,8 +2168,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                }
-            }
         }
     }
 
@@ -2391,14 +2305,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         let path = format!("Properties.{}", prop);
                         // Skip concrete strings — already covered by generated schema string-length rules.
                         // Only estimate through intrinsics (Fn::Sub, Fn::Join, etc.).
-                        if let Some(ResolvedValue::Concrete { value: v }) = m.resolve(name, &path) {
-                            if v.is_string() {
+                        if let Some(ResolvedValue::Concrete { value: v }) = m.resolve(name, &path)
+                            && v.is_string() {
                                 continue;
                             }
-                        }
                         if let Some(len) = m.estimate_string_length(name, &path) {
-                            if let Some(max) = max_len {
-                                if len as u64 > max {
+                            if let Some(max) = max_len
+                                && len as u64 > max {
                                     out.push(make_resource_diagnostic(
                                         "W9006",
                                         &format!(
@@ -2411,12 +2324,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         None,
                                     ));
                                 }
-                            }
-                            if let Some(min) = min_len {
-                                if (len as u64) < min {
+                            if let Some(min) = min_len
+                                && (len as u64) < min {
                                     out.push(make_resource_diagnostic("W9006", &format!("String length {} is below minimum {} for property '{}'", len, min, prop), m, name, &path, None));
                                 }
-                            }
                         }
                     }
                 }
@@ -2425,40 +2336,35 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::Lambda::EventSourceMapping") {
-        if let Some(target) = m.follow_ref(name, "Properties.EventSourceArn") {
-            if let Some(target_res) = m.resources.get(&target as &str) {
-                if target_res.resource_type == "AWS::SQS::Queue" {
-                    let is_fifo = resolve_concrete(m, &target, "Properties.FifoQueue")
+        if let Some(target) = m.follow_ref(name, "Properties.EventSourceArn")
+            && let Some(target_res) = m.resources.get(target as &str)
+                && target_res.resource_type == "AWS::SQS::Queue" {
+                    let is_fifo = resolve_concrete(m, target, "Properties.FifoQueue")
                         .and_then(|v| v.as_bool())
                         .unwrap_or(false);
-                    if is_fifo {
-                        if let Some(batch) = resolve_concrete(m, name, "Properties.BatchSize")
+                    if is_fifo
+                        && let Some(batch) = resolve_concrete(m, name, "Properties.BatchSize")
                             .and_then(|v| v.as_u64())
-                        {
-                            if batch > 10 {
+                            && batch > 10 {
                                 out.push(make_resource_diagnostic(
                                     "E3705",
                                     &format!("BatchSize {} exceeds maximum of 10 for SQS FIFO queue event source", batch),
                                     m, name, "Properties.BatchSize", None,
                                 ));
                             }
-                        }
-                    }
                 }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if let Some(cluster_name) = m.follow_ref(name, "Properties.DBClusterIdentifier") {
-            if let (
+        if let Some(cluster_name) = m.follow_ref(name, "Properties.DBClusterIdentifier")
+            && let (
                 Some(serde_json::Value::String(inst_engine)),
                 Some(serde_json::Value::String(cluster_engine)),
             ) = (
                 resolve_concrete(m, name, "Properties.Engine"),
-                resolve_concrete(m, &cluster_name, "Properties.Engine"),
-            ) {
-                if inst_engine != cluster_engine {
+                resolve_concrete(m, cluster_name, "Properties.Engine"),
+            )
+                && inst_engine != cluster_engine {
                     let mut diag = make_resource_diagnostic(
                         "E3707",
                         &format!(
@@ -2470,7 +2376,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         "Properties.Engine",
                         None,
                     );
-                    let cluster_span = m.resource_span(&cluster_name, "Properties.Engine");
+                    let cluster_span = m.resource_span(cluster_name, "Properties.Engine");
                     diag.related_resources.get_or_insert_with(Vec::new).push(
                         diagnostics::RelatedResource {
                             resource: Some(diagnostics::ResourceRef {
@@ -2491,18 +2397,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     );
                     out.push(diag);
                 }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::ApiGateway::Method") {
-        if let Some(auth_id) = m.follow_ref(name, "Properties.AuthorizerId") {
-            if let (
+        if let Some(auth_id) = m.follow_ref(name, "Properties.AuthorizerId")
+            && let (
                 Some(serde_json::Value::String(auth_type)),
                 Some(serde_json::Value::String(authorizer_type)),
             ) = (
                 resolve_concrete(m, name, "Properties.AuthorizationType"),
-                resolve_concrete(m, &auth_id, "Properties.Type"),
+                resolve_concrete(m, auth_id, "Properties.Type"),
             ) {
                 let expected = match auth_type.as_str() {
                     "CUSTOM" => vec!["TOKEN", "REQUEST"],
@@ -2514,22 +2418,21 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         "E3708",
                         &format!("'{}' is not one of {:?}", authorizer_type, expected),
                         m,
-                        &auth_id,
+                        auth_id,
                         "Properties.Type",
                         None,
                     ));
                 }
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::ApiGateway::Stage") {
         if let (Some(stage_api), Some(deployment_name)) = (
             m.follow_ref(name, "Properties.RestApiId"),
             m.follow_ref(name, "Properties.DeploymentId"),
-        ) {
-            if let Some(deploy_api) = m.follow_ref(&deployment_name, "Properties.RestApiId") {
-                if stage_api != deploy_api {
+        )
+            && let Some(deploy_api) = m.follow_ref(deployment_name, "Properties.RestApiId")
+                && stage_api != deploy_api {
                     out.push(make_resource_diagnostic(
                         "E3698",
                         &format!(
@@ -2537,21 +2440,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             stage_api, deploy_api
                         ),
                         m,
-                        &deployment_name,
+                        deployment_name,
                         "Properties.RestApiId",
                         None,
                     ));
                 }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::AutoScaling::AutoScalingGroup") {
         if let (Some(min_val), Some(max_val)) = (
             resolve_concrete(m, name, "Properties.MinSize").and_then(|v| v.as_u64()),
             resolve_concrete(m, name, "Properties.MaxSize").and_then(|v| v.as_u64()),
-        ) {
-            if min_val > max_val {
+        )
+            && min_val > max_val {
                 out.push(make_resource_diagnostic(
                     "E3706",
                     &format!(
@@ -2564,14 +2465,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancingV2::Listener") {
         if let Some(serde_json::Value::String(proto)) =
             resolve_concrete(m, name, "Properties.Protocol")
-        {
-            if (proto == "HTTPS" || proto == "TLS")
+            && (proto == "HTTPS" || proto == "TLS")
                 && resolve_concrete(m, name, "Properties.Certificates").is_none()
             {
                 out.push(make_resource_diagnostic(
@@ -2583,7 +2482,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancing::LoadBalancer") {
@@ -2721,8 +2619,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .as_ref()
             .and_then(|v| v.as_str())
             == Some("valkey")
-        {
-            if resolve_concrete(m, name, "Properties.TransitEncryptionEnabled").is_none() {
+            && resolve_concrete(m, name, "Properties.TransitEncryptionEnabled").is_none() {
                 out.push(make_resource_diagnostic(
                     "E3704",
                     "TransitEncryptionEnabled must be explicitly set when Engine is 'valkey'",
@@ -2732,7 +2629,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     const AZ_PATHS: &[(&str, &str)] = &[
@@ -2774,7 +2670,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     for &(rtype, descriptor) in AZ_PATHS {
         for name in m.resources_of_type(rtype) {
-            emit_w3010_for_path(&mut out, m, &name, descriptor);
+            emit_w3010_for_path(&mut out, m, name, descriptor);
         }
     }
 
@@ -2783,8 +2679,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .as_ref()
             .and_then(|v| v.as_str())
             == Some("FARGATE")
-        {
-            if resolve_concrete(m, name, "Properties.PlacementConstraints").is_some() {
+            && resolve_concrete(m, name, "Properties.PlacementConstraints").is_some() {
                 out.push(make_resource_diagnostic(
                     "E3048",
                     "PlacementConstraints is not supported with FARGATE launch type",
@@ -2794,12 +2689,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     // Instance type enum validation per region
     {
-        let region = ctx.region.as_deref().unwrap_or("us-east-1");
+        let region = ctx.region.as_deref().unwrap_or(DEFAULT_REGION);
         let enum_checks: &[(&str, &str, &str, &str)] = &[
             (
                 "E3628",
@@ -2867,36 +2761,120 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 "Properties.DBClusterInstanceClass",
                 "data/aws_rds_dbcluster_dbclusterinstanceclass_enum",
             ),
+            (
+                "E3640",
+                "AWS::SageMaker::DataQualityJobDefinition",
+                "Properties.JobResources.ClusterConfig.InstanceType",
+                "data/aws_sagemaker_processing_instancetype_enum",
+            ),
+            (
+                "E3640",
+                "AWS::SageMaker::ModelBiasJobDefinition",
+                "Properties.JobResources.ClusterConfig.InstanceType",
+                "data/aws_sagemaker_processing_instancetype_enum",
+            ),
+            (
+                "E3640",
+                "AWS::SageMaker::ModelExplainabilityJobDefinition",
+                "Properties.JobResources.ClusterConfig.InstanceType",
+                "data/aws_sagemaker_processing_instancetype_enum",
+            ),
+            (
+                "E3640",
+                "AWS::SageMaker::ModelQualityJobDefinition",
+                "Properties.JobResources.ClusterConfig.InstanceType",
+                "data/aws_sagemaker_processing_instancetype_enum",
+            ),
+            (
+                "E3640",
+                "AWS::SageMaker::MonitoringSchedule",
+                "Properties.MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringResources.ClusterConfig.InstanceType",
+                "data/aws_sagemaker_processing_instancetype_enum",
+            ),
+            (
+                "E3652",
+                "AWS::Elasticsearch::Domain",
+                "Properties.ElasticsearchClusterConfig.InstanceType",
+                "data/aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum",
+            ),
+            (
+                "E3653",
+                "AWS::OpenSearchService::Domain",
+                "Properties.ClusterConfig.InstanceType",
+                "data/aws_opensearchservice_domain_clusterconfig_instancetype_enum",
+            ),
         ];
         for &(rule_id, rtype, prop_path, enum_key) in enum_checks {
-            if let Some(region_data) = ctx
-                .cached_data
-                .enum_data
-                .get(enum_key)
-                .and_then(|v| v.as_object())
-                .and_then(|o| o.values().next()) // get the inner object keyed by enum name
-                .and_then(|v| v.as_object())
-                .and_then(|o| o.get(region))
-                .and_then(|v| v.get("enum"))
-                .and_then(|v| v.as_array())
-            {
-                let allowed: HashSet<&str> =
-                    region_data.iter().filter_map(|v| v.as_str()).collect();
-                for name in m.resources_of_type(rtype) {
-                    if let Some(serde_json::Value::String(val)) =
-                        resolve_concrete(m, name, prop_path)
-                    {
-                        if !allowed.contains(val.as_str()) {
-                            out.push(make_resource_diagnostic(
-                                rule_id,
-                                &format!("'{}' is not valid for region '{}'", val, region),
-                                m,
-                                name,
-                                prop_path,
-                                None,
-                            ));
-                        }
+            let Some(allowed) =
+                region_instance_type_enum(&ctx.cached_data.enum_data, enum_key, region)
+            else {
+                continue;
+            };
+            for name in m.resources_of_type(rtype) {
+                if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path)
+                    && !allowed.contains(val.as_str()) {
+                        out.push(make_resource_diagnostic(
+                            rule_id,
+                            &format!("'{}' is not valid for region '{}'", val, region),
+                            m,
+                            name,
+                            prop_path,
+                            None,
+                        ));
                     }
+            }
+        }
+
+        let wildcard_enum_checks: &[(&str, &str, &str, &str, &str)] = &[
+            (
+                "E3642",
+                "AWS::SageMaker::InferenceExperiment",
+                "Properties.ModelVariants.{}.InfrastructureConfig.RealTimeInferenceConfig.InstanceType",
+                "Properties.ModelVariants.InfrastructureConfig.RealTimeInferenceConfig.InstanceType",
+                "data/aws_sagemaker_hosting_instancetype_enum",
+            ),
+            (
+                "E3643",
+                "AWS::SageMaker::ModelPackage",
+                "Properties.ValidationSpecification.ValidationProfiles.{}.TransformJobDefinition.TransformResources.InstanceType",
+                "Properties.ValidationSpecification.ValidationProfiles.TransformJobDefinition.TransformResources.InstanceType",
+                "data/aws_sagemaker_transform_instancetype_enum",
+            ),
+            (
+                "E3644",
+                "AWS::SageMaker::Cluster",
+                "Properties.InstanceGroups.{}.InstanceType",
+                "Properties.InstanceGroups.InstanceType",
+                "data/aws_sagemaker_cluster_instancetype_enum",
+            ),
+            (
+                "E3644",
+                "AWS::SageMaker::Cluster",
+                "Properties.RestrictedInstanceGroups.{}.InstanceType",
+                "Properties.RestrictedInstanceGroups.InstanceType",
+                "data/aws_sagemaker_cluster_instancetype_enum",
+            ),
+        ];
+        for &(rule_id, rtype, wildcard_path, report_path, enum_key) in wildcard_enum_checks {
+            let Some(allowed) =
+                region_instance_type_enum(&ctx.cached_data.enum_data, enum_key, region)
+            else {
+                continue;
+            };
+            for name in m.resources_of_type(rtype) {
+                let mut reported = HashSet::new();
+                for val in resolve_concrete_strings(m, name, wildcard_path) {
+                    if allowed.contains(val.as_str()) || !reported.insert(val.clone()) {
+                        continue;
+                    }
+                    out.push(make_resource_diagnostic(
+                        rule_id,
+                        &format!("'{}' is not valid for region '{}'", val, region),
+                        m,
+                        name,
+                        report_path,
+                        None,
+                    ));
                 }
             }
         }
@@ -2915,8 +2893,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 for name in m.resources_of_type("AWS::RDS::DBInstance") {
                     if let Some(serde_json::Value::String(val)) =
                         resolve_concrete(m, name, "Properties.DBInstanceClass")
-                    {
-                        if !allowed.contains(val.as_str()) {
+                        && !allowed.contains(val.as_str()) {
                             out.push(make_resource_diagnostic(
                                 "E3025",
                                 &format!("DBInstanceClass '{}' is not valid for AWS::RDS::DBInstance in region '{}'", val, region),
@@ -2924,7 +2901,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 Some("Use a valid instance class for the configured region"),
                             ));
                         }
-                    }
                 }
             }
         }
@@ -2943,8 +2919,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 for name in m.resources_of_type("AWS::Neptune::DBInstance") {
                     if let Some(serde_json::Value::String(val)) =
                         resolve_concrete(m, name, "Properties.DBInstanceClass")
-                    {
-                        if !allowed.contains(val.as_str()) {
+                        && !allowed.contains(val.as_str()) {
                             out.push(make_resource_diagnostic(
                                 "E3635",
                                 &format!("'{}' is not valid for region '{}'", val, region),
@@ -2954,7 +2929,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 None,
                             ));
                         }
-                    }
                 }
             }
         }
@@ -2973,8 +2947,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 for name in m.resources_of_type("AWS::Redshift::Cluster") {
                     if let Some(serde_json::Value::String(val)) =
                         resolve_concrete(m, name, "Properties.NodeType")
-                    {
-                        if !allowed.contains(val.as_str()) {
+                        && !allowed.contains(val.as_str()) {
                             out.push(make_resource_diagnostic(
                                 "E3667",
                                 &format!("'{}' is not valid for region '{}'", val, region),
@@ -2984,7 +2957,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 None,
                             ));
                         }
-                    }
                 }
             }
         }
@@ -3004,8 +2976,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for name in m.resources_of_type("AWS::AmazonMQ::Broker") {
                 if let Some(serde_json::Value::String(val)) =
                     resolve_concrete(m, name, "Properties.HostInstanceType")
-                {
-                    if !allowed.contains(val.as_str()) {
+                    && !allowed.contains(val.as_str()) {
                         out.push(make_resource_diagnostic(
                             "E3670",
                             &format!("'{}' is not valid for region '{}'", val, region),
@@ -3015,7 +2986,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                }
             }
         }
 
@@ -3034,8 +3004,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for name in m.resources_of_type("AWS::EMR::InstanceFleetConfig") {
                 if let Some(serde_json::Value::String(val)) =
                     resolve_concrete(m, name, "Properties.InstanceType")
-                {
-                    if !allowed.contains(val.as_str()) {
+                    && !allowed.contains(val.as_str()) {
                         out.push(make_resource_diagnostic(
                             "E3675",
                             &format!("'{}' is not valid for region '{}'", val, region),
@@ -3045,7 +3014,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                }
             }
         }
     }
@@ -3054,11 +3022,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let lb_type = resolve_concrete(m, name, "Properties.Type")
             .and_then(|v| v.as_str().map(|s| s.to_string()))
             .unwrap_or_else(|| "application".to_string());
-        if lb_type == "application" {
-            if let Some(serde_json::Value::Array(subnets)) =
+        if lb_type == "application"
+            && let Some(serde_json::Value::Array(subnets)) =
                 resolve_concrete(m, name, "Properties.Subnets")
-            {
-                if subnets.len() < 2 {
+                && subnets.len() < 2 {
                     out.push(make_resource_diagnostic(
                         "E3680",
                         "Application load balancer requires at least 2 subnets",
@@ -3068,8 +3035,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-            }
-        }
     }
 
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
@@ -3111,8 +3076,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         .get("MoveToColdStorageAfterDays")
                         .and_then(|v| v.as_i64());
                     let delete_days = lifecycle.get("DeleteAfterDays").and_then(|v| v.as_i64());
-                    if let (Some(m_d), Some(d_d)) = (move_days, delete_days) {
-                        if m_d >= d_d {
+                    if let (Some(m_d), Some(d_d)) = (move_days, delete_days)
+                        && m_d >= d_d {
                             out.push(make_resource_diagnostic(
                                 "E3504",
                                 &format!(
@@ -3125,7 +3090,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 None,
                             ));
                         }
-                    }
                 }
             }
         }
@@ -3133,8 +3097,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // IAM ManagedPolicy — Statement should have Resource when Action is present
     for name in m.resources_of_type("AWS::IAM::ManagedPolicy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
-            if let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
+        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
+            && let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
                 for stmt in stmts {
                     if !stmt.is_object() {
                         continue;
@@ -3154,7 +3118,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-        }
     }
 
     // Property names must use correct casing
@@ -3165,17 +3128,17 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         .and_then(|s| s.as_object())
     {
         for (name, res) in &m.resources {
-            if let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) {
-                if let Some(serde_json::Value::Array(expected_props)) = type_meta.get("properties")
+            if let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object())
+                && let Some(serde_json::Value::Array(expected_props)) = type_meta.get("properties")
                 {
                     let expected_map: HashMap<String, &str> = expected_props
                         .iter()
                         .filter_map(|v| v.as_str())
                         .map(|s| (s.to_lowercase(), s))
                         .collect();
-                    for (prop, _) in &res.properties {
-                        if let Some(&correct) = expected_map.get(&prop.to_lowercase()) {
-                            if prop != correct {
+                    for prop in res.properties.keys() {
+                        if let Some(&correct) = expected_map.get(&prop.to_lowercase())
+                            && prop != correct {
                                 out.push(make_resource_diagnostic(
                                     "E3011",
                                     &format!("Property '{}' should be '{}'", prop, correct),
@@ -3185,10 +3148,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     None,
                                 ));
                             }
-                        }
                     }
                 }
-            }
         }
     }
 
@@ -3202,8 +3163,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         resolve_concrete(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str() {
-                                if s.parse::<Ipv4Addr>().is_err() {
+                            if let Some(s) = rec.as_str()
+                                && s.parse::<Ipv4Addr>().is_err() {
                                     out.push(make_resource_diagnostic(
                                         "E3023",
                                         &format!(
@@ -3216,7 +3177,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         None,
                                     ));
                                 }
-                            }
                         }
                     }
                 }
@@ -3225,8 +3185,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         resolve_concrete(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str() {
-                                if s.parse::<Ipv6Addr>().is_err() {
+                            if let Some(s) = rec.as_str()
+                                && s.parse::<Ipv6Addr>().is_err() {
                                     out.push(make_resource_diagnostic(
                                         "E3023",
                                         &format!("'{}' is not a valid IPv6 address for record type 'AAAA'", s),
@@ -3235,7 +3195,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         None,
                                     ));
                                 }
-                            }
                         }
                     }
                 }
@@ -3262,8 +3221,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                     if let Some(serde_json::Value::Array(records)) =
                         resolve_concrete(m, name, "Properties.ResourceRecords")
-                    {
-                        if records.len() > 1 {
+                        && records.len() > 1 {
                             out.push(make_resource_diagnostic(
                                 "E3023",
                                 "CNAME records must have at most 1 ResourceRecord",
@@ -3273,7 +3231,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 None,
                             ));
                         }
-                    }
                 }
                 "TXT" => {
                     let txt_re = regex::Regex::new(r#"^("[^"]{1,255}" *)*"[^"]{1,255}"$"#).unwrap();
@@ -3281,15 +3238,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         resolve_concrete(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str() {
-                                if !txt_re.is_match(s) {
+                            if let Some(s) = rec.as_str()
+                                && !txt_re.is_match(s) {
                                     out.push(make_resource_diagnostic(
                                         "E3023",
                                         &format!("TXT record value '{}' must be enclosed in double quotes", s),
                                         m, name, &format!("Properties.ResourceRecords.{}", i), None,
                                     ));
                                 }
-                            }
                         }
                     }
                 }
@@ -3299,15 +3255,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         resolve_concrete(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str() {
-                                if !caa_re.is_match(s) {
+                            if let Some(s) = rec.as_str()
+                                && !caa_re.is_match(s) {
                                     out.push(make_resource_diagnostic(
                                         "E3023",
                                         &format!("CAA record value '{}' must match format: flag tag \"value\"", s),
                                         m, name, &format!("Properties.ResourceRecords.{}", i), None,
                                     ));
                                 }
-                            }
                         }
                     }
                 }
@@ -3317,15 +3272,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         resolve_concrete(m, name, "Properties.ResourceRecords")
                     {
                         for (i, rec) in records.iter().enumerate() {
-                            if let Some(s) = rec.as_str() {
-                                if !mx_re.is_match(s) {
+                            if let Some(s) = rec.as_str()
+                                && !mx_re.is_match(s) {
                                     out.push(make_resource_diagnostic(
                                         "E3023",
                                         &format!("MX record value '{}' must match format: priority domain", s),
                                         m, name, &format!("Properties.ResourceRecords.{}", i), None,
                                     ));
                                 }
-                            }
                         }
                     }
                 }
@@ -3418,8 +3372,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             if let Some(num) =
                 resolve_concrete(m, name, "Properties.NumCacheClusters").and_then(|v| v.as_i64())
-            {
-                if num > 1 {
+                && num > 1 {
                     let failover_rv = m
                         .resolve_deep(name, "Properties.AutomaticFailoverEnabled")
                         .or_else(|| {
@@ -3439,7 +3392,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         ));
                     }
                 }
-            }
         }
     }
 
@@ -3499,8 +3451,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             if let Some(serde_json::Value::String(rtype)) =
                 resolve_concrete(m, name, "Properties.Type")
-            {
-                if rtype != "A" && rtype != "AAAA" {
+                && rtype != "A" && rtype != "AAAA" {
                     out.push(make_resource_diagnostic(
                         "E3029",
                         &format!("AliasTarget cannot be used with record type '{}'", rtype),
@@ -3510,7 +3461,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-            }
         }
     }
 
@@ -3696,9 +3646,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::Lambda::Permission") {
         if let Some(serde_json::Value::String(principal)) =
             resolve_concrete(m, name, "Properties.Principal")
-        {
-            if let Some(target) = m.follow_ref(name, "Properties.SourceArn") {
-                if let Some(target_res) = m.resources.get(&*target) {
+            && let Some(target) = m.follow_ref(name, "Properties.SourceArn")
+                && let Some(target_res) = m.resources.get(target) {
                     match principal.as_str() {
                         "sns.amazonaws.com" if target_res.resource_type != "AWS::SNS::Topic" => {
                             out.push(make_resource_diagnostic(
@@ -3723,8 +3672,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         _ => {}
                     }
                 }
-            }
-        }
     }
 
     // EBS Iops silently ignored for certain volume types
@@ -3788,8 +3735,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // RDS DBCluster — SnapshotIdentifier makes MasterUsername ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
-        if resolve_concrete(m, name, "Properties.SnapshotIdentifier").is_some() {
-            if resolve_concrete(m, name, "Properties.MasterUsername").is_some() {
+        if resolve_concrete(m, name, "Properties.SnapshotIdentifier").is_some()
+            && resolve_concrete(m, name, "Properties.MasterUsername").is_some() {
                 out.push(make_resource_diagnostic(
                     "W3688",
                     "MasterUsername is ignored when SnapshotIdentifier is present",
@@ -3799,7 +3746,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     // RDS DBCluster — SourceDBClusterIdentifier makes several properties ignored
@@ -3839,8 +3785,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None
             }
         });
-        if let (Some(eng), Some(mode)) = (engine, engine_mode) {
-            if (eng == "aurora-mysql" || eng == "aurora-postgresql") && mode == "serverless" {
+        if let (Some(eng), Some(mode)) = (engine, engine_mode)
+            && (eng == "aurora-mysql" || eng == "aurora-postgresql") && mode == "serverless" {
                 for ignored in &[
                     "PerformanceInsightsEnabled",
                     "PerformanceInsightsKmsKeyId",
@@ -3858,16 +3804,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-        }
     }
 
     // SNS Subscription Protocol/Endpoint consistency
     for name in m.resources_of_type("AWS::SNS::Subscription") {
         if let Some(serde_json::Value::String(protocol)) =
             resolve_concrete(m, name, "Properties.Protocol")
-        {
-            if let Some(target) = m.follow_ref(name, "Properties.Endpoint") {
-                if let Some(target_res) = m.resources.get(&*target) {
+            && let Some(target) = m.follow_ref(name, "Properties.Endpoint")
+                && let Some(target_res) = m.resources.get(target) {
                     match protocol.as_str() {
                         "sqs" if target_res.resource_type != "AWS::SQS::Queue" => {
                             out.push(make_resource_diagnostic(
@@ -3892,8 +3836,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         _ => {}
                     }
                 }
-            }
-        }
     }
 
     // VirtualName ignored when Ebs is specified in block device mappings
@@ -3935,7 +3877,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         }
                     }
                 } else {
-                    // Try concrete first (matches rego behavior for non-conditional)
+                    // Concrete resolution handles the common non-conditional case.
                     if let Some(serde_json::Value::Array(bdms)) =
                         resolve_concrete(m, name, base_path)
                     {
@@ -3948,8 +3890,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 for (i, bdm) in bdms.iter().enumerate() {
                                     if let Some(vname) =
                                         bdm.get("VirtualName").and_then(|v| v.as_str())
-                                    {
-                                        if bdm.get("Ebs").is_none() && !EPHEMERAL_RE.is_match(vname)
+                                        && bdm.get("Ebs").is_none() && !EPHEMERAL_RE.is_match(vname)
                                         {
                                             out.push(make_resource_diagnostic(
                                                 "E3715",
@@ -3959,7 +3900,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                                 None,
                                             ));
                                         }
-                                    }
                                 }
                             }
                         }
@@ -3982,10 +3922,10 @@ fn check_bdm_iops_ignored(
     ignored_types: &[&str],
 ) {
     for (i, bdm) in bdms.iter().enumerate() {
-        if let Some(ebs) = bdm.get("Ebs") {
-            if ebs.get("Iops").is_some() {
-                if let Some(vtype) = ebs.get("VolumeType").and_then(|v| v.as_str()) {
-                    if ignored_types.contains(&vtype) {
+        if let Some(ebs) = bdm.get("Ebs")
+            && ebs.get("Iops").is_some()
+                && let Some(vtype) = ebs.get("VolumeType").and_then(|v| v.as_str())
+                    && ignored_types.contains(&vtype) {
                         out.push(make_resource_diagnostic(
                             rule_id,
                             &format!("Iops is ignored when VolumeType is '{}'", vtype),
@@ -3995,9 +3935,6 @@ fn check_bdm_iops_ignored(
                             None,
                         ));
                     }
-                }
-            }
-        }
     }
 }
 
@@ -4025,8 +3962,8 @@ fn check_bdm_virtualname_ignored(
                     &format!("{}.{}.VirtualName", base_path, i),
                     None,
                 ));
-            } else if let Some(vname) = vname_val.as_str() {
-                if !EPHEMERAL_RE.is_match(vname) {
+            } else if let Some(vname) = vname_val.as_str()
+                && !EPHEMERAL_RE.is_match(vname) {
                     out.push(make_resource_diagnostic(
                         "E3715",
                         &format!("'{}' is not a valid ephemeral device name. Expected format is 'ephemeralN' where N is 0-23", vname),
@@ -4035,7 +3972,6 @@ fn check_bdm_virtualname_ignored(
                         None,
                     ));
                 }
-            }
         }
     }
 }
@@ -4053,6 +3989,64 @@ fn extract_enum_values(region_data: &serde_json::Value) -> HashSet<&str> {
         }
     }
     vals
+}
+
+/// Valid instance-type/class enum values for `region`, or `None` when the
+/// document has no entry for that region.
+fn region_instance_type_enum<'a>(
+    enum_data: &'a HashMap<String, serde_json::Value>,
+    enum_key: &str,
+    region: &str,
+) -> Option<HashSet<&'a str>> {
+    let values = enum_data
+        .get(enum_key)?
+        .as_object()?
+        .values()
+        .next()? // unwrap the single top-level document key to reach the region map
+        .as_object()?
+        .get(region)?
+        .get("enum")?
+        .as_array()?;
+    Some(values.iter().filter_map(|v| v.as_str()).collect())
+}
+
+fn resolve_concrete_strings(m: &SemanticModel, rid: &str, path: &str) -> Vec<String> {
+    let Some(resolved) = m
+        .resolve_deep(rid, path)
+        .or_else(|| m.resolve(rid, path).cloned())
+    else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    collect_concrete_strings(&resolved, &mut out);
+    out
+}
+
+fn collect_concrete_strings(value: &ResolvedValue, out: &mut Vec<String>) {
+    match value {
+        ResolvedValue::Concrete { value: v } => {
+            if let Some(s) = v.0.as_str() {
+                out.push(s.to_string());
+            }
+        }
+        ResolvedValue::Enum { variants } => {
+            for variant in variants {
+                collect_concrete_strings(variant, out);
+            }
+        }
+        ResolvedValue::List { items } => {
+            for item in items {
+                collect_concrete_strings(item, out);
+            }
+        }
+        ResolvedValue::Conditional {
+            if_true, if_false, ..
+        } => {
+            collect_concrete_strings(if_true, out);
+            collect_concrete_strings(if_false, out);
+        }
+        _ => {}
+    }
 }
 
 fn emit_w3010_for_path(
@@ -4078,8 +4072,8 @@ fn walk_w3010(
         if m.is_from_intrinsic(name, &path) {
             return;
         }
-        if let Some(s) = resolve_concrete_string(m, name, &path) {
-            if AZ_RE.is_match(&s) {
+        if let Some(s) = resolve_concrete_string(m, name, &path)
+            && AZ_RE.is_match(&s) {
                 out.push(make_resource_diagnostic(
                     "W3010",
                     &format!("Avoid hardcoding availability zones '{}'", s),
@@ -4089,7 +4083,6 @@ fn walk_w3010(
                     None,
                 ));
             }
-        }
         return;
     }
     let seg = segments[idx];
@@ -4106,8 +4099,8 @@ fn walk_w3010(
             if m.is_from_intrinsic(name, &item_path) {
                 continue;
             }
-            if let Some(s) = resolve_concrete_string(m, name, &item_path) {
-                if AZ_RE.is_match(&s) {
+            if let Some(s) = resolve_concrete_string(m, name, &item_path)
+                && AZ_RE.is_match(&s) {
                     out.push(make_resource_diagnostic(
                         "W3010",
                         &format!("Avoid hardcoding availability zones '{}'", s),
@@ -4117,7 +4110,6 @@ fn walk_w3010(
                         None,
                     ));
                 }
-            }
         }
     } else if seg == "{}" {
         // Intermediate list wildcard: recurse into each index.
@@ -4281,7 +4273,7 @@ fn check_iam_action_resources(
         if resources.is_empty() {
             continue;
         }
-        if resources.iter().any(|r| *r == "*") {
+        if resources.contains(&"*") {
             continue;
         }
         if resources
@@ -4300,11 +4292,10 @@ fn check_iam_action_resources(
                 continue;
             }
             let key = action.to_lowercase();
-            if let Some(expected) = patterns.get(&key) {
-                if !resources.iter().any(|r| arn_matches_pattern(r, expected)) {
+            if let Some(expected) = patterns.get(&key)
+                && !resources.iter().any(|r| arn_matches_pattern(r, expected)) {
                     out.push(make_resource_diagnostic("I3510", &format!("Action '{}' requires a resource matching '{}' but none of the resources match", action, expected), m, name, path, None));
                 }
-            }
         }
     }
 }
@@ -4365,8 +4356,8 @@ fn check_iam_statements(
                 ));
             }
 
-            if let Some(effect) = stmt.get("Effect").and_then(|e| e.as_str()) {
-                if effect != "Allow" && effect != "Deny" {
+            if let Some(effect) = stmt.get("Effect").and_then(|e| e.as_str())
+                && effect != "Allow" && effect != "Deny" {
                     out.push(make_resource_diagnostic(
                         "E3514",
                         &format!(
@@ -4379,7 +4370,6 @@ fn check_iam_statements(
                         Some("Set Effect to 'Allow' or 'Deny'"),
                     ));
                 }
-            }
 
             if stmt.get("Action").is_none() && stmt.get("NotAction").is_none() {
                 out.push(make_resource_diagnostic(

@@ -138,6 +138,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
+        id: "E0001",
+        category: Category::Structure,
+        description: "SAM (AWS::Serverless) transform would reject the template",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "F0002",
         category: Category::Structure,
         description: "AWSTemplateFormatVersion must be 2010-09-09",
@@ -1649,6 +1655,42 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E3694",
         category: Category::Resource,
         description: "Validates RDS DB Cluster instance class",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3640",
+        category: Category::Resource,
+        description: "Validate SageMaker processing instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3642",
+        category: Category::Resource,
+        description: "Validate SageMaker hosting instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3643",
+        category: Category::Resource,
+        description: "Validate SageMaker transform instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3644",
+        category: Category::Resource,
+        description: "Validate SageMaker cluster instance types based on region",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3652",
+        category: Category::Resource,
+        description: "Validate Elasticsearch domain cluster instance",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3653",
+        category: Category::Resource,
+        description: "Validate OpenSearch domain cluster instance type",
         origin: RuleOrigin::CfnLint,
     },
     // ── cfn-lint rules: info / warn ─────────────────────────────────────

@@ -39,31 +39,30 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
         if let Some(serde_json::Value::Array(compat)) =
-            resolve_concrete(m, &name, "Properties.RequiresCompatibilities")
+            resolve_concrete(m, name, "Properties.RequiresCompatibilities")
         {
             if !compat.iter().any(|v| v.as_str() == Some("FARGATE")) {
                 continue;
             }
-            if is_dynamic(m, &name, "Properties.Cpu") || is_dynamic(m, &name, "Properties.Memory") {
+            if is_dynamic(m, name, "Properties.Cpu") || is_dynamic(m, name, "Properties.Memory") {
                 continue;
             }
-            let cpu = resolve_concrete(m, &name, "Properties.Cpu");
-            let mem = resolve_concrete(m, &name, "Properties.Memory");
+            let cpu = resolve_concrete(m, name, "Properties.Cpu");
+            let mem = resolve_concrete(m, name, "Properties.Memory");
             if let (Some(cpu_val), Some(mem_val)) = (cpu, mem) {
                 let cpu_n = to_num(&cpu_val);
                 let mem_n = to_num(&mem_val);
-                if let (Some(c), Some(me)) = (cpu_n, mem_n) {
-                    if !valid_fargate_combo(c, me) {
+                if let (Some(c), Some(me)) = (cpu_n, mem_n)
+                    && !valid_fargate_combo(c, me) {
                         out.push(make_resource_diagnostic(
                             "E3047",
                             &format!("Cpu {} is not compatible with Memory {} for Fargate", c, me),
                             m,
-                            &name,
+                            name,
                             "Properties.Cpu",
                             Some("Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)"),
                         ));
                     }
-                }
             }
         }
     }
@@ -198,7 +197,7 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
-        if is_zip_deployment(m, &name) {
+        if is_zip_deployment(m, name) {
             for prop in &["Handler", "Runtime"] {
                 if !m
                     .resources
@@ -210,7 +209,7 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         "W2533",
                         &format!("Property '{}' is required for zip file deployment", prop),
                         m,
-                        &name,
+                        name,
                         KEY_PROPERTIES,
                         Some(&format!("Add the '{}' property", prop)),
                     ));
@@ -221,23 +220,19 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::SQS::Queue") {
         if let Some(serde_json::Value::Bool(true)) =
-            resolve_concrete(m, &name, "Properties.FifoQueue")
-        {
-            if let Some(serde_json::Value::String(qname)) =
-                resolve_concrete(m, &name, "Properties.QueueName")
-            {
-                if !qname.ends_with(".fifo") {
+            resolve_concrete(m, name, "Properties.FifoQueue")
+            && let Some(serde_json::Value::String(qname)) =
+                resolve_concrete(m, name, "Properties.QueueName")
+                && !qname.ends_with(".fifo") {
                     out.push(make_resource_diagnostic(
                         "E2504",
                         &format!("FIFO queue name '{}' must end with '.fifo'", qname),
                         m,
-                        &name,
+                        name,
                         "Properties.QueueName",
                         None,
                     ));
                 }
-            }
-        }
     }
 
     if let Some(region) = ctx.region {
@@ -281,12 +276,12 @@ fn to_num(v: &serde_json::Value) -> Option<i64> {
 fn valid_fargate_combo(cpu: i64, mem: i64) -> bool {
     match cpu {
         256 => [512, 1024, 2048].contains(&mem),
-        512 => mem >= 1024 && mem <= 4096,
-        1024 => mem >= 2048 && mem <= 8192,
-        2048 => mem >= 4096 && mem <= 16384,
-        4096 => mem >= 8192 && mem <= 30720,
-        8192 => mem >= 16384 && mem <= 61440,
-        16384 => mem >= 32768 && mem <= 122880,
+        512 => (1024..=4096).contains(&mem),
+        1024 => (2048..=8192).contains(&mem),
+        2048 => (4096..=16384).contains(&mem),
+        4096 => (8192..=30720).contains(&mem),
+        8192 => (16384..=61440).contains(&mem),
+        16384 => (32768..=122880).contains(&mem),
         _ => false,
     }
 }
@@ -301,12 +296,10 @@ fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
         .get(name)
         .map(|r| r.properties.contains_key("PackageType"))
         .unwrap_or(false)
-    {
-        if let Some(serde_json::Value::Object(code)) = resolve_concrete(m, name, "Properties.Code")
+        && let Some(serde_json::Value::Object(code)) = resolve_concrete(m, name, "Properties.Code")
         {
             return code.contains_key("ZipFile") || code.contains_key("S3Key");
         }
-    }
     false
 }
 

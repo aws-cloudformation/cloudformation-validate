@@ -41,7 +41,7 @@ pub fn validate_all_resources(
                         rtype, region
                     ),
                     model,
-                    &rid,
+                    rid,
                     "",
                     None,
                 ));
@@ -56,8 +56,8 @@ pub fn validate_all_resources(
             let Some(res) = model.resources.get(rid.as_str()) else {
                 continue;
             };
-            validate_resource(&mut out, store, model, &rid, res, schema, region);
-            validate_extensions(&mut out, store, model, &rid, res);
+            validate_resource(&mut out, store, model, rid, res, schema, region);
+            validate_extensions(&mut out, store, model, rid, res);
         }
     }
     out
@@ -132,16 +132,15 @@ pub fn enrich_schema_context(
 
         match d.rule_id.as_str() {
             "F3012" => {
-                if let Some(ps) = prop_schema {
-                    if let Some(ref pt) = ps.prop_type {
+                if let Some(ps) = prop_schema
+                    && let Some(ref pt) = ps.prop_type {
                         ensure_ctx!(d).expected_constraint =
-                            Some(format!("{}", pt.primary().unwrap_or("unknown")));
+                            Some(pt.primary().unwrap_or("unknown").to_string());
                     }
-                }
             }
             "F3030" => {
-                if let Some(ps) = prop_schema {
-                    if !ps.enum_values.is_empty() {
+                if let Some(ps) = prop_schema
+                    && !ps.enum_values.is_empty() {
                         ensure_ctx!(d)
                             .extra
                             .get_or_insert_with(HashMap::new)
@@ -150,14 +149,12 @@ pub fn enrich_schema_context(
                                 serde_json::json!(ps.enum_values).into(),
                             );
                     }
-                }
             }
             "F3031" => {
-                if let Some(ps) = prop_schema {
-                    if let Some(ref pat) = ps.pattern {
+                if let Some(ps) = prop_schema
+                    && let Some(ref pat) = ps.pattern {
                         ensure_ctx!(d).expected_constraint = Some(pat.clone());
                     }
-                }
             }
             "F3034" => {
                 if let Some(ps) = prop_schema {
@@ -300,16 +297,14 @@ fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<&
         }
     }
     for ite in &schema.if_then_else {
-        if let Some(ref then_s) = ite.then_schema {
-            if let Some(ps) = find_prop_schema(path, &then_s.properties, &schema.definitions) {
+        if let Some(ref then_s) = ite.then_schema
+            && let Some(ps) = find_prop_schema(path, &then_s.properties, &schema.definitions) {
                 return Some(ps);
             }
-        }
-        if let Some(ref else_s) = ite.else_schema {
-            if let Some(ps) = find_prop_schema(path, &else_s.properties, &schema.definitions) {
+        if let Some(ref else_s) = ite.else_schema
+            && let Some(ps) = find_prop_schema(path, &else_s.properties, &schema.definitions) {
                 return Some(ps);
             }
-        }
     }
     None
 }
@@ -377,8 +372,8 @@ fn validate_resource(
     for wo in &schema.write_only_properties {
         let top = wo.split('.').next().unwrap_or(wo);
         for edge in m.graph.incoming(rid) {
-            if let RefKind::GetAtt { attr } = &edge.kind {
-                if attr == top && edge.source_resource.starts_with("__output__") {
+            if let RefKind::GetAtt { attr } = &edge.kind
+                && attr == top && edge.source_resource.starts_with("__output__") {
                     let output_name = edge
                         .source_resource
                         .strip_prefix("__output__")
@@ -396,7 +391,6 @@ fn validate_resource(
                         None,
                     ));
                 }
-            }
         }
     }
 
@@ -1041,8 +1035,8 @@ fn validate_prop(
         }
     }
 
-    if let Some(ref pat) = schema.pattern {
-        if let Ok(re) = regex::Regex::new(pat) {
+    if let Some(ref pat) = schema.pattern
+        && let Ok(re) = regex::Regex::new(pat) {
             let from_param = m.is_from_parameter(rid, prop_path);
             for (val, conds) in &scenarios {
                 if !is_satisfiable(m, conds) || val.is_null() {
@@ -1077,7 +1071,6 @@ fn validate_prop(
                 }
             }
         }
-    }
 
     if let Some(ref fmt) = schema.format {
         validate_format(out, m, rid, prop_path, fmt);
@@ -1090,8 +1083,8 @@ fn validate_prop(
         let Some(n) = cfn_coerce_to_number(val) else {
             continue;
         };
-        if let Some(max) = schema.maximum {
-            if n > max {
+        if let Some(max) = schema.maximum
+            && n > max {
                 out.push(build_diagnostic_conditional(
                     "F3034",
                     Severity::Fatal,
@@ -1103,9 +1096,8 @@ fn validate_prop(
                     condition_map(conds),
                 ));
             }
-        }
-        if let Some(min) = schema.minimum {
-            if n < min {
+        if let Some(min) = schema.minimum
+            && n < min {
                 out.push(build_diagnostic_conditional(
                     "F3034",
                     Severity::Fatal,
@@ -1117,9 +1109,8 @@ fn validate_prop(
                     condition_map(conds),
                 ));
             }
-        }
-        if let Some(emax) = schema.exclusive_maximum {
-            if n >= emax {
+        if let Some(emax) = schema.exclusive_maximum
+            && n >= emax {
                 out.push(build_diagnostic_conditional(
                     "F3034",
                     Severity::Fatal,
@@ -1131,9 +1122,8 @@ fn validate_prop(
                     condition_map(conds),
                 ));
             }
-        }
-        if let Some(emin) = schema.exclusive_minimum {
-            if n <= emin {
+        if let Some(emin) = schema.exclusive_minimum
+            && n <= emin {
                 out.push(build_diagnostic_conditional(
                     "F3034",
                     Severity::Fatal,
@@ -1145,7 +1135,6 @@ fn validate_prop(
                     condition_map(conds),
                 ));
             }
-        }
     }
 
     if schema.min_length.is_some() || schema.max_length.is_some() {
@@ -1164,8 +1153,8 @@ fn validate_prop(
                 continue;
             }
             let len = s.len() as u64;
-            if let Some(max) = schema.max_length {
-                if len > max {
+            if let Some(max) = schema.max_length
+                && len > max {
                     out.push(build_diagnostic_conditional(
                         "F3033",
                         Severity::Fatal,
@@ -1177,9 +1166,8 @@ fn validate_prop(
                         condition_map(conds),
                     ));
                 }
-            }
-            if let Some(min) = schema.min_length {
-                if len < min {
+            if let Some(min) = schema.min_length
+                && len < min {
                     out.push(build_diagnostic_conditional(
                         "F3033",
                         Severity::Fatal,
@@ -1191,7 +1179,6 @@ fn validate_prop(
                         condition_map(conds),
                     ));
                 }
-            }
         }
     }
 
@@ -1201,8 +1188,8 @@ fn validate_prop(
         }
         if let Some(arr) = val.as_array() {
             let len = arr.len() as u64;
-            if let Some(max) = schema.max_items {
-                if len > max {
+            if let Some(max) = schema.max_items
+                && len > max {
                     out.push(build_diagnostic_conditional(
                         "F3032",
                         Severity::Fatal,
@@ -1214,9 +1201,8 @@ fn validate_prop(
                         condition_map(conds),
                     ));
                 }
-            }
-            if let Some(min) = schema.min_items {
-                if len < min {
+            if let Some(min) = schema.min_items
+                && len < min {
                     out.push(build_diagnostic_conditional(
                         "F3032",
                         Severity::Fatal,
@@ -1228,7 +1214,6 @@ fn validate_prop(
                         condition_map(conds),
                     ));
                 }
-            }
         }
     }
 
@@ -1300,8 +1285,8 @@ fn validate_prop(
             // mark an Fn::If branch as unreachable, but both branches are
             // evaluated at deploy time with the real parameter values.
             for (val, _conds) in m.resolve_scenarios(rid, prop_path) {
-                if let ResolvedValue::Concrete { value } = &val {
-                    if let Some(obj) = value.as_object() {
+                if let ResolvedValue::Concrete { value } = &val
+                    && let Some(obj) = value.as_object() {
                         let keys: Vec<String> = obj.keys().cloned().collect();
                         validate_object_keys(
                             out,
@@ -1325,7 +1310,6 @@ fn validate_prop(
                             visited,
                         );
                     }
-                }
             }
         }
         for (pn, ps) in &schema.properties {
@@ -2050,8 +2034,8 @@ fn validate_cfn_gather(
 
         let Some(target) = target_rid else { continue };
 
-        if let Some(filter) = slot_obj.get("filter").and_then(|v| v.as_object()) {
-            if let Some(expected_type) = filter.get("type").and_then(|v| v.as_str()) {
+        if let Some(filter) = slot_obj.get("filter").and_then(|v| v.as_object())
+            && let Some(expected_type) = filter.get("type").and_then(|v| v.as_str()) {
                 let actual_type = model
                     .resources
                     .get(&target)
@@ -2060,7 +2044,6 @@ fn validate_cfn_gather(
                     continue;
                 }
             }
-        }
 
         let mut slot_values = serde_json::Map::new();
         if let Some(props) = properties {
@@ -2111,8 +2094,8 @@ fn validate_extension_if_then_else(
 
     if let Some(required) = branch_schema.get("required").and_then(|v| v.as_array()) {
         for req in required {
-            if let Some(prop_name) = req.as_str() {
-                if !res.properties.contains_key(prop_name) {
+            if let Some(prop_name) = req.as_str()
+                && !res.properties.contains_key(prop_name) {
                     // Dedup: compiled base schema's if_then_else may already have
                     // emitted a required-property diagnostic for the same required property (extensions
                     // upstream sometimes mirror the base schema's conditional
@@ -2136,7 +2119,6 @@ fn validate_extension_if_then_else(
                         Some(&format!("Add '{}'", prop_name)),
                     ));
                 }
-            }
         }
     }
 
@@ -2184,7 +2166,7 @@ fn validate_extension_if_then_else(
                         || cfn_coerce_to_string(e) == cfn_coerce_to_string(val)
                         || e.as_str()
                             .zip(val.as_str())
-                            .map_or(false, |(a, b)| a.eq_ignore_ascii_case(b))
+                            .is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
                 });
                 if !matches_enum {
                     let allowed: Vec<String> = enum_vals
@@ -2414,11 +2396,10 @@ fn gather_prop_matches(actual: &serde_json::Value, constraint: &serde_json::Valu
     }
     if let Some(required) = obj.get("required").and_then(|v| v.as_array()) {
         for req in required {
-            if let Some(name) = req.as_str() {
-                if actual.get(name).is_none() {
+            if let Some(name) = req.as_str()
+                && actual.get(name).is_none() {
                     return false;
                 }
-            }
         }
     }
     if let Some(cv) = obj.get("const") {
@@ -2473,8 +2454,8 @@ fn check_gather_property_constraints(
                 Some(o) => o,
                 None => continue,
             };
-            if let Some(cv) = pc.get("const") {
-                if !cv.is_null()
+            if let Some(cv) = pc.get("const")
+                && !cv.is_null()
                     && prop_val != cv
                     && cfn_coerce_to_string(prop_val) != cfn_coerce_to_string(cv)
                 {
@@ -2488,10 +2469,9 @@ fn check_gather_property_constraints(
                         model, rid, "Properties", None,
                     ));
                 }
-            }
-            if let Some(min_val) = pc.get("minimum").and_then(|v| cfn_coerce_to_number(v)) {
-                if let Some(actual_num) = cfn_coerce_to_number(prop_val) {
-                    if actual_num < min_val {
+            if let Some(min_val) = pc.get("minimum").and_then(cfn_coerce_to_number)
+                && let Some(actual_num) = cfn_coerce_to_number(prop_val)
+                    && actual_num < min_val {
                         out.push(build_diagnostic(
                             "F3034",
                             Severity::Fatal,
@@ -2502,11 +2482,9 @@ fn check_gather_property_constraints(
                             model, rid, "Properties", None,
                         ));
                     }
-                }
-            }
-            if let Some(max_val) = pc.get("maximum").and_then(|v| cfn_coerce_to_number(v)) {
-                if let Some(actual_num) = cfn_coerce_to_number(prop_val) {
-                    if actual_num > max_val {
+            if let Some(max_val) = pc.get("maximum").and_then(cfn_coerce_to_number)
+                && let Some(actual_num) = cfn_coerce_to_number(prop_val)
+                    && actual_num > max_val {
                         out.push(build_diagnostic(
                             "F3034",
                             Severity::Fatal,
@@ -2517,8 +2495,6 @@ fn check_gather_property_constraints(
                             model, rid, "Properties", None,
                         ));
                     }
-                }
-            }
         }
     }
 }

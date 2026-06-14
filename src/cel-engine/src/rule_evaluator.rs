@@ -84,7 +84,7 @@ impl GeneratedRuleRegistry {
                 .filter(|r| {
                     !r.category
                         .as_deref()
-                        .map_or(false, |c| excluded_cats.contains(c))
+                        .is_some_and(|c| excluded_cats.contains(c))
                 })
                 .collect();
             if rules.is_empty() {
@@ -101,7 +101,7 @@ impl GeneratedRuleRegistry {
             if rule
                 .category
                 .as_deref()
-                .map_or(false, |c| excluded_cats.contains(c))
+                .is_some_and(|c| excluded_cats.contains(c))
             {
                 continue;
             }
@@ -175,9 +175,9 @@ fn evaluate_rule(
     }
 
     // has_property / !has_property patterns (single property only, not compound &&)
-    if !expr.contains(" && ") {
-        if let Some(rest) = expr.strip_prefix("!has_property(name, \"") {
-            if let Some(prop) = rest.strip_suffix("\")") {
+    if !expr.contains(" && ")
+        && let Some(rest) = expr.strip_prefix("!has_property(name, \"")
+            && let Some(prop) = rest.strip_suffix("\")") {
                 if !m
                     .resources
                     .get(rid)
@@ -188,14 +188,12 @@ fn evaluate_rule(
                 }
                 return;
             }
-        }
-    }
 
     // Combined has_property && !has_property (dependentRequired)
     if expr.starts_with("has_property(name, \"") && expr.contains(" && !has_property(name, \"") {
         let parts: Vec<&str> = expr.split(" && ").collect();
-        if parts.len() == 2 {
-            if let (Some(trigger), Some(dep)) =
+        if parts.len() == 2
+            && let (Some(trigger), Some(dep)) =
                 (extract_has_prop(parts[0]), extract_not_has_prop(parts[1]))
             {
                 let res = m.resources.get(rid);
@@ -208,14 +206,13 @@ fn evaluate_rule(
                 }
                 return;
             }
-        }
     }
 
     // Combined has_property && has_property (dependentExcluded)
     if expr.starts_with("has_property(name, \"") && expr.contains(" && has_property(name, \"") {
         let parts: Vec<&str> = expr.split(" && ").collect();
-        if parts.len() == 2 {
-            if let (Some(a), Some(b)) = (extract_has_prop(parts[0]), extract_has_prop(parts[1])) {
+        if parts.len() == 2
+            && let (Some(a), Some(b)) = (extract_has_prop(parts[0]), extract_has_prop(parts[1])) {
                 let res = m.resources.get(rid);
                 if res
                     .map(|r| r.properties.contains_key(a) && r.properties.contains_key(b))
@@ -225,7 +222,6 @@ fn evaluate_rule(
                 }
                 return;
             }
-        }
     }
 
     // All !has_property combined (requiredOr/requiredXor)
@@ -253,9 +249,9 @@ fn evaluate_rule(
     }
 
     // has_unknown_properties
-    if let Some(rest) = expr.strip_prefix("has_unknown_properties(name, ") {
-        if let Some(json_str) = rest.strip_suffix(')') {
-            if let Ok(known) = serde_json::from_str::<Vec<String>>(json_str) {
+    if let Some(rest) = expr.strip_prefix("has_unknown_properties(name, ")
+        && let Some(json_str) = rest.strip_suffix(')')
+            && let Ok(known) = serde_json::from_str::<Vec<String>>(json_str) {
                 let known_set: HashSet<&str> = known.iter().map(|s| s.as_str()).collect();
                 if let Some(res) = m.resources.get(rid) {
                     for prop in res.properties.keys() {
@@ -271,12 +267,10 @@ fn evaluate_rule(
                 }
                 return;
             }
-        }
-    }
 
     // scenario_check(name, "path", |val| ...)
-    if let Some(rest) = expr.strip_prefix("scenario_check(name, \"") {
-        if let Some(idx) = rest.find("\", |val| ") {
+    if let Some(rest) = expr.strip_prefix("scenario_check(name, \"")
+        && let Some(idx) = rest.find("\", |val| ") {
             let path = &rest[..idx];
             let check_expr = &rest[idx + 9..];
             let check_expr = check_expr.strip_suffix(')').unwrap_or(check_expr);
@@ -362,11 +356,10 @@ fn evaluate_rule(
             }
             return;
         }
-    }
 
     // scenario_enum_check(name, "path", [...])
-    if let Some(rest) = expr.strip_prefix("scenario_enum_check(name, \"") {
-        if let Some(idx) = rest.find("\", ") {
+    if let Some(rest) = expr.strip_prefix("scenario_enum_check(name, \"")
+        && let Some(idx) = rest.find("\", ") {
             let path = &rest[..idx];
             let json_str = &rest[idx + 3..];
             let json_str = json_str.strip_suffix(')').unwrap_or(json_str);
@@ -403,11 +396,10 @@ fn evaluate_rule(
             }
             return;
         }
-    }
 
     // scenario_pattern_check(name, "path", "pattern")
-    if let Some(rest) = expr.strip_prefix("scenario_pattern_check(name, \"") {
-        if let Some(idx) = rest.find("\", \"") {
+    if let Some(rest) = expr.strip_prefix("scenario_pattern_check(name, \"")
+        && let Some(idx) = rest.find("\", \"") {
             let path = &rest[..idx];
             let pat_raw = &rest[idx + 4..];
             let pat_raw = pat_raw.strip_suffix("\")").unwrap_or(pat_raw);
@@ -435,11 +427,10 @@ fn evaluate_rule(
             }
             return;
         }
-    }
 
     // array_item_missing_key(name, "path", "key")
-    if let Some(rest) = expr.strip_prefix("array_item_missing_key(name, \"") {
-        if let Some(idx) = rest.find("\", \"") {
+    if let Some(rest) = expr.strip_prefix("array_item_missing_key(name, \"")
+        && let Some(idx) = rest.find("\", \"") {
             let path = &rest[..idx];
             let key = rest[idx + 4..]
                 .strip_suffix("\")")
@@ -471,7 +462,6 @@ fn evaluate_rule(
             }
             return;
         }
-    }
 
     // array_item_dep_excluded(name, "path", "trigger", "dep")
     if let Some(rest) = expr.strip_prefix("array_item_dep_excluded(name, \"") {
@@ -506,9 +496,9 @@ fn evaluate_rule(
         let parts: Vec<&str> = expr.splitn(2, " && ").collect();
         if parts.len() == 2 {
             let cond_met = eval_resolve_condition(m, rid, parts[0]);
-            if cond_met {
-                if let Some(prop) = extract_not_has_prop(parts[1]) {
-                    if !m
+            if cond_met
+                && let Some(prop) = extract_not_has_prop(parts[1])
+                    && !m
                         .resources
                         .get(rid)
                         .map(|r| r.properties.contains_key(prop))
@@ -516,12 +506,8 @@ fn evaluate_rule(
                     {
                         out.push(make_diag(rule, m, rid, rtype, None));
                     }
-                }
-            }
-        } else {
-            if eval_resolve_condition(m, rid, expr) {
-                out.push(make_diag(rule, m, rid, rtype, None));
-            }
+        } else if eval_resolve_condition(m, rid, expr) {
+            out.push(make_diag(rule, m, rid, rtype, None));
         }
         return;
     }
@@ -535,8 +521,8 @@ fn evaluate_rule(
                 if !satisfiable(m, conds) {
                     continue;
                 }
-                if let Some(s) = val.as_str() {
-                    if runtimes.iter().any(|r| r == s) {
+                if let Some(s) = val.as_str()
+                    && runtimes.iter().any(|r| r == s) {
                         let cond_map = if conds.is_empty() {
                             None
                         } else {
@@ -554,9 +540,7 @@ fn evaluate_rule(
                         );
                         out.push(d);
                     }
-                }
             }
-            return;
         }
     }
 }
@@ -611,8 +595,8 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
         return !val.is_string() && !val.is_number() && !val.is_null();
     }
 
-    if expr.starts_with("is_object(val) && !has_key(val, \"") {
-        if let Some(key) = expr
+    if expr.starts_with("is_object(val) && !has_key(val, \"")
+        && let Some(key) = expr
             .strip_prefix("is_object(val) && !has_key(val, \"")
             .and_then(|r| r.strip_suffix("\")"))
         {
@@ -621,7 +605,6 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
                 .map(|obj| !obj.contains_key(key))
                 .unwrap_or(false);
         }
-    }
 
     if expr.starts_with("is_object(val) && has_key(val, \"") && expr.contains("&& !has_key(val, \"")
     {
@@ -633,11 +616,10 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
             let dep = parts[2]
                 .strip_prefix("!has_key(val, \"")
                 .and_then(|r| r.strip_suffix("\")"));
-            if let (Some(t), Some(d)) = (trigger, dep) {
-                if let Some(obj) = val.as_object() {
+            if let (Some(t), Some(d)) = (trigger, dep)
+                && let Some(obj) = val.as_object() {
                     return obj.contains_key(t) && !obj.contains_key(d);
                 }
-            }
         }
         return false;
     }
@@ -654,61 +636,54 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
             let b = parts[2]
                 .strip_prefix("has_key(val, \"")
                 .and_then(|r| r.strip_suffix("\")"));
-            if let (Some(ka), Some(kb)) = (a, b) {
-                if let Some(obj) = val.as_object() {
+            if let (Some(ka), Some(kb)) = (a, b)
+                && let Some(obj) = val.as_object() {
                     return obj.contains_key(ka) && obj.contains_key(kb);
                 }
-            }
         }
         return false;
     }
 
     // Numeric: coerce_to_number(val) > N or < N
-    if let Some(rest) = expr.strip_prefix("coerce_to_number(val) > ") {
-        if let Ok(n) = rest.parse::<i64>() {
+    if let Some(rest) = expr.strip_prefix("coerce_to_number(val) > ")
+        && let Ok(n) = rest.parse::<i64>() {
             return cfn_coerce_to_number(val)
                 .map(|v| v > n as f64)
                 .unwrap_or(false);
         }
-    }
-    if let Some(rest) = expr.strip_prefix("coerce_to_number(val) < ") {
-        if let Ok(n) = rest.parse::<i64>() {
+    if let Some(rest) = expr.strip_prefix("coerce_to_number(val) < ")
+        && let Ok(n) = rest.parse::<i64>() {
             return cfn_coerce_to_number(val)
                 .map(|v| v < n as f64)
                 .unwrap_or(false);
         }
-    }
 
     // String length: size(coerce_to_string(val)) > N or < N
-    if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) > ") {
-        if let Ok(n) = rest.parse::<u64>() {
+    if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) > ")
+        && let Ok(n) = rest.parse::<u64>() {
             return cfn_coerce_to_string(val)
                 .map(|s| s.len() as u64 > n)
                 .unwrap_or(false);
         }
-    }
-    if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) < ") {
-        if let Ok(n) = rest.parse::<u64>() {
+    if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) < ")
+        && let Ok(n) = rest.parse::<u64>() {
             return cfn_coerce_to_string(val)
                 .map(|s| (s.len() as u64) < n)
                 .unwrap_or(false);
         }
-    }
 
     // Array size: is_array(val) && size(val) > N or < N
-    if let Some(rest) = expr.strip_prefix("is_array(val) && size(val) > ") {
-        if let Ok(n) = rest.parse::<u64>() {
+    if let Some(rest) = expr.strip_prefix("is_array(val) && size(val) > ")
+        && let Ok(n) = rest.parse::<u64>() {
             return val.as_array().map(|a| a.len() as u64 > n).unwrap_or(false);
         }
-    }
-    if let Some(rest) = expr.strip_prefix("is_array(val) && size(val) < ") {
-        if let Ok(n) = rest.parse::<u64>() {
+    if let Some(rest) = expr.strip_prefix("is_array(val) && size(val) < ")
+        && let Ok(n) = rest.parse::<u64>() {
             return val
                 .as_array()
                 .map(|a| (a.len() as u64) < n)
                 .unwrap_or(false);
         }
-    }
 
     // uniqueItems: is_array(val) && has_duplicates(val)
     if expr == "is_array(val) && has_duplicates(val)" {
@@ -725,8 +700,8 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
 
 fn eval_resolve_condition(m: &SemanticModel, rid: &str, expr: &str) -> bool {
     // resolve_val_in(name, "path", [...])
-    if let Some(rest) = expr.strip_prefix("resolve_val_in(name, \"") {
-        if let Some(idx) = rest.find("\", ") {
+    if let Some(rest) = expr.strip_prefix("resolve_val_in(name, \"")
+        && let Some(idx) = rest.find("\", ") {
             let path = &rest[..idx];
             let json_str = rest[idx + 3..]
                 .strip_suffix(')')
@@ -746,10 +721,9 @@ fn eval_resolve_condition(m: &SemanticModel, rid: &str, expr: &str) -> bool {
                 }
             }
         }
-    }
     // resolve_val_eq(name, "path", val)
-    if let Some(rest) = expr.strip_prefix("resolve_val_eq(name, \"") {
-        if let Some(idx) = rest.find("\", ") {
+    if let Some(rest) = expr.strip_prefix("resolve_val_eq(name, \"")
+        && let Some(idx) = rest.find("\", ") {
             let path = &rest[..idx];
             let json_str = rest[idx + 3..]
                 .strip_suffix(')')
@@ -763,7 +737,6 @@ fn eval_resolve_condition(m: &SemanticModel, rid: &str, expr: &str) -> bool {
                 }
             }
         }
-    }
     false
 }
 

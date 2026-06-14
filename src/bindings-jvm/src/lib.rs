@@ -52,7 +52,6 @@ impl ValidateConfig {
             detail_level,
             severity_level: self
                 .severity_level
-                .clone()
                 .unwrap_or(defaults.severity_level),
             parameter_overrides: self.parameter_overrides.clone(),
             pseudo_parameter_overrides: self.pseudo_parameter_overrides.clone(),
@@ -273,7 +272,7 @@ impl JvmSemanticModel {
     }
 
     pub fn source_location(&self, path: String) -> Option<SourceSpan> {
-        self.model.source_location(&path).map(|s| *s)
+        self.model.source_location(&path).copied()
     }
 }
 

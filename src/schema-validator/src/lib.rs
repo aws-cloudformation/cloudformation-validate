@@ -26,6 +26,12 @@ pub struct SchemaValidator {
     init_metric: PhaseMetric,
 }
 
+impl Default for SchemaValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SchemaValidator {
     pub fn new() -> Self {
         let start = web_time::Instant::now();

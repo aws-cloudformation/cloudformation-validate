@@ -80,6 +80,30 @@ const GENERATED_JSON: &[(&str, &str)] = &[
         "aws_amazonmq_broker_instancetype_enum",
         "AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM",
     ),
+    (
+        "aws_sagemaker_processing_instancetype_enum",
+        "AWS_SAGEMAKER_PROCESSING_INSTANCETYPE_ENUM",
+    ),
+    (
+        "aws_sagemaker_hosting_instancetype_enum",
+        "AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM",
+    ),
+    (
+        "aws_sagemaker_transform_instancetype_enum",
+        "AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM",
+    ),
+    (
+        "aws_sagemaker_cluster_instancetype_enum",
+        "AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM",
+    ),
+    (
+        "aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum",
+        "AWS_ELASTICSEARCH_DOMAIN_ELASTICSEARCHCLUSTERCONFIG_INSTANCETYPE_ENUM",
+    ),
+    (
+        "aws_opensearchservice_domain_clusterconfig_instancetype_enum",
+        "AWS_OPENSEARCHSERVICE_DOMAIN_CLUSTERCONFIG_INSTANCETYPE_ENUM",
+    ),
 ];
 
 /// Handwritten JSON data files (from data-source/handwritten/).

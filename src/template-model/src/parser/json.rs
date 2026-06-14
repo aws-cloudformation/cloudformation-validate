@@ -83,14 +83,13 @@ fn equals_argument_error(val: &serde_json::Value) -> Option<String> {
     if val.is_string() || val.is_number() {
         return None;
     }
-    if let Some(obj) = val.as_object() {
-        if obj.len() == 1 {
+    if let Some(obj) = val.as_object()
+        && obj.len() == 1 {
             let key = obj.keys().next().map(String::as_str).unwrap_or("");
             if EQUALS_ARG_FN_KEYS.contains(&key) {
                 return None;
             }
         }
-    }
     Some(format!(
         "{} is not of type 'string'",
         describe_json_value(val)
@@ -158,9 +157,9 @@ impl JsonBuilder {
             }
         }
 
-        if map.len() == 1 {
-            if let Some(cond_name) = map.get(FN_CONDITION) {
-                if let serde_json::Value::String(name) = cond_name {
+        if map.len() == 1
+            && let Some(cond_name) = map.get(FN_CONDITION)
+                && let serde_json::Value::String(name) = cond_name {
                     let span = UNKNOWN_SPAN;
                     return self.arena.alloc(SpannedNode {
                         node: Node::Intrinsic(IntrinsicFn::Ref(format!("Condition:{}", name))),
@@ -168,8 +167,6 @@ impl JsonBuilder {
                         path: path.to_string(),
                     });
                 }
-            }
-        }
 
         let entries: Vec<(String, NodeRef)> = map
             .iter()
@@ -561,22 +558,20 @@ impl JsonBuilder {
                     );
                     return None;
                 }
-                if let Some(n) = arr[1].as_i64() {
-                    if n < 1 || n > 256 {
+                if let Some(n) = arr[1].as_i64()
+                    && (!(1..=256).contains(&n)) {
                         self.intrinsic_type_error(
                             FN_CIDR,
                             "Fn::Cidr count (second element) must be between 1 and 256",
                         );
                     }
-                }
-                if let Some(n) = arr[2].as_i64() {
-                    if n < 1 || n > 128 {
+                if let Some(n) = arr[2].as_i64()
+                    && (!(1..=128).contains(&n)) {
                         self.intrinsic_type_error(
                             FN_CIDR,
                             "Fn::Cidr cidrBits (third element) must be between 1 and 128",
                         );
                     }
-                }
                 let a = self.build_value(&arr[0], &format!("{}/Fn::Cidr/0", path));
                 let b = self.build_value(&arr[1], &format!("{}/Fn::Cidr/1", path));
                 let c = self.build_value(&arr[2], &format!("{}/Fn::Cidr/2", path));
@@ -1076,14 +1071,13 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
                 i += 1;
             }
             b',' => {
-                if let Some(true) = in_array.last() {
-                    if let Some(idx) = array_idx.last_mut() {
+                if let Some(true) = in_array.last()
+                    && let Some(idx) = array_idx.last_mut() {
                         *idx += 1;
                         if let Some(top) = path_stack.last_mut() {
                             *top = idx.to_string();
                         }
                     }
-                }
                 i += 1;
             }
             b'"' => {
@@ -1333,7 +1327,7 @@ pub fn parse_json(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         );
     }
 
-    for (path, _) in &builder.global_index {
+    for path in builder.global_index.keys() {
         builder
             .span_index
             .entry(path.clone())

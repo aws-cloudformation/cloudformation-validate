@@ -121,8 +121,8 @@ fn validate_single_rule(
         validate_single_assertion(rule_name, idx, assertion, out);
     }
 
-    if let Some(condition) = rule_obj.get(KEY_RULE_CONDITION) {
-        if !condition.is_object() {
+    if let Some(condition) = rule_obj.get(KEY_RULE_CONDITION)
+        && !condition.is_object() {
             out.push(rule_diag(
                 "F8606",
                 rules_crate::Severity::Fatal,
@@ -134,7 +134,6 @@ fn validate_single_rule(
                 ),
             ));
         }
-    }
 }
 
 fn validate_single_assertion(

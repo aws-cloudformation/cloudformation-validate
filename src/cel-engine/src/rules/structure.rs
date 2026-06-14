@@ -8,12 +8,11 @@ use template_model::consts::{
     EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY,
     FIELD_EDGES, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS,
     FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS,
-    FIELD_UPDATE_REPLACE_POLICY, KEY_PROPERTIES, KEY_TYPE, POLICY_DELETE, POLICY_RETAIN,
-    POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION,
-    SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS,
-    SECTION_PARAMETERS, SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_SERVERLESS,
+    FIELD_UPDATE_REPLACE_POLICY, POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE,
+    POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
+    SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS,
+    SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_SERVERLESS,
 };
-use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 static ALPHANUM_RE: LazyLock<regex::Regex> =
@@ -47,8 +46,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         .get("template")
         .and_then(|t| t.get("formatVersion"))
         .and_then(|v| v.as_str())
-    {
-        if fv != FORMAT_VERSION {
+        && fv != FORMAT_VERSION {
             out.push(make_resource_diagnostic(
                 "F0002",
                 &format!(
@@ -61,7 +59,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-    }
 
     if m.parameters.len() > 200 {
         out.push(make_resource_diagnostic(
@@ -155,8 +152,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         .and_then(|v| v.as_array())
     {
         for key_val in raw_keys {
-            if let Some(key) = key_val.as_str() {
-                if !valid_sections.contains(key) {
+            if let Some(key) = key_val.as_str()
+                && !valid_sections.contains(key) {
                     out.push(make_resource_diagnostic(
                         "F0005",
                         &format!("'{}' is not a valid top-level template section", key),
@@ -166,7 +163,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-            }
         }
     }
 
@@ -328,8 +324,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(desc_val) = input.get("template").and_then(|t| t.get("description")) {
-        if !desc_val.is_string() && !desc_val.is_null() {
+    if let Some(desc_val) = input.get("template").and_then(|t| t.get("description"))
+        && !desc_val.is_string() && !desc_val.is_null() {
             out.push(make_resource_diagnostic(
                 "F1004",
                 "Description must be a string",
@@ -339,14 +335,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-    }
 
     if let Some(desc) = input
         .get("template")
         .and_then(|t| t.get("description"))
         .and_then(|v| v.as_str())
-    {
-        if desc.len() > 921 && desc.len() <= 1024 {
+        && desc.len() > 921 && desc.len() <= 1024 {
             out.push(make_resource_diagnostic(
                 "I1003",
                 &format!(
@@ -359,7 +353,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-    }
 
     for pname in m.parameters.keys() {
         if m.resources.contains_key(pname) {
@@ -380,8 +373,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     if let Some(conds_obj) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
         let defined_conditions: HashSet<&str> = conds_obj.keys().map(|k| k.as_str()).collect();
         for (rname, res) in &m.resources {
-            if let Some(cond) = &res.condition {
-                if !defined_conditions.contains(cond.as_str()) {
+            if let Some(cond) = &res.condition
+                && !defined_conditions.contains(cond.as_str()) {
                     out.push(make_resource_diagnostic(
                         "F8002",
                         &format!(
@@ -394,7 +387,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-            }
         }
     }
 
@@ -402,8 +394,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         .get("template")
         .and_then(|t| t.get("description"))
         .and_then(|v| v.as_str())
-    {
-        if desc.len() > 1024 {
+        && desc.len() > 1024 {
             out.push(make_resource_diagnostic(
                 "F0011",
                 &format!("Description length {} exceeds maximum 1024", desc.len()),
@@ -413,7 +404,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-    }
 
     for name in m.resources.keys() {
         if !ALPHANUM_RE.is_match(name) {
@@ -598,78 +588,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if has_serverless_transform {
-        for name in m.resources_of_type("AWS::Serverless::LayerVersion") {
-            if !m
-                .resources
-                .get(name.as_str())
-                .map(|r| r.properties.contains_key("ContentUri"))
-                .unwrap_or(false)
-            {
-                out.push(make_resource_diagnostic("F0001",
-                    &format!("Error transforming template: Resource with id [{}] is invalid. Missing required property 'ContentUri'.", name), m, "", "",
-            None));
-            }
-        }
-        for name in m.resources_of_type("AWS::Serverless::Application") {
-            if !m
-                .resources
-                .get(name.as_str())
-                .map(|r| r.properties.contains_key("Location"))
-                .unwrap_or(false)
-            {
-                out.push(make_resource_diagnostic("F0001",
-                    &format!("Error transforming template: Resource with id [{}] is invalid. Resource is missing the required [Location] property.", name), m, "", "",
-            None));
-            }
-        }
-        for name in m.resources_of_type("AWS::Serverless::Function") {
-            if let Some(events) = m.resolve_deep(&name, "Properties.Events") {
-                let event_entries: Vec<(String, serde_json::Value)> = match &events {
-                    ResolvedValue::Map { entries } => entries
-                        .iter()
-                        .filter(|e| !e.key.starts_with("__"))
-                        .filter_map(|e| match &e.value {
-                            ResolvedValue::Concrete { value: j } => {
-                                Some((e.key.clone(), j.0.clone()))
-                            }
-                            ResolvedValue::Map { entries: m } => {
-                                let obj: serde_json::Map<String, serde_json::Value> = m
-                                    .iter()
-                                    .filter_map(|me| {
-                                        if let ResolvedValue::Concrete { value: j } = &me.value {
-                                            Some((me.key.clone(), j.0.clone()))
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .collect();
-                                Some((e.key.clone(), serde_json::Value::Object(obj)))
-                            }
-                            _ => None,
-                        })
-                        .collect(),
-                    _ => vec![],
-                };
-                for (event_name, event_json) in &event_entries {
-                    if let Some(obj) = event_json.as_object() {
-                        if obj.get(KEY_TYPE).and_then(|v| v.as_str()) == Some("Schedule") {
-                            let has_schedule = obj
-                                .get(KEY_PROPERTIES)
-                                .and_then(|p| p.as_object())
-                                .map(|p| p.contains_key("Schedule"))
-                                .unwrap_or(false);
-                            if !has_schedule {
-                                out.push(make_resource_diagnostic("F0001",
-                                    &format!("Error transforming template: Resource with id [{}{}] is invalid. Missing required property 'Schedule'.", name, event_name), m, "", "",
-            None));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     for name in m.resources.keys() {
         if name.len() > 200 {
@@ -698,18 +616,15 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         for edge in refs {
                             if edge.get(FIELD_TARGET).and_then(|t| t.as_str())
                                 == Some(pname.as_str())
-                            {
-                                if let Some(kind) = edge.get(FIELD_KIND).and_then(|k| k.as_str()) {
-                                    if kind == EDGE_KIND_REF || kind == EDGE_KIND_SUB {
+                                && let Some(kind) = edge.get(FIELD_KIND).and_then(|k| k.as_str())
+                                    && (kind == EDGE_KIND_REF || kind == EDGE_KIND_SUB) {
                                         referenced = true;
                                         break;
                                     }
-                                }
-                            }
                         }
                     }
-                    if !referenced {
-                        if let Some(subs) = res.get("simpleSubs").and_then(|s| s.as_array()) {
+                    if !referenced
+                        && let Some(subs) = res.get("simpleSubs").and_then(|s| s.as_array()) {
                             for sub in subs {
                                 if sub.get("variable").and_then(|v| v.as_str())
                                     == Some(pname.as_str())
@@ -719,15 +634,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 }
                             }
                         }
-                    }
                     if referenced {
                         break;
                     }
                 }
             }
             // Also check edges array
-            if !referenced {
-                if let Some(edges) = input.get(FIELD_EDGES).and_then(|e| e.as_array()) {
+            if !referenced
+                && let Some(edges) = input.get(FIELD_EDGES).and_then(|e| e.as_array()) {
                     for edge in edges {
                         if edge.get(FIELD_TARGET).and_then(|t| t.as_str()) == Some(pname.as_str()) {
                             referenced = true;
@@ -735,10 +649,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         }
                     }
                 }
-            }
             // Check condition_param_refs
-            if !referenced {
-                if let Some(refs) = input.get("conditionParamRefs").and_then(|r| r.as_array()) {
+            if !referenced
+                && let Some(refs) = input.get("conditionParamRefs").and_then(|r| r.as_array()) {
                     for r in refs {
                         if r.as_str() == Some(pname.as_str()) {
                             referenced = true;
@@ -746,10 +659,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         }
                     }
                 }
-            }
             // Check SAM Globals parameter refs
-            if !referenced {
-                if let Some(refs) = input.get("globalsParamRefs").and_then(|r| r.as_array()) {
+            if !referenced
+                && let Some(refs) = input.get("globalsParamRefs").and_then(|r| r.as_array()) {
                     for r in refs {
                         if r.as_str() == Some(pname.as_str()) {
                             referenced = true;
@@ -757,10 +669,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         }
                     }
                 }
-            }
             // Check output edges
-            if !referenced {
-                if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
+            if !referenced
+                && let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
                     for (_, out_val) in outputs {
                         if let Some(edges) = out_val.get(FIELD_EDGES).and_then(|e| e.as_array()) {
                             for edge in edges {
@@ -777,7 +688,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         }
                     }
                 }
-            }
             if !referenced {
                 out.push(make_resource_diagnostic(
                     "W2001",
@@ -852,8 +762,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, param) in &m.parameters {
-        if let (Some(default), Some(allowed)) = (&param.default, &param.allowed_values) {
-            if !allowed.is_empty() && !allowed.iter().any(|a| a == default) {
+        if let (Some(default), Some(allowed)) = (&param.default, &param.allowed_values)
+            && !allowed.is_empty() && !allowed.iter().any(|a| a == default) {
                 out.push(make_resource_diagnostic(
                     "F2012",
                     &format!(
@@ -866,7 +776,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
@@ -888,14 +797,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             .getatt_attr_types
                             .get(&res.resource_type)
                             .and_then(|t| t.get(attribute))
-                        {
-                            if ret_type != "string" {
+                            && ret_type != "string" {
                                 out.push(make_resource_diagnostic("F6101",
                                     &format!("Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'", name, resource, attribute, ret_type),
                                     m, "", "",
             None));
                             }
-                        }
                     }
                 }
             }
@@ -903,9 +810,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, param) in &m.parameters {
-        if param.param_type == "Number" {
-            if let Some(ref def) = param.default {
-                if !NUM_RE.is_match(def) {
+        if param.param_type == "Number"
+            && let Some(ref def) = param.default
+                && !NUM_RE.is_match(def) {
                     out.push(make_resource_diagnostic(
                         "F0015",
                         &format!(
@@ -918,13 +825,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-            }
-        }
     }
 
     for (name, param) in &m.parameters {
-        if param.param_type == "Number" {
-            if let Some(ref avs) = param.allowed_values {
+        if param.param_type == "Number"
+            && let Some(ref avs) = param.allowed_values {
                 for val in avs {
                     if !NUM_RE.is_match(val) {
                         out.push(make_resource_diagnostic(
@@ -941,13 +846,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-        }
     }
 
     if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
         for (name, ov) in outputs {
-            if let Some(export) = ov.get("exportName").and_then(|e| e.as_str()) {
-                if export.is_empty() {
+            if let Some(export) = ov.get("exportName").and_then(|e| e.as_str())
+                && export.is_empty() {
                     out.push(make_resource_diagnostic(
                         "F6005",
                         &format!("Output '{}' Export Name must not be empty", name),
@@ -957,7 +861,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-            }
         }
     }
 
@@ -975,17 +878,15 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         .get(FIELD_TARGET)
                         .and_then(|t| t.as_str())
                         .unwrap_or("");
-                    if kind == EDGE_KIND_REF && sp.ends_with("ImageId") {
-                        if let Some(param) = m.parameters.get(target) {
-                            if param.param_type != "AWS::EC2::Image::Id"
+                    if kind == EDGE_KIND_REF && sp.ends_with("ImageId")
+                        && let Some(param) = m.parameters.get(target)
+                            && param.param_type != "AWS::EC2::Image::Id"
                                 && !param.param_type.contains("AWS::EC2::Image::Id")
                                 && flagged_image_params.insert(target)
                             {
                                 out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' — consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
             None));
                             }
-                        }
-                    }
                 }
             }
         }
@@ -1068,8 +969,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
         // MinLength / MaxLength
-        if let Some(min) = info.min_length {
-            if (def.len() as u64) < min {
+        if let Some(min) = info.min_length
+            && (def.len() as u64) < min {
                 out.push(make_resource_diagnostic(
                     "F2015",
                     &format!(
@@ -1084,9 +985,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
-        if let Some(max) = info.max_length {
-            if (def.len() as u64) > max {
+        if let Some(max) = info.max_length
+            && (def.len() as u64) > max {
                 out.push(make_resource_diagnostic(
                     "F2015",
                     &format!(
@@ -1101,12 +1001,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
         // MinValue / MaxValue (for Number type)
-        if info.param_type == "Number" {
-            if let Ok(num) = def.parse::<i64>() {
-                if let Some(min) = info.min_value {
-                    if num < min {
+        if info.param_type == "Number"
+            && let Ok(num) = def.parse::<i64>() {
+                if let Some(min) = info.min_value
+                    && num < min {
                         out.push(make_resource_diagnostic(
                             "F2015",
                             &format!(
@@ -1119,9 +1018,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                }
-                if let Some(max) = info.max_value {
-                    if num > max {
+                if let Some(max) = info.max_value
+                    && num > max {
                         out.push(make_resource_diagnostic(
                             "F2015",
                             &format!(
@@ -1134,9 +1032,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                }
             }
-        }
     }
 
     out
@@ -1206,8 +1102,8 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (pname, param) in &m.parameters {
-        if let Some(ref pattern) = param.allowed_pattern {
-            if regex::Regex::new(pattern).is_err() {
+        if let Some(ref pattern) = param.allowed_pattern
+            && regex::Regex::new(pattern).is_err() {
                 out.push(make_resource_diagnostic(
                     "I2003",
                     &format!(
@@ -1220,7 +1116,6 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-        }
     }
 
     out
@@ -1242,11 +1137,10 @@ fn condition_is_referenced(
             if res.get(FIELD_CONDITION).and_then(|c| c.as_str()) == Some(cname) {
                 return true;
             }
-            if let Some(refs) = res.get("conditionRefs").and_then(|r| r.as_array()) {
-                if refs.iter().any(|r| r.as_str() == Some(cname)) {
+            if let Some(refs) = res.get("conditionRefs").and_then(|r| r.as_array())
+                && refs.iter().any(|r| r.as_str() == Some(cname)) {
                     return true;
                 }
-            }
         }
     }
     // Direct usage by output condition or conditionRefs
@@ -1255,11 +1149,10 @@ fn condition_is_referenced(
             if out_val.get(FIELD_CONDITION).and_then(|c| c.as_str()) == Some(cname) {
                 return true;
             }
-            if let Some(refs) = out_val.get("conditionRefs").and_then(|r| r.as_array()) {
-                if refs.iter().any(|r| r.as_str() == Some(cname)) {
+            if let Some(refs) = out_val.get("conditionRefs").and_then(|r| r.as_array())
+                && refs.iter().any(|r| r.as_str() == Some(cname)) {
                     return true;
                 }
-            }
         }
     }
     // Transitive: another condition depends on this one via !Condition
@@ -1267,13 +1160,11 @@ fn condition_is_referenced(
         if other == cname {
             continue;
         }
-        if let Some(deps) = cond_val.get("deps").and_then(|d| d.as_array()) {
-            if deps.iter().any(|d| d.as_str() == Some(cname)) {
-                if condition_is_referenced(other, conds, resources, outputs, visited) {
+        if let Some(deps) = cond_val.get("deps").and_then(|d| d.as_array())
+            && deps.iter().any(|d| d.as_str() == Some(cname))
+                && condition_is_referenced(other, conds, resources, outputs, visited) {
                     return true;
                 }
-            }
-        }
     }
     false
 }

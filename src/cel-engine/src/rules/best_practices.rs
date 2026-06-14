@@ -122,32 +122,32 @@ None,
     ];
     for rtype in policy_doc_types {
         for name in m.resources_of_type(rtype) {
-            if let Some(doc) = resolve_concrete(m, &name, "Properties.PolicyDocument") {
-                check_notaction_policy(&mut out, m, &name, &doc);
+            if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
+                check_notaction_policy(&mut out, m, name, &doc);
             }
         }
     }
     for rtype in &["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
         for name in m.resources_of_type(rtype) {
             if let Some(serde_json::Value::Array(policies)) =
-                resolve_concrete(m, &name, "Properties.Policies")
+                resolve_concrete(m, name, "Properties.Policies")
             {
                 for policy in &policies {
                     if let Some(doc) = policy.get("PolicyDocument") {
-                        check_notaction_policy(&mut out, m, &name, doc);
+                        check_notaction_policy(&mut out, m, name, doc);
                     }
                 }
             }
         }
     }
     for name in m.resources_of_type("AWS::SSO::PermissionSet") {
-        if let Some(doc) = resolve_concrete(m, &name, "Properties.InlinePolicy") {
-            check_notaction_policy(&mut out, m, &name, &doc);
+        if let Some(doc) = resolve_concrete(m, name, "Properties.InlinePolicy") {
+            check_notaction_policy(&mut out, m, name, &doc);
         }
     }
 
     for name in m.resources_of_type("AWS::EC2::Instance") {
-        let scenarios = m.resolve_scenarios_json(&name, "Properties.ImageId");
+        let scenarios = m.resolve_scenarios_json(name, "Properties.ImageId");
         let mut seen: HashSet<String> = HashSet::new();
         for (val, _) in scenarios {
             let Some(s) = val.as_str() else {
@@ -163,7 +163,7 @@ None,
                 "W9010",
                 "Hardcoded AMI ID — use a parameter or mapping for portability",
                 m,
-                &name,
+                name,
                 "Properties.ImageId",
                 None,
             ));
@@ -172,10 +172,10 @@ None,
     }
 
     for (name, res) in &m.resources {
-        for (_key, val) in &res.properties {
-            if let ResolvedValue::Concrete { value: v } = val {
-                if let Some(s) = v.as_str() {
-                    if ACCT_RE.is_match(s) {
+        for val in res.properties.values() {
+            if let ResolvedValue::Concrete { value: v } = val
+                && let Some(s) = v.as_str()
+                    && ACCT_RE.is_match(s) {
                         out.push(make_resource_diagnostic(
                             "W9013",
                             "Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter",
@@ -186,17 +186,15 @@ None,
                         ));
                         break;
                     }
-                }
-            }
         }
     }
 
     for (name, res) in &m.resources {
         // Plain string properties
-        for (_key, val) in &res.properties {
-            if let ResolvedValue::Concrete { value: v } = val {
-                if let Some(s) = v.as_str() {
-                    if s.starts_with("arn:aws:")
+        for val in res.properties.values() {
+            if let ResolvedValue::Concrete { value: v } = val
+                && let Some(s) = v.as_str()
+                    && s.starts_with("arn:aws:")
                         && !crate::functions::contains_unresolvable_content(val)
                     {
                         out.push(make_resource_diagnostic("I3042",
@@ -208,8 +206,6 @@ None,
 ));
                         break;
                     }
-                }
-            }
         }
         // Fn::Sub templates
         for path in &res.diagnostics.hardcoded_partition_arns {
@@ -250,11 +246,10 @@ None,
                         .get(FIELD_TARGET)
                         .and_then(|t| t.as_str())
                         .unwrap_or("");
-                    if let Some(prop) = sp.strip_prefix("Properties.") {
-                        if PASSWORD_PROPS.contains(&prop) && m.parameters.contains_key(target) {
+                    if let Some(prop) = sp.strip_prefix("Properties.")
+                        && PASSWORD_PROPS.contains(&prop) && m.parameters.contains_key(target) {
                             ref_to_param_props.insert((rname.clone(), prop.to_string()));
                         }
-                    }
                 }
             }
         }
@@ -266,8 +261,8 @@ None,
                 let path = format!("Properties.{}", prop);
 
                 // Check for non-secure dynamic references via raw property
-                if let Some(res) = m.resources.get(rname.as_str()) {
-                    if let Some(ResolvedValue::Dynamic { reason }) = res.properties.get(*prop) {
+                if let Some(res) = m.resources.get(rname.as_str())
+                    && let Some(ResolvedValue::Dynamic { reason }) = res.properties.get(*prop) {
                         if reason.contains("{{resolve:")
                             && !reason.contains("{{resolve:ssm-secure:")
                             && !reason.contains("{{resolve:secretsmanager:")
@@ -279,10 +274,9 @@ None,
                         }
                         continue;
                     }
-                }
 
-                if let Some(scenarios) = m.resolve_scenarios_json(rname, &path).first() {
-                    if let serde_json::Value::String(s) = &scenarios.0 {
+                if let Some(scenarios) = m.resolve_scenarios_json(rname, &path).first()
+                    && let serde_json::Value::String(s) = &scenarios.0 {
                         let is_secure = s.contains("{{resolve:ssm-secure:")
                             || s.contains("{{resolve:secretsmanager:");
                         let is_any_dynamic_ref = s.contains("{{resolve:");
@@ -317,7 +311,6 @@ None,
                             ));
                         }
                     }
-                }
             }
         }
     }
@@ -343,8 +336,8 @@ None,
                 let Some(target) = edge.get(FIELD_TARGET).and_then(|t| t.as_str()) else {
                     continue;
                 };
-                if let Some(param) = m.parameters.get(target) {
-                    if !param.no_echo {
+                if let Some(param) = m.parameters.get(target)
+                    && !param.no_echo {
                         out.push(make_resource_diagnostic(
                             "W2501",
                             &format!(
@@ -357,7 +350,6 @@ None,
                             None,
                         ));
                     }
-                }
             }
         }
     }
@@ -430,10 +422,9 @@ None,
     let snapstart_runtimes = ["java11", "java17", "java21"];
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if let Some(serde_json::Value::String(rt)) =
-            resolve_concrete(m, &name, "Properties.Runtime")
-        {
-            if snapstart_runtimes.contains(&rt.as_str()) {
-                let has_snap = resolve_concrete(m, &name, "Properties.SnapStart")
+            resolve_concrete(m, name, "Properties.Runtime")
+            && snapstart_runtimes.contains(&rt.as_str()) {
+                let has_snap = resolve_concrete(m, name, "Properties.SnapStart")
                     .and_then(|v| {
                         v.get("ApplyOn")
                             .and_then(|a| a.as_str())
@@ -448,7 +439,7 @@ None,
                             rt
                         ),
                         m,
-                        &name,
+                        name,
                         "Properties.Runtime",
                         Some("Add SnapStart with ApplyOn set to 'PublishedVersions'"),
                     );
@@ -457,7 +448,6 @@ None,
                     out.push(diag);
                 }
             }
-        }
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
@@ -471,7 +461,7 @@ None,
                 "W9008",
                 "RDS instance should have StorageEncrypted set to true",
                 m,
-                &name,
+                name,
                 "",
                 Some("Set StorageEncrypted to true"),
             ));
@@ -479,7 +469,7 @@ None,
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if resolve_concrete(m, &name, "Properties.PubliclyAccessible")
+        if resolve_concrete(m, name, "Properties.PubliclyAccessible")
             .as_ref()
             .and_then(|v| v.as_bool())
             == Some(true)
@@ -488,7 +478,7 @@ None,
                 "W9011",
                 "RDS instance has PubliclyAccessible set to true — consider restricting access",
                 m,
-                &name,
+                name,
                 "Properties.PubliclyAccessible",
                 Some("Set PubliclyAccessible to false"),
             ));
@@ -513,7 +503,7 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
                     out.push(make_resource_diagnostic("I3013",
                         &format!("'{}' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", prop),
                         m,
-                        &resource_name,
+                        resource_name,
                         &format!("Properties.{}", prop),
                         None,
                     ));

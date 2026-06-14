@@ -91,7 +91,7 @@ fn type_mismatch_boolean_for_string() {
             (d.rule_id == "F3012" || d.rule_id == "W9003")
                 && d.property_path
                     .as_deref()
-                    .map_or(false, |p| p.contains("Status"))
+                    .is_some_and(|p| p.contains("Status"))
         })
         .collect();
     assert!(
@@ -172,7 +172,7 @@ fn string_length_too_short() {
         assert!(f3033.iter().any(|d| {
             d.property_path
                 .as_deref()
-                .map_or(false, |p| p.contains("FunctionName"))
+                .is_some_and(|p| p.contains("FunctionName"))
         }));
     }
 }
@@ -187,7 +187,7 @@ fn format_violation_bad_subnet_id() {
         e1154.iter().any(|d| d
             .property_path
             .as_deref()
-            .map_or(false, |p| p.contains("SubnetId"))),
+            .is_some_and(|p| p.contains("SubnetId"))),
         "expected E1154 for bad SubnetId, got: {:?}",
         e1154
             .iter()
@@ -207,7 +207,7 @@ fn conditional_type_mismatch_with_scenario() {
             (d.rule_id == "F3012" || d.rule_id == "W9003")
                 && d.property_path
                     .as_deref()
-                    .map_or(false, |p| p.contains("BucketName"))
+                    .is_some_and(|p| p.contains("BucketName"))
         })
         .collect();
     assert!(
@@ -278,7 +278,7 @@ fn format_validation_with_refs() {
             d.rule_id == "W3045"
                 && d.property_path
                     .as_deref()
-                    .map_or(false, |p| p.contains("VpcId"))
+                    .is_some_and(|p| p.contains("VpcId"))
         })
         .collect();
     for d in &vpc_format_errors {
@@ -356,16 +356,15 @@ fn enrich_context_adds_allowed_values_for_enum() {
     let mut result = SV.validate(&model, "us-east-1");
     SV.enrich_context(&mut result.diagnostics, &model);
     let f3030 = result.diagnostics.iter().find(|d| d.rule_id == "F3030");
-    if let Some(d) = f3030 {
-        if let Some(ref ctx) = d.context {
+    if let Some(d) = f3030
+        && let Some(ref ctx) = d.context {
             assert!(
                 ctx.extra
                     .as_ref()
-                    .map_or(false, |e| e.contains_key("allowed_values")),
+                    .is_some_and(|e| e.contains_key("allowed_values")),
                 "expected allowed_values in context for F3030"
             );
         }
-    }
 }
 
 // ── Lifecycle rules ─────────────────────────────────────────────────
@@ -640,7 +639,7 @@ fn type_mismatch_array_for_object() {
             d.rule_id == "F3012"
                 && d.property_path
                     .as_deref()
-                    .map_or(false, |p| p.contains("UserPoolTags"))
+                    .is_some_and(|p| p.contains("UserPoolTags"))
         })
         .collect();
     assert!(

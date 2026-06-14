@@ -196,7 +196,7 @@ impl ValidationEngine for CelEngine {
             if rule
                 .category
                 .as_deref()
-                .map_or(false, |c| excluded_cats.contains(c))
+                .is_some_and(|c| excluded_cats.contains(c))
             {
                 continue;
             }

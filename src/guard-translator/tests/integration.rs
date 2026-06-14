@@ -136,7 +136,7 @@ AWS::S3::Bucket {
         other => panic!("Expected Access, got {:?}", other),
     };
     assert_eq!(ac.operator, Operator::Exists);
-    assert_eq!(ac.negated, false, "EXISTS should not be negated");
+    assert!(!ac.negated, "EXISTS should not be negated");
     assert_eq!(ac.custom_message.as_deref(), Some("Encryption required"));
 }
 
@@ -159,7 +159,7 @@ rule check {
         other => panic!("Expected Access, got {:?}", other),
     };
     assert_eq!(ac.operator, Operator::Eq);
-    assert_eq!(ac.negated, true, "NOT_EQUALS should be negated");
+    assert!(ac.negated, "NOT_EQUALS should be negated");
 }
 
 #[test]
@@ -181,7 +181,7 @@ rule check {
         other => panic!("Expected Access, got {:?}", other),
     };
     assert_eq!(ac.operator, Operator::Empty);
-    assert_eq!(ac.negated, true, "NOT_EMPTY should be negated");
+    assert!(ac.negated, "NOT_EMPTY should be negated");
 }
 
 #[test]
@@ -203,7 +203,7 @@ rule check {
         other => panic!("Expected Access, got {:?}", other),
     };
     assert_eq!(ac.operator, Operator::In);
-    assert_eq!(ac.negated, false, "IN operator should not be negated");
+    assert!(!ac.negated, "IN operator should not be negated");
     assert!(
         ac.compare_with.is_some(),
         "IN clause should have compare_with"
@@ -225,7 +225,7 @@ rule check when %buckets !empty {
     match &conds[0][0] {
         WhenClauseIR::Access(ac) => {
             assert_eq!(ac.operator, Operator::Empty);
-            assert_eq!(ac.negated, true, "when clause NOT_EMPTY should be negated");
+            assert!(ac.negated, "when clause NOT_EMPTY should be negated");
         }
         other => panic!("Expected WhenClauseIR::Access, got {:?}", other),
     }

@@ -117,7 +117,10 @@ fn main() {
             "--level" => {
                 i += 1;
                 if let Some(val) = args.get(i) {
-                    validate_config.severity_level = Severity::from_str(val);
+                    validate_config.severity_level = val.parse::<Severity>().unwrap_or_else(|e| {
+                        error!("{}", e);
+                        process::exit(2);
+                    });
                 }
             }
             "--no-strict" => validate_config.strict = false,
@@ -140,16 +143,15 @@ fn main() {
             }
             "--parameter" => {
                 i += 1;
-                if let Some(kv) = args.get(i) {
-                    if let Some((k, v)) = kv.split_once('=') {
+                if let Some(kv) = args.get(i)
+                    && let Some((k, v)) = kv.split_once('=') {
                         parameter_overrides.insert(k.to_string(), v.to_string());
                     }
-                }
             }
             "--pseudo-parameter" => {
                 i += 1;
-                if let Some(kv) = args.get(i) {
-                    if let Some((k, v)) = kv.split_once('=') {
+                if let Some(kv) = args.get(i)
+                    && let Some((k, v)) = kv.split_once('=') {
                         match k {
                             "AWS::AccountId" => {
                                 pseudo_parameter_overrides.account_id = Some(v.to_string())
@@ -178,7 +180,6 @@ fn main() {
                             }
                         }
                     }
-                }
             }
             s if !s.starts_with('-') => template_path = Some(s.to_string()),
             other => {

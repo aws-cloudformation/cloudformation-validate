@@ -40,6 +40,10 @@
     "AWS::ApiGatewayV2::DomainName": [
       "DomainName"
     ],
+    "AWS::ApiGatewayV2::Stage": [
+      "ApiId",
+      "StageName"
+    ],
     "AWS::AppFlow::Connector": [
       "ConnectorLabel"
     ],
@@ -76,6 +80,19 @@
     ],
     "AWS::AppStream::Stack": [
       "Name"
+    ],
+    "AWS::AppStream::StackFleetAssociation": [
+      "FleetName",
+      "StackName"
+    ],
+    "AWS::AppStream::StackUserAssociation": [
+      "StackName",
+      "UserName",
+      "AuthenticationType"
+    ],
+    "AWS::AppStream::User": [
+      "UserName",
+      "AuthenticationType"
     ],
     "AWS::AppSync::DomainName": [
       "DomainName"
@@ -128,6 +145,9 @@
       "JobDefinitionName"
     ],
     "AWS::Bedrock::ResourcePolicy": [
+      "ResourceArn"
+    ],
+    "AWS::BedrockAgentCore::ResourcePolicy": [
       "ResourceArn"
     ],
     "AWS::BedrockAgentCore::WorkloadIdentity": [
@@ -1084,6 +1104,10 @@
       "Type",
       "Name"
     ],
+    "AWS::OpenSearchServerless::CollectionIndex": [
+      "Id",
+      "IndexName"
+    ],
     "AWS::OpenSearchServerless::Index": [
       "IndexName",
       "CollectionEndpoint"
@@ -1492,6 +1516,9 @@
     "AWS::Timestream::Table": [
       "DatabaseName",
       "TableName"
+    ],
+    "AWS::VerifiedPermissions::PolicyStoreAlias": [
+      "AliasName"
     ],
     "AWS::VpcLattice::AuthPolicy": [
       "ResourceIdentifier"

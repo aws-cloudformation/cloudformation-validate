@@ -539,7 +539,7 @@ fn inspect_file(path: &str) {
         );
         for d in &model.diagnostics {
             let sev = d.severity.as_str();
-            if d.location.as_ref().map_or(false, |l| l.start_line > 0) {
+            if d.location.as_ref().is_some_and(|l| l.start_line > 0) {
                 let loc = d.location.as_ref().unwrap();
                 println!(
                     "  [{}] L{}:C{} {}",

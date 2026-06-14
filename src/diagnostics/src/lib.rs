@@ -17,7 +17,10 @@ pub use diagnostic::{
     ValidationReport, ViolationContext,
 };
 pub use filter::{Filterable, apply_filters};
-pub use helpers::{resolve_section_span, source_for_rule};
+pub use helpers::{
+    SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID, is_sam_transform_error_message,
+    resolve_section_span, source_for_rule,
+};
 pub use json_value::JsonValue;
 pub use metrics::{PhaseMetric, phase_metric};
 pub use phase::Phase;
