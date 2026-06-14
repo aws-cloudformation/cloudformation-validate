@@ -133,28 +133,31 @@ pub fn enrich_schema_context(
         match d.rule_id.as_str() {
             "F3012" => {
                 if let Some(ps) = prop_schema
-                    && let Some(ref pt) = ps.prop_type {
-                        ensure_ctx!(d).expected_constraint =
-                            Some(pt.primary().unwrap_or("unknown").to_string());
-                    }
+                    && let Some(ref pt) = ps.prop_type
+                {
+                    ensure_ctx!(d).expected_constraint =
+                        Some(pt.primary().unwrap_or("unknown").to_string());
+                }
             }
             "F3030" => {
                 if let Some(ps) = prop_schema
-                    && !ps.enum_values.is_empty() {
-                        ensure_ctx!(d)
-                            .extra
-                            .get_or_insert_with(HashMap::new)
-                            .insert(
-                                "allowed_values".into(),
-                                serde_json::json!(ps.enum_values).into(),
-                            );
-                    }
+                    && !ps.enum_values.is_empty()
+                {
+                    ensure_ctx!(d)
+                        .extra
+                        .get_or_insert_with(HashMap::new)
+                        .insert(
+                            "allowed_values".into(),
+                            serde_json::json!(ps.enum_values).into(),
+                        );
+                }
             }
             "F3031" => {
                 if let Some(ps) = prop_schema
-                    && let Some(ref pat) = ps.pattern {
-                        ensure_ctx!(d).expected_constraint = Some(pat.clone());
-                    }
+                    && let Some(ref pat) = ps.pattern
+                {
+                    ensure_ctx!(d).expected_constraint = Some(pat.clone());
+                }
             }
             "F3034" => {
                 if let Some(ps) = prop_schema {
@@ -298,13 +301,15 @@ fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<&
     }
     for ite in &schema.if_then_else {
         if let Some(ref then_s) = ite.then_schema
-            && let Some(ps) = find_prop_schema(path, &then_s.properties, &schema.definitions) {
-                return Some(ps);
-            }
+            && let Some(ps) = find_prop_schema(path, &then_s.properties, &schema.definitions)
+        {
+            return Some(ps);
+        }
         if let Some(ref else_s) = ite.else_schema
-            && let Some(ps) = find_prop_schema(path, &else_s.properties, &schema.definitions) {
-                return Some(ps);
-            }
+            && let Some(ps) = find_prop_schema(path, &else_s.properties, &schema.definitions)
+        {
+            return Some(ps);
+        }
     }
     None
 }
@@ -373,24 +378,26 @@ fn validate_resource(
         let top = wo.split('.').next().unwrap_or(wo);
         for edge in m.graph.incoming(rid) {
             if let RefKind::GetAtt { attr } = &edge.kind
-                && attr == top && edge.source_resource.starts_with("__output__") {
-                    let output_name = edge
-                        .source_resource
-                        .strip_prefix("__output__")
-                        .unwrap_or(&edge.source_resource);
-                    out.push(build_diagnostic(
-                        "W3041",
-                        Severity::Warn,
-                        &format!(
-                            "Write-only property '{}' of '{}' is referenced in output '{}'",
-                            top, rid, output_name
-                        ),
-                        m,
-                        rid,
-                        &format!("{}.{}", base, top),
-                        None,
-                    ));
-                }
+                && attr == top
+                && edge.source_resource.starts_with("__output__")
+            {
+                let output_name = edge
+                    .source_resource
+                    .strip_prefix("__output__")
+                    .unwrap_or(&edge.source_resource);
+                out.push(build_diagnostic(
+                    "W3041",
+                    Severity::Warn,
+                    &format!(
+                        "Write-only property '{}' of '{}' is referenced in output '{}'",
+                        top, rid, output_name
+                    ),
+                    m,
+                    rid,
+                    &format!("{}.{}", base, top),
+                    None,
+                ));
+            }
         }
     }
 
@@ -1036,41 +1043,42 @@ fn validate_prop(
     }
 
     if let Some(ref pat) = schema.pattern
-        && let Ok(re) = regex::Regex::new(pat) {
-            let from_param = m.is_from_parameter(rid, prop_path);
-            for (val, conds) in &scenarios {
-                if !is_satisfiable(m, conds) || val.is_null() {
+        && let Ok(re) = regex::Regex::new(pat)
+    {
+        let from_param = m.is_from_parameter(rid, prop_path);
+        for (val, conds) in &scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() {
+                continue;
+            }
+            if let Some(s) = cfn_coerce_to_string(val) {
+                if s.contains("{{resolve:") || s.contains("${") {
                     continue;
                 }
-                if let Some(s) = cfn_coerce_to_string(val) {
-                    if s.contains("{{resolve:") || s.contains("${") {
-                        continue;
-                    }
-                    // Malformed dynamic reference (e.g. "{{ resolve:ssm:... }}" with
-                    // spaces) — the pattern-mismatch warning reports this. Skip the Fatal
-                    // to avoid double-flagging; the downstream API (not CFN itself)
-                    // is what rejects the unresolved literal.
-                    if s.contains("{{") && s.contains("resolve") {
-                        continue;
-                    }
-                    if from_param {
-                        continue;
-                    }
-                    if !re.is_match(&s) {
-                        out.push(build_diagnostic_conditional(
-                            "F3031",
-                            Severity::Fatal,
-                            &format!("{} does not match pattern '{}'", format_value(val), pat),
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
-                    }
+                // Malformed dynamic reference (e.g. "{{ resolve:ssm:... }}" with
+                // spaces) — the pattern-mismatch warning reports this. Skip the Fatal
+                // to avoid double-flagging; the downstream API (not CFN itself)
+                // is what rejects the unresolved literal.
+                if s.contains("{{") && s.contains("resolve") {
+                    continue;
+                }
+                if from_param {
+                    continue;
+                }
+                if !re.is_match(&s) {
+                    out.push(build_diagnostic_conditional(
+                        "F3031",
+                        Severity::Fatal,
+                        &format!("{} does not match pattern '{}'", format_value(val), pat),
+                        m,
+                        rid,
+                        prop_path,
+                        None,
+                        condition_map(conds),
+                    ));
                 }
             }
         }
+    }
 
     if let Some(ref fmt) = schema.format {
         validate_format(out, m, rid, prop_path, fmt);
@@ -1084,57 +1092,61 @@ fn validate_prop(
             continue;
         };
         if let Some(max) = schema.maximum
-            && n > max {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is greater than the maximum of {}", n, max),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n > max
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is greater than the maximum of {}", n, max),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
         if let Some(min) = schema.minimum
-            && n < min {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is less than the minimum of {}", n, min),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n < min
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is less than the minimum of {}", n, min),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
         if let Some(emax) = schema.exclusive_maximum
-            && n >= emax {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is >= exclusive maximum {}", n, emax),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n >= emax
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is >= exclusive maximum {}", n, emax),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
         if let Some(emin) = schema.exclusive_minimum
-            && n <= emin {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is <= exclusive minimum {}", n, emin),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n <= emin
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is <= exclusive minimum {}", n, emin),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
     }
 
     if schema.min_length.is_some() || schema.max_length.is_some() {
@@ -1154,31 +1166,33 @@ fn validate_prop(
             }
             let len = s.len() as u64;
             if let Some(max) = schema.max_length
-                && len > max {
-                    out.push(build_diagnostic_conditional(
-                        "F3033",
-                        Severity::Fatal,
-                        &format!("length {} exceeds maximum {}", len, max),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len > max
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3033",
+                    Severity::Fatal,
+                    &format!("length {} exceeds maximum {}", len, max),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
             if let Some(min) = schema.min_length
-                && len < min {
-                    out.push(build_diagnostic_conditional(
-                        "F3033",
-                        Severity::Fatal,
-                        &format!("length {} is below minimum {}", len, min),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len < min
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3033",
+                    Severity::Fatal,
+                    &format!("length {} is below minimum {}", len, min),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
         }
     }
 
@@ -1189,31 +1203,33 @@ fn validate_prop(
         if let Some(arr) = val.as_array() {
             let len = arr.len() as u64;
             if let Some(max) = schema.max_items
-                && len > max {
-                    out.push(build_diagnostic_conditional(
-                        "F3032",
-                        Severity::Fatal,
-                        &format!("expected maximum item count: {}, found: {}", max, len),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len > max
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3032",
+                    Severity::Fatal,
+                    &format!("expected maximum item count: {}, found: {}", max, len),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
             if let Some(min) = schema.min_items
-                && len < min {
-                    out.push(build_diagnostic_conditional(
-                        "F3032",
-                        Severity::Fatal,
-                        &format!("expected minimum item count: {}, found: {}", min, len),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len < min
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3032",
+                    Severity::Fatal,
+                    &format!("expected minimum item count: {}, found: {}", min, len),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
         }
     }
 
@@ -1286,30 +1302,31 @@ fn validate_prop(
             // evaluated at deploy time with the real parameter values.
             for (val, _conds) in m.resolve_scenarios(rid, prop_path) {
                 if let ResolvedValue::Concrete { value } = &val
-                    && let Some(obj) = value.as_object() {
-                        let keys: Vec<String> = obj.keys().cloned().collect();
-                        validate_object_keys(
-                            out,
-                            m,
-                            rid,
-                            rtype,
-                            &schema.properties,
-                            defs,
-                            &schema.required,
-                            schema.additional_properties,
-                            &schema.pattern_properties,
-                            &schema.dependent_required,
-                            &schema.dependent_excluded,
-                            &[],
-                            &[],
-                            &schema.all_of,
-                            &schema.any_of,
-                            &schema.one_of,
-                            &keys,
-                            prop_path,
-                            visited,
-                        );
-                    }
+                    && let Some(obj) = value.as_object()
+                {
+                    let keys: Vec<String> = obj.keys().cloned().collect();
+                    validate_object_keys(
+                        out,
+                        m,
+                        rid,
+                        rtype,
+                        &schema.properties,
+                        defs,
+                        &schema.required,
+                        schema.additional_properties,
+                        &schema.pattern_properties,
+                        &schema.dependent_required,
+                        &schema.dependent_excluded,
+                        &[],
+                        &[],
+                        &schema.all_of,
+                        &schema.any_of,
+                        &schema.one_of,
+                        &keys,
+                        prop_path,
+                        visited,
+                    );
+                }
             }
         }
         for (pn, ps) in &schema.properties {
@@ -2035,15 +2052,16 @@ fn validate_cfn_gather(
         let Some(target) = target_rid else { continue };
 
         if let Some(filter) = slot_obj.get("filter").and_then(|v| v.as_object())
-            && let Some(expected_type) = filter.get("type").and_then(|v| v.as_str()) {
-                let actual_type = model
-                    .resources
-                    .get(&target)
-                    .map(|r| r.resource_type.as_str());
-                if actual_type != Some(expected_type) {
-                    continue;
-                }
+            && let Some(expected_type) = filter.get("type").and_then(|v| v.as_str())
+        {
+            let actual_type = model
+                .resources
+                .get(&target)
+                .map(|r| r.resource_type.as_str());
+            if actual_type != Some(expected_type) {
+                continue;
             }
+        }
 
         let mut slot_values = serde_json::Map::new();
         if let Some(props) = properties {
@@ -2095,30 +2113,31 @@ fn validate_extension_if_then_else(
     if let Some(required) = branch_schema.get("required").and_then(|v| v.as_array()) {
         for req in required {
             if let Some(prop_name) = req.as_str()
-                && !res.properties.contains_key(prop_name) {
-                    // Dedup: compiled base schema's if_then_else may already have
-                    // emitted a required-property diagnostic for the same required property (extensions
-                    // upstream sometimes mirror the base schema's conditional
-                    // requirements). Skip to avoid double-reporting.
-                    let already_reported = out.iter().any(|d| {
-                        d.rule_id == "F3003"
-                            && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(rid)
-                            && d.message
-                                .contains(&format!("'{}' is a required property", prop_name))
-                    });
-                    if already_reported {
-                        continue;
-                    }
-                    out.push(build_diagnostic(
-                        "F3003",
-                        Severity::Fatal,
-                        &format!("'{}' is a required property (from extension)", prop_name),
-                        model,
-                        rid,
-                        "Properties",
-                        Some(&format!("Add '{}'", prop_name)),
-                    ));
+                && !res.properties.contains_key(prop_name)
+            {
+                // Dedup: compiled base schema's if_then_else may already have
+                // emitted a required-property diagnostic for the same required property (extensions
+                // upstream sometimes mirror the base schema's conditional
+                // requirements). Skip to avoid double-reporting.
+                let already_reported = out.iter().any(|d| {
+                    d.rule_id == "F3003"
+                        && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(rid)
+                        && d.message
+                            .contains(&format!("'{}' is a required property", prop_name))
+                });
+                if already_reported {
+                    continue;
                 }
+                out.push(build_diagnostic(
+                    "F3003",
+                    Severity::Fatal,
+                    &format!("'{}' is a required property (from extension)", prop_name),
+                    model,
+                    rid,
+                    "Properties",
+                    Some(&format!("Add '{}'", prop_name)),
+                ));
+            }
         }
     }
 
@@ -2397,9 +2416,10 @@ fn gather_prop_matches(actual: &serde_json::Value, constraint: &serde_json::Valu
     if let Some(required) = obj.get("required").and_then(|v| v.as_array()) {
         for req in required {
             if let Some(name) = req.as_str()
-                && actual.get(name).is_none() {
-                    return false;
-                }
+                && actual.get(name).is_none()
+            {
+                return false;
+            }
         }
     }
     if let Some(cv) = obj.get("const") {
@@ -2456,10 +2476,10 @@ fn check_gather_property_constraints(
             };
             if let Some(cv) = pc.get("const")
                 && !cv.is_null()
-                    && prop_val != cv
-                    && cfn_coerce_to_string(prop_val) != cfn_coerce_to_string(cv)
-                {
-                    out.push(build_diagnostic(
+                && prop_val != cv
+                && cfn_coerce_to_string(prop_val) != cfn_coerce_to_string(cv)
+            {
+                out.push(build_diagnostic(
                         "E3030",
                         Severity::Fatal,
                         &format!(
@@ -2468,11 +2488,12 @@ fn check_gather_property_constraints(
                         ),
                         model, rid, "Properties", None,
                     ));
-                }
+            }
             if let Some(min_val) = pc.get("minimum").and_then(cfn_coerce_to_number)
                 && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                    && actual_num < min_val {
-                        out.push(build_diagnostic(
+                && actual_num < min_val
+            {
+                out.push(build_diagnostic(
                             "F3034",
                             Severity::Fatal,
                             &format!(
@@ -2481,11 +2502,12 @@ fn check_gather_property_constraints(
                             ),
                             model, rid, "Properties", None,
                         ));
-                    }
+            }
             if let Some(max_val) = pc.get("maximum").and_then(cfn_coerce_to_number)
                 && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                    && actual_num > max_val {
-                        out.push(build_diagnostic(
+                && actual_num > max_val
+            {
+                out.push(build_diagnostic(
                             "F3034",
                             Severity::Fatal,
                             &format!(
@@ -2494,7 +2516,7 @@ fn check_gather_property_constraints(
                             ),
                             model, rid, "Properties", None,
                         ));
-                    }
+            }
         }
     }
 }

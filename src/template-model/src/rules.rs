@@ -122,18 +122,19 @@ fn validate_single_rule(
     }
 
     if let Some(condition) = rule_obj.get(KEY_RULE_CONDITION)
-        && !condition.is_object() {
-            out.push(rule_diag(
-                "F8606",
-                rules_crate::Severity::Fatal,
-                format!(
-                    "Rule '{}' {} must be a condition function (object), not {}",
-                    rule_name,
-                    KEY_RULE_CONDITION,
-                    json_type_name(condition)
-                ),
-            ));
-        }
+        && !condition.is_object()
+    {
+        out.push(rule_diag(
+            "F8606",
+            rules_crate::Severity::Fatal,
+            format!(
+                "Rule '{}' {} must be a condition function (object), not {}",
+                rule_name,
+                KEY_RULE_CONDITION,
+                json_type_name(condition)
+            ),
+        ));
+    }
 }
 
 fn validate_single_assertion(

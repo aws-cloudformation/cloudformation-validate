@@ -3,7 +3,7 @@ package resources
 import rego.v1
 
 # W3002: Properties that only work with `aws cloudformation package`
-# cfn-lint checks the parent property (e.g. Code, Content, TemplateURL) as a string.
+# Checks the parent property (e.g. Code, Content, TemplateURL) as a string.
 # If the value is a string that doesn't start with s3:// or https://, it warns.
 # SAM templates are excluded entirely (has_serverless_transform check).
 _w3002_package_props := {

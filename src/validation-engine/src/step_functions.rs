@@ -137,31 +137,33 @@ fn validate_start_at(
         };
 
         if stype == "Parallel"
-            && let Some(branches) = state.get("Branches").and_then(|v| v.as_array()) {
-                for (i, branch) in branches.iter().enumerate() {
-                    validate_start_at(
-                        out,
-                        branch,
-                        model,
-                        rid,
-                        prop_key,
-                        &format!("{}/Branches/{}", state_path, i),
-                    );
-                }
+            && let Some(branches) = state.get("Branches").and_then(|v| v.as_array())
+        {
+            for (i, branch) in branches.iter().enumerate() {
+                validate_start_at(
+                    out,
+                    branch,
+                    model,
+                    rid,
+                    prop_key,
+                    &format!("{}/Branches/{}", state_path, i),
+                );
             }
+        }
         if stype == "Map" {
             for key in &["ItemProcessor", "Iterator"] {
                 if let Some(proc) = state.get(key)
-                    && proc.is_object() {
-                        validate_start_at(
-                            out,
-                            proc,
-                            model,
-                            rid,
-                            prop_key,
-                            &format!("{}/{}", state_path, key),
-                        );
-                    }
+                    && proc.is_object()
+                {
+                    validate_start_at(
+                        out,
+                        proc,
+                        model,
+                        rid,
+                        prop_key,
+                        &format!("{}/{}", state_path, key),
+                    );
+                }
             }
         }
     }

@@ -101,11 +101,12 @@ impl CfnYamlLoader {
     fn insert_new_node(&mut self, node: (Yaml, usize), _mark: Marker) {
         let (mut node_val, aid) = node;
         if let Some((_, depth)) = self.pending_tags.last()
-            && self.doc_stack.len() == *depth {
-                let (tag_name, _) = self.pending_tags.pop().unwrap();
-                let wrapped = Self::wrap_with_tag(&tag_name, node_val);
-                node_val = wrapped;
-            }
+            && self.doc_stack.len() == *depth
+        {
+            let (tag_name, _) = self.pending_tags.pop().unwrap();
+            let wrapped = Self::wrap_with_tag(&tag_name, node_val);
+            node_val = wrapped;
+        }
 
         if aid > 0 {
             self.anchor_map.insert(aid, node_val.clone());
@@ -199,9 +200,10 @@ impl MarkedEventReceiver for CfnYamlLoader {
                                 .insert(path, (mark.line() as u32 + 1, mark.col() as u32 + 1));
                         }
                     } else if matches!(parent.0, Yaml::Array(_))
-                        && let Some(idx) = self.array_idx_stack.last_mut() {
-                            *idx += 1;
-                        }
+                        && let Some(idx) = self.array_idx_stack.last_mut()
+                    {
+                        *idx += 1;
+                    }
                 }
 
                 if let Some(tag_name) = cfn_tag {
@@ -443,12 +445,13 @@ fn equals_argument_error_yaml(val: &Yaml) -> Option<String> {
         return None;
     }
     if let Some(hash) = val.as_hash()
-        && hash.len() == 1 {
-            let key = hash.keys().next().and_then(|k| k.as_str()).unwrap_or("");
-            if EQUALS_ARG_FN_KEYS.contains(&key) {
-                return None;
-            }
+        && hash.len() == 1
+    {
+        let key = hash.keys().next().and_then(|k| k.as_str()).unwrap_or("");
+        if EQUALS_ARG_FN_KEYS.contains(&key) {
+            return None;
         }
+    }
     Some(format!(
         "{} is not of type 'string'",
         describe_yaml_value(val)
@@ -508,9 +511,10 @@ impl YamlBuilder {
         if hash.len() == 1 {
             let (k, v) = hash.iter().next().unwrap();
             if let Some(ks) = yaml_as_string(k)
-                && let Some(r) = self.try_intrinsic(&ks, v, path) {
-                    return r;
-                }
+                && let Some(r) = self.try_intrinsic(&ks, v, path)
+            {
+                return r;
+            }
         }
         let entries: Vec<(String, NodeRef)> = hash
             .iter()

@@ -42,17 +42,17 @@ impl CompiledSchemaStore {
             && let Some(obj) = wrapper
                 .get("region_resource_types")
                 .and_then(|v| v.as_object())
-            {
-                for (region, types) in obj {
-                    let mut type_map = HashMap::new();
-                    if let Some(tobj) = types.as_object() {
-                        for (t, _) in tobj {
-                            type_map.insert(t.clone(), true);
-                        }
+        {
+            for (region, types) in obj {
+                let mut type_map = HashMap::new();
+                if let Some(tobj) = types.as_object() {
+                    for (t, _) in tobj {
+                        type_map.insert(t.clone(), true);
                     }
-                    self.region_types.insert(region.clone(), type_map);
                 }
+                self.region_types.insert(region.clone(), type_map);
             }
+        }
     }
 
     pub fn get(&self, type_name: &str) -> Option<&CompiledSchema> {
@@ -265,9 +265,10 @@ impl ExtensionStore {
                 continue;
             }
             if let Some(canonical) = lowercase_to_canonical.get(&key.to_lowercase())
-                && let Some(val) = self.extensions.remove(&key) {
-                    self.extensions.insert(canonical.clone(), val);
-                }
+                && let Some(val) = self.extensions.remove(&key)
+            {
+                self.extensions.insert(canonical.clone(), val);
+            }
         }
     }
 

@@ -340,12 +340,13 @@ fn find_resource_types_from_when(
     for disj in conds {
         for wc in disj {
             if let WhenClauseIR::Access(ac) = wc
-                && let Some(QueryPartIR::Key(key)) = ac.query.first() {
-                    let var_name = key.trim_start_matches('%');
-                    if let Some(types) = resource_type_vars.get(var_name) {
-                        return Some(types.clone());
-                    }
+                && let Some(QueryPartIR::Key(key)) = ac.query.first()
+            {
+                let var_name = key.trim_start_matches('%');
+                if let Some(types) = resource_type_vars.get(var_name) {
+                    return Some(types.clone());
                 }
+            }
         }
     }
     None

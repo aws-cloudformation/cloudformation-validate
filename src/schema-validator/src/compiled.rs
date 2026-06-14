@@ -308,10 +308,7 @@ mod tests {
         assert_eq!(deserialized.maximum, Some(100.0));
         assert_eq!(deserialized.min_length, Some(1));
         assert_eq!(deserialized.max_length, Some(256));
-        assert!(
-            deserialized.unique_items,
-            "unique_items should be true"
-        );
+        assert!(deserialized.unique_items, "unique_items should be true");
     }
 
     #[test]

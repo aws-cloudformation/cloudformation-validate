@@ -125,12 +125,13 @@ impl ConditionModel {
         let mut conditions = HashMap::new();
 
         if ir.conditions != NULL_REF
-            && let Some(entries) = ir.arena.as_map(ir.conditions) {
-                for (name, node_ref) in entries {
-                    let expr = parse_condition_expr(&ir.arena, *node_ref, parameters);
-                    conditions.insert(name.clone(), expr);
-                }
+            && let Some(entries) = ir.arena.as_map(ir.conditions)
+        {
+            for (name, node_ref) in entries {
+                let expr = parse_condition_expr(&ir.arena, *node_ref, parameters);
+                conditions.insert(name.clone(), expr);
             }
+        }
 
         let mutex_groups = extract_mutex_groups(&conditions);
         let implications = extract_implications(&conditions);
@@ -218,9 +219,10 @@ impl ConditionModel {
         for (name, val) in assumptions {
             if let Some(&idx) = name_to_idx.get(name.as_str()) {
                 if let Some(&existing) = assumption_map.get(&idx)
-                    && existing != *val {
-                        return false;
-                    }
+                    && existing != *val
+                {
+                    return false;
+                }
                 assumption_map.insert(idx, *val);
             }
         }
@@ -369,9 +371,10 @@ impl ConditionModel {
 
         for &val in &[false, true] {
             if let Some(&required) = assumptions.get(&idx)
-                && val != required {
-                    continue;
-                }
+                && val != required
+            {
+                continue;
+            }
 
             assignment[idx] = val;
 
@@ -496,9 +499,10 @@ impl ConditionModel {
                 );
                 // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
                 if let Some(eval_val) = evaluated
-                    && eval_val != assignment[i] {
-                        return false;
-                    }
+                    && eval_val != assignment[i]
+                {
+                    return false;
+                }
             }
             return true;
         }
@@ -552,10 +556,11 @@ impl ConditionModel {
                 );
                 // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
                 if let Some(eval_val) = evaluated
-                    && eval_val != assignment[i] {
-                        consistent = false;
-                        break;
-                    }
+                    && eval_val != assignment[i]
+                {
+                    consistent = false;
+                    break;
+                }
             }
             if consistent {
                 return true;
@@ -827,50 +832,53 @@ pub fn parse_condition_expr(
         _ => {
             // Try to parse as a map with intrinsic keys
             if let Some(entries) = arena.as_map(node_ref)
-                && entries.len() == 1 {
-                    let (key, val) = &entries[0];
-                    match key.as_str() {
-                        "Fn::Equals" => {
-                            if let Some(arr) = arena.as_list(*val)
-                                && arr.len() == 2 {
-                                    let va = parse_value_expr(arena, arr[0], parameters);
-                                    let vb = parse_value_expr(arena, arr[1], parameters);
-                                    return ConditionExpr::Equals(va, vb);
-                                }
+                && entries.len() == 1
+            {
+                let (key, val) = &entries[0];
+                match key.as_str() {
+                    "Fn::Equals" => {
+                        if let Some(arr) = arena.as_list(*val)
+                            && arr.len() == 2
+                        {
+                            let va = parse_value_expr(arena, arr[0], parameters);
+                            let vb = parse_value_expr(arena, arr[1], parameters);
+                            return ConditionExpr::Equals(va, vb);
                         }
-                        "Fn::And" => {
-                            if let Some(arr) = arena.as_list(*val) {
-                                let exprs = arr
-                                    .iter()
-                                    .map(|c| parse_condition_expr(arena, *c, parameters))
-                                    .collect();
-                                return ConditionExpr::And(exprs);
-                            }
-                        }
-                        "Fn::Or" => {
-                            if let Some(arr) = arena.as_list(*val) {
-                                let exprs = arr
-                                    .iter()
-                                    .map(|c| parse_condition_expr(arena, *c, parameters))
-                                    .collect();
-                                return ConditionExpr::Or(exprs);
-                            }
-                        }
-                        "Fn::Not" => {
-                            if let Some(arr) = arena.as_list(*val)
-                                && !arr.is_empty() {
-                                    let expr = parse_condition_expr(arena, arr[0], parameters);
-                                    return ConditionExpr::Not(Box::new(expr));
-                                }
-                        }
-                        "Condition" => {
-                            if let Some(name) = arena.as_str(*val) {
-                                return ConditionExpr::ConditionRef(name.to_string());
-                            }
-                        }
-                        _ => {}
                     }
+                    "Fn::And" => {
+                        if let Some(arr) = arena.as_list(*val) {
+                            let exprs = arr
+                                .iter()
+                                .map(|c| parse_condition_expr(arena, *c, parameters))
+                                .collect();
+                            return ConditionExpr::And(exprs);
+                        }
+                    }
+                    "Fn::Or" => {
+                        if let Some(arr) = arena.as_list(*val) {
+                            let exprs = arr
+                                .iter()
+                                .map(|c| parse_condition_expr(arena, *c, parameters))
+                                .collect();
+                            return ConditionExpr::Or(exprs);
+                        }
+                    }
+                    "Fn::Not" => {
+                        if let Some(arr) = arena.as_list(*val)
+                            && !arr.is_empty()
+                        {
+                            let expr = parse_condition_expr(arena, arr[0], parameters);
+                            return ConditionExpr::Not(Box::new(expr));
+                        }
+                    }
+                    "Condition" => {
+                        if let Some(name) = arena.as_str(*val) {
+                            return ConditionExpr::ConditionRef(name.to_string());
+                        }
+                    }
+                    _ => {}
                 }
+            }
             // Fallback
             ConditionExpr::Equals(ValueExpr::Other, ValueExpr::Other)
         }

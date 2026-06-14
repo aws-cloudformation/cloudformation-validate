@@ -931,9 +931,10 @@ fn walk_recursive(dir: &std::path::Path, out: &mut Vec<String>) {
             walk_recursive(&p, out);
         } else if p.is_file()
             && let Some(ext) = p.extension()
-                && (ext == "yaml" || ext == "json" || ext == "yml") {
-                    out.push(p.display().to_string());
-                }
+            && (ext == "yaml" || ext == "json" || ext == "yml")
+        {
+            out.push(p.display().to_string());
+        }
     }
 }
 

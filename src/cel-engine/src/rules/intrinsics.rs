@@ -107,18 +107,17 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             ));
                         } else if !attr.is_empty()
                             && let Some(target_res) = resources.get(target)
-                                && let Some(rtype) =
-                                    target_res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str())
-                                {
-                                    if let Some(valid_list) = getatt_attrs.get(rtype)
-                                        && !valid_list.iter().any(|a| a == attr)
-                                            && !rtype.starts_with("Custom::")
-                                            && !rtype
-                                                .starts_with("AWS::CloudFormation::CustomResource")
-                                            && rtype != "AWS::CloudFormation::Stack"
-                                            && rtype != "AWS::CloudFormation::Macro"
-                                        {
-                                            out.push(make_resource_diagnostic(
+                            && let Some(rtype) =
+                                target_res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str())
+                        {
+                            if let Some(valid_list) = getatt_attrs.get(rtype)
+                                && !valid_list.iter().any(|a| a == attr)
+                                && !rtype.starts_with("Custom::")
+                                && !rtype.starts_with("AWS::CloudFormation::CustomResource")
+                                && rtype != "AWS::CloudFormation::Stack"
+                                && rtype != "AWS::CloudFormation::Macro"
+                            {
+                                out.push(make_resource_diagnostic(
                                                 "E9004",
                                                 &format!(
                                                     "'{}' is not one of {:?}",
@@ -129,32 +128,30 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                                                 source_path,
                                                 Some("Check the resource type documentation for valid GetAtt attributes"),
                                             ));
-                                        }
+                            }
 
-                                    if let Some(ret_type) =
-                                        getatt_attr_types.get(rtype).and_then(|m| m.get(attr))
-                                        && matches!(
-                                            ret_type.as_str(),
-                                            "integer" | "number" | "boolean"
-                                        ) {
-                                            let res_type = m
-                                                .resources
-                                                .get(name)
-                                                .map(|r| r.resource_type.as_str())
-                                                .unwrap_or("");
-                                            if res_type == "AWS::SSM::Parameter"
-                                                && source_path.contains("Value")
-                                            {
-                                                out.push(make_resource_diagnostic("E9003",
+                            if let Some(ret_type) =
+                                getatt_attr_types.get(rtype).and_then(|m| m.get(attr))
+                                && matches!(ret_type.as_str(), "integer" | "number" | "boolean")
+                            {
+                                let res_type = m
+                                    .resources
+                                    .get(name)
+                                    .map(|r| r.resource_type.as_str())
+                                    .unwrap_or("");
+                                if res_type == "AWS::SSM::Parameter"
+                                    && source_path.contains("Value")
+                                {
+                                    out.push(make_resource_diagnostic("E9003",
                                                     &format!("{{'Fn::GetAtt': ['{}', '{}']}} is not of type 'string'", target, attr),
                                                     m,
                                                     name,
                                                     source_path,
                                                     Some("GetAtt returns a non-string type"),
                                                 ));
-                                            }
-                                        }
                                 }
+                            }
+                        }
                     }
                     EDGE_KIND_SUB => {
                         if !resource_keys.contains(target)
@@ -175,22 +172,24 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if !has_parse_errors && !has_language_extensions(m)
-            && let Some(invalid) = res.get("invalidRefs").and_then(|r| r.as_array()) {
-                let mut valid_targets: Vec<&str> = resource_keys
-                    .iter()
-                    .chain(param_keys.iter())
-                    .chain(pseudo.iter())
-                    .copied()
-                    .collect();
-                valid_targets.sort();
-                for entry in invalid {
-                    let target = entry.get("target").and_then(|t| t.as_str()).unwrap_or("");
-                    let path = entry.get("path").and_then(|p| p.as_str()).unwrap_or("");
-                    if target.is_empty() || sam_implicit.contains(target) {
-                        continue;
-                    }
-                    out.push(make_resource_diagnostic(
+        if !has_parse_errors
+            && !has_language_extensions(m)
+            && let Some(invalid) = res.get("invalidRefs").and_then(|r| r.as_array())
+        {
+            let mut valid_targets: Vec<&str> = resource_keys
+                .iter()
+                .chain(param_keys.iter())
+                .chain(pseudo.iter())
+                .copied()
+                .collect();
+            valid_targets.sort();
+            for entry in invalid {
+                let target = entry.get("target").and_then(|t| t.as_str()).unwrap_or("");
+                let path = entry.get("path").and_then(|p| p.as_str()).unwrap_or("");
+                if target.is_empty() || sam_implicit.contains(target) {
+                    continue;
+                }
+                out.push(make_resource_diagnostic(
                         "F1020",
                         &format!("'{}' is not one of {:?}", target, valid_targets),
                         m,
@@ -198,25 +197,26 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                         path,
                         Some("Check that the Ref target exists as a resource, parameter, or pseudo-parameter"),
                     ));
-                }
             }
+        }
 
         if let Some(refs) = res.get("findInMapRefs").and_then(|r| r.as_array()) {
             for map_ref in refs {
                 if let Some(map_name) = map_ref.as_str()
-                    && !m.mappings.contains_key(map_name) {
-                        out.push(make_resource_diagnostic(
-                            "F1012",
-                            &format!(
-                                "Fn::FindInMap references non-existent mapping '{}'",
-                                map_name
-                            ),
-                            m,
-                            name,
-                            "",
-                            None,
-                        ));
-                    }
+                    && !m.mappings.contains_key(map_name)
+                {
+                    out.push(make_resource_diagnostic(
+                        "F1012",
+                        &format!(
+                            "Fn::FindInMap references non-existent mapping '{}'",
+                            map_name
+                        ),
+                        m,
+                        name,
+                        "",
+                        None,
+                    ));
+                }
             }
         }
 
@@ -224,35 +224,37 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
             let mut seen_paths = HashSet::new();
             for path in joins {
                 if let Some(p) = path.as_str()
-                    && seen_paths.insert(p) {
-                        out.push(make_resource_diagnostic(
-                            "I1022",
-                            "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
-                            m,
-                            name,
-                            p,
-                            None,
-                        ));
-                    }
+                    && seen_paths.insert(p)
+                {
+                    out.push(make_resource_diagnostic(
+                        "I1022",
+                        "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+                        m,
+                        name,
+                        p,
+                        None,
+                    ));
+                }
             }
         }
 
         if let Some(crefs) = res.get("conditionRefs").and_then(|r| r.as_array()) {
             for cref in crefs {
                 if let Some(cname) = cref.as_str()
-                    && !cond_keys.contains(cname) {
-                        out.push(make_resource_diagnostic(
-                            "F1060",
-                            &format!(
-                                "Fn::If condition '{}' does not exist in Conditions section",
-                                cname
-                            ),
-                            m,
-                            name,
-                            "",
-                            None,
-                        ));
-                    }
+                    && !cond_keys.contains(cname)
+                {
+                    out.push(make_resource_diagnostic(
+                        "F1060",
+                        &format!(
+                            "Fn::If condition '{}' does not exist in Conditions section",
+                            cname
+                        ),
+                        m,
+                        name,
+                        "",
+                        None,
+                    ));
+                }
             }
         }
     }
@@ -261,16 +263,17 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
         let mut seen_paths = HashSet::new();
         for path in joins {
             if let Some(p) = path.as_str()
-                && seen_paths.insert(p) {
-                    out.push(make_resource_diagnostic(
-                        "I1022",
-                        "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
-                        m,
-                        "",
-                        p,
-                        None,
-                    ));
-                }
+                && seen_paths.insert(p)
+            {
+                out.push(make_resource_diagnostic(
+                    "I1022",
+                    "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+                    m,
+                    "",
+                    p,
+                    None,
+                ));
+            }
         }
     }
 
@@ -356,16 +359,19 @@ fn check_format_arn(
 ) {
     let path = format!("Properties.{}", prop);
     if let Some(serde_json::Value::String(val)) = resolve_concrete_fmt(m, name, &path)
-        && !val.starts_with("{{") && val.starts_with("arn:") && !re.is_match(&val) {
-            out.push(make_resource_diagnostic(
-                "E1156",
-                &format!("Value '{}' does not match IAM Role ARN format", val),
-                m,
-                name,
-                &path,
-                None,
-            ));
-        }
+        && !val.starts_with("{{")
+        && val.starts_with("arn:")
+        && !re.is_match(&val)
+    {
+        out.push(make_resource_diagnostic(
+            "E1156",
+            &format!("Value '{}' does not match IAM Role ARN format", val),
+            m,
+            name,
+            &path,
+            None,
+        ));
+    }
 }
 
 fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -381,13 +387,15 @@ fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
                 {
                     for item in items.iter() {
                         if let Some(val) = item.as_str()
-                            && !val.starts_with("{{") && !SG_ID_RE.is_match(val) {
-                                out.push(make_resource_diagnostic(
+                            && !val.starts_with("{{")
+                            && !SG_ID_RE.is_match(val)
+                        {
+                            out.push(make_resource_diagnostic(
                                     "E1150",
                                     &format!("Value '{}' does not match Security Group ID format (sg-xxxxxxxxx)", val),
                                     m, name, &path, None,
                                 ));
-                            }
+                        }
                     }
                 }
             }
@@ -705,16 +713,18 @@ fn scan_value_for_intrinsics(
             // GetAZs validation
             if let Some(param) = obj.get(FN_GET_AZS)
                 && let Some(s) = param.as_str()
-                    && !s.is_empty() && !VALID_REGIONS.contains(s) {
-                        out.push(make_resource_diagnostic(
-                            "E1015",
-                            &format!("Fn::GetAZs parameter '{}' is not a valid region", s),
-                            m,
-                            resource_id,
-                            "",
-                            None,
-                        ));
-                    }
+                && !s.is_empty()
+                && !VALID_REGIONS.contains(s)
+            {
+                out.push(make_resource_diagnostic(
+                    "E1015",
+                    &format!("Fn::GetAZs parameter '{}' is not a valid region", s),
+                    m,
+                    resource_id,
+                    "",
+                    None,
+                ));
+            }
             for (_, v) in obj {
                 scan_value_for_intrinsics(out, m, resource_id, v, _path);
             }

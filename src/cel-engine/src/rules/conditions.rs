@@ -103,9 +103,10 @@ fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {
                 continue;
             }
             if let Some(sc) = source_cond
-                && m.conditions.condition_implies(sc, target_cond) {
-                    continue;
-                }
+                && m.conditions.condition_implies(sc, target_cond)
+            {
+                continue;
+            }
 
             out.push(make_resource_diagnostic("W2502",
                 &format!("Resource '{}' has DependsOn '{}' which is conditional (condition '{}'), but '{}' does not have a matching condition",

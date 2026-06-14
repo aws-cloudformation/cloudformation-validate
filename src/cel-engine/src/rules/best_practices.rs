@@ -175,17 +175,18 @@ None,
         for val in res.properties.values() {
             if let ResolvedValue::Concrete { value: v } = val
                 && let Some(s) = v.as_str()
-                    && ACCT_RE.is_match(s) {
-                        out.push(make_resource_diagnostic(
-                            "W9013",
-                            "Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter",
-                            m,
-                            name,
-                            "",
-                            None,
-                        ));
-                        break;
-                    }
+                && ACCT_RE.is_match(s)
+            {
+                out.push(make_resource_diagnostic(
+                    "W9013",
+                    "Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter",
+                    m,
+                    name,
+                    "",
+                    None,
+                ));
+                break;
+            }
         }
     }
 
@@ -194,18 +195,18 @@ None,
         for val in res.properties.values() {
             if let ResolvedValue::Concrete { value: v } = val
                 && let Some(s) = v.as_str()
-                    && s.starts_with("arn:aws:")
-                        && !crate::functions::contains_unresolvable_content(val)
-                    {
-                        out.push(make_resource_diagnostic("I3042",
+                && s.starts_with("arn:aws:")
+                && !crate::functions::contains_unresolvable_content(val)
+            {
+                out.push(make_resource_diagnostic("I3042",
 "Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability",
 m,
 name,
 "",
 None,
 ));
-                        break;
-                    }
+                break;
+            }
         }
         // Fn::Sub templates
         for path in &res.diagnostics.hardcoded_partition_arns {
@@ -247,9 +248,11 @@ None,
                         .and_then(|t| t.as_str())
                         .unwrap_or("");
                     if let Some(prop) = sp.strip_prefix("Properties.")
-                        && PASSWORD_PROPS.contains(&prop) && m.parameters.contains_key(target) {
-                            ref_to_param_props.insert((rname.clone(), prop.to_string()));
-                        }
+                        && PASSWORD_PROPS.contains(&prop)
+                        && m.parameters.contains_key(target)
+                    {
+                        ref_to_param_props.insert((rname.clone(), prop.to_string()));
+                    }
                 }
             }
         }
@@ -262,55 +265,55 @@ None,
 
                 // Check for non-secure dynamic references via raw property
                 if let Some(res) = m.resources.get(rname.as_str())
-                    && let Some(ResolvedValue::Dynamic { reason }) = res.properties.get(*prop) {
-                        if reason.contains("{{resolve:")
-                            && !reason.contains("{{resolve:ssm-secure:")
-                            && !reason.contains("{{resolve:secretsmanager:")
-                        {
-                            out.push(make_resource_diagnostic("W2501",
+                    && let Some(ResolvedValue::Dynamic { reason }) = res.properties.get(*prop)
+                {
+                    if reason.contains("{{resolve:")
+                        && !reason.contains("{{resolve:ssm-secure:")
+                        && !reason.contains("{{resolve:secretsmanager:")
+                    {
+                        out.push(make_resource_diagnostic("W2501",
                                 &format!("Password should use a secure dynamic reference for Resources/{}/Properties/{}", rname, prop),
                                 m, rname, &path, None,
                             ));
-                        }
+                    }
+                    continue;
+                }
+
+                if let Some(scenarios) = m.resolve_scenarios_json(rname, &path).first()
+                    && let serde_json::Value::String(s) = &scenarios.0
+                {
+                    let is_secure = s.contains("{{resolve:ssm-secure:")
+                        || s.contains("{{resolve:secretsmanager:");
+                    let is_any_dynamic_ref = s.contains("{{resolve:");
+
+                    if is_secure {
                         continue;
                     }
 
-                if let Some(scenarios) = m.resolve_scenarios_json(rname, &path).first()
-                    && let serde_json::Value::String(s) = &scenarios.0 {
-                        let is_secure = s.contains("{{resolve:ssm-secure:")
-                            || s.contains("{{resolve:secretsmanager:");
-                        let is_any_dynamic_ref = s.contains("{{resolve:");
-
-                        if is_secure {
-                            continue;
-                        }
-
-                        // Non-secure dynamic reference in resolved string
-                        if is_any_dynamic_ref {
-                            out.push(make_resource_diagnostic("W2501",
+                    // Non-secure dynamic reference in resolved string
+                    if is_any_dynamic_ref {
+                        out.push(make_resource_diagnostic("W2501",
                                 &format!("Password should use a secure dynamic reference for Resources/{}/Properties/{}", rname, prop),
                                 m, rname, &path, None,
                             ));
-                            continue;
-                        }
+                        continue;
+                    }
 
-                        // Skip if this is a Ref to a parameter (handled by parameter-level check)
-                        if ref_to_param_props.contains(&(rname.clone(), prop.to_string())) {
-                            continue;
-                        }
+                    // Skip if this is a Ref to a parameter (handled by parameter-level check)
+                    if ref_to_param_props.contains(&(rname.clone(), prop.to_string())) {
+                        continue;
+                    }
 
-                        // Hardcoded string (not a Ref to parameter, not a dynamic reference)
-                        if !crate::functions::contains_unresolvable_content(
-                            &ResolvedValue::Concrete {
-                                value: scenarios.0.clone().into(),
-                            },
-                        ) {
-                            out.push(make_resource_diagnostic("W2501",
+                    // Hardcoded string (not a Ref to parameter, not a dynamic reference)
+                    if !crate::functions::contains_unresolvable_content(&ResolvedValue::Concrete {
+                        value: scenarios.0.clone().into(),
+                    }) {
+                        out.push(make_resource_diagnostic("W2501",
                                 &format!("Property '{}' should not be a hardcoded string — use a parameter with NoEcho or a dynamic reference", prop),
                                 m, rname, &path, None,
                             ));
-                        }
                     }
+                }
             }
         }
     }
@@ -337,19 +340,20 @@ None,
                     continue;
                 };
                 if let Some(param) = m.parameters.get(target)
-                    && !param.no_echo {
-                        out.push(make_resource_diagnostic(
-                            "W2501",
-                            &format!(
-                                "Parameter {} used as {}, therefore NoEcho should be True",
-                                target, prop
-                            ),
-                            m,
-                            "",
-                            &format!("Parameters.{}", target),
-                            None,
-                        ));
-                    }
+                    && !param.no_echo
+                {
+                    out.push(make_resource_diagnostic(
+                        "W2501",
+                        &format!(
+                            "Parameter {} used as {}, therefore NoEcho should be True",
+                            target, prop
+                        ),
+                        m,
+                        "",
+                        &format!("Parameters.{}", target),
+                        None,
+                    ));
+                }
             }
         }
     }
@@ -421,33 +425,33 @@ None,
 
     let snapstart_runtimes = ["java11", "java17", "java21"];
     for name in m.resources_of_type("AWS::Lambda::Function") {
-        if let Some(serde_json::Value::String(rt)) =
-            resolve_concrete(m, name, "Properties.Runtime")
-            && snapstart_runtimes.contains(&rt.as_str()) {
-                let has_snap = resolve_concrete(m, name, "Properties.SnapStart")
-                    .and_then(|v| {
-                        v.get("ApplyOn")
-                            .and_then(|a| a.as_str())
-                            .map(|s| s.to_string())
-                    })
-                    .unwrap_or_default();
-                if has_snap != "PublishedVersions" {
-                    let mut diag = make_resource_diagnostic(
-                        "I2530",
-                        &format!(
-                            "Runtime '{}' should consider using SnapStart for improved performance",
-                            rt
-                        ),
-                        m,
-                        name,
-                        "Properties.Runtime",
-                        Some("Add SnapStart with ApplyOn set to 'PublishedVersions'"),
-                    );
-                    diag.documentation_url =
-                        Some("https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html".into());
-                    out.push(diag);
-                }
+        if let Some(serde_json::Value::String(rt)) = resolve_concrete(m, name, "Properties.Runtime")
+            && snapstart_runtimes.contains(&rt.as_str())
+        {
+            let has_snap = resolve_concrete(m, name, "Properties.SnapStart")
+                .and_then(|v| {
+                    v.get("ApplyOn")
+                        .and_then(|a| a.as_str())
+                        .map(|s| s.to_string())
+                })
+                .unwrap_or_default();
+            if has_snap != "PublishedVersions" {
+                let mut diag = make_resource_diagnostic(
+                    "I2530",
+                    &format!(
+                        "Runtime '{}' should consider using SnapStart for improved performance",
+                        rt
+                    ),
+                    m,
+                    name,
+                    "Properties.Runtime",
+                    Some("Add SnapStart with ApplyOn set to 'PublishedVersions'"),
+                );
+                diag.documentation_url =
+                    Some("https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html".into());
+                out.push(diag);
             }
+        }
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {

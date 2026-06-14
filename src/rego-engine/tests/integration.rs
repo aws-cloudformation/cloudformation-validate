@@ -1246,19 +1246,13 @@ fn e2e_strict_mode_in_metadata() {
         ..Default::default()
     };
     let report = validate_with_config("good/minimal.yaml", config);
-    assert!(
-        report.metadata.strict,
-        "strict mode should be enabled"
-    );
+    assert!(report.metadata.strict, "strict mode should be enabled");
 }
 
 #[test]
 fn e2e_strict_mode_default_false() {
     let report = validate_fixture("good/minimal.yaml");
-    assert!(
-        !report.metadata.strict,
-        "default mode should not be strict"
-    );
+    assert!(!report.metadata.strict, "default mode should not be strict");
 }
 
 #[test]
@@ -1519,13 +1513,9 @@ fn e2e_guard_rule_source() {
     // but the translator emits this as a violation condition (fires when condition is true).
     // Use a template where the condition IS true to verify the plumbing works.
     let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-    let report = validation_engine::validate_bytes(
-        &engine,
-        &SHARED_SV,
-        template,
-        ValidateConfig::default(),
-    )
-    .unwrap();
+    let report =
+        validation_engine::validate_bytes(&engine, &SHARED_SV, template, ValidateConfig::default())
+            .unwrap();
     let guard_diags: Vec<_> = report
         .diagnostics
         .iter()

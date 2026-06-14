@@ -53,8 +53,9 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 let cpu_n = to_num(&cpu_val);
                 let mem_n = to_num(&mem_val);
                 if let (Some(c), Some(me)) = (cpu_n, mem_n)
-                    && !valid_fargate_combo(c, me) {
-                        out.push(make_resource_diagnostic(
+                    && !valid_fargate_combo(c, me)
+                {
+                    out.push(make_resource_diagnostic(
                             "E3047",
                             &format!("Cpu {} is not compatible with Memory {} for Fargate", c, me),
                             m,
@@ -62,7 +63,7 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             "Properties.Cpu",
                             Some("Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)"),
                         ));
-                    }
+                }
             }
         }
     }
@@ -223,16 +224,17 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             resolve_concrete(m, name, "Properties.FifoQueue")
             && let Some(serde_json::Value::String(qname)) =
                 resolve_concrete(m, name, "Properties.QueueName")
-                && !qname.ends_with(".fifo") {
-                    out.push(make_resource_diagnostic(
-                        "E2504",
-                        &format!("FIFO queue name '{}' must end with '.fifo'", qname),
-                        m,
-                        name,
-                        "Properties.QueueName",
-                        None,
-                    ));
-                }
+            && !qname.ends_with(".fifo")
+        {
+            out.push(make_resource_diagnostic(
+                "E2504",
+                &format!("FIFO queue name '{}' must end with '.fifo'", qname),
+                m,
+                name,
+                "Properties.QueueName",
+                None,
+            ));
+        }
     }
 
     if let Some(region) = ctx.region {
@@ -297,9 +299,9 @@ fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
         .map(|r| r.properties.contains_key("PackageType"))
         .unwrap_or(false)
         && let Some(serde_json::Value::Object(code)) = resolve_concrete(m, name, "Properties.Code")
-        {
-            return code.contains_key("ZipFile") || code.contains_key("S3Key");
-        }
+    {
+        return code.contains_key("ZipFile") || code.contains_key("S3Key");
+    }
     false
 }
 

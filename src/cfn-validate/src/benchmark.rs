@@ -130,16 +130,17 @@ fn main() {
         ..Default::default()
     };
     if let Some(first) = templates.first()
-        && let Ok(bytes) = fs::read(first) {
-            let _ = SemanticModel::parse(&bytes, Default::default());
-            let _ = validate_bytes_with_path(
-                engine.as_ref(),
-                &schema_validator,
-                &bytes,
-                benchmark_config.clone(),
-                first.display().to_string(),
-            );
-        }
+        && let Ok(bytes) = fs::read(first)
+    {
+        let _ = SemanticModel::parse(&bytes, Default::default());
+        let _ = validate_bytes_with_path(
+            engine.as_ref(),
+            &schema_validator,
+            &bytes,
+            benchmark_config.clone(),
+            first.display().to_string(),
+        );
+    }
 
     let bench_start = Instant::now();
 

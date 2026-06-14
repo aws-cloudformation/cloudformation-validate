@@ -322,12 +322,13 @@ fn build_outputs(
         if let Some(output_name) = edge
             .source_resource
             .strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX)
-            && let RefKind::GetAtt { attr } = &edge.kind {
-                output_getatt_refs
-                    .entry(output_name.to_string())
-                    .or_default()
-                    .push((edge.target.clone(), attr.clone()));
-            }
+            && let RefKind::GetAtt { attr } = &edge.kind
+        {
+            output_getatt_refs
+                .entry(output_name.to_string())
+                .or_default()
+                .push((edge.target.clone(), attr.clone()));
+        }
     }
 
     outputs

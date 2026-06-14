@@ -971,8 +971,8 @@ fn register_input_region(rego: &mut regorus::Engine, holder: SharedRegion) {
 
 /// Region used for region-scoped enum validation: the configured region, or
 /// the platform default ([`template_model::DEFAULT_REGION`]) when unset. This
-/// keeps the default in one place and matches the CEL engine and cfn-lint,
-/// which validate against the default region when none is configured.
+/// keeps the default in one place and validates against the default region
+/// when none is configured.
 fn register_effective_region(rego: &mut regorus::Engine, holder: SharedRegion) {
     let _ = rego.add_extension(
         "effective_region".into(),
@@ -1519,16 +1519,14 @@ fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchem
             let mut map = serde_json::Map::new();
             if let Some(v) = constraints.get("minLength") {
                 map.insert("minLength".into(), v.clone());
-            } else if is_string
-                && let Some(v) = constraints.get("minimum") {
-                    map.insert("minLength".into(), v.clone());
-                }
+            } else if is_string && let Some(v) = constraints.get("minimum") {
+                map.insert("minLength".into(), v.clone());
+            }
             if let Some(v) = constraints.get("maxLength") {
                 map.insert("maxLength".into(), v.clone());
-            } else if is_string
-                && let Some(v) = constraints.get("maximum") {
-                    map.insert("maxLength".into(), v.clone());
-                }
+            } else if is_string && let Some(v) = constraints.get("maximum") {
+                map.insert("maxLength".into(), v.clone());
+            }
             if map.is_empty() {
                 return Ok(Value::Undefined);
             }

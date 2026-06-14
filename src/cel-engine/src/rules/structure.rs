@@ -46,19 +46,20 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         .get("template")
         .and_then(|t| t.get("formatVersion"))
         .and_then(|v| v.as_str())
-        && fv != FORMAT_VERSION {
-            out.push(make_resource_diagnostic(
-                "F0002",
-                &format!(
-                    "AWSTemplateFormatVersion must be '{}', got '{}'",
-                    FORMAT_VERSION, fv
-                ),
-                m,
-                "",
-                SECTION_FORMAT_VERSION,
-                None,
-            ));
-        }
+        && fv != FORMAT_VERSION
+    {
+        out.push(make_resource_diagnostic(
+            "F0002",
+            &format!(
+                "AWSTemplateFormatVersion must be '{}', got '{}'",
+                FORMAT_VERSION, fv
+            ),
+            m,
+            "",
+            SECTION_FORMAT_VERSION,
+            None,
+        ));
+    }
 
     if m.parameters.len() > 200 {
         out.push(make_resource_diagnostic(
@@ -153,16 +154,17 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     {
         for key_val in raw_keys {
             if let Some(key) = key_val.as_str()
-                && !valid_sections.contains(key) {
-                    out.push(make_resource_diagnostic(
-                        "F0005",
-                        &format!("'{}' is not a valid top-level template section", key),
-                        m,
-                        "",
-                        "",
-                        None,
-                    ));
-                }
+                && !valid_sections.contains(key)
+            {
+                out.push(make_resource_diagnostic(
+                    "F0005",
+                    &format!("'{}' is not a valid top-level template section", key),
+                    m,
+                    "",
+                    "",
+                    None,
+                ));
+            }
         }
     }
 
@@ -325,34 +327,38 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     if let Some(desc_val) = input.get("template").and_then(|t| t.get("description"))
-        && !desc_val.is_string() && !desc_val.is_null() {
-            out.push(make_resource_diagnostic(
-                "F1004",
-                "Description must be a string",
-                m,
-                "",
-                "",
-                None,
-            ));
-        }
+        && !desc_val.is_string()
+        && !desc_val.is_null()
+    {
+        out.push(make_resource_diagnostic(
+            "F1004",
+            "Description must be a string",
+            m,
+            "",
+            "",
+            None,
+        ));
+    }
 
     if let Some(desc) = input
         .get("template")
         .and_then(|t| t.get("description"))
         .and_then(|v| v.as_str())
-        && desc.len() > 921 && desc.len() <= 1024 {
-            out.push(make_resource_diagnostic(
-                "I1003",
-                &format!(
-                    "Description length {} is approaching maximum of 1024",
-                    desc.len()
-                ),
-                m,
-                "",
-                "",
-                None,
-            ));
-        }
+        && desc.len() > 921
+        && desc.len() <= 1024
+    {
+        out.push(make_resource_diagnostic(
+            "I1003",
+            &format!(
+                "Description length {} is approaching maximum of 1024",
+                desc.len()
+            ),
+            m,
+            "",
+            "",
+            None,
+        ));
+    }
 
     for pname in m.parameters.keys() {
         if m.resources.contains_key(pname) {
@@ -374,19 +380,20 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         let defined_conditions: HashSet<&str> = conds_obj.keys().map(|k| k.as_str()).collect();
         for (rname, res) in &m.resources {
             if let Some(cond) = &res.condition
-                && !defined_conditions.contains(cond.as_str()) {
-                    out.push(make_resource_diagnostic(
-                        "F8002",
-                        &format!(
-                            "Condition '{}' referenced by resource '{}' is not defined",
-                            cond, rname
-                        ),
-                        m,
-                        rname,
-                        "",
-                        None,
-                    ));
-                }
+                && !defined_conditions.contains(cond.as_str())
+            {
+                out.push(make_resource_diagnostic(
+                    "F8002",
+                    &format!(
+                        "Condition '{}' referenced by resource '{}' is not defined",
+                        cond, rname
+                    ),
+                    m,
+                    rname,
+                    "",
+                    None,
+                ));
+            }
         }
     }
 
@@ -394,16 +401,17 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         .get("template")
         .and_then(|t| t.get("description"))
         .and_then(|v| v.as_str())
-        && desc.len() > 1024 {
-            out.push(make_resource_diagnostic(
-                "F0011",
-                &format!("Description length {} exceeds maximum 1024", desc.len()),
-                m,
-                "",
-                "",
-                None,
-            ));
-        }
+        && desc.len() > 1024
+    {
+        out.push(make_resource_diagnostic(
+            "F0011",
+            &format!("Description length {} exceeds maximum 1024", desc.len()),
+            m,
+            "",
+            "",
+            None,
+        ));
+    }
 
     for name in m.resources.keys() {
         if !ALPHANUM_RE.is_match(name) {
@@ -588,7 +596,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-
     for name in m.resources.keys() {
         if name.len() > 200 {
             out.push(make_resource_diagnostic(
@@ -617,77 +624,80 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             if edge.get(FIELD_TARGET).and_then(|t| t.as_str())
                                 == Some(pname.as_str())
                                 && let Some(kind) = edge.get(FIELD_KIND).and_then(|k| k.as_str())
-                                    && (kind == EDGE_KIND_REF || kind == EDGE_KIND_SUB) {
-                                        referenced = true;
-                                        break;
-                                    }
+                                && (kind == EDGE_KIND_REF || kind == EDGE_KIND_SUB)
+                            {
+                                referenced = true;
+                                break;
+                            }
                         }
                     }
                     if !referenced
-                        && let Some(subs) = res.get("simpleSubs").and_then(|s| s.as_array()) {
-                            for sub in subs {
-                                if sub.get("variable").and_then(|v| v.as_str())
-                                    == Some(pname.as_str())
-                                {
-                                    referenced = true;
-                                    break;
-                                }
+                        && let Some(subs) = res.get("simpleSubs").and_then(|s| s.as_array())
+                    {
+                        for sub in subs {
+                            if sub.get("variable").and_then(|v| v.as_str()) == Some(pname.as_str())
+                            {
+                                referenced = true;
+                                break;
                             }
                         }
+                    }
                     if referenced {
                         break;
                     }
                 }
             }
             // Also check edges array
-            if !referenced
-                && let Some(edges) = input.get(FIELD_EDGES).and_then(|e| e.as_array()) {
-                    for edge in edges {
-                        if edge.get(FIELD_TARGET).and_then(|t| t.as_str()) == Some(pname.as_str()) {
-                            referenced = true;
-                            break;
-                        }
+            if !referenced && let Some(edges) = input.get(FIELD_EDGES).and_then(|e| e.as_array()) {
+                for edge in edges {
+                    if edge.get(FIELD_TARGET).and_then(|t| t.as_str()) == Some(pname.as_str()) {
+                        referenced = true;
+                        break;
                     }
                 }
+            }
             // Check condition_param_refs
             if !referenced
-                && let Some(refs) = input.get("conditionParamRefs").and_then(|r| r.as_array()) {
-                    for r in refs {
-                        if r.as_str() == Some(pname.as_str()) {
-                            referenced = true;
-                            break;
-                        }
+                && let Some(refs) = input.get("conditionParamRefs").and_then(|r| r.as_array())
+            {
+                for r in refs {
+                    if r.as_str() == Some(pname.as_str()) {
+                        referenced = true;
+                        break;
                     }
                 }
+            }
             // Check SAM Globals parameter refs
             if !referenced
-                && let Some(refs) = input.get("globalsParamRefs").and_then(|r| r.as_array()) {
-                    for r in refs {
-                        if r.as_str() == Some(pname.as_str()) {
-                            referenced = true;
-                            break;
-                        }
+                && let Some(refs) = input.get("globalsParamRefs").and_then(|r| r.as_array())
+            {
+                for r in refs {
+                    if r.as_str() == Some(pname.as_str()) {
+                        referenced = true;
+                        break;
                     }
                 }
+            }
             // Check output edges
             if !referenced
-                && let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
-                    for (_, out_val) in outputs {
-                        if let Some(edges) = out_val.get(FIELD_EDGES).and_then(|e| e.as_array()) {
-                            for edge in edges {
-                                if edge.get(FIELD_TARGET).and_then(|t| t.as_str())
-                                    == Some(pname.as_str())
-                                {
-                                    referenced = true;
-                                    break;
-                                }
+                && let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object())
+            {
+                for (_, out_val) in outputs {
+                    if let Some(edges) = out_val.get(FIELD_EDGES).and_then(|e| e.as_array()) {
+                        for edge in edges {
+                            if edge.get(FIELD_TARGET).and_then(|t| t.as_str())
+                                == Some(pname.as_str())
+                            {
+                                referenced = true;
+                                break;
                             }
                         }
-                        if referenced {
-                            break;
-                        }
+                    }
+                    if referenced {
+                        break;
                     }
                 }
+            }
             if !referenced {
                 out.push(make_resource_diagnostic(
                     "W2001",
@@ -763,19 +773,21 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (name, param) in &m.parameters {
         if let (Some(default), Some(allowed)) = (&param.default, &param.allowed_values)
-            && !allowed.is_empty() && !allowed.iter().any(|a| a == default) {
-                out.push(make_resource_diagnostic(
-                    "F2012",
-                    &format!(
-                        "Parameter '{}' Default '{}' is not in AllowedValues {:?}",
-                        name, default, allowed
-                    ),
-                    m,
-                    "",
-                    "",
-                    None,
-                ));
-            }
+            && !allowed.is_empty()
+            && !allowed.iter().any(|a| a == default)
+        {
+            out.push(make_resource_diagnostic(
+                "F2012",
+                &format!(
+                    "Parameter '{}' Default '{}' is not in AllowedValues {:?}",
+                    name, default, allowed
+                ),
+                m,
+                "",
+                "",
+                None,
+            ));
+        }
     }
 
     if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
@@ -797,12 +809,20 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             .getatt_attr_types
                             .get(&res.resource_type)
                             .and_then(|t| t.get(attribute))
-                            && ret_type != "string" {
-                                out.push(make_resource_diagnostic("F6101",
-                                    &format!("Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'", name, resource, attribute, ret_type),
-                                    m, "", "",
-            None));
-                            }
+                            && ret_type != "string"
+                        {
+                            out.push(make_resource_diagnostic(
+                                "F6101",
+                                &format!(
+                                    "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
+                                    name, resource, attribute, ret_type
+                                ),
+                                m,
+                                "",
+                                "",
+                                None,
+                            ));
+                        }
                     }
                 }
             }
@@ -812,12 +832,33 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, param) in &m.parameters {
         if param.param_type == "Number"
             && let Some(ref def) = param.default
-                && !NUM_RE.is_match(def) {
+            && !NUM_RE.is_match(def)
+        {
+            out.push(make_resource_diagnostic(
+                "F0015",
+                &format!(
+                    "Parameter '{}' Default '{}' is not a valid number",
+                    name, def
+                ),
+                m,
+                "",
+                "",
+                None,
+            ));
+        }
+    }
+
+    for (name, param) in &m.parameters {
+        if param.param_type == "Number"
+            && let Some(ref avs) = param.allowed_values
+        {
+            for val in avs {
+                if !NUM_RE.is_match(val) {
                     out.push(make_resource_diagnostic(
-                        "F0015",
+                        "F0016",
                         &format!(
-                            "Parameter '{}' Default '{}' is not a valid number",
-                            name, def
+                            "Parameter '{}' AllowedValues entry '{}' is not a valid number",
+                            name, val
                         ),
                         m,
                         "",
@@ -825,42 +866,24 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-    }
-
-    for (name, param) in &m.parameters {
-        if param.param_type == "Number"
-            && let Some(ref avs) = param.allowed_values {
-                for val in avs {
-                    if !NUM_RE.is_match(val) {
-                        out.push(make_resource_diagnostic(
-                            "F0016",
-                            &format!(
-                                "Parameter '{}' AllowedValues entry '{}' is not a valid number",
-                                name, val
-                            ),
-                            m,
-                            "",
-                            "",
-                            None,
-                        ));
-                    }
-                }
             }
+        }
     }
 
     if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
         for (name, ov) in outputs {
             if let Some(export) = ov.get("exportName").and_then(|e| e.as_str())
-                && export.is_empty() {
-                    out.push(make_resource_diagnostic(
-                        "F6005",
-                        &format!("Output '{}' Export Name must not be empty", name),
-                        m,
-                        "",
-                        "",
-                        None,
-                    ));
-                }
+                && export.is_empty()
+            {
+                out.push(make_resource_diagnostic(
+                    "F6005",
+                    &format!("Output '{}' Export Name must not be empty", name),
+                    m,
+                    "",
+                    "",
+                    None,
+                ));
+            }
         }
     }
 
@@ -878,15 +901,16 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         .get(FIELD_TARGET)
                         .and_then(|t| t.as_str())
                         .unwrap_or("");
-                    if kind == EDGE_KIND_REF && sp.ends_with("ImageId")
+                    if kind == EDGE_KIND_REF
+                        && sp.ends_with("ImageId")
                         && let Some(param) = m.parameters.get(target)
-                            && param.param_type != "AWS::EC2::Image::Id"
-                                && !param.param_type.contains("AWS::EC2::Image::Id")
-                                && flagged_image_params.insert(target)
-                            {
-                                out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' — consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
+                        && param.param_type != "AWS::EC2::Image::Id"
+                        && !param.param_type.contains("AWS::EC2::Image::Id")
+                        && flagged_image_params.insert(target)
+                    {
+                        out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' — consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
             None));
-                            }
+                    }
                 }
             }
         }
@@ -970,69 +994,74 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
         // MinLength / MaxLength
         if let Some(min) = info.min_length
-            && (def.len() as u64) < min {
-                out.push(make_resource_diagnostic(
-                    "F2015",
-                    &format!(
-                        "Parameter '{}' Default length {} is less than MinLength {}",
-                        pname,
-                        def.len(),
-                        min
-                    ),
-                    m,
-                    "",
-                    &path_str,
-                    None,
-                ));
-            }
+            && (def.len() as u64) < min
+        {
+            out.push(make_resource_diagnostic(
+                "F2015",
+                &format!(
+                    "Parameter '{}' Default length {} is less than MinLength {}",
+                    pname,
+                    def.len(),
+                    min
+                ),
+                m,
+                "",
+                &path_str,
+                None,
+            ));
+        }
         if let Some(max) = info.max_length
-            && (def.len() as u64) > max {
-                out.push(make_resource_diagnostic(
-                    "F2015",
-                    &format!(
-                        "Parameter '{}' Default length {} exceeds MaxLength {}",
-                        pname,
-                        def.len(),
-                        max
-                    ),
-                    m,
-                    "",
-                    &path_str,
-                    None,
-                ));
-            }
+            && (def.len() as u64) > max
+        {
+            out.push(make_resource_diagnostic(
+                "F2015",
+                &format!(
+                    "Parameter '{}' Default length {} exceeds MaxLength {}",
+                    pname,
+                    def.len(),
+                    max
+                ),
+                m,
+                "",
+                &path_str,
+                None,
+            ));
+        }
         // MinValue / MaxValue (for Number type)
         if info.param_type == "Number"
-            && let Ok(num) = def.parse::<i64>() {
-                if let Some(min) = info.min_value
-                    && num < min {
-                        out.push(make_resource_diagnostic(
-                            "F2015",
-                            &format!(
-                                "Parameter '{}' Default {} is less than MinValue {}",
-                                pname, num, min
-                            ),
-                            m,
-                            "",
-                            &path_str,
-                            None,
-                        ));
-                    }
-                if let Some(max) = info.max_value
-                    && num > max {
-                        out.push(make_resource_diagnostic(
-                            "F2015",
-                            &format!(
-                                "Parameter '{}' Default {} exceeds MaxValue {}",
-                                pname, num, max
-                            ),
-                            m,
-                            "",
-                            &path_str,
-                            None,
-                        ));
-                    }
+            && let Ok(num) = def.parse::<i64>()
+        {
+            if let Some(min) = info.min_value
+                && num < min
+            {
+                out.push(make_resource_diagnostic(
+                    "F2015",
+                    &format!(
+                        "Parameter '{}' Default {} is less than MinValue {}",
+                        pname, num, min
+                    ),
+                    m,
+                    "",
+                    &path_str,
+                    None,
+                ));
             }
+            if let Some(max) = info.max_value
+                && num > max
+            {
+                out.push(make_resource_diagnostic(
+                    "F2015",
+                    &format!(
+                        "Parameter '{}' Default {} exceeds MaxValue {}",
+                        pname, num, max
+                    ),
+                    m,
+                    "",
+                    &path_str,
+                    None,
+                ));
+            }
+        }
     }
 
     out
@@ -1103,19 +1132,20 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (pname, param) in &m.parameters {
         if let Some(ref pattern) = param.allowed_pattern
-            && regex::Regex::new(pattern).is_err() {
-                out.push(make_resource_diagnostic(
-                    "I2003",
-                    &format!(
-                        "Parameter '{}' AllowedPattern '{}' is not a valid regular expression",
-                        pname, pattern
-                    ),
-                    m,
-                    "",
-                    "",
-                    None,
-                ));
-            }
+            && regex::Regex::new(pattern).is_err()
+        {
+            out.push(make_resource_diagnostic(
+                "I2003",
+                &format!(
+                    "Parameter '{}' AllowedPattern '{}' is not a valid regular expression",
+                    pname, pattern
+                ),
+                m,
+                "",
+                "",
+                None,
+            ));
+        }
     }
 
     out
@@ -1138,9 +1168,10 @@ fn condition_is_referenced(
                 return true;
             }
             if let Some(refs) = res.get("conditionRefs").and_then(|r| r.as_array())
-                && refs.iter().any(|r| r.as_str() == Some(cname)) {
-                    return true;
-                }
+                && refs.iter().any(|r| r.as_str() == Some(cname))
+            {
+                return true;
+            }
         }
     }
     // Direct usage by output condition or conditionRefs
@@ -1150,9 +1181,10 @@ fn condition_is_referenced(
                 return true;
             }
             if let Some(refs) = out_val.get("conditionRefs").and_then(|r| r.as_array())
-                && refs.iter().any(|r| r.as_str() == Some(cname)) {
-                    return true;
-                }
+                && refs.iter().any(|r| r.as_str() == Some(cname))
+            {
+                return true;
+            }
         }
     }
     // Transitive: another condition depends on this one via !Condition
@@ -1162,9 +1194,10 @@ fn condition_is_referenced(
         }
         if let Some(deps) = cond_val.get("deps").and_then(|d| d.as_array())
             && deps.iter().any(|d| d.as_str() == Some(cname))
-                && condition_is_referenced(other, conds, resources, outputs, visited) {
-                    return true;
-                }
+            && condition_is_referenced(other, conds, resources, outputs, visited)
+        {
+            return true;
+        }
     }
     false
 }

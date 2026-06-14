@@ -357,14 +357,15 @@ fn enrich_context_adds_allowed_values_for_enum() {
     SV.enrich_context(&mut result.diagnostics, &model);
     let f3030 = result.diagnostics.iter().find(|d| d.rule_id == "F3030");
     if let Some(d) = f3030
-        && let Some(ref ctx) = d.context {
-            assert!(
-                ctx.extra
-                    .as_ref()
-                    .is_some_and(|e| e.contains_key("allowed_values")),
-                "expected allowed_values in context for F3030"
-            );
-        }
+        && let Some(ref ctx) = d.context
+    {
+        assert!(
+            ctx.extra
+                .as_ref()
+                .is_some_and(|e| e.contains_key("allowed_values")),
+            "expected allowed_values in context for F3030"
+        );
+    }
 }
 
 // ── Lifecycle rules ─────────────────────────────────────────────────

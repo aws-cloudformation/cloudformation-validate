@@ -177,17 +177,18 @@ fn evaluate_rule(
     // has_property / !has_property patterns (single property only, not compound &&)
     if !expr.contains(" && ")
         && let Some(rest) = expr.strip_prefix("!has_property(name, \"")
-            && let Some(prop) = rest.strip_suffix("\")") {
-                if !m
-                    .resources
-                    .get(rid)
-                    .map(|r| r.properties.contains_key(prop))
-                    .unwrap_or(false)
-                {
-                    out.push(make_diag(rule, m, rid, rtype, None));
-                }
-                return;
-            }
+        && let Some(prop) = rest.strip_suffix("\")")
+    {
+        if !m
+            .resources
+            .get(rid)
+            .map(|r| r.properties.contains_key(prop))
+            .unwrap_or(false)
+        {
+            out.push(make_diag(rule, m, rid, rtype, None));
+        }
+        return;
+    }
 
     // Combined has_property && !has_property (dependentRequired)
     if expr.starts_with("has_property(name, \"") && expr.contains(" && !has_property(name, \"") {
@@ -195,33 +196,34 @@ fn evaluate_rule(
         if parts.len() == 2
             && let (Some(trigger), Some(dep)) =
                 (extract_has_prop(parts[0]), extract_not_has_prop(parts[1]))
-            {
-                let res = m.resources.get(rid);
-                let has_trigger = res
-                    .map(|r| r.properties.contains_key(trigger))
-                    .unwrap_or(false);
-                let has_dep = res.map(|r| r.properties.contains_key(dep)).unwrap_or(false);
-                if has_trigger && !has_dep {
-                    out.push(make_diag(rule, m, rid, rtype, None));
-                }
-                return;
+        {
+            let res = m.resources.get(rid);
+            let has_trigger = res
+                .map(|r| r.properties.contains_key(trigger))
+                .unwrap_or(false);
+            let has_dep = res.map(|r| r.properties.contains_key(dep)).unwrap_or(false);
+            if has_trigger && !has_dep {
+                out.push(make_diag(rule, m, rid, rtype, None));
             }
+            return;
+        }
     }
 
     // Combined has_property && has_property (dependentExcluded)
     if expr.starts_with("has_property(name, \"") && expr.contains(" && has_property(name, \"") {
         let parts: Vec<&str> = expr.split(" && ").collect();
         if parts.len() == 2
-            && let (Some(a), Some(b)) = (extract_has_prop(parts[0]), extract_has_prop(parts[1])) {
-                let res = m.resources.get(rid);
-                if res
-                    .map(|r| r.properties.contains_key(a) && r.properties.contains_key(b))
-                    .unwrap_or(false)
-                {
-                    out.push(make_diag(rule, m, rid, rtype, None));
-                }
-                return;
+            && let (Some(a), Some(b)) = (extract_has_prop(parts[0]), extract_has_prop(parts[1]))
+        {
+            let res = m.resources.get(rid);
+            if res
+                .map(|r| r.properties.contains_key(a) && r.properties.contains_key(b))
+                .unwrap_or(false)
+            {
+                out.push(make_diag(rule, m, rid, rtype, None));
             }
+            return;
+        }
     }
 
     // All !has_property combined (requiredOr/requiredXor)
@@ -251,66 +253,49 @@ fn evaluate_rule(
     // has_unknown_properties
     if let Some(rest) = expr.strip_prefix("has_unknown_properties(name, ")
         && let Some(json_str) = rest.strip_suffix(')')
-            && let Ok(known) = serde_json::from_str::<Vec<String>>(json_str) {
-                let known_set: HashSet<&str> = known.iter().map(|s| s.as_str()).collect();
-                if let Some(res) = m.resources.get(rid) {
-                    for prop in res.properties.keys() {
-                        if !known_set.contains(prop.as_str()) {
-                            let mut d = make_diag(rule, m, rid, rtype, None);
-                            d.message = format!("Unknown property '{}' for {}", prop, rtype);
-                            d.property_path = Some(format!("Properties.{}", prop));
-                            d.suggested_fix =
-                                Some(format!("Remove the unknown property '{}'", prop));
-                            out.push(d);
-                        }
-                    }
+        && let Ok(known) = serde_json::from_str::<Vec<String>>(json_str)
+    {
+        let known_set: HashSet<&str> = known.iter().map(|s| s.as_str()).collect();
+        if let Some(res) = m.resources.get(rid) {
+            for prop in res.properties.keys() {
+                if !known_set.contains(prop.as_str()) {
+                    let mut d = make_diag(rule, m, rid, rtype, None);
+                    d.message = format!("Unknown property '{}' for {}", prop, rtype);
+                    d.property_path = Some(format!("Properties.{}", prop));
+                    d.suggested_fix = Some(format!("Remove the unknown property '{}'", prop));
+                    out.push(d);
                 }
-                return;
             }
+        }
+        return;
+    }
 
     // scenario_check(name, "path", |val| ...)
     if let Some(rest) = expr.strip_prefix("scenario_check(name, \"")
-        && let Some(idx) = rest.find("\", |val| ") {
-            let path = &rest[..idx];
-            let check_expr = &rest[idx + 9..];
-            let check_expr = check_expr.strip_suffix(')').unwrap_or(check_expr);
+        && let Some(idx) = rest.find("\", |val| ")
+    {
+        let path = &rest[..idx];
+        let check_expr = &rest[idx + 9..];
+        let check_expr = check_expr.strip_suffix(')').unwrap_or(check_expr);
 
-            if path.contains("{}") {
-                let arr_path = path.split(".{}").next().unwrap_or(path);
-                let first_wc = match path.find("{}") {
-                    Some(i) => i,
-                    None => return,
-                };
-                let suffix = &path[first_wc + 2..];
-                let arr_len = match m.resolve_deep(rid, arr_path) {
-                    Some(ResolvedValue::List { items }) => items.len(),
-                    Some(ResolvedValue::Concrete { value: v }) if v.is_array() => {
-                        v.as_array().unwrap().len()
-                    }
-                    _ => 0,
-                };
-                if arr_len > 0 {
-                    for i in 0..arr_len {
-                        let idx_path = format!("{}.{}{}", arr_path, i, suffix);
-                        let scenarios = m.resolve_scenarios_json(rid, &idx_path);
-                        for (val, conds) in &scenarios {
-                            if !satisfiable(m, conds) {
-                                continue;
-                            }
-                            if eval_val_check(check_expr, val) {
-                                let cond_map = if conds.is_empty() {
-                                    None
-                                } else {
-                                    Some(conds.clone())
-                                };
-                                let mut d = make_diag(rule, m, rid, rtype, cond_map);
-                                d.property_path = Some(idx_path.clone());
-                                out.push(d);
-                            }
-                        }
-                    }
-                } else {
-                    let scenarios = m.resolve_scenarios_json(rid, path);
+        if path.contains("{}") {
+            let arr_path = path.split(".{}").next().unwrap_or(path);
+            let first_wc = match path.find("{}") {
+                Some(i) => i,
+                None => return,
+            };
+            let suffix = &path[first_wc + 2..];
+            let arr_len = match m.resolve_deep(rid, arr_path) {
+                Some(ResolvedValue::List { items }) => items.len(),
+                Some(ResolvedValue::Concrete { value: v }) if v.is_array() => {
+                    v.as_array().unwrap().len()
+                }
+                _ => 0,
+            };
+            if arr_len > 0 {
+                for i in 0..arr_len {
+                    let idx_path = format!("{}.{}{}", arr_path, i, suffix);
+                    let scenarios = m.resolve_scenarios_json(rid, &idx_path);
                     for (val, conds) in &scenarios {
                         if !satisfiable(m, conds) {
                             continue;
@@ -321,15 +306,14 @@ fn evaluate_rule(
                             } else {
                                 Some(conds.clone())
                             };
-                            out.push(make_diag(rule, m, rid, rtype, cond_map));
+                            let mut d = make_diag(rule, m, rid, rtype, cond_map);
+                            d.property_path = Some(idx_path.clone());
+                            out.push(d);
                         }
                     }
                 }
-                return;
-            }
-
-            let scenarios = m.resolve_scenarios_json(rid, path);
-            if !scenarios.is_empty() {
+            } else {
+                let scenarios = m.resolve_scenarios_json(rid, path);
                 for (val, conds) in &scenarios {
                     if !satisfiable(m, conds) {
                         continue;
@@ -343,78 +327,133 @@ fn evaluate_rule(
                         out.push(make_diag(rule, m, rid, rtype, cond_map));
                     }
                 }
-            } else if check_expr.starts_with("is_object(val)") {
-                // Fallback for structural checks: resolve_scenarios_json filters out objects
-                // with dynamic/reference values, but structural checks (has_key) only need keys.
-                // Use resolve_deep to get the ResolvedValue and build a stub JSON with keys only.
-                if let Some(rv) = m.resolve_deep(rid, path) {
-                    let stub = resolved_value_to_key_stub(&rv);
-                    if eval_val_check(check_expr, &stub) {
-                        out.push(make_diag(rule, m, rid, rtype, None));
-                    }
-                }
             }
             return;
         }
 
+        let scenarios = m.resolve_scenarios_json(rid, path);
+        if !scenarios.is_empty() {
+            for (val, conds) in &scenarios {
+                if !satisfiable(m, conds) {
+                    continue;
+                }
+                if eval_val_check(check_expr, val) {
+                    let cond_map = if conds.is_empty() {
+                        None
+                    } else {
+                        Some(conds.clone())
+                    };
+                    out.push(make_diag(rule, m, rid, rtype, cond_map));
+                }
+            }
+        } else if check_expr.starts_with("is_object(val)") {
+            // Fallback for structural checks: resolve_scenarios_json filters out objects
+            // with dynamic/reference values, but structural checks (has_key) only need keys.
+            // Use resolve_deep to get the ResolvedValue and build a stub JSON with keys only.
+            if let Some(rv) = m.resolve_deep(rid, path) {
+                let stub = resolved_value_to_key_stub(&rv);
+                if eval_val_check(check_expr, &stub) {
+                    out.push(make_diag(rule, m, rid, rtype, None));
+                }
+            }
+        }
+        return;
+    }
+
     // scenario_enum_check(name, "path", [...])
     if let Some(rest) = expr.strip_prefix("scenario_enum_check(name, \"")
-        && let Some(idx) = rest.find("\", ") {
-            let path = &rest[..idx];
-            let json_str = &rest[idx + 3..];
-            let json_str = json_str.strip_suffix(')').unwrap_or(json_str);
-            if let Ok(valid_vals) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
-                let scenarios = m.resolve_scenarios_json(rid, path);
-                for (val, conds) in &scenarios {
-                    if !satisfiable(m, conds) || val.is_null() {
+        && let Some(idx) = rest.find("\", ")
+    {
+        let path = &rest[..idx];
+        let json_str = &rest[idx + 3..];
+        let json_str = json_str.strip_suffix(')').unwrap_or(json_str);
+        if let Ok(valid_vals) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
+            let scenarios = m.resolve_scenarios_json(rid, path);
+            for (val, conds) in &scenarios {
+                if !satisfiable(m, conds) || val.is_null() {
+                    continue;
+                }
+                let coerced = cfn_coerce_to_string(val);
+                let matches = valid_vals.iter().any(|v| match v {
+                    serde_json::Value::String(s) => coerced.as_deref() == Some(s.as_str()),
+                    serde_json::Value::Number(n) => cfn_coerce_to_number(val)
+                        .map(|nv| {
+                            n.as_f64()
+                                .map(|nf| (nv - nf).abs() < f64::EPSILON)
+                                .unwrap_or(false)
+                        })
+                        .unwrap_or(false),
+                    serde_json::Value::Bool(b) => val.as_bool() == Some(*b),
+                    _ => val == v,
+                });
+                if !matches {
+                    let cond_map = if conds.is_empty() {
+                        None
+                    } else {
+                        Some(conds.clone())
+                    };
+                    let mut d = make_diag(rule, m, rid, rtype, cond_map);
+                    d.message = format!("{} got '{}'", rule.message, val);
+                    out.push(d);
+                }
+            }
+        }
+        return;
+    }
+
+    // scenario_pattern_check(name, "path", "pattern")
+    if let Some(rest) = expr.strip_prefix("scenario_pattern_check(name, \"")
+        && let Some(idx) = rest.find("\", \"")
+    {
+        let path = &rest[..idx];
+        let pat_raw = &rest[idx + 4..];
+        let pat_raw = pat_raw.strip_suffix("\")").unwrap_or(pat_raw);
+        let pat = pat_raw.replace("\\\\", "\\").replace("\\\"", "\"");
+        if let Ok(re) = regex::Regex::new(&pat) {
+            let scenarios = m.resolve_scenarios_json(rid, path);
+            for (val, conds) in &scenarios {
+                if !satisfiable(m, conds) {
+                    continue;
+                }
+                if let Some(s) = cfn_coerce_to_string(val) {
+                    if s.contains("{{resolve:") || s.contains("${") {
                         continue;
                     }
-                    let coerced = cfn_coerce_to_string(val);
-                    let matches = valid_vals.iter().any(|v| match v {
-                        serde_json::Value::String(s) => coerced.as_deref() == Some(s.as_str()),
-                        serde_json::Value::Number(n) => cfn_coerce_to_number(val)
-                            .map(|nv| {
-                                n.as_f64()
-                                    .map(|nf| (nv - nf).abs() < f64::EPSILON)
-                                    .unwrap_or(false)
-                            })
-                            .unwrap_or(false),
-                        serde_json::Value::Bool(b) => val.as_bool() == Some(*b),
-                        _ => val == v,
-                    });
-                    if !matches {
+                    if !re.is_match(&s) {
                         let cond_map = if conds.is_empty() {
                             None
                         } else {
                             Some(conds.clone())
                         };
-                        let mut d = make_diag(rule, m, rid, rtype, cond_map);
-                        d.message = format!("{} got '{}'", rule.message, val);
-                        out.push(d);
+                        out.push(make_diag(rule, m, rid, rtype, cond_map));
                     }
                 }
             }
-            return;
         }
+        return;
+    }
 
-    // scenario_pattern_check(name, "path", "pattern")
-    if let Some(rest) = expr.strip_prefix("scenario_pattern_check(name, \"")
-        && let Some(idx) = rest.find("\", \"") {
-            let path = &rest[..idx];
-            let pat_raw = &rest[idx + 4..];
-            let pat_raw = pat_raw.strip_suffix("\")").unwrap_or(pat_raw);
-            let pat = pat_raw.replace("\\\\", "\\").replace("\\\"", "\"");
-            if let Ok(re) = regex::Regex::new(&pat) {
-                let scenarios = m.resolve_scenarios_json(rid, path);
-                for (val, conds) in &scenarios {
-                    if !satisfiable(m, conds) {
-                        continue;
-                    }
-                    if let Some(s) = cfn_coerce_to_string(val) {
-                        if s.contains("{{resolve:") || s.contains("${") {
+    // array_item_missing_key(name, "path", "key")
+    if let Some(rest) = expr.strip_prefix("array_item_missing_key(name, \"")
+        && let Some(idx) = rest.find("\", \"")
+    {
+        let path = &rest[..idx];
+        let key = rest[idx + 4..]
+            .strip_suffix("\")")
+            .unwrap_or(&rest[idx + 4..]);
+        let scenarios = m.resolve_scenarios_json(rid, path);
+        for (val, conds) in &scenarios {
+            if !satisfiable(m, conds) {
+                continue;
+            }
+            if let Some(arr) = val.as_array() {
+                for item in arr {
+                    if let Some(obj) = item.as_object() {
+                        if obj.contains_key(MARKER_CONDITIONAL) || obj.contains_key(MARKER_DYNAMIC)
+                        {
                             continue;
                         }
-                        if !re.is_match(&s) {
+                        if !obj.contains_key(key) {
                             let cond_map = if conds.is_empty() {
                                 None
                             } else {
@@ -425,43 +464,9 @@ fn evaluate_rule(
                     }
                 }
             }
-            return;
         }
-
-    // array_item_missing_key(name, "path", "key")
-    if let Some(rest) = expr.strip_prefix("array_item_missing_key(name, \"")
-        && let Some(idx) = rest.find("\", \"") {
-            let path = &rest[..idx];
-            let key = rest[idx + 4..]
-                .strip_suffix("\")")
-                .unwrap_or(&rest[idx + 4..]);
-            let scenarios = m.resolve_scenarios_json(rid, path);
-            for (val, conds) in &scenarios {
-                if !satisfiable(m, conds) {
-                    continue;
-                }
-                if let Some(arr) = val.as_array() {
-                    for item in arr {
-                        if let Some(obj) = item.as_object() {
-                            if obj.contains_key(MARKER_CONDITIONAL)
-                                || obj.contains_key(MARKER_DYNAMIC)
-                            {
-                                continue;
-                            }
-                            if !obj.contains_key(key) {
-                                let cond_map = if conds.is_empty() {
-                                    None
-                                } else {
-                                    Some(conds.clone())
-                                };
-                                out.push(make_diag(rule, m, rid, rtype, cond_map));
-                            }
-                        }
-                    }
-                }
-            }
-            return;
-        }
+        return;
+    }
 
     // array_item_dep_excluded(name, "path", "trigger", "dep")
     if let Some(rest) = expr.strip_prefix("array_item_dep_excluded(name, \"") {
@@ -498,14 +503,14 @@ fn evaluate_rule(
             let cond_met = eval_resolve_condition(m, rid, parts[0]);
             if cond_met
                 && let Some(prop) = extract_not_has_prop(parts[1])
-                    && !m
-                        .resources
-                        .get(rid)
-                        .map(|r| r.properties.contains_key(prop))
-                        .unwrap_or(false)
-                    {
-                        out.push(make_diag(rule, m, rid, rtype, None));
-                    }
+                && !m
+                    .resources
+                    .get(rid)
+                    .map(|r| r.properties.contains_key(prop))
+                    .unwrap_or(false)
+            {
+                out.push(make_diag(rule, m, rid, rtype, None));
+            }
         } else if eval_resolve_condition(m, rid, expr) {
             out.push(make_diag(rule, m, rid, rtype, None));
         }
@@ -522,24 +527,25 @@ fn evaluate_rule(
                     continue;
                 }
                 if let Some(s) = val.as_str()
-                    && runtimes.iter().any(|r| r == s) {
-                        let cond_map = if conds.is_empty() {
-                            None
+                    && runtimes.iter().any(|r| r == s)
+                {
+                    let cond_map = if conds.is_empty() {
+                        None
+                    } else {
+                        Some(conds.clone())
+                    };
+                    let mut d = make_diag(rule, m, rid, rtype, cond_map);
+                    d.message = format!(
+                        "Lambda runtime '{}' {}",
+                        s,
+                        if rule.rule_id == "E2533" {
+                            "is end-of-life and cannot be updated"
                         } else {
-                            Some(conds.clone())
-                        };
-                        let mut d = make_diag(rule, m, rid, rtype, cond_map);
-                        d.message = format!(
-                            "Lambda runtime '{}' {}",
-                            s,
-                            if rule.rule_id == "E2533" {
-                                "is end-of-life and cannot be updated"
-                            } else {
-                                "is deprecated"
-                            }
-                        );
-                        out.push(d);
-                    }
+                            "is deprecated"
+                        }
+                    );
+                    out.push(d);
+                }
             }
         }
     }
@@ -599,12 +605,12 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
         && let Some(key) = expr
             .strip_prefix("is_object(val) && !has_key(val, \"")
             .and_then(|r| r.strip_suffix("\")"))
-        {
-            return val
-                .as_object()
-                .map(|obj| !obj.contains_key(key))
-                .unwrap_or(false);
-        }
+    {
+        return val
+            .as_object()
+            .map(|obj| !obj.contains_key(key))
+            .unwrap_or(false);
+    }
 
     if expr.starts_with("is_object(val) && has_key(val, \"") && expr.contains("&& !has_key(val, \"")
     {
@@ -617,9 +623,10 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
                 .strip_prefix("!has_key(val, \"")
                 .and_then(|r| r.strip_suffix("\")"));
             if let (Some(t), Some(d)) = (trigger, dep)
-                && let Some(obj) = val.as_object() {
-                    return obj.contains_key(t) && !obj.contains_key(d);
-                }
+                && let Some(obj) = val.as_object()
+            {
+                return obj.contains_key(t) && !obj.contains_key(d);
+            }
         }
         return false;
     }
@@ -637,53 +644,60 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
                 .strip_prefix("has_key(val, \"")
                 .and_then(|r| r.strip_suffix("\")"));
             if let (Some(ka), Some(kb)) = (a, b)
-                && let Some(obj) = val.as_object() {
-                    return obj.contains_key(ka) && obj.contains_key(kb);
-                }
+                && let Some(obj) = val.as_object()
+            {
+                return obj.contains_key(ka) && obj.contains_key(kb);
+            }
         }
         return false;
     }
 
     // Numeric: coerce_to_number(val) > N or < N
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) > ")
-        && let Ok(n) = rest.parse::<i64>() {
-            return cfn_coerce_to_number(val)
-                .map(|v| v > n as f64)
-                .unwrap_or(false);
-        }
+        && let Ok(n) = rest.parse::<i64>()
+    {
+        return cfn_coerce_to_number(val)
+            .map(|v| v > n as f64)
+            .unwrap_or(false);
+    }
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) < ")
-        && let Ok(n) = rest.parse::<i64>() {
-            return cfn_coerce_to_number(val)
-                .map(|v| v < n as f64)
-                .unwrap_or(false);
-        }
+        && let Ok(n) = rest.parse::<i64>()
+    {
+        return cfn_coerce_to_number(val)
+            .map(|v| v < n as f64)
+            .unwrap_or(false);
+    }
 
     // String length: size(coerce_to_string(val)) > N or < N
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) > ")
-        && let Ok(n) = rest.parse::<u64>() {
-            return cfn_coerce_to_string(val)
-                .map(|s| s.len() as u64 > n)
-                .unwrap_or(false);
-        }
+        && let Ok(n) = rest.parse::<u64>()
+    {
+        return cfn_coerce_to_string(val)
+            .map(|s| s.len() as u64 > n)
+            .unwrap_or(false);
+    }
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) < ")
-        && let Ok(n) = rest.parse::<u64>() {
-            return cfn_coerce_to_string(val)
-                .map(|s| (s.len() as u64) < n)
-                .unwrap_or(false);
-        }
+        && let Ok(n) = rest.parse::<u64>()
+    {
+        return cfn_coerce_to_string(val)
+            .map(|s| (s.len() as u64) < n)
+            .unwrap_or(false);
+    }
 
     // Array size: is_array(val) && size(val) > N or < N
     if let Some(rest) = expr.strip_prefix("is_array(val) && size(val) > ")
-        && let Ok(n) = rest.parse::<u64>() {
-            return val.as_array().map(|a| a.len() as u64 > n).unwrap_or(false);
-        }
+        && let Ok(n) = rest.parse::<u64>()
+    {
+        return val.as_array().map(|a| a.len() as u64 > n).unwrap_or(false);
+    }
     if let Some(rest) = expr.strip_prefix("is_array(val) && size(val) < ")
-        && let Ok(n) = rest.parse::<u64>() {
-            return val
-                .as_array()
-                .map(|a| (a.len() as u64) < n)
-                .unwrap_or(false);
-        }
+        && let Ok(n) = rest.parse::<u64>()
+    {
+        return val
+            .as_array()
+            .map(|a| (a.len() as u64) < n)
+            .unwrap_or(false);
+    }
 
     // uniqueItems: is_array(val) && has_duplicates(val)
     if expr == "is_array(val) && has_duplicates(val)" {
@@ -701,42 +715,44 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
 fn eval_resolve_condition(m: &SemanticModel, rid: &str, expr: &str) -> bool {
     // resolve_val_in(name, "path", [...])
     if let Some(rest) = expr.strip_prefix("resolve_val_in(name, \"")
-        && let Some(idx) = rest.find("\", ") {
-            let path = &rest[..idx];
-            let json_str = rest[idx + 3..]
-                .strip_suffix(')')
-                .unwrap_or(&rest[idx + 3..]);
-            if let Ok(valid) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
-                let scenarios = m.resolve_scenarios_json(rid, path);
-                for (val, _) in &scenarios {
-                    if valid.iter().any(|v| {
-                        if let (Some(a), Some(b)) = (v.as_str(), val.as_str()) {
-                            a == b
-                        } else {
-                            v == val
-                        }
-                    }) {
-                        return true;
+        && let Some(idx) = rest.find("\", ")
+    {
+        let path = &rest[..idx];
+        let json_str = rest[idx + 3..]
+            .strip_suffix(')')
+            .unwrap_or(&rest[idx + 3..]);
+        if let Ok(valid) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
+            let scenarios = m.resolve_scenarios_json(rid, path);
+            for (val, _) in &scenarios {
+                if valid.iter().any(|v| {
+                    if let (Some(a), Some(b)) = (v.as_str(), val.as_str()) {
+                        a == b
+                    } else {
+                        v == val
                     }
+                }) {
+                    return true;
                 }
             }
         }
+    }
     // resolve_val_eq(name, "path", val)
     if let Some(rest) = expr.strip_prefix("resolve_val_eq(name, \"")
-        && let Some(idx) = rest.find("\", ") {
-            let path = &rest[..idx];
-            let json_str = rest[idx + 3..]
-                .strip_suffix(')')
-                .unwrap_or(&rest[idx + 3..]);
-            if let Ok(expected) = serde_json::from_str::<serde_json::Value>(json_str) {
-                let scenarios = m.resolve_scenarios_json(rid, path);
-                for (val, _) in &scenarios {
-                    if *val == expected {
-                        return true;
-                    }
+        && let Some(idx) = rest.find("\", ")
+    {
+        let path = &rest[..idx];
+        let json_str = rest[idx + 3..]
+            .strip_suffix(')')
+            .unwrap_or(&rest[idx + 3..]);
+        if let Ok(expected) = serde_json::from_str::<serde_json::Value>(json_str) {
+            let scenarios = m.resolve_scenarios_json(rid, path);
+            for (val, _) in &scenarios {
+                if *val == expected {
+                    return true;
                 }
             }
         }
+    }
     false
 }
 

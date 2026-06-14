@@ -79,7 +79,7 @@ pub fn contains_unresolvable_content(rv: &ResolvedValue) -> bool {
 /// When `rid` is provided, binds `name`, `resource`, `properties`, and
 /// `resolved_properties` for per-resource evaluation. `resolved_properties`
 /// contains values converted via `resolved_to_cel`, giving custom CEL rules
-/// access to clean resolved values (parity with rego's `resolve()` builtin).
+/// access to clean resolved values.
 pub fn build_custom_context(
     input: &serde_json::Value,
     rid: Option<&str>,
@@ -100,14 +100,15 @@ pub fn build_custom_context(
             }
         }
         if let Some(model) = model
-            && let Some(res) = model.resources.get(rid) {
-                let resolved: HashMap<String, Value> = res
-                    .properties
-                    .iter()
-                    .map(|(k, v)| (k.clone(), resolved_to_cel(v)))
-                    .collect();
-                let _ = ctx.add_variable("resolved_properties", Value::from(resolved));
-            }
+            && let Some(res) = model.resources.get(rid)
+        {
+            let resolved: HashMap<String, Value> = res
+                .properties
+                .iter()
+                .map(|(k, v)| (k.clone(), resolved_to_cel(v)))
+                .collect();
+            let _ = ctx.add_variable("resolved_properties", Value::from(resolved));
+        }
     }
     ctx
 }

@@ -144,42 +144,40 @@ fn main() {
             "--parameter" => {
                 i += 1;
                 if let Some(kv) = args.get(i)
-                    && let Some((k, v)) = kv.split_once('=') {
-                        parameter_overrides.insert(k.to_string(), v.to_string());
-                    }
+                    && let Some((k, v)) = kv.split_once('=')
+                {
+                    parameter_overrides.insert(k.to_string(), v.to_string());
+                }
             }
             "--pseudo-parameter" => {
                 i += 1;
                 if let Some(kv) = args.get(i)
-                    && let Some((k, v)) = kv.split_once('=') {
-                        match k {
-                            "AWS::AccountId" => {
-                                pseudo_parameter_overrides.account_id = Some(v.to_string())
-                            }
-                            "AWS::NotificationARNs" => {
-                                pseudo_parameter_overrides.notification_arns = Some(v.to_string())
-                            }
-                            "AWS::Partition" => {
-                                pseudo_parameter_overrides.partition = Some(v.to_string())
-                            }
-                            "AWS::Region" => {
-                                pseudo_parameter_overrides.region = Some(v.to_string())
-                            }
-                            "AWS::StackId" => {
-                                pseudo_parameter_overrides.stack_id = Some(v.to_string())
-                            }
-                            "AWS::StackName" => {
-                                pseudo_parameter_overrides.stack_name = Some(v.to_string())
-                            }
-                            "AWS::URLSuffix" => {
-                                pseudo_parameter_overrides.url_suffix = Some(v.to_string())
-                            }
-                            _ => {
-                                error!("Unknown pseudo-parameter: {}", k);
-                                process::exit(2);
-                            }
+                    && let Some((k, v)) = kv.split_once('=')
+                {
+                    match k {
+                        "AWS::AccountId" => {
+                            pseudo_parameter_overrides.account_id = Some(v.to_string())
+                        }
+                        "AWS::NotificationARNs" => {
+                            pseudo_parameter_overrides.notification_arns = Some(v.to_string())
+                        }
+                        "AWS::Partition" => {
+                            pseudo_parameter_overrides.partition = Some(v.to_string())
+                        }
+                        "AWS::Region" => pseudo_parameter_overrides.region = Some(v.to_string()),
+                        "AWS::StackId" => pseudo_parameter_overrides.stack_id = Some(v.to_string()),
+                        "AWS::StackName" => {
+                            pseudo_parameter_overrides.stack_name = Some(v.to_string())
+                        }
+                        "AWS::URLSuffix" => {
+                            pseudo_parameter_overrides.url_suffix = Some(v.to_string())
+                        }
+                        _ => {
+                            error!("Unknown pseudo-parameter: {}", k);
+                            process::exit(2);
                         }
                     }
+                }
             }
             s if !s.starts_with('-') => template_path = Some(s.to_string()),
             other => {
@@ -306,7 +304,11 @@ fn main() {
             report.metadata.counts.warnings,
             report.metadata.counts.informational
         );
-        print_report(&report, &detail_level);
+        if let Err(e) = print_report(&report, &detail_level) {
+            error!("Failed to render report for {}: {}", file_str, e);
+            has_errors = true;
+            continue;
+        }
         if report.metadata.counts.fatal > 0 || report.metadata.counts.errors > 0 {
             has_errors = true;
         }
@@ -317,17 +319,13 @@ fn main() {
     }
 }
 
-fn print_report(report: &ValidationReport, format: &DetailLevel) {
-    match format {
-        DetailLevel::Standard => println!(
-            "{}",
-            serde_json::to_string_pretty(&report.to_standard()).unwrap()
-        ),
-        DetailLevel::Detailed => println!(
-            "{}",
-            serde_json::to_string_pretty(&report.to_detailed()).unwrap()
-        ),
-    }
+fn print_report(report: &ValidationReport, format: &DetailLevel) -> Result<(), serde_json::Error> {
+    let json = match format {
+        DetailLevel::Standard => serde_json::to_string_pretty(&report.to_standard())?,
+        DetailLevel::Detailed => serde_json::to_string_pretty(&report.to_detailed())?,
+    };
+    println!("{}", json);
+    Ok(())
 }
 
 fn print_help() {

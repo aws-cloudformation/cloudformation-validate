@@ -50,9 +50,7 @@ impl ValidateConfig {
         validation_engine::ValidateConfig {
             filters: rules::FilterConfig::new(self.include.clone(), self.exclude.clone()),
             detail_level,
-            severity_level: self
-                .severity_level
-                .unwrap_or(defaults.severity_level),
+            severity_level: self.severity_level.unwrap_or(defaults.severity_level),
             parameter_overrides: self.parameter_overrides.clone(),
             pseudo_parameter_overrides: self.pseudo_parameter_overrides.clone(),
             strict: self.strict.unwrap_or(defaults.strict),
@@ -113,12 +111,21 @@ impl JvmSchemaValidator {
         self.inner.schema_count() as u32
     }
 
-    pub fn validate(&self, model: &JvmSemanticModel, region: String) -> JvmSchemaValidationResult {
-        let result = self.inner.validate(&model.model, &region);
-        JvmSchemaValidationResult {
-            diagnostics: result.diagnostics.iter().map(|d| d.to_standard()).collect(),
-            metric: result.metric,
-        }
+    pub fn validate(
+        &self,
+        model: &JvmSemanticModel,
+        region: String,
+    ) -> Result<JvmSchemaValidationResult, ValidationError> {
+        validation_engine::catch_panics(
+            || {
+                let result = self.inner.validate(&model.model, &region);
+                Ok(JvmSchemaValidationResult {
+                    diagnostics: result.diagnostics.iter().map(|d| d.to_standard()).collect(),
+                    metric: result.metric,
+                })
+            },
+            panic_to_error,
+        )
     }
 }
 
@@ -267,8 +274,10 @@ impl JvmSemanticModel {
         self.model.description.clone()
     }
 
-    pub fn to_diagnostic_model(&self) -> template_model::diagnostic::DiagnosticModel {
-        self.model.to_diagnostic_json()
+    pub fn to_diagnostic_model(
+        &self,
+    ) -> Result<template_model::diagnostic::DiagnosticModel, ValidationError> {
+        validation_engine::catch_panics(|| Ok(self.model.to_diagnostic_json()), panic_to_error)
     }
 
     pub fn source_location(&self, path: String) -> Option<SourceSpan> {

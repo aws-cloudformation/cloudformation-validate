@@ -328,10 +328,12 @@ fn has_interpolation_variable(template: &str) -> bool {
     let bytes = template.as_bytes();
     let mut i = 0;
     while i + 1 < bytes.len() {
-        if bytes[i] == b'$' && bytes[i + 1] == b'{'
-            && let Some(_end) = template[i + 2..].find('}') {
-                return true;
-            }
+        if bytes[i] == b'$'
+            && bytes[i + 1] == b'{'
+            && let Some(_end) = template[i + 2..].find('}')
+        {
+            return true;
+        }
         i += 1;
     }
     false

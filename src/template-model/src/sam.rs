@@ -187,7 +187,6 @@ fn collect_arena_param_refs(arena: &Arena, node_ref: NodeRef, out: &mut Vec<Stri
     }
 }
 
-
 /// Collects SAM transform errors that require the raw template structure.
 /// A transform error means CloudFormation rejects the template before resource
 /// validation, so the engine gates downstream diagnostics on these.
@@ -263,12 +262,9 @@ fn auto_publish_alias_must_be_string_or_parameter_ref(
     out: &mut Vec<diagnostics::Diagnostic>,
 ) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
-        let Some(located) = located_auto_publish_alias(
-            ctx.arena,
-            ctx.resources_node,
-            ctx.globals_node,
-            name,
-        ) else {
+        let Some(located) =
+            located_auto_publish_alias(ctx.arena, ctx.resources_node, ctx.globals_node, name)
+        else {
             continue;
         };
         let Some(message_suffix) =
@@ -281,14 +277,16 @@ fn auto_publish_alias_must_be_string_or_parameter_ref(
             sam_property_path(KEY_PROPERTIES, SAM_AUTO_PUBLISH_ALIAS),
             format!(
                 "{} Resource with id [{}] is invalid. {}",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX, name, message_suffix
+                diagnostics::SAM_TRANSFORM_ERROR_PREFIX,
+                name,
+                message_suffix
             ),
             located.diagnostic_span(name, ctx.span_index),
         ));
     }
 }
 
-/// Returns the cfn-lint-equivalent message suffix when `AutoPublishAlias` is
+/// Returns the equivalent message suffix when `AutoPublishAlias` is
 /// invalid, or `None` when the value would resolve cleanly. The branching
 /// mirrors samtranslator: a multi-key dict fails resource property typing
 /// before resolution and surfaces as `"Type of property '…' is invalid."`,
@@ -328,7 +326,9 @@ fn layer_version_must_have_content_uri(
             prop_path.clone(),
             format!(
                 "{} Resource with id [{}] is invalid. Missing required property '{}'.",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX, name, SAM_LAYER_CONTENT_URI
+                diagnostics::SAM_TRANSFORM_ERROR_PREFIX,
+                name,
+                SAM_LAYER_CONTENT_URI
             ),
             ctx.span_for(name, &prop_path),
         ));
@@ -372,10 +372,7 @@ fn schedule_event_must_have_schedule(
             if !is_schedule_event_missing_schedule(&event_object) {
                 continue;
             }
-            let prop_path = format!(
-                "{}/{}/{}",
-                KEY_PROPERTIES, SAM_FUNCTION_EVENTS, event_name
-            );
+            let prop_path = format!("{}/{}/{}", KEY_PROPERTIES, SAM_FUNCTION_EVENTS, event_name);
             out.push(make_transform_error(
                 name,
                 prop_path.clone(),
@@ -542,9 +539,8 @@ fn make_transform_error(
     message: String,
     span: SourceSpan,
 ) -> diagnostics::Diagnostic {
-    let definition = rules_crate::lookup_rule(SAM_TRANSFORM_ERROR_RULE_ID).unwrap_or_else(|| {
-        panic!("rule '{}' is not registered", SAM_TRANSFORM_ERROR_RULE_ID)
-    });
+    let definition = rules_crate::lookup_rule(SAM_TRANSFORM_ERROR_RULE_ID)
+        .unwrap_or_else(|| panic!("rule '{}' is not registered", SAM_TRANSFORM_ERROR_RULE_ID));
     diagnostics::Diagnostic {
         rule_id: SAM_TRANSFORM_ERROR_RULE_ID.into(),
         severity: definition.severity(),
@@ -575,7 +571,6 @@ fn make_transform_error(
         context: None,
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -995,11 +990,9 @@ Resources:
                 .iter()
                 .any(|m| m.contains("Resource is missing the required [Location] property"))
         );
-        assert!(
-            messages.iter().any(|m| m.contains(
-                "'AutoPublishAlias' must be a string or a Ref to a template parameter"
-            ))
-        );
+        assert!(messages.iter().any(|m| {
+            m.contains("'AutoPublishAlias' must be a string or a Ref to a template parameter")
+        }));
         assert!(
             messages
                 .iter()

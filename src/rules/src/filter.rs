@@ -88,9 +88,10 @@ impl RuleFilterConfig {
             return true;
         }
         if let Some(cat) = category
-            && self.categories.iter().any(|c| c == cat) {
-                return true;
-            }
+            && self.categories.iter().any(|c| c == cat)
+        {
+            return true;
+        }
         if self.id_ranges.iter().any(|r| range_matches(rule_id, r)) {
             return true;
         }
@@ -102,17 +103,17 @@ impl RuleFilterConfig {
                 .resource_ids
                 .iter()
                 .any(|f| f.rule_id == rule_id && f.resource_id == rid)
-            {
-                return true;
-            }
+        {
+            return true;
+        }
         if let Some(rtype) = resource_type
             && self
                 .resource_types
                 .iter()
                 .any(|f| f.rule_id == rule_id && f.resource_type == rtype)
-            {
-                return true;
-            }
+        {
+            return true;
+        }
         false
     }
 }

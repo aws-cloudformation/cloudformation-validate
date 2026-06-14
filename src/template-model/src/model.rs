@@ -227,7 +227,6 @@ pub struct ParseConfig {
     pub pseudo_parameters: PseudoParameterOverrides,
 }
 
-
 #[must_use]
 pub struct ParseResult {
     pub model: SemanticModel,
@@ -289,28 +288,29 @@ impl SemanticModel {
         );
         let mut resources = HashMap::new();
         if ir.resources != NULL_REF
-            && let Some(entries) = ir.arena.as_map(ir.resources) {
-                // Pre-scan: identify resources with DefinitionSubstitutions
-                for (rname, rnode) in entries {
-                    if let Some(props) = ir.arena.as_map(*rnode) {
-                        for (key, val) in props {
-                            if key == KEY_PROPERTIES
-                                && let Some(prop_entries) = ir.arena.as_map(*val)
-                                    && prop_entries
-                                        .iter()
-                                        .any(|(k, _)| k == "DefinitionSubstitutions")
-                                    {
-                                        resolver.def_subs_resources.insert(rname.clone());
-                                    }
+            && let Some(entries) = ir.arena.as_map(ir.resources)
+        {
+            // Pre-scan: identify resources with DefinitionSubstitutions
+            for (rname, rnode) in entries {
+                if let Some(props) = ir.arena.as_map(*rnode) {
+                    for (key, val) in props {
+                        if key == KEY_PROPERTIES
+                            && let Some(prop_entries) = ir.arena.as_map(*val)
+                            && prop_entries
+                                .iter()
+                                .any(|(k, _)| k == "DefinitionSubstitutions")
+                        {
+                            resolver.def_subs_resources.insert(rname.clone());
                         }
                     }
                 }
-                for (name, node_ref) in entries.to_vec() {
-                    resolver.set_current_resource(&name);
-                    let resolved = resolve_resource(&ir.arena, &name, node_ref, &mut resolver);
-                    resources.insert(name.clone(), resolved);
-                }
             }
+            for (name, node_ref) in entries.to_vec() {
+                resolver.set_current_resource(&name);
+                let resolved = resolve_resource(&ir.arena, &name, node_ref, &mut resolver);
+                resources.insert(name.clone(), resolved);
+            }
+        }
         for (name, res) in &resources {
             debug!(
                 "Resolved '{}' ({}): {} properties, {} edges, condition={:?}",
@@ -328,52 +328,49 @@ impl SemanticModel {
 
         let mut outputs = HashMap::new();
         if ir.outputs != NULL_REF
-            && let Some(entries) = ir.arena.as_map(ir.outputs) {
-                for (name, node_ref) in entries.to_vec() {
-                    resolver.set_current_resource(&format!(
-                        "{}{}",
-                        OUTPUT_PSEUDO_RESOURCE_PREFIX, name
-                    ));
-                    resolver.set_current_path(&format!("Outputs/{}/Value", name));
-                    let resolved = resolve_output(&ir.arena, node_ref, &mut resolver);
-                    outputs.insert(name.clone(), resolved);
-                }
+            && let Some(entries) = ir.arena.as_map(ir.outputs)
+        {
+            for (name, node_ref) in entries.to_vec() {
+                resolver
+                    .set_current_resource(&format!("{}{}", OUTPUT_PSEUDO_RESOURCE_PREFIX, name));
+                resolver.set_current_path(&format!("Outputs/{}/Value", name));
+                let resolved = resolve_output(&ir.arena, node_ref, &mut resolver);
+                outputs.insert(name.clone(), resolved);
             }
+        }
 
         // Walk the Rules section so that `Ref`/`Fn::Sub`/`Fn::ValueOf` etc.
         // appearing inside rule conditions and assertions emit reference
         // edges. Without this pass, parameters used only in Rules-section
         // assertions would appear unreferenced to downstream rule checks.
         if ir.rules != NULL_REF
-            && let Some(rule_entries) = ir.arena.as_map(ir.rules) {
-                for (rule_name, rule_node) in rule_entries.to_vec() {
-                    resolver.set_current_resource(&format!(
-                        "{}{}",
-                        RULE_PSEUDO_RESOURCE_PREFIX, rule_name
-                    ));
-                    let cond_ref = ir.arena.map_get(rule_node, KEY_RULE_CONDITION);
-                    if let Some(cond_ref) = cond_ref {
-                        resolver.set_current_path(&format!(
-                            "Rules/{}/{}",
-                            rule_name, KEY_RULE_CONDITION
-                        ));
-                        resolver.resolve_node(cond_ref);
-                    }
-                    let assertions_ref = ir.arena.map_get(rule_node, KEY_ASSERTIONS);
-                    if let Some(assertions_ref) = assertions_ref
-                        && let Some(assertion_items) = ir.arena.as_list(assertions_ref) {
-                            for (idx, item_ref) in assertion_items.to_vec().iter().enumerate() {
-                                if let Some(assert_ref) = ir.arena.map_get(*item_ref, KEY_ASSERT) {
-                                    resolver.set_current_path(&format!(
-                                        "Rules/{}/{}/{}/{}",
-                                        rule_name, KEY_ASSERTIONS, idx, KEY_ASSERT
-                                    ));
-                                    resolver.resolve_node(assert_ref);
-                                }
-                            }
+            && let Some(rule_entries) = ir.arena.as_map(ir.rules)
+        {
+            for (rule_name, rule_node) in rule_entries.to_vec() {
+                resolver
+                    .set_current_resource(&format!("{}{}", RULE_PSEUDO_RESOURCE_PREFIX, rule_name));
+                let cond_ref = ir.arena.map_get(rule_node, KEY_RULE_CONDITION);
+                if let Some(cond_ref) = cond_ref {
+                    resolver
+                        .set_current_path(&format!("Rules/{}/{}", rule_name, KEY_RULE_CONDITION));
+                    resolver.resolve_node(cond_ref);
+                }
+                let assertions_ref = ir.arena.map_get(rule_node, KEY_ASSERTIONS);
+                if let Some(assertions_ref) = assertions_ref
+                    && let Some(assertion_items) = ir.arena.as_list(assertions_ref)
+                {
+                    for (idx, item_ref) in assertion_items.to_vec().iter().enumerate() {
+                        if let Some(assert_ref) = ir.arena.map_get(*item_ref, KEY_ASSERT) {
+                            resolver.set_current_path(&format!(
+                                "Rules/{}/{}/{}/{}",
+                                rule_name, KEY_ASSERTIONS, idx, KEY_ASSERT
+                            ));
+                            resolver.resolve_node(assert_ref);
                         }
+                    }
                 }
             }
+        }
 
         info!(
             "Phase 3: Building reference graph from {} resolver edges",
@@ -434,14 +431,15 @@ impl SemanticModel {
 
         for idx in 0..ir.arena.len() {
             if let Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) = ir.arena.node(idx as NodeRef)
-                && !conditions.conditions.contains_key(cond_name) {
-                    diagnostics.push(crate::make_parse_diagnostic(
-                        "F1104",
-                        rules_crate::Severity::Fatal,
-                        format!("Fn::If references undefined condition '{}'", cond_name),
-                        ir.arena.span(idx as NodeRef),
-                    ));
-                }
+                && !conditions.conditions.contains_key(cond_name)
+            {
+                diagnostics.push(crate::make_parse_diagnostic(
+                    "F1104",
+                    rules_crate::Severity::Fatal,
+                    format!("Fn::If references undefined condition '{}'", cond_name),
+                    ir.arena.span(idx as NodeRef),
+                ));
+            }
         }
         let mut output_empty_joins: Vec<String> = Vec::new();
         for (key, joins) in &resolver.empty_joins {
@@ -656,9 +654,10 @@ impl SemanticModel {
             if let Some(src) = self
                 .resolution_sources
                 .get(&(resource_id.to_string(), p.clone()))
-                && src.starts_with("Intrinsic/") {
-                    return true;
-                }
+                && src.starts_with("Intrinsic/")
+            {
+                return true;
+            }
             match p.rfind('.') {
                 Some(i) => p.truncate(i),
                 None => return false,

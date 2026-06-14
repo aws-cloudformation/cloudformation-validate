@@ -2,11 +2,11 @@ package best_practices
 
 import rego.v1
 
-# W3010: Hardcoded availability zone. Matches cfn-lint's AvailabilityZone rule
-# behavior: same resource-type/property allowlist including nested and list-indexed
-# paths, and the same message format `Avoid hardcoding availability zones '<zone>'`.
-# Values produced by intrinsics (Fn::GetAZs, Ref, etc.) are skipped — cfn-lint does
-# the same by ignoring property paths that contain an intrinsic function.
+# W3010: Hardcoded availability zone. Uses the same resource-type/property allowlist
+# including nested and list-indexed paths, and the same message format
+# `Avoid hardcoding availability zones '<zone>'`.
+# Values produced by intrinsics (Fn::GetAZs, Ref, etc.) are skipped — property paths
+# that contain an intrinsic function are ignored.
 
 _az_pattern := `^[a-z]{2}(-[a-z]+)+-[0-9][a-z]$`
 
