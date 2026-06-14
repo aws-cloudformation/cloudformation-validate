@@ -833,10 +833,10 @@ fn register_ip_overlaps(rego: &mut regorus::Engine) {
             let b_str = params[1].as_string()?;
             let net_a: ipnetwork::IpNetwork = a_str
                 .parse()
-                .map_err(|e| anyhow::anyhow!("invalid CIDR '{}': {}", a_str, e))?;
+                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", a_str, e))?;
             let net_b: ipnetwork::IpNetwork = b_str
                 .parse()
-                .map_err(|e| anyhow::anyhow!("invalid CIDR '{}': {}", b_str, e))?;
+                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", b_str, e))?;
             let overlaps = net_a.contains(net_b.network()) || net_b.contains(net_a.network());
             Ok(Value::from(overlaps))
         }),
@@ -852,10 +852,10 @@ fn register_ip_subnet_of(rego: &mut regorus::Engine) {
             let vpc_str = params[1].as_string()?;
             let sub_net: ipnetwork::IpNetwork = sub_str
                 .parse()
-                .map_err(|e| anyhow::anyhow!("invalid CIDR '{}': {}", sub_str, e))?;
+                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", sub_str, e))?;
             let vpc_net: ipnetwork::IpNetwork = vpc_str
                 .parse()
-                .map_err(|e| anyhow::anyhow!("invalid CIDR '{}': {}", vpc_str, e))?;
+                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", vpc_str, e))?;
             let is_sub = match (sub_net, vpc_net) {
                 (ipnetwork::IpNetwork::V4(s), ipnetwork::IpNetwork::V4(v)) => s.is_subnet_of(v),
                 (ipnetwork::IpNetwork::V6(s), ipnetwork::IpNetwork::V6(v)) => s.is_subnet_of(v),

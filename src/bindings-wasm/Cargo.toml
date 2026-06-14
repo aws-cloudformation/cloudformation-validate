@@ -3,7 +3,10 @@ name = "bindings-wasm"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "WASM bindings for the Validation Engine"
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 crate-type = ["cdylib"]

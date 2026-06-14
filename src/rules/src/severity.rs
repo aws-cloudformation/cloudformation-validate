@@ -49,7 +49,9 @@ impl std::str::FromStr for Severity {
             "WARN" => Ok(Severity::Warn),
             "INFO" => Ok(Severity::Info),
             "DEBUG" => Ok(Severity::Debug),
-            _ => Err(format!("Invalid severity: {}", s)),
+            _ => Err(format!(
+                "Invalid severity '{s}'; expected one of: fatal, error, warn, info, debug"
+            )),
         }
     }
 }
@@ -98,7 +100,10 @@ mod tests {
         use std::str::FromStr;
 
         let err = Severity::from_str("test").unwrap_err();
-        assert_eq!(err, "Invalid severity: test");
+        assert_eq!(
+            err,
+            "Invalid severity 'test'; expected one of: fatal, error, warn, info, debug"
+        );
     }
 
     #[test]

@@ -3,7 +3,10 @@ name = "bindings-jvm"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "JVM bindings for CloudFormation Validation Engine via UniFFI"
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 crate-type = ["cdylib", "lib"]
