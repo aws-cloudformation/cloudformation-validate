@@ -425,13 +425,23 @@ where
     })
 }
 
+pub fn semantic_model_to_input_json(
+    model: &SemanticModel,
+) -> Result<serde_json::Value, ValidationError> {
+    serde_json::to_value(model.to_diagnostic_json()).map_err(|e| {
+        ValidationError::Engine(format!(
+            "Failed to serialize the semantic model for rule evaluation: {e}"
+        ))
+    })
+}
+
 fn panic_message(payload: &(dyn Any + Send)) -> String {
     if let Some(message) = payload.downcast_ref::<&str>() {
         (*message).to_string()
     } else if let Some(message) = payload.downcast_ref::<String>() {
         message.clone()
     } else {
-        "Unknown panic".to_string()
+        "Panic payload was not a string".to_string()
     }
 }
 

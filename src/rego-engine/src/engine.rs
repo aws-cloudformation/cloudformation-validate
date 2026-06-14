@@ -8,7 +8,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
     EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
-    extract_diagnostics,
+    extract_diagnostics, semantic_model_to_input_json,
 };
 
 static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
@@ -361,11 +361,7 @@ impl ValidationEngine for RegoEngine {
 
         let mut rego = self.base_rego.clone();
 
-        let input_json = serde_json::to_value(model.to_diagnostic_json()).map_err(|e| {
-            ValidationError::Engine(format!(
-                "Failed to serialize the semantic model for rule evaluation: {e}"
-            ))
-        })?;
+        let input_json = semantic_model_to_input_json(model)?;
         let input_value = crate::builtins::serde_json_to_rego_value(&input_json);
         rego.set_input(input_value);
 

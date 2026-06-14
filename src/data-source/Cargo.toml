@@ -52,3 +52,6 @@ zstd = { version = "0.13", default-features = false }
 
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
+
+[lints]
+workspace = true

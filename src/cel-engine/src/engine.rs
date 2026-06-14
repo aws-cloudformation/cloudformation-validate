@@ -7,6 +7,7 @@ use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
 use template_model::SemanticModel;
 use validation_engine::{
     EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
+    semantic_model_to_input_json,
 };
 
 use crate::rule_evaluator::GeneratedRuleRegistry;
@@ -172,7 +173,7 @@ impl ValidationEngine for CelEngine {
         model: &Arc<SemanticModel>,
         config: &ValidateConfig,
     ) -> Result<Vec<Diagnostic>, ValidationError> {
-        let input_json = serde_json::to_value(model.to_diagnostic_json()).unwrap();
+        let input_json = semantic_model_to_input_json(model)?;
         let excluded_cats = config.filters.excluded_categories();
         let region = config.pseudo_parameter_overrides.region.clone();
 

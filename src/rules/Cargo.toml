@@ -22,3 +22,6 @@ uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", option
 
 [dev-dependencies]
 serde_json = "1"
+
+[lints]
+workspace = true

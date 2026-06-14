@@ -103,8 +103,8 @@ impl JvmSchemaValidator {
         })
     }
 
-    pub fn list_rules(&self) -> Vec<RuleInfo> {
-        self.inner.list_rules()
+    pub fn list_rules(&self) -> Result<Vec<RuleInfo>, ValidationError> {
+        validation_engine::catch_panics(|| Ok(self.inner.list_rules()), panic_to_error)
     }
 
     pub fn schema_count(&self) -> u32 {
@@ -202,8 +202,8 @@ macro_rules! impl_jvm_engine {
                 )
             }
 
-            pub fn list_rules(&self) -> Vec<RuleInfo> {
-                self.engine.list_rules()
+            pub fn list_rules(&self) -> Result<Vec<RuleInfo>, ValidationError> {
+                validation_engine::catch_panics(|| Ok(self.engine.list_rules()), panic_to_error)
             }
 
             pub fn engine_name(&self) -> String {
@@ -247,24 +247,33 @@ impl JvmSemanticModel {
         )
     }
 
-    pub fn resources(&self) -> HashMap<String, template_model::model::ResolvedResource> {
-        self.model.resources.clone()
+    pub fn resources(
+        &self,
+    ) -> Result<HashMap<String, template_model::model::ResolvedResource>, ValidationError> {
+        validation_engine::catch_panics(|| Ok(self.model.resources.clone()), panic_to_error)
     }
 
-    pub fn parameters(&self) -> HashMap<String, template_model::resolver::ParameterInfo> {
-        self.model.parameters.clone()
+    pub fn parameters(
+        &self,
+    ) -> Result<HashMap<String, template_model::resolver::ParameterInfo>, ValidationError> {
+        validation_engine::catch_panics(|| Ok(self.model.parameters.clone()), panic_to_error)
     }
 
-    pub fn outputs(&self) -> HashMap<String, template_model::model::ResolvedOutput> {
-        self.model.outputs.clone()
+    pub fn outputs(
+        &self,
+    ) -> Result<HashMap<String, template_model::model::ResolvedOutput>, ValidationError> {
+        validation_engine::catch_panics(|| Ok(self.model.outputs.clone()), panic_to_error)
     }
 
-    pub fn conditions(&self) -> Vec<String> {
-        self.model.conditions.names().map(String::from).collect()
+    pub fn conditions(&self) -> Result<Vec<String>, ValidationError> {
+        validation_engine::catch_panics(
+            || Ok(self.model.conditions.names().map(String::from).collect()),
+            panic_to_error,
+        )
     }
 
-    pub fn transforms(&self) -> Vec<String> {
-        self.model.transforms.clone()
+    pub fn transforms(&self) -> Result<Vec<String>, ValidationError> {
+        validation_engine::catch_panics(|| Ok(self.model.transforms.clone()), panic_to_error)
     }
 
     pub fn format_version(&self) -> Option<String> {
@@ -280,8 +289,11 @@ impl JvmSemanticModel {
         validation_engine::catch_panics(|| Ok(self.model.to_diagnostic_json()), panic_to_error)
     }
 
-    pub fn source_location(&self, path: String) -> Option<SourceSpan> {
-        self.model.source_location(&path).copied()
+    pub fn source_location(&self, path: String) -> Result<Option<SourceSpan>, ValidationError> {
+        validation_engine::catch_panics(
+            || Ok(self.model.source_location(&path).copied()),
+            panic_to_error,
+        )
     }
 }
 

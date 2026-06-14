@@ -33,3 +33,6 @@ wasm-opt = [
     "--enable-reference-types",
     "--enable-mutable-globals",
 ]
+
+[lints]
+workspace = true

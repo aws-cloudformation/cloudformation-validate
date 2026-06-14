@@ -13,3 +13,6 @@ guard-lang = { git = "https://github.com/aws-cloudformation/cloudformation-guard
 serde = { version = "1", features = ["derive"] }
 indexmap = "1.6"
 rules = { path = "../rules" }
+
+[lints]
+workspace = true

@@ -22,3 +22,6 @@ codegen-units = 1
 opt-level = 3
 strip = "debuginfo"
 panic = "unwind"
+
+[workspace.lints.clippy]
+approx_constant = "allow"
