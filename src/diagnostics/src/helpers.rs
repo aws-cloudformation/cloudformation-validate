@@ -2,11 +2,12 @@ use rules::{RuleOrigin, section_for_rule_id};
 
 use crate::span::{SourceSpan, SpanProvider, UNKNOWN_SPAN};
 
-/// Message prefix that marks a SAM transform-error diagnostic (rule `F0001`).
-///
-/// A transform failure means CloudFormation never reaches resource validation,
-/// so the pipeline uses this prefix to recognize and gate on these diagnostics
-/// regardless of which layer produced them.
+pub const SAM_TRANSFORM_ERROR_RULE_ID: &str = "E0001";
+
+/// Message prefix shared by every SAM transform-error diagnostic, regardless
+/// of which engine produced it. The pipeline gates non-transform diagnostics
+/// on this prefix because a failed SAM transform stops CloudFormation before
+/// resource validation.
 pub const SAM_TRANSFORM_ERROR_PREFIX: &str = "Error transforming template:";
 
 /// Returns `true` when `message` belongs to a SAM transform-error diagnostic.

@@ -198,6 +198,14 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
                     origin_issues.append((rid, reg_origin, "Engine",
                         "registry says CfnLint but ID not found in cfn-lint"))
 
+    # The auto-detect above maps cfn-lint E0001 to engine F0001 because both
+    # IDs exist in the registry, but the engine actually emits E0001 directly
+    # (a SAM transform-error pre-flight check) — F0001 is reserved for the
+    # empty-Resources-section structural check and never fires for SAM
+    # transform errors. Remap to the ID the engine actually emits before the
+    # rule_aliases set is computed below.
+    cfnlint_to_engine["E0001"] = "E0001"
+
     engine_to_cfnlint = {v: k for k, v in cfnlint_to_engine.items()}
 
     # ── Engine-extra set ─────────────────────────────────────────────────
@@ -272,7 +280,7 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # emit these on SAM-transformed or nested templates that cfn-lint
     # processes differently:
     ENGINE_STRICTER_SCHEMA = {
-        "F0001",   # Resources section (metadata-only / SAM transform edge cases)
+        "F0001",   # Resources section structural check (empty/missing Resources)
         "F3003",   # Required property missing (cfn-lint may use specific conditional rules, e.g. E3639/E3676)
         "F3012",   # Type mismatch (post-SAM-transform property-level)
         "F3034",   # Numeric range (cross-resource: FIFO queue → EventSourceMapping)

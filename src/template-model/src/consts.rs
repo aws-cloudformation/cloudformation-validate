@@ -84,9 +84,16 @@ pub const KEY_CONSTRAINT_DESCRIPTION: &str = "ConstraintDescription";
 pub const SAM_TRANSFORM_MARKER: &str = "Serverless";
 pub const SAM_SERVERLESS_TYPE_PREFIX: &str = "AWS::Serverless::";
 pub const SAM_FUNCTION_TYPE: &str = "AWS::Serverless::Function";
+pub const SAM_LAYER_VERSION_TYPE: &str = "AWS::Serverless::LayerVersion";
+pub const SAM_APPLICATION_TYPE: &str = "AWS::Serverless::Application";
 pub const SAM_EVENT_TYPE_API: &str = "Api";
+pub const SAM_EVENT_TYPE_SCHEDULE: &str = "Schedule";
 pub const SAM_IMPLICIT_REST_API: &str = "ServerlessRestApi";
 pub const SAM_AUTO_PUBLISH_ALIAS: &str = "AutoPublishAlias";
+pub const SAM_LAYER_CONTENT_URI: &str = "ContentUri";
+pub const SAM_APPLICATION_LOCATION: &str = "Location";
+pub const SAM_FUNCTION_EVENTS: &str = "Events";
+pub const SAM_SCHEDULE_PROPERTY: &str = "Schedule";
 
 pub const SAM_GLOBALS_TYPE_MAP: &[(&str, &str)] = &[
     ("Function", "AWS::Serverless::Function"),
@@ -94,6 +101,10 @@ pub const SAM_GLOBALS_TYPE_MAP: &[(&str, &str)] = &[
     ("HttpApi", "AWS::Serverless::HttpApi"),
     ("SimpleTable", "AWS::Serverless::SimpleTable"),
 ];
+
+/// Short name for `AWS::Serverless::Function` defaults inside the
+/// `Globals` template section.
+pub const SAM_FUNCTION_GLOBALS_KEY: &str = "Function";
 
 pub const CDK_METADATA_TYPE: &str = "AWS::CDK::Metadata";
 

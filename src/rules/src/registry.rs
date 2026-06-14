@@ -138,6 +138,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
+        id: "E0001",
+        category: Category::Structure,
+        description: "SAM (AWS::Serverless) transform would reject the template",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "F0002",
         category: Category::Structure,
         description: "AWSTemplateFormatVersion must be 2010-09-09",

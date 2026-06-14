@@ -4,7 +4,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -201,7 +201,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -465,7 +465,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -557,7 +557,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -1234,7 +1234,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1401,7 +1401,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1500,7 +1500,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1600,7 +1600,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -1745,7 +1745,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -1890,7 +1890,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 10,
@@ -2532,7 +2532,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 9,
@@ -2746,7 +2746,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 17,
@@ -3171,7 +3171,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 9,
@@ -3413,7 +3413,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -3552,7 +3552,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -3748,7 +3748,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 4,
@@ -4704,7 +4704,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -4776,7 +4776,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -4862,7 +4862,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -5071,7 +5071,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -5129,7 +5129,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -5513,7 +5513,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -5897,7 +5897,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -6073,7 +6073,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 5,
@@ -6963,7 +6963,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7059,7 +7059,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -7186,7 +7186,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -7266,7 +7266,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -7420,7 +7420,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -7610,7 +7610,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7742,7 +7742,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7838,7 +7838,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -7970,7 +7970,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -8050,7 +8050,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -8172,7 +8172,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -8403,7 +8403,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -8626,7 +8626,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -8789,7 +8789,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -8960,7 +8960,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -9045,7 +9045,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -9257,7 +9257,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -9562,7 +9562,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -9642,7 +9642,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -9791,7 +9791,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -9879,7 +9879,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -10006,7 +10006,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -10294,7 +10294,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 5,
@@ -10682,7 +10682,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 3,
@@ -10826,7 +10826,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -11326,7 +11326,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -11530,7 +11530,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 5,
@@ -12138,7 +12138,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 2,
@@ -12649,7 +12649,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 28,
@@ -14328,7 +14328,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -14573,7 +14573,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -14726,7 +14726,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -14788,7 +14788,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -14907,7 +14907,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -15003,7 +15003,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -15147,7 +15147,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -15241,7 +15241,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -15326,7 +15326,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -15420,7 +15420,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -15621,7 +15621,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15754,7 +15754,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15904,7 +15904,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -16016,7 +16016,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -16251,7 +16251,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -16419,7 +16419,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -16568,7 +16568,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -16640,7 +16640,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -16796,7 +16796,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -16857,7 +16857,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -16918,7 +16918,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -16979,7 +16979,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -17040,7 +17040,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -17083,7 +17083,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -17199,7 +17199,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -17262,7 +17262,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -17423,7 +17423,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -17678,7 +17678,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -17776,7 +17776,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -17949,7 +17949,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -18032,7 +18032,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -18214,7 +18214,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 4,
@@ -18328,7 +18328,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -18795,7 +18795,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 10,
@@ -19139,7 +19139,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -19331,7 +19331,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19449,7 +19449,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 1,
@@ -19991,7 +19991,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -20381,7 +20381,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -20893,7 +20893,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 2,
@@ -21426,7 +21426,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 2,
@@ -22331,7 +22331,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -22519,7 +22519,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -22829,7 +22829,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 3,
@@ -23165,7 +23165,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -23277,7 +23277,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -23320,7 +23320,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -23406,7 +23406,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -23635,7 +23635,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -23813,7 +23813,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -23925,7 +23925,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -24019,7 +24019,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -24113,7 +24113,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -24711,7 +24711,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 7,
@@ -24993,7 +24993,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -25058,7 +25058,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -25335,7 +25335,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -25415,7 +25415,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 6,
@@ -25783,7 +25783,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -26123,7 +26123,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -26361,7 +26361,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -27104,7 +27104,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -27240,7 +27240,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -27283,7 +27283,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -27405,7 +27405,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -27663,7 +27663,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -27803,7 +27803,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 3,
@@ -27963,7 +27963,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -28697,7 +28697,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -28837,7 +28837,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -28945,7 +28945,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -29038,7 +29038,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 7,
@@ -30331,7 +30331,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 9,
@@ -30753,7 +30753,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -30865,7 +30865,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -31083,7 +31083,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -31190,7 +31190,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -31627,7 +31627,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -31695,7 +31695,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -32164,7 +32164,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -33109,7 +33109,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -33189,7 +33189,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 37,
@@ -34154,7 +34154,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -34344,7 +34344,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -34511,7 +34511,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -34617,7 +34617,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -34788,7 +34788,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -34972,7 +34972,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -35355,7 +35355,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -35512,7 +35512,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -35844,7 +35844,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -35958,7 +35958,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -36320,7 +36320,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -36462,7 +36462,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -36570,7 +36570,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -36705,7 +36705,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -36823,7 +36823,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -36933,7 +36933,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -37033,7 +37033,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -37133,7 +37133,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -37216,7 +37216,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -37692,7 +37692,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -37885,7 +37885,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -38143,7 +38143,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -38243,7 +38243,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -38371,7 +38371,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -38573,7 +38573,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -38687,7 +38687,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -38797,7 +38797,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -38955,7 +38955,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -39266,7 +39266,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -39913,7 +39913,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -39986,7 +39986,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -40059,7 +40059,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -40117,11 +40117,11 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 2,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 2,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -40155,31 +40155,35 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F0001",
-        "severity": "FATAL",
-        "message": "Error transforming template: Resource with id [SkillFunctionExtraItems] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
-        "source": "SCHEMA",
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [SkillFunctionExtraItems] is invalid. Type of property 'AutoPublishAlias' is invalid.",
+        "source": "CFN_LINT",
+        "resourceId": "SkillFunctionExtraItems",
+        "propertyPath": "Properties/AutoPublishAlias",
         "category": "Structure",
-        "startLine": 15,
-        "startColumn": 3,
-        "endLine": 15,
-        "endColumn": 26,
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 23,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
-        "ruleId": "F0001",
-        "severity": "FATAL",
+        "ruleId": "E0001",
+        "severity": "ERROR",
         "message": "Error transforming template: Resource with id [SkillFunctionNotRef] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
+        "resourceId": "SkillFunctionNotRef",
+        "propertyPath": "Properties/AutoPublishAlias",
         "category": "Structure",
-        "startLine": 26,
-        "startColumn": 3,
-        "endLine": 26,
-        "endColumn": 22,
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 23,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
         "section": "Resources"
       }
     ]
@@ -40189,7 +40193,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -40269,11 +40273,11 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 1,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -40307,17 +40311,19 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F0001",
-        "severity": "FATAL",
+        "ruleId": "E0001",
+        "severity": "ERROR",
         "message": "Error transforming template: Resource with id [ProcessorFunction] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
+        "resourceId": "ProcessorFunction",
+        "propertyPath": "Properties/AutoPublishAlias",
         "category": "Structure",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 20,
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 23,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
         "section": "Resources"
       }
     ]
@@ -40327,11 +40333,11 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
-        "fatal": 3,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 3,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -40365,45 +40371,51 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F0001",
-        "severity": "FATAL",
-        "message": "Error transforming template: Resource with id [AppName] is invalid. Resource is missing the required [Location] property.",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 5,
-        "startColumn": 1,
-        "endLine": 5,
-        "endColumn": 10,
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F0001",
-        "severity": "FATAL",
-        "message": "Error transforming template: Resource with id [ExampleLayer] is invalid. Missing required property 'ContentUri'.",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 5,
-        "startColumn": 1,
-        "endLine": 5,
-        "endColumn": 10,
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F0001",
-        "severity": "FATAL",
+        "ruleId": "E0001",
+        "severity": "ERROR",
         "message": "Error transforming template: Resource with id [myFunctionMyTimer] is invalid. Missing required property 'Schedule'.",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
+        "resourceId": "myFunction",
+        "propertyPath": "Properties/Events/MyTimer",
         "category": "Structure",
-        "startLine": 5,
-        "startColumn": 1,
-        "endLine": 5,
+        "startLine": 40,
+        "startColumn": 9,
+        "endLine": 40,
+        "endColumn": 16,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [ExampleLayer] is invalid. Missing required property 'ContentUri'.",
+        "source": "CFN_LINT",
+        "resourceId": "ExampleLayer",
+        "propertyPath": "Properties/ContentUri",
+        "category": "Structure",
+        "startLine": 51,
+        "startColumn": 3,
+        "endLine": 51,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [AppName] is invalid. Resource is missing the required [Location] property.",
+        "source": "CFN_LINT",
+        "resourceId": "AppName",
+        "propertyPath": "Properties/Location",
+        "category": "Structure",
+        "startLine": 57,
+        "startColumn": 3,
+        "endLine": 57,
         "endColumn": 10,
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA",
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
         "section": "Resources"
       }
     ]
@@ -40413,7 +40425,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -40491,7 +40503,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -40594,7 +40606,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -40751,7 +40763,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -40891,7 +40903,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -41041,7 +41053,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -41189,7 +41201,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -41251,7 +41263,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -41333,7 +41345,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -41444,7 +41456,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -41688,7 +41700,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -41871,7 +41883,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -41933,7 +41945,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -42481,7 +42493,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -42539,7 +42551,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -42597,7 +42609,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -42696,7 +42708,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -42754,7 +42766,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -42812,7 +42824,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -42870,7 +42882,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -42964,7 +42976,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 8,
@@ -43518,7 +43530,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 5,
@@ -43917,7 +43929,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -44165,7 +44177,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -44413,7 +44425,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -44485,7 +44497,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -44668,7 +44680,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -44782,7 +44794,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -44896,7 +44908,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -45000,7 +45012,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -45206,7 +45218,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -45394,7 +45406,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -45482,7 +45494,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -45525,7 +45537,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -45685,7 +45697,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -45805,7 +45817,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 3,
@@ -46324,7 +46336,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 3,
@@ -46697,7 +46709,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -46813,7 +46825,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -46856,7 +46868,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -47020,7 +47032,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -47486,7 +47498,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -47884,7 +47896,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -48305,7 +48317,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -48384,7 +48396,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -48516,7 +48528,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -48647,7 +48659,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -48719,7 +48731,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -48876,7 +48888,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -48952,7 +48964,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -49014,7 +49026,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -49076,7 +49088,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -49484,7 +49496,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -49672,7 +49684,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -49848,7 +49860,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -49930,7 +49942,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -50020,7 +50032,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 3,
@@ -50302,7 +50314,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -50518,7 +50530,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -50632,7 +50644,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -50736,7 +50748,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -50938,7 +50950,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -51374,7 +51386,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -51823,7 +51835,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -52154,7 +52166,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -52197,7 +52209,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -52259,7 +52271,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -52345,7 +52357,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -52758,7 +52770,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -52840,7 +52852,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -53018,7 +53030,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 10,
       "counts": {
         "fatal": 0,
@@ -53954,7 +53966,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -54098,7 +54110,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -54163,7 +54175,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -54245,7 +54257,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -54504,7 +54516,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -54566,7 +54578,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -54816,7 +54828,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -54940,7 +54952,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -55337,7 +55349,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -55441,7 +55453,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -55638,7 +55650,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -55681,7 +55693,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -55887,7 +55899,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -56022,7 +56034,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -56288,7 +56300,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -56572,7 +56584,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -56751,7 +56763,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -57237,7 +57249,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -57299,7 +57311,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -57382,7 +57394,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -57444,7 +57456,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -58010,7 +58022,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -58131,7 +58143,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -58280,7 +58292,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -58356,7 +58368,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -58484,7 +58496,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -58612,7 +58624,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -58677,7 +58689,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -58777,7 +58789,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -58860,7 +58872,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -59336,7 +59348,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -59489,7 +59501,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -59572,7 +59584,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -59655,7 +59667,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -59766,7 +59778,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -59849,7 +59861,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -59929,7 +59941,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -60009,7 +60021,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -60089,7 +60101,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60151,7 +60163,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60213,7 +60225,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60275,7 +60287,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -60615,7 +60627,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60677,7 +60689,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60739,7 +60751,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60833,7 +60845,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60895,7 +60907,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -60975,7 +60987,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -61055,7 +61067,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -61153,7 +61165,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -61233,7 +61245,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -61548,7 +61560,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -61730,7 +61742,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 2,
@@ -61949,7 +61961,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 4,
@@ -62199,7 +62211,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -62401,7 +62413,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -62527,7 +62539,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 5,
@@ -62999,7 +63011,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -63100,7 +63112,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 1,
@@ -64317,7 +64329,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -64417,7 +64429,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -64657,7 +64669,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 1,
@@ -64953,7 +64965,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -65394,7 +65406,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 6,
@@ -65948,7 +65960,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -66020,7 +66032,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 4,
@@ -66352,7 +66364,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -67271,7 +67283,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -67385,7 +67397,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 1,
@@ -68173,7 +68185,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 3,
@@ -69008,7 +69020,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 5,
@@ -69880,7 +69892,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -70209,7 +70221,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 3,
@@ -70809,7 +70821,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -70921,7 +70933,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -71033,7 +71045,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -71364,7 +71376,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 2,
@@ -71771,7 +71783,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -71833,7 +71845,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -71895,7 +71907,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -72025,7 +72037,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -72265,7 +72277,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -72505,7 +72517,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -72676,7 +72688,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -73529,7 +73541,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 79,
       "counts": {
         "fatal": 0,
@@ -77775,7 +77787,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -78260,7 +78272,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -78544,7 +78556,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -79023,7 +79035,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 28,
       "counts": {
         "fatal": 0,
@@ -81831,7 +81843,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -82316,7 +82328,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -83385,7 +83397,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -83669,7 +83681,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 24,
       "counts": {
         "fatal": 1,
@@ -85175,7 +85187,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 0,
@@ -87364,7 +87376,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 46,
       "counts": {
         "fatal": 0,
@@ -90636,7 +90648,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 0,
@@ -92707,7 +92719,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -92900,7 +92912,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -93280,7 +93292,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 0,
@@ -95483,7 +95495,7 @@
     "status": "OK",
     "engineVersion": "1.0.0",
     "metadata": {
-      "rulesEvaluated": 272,
+      "rulesEvaluated": 273,
       "resourcesScanned": 77,
       "counts": {
         "fatal": 0,

@@ -111,7 +111,7 @@ def configure_run(engine, fmt):
     ENGINE_NAME = engine
     OUTPUT_FORMAT = fmt
     ENGINE_REPORTS = SRC_DIR / "cfn-validate" / "reports" / engine / f"json_{fmt}"
-    OUTPUT_PATH = SCRIPT_DIR / engine / f"report_{engine}_{fmt}.md"
+    OUTPUT_PATH = SCRIPT_DIR / f"report_{engine}_{fmt}.md"
 
 
 # ── Build & Run ──────────────────────────────────────────────────────────────
@@ -334,8 +334,20 @@ def load_aggregate_perf():
 
 def _match_key(d):
     """Build match key: (rule_id, resource_id, resource_path) when path available,
-    else (rule_id, resource_id, ''). More precise than resource-only matching."""
-    return (d["rule_id"], d["resource_id"], d.get("resource_path", "") or d.get("json_path", ""))
+    else (rule_id, resource_id, ''). More precise than resource-only matching.
+
+    SAM transform errors (E0001) are a special case: cfn-lint anchors them at
+    the template root (no resource_id, no path) while the engine extracts the
+    offending resource and property path for accurate IDE navigation. Both
+    tools emit byte-identical messages, so collapsing E0001 on the message
+    gives a stable cross-tool match without sacrificing engine precision.
+    """
+    rule_id = d["rule_id"]
+    if rule_id == "E0001":
+        msg = d.get("message", "")
+        if msg.startswith("Error transforming template:"):
+            return (rule_id, "", msg)
+    return (rule_id, d["resource_id"], d.get("resource_path", "") or d.get("json_path", ""))
 
 
 def _alias_keys(key):

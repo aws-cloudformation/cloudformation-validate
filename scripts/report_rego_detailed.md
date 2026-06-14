@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-11 23:51:07  
+> Generated: 2026-06-14 15:04:31  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,50 +22,50 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1022 |
+| True Positives | 1026 |
 | False Positives (engine bugs) | 0 |
-| Engine Extra (correct, cfn-lint gap) | 2105 |
-| False Negatives (engine misses) | 156 |
+| Engine Extra (correct, cfn-lint gap) | 2090 |
+| False Negatives (engine misses) | 153 |
 | Precision | 100.00% |
-| Recall | 86.76% |
-| F1 | 92.91% |
-| Unique rules detected | 136 |
-| Perfect templates | 108/160 |
+| Recall | 87.02% |
+| F1 | 93.06% |
+| Unique rules detected | 139 |
+| Perfect templates | 110/160 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 243 | 0 | 81 | 52 | 100.00% | 82.37% |
-| Error | 182 | 0 | 74 | 79 | 100.00% | 69.73% |
-| Warning | 370 | 0 | 389 | 19 | 100.00% | 95.12% |
-| Info | 227 | 0 | 1561 | 6 | 100.00% | 97.42% |
+| Fatal | 240 | 0 | 78 | 48 | 100.00% | 83.33% |
+| Error | 189 | 0 | 71 | 80 | 100.00% | 70.26% |
+| Warning | 370 | 0 | 388 | 19 | 100.00% | 95.12% |
+| Info | 227 | 0 | 1553 | 6 | 100.00% | 97.42% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 19528.1213 ms |
-| Throughput | 113.94 validations/sec |
-| Templates | 445 ok, 8 failed |
+| Total wall time | 19766.0429 ms |
+| Throughput | 113.58 validations/sec |
+| Templates | 449 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 60.7823 ms |
-| Engine init (max) | 61.0696 ms |
-| Schema init (p99) | 58.2228 ms |
-| Schema init (max) | 58.9310 ms |
+| Engine init (p99) | 73.5405 ms |
+| Engine init (max) | 74.3175 ms |
+| Schema init (p99) | 67.1266 ms |
+| Schema init (max) | 68.2576 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0017 | 0.2010 | 0.0469 | 0.6737 | 0.8535 | 1.5554 | 2.5194 |
-| Schema Validate | 0.0000 | 2.3118 | 0.4603 | 6.0692 | 9.9147 | 22.5574 | 52.5162 |
-| Rule Evaluation | 0.9880 | 5.5913 | 2.4205 | 14.7585 | 20.0608 | 32.8543 | 73.2328 |
-| Diagnostic Finalize | 0.0003 | 0.0316 | 0.0060 | 0.0951 | 0.1456 | 0.3404 | 0.6276 |
-| Engine Internal | 0.9911 | 8.2207 | 3.1360 | 21.1320 | 30.7353 | 56.6016 | 112.4450 |
-| Wall Clock | 0.9912 | 8.2210 | 3.1362 | 21.1323 | 30.7357 | 56.6027 | 112.4465 |
+| Model Build | 0.0018 | 0.2005 | 0.0438 | 0.6338 | 0.8739 | 1.6007 | 2.6788 |
+| Schema Validate | 0.0000 | 2.4915 | 0.4363 | 6.7011 | 10.6191 | 24.3414 | 54.0535 |
+| Rule Evaluation | 0.9613 | 5.5195 | 2.3592 | 14.2294 | 19.6153 | 33.7613 | 76.6121 |
+| Diagnostic Finalize | 0.0003 | 0.0318 | 0.0055 | 0.0926 | 0.1443 | 0.3235 | 0.6330 |
+| Engine Internal | 0.9652 | 8.3043 | 3.0515 | 21.6812 | 34.8820 | 57.9015 | 115.3067 |
+| Wall Clock | 0.9653 | 8.3047 | 3.0516 | 21.6822 | 34.8833 | 57.9027 | 115.3080 |
 
-## False Negatives — 156 missed findings across 53 rules
+## False Negatives — 153 missed findings across 53 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -289,15 +289,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F0013** (cfn-lint: E1028) `AMIIDLookup` → `Properties.Role.Fn::If` L100 in `bad_core_conditions`
   > expected minimum item count: 3, found: 2
 
-### F0001 — 3 missed — Error found when transforming the template
-
-- **F0001** (cfn-lint: E0001) L1 in `bad_transform_auto_publish_alias`
-  > Error transforming template: Resource with id [SkillFunctionExtraItems] is invalid. Type of property 'AutoPublishAlias' is invalid.
-- **F0001** (cfn-lint: E0001) L1 in `bad_transform_auto_publish_alias`
-  > Error transforming template: Resource with id [SkillFunctionNotRef] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter
-- **F0001** (cfn-lint: E0001) L1 in `bad_transform_no_properties`
-  > Error transforming template: Resource with id [MyApi] is invalid. Missing required property 'StageName'.
-
 ### E1032 — 3 missed — Validates ForEach functions
 
 - **E1032** `Fn::ForEach::Buckets` → `Resources.Fn::ForEach::Buckets` L11 in `bad_functions_foreach_no_transform`
@@ -445,13 +436,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3510** `myPolicy` → `Properties.PolicyDocument.Statement.1.NotResource` L29 in `bad_functions_sub_needed`
   > 'arn:aws:iam::${AWS::AccountId}:user/${aws:username}-${AMIId}' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'
 
-### F6101 — 2 missed — Validate that outputs values are a string
-
-- **F6101** (cfn-lint: E6101) → `Outputs.myErrorOutput.Value.Fn::GetAtt.1` L229 in `bad_generic`
-  > 'DNE' is not one of ['Id', 'CanonicalHostedZoneName', 'CanonicalHostedZoneNameID', 'SourceSecurityGroup.GroupName', 'DNSName', 'SourceSecurityGroup.OwnerAlias'] in ['us-east-1']
-- **F6101** (cfn-lint: E6101) → `Outputs.OutputModuleAtt.Value.Ref` L7 in `good_functions_ref`
-  > 'ModuleResource' is not one of ['Module', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
-
 ### E3671 — 2 missed — Validate block device mapping configuration
 
 - **E3671** `MyEC2Instance` → `Properties.BlockDeviceMappings.0.Ebs.Iops` L17 in `bad_properties_ebs`
@@ -510,6 +494,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3673** `myEc2Instance4` → `Properties` L67 in `bad_generic`
   > 'ImageId' is a required property
 
+### F6101 — 1 missed — Validate that outputs values are a string
+
+- **F6101** (cfn-lint: E6101) → `Outputs.myErrorOutput.Value.Fn::GetAtt.1` L229 in `bad_generic`
+  > 'DNE' is not one of ['Id', 'CanonicalHostedZoneName', 'CanonicalHostedZoneNameID', 'SourceSecurityGroup.GroupName', 'DNSName', 'SourceSecurityGroup.OwnerAlias'] in ['us-east-1']
+
 ### W3045 — 1 missed — Controlling access to an S3 bucket should be done with bucket policies
 
 - **W3045** `S3BucketA` → `Properties.AccessControl` L17 in `good_functions_foreach`
@@ -535,6 +524,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E2529** `LogSubscriptionFunctionFunctionDLogGroup` → `Resources.LogSubscriptionFunctionFunctionDLogGroup` L14 in `bad_some_logs_stream_lambda`
   > You can only have 2 Subscription Filters per CloudWatch Log Group
 
+### E0001 — 1 missed — Error found when transforming the template
+
+- **E0001** L1 in `bad_transform_no_properties`
+  > Error transforming template: Resource with id [MyApi] is invalid. Missing required property 'StageName'.
+
 ### E3045 — 1 missed — Validate AccessControl are set with OwnershipControls
 
 - **E3045** `S3BucketA` → `Properties` L16 in `good_functions_foreach`
@@ -544,7 +538,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-## Engine Extra — 2105 correct findings across 59 rules
+## Engine Extra — 2090 correct findings across 58 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -2613,7 +2607,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `rRouteMgmtProdDMZ` (AWS::EC2::Route) → `Properties.RouteTableId` L900 in `quickstart_vpc-management`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
 
-### I9040 — 459 findings
+### I9040 — 453 findings
 
 - **I9040** `NewVolume` (AWS::EC2::Volume) → `Properties.Tags` L77 in `bad_conditions`
   > Resource 'NewVolume' of type 'AWS::EC2::Volume' supports Tags but none are configured
@@ -2875,20 +2869,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LogSubscriptionFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `LogSubscriptionFunctionLogGroup` (AWS::Logs::LogGroup) → `Properties.Tags` L79 in `bad_some_logs_stream_lambda`
   > Resource 'LogSubscriptionFunctionLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `SkillFunctionExtraItems` (AWS::Serverless::Function) → `Properties.Tags` L15 in `bad_transform_auto_publish_alias`
-  > Resource 'SkillFunctionExtraItems' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `SkillFunctionNotRef` (AWS::Serverless::Function) → `Properties.Tags` L26 in `bad_transform_auto_publish_alias`
-  > Resource 'SkillFunctionNotRef' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `MyApi` (AWS::Serverless::Api) → `Properties.Tags` L8 in `bad_transform_no_properties`
   > Resource 'MyApi' of type 'AWS::Serverless::Api' supports Tags but none are configured
-- **I9040** `myFunction` (AWS::Serverless::Function) → `Properties.Tags` L6 in `bad_transform_serverless_template`
-  > Resource 'myFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `AppName` (AWS::Serverless::Application) → `Properties.Tags` L57 in `bad_transform_serverless_template`
-  > Resource 'AppName' of type 'AWS::Serverless::Application' supports Tags but none are configured
-- **I9040** `myBucket` (AWS::S3::Bucket) → `Properties.Tags` L64 in `bad_transform_serverless_template`
-  > Resource 'myBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `myFunctionRole` (AWS::DynamoDB::Table) → `Properties.Tags` L67 in `bad_transform_serverless_template`
-  > Resource 'myFunctionRole' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
 - **I9040** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L40 in `good_conditions`
   > Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
 - **I9040** `mySubnet` (AWS::EC2::Subnet) → `Properties.Tags` L22 in `good_core_conditions`
@@ -4302,7 +4284,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W8001** L3 in `quickstart_nist_logging`
   > Condition 'IsGovCloud' is not used by any resource or Fn::If
 
-### F0001 — 15 findings — Error found when transforming the template
+### F0001 — 15 findings
 
 - **F0001** L12 in `bad_conditions_equals_not_useful`
   > Resources section must exist and be non-empty
@@ -4335,7 +4317,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F0001** L22 in `integration_metdata`
   > Resources section must exist and be non-empty
 
-### W2001 — 15 findings — Check if Parameters are Used
+### W2001 — 14 findings — Check if Parameters are Used
 
 - **W2001** L4 in `bad_core_conditions_list`
   > Parameter 'myEnvironment' is not referenced anywhere in the template
@@ -4345,8 +4327,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Parameter 'myMinLength' is not referenced anywhere in the template
 - **W2001** L4 in `bad_parameters_default`
   > Parameter 'myMinValue' is not referenced anywhere in the template
-- **W2001** L6 in `bad_transform_auto_publish_alias`
-  > Parameter 'Stage' is not referenced anywhere in the template
 - **W2001** L4 in `good_functions_foreach`
   > Parameter 'Environment' is not referenced anywhere in the template
 - **W2001** L4 in `good_parameters_not_used_parameters`
@@ -4367,37 +4347,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Parameter 'ECSStack' is not referenced anywhere in the template
 - **W2001** L5 in `issues_sam_w_conditions`
   > Parameter 'Zone' is not referenced anywhere in the template
-
-### I3011 — 14 findings — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
-
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `bad_resources_cognito_userpool_tag_is_list`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `bad_resources_cognito_userpool_tag_is_list`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `myFunctionRole` (AWS::DynamoDB::Table) L67 in `bad_transform_serverless_template`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `myFunctionRole` (AWS::DynamoDB::Table) L67 in `bad_transform_serverless_template`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `good_resources_cognito_userpool_tag_is_string_map`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `good_resources_cognito_userpool_tag_is_string_map`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsQueue` (AWS::SQS::Queue) L204 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsQueue` (AWS::SQS::Queue) L204 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsDeadLetterQueue` (AWS::SQS::Queue) L215 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsDeadLetterQueue` (AWS::SQS::Queue) L215 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsQueue` (AWS::SQS::Queue) L329 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsQueue` (AWS::SQS::Queue) L329 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsDeadLetterQueue` (AWS::SQS::Queue) L340 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsDeadLetterQueue` (AWS::SQS::Queue) L340 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
 
 ### W9008 — 14 findings
 
@@ -4458,6 +4407,33 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
 - **I3042** `rDBPassword` (Custom::Secret) L83 in `quickstart_test`
   > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
+
+### I3011 — 12 findings — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
+
+- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `bad_resources_cognito_userpool_tag_is_list`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `bad_resources_cognito_userpool_tag_is_list`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `good_resources_cognito_userpool_tag_is_string_map`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `good_resources_cognito_userpool_tag_is_string_map`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `VmdEventsQueue` (AWS::SQS::Queue) L204 in `issues_sam_w_conditions`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `VmdEventsQueue` (AWS::SQS::Queue) L204 in `issues_sam_w_conditions`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `VmdEventsDeadLetterQueue` (AWS::SQS::Queue) L215 in `issues_sam_w_conditions`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `VmdEventsDeadLetterQueue` (AWS::SQS::Queue) L215 in `issues_sam_w_conditions`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `DmdEventsQueue` (AWS::SQS::Queue) L329 in `issues_sam_w_conditions`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `DmdEventsQueue` (AWS::SQS::Queue) L329 in `issues_sam_w_conditions`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `DmdEventsDeadLetterQueue` (AWS::SQS::Queue) L340 in `issues_sam_w_conditions`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `DmdEventsDeadLetterQueue` (AWS::SQS::Queue) L340 in `issues_sam_w_conditions`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
 
 ### W2508 — 12 findings
 
@@ -4639,21 +4615,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2502** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `DependsOn` L917 in `quickstart_vpc-management`
   > Resource 'rDeepSecurityInfrastructureTemplate' has DependsOn 'rRouteMgmtProdDMZ' which is conditional (condition 'cCreatePeeringProduction'), but 'rDeepSecurityInfrastructureTemplate' does not have a 
 
-### F3003 — 6 findings — Required Resource properties are missing
-
-- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L8 in `bad_transform_no_properties`
-  > 'StageName' is a required property
-- **F3003** `ExampleLayer` (AWS::Serverless::LayerVersion) → `Properties` L53 in `bad_transform_serverless_template`
-  > 'ContentUri' is a required property
-- **F3003** `AppName` (AWS::Serverless::Application) → `Properties` L59 in `bad_transform_serverless_template`
-  > 'Location' is a required property
-- **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value`
-  > 'AssumeRolePolicyDocument' is a required property
-- **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value`
-  > 'DistributionConfig' is a required property
-- **F3003** `rArchiveLogsBucket` (AWS::S3::Bucket) → `Properties` L44 in `quickstart_nist_logging`
-  > 'OwnershipControls' is a required property
-
 ### W7001 — 6 findings — Check if Mappings are Used
 
 - **W7001** L9 in `bad_core_conditions`
@@ -4734,6 +4695,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W3002** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L915 in `quickstart_vpc-management`
   > This code may only work with 'package' cli command
 
+### F3003 — 4 findings — Required Resource properties are missing
+
+- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L8 in `bad_transform_no_properties`
+  > 'StageName' is a required property
+- **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value`
+  > 'AssumeRolePolicyDocument' is a required property
+- **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value`
+  > 'DistributionConfig' is a required property
+- **F3003** `rArchiveLogsBucket` (AWS::S3::Bucket) → `Properties` L44 in `quickstart_nist_logging`
+  > 'OwnershipControls' is a required property
+
 ### F3002 — 4 findings — Resource properties are invalid
 
 - **F3002** `EC2Instance` (AWS::EC2::Instance) → `Properties.Tags.1.BadKey` L54 in `bad_conditions`
@@ -4767,15 +4739,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline`
   > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
 
-### E2533 — 3 findings — Check if Lambda Function Runtimes are updatable
-
-- **E2533** `SkillFunctionExtraItems` (AWS::Serverless::Function) → `Properties.Runtime` L15 in `bad_transform_auto_publish_alias`
-  > Runtime 'python3.7' has reached end-of-life
-- **E2533** `SkillFunctionNotRef` (AWS::Serverless::Function) → `Properties.Runtime` L26 in `bad_transform_auto_publish_alias`
-  > Runtime 'python3.7' has reached end-of-life
-- **E2533** `myFunction` (AWS::Serverless::Function) → `Properties.Runtime` L6 in `bad_transform_serverless_template`
-  > Runtime 'nodejs4.3' has reached end-of-life
-
 ### W1020 — 3 findings — Sub isn't needed if it doesn't have a variable defined
 
 - **W1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.Value` L3 in `bad_core_parse_invalid_map`
@@ -4802,13 +4765,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Parameter 'MyPassword' appears to be a password but does not have NoEcho set to true
 - **W2509** L2 in `integration_resources-cloudformation-init`
   > Parameter 'DBPassword' appears to be a password but does not have NoEcho set to true
-
-### F3030 — 2 findings — Check if properties have a valid value
-
-- **F3030** `myInstance4` (AWS::EC2::Instance) → `Properties.InstanceType` L63 in `bad_core_conditions`
-  > {"Fn::If":"t3.2xlarge"} is not one of allowed values for region 'us-east-1'
-- **F3030** `myBucketFirstAndLastPass` (AWS::S3::Bucket) → `Properties.VersioningConfiguration.Status` L19 in `bad_core_directives`
-  > 'Enabled1' is not one of [String("Enabled"), String("Suspended")]
 
 ### F1104 — 2 findings
 
@@ -4880,6 +4836,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I2003** in `quickstart_openshift_master`
   > Parameter 'OpenShiftAdminPassword' AllowedPattern '(?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*
 
+### F3030 — 1 findings — Check if properties have a valid value
+
+- **F3030** `myBucketFirstAndLastPass` (AWS::S3::Bucket) → `Properties.VersioningConfiguration.Status` L19 in `bad_core_directives`
+  > 'Enabled1' is not one of [String("Enabled"), String("Suspended")]
+
 ### W1001 — 1 findings — Ref/GetAtt to resource that is available when conditions are applied
 
 - **W1001** `lambdaArn` → `Outputs/lambdaArn/Value` in `bad_functions_relationship_conditions`
@@ -4935,7 +4896,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I3037** `rNatInstanceEni` (AWS::EC2::NetworkInterface) → `Properties.GroupSet` L75 in `quickstart_nat-instance`
   > Array property 'GroupSet' contains duplicate value: ""
 
-## Per-Template Breakdown — 52 templates with mismatches
+## Per-Template Breakdown — 50 templates with mismatches
 
 ### `bad_conditions` — 9 mismatches (12 TP, 0 FP, 15 EE, 9 FN)
 
@@ -4952,10 +4913,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3530` ×6, `F3031`
 - EE: `I9001`, `I9040`
 
-### `bad_core_conditions` — 6 mismatches (17 TP, 0 FP, 31 EE, 6 FN)
+### `bad_core_conditions` — 6 mismatches (17 TP, 0 FP, 30 EE, 6 FN)
 
 - FN: `F3014` ×2, `F0013` ×2, `F3003`, `W3698`
-- EE: `I9001` ×8, `I9040` ×7, `E1152` ×7, `F0013` ×2, `W7001`, `W8001`, `E1151`, `E1154`, `F3012`, `F3030`, `W1028`
+- EE: `I9001` ×8, `I9040` ×7, `E1152` ×7, `F0013` ×2, `W7001`, `W8001`, `E1151`, `E1154`, `F3012`, `W1028`
 
 ### `bad_functions_sub_needed` — 6 mismatches (6 TP, 0 FP, 13 EE, 6 FN)
 
@@ -5085,11 +5046,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E1001`, `E1005`
 
-### `bad_transform_auto_publish_alias` — 2 mismatches (0 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `F0001` ×2
-- EE: `E2533` ×2, `I9040` ×2, `W2001`
-
 ### `good_functions_findinmap` — 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
 
 - FN: `E7001` ×2
@@ -5164,17 +5120,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_transform_no_properties` — 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
 
-- FN: `F0001`
+- FN: `E0001`
 - EE: `F3003`, `I9040`
 
 ### `good_custom_is-not-defined` — 1 mismatches (8 TP, 0 FP, 11 EE, 1 FN)
 
 - FN: `E9004`
 - EE: `I9040` ×5, `F3012` ×5, `I9001`
-
-### `good_functions_ref` — 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `F6101`
 
 ### `good_functions_sub` — 1 mismatches (11 TP, 0 FP, 13 EE, 1 FN)
 
@@ -5193,7 +5145,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ## Coverage Gaps
 
-9 cfn-lint templates with no engine report:
+10 cfn-lint templates with no engine report:
 
 - `bad_core_config_invalid_json` (1 expected diagnostics)
 - `bad_core_config_invalid_yaml` (1 expected diagnostics)
@@ -5204,6 +5156,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - `bad_template` (1 expected diagnostics)
 - `good_functions_get_stack_output` (0 expected diagnostics)
 - `integration_get-stack-output` (2 expected diagnostics)
+- `integration_module-sub-resources` (0 expected diagnostics)
 
 ## Root-Cause Analysis
 
@@ -5211,11 +5164,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 70 | 44.87% | E2001, E2529, E5001, E6001, E7001, E8001, E9004, F0000, F0001, F0002, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F6101 |
-| Resource property validation | 34 | 21.79% | E3001, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3671, E3673 |
-| Intrinsic function validation | 27 | 17.31% | E1001, E1005, E1011, E1016, E1017, E1021, E1032 |
-| Warning-level checks | 19 | 12.18% | W1001, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3698, W8001 |
-| Informational checks | 6 | 3.85% | I3011, I3510 |
+| Other | 67 | 43.79% | E0001, E2001, E2529, E5001, E6001, E7001, E8001, E9004, F0000, F0002, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F6101 |
+| Resource property validation | 34 | 22.22% | E3001, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3671, E3673 |
+| Intrinsic function validation | 27 | 17.65% | E1001, E1005, E1011, E1016, E1017, E1021, E1032 |
+| Warning-level checks | 19 | 12.42% | W1001, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3698, W8001 |
+| Informational checks | 6 | 3.92% | I3011, I3510 |
 
 ### False Positive Root Causes
 

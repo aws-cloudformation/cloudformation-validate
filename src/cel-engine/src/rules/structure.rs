@@ -8,12 +8,11 @@ use template_model::consts::{
     EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY,
     FIELD_EDGES, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS,
     FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS,
-    FIELD_UPDATE_REPLACE_POLICY, KEY_PROPERTIES, KEY_TYPE, POLICY_DELETE, POLICY_RETAIN,
-    POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION,
-    SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS,
-    SECTION_PARAMETERS, SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_SERVERLESS,
+    FIELD_UPDATE_REPLACE_POLICY, POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE,
+    POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
+    SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS,
+    SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_SERVERLESS,
 };
-use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 static ALPHANUM_RE: LazyLock<regex::Regex> =
@@ -589,77 +588,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if has_serverless_transform {
-        for name in m.resources_of_type("AWS::Serverless::LayerVersion") {
-            if !m
-                .resources
-                .get(name.as_str())
-                .map(|r| r.properties.contains_key("ContentUri"))
-                .unwrap_or(false)
-            {
-                out.push(make_resource_diagnostic("F0001",
-                    &format!("Error transforming template: Resource with id [{}] is invalid. Missing required property 'ContentUri'.", name), m, "", "",
-            None));
-            }
-        }
-        for name in m.resources_of_type("AWS::Serverless::Application") {
-            if !m
-                .resources
-                .get(name.as_str())
-                .map(|r| r.properties.contains_key("Location"))
-                .unwrap_or(false)
-            {
-                out.push(make_resource_diagnostic("F0001",
-                    &format!("Error transforming template: Resource with id [{}] is invalid. Resource is missing the required [Location] property.", name), m, "", "",
-            None));
-            }
-        }
-        for name in m.resources_of_type("AWS::Serverless::Function") {
-            if let Some(events) = m.resolve_deep(name, "Properties.Events") {
-                let event_entries: Vec<(String, serde_json::Value)> = match &events {
-                    ResolvedValue::Map { entries } => entries
-                        .iter()
-                        .filter(|e| !e.key.starts_with("__"))
-                        .filter_map(|e| match &e.value {
-                            ResolvedValue::Concrete { value: j } => {
-                                Some((e.key.clone(), j.0.clone()))
-                            }
-                            ResolvedValue::Map { entries: m } => {
-                                let obj: serde_json::Map<String, serde_json::Value> = m
-                                    .iter()
-                                    .filter_map(|me| {
-                                        if let ResolvedValue::Concrete { value: j } = &me.value {
-                                            Some((me.key.clone(), j.0.clone()))
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .collect();
-                                Some((e.key.clone(), serde_json::Value::Object(obj)))
-                            }
-                            _ => None,
-                        })
-                        .collect(),
-                    _ => vec![],
-                };
-                for (event_name, event_json) in &event_entries {
-                    if let Some(obj) = event_json.as_object()
-                        && obj.get(KEY_TYPE).and_then(|v| v.as_str()) == Some("Schedule") {
-                            let has_schedule = obj
-                                .get(KEY_PROPERTIES)
-                                .and_then(|p| p.as_object())
-                                .map(|p| p.contains_key("Schedule"))
-                                .unwrap_or(false);
-                            if !has_schedule {
-                                out.push(make_resource_diagnostic("F0001",
-                                    &format!("Error transforming template: Resource with id [{}{}] is invalid. Missing required property 'Schedule'.", name, event_name), m, "", "",
-            None));
-                            }
-                        }
-                }
-            }
-        }
-    }
 
     for name in m.resources.keys() {
         if name.len() > 200 {

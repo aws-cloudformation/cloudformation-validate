@@ -1534,7 +1534,12 @@ Resources:
                 "{} Resource with id [Fn] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
                 diagnostics::SAM_TRANSFORM_ERROR_PREFIX
             ),
-            ..make_diag("F0001", Severity::Fatal, 1, 1)
+            ..make_diag(
+                diagnostics::SAM_TRANSFORM_ERROR_RULE_ID,
+                Severity::Error,
+                1,
+                1,
+            )
         }
     }
 
