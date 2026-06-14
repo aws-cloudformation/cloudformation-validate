@@ -1,17 +1,17 @@
 [workspace]
 members = [
-    "rules",
+    "bindings-jvm",
+    "bindings-wasm",
+    "cel-engine",
+    "cfn-validate",
+    "data-source",
     "diagnostics",
+    "guard-translator",
+    "rego-engine",
+    "rules",
+    "schema-validator",
     "template-model",
     "validation-engine",
-    "rego-engine",
-    "cel-engine",
-    "data-source",
-    "cfn-validate",
-    "bindings-wasm",
-    "bindings-jvm",
-    "schema-validator",
-    "guard-translator"
 ]
 resolver = "2"
 

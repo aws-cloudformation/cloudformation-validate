@@ -129,40 +129,40 @@ impl CachedData {
     pub fn load() -> anyhow::Result<Self> {
         let known_resource_types: KnownResourceTypes =
             serde_json::from_slice(&embedded::KNOWN_RESOURCE_TYPES_BYTES)
-                .map_err(|e| anyhow::anyhow!("known_resource_types: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded known_resource_types data: {}", e))?;
         let known_types: HashSet<String> = known_resource_types
             .known_resource_types
             .into_iter()
             .collect();
 
         let getatt_data: GetattData = serde_json::from_slice(&embedded::GETATT_ATTRIBUTES_BYTES)
-            .map_err(|e| anyhow::anyhow!("getatt_attributes: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse embedded getatt_attributes data: {}", e))?;
         let getatt_attrs = getatt_data.getatt_attributes;
         let getatt_attr_types = getatt_data.getatt_attribute_types;
 
         let stateful_data: StatefulResourceTypes =
             serde_json::from_slice(&embedded::STATEFUL_RESOURCE_TYPES_BYTES)
-                .map_err(|e| anyhow::anyhow!("stateful_resource_types: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded stateful_resource_types data: {}", e))?;
         let stateful_resource_types = stateful_data.stateful_resource_types;
 
         let retention_data: RetentionPeriodRequirements =
             serde_json::from_slice(&embedded::RETENTION_PERIOD_REQUIREMENTS_BYTES)
-                .map_err(|e| anyhow::anyhow!("retention_period_requirements: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded retention_period_requirements data: {}", e))?;
         let retention_period_requirements = retention_data.retention_period_requirements;
 
         let primary_id_data: PrimaryIdentifiers =
             serde_json::from_slice(&embedded::PRIMARY_IDENTIFIERS_BYTES)
-                .map_err(|e| anyhow::anyhow!("primary_identifiers: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded primary_identifiers data: {}", e))?;
         let primary_identifiers = primary_id_data.primary_identifiers;
 
         let pipeline_data: CodepipelineArtifactCounts =
             serde_json::from_slice(&embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES)
-                .map_err(|e| anyhow::anyhow!("codepipeline_action_artifact_counts: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded codepipeline_action_artifact_counts data: {}", e))?;
         let codepipeline_artifact_counts = pipeline_data.codepipeline_action_artifact_counts;
 
         let deprecated_data: DeprecatedResourceTypes =
             serde_json::from_slice(&embedded::DEPRECATED_RESOURCE_TYPES_BYTES)
-                .map_err(|e| anyhow::anyhow!("deprecated_resource_types: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded deprecated_resource_types data: {}", e))?;
         let deprecated_resource_types: HashSet<String> = deprecated_data
             .deprecated_resource_types
             .into_iter()
@@ -170,21 +170,21 @@ impl CachedData {
 
         let sensitive_data: SensitivePorts =
             serde_json::from_slice(&embedded::SENSITIVE_PORTS_BYTES)
-                .map_err(|e| anyhow::anyhow!("sensitive_ports: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded sensitive_ports data: {}", e))?;
         let sensitive_ports = sensitive_data.sensitive_ports;
 
         let mut enum_data = HashMap::new();
         for (name, bytes) in ENUM_DATA.iter() {
             let v: serde_json::Value = serde_json::from_slice(bytes)
-                .map_err(|e| anyhow::anyhow!("enum data '{}': {}", name, e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded enum data '{}': {}", name, e))?;
             enum_data.insert(name.to_string(), v);
         }
         let iam_action_resource_patterns: serde_json::Value =
             serde_json::from_slice(&embedded::IAM_ACTION_RESOURCE_PATTERNS_BYTES)
-                .map_err(|e| anyhow::anyhow!("iam_action_resource_patterns: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded iam_action_resource_patterns data: {}", e))?;
         let region_resource_types: serde_json::Value =
             serde_json::from_slice(&embedded::REGION_RESOURCE_TYPES_BYTES)
-                .map_err(|e| anyhow::anyhow!("region_resource_types: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded region_resource_types data: {}", e))?;
 
         Ok(CachedData {
             known_types,
