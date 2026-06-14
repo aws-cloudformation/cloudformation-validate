@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  AliasName:
+    Type: String
+    Default: live
+Resources:
+  LiteralAliasFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: 's3://example-bucket/code.zip'
+      AutoPublishAlias: live
+  ParameterAliasFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: 's3://example-bucket/code.zip'
+      AutoPublishAlias: !Ref AliasName

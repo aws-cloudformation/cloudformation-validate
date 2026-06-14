@@ -40120,10 +40120,10 @@
       "rulesEvaluated": 272,
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 0,
-        "errors": 2,
-        "warnings": 1,
-        "informational": 2,
+        "fatal": 2,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -40155,89 +40155,31 @@
     },
     "diagnostics": [
       {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'Stage' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 1,
-        "endLine": 6,
-        "endColumn": 11,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT",
-        "section": "Parameters"
-      },
-      {
-        "ruleId": "E2531",
-        "severity": "ERROR",
-        "message": "Runtime 'python3.7' is blocked for new function creation",
-        "source": "CFN_LINT",
-        "resourceId": "SkillFunctionExtraItems",
-        "resourceType": "AWS::Serverless::Function",
-        "propertyPath": "Properties.Runtime",
-        "suggestedFix": "Update to a supported runtime",
-        "category": "Schema",
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Error transforming template: Resource with id [SkillFunctionExtraItems] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
+        "source": "SCHEMA",
+        "category": "Structure",
         "startLine": 15,
         "startColumn": 3,
         "endLine": 15,
         "endColumn": 26,
-        "ruleDescription": "Check if Lambda Function Runtimes are blocked for create",
+        "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA",
         "section": "Resources"
       },
       {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'SkillFunctionExtraItems' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "SkillFunctionExtraItems",
-        "resourceType": "AWS::Serverless::Function",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 3,
-        "endLine": 15,
-        "endColumn": 26,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "E2531",
-        "severity": "ERROR",
-        "message": "Runtime 'python3.7' is blocked for new function creation",
-        "source": "CFN_LINT",
-        "resourceId": "SkillFunctionNotRef",
-        "resourceType": "AWS::Serverless::Function",
-        "propertyPath": "Properties.Runtime",
-        "suggestedFix": "Update to a supported runtime",
-        "category": "Schema",
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Error transforming template: Resource with id [SkillFunctionNotRef] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
+        "source": "SCHEMA",
+        "category": "Structure",
         "startLine": 26,
         "startColumn": 3,
         "endLine": 26,
         "endColumn": 22,
-        "ruleDescription": "Check if Lambda Function Runtimes are blocked for create",
+        "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'SkillFunctionNotRef' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "SkillFunctionNotRef",
-        "resourceType": "AWS::Serverless::Function",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 3,
-        "endLine": 26,
-        "endColumn": 22,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
         "section": "Resources"
       }
     ]
@@ -40322,6 +40264,64 @@
       }
     ]
   },
+  "bad/transform_serverless_auto_publish_alias.yaml": {
+    "filePath": "bad/transform_serverless_auto_publish_alias.yaml",
+    "status": "OK",
+    "engineVersion": "1.0.0",
+    "metadata": {
+      "rulesEvaluated": 272,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Error transforming template: Resource with id [ProcessorFunction] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 3,
+        "endLine": 5,
+        "endColumn": 20,
+        "ruleDescription": "Resources section must exist and be non-empty",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/transform_serverless_template.yaml": {
     "filePath": "bad/transform_serverless_template.yaml",
     "status": "OK",
@@ -40330,10 +40330,10 @@
       "rulesEvaluated": 272,
       "resourcesScanned": 6,
       "counts": {
-        "fatal": 5,
-        "errors": 1,
+        "fatal": 3,
+        "errors": 0,
         "warnings": 0,
-        "informational": 6,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -40404,164 +40404,6 @@
         "endColumn": 10,
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "E2533",
-        "severity": "ERROR",
-        "message": "Runtime 'nodejs4.3' has reached end-of-life",
-        "source": "CFN_LINT",
-        "resourceId": "myFunction",
-        "resourceType": "AWS::Serverless::Function",
-        "propertyPath": "Properties.Runtime",
-        "suggestedFix": "Update to a supported runtime",
-        "category": "Schema",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 13,
-        "ruleDescription": "Check if Lambda Function Runtimes are updatable",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'myFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "myFunction",
-        "resourceType": "AWS::Serverless::Function",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 13,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'ContentUri' is a required property",
-        "source": "SCHEMA",
-        "resourceId": "ExampleLayer",
-        "resourceType": "AWS::Serverless::LayerVersion",
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'ContentUri'",
-        "category": "Schema",
-        "startLine": 53,
-        "startColumn": 5,
-        "endLine": 53,
-        "endColumn": 15,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'AppName' of type 'AWS::Serverless::Application' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "AppName",
-        "resourceType": "AWS::Serverless::Application",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 57,
-        "startColumn": 3,
-        "endLine": 57,
-        "endColumn": 10,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'Location' is a required property",
-        "source": "SCHEMA",
-        "resourceId": "AppName",
-        "resourceType": "AWS::Serverless::Application",
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'Location'",
-        "category": "Schema",
-        "startLine": 59,
-        "startColumn": 5,
-        "endLine": 59,
-        "endColumn": 15,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'myBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "myBucket",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 64,
-        "startColumn": 3,
-        "endLine": 64,
-        "endColumn": 11,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "resourceId": "myFunctionRole",
-        "resourceType": "AWS::DynamoDB::Table",
-        "category": "Best Practice",
-        "startLine": 67,
-        "startColumn": 3,
-        "endLine": 67,
-        "endColumn": 17,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "resourceId": "myFunctionRole",
-        "resourceType": "AWS::DynamoDB::Table",
-        "category": "Best Practice",
-        "startLine": 67,
-        "startColumn": 3,
-        "endLine": 67,
-        "endColumn": 17,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'myFunctionRole' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "myFunctionRole",
-        "resourceType": "AWS::DynamoDB::Table",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 67,
-        "startColumn": 3,
-        "endLine": 67,
-        "endColumn": 17,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
         "section": "Resources"
       }
     ]
@@ -61122,6 +60964,86 @@
         "startColumn": 3,
         "endLine": 22,
         "endColumn": 8,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/transform_serverless_auto_publish_alias.yaml": {
+    "filePath": "good/transform_serverless_auto_publish_alias.yaml",
+    "status": "OK",
+    "engineVersion": "1.0.0",
+    "metadata": {
+      "rulesEvaluated": 272,
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LiteralAliasFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "LiteralAliasFunction",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 23,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ParameterAliasFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "ParameterAliasFunction",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 25,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"

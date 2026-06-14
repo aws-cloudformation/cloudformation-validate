@@ -1,7 +1,8 @@
 use diagnostics::{
     DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport,
-    ViolationContext, apply_filters, phase_metric, resolve_section_span,
+    ViolationContext, apply_filters, is_sam_transform_error_message, phase_metric,
+    resolve_section_span,
 };
 use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, category_for_rule_id,
@@ -216,6 +217,8 @@ pub(crate) fn validate(
     all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
 
     all_diagnostics.extend(model.diagnostics.iter().cloned());
+
+    gate_sam_transform_errors(&mut all_diagnostics);
 
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
@@ -859,6 +862,20 @@ pub(crate) fn build_context(
         resolution_source: None,
         extra: if extra.is_empty() { None } else { Some(extra) },
     })
+}
+
+/// Drops every non-transform diagnostic when a SAM transform error is present.
+///
+/// A failed SAM transform stops CloudFormation before resource validation, so
+/// schema and lint findings on the untransformed template are noise. Retaining
+/// only the transform errors mirrors that short-circuit.
+fn gate_sam_transform_errors(diagnostics: &mut Vec<Diagnostic>) {
+    let has_transform_error = diagnostics
+        .iter()
+        .any(|d| is_sam_transform_error_message(&d.message));
+    if has_transform_error {
+        diagnostics.retain(|d| is_sam_transform_error_message(&d.message));
+    }
 }
 
 pub(crate) fn enrich_diagnostics(
@@ -1509,6 +1526,38 @@ Resources:
             }),
             ..default_diag()
         }
+    }
+
+    fn make_transform_error_diag() -> Diagnostic {
+        Diagnostic {
+            message: format!(
+                "{} Resource with id [Fn] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
+                diagnostics::SAM_TRANSFORM_ERROR_PREFIX
+            ),
+            ..make_diag("F0001", Severity::Fatal, 1, 1)
+        }
+    }
+
+    #[test]
+    fn gate_drops_non_transform_diagnostics_when_transform_error_present() {
+        let mut diags = vec![
+            make_diag("E3012", Severity::Error, 5, 1),
+            make_transform_error_diag(),
+            make_diag("I9040", Severity::Info, 7, 1),
+        ];
+        gate_sam_transform_errors(&mut diags);
+        assert_eq!(diags.len(), 1);
+        assert!(is_sam_transform_error_message(&diags[0].message));
+    }
+
+    #[test]
+    fn gate_keeps_all_diagnostics_when_no_transform_error() {
+        let mut diags = vec![
+            make_diag("E3012", Severity::Error, 5, 1),
+            make_diag("I9040", Severity::Info, 7, 1),
+        ];
+        gate_sam_transform_errors(&mut diags);
+        assert_eq!(diags.len(), 2);
     }
 
     #[test]

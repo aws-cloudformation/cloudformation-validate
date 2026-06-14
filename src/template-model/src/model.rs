@@ -523,6 +523,17 @@ impl SemanticModel {
         } else {
             Vec::new()
         };
+        if is_sam {
+            let parameter_names: HashSet<String> = parameters.keys().cloned().collect();
+            diagnostics.extend(sam::collect_transform_errors(
+                &ir.arena,
+                ir.resources,
+                ir.globals,
+                &resources,
+                &parameter_names,
+                &ir.span_index,
+            ));
+        }
         let is_cdk = resources_by_type.contains_key(CDK_METADATA_TYPE);
 
         Ok(ParseResult {

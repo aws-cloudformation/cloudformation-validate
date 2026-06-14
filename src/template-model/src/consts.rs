@@ -86,6 +86,7 @@ pub const SAM_SERVERLESS_TYPE_PREFIX: &str = "AWS::Serverless::";
 pub const SAM_FUNCTION_TYPE: &str = "AWS::Serverless::Function";
 pub const SAM_EVENT_TYPE_API: &str = "Api";
 pub const SAM_IMPLICIT_REST_API: &str = "ServerlessRestApi";
+pub const SAM_AUTO_PUBLISH_ALIAS: &str = "AutoPublishAlias";
 
 pub const SAM_GLOBALS_TYPE_MAP: &[(&str, &str)] = &[
     ("Function", "AWS::Serverless::Function"),
