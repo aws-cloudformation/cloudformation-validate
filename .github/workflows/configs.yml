@@ -55,7 +55,7 @@ jobs:
     env:
       APP_NAME: 'cloudformation-validate'
       WORKING_DIR: 'src'
-      RUST_TOOLCHAIN: '1.93.1'        # keep in sync with src/rust-toolchain.toml
+      RUST_TOOLCHAIN: '1.96.0'        # keep in sync with src/rust-toolchain.toml
       NODE_VERSION: '22.x'
       JAVA_VERSION: '21'
       JAVA_DISTRIBUTION: 'corretto'
