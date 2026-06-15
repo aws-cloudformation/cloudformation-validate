@@ -199,11 +199,7 @@ pub fn value_ir_to_string(v: &ValueIR) -> String {
         ValueIR::Int(i) => i.to_string(),
         ValueIR::Float(f) => f.to_string(),
         ValueIR::List(items) => {
-            let inner = items
-                .iter()
-                .map(value_ir_to_string)
-                .collect::<Vec<_>>()
-                .join(", ");
+            let inner = items.iter().map(value_ir_to_string).collect::<Vec<_>>().join(", ");
             format!("[{}]", inner)
         }
         ValueIR::Map(entries) => {
@@ -224,12 +220,8 @@ pub fn let_value_to_string(val: &LetValueIR, path_prefix: &str) -> String {
         LetValueIR::Value(v) => value_ir_to_string(v),
         LetValueIR::Access(parts, _) => format!("{}{}", path_prefix, query_parts_to_path(parts)),
         LetValueIR::FunctionCall(fc) => {
-            let params = fc
-                .parameters
-                .iter()
-                .map(|p| let_value_to_string(p, path_prefix))
-                .collect::<Vec<_>>()
-                .join(", ");
+            let params =
+                fc.parameters.iter().map(|p| let_value_to_string(p, path_prefix)).collect::<Vec<_>>().join(", ");
             format!("{}({})", fc.name, params)
         }
     }
@@ -262,32 +254,17 @@ pub fn extract_custom_message(clause: &GuardClauseIR) -> Option<String> {
 }
 
 pub fn extract_custom_message_from_block(block: &BlockIR<GuardClauseIR>) -> Option<String> {
-    block
-        .conjunctions
-        .iter()
-        .flat_map(|disj| disj.iter())
-        .find_map(extract_custom_message)
+    block.conjunctions.iter().flat_map(|disj| disj.iter()).find_map(extract_custom_message)
 }
 
 /// Replace non-alphanumeric characters (except `_`) with `_`.
 pub fn sanitize_identifier(name: &str) -> String {
-    name.chars()
-        .map(|c| {
-            if c.is_alphanumeric() || c == '_' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect()
+    name.chars().map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' }).collect()
 }
 
 /// Look up control IDs whose path contains `rule_name`.
 pub fn find_controls(controls: &[(String, Vec<String>)], rule_name: &str) -> Option<Vec<String>> {
-    controls
-        .iter()
-        .find(|(path, _)| path.contains(rule_name))
-        .map(|(_, c)| c.clone())
+    controls.iter().find(|(path, _)| path.contains(rule_name)).map(|(_, c)| c.clone())
 }
 
 #[cfg(test)]
@@ -296,10 +273,7 @@ mod tests {
 
     #[test]
     fn value_ir_to_string_escapes_backslash_and_quotes_in_strings() {
-        assert_eq!(
-            value_ir_to_string(&ValueIR::String("a\"b\\c".into())),
-            "\"a\\\"b\\\\c\""
-        );
+        assert_eq!(value_ir_to_string(&ValueIR::String("a\"b\\c".into())), "\"a\\\"b\\\\c\"");
     }
 
     #[test]
@@ -332,38 +306,25 @@ mod tests {
 
     #[test]
     fn query_parts_to_path_joins_keys_with_dots() {
-        let parts = vec![
-            QueryPartIR::Key("Properties".into()),
-            QueryPartIR::Key("Name".into()),
-        ];
+        let parts = vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Name".into())];
         assert_eq!(query_parts_to_path(&parts), "Properties.Name");
     }
 
     #[test]
     fn query_parts_to_path_renders_wildcards_and_indices() {
-        let parts = vec![
-            QueryPartIR::Key("Items".into()),
-            QueryPartIR::AllValues(None),
-        ];
+        let parts = vec![QueryPartIR::Key("Items".into()), QueryPartIR::AllValues(None)];
         assert_eq!(query_parts_to_path(&parts), "Items.*");
 
         let parts = vec![QueryPartIR::Key("A".into()), QueryPartIR::Index(0)];
         assert_eq!(query_parts_to_path(&parts), "A.[0]");
 
-        let parts = vec![
-            QueryPartIR::Key("List".into()),
-            QueryPartIR::AllIndices(None),
-        ];
+        let parts = vec![QueryPartIR::Key("List".into()), QueryPartIR::AllIndices(None)];
         assert_eq!(query_parts_to_path(&parts), "List.[*]");
     }
 
     #[test]
     fn query_parts_to_path_skips_filter_parts() {
-        let parts = vec![
-            QueryPartIR::Key("A".into()),
-            QueryPartIR::Filter(None, vec![]),
-            QueryPartIR::Key("B".into()),
-        ];
+        let parts = vec![QueryPartIR::Key("A".into()), QueryPartIR::Filter(None, vec![]), QueryPartIR::Key("B".into())];
         assert_eq!(query_parts_to_path(&parts), "A.B");
     }
 
@@ -393,10 +354,7 @@ mod tests {
         let clause = GuardClauseIR::Block(BlockClauseIR {
             query: vec![],
             match_all: false,
-            block: BlockIR {
-                assignments: vec![],
-                conjunctions: vec![vec![inner]],
-            },
+            block: BlockIR { assignments: vec![], conjunctions: vec![vec![inner]] },
             not_empty: false,
         });
         assert_eq!(extract_custom_message(&clause), Some("nested msg".into()));
@@ -404,11 +362,8 @@ mod tests {
 
     #[test]
     fn extract_custom_message_returns_none_for_named_rule() {
-        let clause = GuardClauseIR::NamedRule(NamedRuleRefIR {
-            rule_name: "r".into(),
-            negated: false,
-            custom_message: None,
-        });
+        let clause =
+            GuardClauseIR::NamedRule(NamedRuleRefIR { rule_name: "r".into(), negated: false, custom_message: None });
         assert_eq!(extract_custom_message(&clause), None);
     }
 
@@ -420,19 +375,12 @@ mod tests {
     #[test]
     fn find_controls_returns_matching_control_ids() {
         let controls = vec![("s3_encryption".into(), vec!["NIST-1".into()])];
-        assert_eq!(
-            find_controls(&controls, "s3_encryption"),
-            Some(vec!["NIST-1".to_string()])
-        );
+        assert_eq!(find_controls(&controls, "s3_encryption"), Some(vec!["NIST-1".to_string()]));
     }
 
     #[test]
     fn find_controls_returns_none_when_no_match() {
         let controls = vec![("other".into(), vec!["X".into()])];
-        assert_eq!(
-            find_controls(&controls, "missing"),
-            None,
-            "missing control should return None"
-        );
+        assert_eq!(find_controls(&controls, "missing"), None, "missing control should return None");
     }
 }

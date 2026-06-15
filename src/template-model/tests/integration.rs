@@ -12,28 +12,16 @@ fn model_from_fixture(path: &str) -> SemanticModel {
 fn model_resources_by_type() {
     let model = model_from_fixture("good/generic.yaml");
     let iam_roles = model.resources_of_type("AWS::IAM::Role");
-    assert!(
-        !iam_roles.is_empty(),
-        "Expected IAM roles in generic template"
-    );
+    assert!(!iam_roles.is_empty(), "Expected IAM roles in generic template");
 }
 
 #[test]
 fn model_rego_input_valid_json() {
     let model = model_from_fixture("good/generic.yaml");
     let json = serde_json::to_value(model.to_diagnostic_json()).unwrap();
-    assert!(
-        json.get("resources").is_some(),
-        "expected 'resources' in diagnostic JSON"
-    );
-    assert!(
-        json.get("parameters").is_some(),
-        "expected 'parameters' in diagnostic JSON"
-    );
-    assert!(
-        json.get("edges").is_some(),
-        "expected 'edges' in diagnostic JSON"
-    );
+    assert!(json.get("resources").is_some(), "expected 'resources' in diagnostic JSON");
+    assert!(json.get("parameters").is_some(), "expected 'parameters' in diagnostic JSON");
+    assert!(json.get("edges").is_some(), "expected 'edges' in diagnostic JSON");
 }
 
 #[test]
@@ -45,19 +33,13 @@ fn fixture_both_intrinsic_forms() {
     let bucket_short = model.resource("BucketShort").unwrap();
     match bucket_short.properties.get("BucketName") {
         Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
-        other => panic!(
-            "BucketShort.BucketName: expected Enum from Sub, got {:?}",
-            other
-        ),
+        other => panic!("BucketShort.BucketName: expected Enum from Sub, got {:?}", other),
     }
 
     let bucket_long = model.resource("BucketLong").unwrap();
     match bucket_long.properties.get("BucketName") {
         Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
-        other => panic!(
-            "BucketLong.BucketName: expected Enum from Sub, got {:?}",
-            other
-        ),
+        other => panic!("BucketLong.BucketName: expected Enum from Sub, got {:?}", other),
     }
 
     let with_getatt = model.resource("WithGetAtt").unwrap();
@@ -71,19 +53,13 @@ fn fixture_both_intrinsic_forms() {
         Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketShort")
         }
-        other => panic!(
-            "WithGetAtt.LongFormDotted: expected Reference, got {:?}",
-            other
-        ),
+        other => panic!("WithGetAtt.LongFormDotted: expected Reference, got {:?}", other),
     }
     match with_getatt.properties.get("LongFormArray") {
         Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketLong")
         }
-        other => panic!(
-            "WithGetAtt.LongFormArray: expected Reference, got {:?}",
-            other
-        ),
+        other => panic!("WithGetAtt.LongFormArray: expected Reference, got {:?}", other),
     }
 
     let with_join = model.resource("WithJoin").unwrap();
@@ -127,10 +103,7 @@ fn fixture_both_intrinsic_forms() {
         Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "aGVsbG8=")
         }
-        other => panic!(
-            "WithBase64.Short: expected Concrete base64, got {:?}",
-            other
-        ),
+        other => panic!("WithBase64.Short: expected Concrete base64, got {:?}", other),
     }
 
     let sub_block = model.resource("SubBlock").unwrap();
@@ -180,34 +153,22 @@ fn parser_yaml_with_comments() {
 
 #[test]
 fn parser_rejects_empty_input() {
-    assert!(
-        SemanticModel::from_bytes(b"").is_err(),
-        "empty input should be rejected"
-    );
+    assert!(SemanticModel::from_bytes(b"").is_err(), "empty input should be rejected");
 }
 
 #[test]
 fn parser_rejects_whitespace_only() {
-    assert!(
-        SemanticModel::from_bytes(b"   \n  \n  ").is_err(),
-        "whitespace-only input should be rejected"
-    );
+    assert!(SemanticModel::from_bytes(b"   \n  \n  ").is_err(), "whitespace-only input should be rejected");
 }
 
 #[test]
 fn parser_rejects_non_object_json() {
-    assert!(
-        SemanticModel::from_bytes(b"[1,2,3]").is_err(),
-        "non-object JSON should be rejected"
-    );
+    assert!(SemanticModel::from_bytes(b"[1,2,3]").is_err(), "non-object JSON should be rejected");
 }
 
 #[test]
 fn parser_rejects_scalar_yaml() {
-    assert!(
-        SemanticModel::from_bytes(b"just a string").is_err(),
-        "scalar YAML should be rejected"
-    );
+    assert!(SemanticModel::from_bytes(b"just a string").is_err(), "scalar YAML should be rejected");
 }
 
 #[test]
@@ -268,8 +229,7 @@ Outputs:
 
 #[test]
 fn parser_json_yaml_produce_same_resource_types() {
-    let json_input =
-        r#"{"Resources":{"Bucket":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"test"}}}}"#;
+    let json_input = r#"{"Resources":{"Bucket":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"test"}}}}"#;
     let yaml_input = "Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: test\n";
     let json_model = SemanticModel::from_bytes(json_input.as_bytes()).unwrap();
     let yaml_model = SemanticModel::from_bytes(yaml_input.as_bytes()).unwrap();
@@ -325,15 +285,9 @@ fn parser_minimal_template_no_properties() {
 
 #[test]
 fn parser_fn_if_undefined_condition_produces_f1104() {
-    let input =
-        r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::If":["NonExistent",1,2]}}}}}"#;
+    let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::If":["NonExistent",1,2]}}}}}"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    assert!(
-        model
-            .diagnostics
-            .iter()
-            .any(|d| d.rule_id == "F1104" && d.message.contains("NonExistent"))
-    );
+    assert!(model.diagnostics.iter().any(|d| d.rule_id == "F1104" && d.message.contains("NonExistent")));
 }
 
 #[test]
@@ -347,12 +301,7 @@ Resources:
     Type: T
 "#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    assert!(
-        model
-            .diagnostics
-            .iter()
-            .any(|d| d.rule_id == "W8003" && d.message.contains("AlwaysTrue"))
-    );
+    assert!(model.diagnostics.iter().any(|d| d.rule_id == "W8003" && d.message.contains("AlwaysTrue")));
 }
 
 #[test]
@@ -360,11 +309,7 @@ fn parser_span_index_populated() {
     let input = "Resources:\n  MyBucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: test\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     assert!(model.span_index.contains_key("Resources/MyBucket"));
-    assert!(
-        model
-            .span_index
-            .contains_key("Resources/MyBucket/Properties/BucketName")
-    );
+    assert!(model.span_index.contains_key("Resources/MyBucket/Properties/BucketName"));
 }
 
 // ── SAM: globals merging, implicit resources ────────────────────────────
@@ -394,11 +339,7 @@ fn sam_globals_param_refs_collected() {
     // The globals template doesn't have param refs, but verify the mechanism works
     let model = model_from_fixture("good/transform_serverless_globals.yaml");
     // globals_param_refs should be populated (may be empty if no Refs in Globals)
-    assert_eq!(
-        model.globals_param_refs.len(),
-        0,
-        "expected no param refs in globals for this template"
-    );
+    assert_eq!(model.globals_param_refs.len(), 0, "expected no param refs in globals for this template");
 }
 
 // ── Dynamic references ({{resolve:...}}) ────────────────────────────────
@@ -419,7 +360,8 @@ fn dynamic_reference_resolves_to_dynamic() {
 
 #[test]
 fn sub_with_implicit_getatt() {
-    let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Sub":"arn:${Other.Arn}"}}},"Other":{"Type":"T2"}}}"#;
+    let input =
+        r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Sub":"arn:${Other.Arn}"}}},"Other":{"Type":"T2"}}}"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     // Should produce a Dynamic (can't fully resolve GetAtt) but should record the edge
     assert!(model.graph.depends_on("R", "Other"));
@@ -481,12 +423,7 @@ Resources:
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     let scenarios = model.resolve_scenarios("R", "Properties.V");
     // Should produce 3 scenarios: A=true,B=true→1; A=true,B=false→2; A=false→3
-    assert_eq!(
-        scenarios.len(),
-        3,
-        "expected 3 scenarios, got {:?}",
-        scenarios
-    );
+    assert_eq!(scenarios.len(), 3, "expected 3 scenarios, got {:?}", scenarios);
 }
 
 // ── source_location / SpanProvider ──────────────────────────────────────
@@ -495,25 +432,15 @@ Resources:
 fn source_location_returns_span() {
     let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    let span = model
-        .source_location("Resources/R")
-        .expect("expected span for Resources/R");
-    assert!(
-        span.start_line > 0,
-        "start_line should be > 0, got {}",
-        span.start_line
-    );
+    let span = model.source_location("Resources/R").expect("expected span for Resources/R");
+    assert!(span.start_line > 0, "start_line should be > 0, got {}", span.start_line);
 }
 
 #[test]
 fn source_location_missing_returns_none() {
     let input = "Resources:\n  R:\n    Type: T\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    assert_eq!(
-        model.source_location("Resources/NonExistent"),
-        None,
-        "nonexistent path should return None"
-    );
+    assert_eq!(model.source_location("Resources/NonExistent"), None, "nonexistent path should return None");
 }
 
 #[test]
@@ -522,10 +449,7 @@ fn span_provider_trait_works() {
     let input = "Resources:\n  R:\n    Type: T\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     let span = SpanProvider::source_location(&model, "Resources/R");
-    assert!(
-        span.is_some(),
-        "SpanProvider should return span for Resources/R"
-    );
+    assert!(span.is_some(), "SpanProvider should return span for Resources/R");
 }
 
 #[test]
@@ -562,11 +486,7 @@ fn verify_diagnostic_json_contract() {
         assert!(obj.contains_key(*key), "Missing top-level key: {}", key);
     }
     for key in obj.keys() {
-        assert!(
-            expected_keys.contains(&key.as_str()),
-            "Unexpected top-level key: {}",
-            key
-        );
+        assert!(expected_keys.contains(&key.as_str()), "Unexpected top-level key: {}", key);
     }
 
     // Template sub-keys
@@ -605,13 +525,7 @@ fn verify_diagnostic_json_contract() {
     // Output sub-keys
     for (_id, out) in obj["outputs"].as_object().unwrap() {
         let o = out.as_object().unwrap();
-        for key in &[
-            "value",
-            "description",
-            "condition",
-            "exportName",
-            "getattRefs",
-        ] {
+        for key in &["value", "description", "condition", "exportName", "getattRefs"] {
             assert!(o.contains_key(*key), "Output missing key: {}", key);
         }
     }
@@ -662,10 +576,7 @@ fn rules_section_ref_inside_fn_contains_emits_edge() {
         .into_iter()
         .filter(|e| e.target == "BootstrapVersion")
         .count();
-    assert_eq!(
-        edges, 1,
-        "expected a single Ref edge from __rule__CheckBootstrapVersion to BootstrapVersion"
-    );
+    assert_eq!(edges, 1, "expected a single Ref edge from __rule__CheckBootstrapVersion to BootstrapVersion");
 }
 
 #[test]
@@ -687,16 +598,8 @@ fn rules_section_ref_in_rule_condition_emits_edge() {
         }
     }"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    let env_edges = model
-        .graph
-        .outgoing("__rule__ProdOnly")
-        .into_iter()
-        .filter(|e| e.target == "Env")
-        .count();
-    assert!(
-        env_edges >= 1,
-        "expected Ref edge from __rule__ProdOnly to Env (RuleCondition)"
-    );
+    let env_edges = model.graph.outgoing("__rule__ProdOnly").into_iter().filter(|e| e.target == "Env").count();
+    assert!(env_edges >= 1, "expected Ref edge from __rule__ProdOnly to Env (RuleCondition)");
 }
 
 #[test]
@@ -722,16 +625,8 @@ fn rules_section_value_of_emits_parameter_ref_edge() {
         }
     }"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    let subnet_edges = model
-        .graph
-        .outgoing("__rule__VpcCheck")
-        .into_iter()
-        .filter(|e| e.target == "Subnets")
-        .count();
-    assert!(
-        subnet_edges >= 1,
-        "expected Ref edge from __rule__VpcCheck to Subnets (Fn::ValueOfAll first arg)"
-    );
+    let subnet_edges = model.graph.outgoing("__rule__VpcCheck").into_iter().filter(|e| e.target == "Subnets").count();
+    assert!(subnet_edges >= 1, "expected Ref edge from __rule__VpcCheck to Subnets (Fn::ValueOfAll first arg)");
 }
 
 #[test]
@@ -763,9 +658,7 @@ fn rules_section_ref_appears_in_diagnostic_edges_array() {
     let edges = json["edges"].as_array().expect("edges array");
     let referenced = edges.iter().any(|e| {
         e.get("target").and_then(|t| t.as_str()) == Some("BootstrapVersion")
-            && e.get("source")
-                .and_then(|s| s.as_str())
-                .is_some_and(|s| s.starts_with("__rule__"))
+            && e.get("source").and_then(|s| s.as_str()).is_some_and(|s| s.starts_with("__rule__"))
     });
     assert!(
         referenced,

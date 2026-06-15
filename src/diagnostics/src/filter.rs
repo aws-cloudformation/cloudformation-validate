@@ -15,22 +15,10 @@ pub fn apply_filters<T: Filterable>(diagnostics: &mut Vec<T>, filters: &FilterCo
         return;
     }
     let before = diagnostics.len();
-    diagnostics.retain(|d| {
-        filters.matches_rule(
-            d.rule_id(),
-            d.category(),
-            d.resource_id(),
-            d.resource_type(),
-        )
-    });
+    diagnostics.retain(|d| filters.matches_rule(d.rule_id(), d.category(), d.resource_id(), d.resource_type()));
     let removed = before - diagnostics.len();
     if removed > 0 {
-        debug!(
-            "Filters removed {} diagnostics ({} -> {})",
-            removed,
-            before,
-            diagnostics.len()
-        );
+        debug!("Filters removed {} diagnostics ({} -> {})", removed, before, diagnostics.len());
     }
 }
 
@@ -83,16 +71,9 @@ mod tests {
     fn apply_filters_removes_excluded_diagnostics() {
         let filters = FilterConfig::new(
             RuleFilterConfig::default(),
-            RuleFilterConfig {
-                ids: vec!["E3012".into()],
-                ..Default::default()
-            },
+            RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
         );
-        let mut diagnostics = vec![
-            diag("E3012", "schema"),
-            diag("W9037", "security"),
-            diag("E3013", "schema"),
-        ];
+        let mut diagnostics = vec![diag("E3012", "schema"), diag("W9037", "security"), diag("E3013", "schema")];
         apply_filters(&mut diagnostics, &filters);
         let ids: Vec<&str> = diagnostics.iter().map(|d| d.rule_id()).collect();
         assert_eq!(ids, vec!["W9037", "E3013"]);

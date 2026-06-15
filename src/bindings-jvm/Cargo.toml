@@ -3,7 +3,10 @@ name = "bindings-jvm"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "JVM bindings for CloudFormation Validation Engine via UniFFI"
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -23,3 +26,6 @@ cel-engine = { path = "../cel-engine" }
 schema-validator = { path = "../schema-validator" }
 uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", features = ["cli"] }
 thiserror = "2"
+
+[lints]
+workspace = true

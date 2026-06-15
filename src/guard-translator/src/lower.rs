@@ -12,11 +12,7 @@ pub fn lower_rules_file(file: &exprs::RulesFile<'_>) -> GuardFile {
     GuardFile {
         assignments: file.assignments.iter().map(lower_let_expr).collect(),
         rules: file.guard_rules.iter().map(lower_rule).collect(),
-        parameterized_rules: file
-            .parameterized_rules
-            .iter()
-            .map(lower_parameterized_rule)
-            .collect(),
+        parameterized_rules: file.parameterized_rules.iter().map(lower_parameterized_rule).collect(),
     }
 }
 
@@ -29,31 +25,20 @@ fn lower_rule(rule: &exprs::Rule<'_>) -> GuardRule {
 }
 
 fn lower_parameterized_rule(pr: &exprs::ParameterizedRule<'_>) -> ParameterizedGuardRule {
-    ParameterizedGuardRule {
-        parameter_names: pr.parameter_names.iter().cloned().collect(),
-        rule: lower_rule(&pr.rule),
-    }
+    ParameterizedGuardRule { parameter_names: pr.parameter_names.iter().cloned().collect(), rule: lower_rule(&pr.rule) }
 }
 
 fn lower_block_rule(block: &exprs::Block<'_, exprs::RuleClause<'_>>) -> BlockIR<RuleClauseIR> {
     BlockIR {
         assignments: block.assignments.iter().map(lower_let_expr).collect(),
-        conjunctions: block
-            .conjunctions
-            .iter()
-            .map(|disj| disj.iter().map(lower_rule_clause).collect())
-            .collect(),
+        conjunctions: block.conjunctions.iter().map(|disj| disj.iter().map(lower_rule_clause).collect()).collect(),
     }
 }
 
 fn lower_block_guard(block: &exprs::Block<'_, exprs::GuardClause<'_>>) -> BlockIR<GuardClauseIR> {
     BlockIR {
         assignments: block.assignments.iter().map(lower_let_expr).collect(),
-        conjunctions: block
-            .conjunctions
-            .iter()
-            .map(|disj| disj.iter().map(lower_guard_clause).collect())
-            .collect(),
+        conjunctions: block.conjunctions.iter().map(|disj| disj.iter().map(lower_guard_clause).collect()).collect(),
     }
 }
 
@@ -122,10 +107,7 @@ fn lower_named_rule(nr: &exprs::GuardNamedRuleClause<'_>) -> NamedRuleRefIR {
 }
 
 fn lower_when_conditions(conds: &exprs::WhenConditions<'_>) -> ConjunctionsIR<WhenClauseIR> {
-    conds
-        .iter()
-        .map(|disj| disj.iter().map(lower_when_clause).collect())
-        .collect()
+    conds.iter().map(|disj| disj.iter().map(lower_when_clause).collect()).collect()
 }
 
 fn lower_when_clause(wc: &exprs::WhenGuardClause<'_>) -> WhenClauseIR {
@@ -151,38 +133,26 @@ fn lower_query_part(qp: &exprs::QueryPart<'_>) -> QueryPartIR {
         exprs::QueryPart::AllIndices(n) => QueryPartIR::AllIndices(n.clone()),
         exprs::QueryPart::Index(i) => QueryPartIR::Index(*i),
         exprs::QueryPart::Filter(name, conjunctions) => {
-            let lowered = conjunctions
-                .iter()
-                .map(|disj| disj.iter().map(lower_guard_clause).collect())
-                .collect();
+            let lowered = conjunctions.iter().map(|disj| disj.iter().map(lower_guard_clause).collect()).collect();
             QueryPartIR::Filter(name.clone(), lowered)
         }
         exprs::QueryPart::MapKeyFilter(name, mkf) => {
             let (op, neg) = mkf.comparator;
-            QueryPartIR::MapKeyFilter(
-                name.clone(),
-                lower_operator(op),
-                neg,
-                lower_let_value(&mkf.compare_with),
-            )
+            QueryPartIR::MapKeyFilter(name.clone(), lower_operator(op), neg, lower_let_value(&mkf.compare_with))
         }
     }
 }
 
 fn lower_let_expr(le: &exprs::LetExpr<'_>) -> LetExprIR {
-    LetExprIR {
-        var: le.var.clone(),
-        value: lower_let_value(&le.value),
-    }
+    LetExprIR { var: le.var.clone(), value: lower_let_value(&le.value) }
 }
 
 fn lower_let_value(lv: &exprs::LetValue<'_>) -> LetValueIR {
     match lv {
         exprs::LetValue::Value(pav) => LetValueIR::Value(lower_path_aware_value(pav)),
-        exprs::LetValue::AccessClause(aq) => LetValueIR::Access(
-            aq.query.iter().map(lower_query_part).collect(),
-            aq.match_all,
-        ),
+        exprs::LetValue::AccessClause(aq) => {
+            LetValueIR::Access(aq.query.iter().map(lower_query_part).collect(), aq.match_all)
+        }
         exprs::LetValue::FunctionCall(fe) => LetValueIR::FunctionCall(FunctionCallIR {
             name: lower_function_name(&fe.name),
             parameters: fe.parameters.iter().map(lower_let_value).collect(),
@@ -199,9 +169,7 @@ fn lower_path_aware_value(pav: &PathAwareValue) -> ValueIR {
         PathAwareValue::Int((_, i)) => ValueIR::Int(*i),
         PathAwareValue::Float((_, f)) => ValueIR::Float(*f),
         PathAwareValue::Char((_, c)) => ValueIR::String(c.to_string()),
-        PathAwareValue::List((_, items)) => {
-            ValueIR::List(items.iter().map(lower_path_aware_value).collect())
-        }
+        PathAwareValue::List((_, items)) => ValueIR::List(items.iter().map(lower_path_aware_value).collect()),
         PathAwareValue::Map((_, mv)) => {
             let mut map = IndexMap::new();
             for (k, v) in &mv.values {
@@ -209,9 +177,7 @@ fn lower_path_aware_value(pav: &PathAwareValue) -> ValueIR {
             }
             ValueIR::Map(map)
         }
-        PathAwareValue::RangeInt(_)
-        | PathAwareValue::RangeFloat(_)
-        | PathAwareValue::RangeChar(_) => {
+        PathAwareValue::RangeInt(_) | PathAwareValue::RangeFloat(_) | PathAwareValue::RangeChar(_) => {
             ValueIR::Null // ranges not directly translatable
         }
     }

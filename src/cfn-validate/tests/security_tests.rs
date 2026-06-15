@@ -49,11 +49,7 @@ fn build_engine(engine_name: &str) -> Result<Box<dyn ValidationEngine>, String> 
 /// finishes within `budget`, `Some(Err(_))` if validation errored, or `None` if
 /// it did not finish in time. Running on a worker thread means a hang fails the
 /// test instead of blocking the whole suite.
-fn validate_within(
-    budget: Duration,
-    engine_name: &'static str,
-    bytes: Vec<u8>,
-) -> Option<Result<Vec<String>, String>> {
+fn validate_within(budget: Duration, engine_name: &'static str, bytes: Vec<u8>) -> Option<Result<Vec<String>, String>> {
     let (sender, receiver) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         let outcome = match build_engine(engine_name) {
@@ -66,13 +62,7 @@ fn validate_within(
                     ValidateConfig::default(),
                     "security-fixture".to_string(),
                 )
-                .map(|report| {
-                    report
-                        .diagnostics
-                        .iter()
-                        .map(|d| d.rule_id.clone())
-                        .collect::<Vec<String>>()
-                })
+                .map(|report| report.diagnostics.iter().map(|d| d.rule_id.clone()).collect::<Vec<String>>())
                 .map_err(|e| e.to_string())
             }
             Err(e) => Err(e),
@@ -90,10 +80,7 @@ fn oversized_template_is_rejected_before_processing() {
         Ok(_) => panic!("a template larger than the size limit must be rejected"),
         Err(error) => error,
     };
-    assert!(
-        error.to_string().contains("exceeds maximum size"),
-        "expected a size-limit error, got: {error}"
-    );
+    assert!(error.to_string().contains("exceeds maximum size"), "expected a size-limit error, got: {error}");
 }
 
 #[test]
@@ -102,11 +89,8 @@ fn deeply_nested_template_does_not_overflow_the_stack() {
     // A stack overflow aborts the process, so simply returning here proves the
     // parser stayed bounded; catch_unwind additionally turns any panic into a
     // failed assertion rather than a process abort.
-    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        SemanticModel::from_bytes(&bytes)
-    }));
-    let parse_result =
-        outcome.expect("parsing a deeply nested template must not panic or overflow the stack");
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| SemanticModel::from_bytes(&bytes)));
+    let parse_result = outcome.expect("parsing a deeply nested template must not panic or overflow the stack");
     if let Err(error) = parse_result {
         let message = error.to_string().to_lowercase();
         assert!(
@@ -129,9 +113,7 @@ fn pathological_conditions_resolve_within_budget() {
             "{engine_name}: a template with many interdependent conditions must resolve within \
              {COMPLETION_BUDGET:?}; the scenario budget must bound the work"
         );
-        finished
-            .unwrap()
-            .expect("validation should return a structured report");
+        finished.unwrap().expect("validation should return a structured report");
     }
 }
 
@@ -153,9 +135,7 @@ fn pathological_condition_closures_resolve_within_budget() {
             "{engine_name}: a template with large condition closures must stay bounded and \
              resolve within {COMPLETION_BUDGET:?}; the satisfiability budget must cap the work"
         );
-        finished
-            .unwrap()
-            .expect("validation should return a structured report");
+        finished.unwrap().expect("validation should return a structured report");
     }
 }
 
@@ -188,16 +168,9 @@ fn successful_validation_passes_through_the_panic_guard() {
     });
     let report = report.expect("a normal validation must pass through the guard unchanged");
     assert!(
-        report
-            .diagnostics
-            .iter()
-            .all(|d| !d.rule_id.starts_with('F')),
+        report.diagnostics.iter().all(|d| !d.rule_id.starts_with('F')),
         "a minimal valid template must produce no fatal (F-prefixed) diagnostics through the guard; got {:?}",
-        report
-            .diagnostics
-            .iter()
-            .map(|d| d.rule_id.as_str())
-            .collect::<Vec<_>>()
+        report.diagnostics.iter().map(|d| d.rule_id.as_str()).collect::<Vec<_>>()
     );
 }
 
@@ -212,14 +185,10 @@ fn custom_rule_reaching_a_host_builtin_is_a_hard_error_not_a_diagnostic() {
     // escape attempt must not be able to masquerade as a finding.
     let escape_rule = common::load_security_rule("rego_sandbox_escape.rego");
     let config = EngineConfig {
-        custom_rules: vec![ExternalRuleSource {
-            name: "sandbox_escape.rego".into(),
-            content: escape_rule,
-        }],
+        custom_rules: vec![ExternalRuleSource { name: "sandbox_escape.rego".into(), content: escape_rule }],
         guard_rules: vec![],
     };
-    let engine = RegoEngine::new(config)
-        .expect("engine must build even with a host-builtin-reaching custom rule");
+    let engine = RegoEngine::new(config).expect("engine must build even with a host-builtin-reaching custom rule");
     let schema_validator = SchemaValidator::new();
     let error = validate_bytes_with_path(
         &engine,
@@ -253,10 +222,7 @@ violation contains make_diag(\"CTRL001\", \"WARN\", name, \"control rule fired\"
 }\n"
     .to_string();
     let config = EngineConfig {
-        custom_rules: vec![ExternalRuleSource {
-            name: "sandbox_control.rego".into(),
-            content: control_rule,
-        }],
+        custom_rules: vec![ExternalRuleSource { name: "sandbox_control.rego".into(), content: control_rule }],
         guard_rules: vec![],
     };
     let engine = RegoEngine::new(config).expect("engine must build");
@@ -269,15 +235,8 @@ violation contains make_diag(\"CTRL001\", \"WARN\", name, \"control rule fired\"
         "inline".to_string(),
     )
     .expect("a benign custom rule must validate successfully");
-    let fired: Vec<&str> = report
-        .diagnostics
-        .iter()
-        .map(|d| d.rule_id.as_str())
-        .collect();
-    assert!(
-        fired.contains(&"CTRL001"),
-        "the benign control rule should fire, proving custom rules run; got {fired:?}"
-    );
+    let fired: Vec<&str> = report.diagnostics.iter().map(|d| d.rule_id.as_str()).collect();
+    assert!(fired.contains(&"CTRL001"), "the benign control rule should fire, proving custom rules run; got {fired:?}");
 }
 
 #[test]
@@ -298,14 +257,11 @@ fn custom_cel_rule_that_fails_to_evaluate_is_a_hard_error_not_a_diagnostic() {
     ]}"#
     .to_string();
     let config = EngineConfig {
-        custom_rules: vec![ExternalRuleSource {
-            name: "sandbox_escape.celrules.json".into(),
-            content: escape_rule,
-        }],
+        custom_rules: vec![ExternalRuleSource { name: "sandbox_escape.celrules.json".into(), content: escape_rule }],
         guard_rules: vec![],
     };
-    let engine = CelEngine::new(config)
-        .expect("engine must build: the expression compiles; it only fails at execution");
+    let engine =
+        CelEngine::new(config).expect("engine must build: the expression compiles; it only fails at execution");
     let schema_validator = SchemaValidator::new();
     let error = validate_bytes_with_path(
         &engine,
@@ -339,10 +295,7 @@ fn benign_custom_cel_rule_runs_and_fires() {
     ]}"#
     .to_string();
     let config = EngineConfig {
-        custom_rules: vec![ExternalRuleSource {
-            name: "sandbox_control.celrules.json".into(),
-            content: control_rule,
-        }],
+        custom_rules: vec![ExternalRuleSource { name: "sandbox_control.celrules.json".into(), content: control_rule }],
         guard_rules: vec![],
     };
     let engine = CelEngine::new(config).expect("engine must build");
@@ -355,11 +308,7 @@ fn benign_custom_cel_rule_runs_and_fires() {
         "inline".to_string(),
     )
     .expect("a benign custom CEL rule must validate successfully");
-    let fired: Vec<&str> = report
-        .diagnostics
-        .iter()
-        .map(|d| d.rule_id.as_str())
-        .collect();
+    let fired: Vec<&str> = report.diagnostics.iter().map(|d| d.rule_id.as_str()).collect();
     assert!(
         fired.contains(&"CTRLCEL001"),
         "the benign control CEL rule should fire, proving custom CEL rules run; got {fired:?}"
@@ -375,8 +324,7 @@ fn large_resource_count_validates_to_a_bounded_result_on_both_engines() {
     const SCALE_RESOURCES: usize = 500;
     let bytes = common::load_security("many_resources.yaml");
 
-    let model = SemanticModel::from_bytes(&bytes)
-        .expect("the large-resource fixture must parse to a semantic model");
+    let model = SemanticModel::from_bytes(&bytes).expect("the large-resource fixture must parse to a semantic model");
     assert_eq!(
         model.resources.len(),
         SCALE_RESOURCES,
@@ -427,11 +375,8 @@ fn cross_resource_pair_comparison_produces_a_deterministic_bounded_count() {
         .unwrap_or_else(|e| {
             panic!("{engine_name}: cross-resource scale validation must return a structured report: {e}")
         });
-        let uniqueness_diagnostics = report
-            .diagnostics
-            .iter()
-            .filter(|d| d.rule_id == PRIMARY_IDENTIFIER_UNIQUENESS_RULE)
-            .count();
+        let uniqueness_diagnostics =
+            report.diagnostics.iter().filter(|d| d.rule_id == PRIMARY_IDENTIFIER_UNIQUENESS_RULE).count();
         assert_eq!(
             uniqueness_diagnostics, SHARED_IDENTIFIER_RESOURCES,
             "{engine_name}: every resource sharing the identifier must get exactly one uniqueness \

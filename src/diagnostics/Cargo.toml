@@ -3,6 +3,10 @@ name = "diagnostics"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 name = "diagnostics"
@@ -21,3 +25,6 @@ web-time = "1"
 tsify = { version = "0.4", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }
 uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }
+
+[lints]
+workspace = true

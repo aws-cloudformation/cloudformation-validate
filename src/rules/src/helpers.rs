@@ -77,8 +77,8 @@ pub fn section_for_rule_id(resource_id: Option<&str>, rule_id: &str) -> Option<&
         "F0001" | "F0007" | "F0011" | "E0001" => Some("Resources"),
         "F0002" => Some("AWSTemplateFormatVersion"),
         "F0004" => Some("Outputs"),
-        "F8600" | "F8601" | "W8602" | "F8603" | "F8604" | "F8605" | "F8606" | "F8607" | "W8608"
-        | "F8609" | "F8610" | "F8611" => Some("Rules"),
+        "F8600" | "F8601" | "W8602" | "F8603" | "F8604" | "F8605" | "F8606" | "F8607" | "W8608" | "F8609" | "F8610"
+        | "F8611" => Some("Rules"),
         _ => None,
     }
 }
@@ -129,10 +129,7 @@ mod tests {
 
     #[test]
     fn section_for_rule_id_returns_resources_when_resource_id_present() {
-        assert_eq!(
-            section_for_rule_id(Some("Bucket"), "E3012"),
-            Some("Resources")
-        );
+        assert_eq!(section_for_rule_id(Some("Bucket"), "E3012"), Some("Resources"));
     }
 
     #[test]
@@ -166,16 +163,10 @@ mod tests {
     #[test]
     fn format_rule_for_format_maps_all_known_formats() {
         assert_eq!(format_rule_for_format("AWS::EC2::Image.Id"), Some("E1152"));
-        assert_eq!(
-            format_rule_for_format("AWS::EC2::SecurityGroup.Id"),
-            Some("E1150")
-        );
+        assert_eq!(format_rule_for_format("AWS::EC2::SecurityGroup.Id"), Some("E1150"));
         assert_eq!(format_rule_for_format("AWS::EC2::VPC.Id"), Some("E1151"));
         assert_eq!(format_rule_for_format("AWS::EC2::Subnet.Id"), Some("E1154"));
-        assert_eq!(
-            format_rule_for_format("AWS::Logs::LogGroup.Name"),
-            Some("E1155")
-        );
+        assert_eq!(format_rule_for_format("AWS::Logs::LogGroup.Name"), Some("E1155"));
         assert_eq!(format_rule_for_format("AWS::IAM::Role.Arn"), Some("E1156"));
     }
 
@@ -195,9 +186,6 @@ mod tests {
         // The helper uses prefix heuristics; the registry is authoritative.
         // Many rules override the prefix convention. This test ensures
         // divergences don't grow unexpectedly.
-        assert!(
-            divergences > 0,
-            "If all agree, the helper covers everything — great!"
-        );
+        assert!(divergences > 0, "If all agree, the helper covers everything — great!");
     }
 }

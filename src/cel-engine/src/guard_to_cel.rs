@@ -19,9 +19,7 @@ pub fn translate_to_cel(
     let resource_type_vars = extract_resource_type_vars(&file.assignments);
 
     let scoped_types_for_rule = |rule: &GuardRule| -> Option<Vec<String>> {
-        rule.conditions
-            .as_ref()
-            .and_then(|conds| find_resource_types_from_when(conds, &resource_type_vars))
+        rule.conditions.as_ref().and_then(|conds| find_resource_types_from_when(conds, &resource_type_vars))
     };
 
     let mut rules = Vec::new();
@@ -40,13 +38,7 @@ pub fn translate_to_cel(
                     }
                     RuleClauseIR::Guard(gc) => {
                         for rtype in &target_types {
-                            rules.push(build_cel_violation_rule(
-                                &rule.name,
-                                gc,
-                                rtype.as_deref(),
-                                pack_name,
-                                controls,
-                            ));
+                            rules.push(build_cel_violation_rule(&rule.name, gc, rtype.as_deref(), pack_name, controls));
                         }
                     }
                     RuleClauseIR::WhenBlock(_conds, block) => {
@@ -81,8 +73,7 @@ fn emit_type_block_cel(
     let ctrl = find_controls(controls, rule_name);
     for disj in &tb.block.conjunctions {
         for gc in disj {
-            let msg =
-                extract_custom_message(gc).unwrap_or_else(|| format!("Rule {} failed", rule_name));
+            let msg = extract_custom_message(gc).unwrap_or_else(|| format!("Rule {} failed", rule_name));
             let expr = negate_cel_expr(&guard_clause_to_cel_expr(gc));
             rules.push(TranslatedCelRule {
                 rule_id: rule_name.to_string(),
@@ -123,50 +114,30 @@ fn guard_clause_to_cel_expr(gc: &GuardClauseIR) -> String {
     match gc {
         GuardClauseIR::Access(ac) => access_to_cel(ac),
         GuardClauseIR::Block(bc) => {
-            let exprs: Vec<String> = bc
-                .block
-                .conjunctions
-                .iter()
-                .flat_map(|disj| disj.iter().map(guard_clause_to_cel_expr))
-                .collect();
-            if exprs.is_empty() {
-                "true".into()
-            } else {
-                exprs.join(" && ")
-            }
+            let exprs: Vec<String> =
+                bc.block.conjunctions.iter().flat_map(|disj| disj.iter().map(guard_clause_to_cel_expr)).collect();
+            if exprs.is_empty() { "true".into() } else { exprs.join(" && ") }
         }
         GuardClauseIR::WhenBlock(conds, block) => {
-            let body_exprs: Vec<String> = block
-                .conjunctions
-                .iter()
-                .flat_map(|disj| disj.iter().map(guard_clause_to_cel_expr))
-                .collect();
-            let body = if body_exprs.is_empty() {
-                "true".into()
-            } else {
-                body_exprs.join(" && ")
-            };
+            let body_exprs: Vec<String> =
+                block.conjunctions.iter().flat_map(|disj| disj.iter().map(guard_clause_to_cel_expr)).collect();
+            let body = if body_exprs.is_empty() { "true".into() } else { body_exprs.join(" && ") };
             match when_conditions_to_cel(conds) {
                 Some(we) => format!("({}) && ({})", we, body),
                 None => body,
             }
         }
         GuardClauseIR::NamedRule(nr) => format!("true /* depends on rule: {} */", nr.rule_name),
-        GuardClauseIR::ParameterizedNamedRule(pnr) => format!(
-            "true /* depends on parameterized rule: {} */",
-            pnr.rule_name
-        ),
+        GuardClauseIR::ParameterizedNamedRule(pnr) => {
+            format!("true /* depends on parameterized rule: {} */", pnr.rule_name)
+        }
     }
 }
 
 fn access_to_cel(ac: &AccessClauseIR) -> String {
     let path = query_to_cel_path(&ac.query);
     let neg_prefix = if ac.negated { "!" } else { "" };
-    let resource_path = if path.is_empty() {
-        "resource".into()
-    } else {
-        format!("resource.{}", path)
-    };
+    let resource_path = if path.is_empty() { "resource".into() } else { format!("resource.{}", path) };
 
     match ac.operator {
         Operator::Exists => format!("{}has({})", neg_prefix, resource_path),
@@ -206,21 +177,17 @@ fn access_to_cel(ac: &AccessClauseIR) -> String {
                 Operator::Le => "<=",
                 _ => unreachable!(),
             };
-            let rhs = ac
-                .compare_with
-                .as_ref()
-                .map(|v| let_value_to_string(v, CEL_PATH_PREFIX))
-                .unwrap_or_else(|| "0".into());
+            let rhs =
+                ac.compare_with.as_ref().map(|v| let_value_to_string(v, CEL_PATH_PREFIX)).unwrap_or_else(|| "0".into());
             format!("{} {} {}", resource_path, op_str, rhs)
         }
         Operator::IsString => format!("{}(type({}) == \"string\")", neg_prefix, resource_path),
         Operator::IsList => format!("{}(type({}) == \"list\")", neg_prefix, resource_path),
         Operator::IsMap => format!("{}(type({}) == \"map\")", neg_prefix, resource_path),
         Operator::IsBool => format!("{}(type({}) == \"bool\")", neg_prefix, resource_path),
-        Operator::IsInt | Operator::IsFloat => format!(
-            "{}(type({}) == \"int\" || type({}) == \"double\")",
-            neg_prefix, resource_path, resource_path
-        ),
+        Operator::IsInt | Operator::IsFloat => {
+            format!("{}(type({}) == \"int\" || type({}) == \"double\")", neg_prefix, resource_path, resource_path)
+        }
         Operator::IsNull => format!("{}({} == null)", neg_prefix, resource_path),
     }
 }
@@ -229,22 +196,18 @@ fn when_conditions_to_cel(conds: &ConjunctionsIR<WhenClauseIR>) -> Option<String
     let parts: Vec<String> = conds
         .iter()
         .flat_map(|disj| {
-            disj.iter().filter_map(|wc| match wc {
-                WhenClauseIR::Access(ac) => Some(access_to_cel(ac)),
+            disj.iter().map(|wc| match wc {
+                WhenClauseIR::Access(ac) => access_to_cel(ac),
                 WhenClauseIR::NamedRule(nr) => {
-                    Some(format!("true /* when rule: {} */", nr.rule_name))
+                    format!("true /* when rule: {} */", nr.rule_name)
                 }
                 WhenClauseIR::ParameterizedNamedRule(pnr) => {
-                    Some(format!("true /* when param rule: {} */", pnr.rule_name))
+                    format!("true /* when param rule: {} */", pnr.rule_name)
                 }
             })
         })
         .collect();
-    if parts.is_empty() {
-        None
-    } else {
-        Some(parts.join(" && "))
-    }
+    if parts.is_empty() { None } else { Some(parts.join(" && ")) }
 }
 
 fn query_to_cel_path(parts: &[QueryPartIR]) -> String {
@@ -252,8 +215,8 @@ fn query_to_cel_path(parts: &[QueryPartIR]) -> String {
         .iter()
         .filter_map(|p| match p {
             QueryPartIR::Key(k) => {
-                if k.starts_with('%') {
-                    Some(k[1..].to_string())
+                if let Some(stripped) = k.strip_prefix('%') {
+                    Some(stripped.to_string())
                 } else {
                     Some(k.clone())
                 }
@@ -271,8 +234,7 @@ pub fn to_custom_rule_json(rules: &[TranslatedCelRule]) -> Result<String, String
     struct Wrapper<'a> {
         rules: &'a [TranslatedCelRule],
     }
-    serde_json::to_string(&Wrapper { rules })
-        .map_err(|e| format!("Failed to serialize guard rules to CEL JSON: {}", e))
+    serde_json::to_string(&Wrapper { rules }).map_err(|e| format!("Failed to serialize guard rules to CEL JSON: {}", e))
 }
 
 fn extract_resource_type_vars(assignments: &[LetExprIR]) -> HashMap<String, Vec<String>> {
@@ -300,16 +262,12 @@ fn extract_types_from_filter(parts: &[QueryPartIR]) -> Vec<String> {
                         }
                         match ac.operator {
                             Operator::Eq => {
-                                if let Some(LetValueIR::Value(ValueIR::String(s))) =
-                                    &ac.compare_with
-                                {
+                                if let Some(LetValueIR::Value(ValueIR::String(s))) = &ac.compare_with {
                                     return vec![s.clone()];
                                 }
                             }
                             Operator::In => {
-                                if let Some(LetValueIR::Value(ValueIR::List(items))) =
-                                    &ac.compare_with
-                                {
+                                if let Some(LetValueIR::Value(ValueIR::List(items))) = &ac.compare_with {
                                     let types: Vec<String> = items
                                         .iter()
                                         .filter_map(|v| match v {
@@ -340,12 +298,13 @@ fn find_resource_types_from_when(
     for disj in conds {
         for wc in disj {
             if let WhenClauseIR::Access(ac) = wc
-                && let Some(QueryPartIR::Key(key)) = ac.query.first() {
-                    let var_name = key.trim_start_matches('%');
-                    if let Some(types) = resource_type_vars.get(var_name) {
-                        return Some(types.clone());
-                    }
+                && let Some(QueryPartIR::Key(key)) = ac.query.first()
+            {
+                let var_name = key.trim_start_matches('%');
+                if let Some(types) = resource_type_vars.get(var_name) {
+                    return Some(types.clone());
                 }
+            }
         }
     }
     None
@@ -418,27 +377,18 @@ mod tests {
 
     #[test]
     fn negate_eq_flips_to_neq() {
-        assert_eq!(
-            negate_cel_expr("resource.X == \"foo\""),
-            "resource.X != \"foo\""
-        );
+        assert_eq!(negate_cel_expr("resource.X == \"foo\""), "resource.X != \"foo\"");
     }
 
     #[test]
     fn negate_neq_flips_to_eq() {
-        assert_eq!(
-            negate_cel_expr("resource.X != \"foo\""),
-            "resource.X == \"foo\""
-        );
+        assert_eq!(negate_cel_expr("resource.X != \"foo\""), "resource.X == \"foo\"");
     }
 
     #[test]
     fn negate_in_wraps_with_not() {
         // Bug fix: previously produced `!(resource.X in [...]) == true`
-        assert_eq!(
-            negate_cel_expr("resource.X in [\"a\", \"b\"]"),
-            "!(resource.X in [\"a\", \"b\"])"
-        );
+        assert_eq!(negate_cel_expr("resource.X in [\"a\", \"b\"]"), "!(resource.X in [\"a\", \"b\"])");
     }
 
     #[test]
@@ -452,35 +402,23 @@ mod tests {
     fn negate_size_eq_zero_hits_eq_branch_first() {
         // `size(X) == 0` contains ` == ` so the equality branch fires first.
         // Result `!= 0` is semantically equivalent to `> 0`.
-        assert_eq!(
-            negate_cel_expr("size(resource.X) == 0"),
-            "size(resource.X) != 0"
-        );
+        assert_eq!(negate_cel_expr("size(resource.X) == 0"), "size(resource.X) != 0");
     }
 
     #[test]
     fn negate_size_gt_zero_flips_to_eq_zero() {
         // `size(X) > 0` has no ` == ` or ` != `, so the size branch handles it.
-        assert_eq!(
-            negate_cel_expr("size(resource.X) > 0"),
-            "size(resource.X) == 0"
-        );
+        assert_eq!(negate_cel_expr("size(resource.X) > 0"), "size(resource.X) == 0");
     }
 
     #[test]
     fn negate_fallback_wraps_with_eq_false() {
-        assert_eq!(
-            negate_cel_expr("some_func(resource.X)"),
-            "(some_func(resource.X)) == false"
-        );
+        assert_eq!(negate_cel_expr("some_func(resource.X)"), "(some_func(resource.X)) == false");
     }
 
     #[test]
     fn query_to_cel_path_keys_joined_with_dots() {
-        let parts = vec![
-            QueryPartIR::Key("Properties".into()),
-            QueryPartIR::Key("BucketName".into()),
-        ];
+        let parts = vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("BucketName".into())];
         assert_eq!(query_to_cel_path(&parts), "Properties.BucketName");
     }
 
@@ -514,16 +452,9 @@ mod tests {
 
     // ── access_to_cel ───────────────────────────────────────────────────
 
-    fn make_access(
-        op: Operator,
-        negated: bool,
-        compare_with: Option<LetValueIR>,
-    ) -> AccessClauseIR {
+    fn make_access(op: Operator, negated: bool, compare_with: Option<LetValueIR>) -> AccessClauseIR {
         AccessClauseIR {
-            query: vec![
-                QueryPartIR::Key("Properties".into()),
-                QueryPartIR::Key("Enabled".into()),
-            ],
+            query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Enabled".into())],
             match_all: false,
             operator: op,
             negated,
@@ -558,21 +489,13 @@ mod tests {
 
     #[test]
     fn access_eq_with_string_value() {
-        let ac = make_access(
-            Operator::Eq,
-            false,
-            Some(LetValueIR::Value(ValueIR::String("yes".into()))),
-        );
+        let ac = make_access(Operator::Eq, false, Some(LetValueIR::Value(ValueIR::String("yes".into()))));
         assert_eq!(access_to_cel(&ac), "resource.Properties.Enabled == \"yes\"");
     }
 
     #[test]
     fn access_eq_negated() {
-        let ac = make_access(
-            Operator::Eq,
-            true,
-            Some(LetValueIR::Value(ValueIR::Int(42))),
-        );
+        let ac = make_access(Operator::Eq, true, Some(LetValueIR::Value(ValueIR::Int(42))));
         assert_eq!(access_to_cel(&ac), "resource.Properties.Enabled != 42");
     }
 
@@ -581,92 +504,57 @@ mod tests {
         let ac = make_access(
             Operator::In,
             false,
-            Some(LetValueIR::Value(ValueIR::List(vec![
-                ValueIR::String("a".into()),
-                ValueIR::String("b".into()),
-            ]))),
+            Some(LetValueIR::Value(ValueIR::List(vec![ValueIR::String("a".into()), ValueIR::String("b".into())]))),
         );
-        assert_eq!(
-            access_to_cel(&ac),
-            "resource.Properties.Enabled in [\"a\", \"b\"]"
-        );
+        assert_eq!(access_to_cel(&ac), "resource.Properties.Enabled in [\"a\", \"b\"]");
     }
 
     #[test]
     fn access_in_negated() {
-        let ac = make_access(
-            Operator::In,
-            true,
-            Some(LetValueIR::Value(ValueIR::List(vec![ValueIR::Int(1)]))),
-        );
+        let ac = make_access(Operator::In, true, Some(LetValueIR::Value(ValueIR::List(vec![ValueIR::Int(1)]))));
         assert_eq!(access_to_cel(&ac), "!(resource.Properties.Enabled in [1])");
     }
 
     #[test]
     fn access_gt() {
-        let ac = make_access(
-            Operator::Gt,
-            false,
-            Some(LetValueIR::Value(ValueIR::Int(10))),
-        );
+        let ac = make_access(Operator::Gt, false, Some(LetValueIR::Value(ValueIR::Int(10))));
         assert_eq!(access_to_cel(&ac), "resource.Properties.Enabled > 10");
     }
 
     #[test]
     fn access_lt() {
-        let ac = make_access(
-            Operator::Lt,
-            false,
-            Some(LetValueIR::Value(ValueIR::Int(5))),
-        );
+        let ac = make_access(Operator::Lt, false, Some(LetValueIR::Value(ValueIR::Int(5))));
         assert_eq!(access_to_cel(&ac), "resource.Properties.Enabled < 5");
     }
 
     #[test]
     fn access_ge() {
-        let ac = make_access(
-            Operator::Ge,
-            false,
-            Some(LetValueIR::Value(ValueIR::Int(0))),
-        );
+        let ac = make_access(Operator::Ge, false, Some(LetValueIR::Value(ValueIR::Int(0))));
         assert_eq!(access_to_cel(&ac), "resource.Properties.Enabled >= 0");
     }
 
     #[test]
     fn access_le() {
-        let ac = make_access(
-            Operator::Le,
-            false,
-            Some(LetValueIR::Value(ValueIR::Float(3.14))),
-        );
+        let ac = make_access(Operator::Le, false, Some(LetValueIR::Value(ValueIR::Float(3.14))));
         assert_eq!(access_to_cel(&ac), "resource.Properties.Enabled <= 3.14");
     }
 
     #[test]
     fn access_is_string() {
         let ac = make_access(Operator::IsString, false, None);
-        assert_eq!(
-            access_to_cel(&ac),
-            "(type(resource.Properties.Enabled) == \"string\")"
-        );
+        assert_eq!(access_to_cel(&ac), "(type(resource.Properties.Enabled) == \"string\")");
     }
 
     #[test]
     fn access_is_string_negated() {
         let ac = make_access(Operator::IsString, true, None);
-        assert_eq!(
-            access_to_cel(&ac),
-            "!(type(resource.Properties.Enabled) == \"string\")"
-        );
+        assert_eq!(access_to_cel(&ac), "!(type(resource.Properties.Enabled) == \"string\")");
     }
 
     #[test]
     fn access_is_list() {
         let ac = make_access(Operator::IsList, false, None);
-        assert_eq!(
-            access_to_cel(&ac),
-            "(type(resource.Properties.Enabled) == \"list\")"
-        );
+        assert_eq!(access_to_cel(&ac), "(type(resource.Properties.Enabled) == \"list\")");
     }
 
     #[test]
@@ -691,19 +579,13 @@ mod tests {
     #[test]
     fn access_is_map() {
         let ac = make_access(Operator::IsMap, false, None);
-        assert_eq!(
-            access_to_cel(&ac),
-            "(type(resource.Properties.Enabled) == \"map\")"
-        );
+        assert_eq!(access_to_cel(&ac), "(type(resource.Properties.Enabled) == \"map\")");
     }
 
     #[test]
     fn access_is_bool() {
         let ac = make_access(Operator::IsBool, false, None);
-        assert_eq!(
-            access_to_cel(&ac),
-            "(type(resource.Properties.Enabled) == \"bool\")"
-        );
+        assert_eq!(access_to_cel(&ac), "(type(resource.Properties.Enabled) == \"bool\")");
     }
 
     #[test]
@@ -723,16 +605,9 @@ mod tests {
 
     #[test]
     fn guard_clause_access_delegates_to_access_to_cel() {
-        let ac = make_access(
-            Operator::Eq,
-            false,
-            Some(LetValueIR::Value(ValueIR::Bool(true))),
-        );
+        let ac = make_access(Operator::Eq, false, Some(LetValueIR::Value(ValueIR::Bool(true))));
         let gc = GuardClauseIR::Access(ac);
-        assert_eq!(
-            guard_clause_to_cel_expr(&gc),
-            "resource.Properties.Enabled == true"
-        );
+        assert_eq!(guard_clause_to_cel_expr(&gc), "resource.Properties.Enabled == true");
     }
 
     #[test]
@@ -746,10 +621,7 @@ mod tests {
         let block = GuardClauseIR::Block(BlockClauseIR {
             query: vec![],
             match_all: false,
-            block: BlockIR {
-                assignments: vec![],
-                conjunctions: vec![vec![ac1, ac2]],
-            },
+            block: BlockIR { assignments: vec![], conjunctions: vec![vec![ac1, ac2]] },
             not_empty: false,
         });
         let result = guard_clause_to_cel_expr(&block);
@@ -763,10 +635,7 @@ mod tests {
         let block = GuardClauseIR::Block(BlockClauseIR {
             query: vec![],
             match_all: false,
-            block: BlockIR {
-                assignments: vec![],
-                conjunctions: vec![],
-            },
+            block: BlockIR { assignments: vec![], conjunctions: vec![] },
             not_empty: false,
         });
         assert_eq!(guard_clause_to_cel_expr(&block), "true");
@@ -801,10 +670,7 @@ mod tests {
     #[test]
     fn translate_type_block_produces_negated_rules() {
         let ac = AccessClauseIR {
-            query: vec![
-                QueryPartIR::Key("Properties".into()),
-                QueryPartIR::Key("Status".into()),
-            ],
+            query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Status".into())],
             match_all: false,
             operator: Operator::Eq,
             negated: false,
@@ -814,10 +680,7 @@ mod tests {
         let tb = TypeBlockIR {
             type_name: "AWS::S3::Bucket".into(),
             conditions: None,
-            block: BlockIR {
-                assignments: vec![],
-                conjunctions: vec![vec![GuardClauseIR::Access(ac)]],
-            },
+            block: BlockIR { assignments: vec![], conjunctions: vec![vec![GuardClauseIR::Access(ac)]] },
             query: vec![],
         };
         let file = GuardFile {
@@ -825,10 +688,7 @@ mod tests {
             rules: vec![GuardRule {
                 name: "test_rule".into(),
                 conditions: None,
-                block: BlockIR {
-                    assignments: vec![],
-                    conjunctions: vec![vec![RuleClauseIR::TypeBlock(tb)]],
-                },
+                block: BlockIR { assignments: vec![], conjunctions: vec![vec![RuleClauseIR::TypeBlock(tb)]] },
             }],
             parameterized_rules: vec![],
         };
@@ -840,11 +700,7 @@ mod tests {
         assert_eq!(rule.category.as_deref(), Some("guard:test_pack"));
         assert_eq!(rule.message, "Must be enabled");
         // Expression should be negated (violation semantics)
-        assert!(
-            rule.expression.contains("!="),
-            "Expected negated == to !=, got: {}",
-            rule.expression
-        );
+        assert!(rule.expression.contains("!="), "Expected negated == to !=, got: {}", rule.expression);
     }
 
     #[test]
@@ -928,10 +784,7 @@ mod tests {
         };
         let controls = vec![("ctrl_rule".into(), vec!["NIST-1".into(), "CIS-2".into()])];
         let result = translate_to_cel(&file, "p", &controls);
-        assert_eq!(
-            result[0].controls,
-            Some(vec!["NIST-1".into(), "CIS-2".into()])
-        );
+        assert_eq!(result[0].controls, Some(vec!["NIST-1".into(), "CIS-2".into()]));
     }
 
     #[test]
@@ -961,10 +814,7 @@ mod tests {
                     assignments: vec![],
                     conjunctions: vec![vec![RuleClauseIR::WhenBlock(
                         vec![vec![when_ac]],
-                        BlockIR {
-                            assignments: vec![],
-                            conjunctions: vec![vec![GuardClauseIR::Access(inner_ac)]],
-                        },
+                        BlockIR { assignments: vec![], conjunctions: vec![vec![GuardClauseIR::Access(inner_ac)]] },
                     )]],
                 },
             }],
@@ -979,20 +829,13 @@ mod tests {
     #[test]
     fn when_conditions_empty_returns_none() {
         let conds: ConjunctionsIR<WhenClauseIR> = vec![];
-        assert_eq!(
-            when_conditions_to_cel(&conds),
-            None,
-            "empty conditions should return None"
-        );
+        assert_eq!(when_conditions_to_cel(&conds), None, "empty conditions should return None");
     }
 
     #[test]
     fn when_conditions_access_clause() {
         let conds = vec![vec![WhenClauseIR::Access(AccessClauseIR {
-            query: vec![
-                QueryPartIR::Key("Properties".into()),
-                QueryPartIR::Key("Enabled".into()),
-            ],
+            query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Enabled".into())],
             match_all: false,
             operator: Operator::Eq,
             compare_with: Some(LetValueIR::Value(ValueIR::Bool(true))),
@@ -1001,10 +844,7 @@ mod tests {
         })]];
         let result = when_conditions_to_cel(&conds);
         let cel = result.expect("when_conditions_to_cel should return Some for valid conditions");
-        assert!(
-            cel.contains("Properties"),
-            "CEL expression should reference Properties, got: {cel}"
-        );
+        assert!(cel.contains("Properties"), "CEL expression should reference Properties, got: {cel}");
     }
 
     #[test]
@@ -1020,14 +860,12 @@ mod tests {
 
     #[test]
     fn when_conditions_parameterized_rule_produces_placeholder() {
-        let conds = vec![vec![WhenClauseIR::ParameterizedNamedRule(
-            ParameterizedNamedRuleRefIR {
-                rule_name: "param_rule".into(),
-                negated: false,
-                custom_message: None,
-                parameters: vec![],
-            },
-        )]];
+        let conds = vec![vec![WhenClauseIR::ParameterizedNamedRule(ParameterizedNamedRuleRefIR {
+            rule_name: "param_rule".into(),
+            negated: false,
+            custom_message: None,
+            parameters: vec![],
+        })]];
         let result = when_conditions_to_cel(&conds).unwrap();
         assert!(result.contains("param_rule"));
     }
@@ -1048,9 +886,7 @@ mod tests {
                             query: vec![QueryPartIR::Key("Type".into())],
                             match_all: false,
                             operator: Operator::Eq,
-                            compare_with: Some(LetValueIR::Value(ValueIR::String(
-                                "AWS::S3::Bucket".into(),
-                            ))),
+                            compare_with: Some(LetValueIR::Value(ValueIR::String("AWS::S3::Bucket".into()))),
                             negated: false,
                             custom_message: None,
                         })]],
@@ -1060,18 +896,13 @@ mod tests {
             ),
         }];
         let vars = extract_resource_type_vars(&assignments);
-        assert_eq!(
-            vars.get("s3_buckets"),
-            Some(&vec!["AWS::S3::Bucket".to_string()])
-        );
+        assert_eq!(vars.get("s3_buckets"), Some(&vec!["AWS::S3::Bucket".to_string()]));
     }
 
     #[test]
     fn extract_vars_no_filter_returns_empty() {
-        let assignments = vec![LetExprIR {
-            var: "x".into(),
-            value: LetValueIR::Value(ValueIR::String("hello".into())),
-        }];
+        let assignments =
+            vec![LetExprIR { var: "x".into(), value: LetValueIR::Value(ValueIR::String("hello".into())) }];
         let vars = extract_resource_type_vars(&assignments);
         assert!(vars.is_empty());
     }
@@ -1103,10 +934,7 @@ mod tests {
     #[test]
     fn find_types_from_when_resolves_variable() {
         let mut vars = HashMap::new();
-        vars.insert(
-            "s3_buckets".to_string(),
-            vec!["AWS::S3::Bucket".to_string()],
-        );
+        vars.insert("s3_buckets".to_string(), vec!["AWS::S3::Bucket".to_string()]);
         let conds = vec![vec![WhenClauseIR::Access(AccessClauseIR {
             query: vec![QueryPartIR::Key("%s3_buckets".into())],
             match_all: false,
@@ -1130,10 +958,6 @@ mod tests {
             negated: false,
             custom_message: None,
         })]];
-        assert_eq!(
-            find_resource_types_from_when(&conds, &vars),
-            None,
-            "empty conditions should return None"
-        );
+        assert_eq!(find_resource_types_from_when(&conds, &vars), None, "empty conditions should return None");
     }
 }

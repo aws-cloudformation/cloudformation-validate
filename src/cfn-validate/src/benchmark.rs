@@ -10,9 +10,7 @@ use rules::Severity;
 use schema_validator::SchemaValidator;
 use sha2::{Digest, Sha256};
 use template_model::SemanticModel;
-use validation_engine::{
-    EngineConfig, EngineType, ValidateConfig, ValidationEngine, validate_bytes_with_path,
-};
+use validation_engine::{EngineConfig, EngineType, ValidateConfig, ValidationEngine, validate_bytes_with_path};
 
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
@@ -22,17 +20,9 @@ fn main() {
         process::exit(2);
     }
 
-    let default_template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .join("resources");
-    let template_dir_arg = args
-        .get(1)
-        .filter(|a| !a.starts_with('-'))
-        .map(|s| s.to_string());
-    let template_dir = template_dir_arg
-        .as_deref()
-        .unwrap_or_else(|| default_template_dir.to_str().unwrap());
+    let default_template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("resources");
+    let template_dir_arg = args.get(1).filter(|a| !a.starts_with('-')).map(|s| s.to_string());
+    let template_dir = template_dir_arg.as_deref().unwrap_or_else(|| default_template_dir.to_str().unwrap());
 
     let engine_type = args
         .iter()
@@ -66,37 +56,23 @@ fn main() {
 
         let t1 = Instant::now();
         let e: Box<dyn ValidationEngine> = match engine_type {
-            EngineType::Cel => {
-                Box::new(CelEngine::new(config.clone()).expect("cel engine init failed"))
-            }
-            EngineType::Rego => {
-                Box::new(RegoEngine::new(config.clone()).expect("rego engine init failed"))
-            }
+            EngineType::Cel => Box::new(CelEngine::new(config.clone()).expect("cel engine init failed")),
+            EngineType::Rego => Box::new(RegoEngine::new(config.clone()).expect("rego engine init failed")),
         };
         engine_init_samples_ms.push(t1.elapsed().as_secs_f64() * 1000.0);
         drop(e);
         drop(sv);
     }
-    let init_samples_ms: Vec<f64> = schema_init_samples_ms
-        .iter()
-        .zip(engine_init_samples_ms.iter())
-        .map(|(s, e)| s + e)
-        .collect();
+    let init_samples_ms: Vec<f64> =
+        schema_init_samples_ms.iter().zip(engine_init_samples_ms.iter()).map(|(s, e)| s + e).collect();
     let cold_init_ms = init_samples_ms[0];
-    let warm_init_samples_ms: Vec<f64> = if init_samples_ms.len() > 1 {
-        init_samples_ms[1..].to_vec()
-    } else {
-        init_samples_ms.clone()
-    };
+    let warm_init_samples_ms: Vec<f64> =
+        if init_samples_ms.len() > 1 { init_samples_ms[1..].to_vec() } else { init_samples_ms.clone() };
 
     let schema_validator = SchemaValidator::new();
     let engine: Box<dyn ValidationEngine> = match engine_type {
-        EngineType::Cel => {
-            Box::new(CelEngine::new(config.clone()).expect("cel engine init failed"))
-        }
-        EngineType::Rego => {
-            Box::new(RegoEngine::new(config.clone()).expect("rego engine init failed"))
-        }
+        EngineType::Cel => Box::new(CelEngine::new(config.clone()).expect("cel engine init failed")),
+        EngineType::Rego => Box::new(RegoEngine::new(config.clone()).expect("rego engine init failed")),
     };
 
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -120,42 +96,30 @@ fn main() {
 
     let mut results: Vec<TemplateResult> = Vec::new();
     // Deferred until after the timed loop so disk I/O does not contaminate throughput.
-    let mut deferred_writes: Vec<(PathBuf, String, (ValidationReport, serde_json::Value))> =
-        Vec::new();
+    let mut deferred_writes: Vec<(PathBuf, String, (ValidationReport, serde_json::Value))> = Vec::new();
 
     // Amortize first-call costs so throughput numbers are comparable across harnesses.
-    let benchmark_config = ValidateConfig {
-        detail_level: detail_level.clone(),
-        severity_level,
-        ..Default::default()
-    };
+    let benchmark_config = ValidateConfig { detail_level: detail_level.clone(), severity_level, ..Default::default() };
     if let Some(first) = templates.first()
-        && let Ok(bytes) = fs::read(first) {
-            let _ = SemanticModel::parse(&bytes, Default::default());
-            let _ = validate_bytes_with_path(
-                engine.as_ref(),
-                &schema_validator,
-                &bytes,
-                benchmark_config.clone(),
-                first.display().to_string(),
-            );
-        }
+        && let Ok(bytes) = fs::read(first)
+    {
+        let _ = SemanticModel::parse(&bytes, Default::default());
+        let _ = validate_bytes_with_path(
+            engine.as_ref(),
+            &schema_validator,
+            &bytes,
+            benchmark_config.clone(),
+            first.display().to_string(),
+        );
+    }
 
     let bench_start = Instant::now();
 
     for template_path in &templates {
-        let stripped = template_path
-            .strip_prefix(template_dir)
-            .unwrap_or(template_path)
-            .display()
-            .to_string();
+        let stripped = template_path.strip_prefix(template_dir).unwrap_or(template_path).display().to_string();
         let relative_path = stripped.trim_start_matches('/');
         let relative_path = if relative_path.is_empty() {
-            template_path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string()
+            template_path.file_name().unwrap_or_default().to_string_lossy().to_string()
         } else {
             relative_path.to_string()
         };
@@ -165,11 +129,7 @@ fn main() {
             Ok(b) => b,
             Err(e) => {
                 error!("Failed to read {}: {}", relative_path, e);
-                results.push(TemplateResult::error(
-                    &relative_path,
-                    "read_error",
-                    &e.to_string(),
-                ));
+                results.push(TemplateResult::error(&relative_path, "read_error", &e.to_string()));
                 continue;
             }
         };
@@ -194,11 +154,7 @@ fn main() {
                 Ok(m) => m,
                 Err(e) => {
                     warn!("{} parse failed: {}", relative_path, e);
-                    results.push(TemplateResult::error(
-                        &relative_path,
-                        "parse_error",
-                        &e.to_string(),
-                    ));
+                    results.push(TemplateResult::error(&relative_path, "parse_error", &e.to_string()));
                     failed = true;
                     break;
                 }
@@ -218,21 +174,13 @@ fn main() {
                 Ok(Ok(r)) => r,
                 Ok(Err(e)) => {
                     warn!("{} failed: {}", relative_path, e);
-                    results.push(TemplateResult::error(
-                        &relative_path,
-                        "error",
-                        &e.to_string(),
-                    ));
+                    results.push(TemplateResult::error(&relative_path, "error", &e.to_string()));
                     failed = true;
                     break;
                 }
                 Err(_) => {
                     error!("{} panicked during validation", relative_path);
-                    results.push(TemplateResult::error(
-                        &relative_path,
-                        "panic",
-                        "panic during validate",
-                    ));
+                    results.push(TemplateResult::error(&relative_path, "panic", "panic during validate"));
                     failed = true;
                     break;
                 }
@@ -256,25 +204,15 @@ fn main() {
         let report = last_report.unwrap();
 
         let cold_engine_internal_ms = iter_engine_internal_ms[0];
-        let warm_engine_internal_ms = if iterations > 1 {
-            median_f64(&iter_engine_internal_ms[1..])
-        } else {
-            cold_engine_internal_ms
-        };
+        let warm_engine_internal_ms =
+            if iterations > 1 { median_f64(&iter_engine_internal_ms[1..]) } else { cold_engine_internal_ms };
         let median_engine_internal_ms = median_f64(&iter_engine_internal_ms);
         let cold_wall_clock_ms = iter_host_validate_ms[0];
-        let warm_wall_clock_ms = if iterations > 1 {
-            median_f64(&iter_host_validate_ms[1..])
-        } else {
-            cold_wall_clock_ms
-        };
+        let warm_wall_clock_ms =
+            if iterations > 1 { median_f64(&iter_host_validate_ms[1..]) } else { cold_wall_clock_ms };
         let median_wall_clock_ms = median_f64(&iter_host_validate_ms);
         let cold_host_model_ms = iter_host_model_ms[0];
-        let warm_host_model_ms = if iterations > 1 {
-            median_f64(&iter_host_model_ms[1..])
-        } else {
-            cold_host_model_ms
-        };
+        let warm_host_model_ms = if iterations > 1 { median_f64(&iter_host_model_ms[1..]) } else { cold_host_model_ms };
         let median_host_model_ms = median_f64(&iter_host_model_ms);
         // On wasm/jvm this captures ABI cost (bytes copy, serialization, FFI dispatch).
         let binding_overhead_ms = round4(median_wall_clock_ms - median_engine_internal_ms);
@@ -317,11 +255,7 @@ fn main() {
             "bindingOverheadMs": binding_overhead_ms,
         });
         let json_path = json_dir.join(format!("{}.json", json_stem));
-        deferred_writes.push((
-            json_path,
-            relative_path.clone(),
-            (dump_report, benchmark_metrics),
-        ));
+        deferred_writes.push((json_path, relative_path.clone(), (dump_report, benchmark_metrics)));
 
         let template_result = TemplateResult {
             file: relative_path.to_string(),
@@ -371,66 +305,27 @@ fn main() {
         template_json["detailLevel"] = serde_json::json!("DETAILED");
         template_json["benchmarkMetrics"] = benchmark_metrics;
         if let Ok(mut f) = fs::File::create(&json_path) {
-            let _ = f.write_all(
-                serde_json::to_string_pretty(&template_json)
-                    .unwrap()
-                    .as_bytes(),
-            );
+            let _ = f.write_all(serde_json::to_string_pretty(&template_json).unwrap().as_bytes());
         }
     }
 
-    let successful_results: Vec<&TemplateResult> =
-        results.iter().filter(|r| r.status == "ok").collect();
-    let failed_results: Vec<&TemplateResult> =
-        results.iter().filter(|r| r.status != "ok").collect();
+    let successful_results: Vec<&TemplateResult> = results.iter().filter(|r| r.status == "ok").collect();
+    let failed_results: Vec<&TemplateResult> = results.iter().filter(|r| r.status != "ok").collect();
 
-    let model_build_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.model_build_ms)
-        .collect();
-    let schema_validate_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.schema_validate_ms)
-        .collect();
+    let model_build_vec: Vec<f64> = successful_results.iter().map(|r| r.model_build_ms).collect();
+    let schema_validate_vec: Vec<f64> = successful_results.iter().map(|r| r.schema_validate_ms).collect();
     let rule_eval_vec: Vec<f64> = successful_results.iter().map(|r| r.rule_eval_ms).collect();
-    let finalize_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.diagnostic_finalize_ms)
-        .collect();
-    let engine_internal_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.engine_internal_ms)
-        .collect();
-    let cold_engine_internal_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.cold_engine_internal_ms)
-        .collect();
-    let warm_engine_internal_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.warm_engine_internal_ms)
-        .collect();
+    let finalize_vec: Vec<f64> = successful_results.iter().map(|r| r.diagnostic_finalize_ms).collect();
+    let engine_internal_vec: Vec<f64> = successful_results.iter().map(|r| r.engine_internal_ms).collect();
+    let cold_engine_internal_vec: Vec<f64> = successful_results.iter().map(|r| r.cold_engine_internal_ms).collect();
+    let warm_engine_internal_vec: Vec<f64> = successful_results.iter().map(|r| r.warm_engine_internal_ms).collect();
     let wall_clock_vec: Vec<f64> = successful_results.iter().map(|r| r.wall_clock_ms).collect();
-    let cold_wall_clock_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.cold_wall_clock_ms)
-        .collect();
-    let warm_wall_clock_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.warm_wall_clock_ms)
-        .collect();
+    let cold_wall_clock_vec: Vec<f64> = successful_results.iter().map(|r| r.cold_wall_clock_ms).collect();
+    let warm_wall_clock_vec: Vec<f64> = successful_results.iter().map(|r| r.warm_wall_clock_ms).collect();
     let host_model_vec: Vec<f64> = successful_results.iter().map(|r| r.host_model_ms).collect();
-    let cold_host_model_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.cold_host_model_ms)
-        .collect();
-    let warm_host_model_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.warm_host_model_ms)
-        .collect();
-    let binding_overhead_vec: Vec<f64> = successful_results
-        .iter()
-        .map(|r| r.binding_overhead_ms)
-        .collect();
+    let cold_host_model_vec: Vec<f64> = successful_results.iter().map(|r| r.cold_host_model_ms).collect();
+    let warm_host_model_vec: Vec<f64> = successful_results.iter().map(|r| r.warm_host_model_ms).collect();
+    let binding_overhead_vec: Vec<f64> = successful_results.iter().map(|r| r.binding_overhead_ms).collect();
 
     let throughput_per_sec = if total_wall_ms > 0.0 {
         (successful_results.len() * iterations) as f64 / (total_wall_ms / 1000.0)
@@ -487,11 +382,7 @@ fn main() {
         "failures": failed_results.iter().map(|r| serde_json::json!({"file": r.file, "status": r.status, "error": r.error_msg})).collect::<Vec<_>>(),
     });
     let aggregate_path = output_dir.join(format!("aggregate_{}.json", format_str));
-    fs::write(
-        &aggregate_path,
-        serde_json::to_string_pretty(&aggregate_stats).unwrap(),
-    )
-    .expect("write aggregate json");
+    fs::write(&aggregate_path, serde_json::to_string_pretty(&aggregate_stats).unwrap()).expect("write aggregate json");
 
     let report_markdown = generate_markdown(
         &results,
@@ -544,10 +435,7 @@ fn main() {
         max_f64(&wall_clock_vec)
     );
     info!("Throughput: {:.2} validations/sec", throughput_per_sec);
-    info!(
-        "Corpus fingerprint: {} ({} files)",
-        corpus_fingerprint, fingerprint_file_count
-    );
+    info!("Corpus fingerprint: {} ({} files)", corpus_fingerprint, fingerprint_file_count);
     info!("Reports written to {}", output_dir.display());
 }
 
@@ -638,18 +526,11 @@ fn generate_markdown(
     corpus_file_count: usize,
 ) -> String {
     let mut report_markdown = String::new();
-    report_markdown.push_str(&format!(
-        "# cloudformation-validate Benchmark Report — {} engine (DETAILED)\n\n",
-        engine_name
-    ));
-    report_markdown.push_str(&format!(
-        "Generated: {}\n\n",
-        chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ")
-    ));
-    report_markdown.push_str(&format!(
-        "Corpus fingerprint: `{}` ({} files)\n\n",
-        corpus_fingerprint, corpus_file_count
-    ));
+    report_markdown
+        .push_str(&format!("# cloudformation-validate Benchmark Report — {} engine (DETAILED)\n\n", engine_name));
+    report_markdown.push_str(&format!("Generated: {}\n\n", chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ")));
+    report_markdown
+        .push_str(&format!("Corpus fingerprint: `{}` ({} files)\n\n", corpus_fingerprint, corpus_file_count));
 
     report_markdown.push_str("## Summary\n\n");
     report_markdown.push_str("| Metric | Value |\n|---|---|\n");
@@ -662,21 +543,14 @@ fn generate_markdown(
     report_markdown.push_str(&format!("| Iterations per template | {} |\n", iterations));
     report_markdown.push_str(&format!(
         "| Total resources | {} |\n",
-        successful_results
-            .iter()
-            .map(|r| r.resources)
-            .sum::<usize>()
+        successful_results.iter().map(|r| r.resources).sum::<usize>()
     ));
     report_markdown.push_str(&format!("| Total wall time | {:.4} ms |\n", total_wall_ms));
-    report_markdown.push_str(&format!(
-        "| Throughput | {:.2} validations/sec |\n",
-        throughput_per_sec
-    ));
+    report_markdown.push_str(&format!("| Throughput | {:.2} validations/sec |\n", throughput_per_sec));
     report_markdown.push_str("| Detail level | DETAILED |\n");
 
     report_markdown.push_str("\n## Initialization (ms)\n\n");
-    report_markdown
-        .push_str("| Stat | Schema Init | Engine Init | Combined |\n|---|---|---|---|\n");
+    report_markdown.push_str("| Stat | Schema Init | Engine Init | Combined |\n|---|---|---|---|\n");
     report_markdown.push_str(&format!(
         "| Median | {:.4} | {:.4} | {:.4} |\n",
         median_f64(schema_init_ms),
@@ -697,11 +571,11 @@ fn generate_markdown(
     ));
 
     report_markdown.push_str("\n## Validation Latency (ms, median / p99 / max per template)\n\n");
-    report_markdown.push_str("host_model = host timer around SemanticModel::parse (bytes → model). Includes FFI on wasm/jvm.\n");
-    report_markdown.push_str("wall_clock = host timer around validate_bytes (full validate call, re-parses internally).\n");
-    report_markdown.push_str(
-        "engine_internal = Rust-internal `report.performance.total` (engine work only).\n\n",
-    );
+    report_markdown
+        .push_str("host_model = host timer around SemanticModel::parse (bytes → model). Includes FFI on wasm/jvm.\n");
+    report_markdown
+        .push_str("wall_clock = host timer around validate_bytes (full validate call, re-parses internally).\n");
+    report_markdown.push_str("engine_internal = Rust-internal `report.performance.total` (engine work only).\n\n");
     report_markdown.push_str("| Metric | Median | P99 | Max |\n|---|---|---|---|\n");
     for (label, vals) in [
         ("Cold host_model (first iter)", cold_host_model),
@@ -716,10 +590,7 @@ fn generate_markdown(
         ("Model build (rust-internal)", model_build_ms),
         ("Schema validate (rust-internal)", schema_validate_ms),
         ("Rule evaluation (rust-internal)", rule_eval_ms),
-        (
-            "Diagnostic finalize (rust-internal)",
-            diagnostic_finalize_ms,
-        ),
+        ("Diagnostic finalize (rust-internal)", diagnostic_finalize_ms),
         ("Binding overhead (wall − internal)", binding_overhead_ms),
     ] {
         report_markdown.push_str(&format!(
@@ -733,33 +604,15 @@ fn generate_markdown(
 
     report_markdown.push_str("\n## Diagnostics\n\n");
     report_markdown.push_str("| Level | Count |\n|---|---|\n");
-    report_markdown.push_str(&format!(
-        "| Fatal | {} |\n",
-        successful_results
-            .iter()
-            .map(|r| r.fatal as u64)
-            .sum::<u64>()
-    ));
-    report_markdown.push_str(&format!(
-        "| Errors | {} |\n",
-        successful_results
-            .iter()
-            .map(|r| r.errors as u64)
-            .sum::<u64>()
-    ));
-    report_markdown.push_str(&format!(
-        "| Warnings | {} |\n",
-        successful_results
-            .iter()
-            .map(|r| r.warnings as u64)
-            .sum::<u64>()
-    ));
+    report_markdown
+        .push_str(&format!("| Fatal | {} |\n", successful_results.iter().map(|r| r.fatal as u64).sum::<u64>()));
+    report_markdown
+        .push_str(&format!("| Errors | {} |\n", successful_results.iter().map(|r| r.errors as u64).sum::<u64>()));
+    report_markdown
+        .push_str(&format!("| Warnings | {} |\n", successful_results.iter().map(|r| r.warnings as u64).sum::<u64>()));
     report_markdown.push_str(&format!(
         "| Informational | {} |\n",
-        successful_results
-            .iter()
-            .map(|r| r.informational as u64)
-            .sum::<u64>()
+        successful_results.iter().map(|r| r.informational as u64).sum::<u64>()
     ));
 
     report_markdown.push_str("\n## All Results\n\n");
@@ -813,11 +666,7 @@ fn max_f64(vals: &[f64]) -> f64 {
     vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
 }
 fn avg_f64(vals: &[f64]) -> f64 {
-    if vals.is_empty() {
-        0.0
-    } else {
-        vals.iter().sum::<f64>() / vals.len() as f64
-    }
+    if vals.is_empty() { 0.0 } else { vals.iter().sum::<f64>() / vals.len() as f64 }
 }
 fn median_f64(vals: &[f64]) -> f64 {
     if vals.is_empty() {
@@ -826,11 +675,7 @@ fn median_f64(vals: &[f64]) -> f64 {
     let mut sorted = vals.to_vec();
     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let n = sorted.len();
-    if n.is_multiple_of(2) {
-        (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
-    } else {
-        sorted[n / 2]
-    }
+    if n.is_multiple_of(2) { (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0 } else { sorted[n / 2] }
 }
 fn percentile_f64(vals: &[f64], pct: u64) -> f64 {
     if vals.is_empty() {
@@ -889,21 +734,9 @@ fn compute_corpus_fingerprint(root: &Path) -> (String, usize) {
     let mut relative_and_absolute: Vec<(String, PathBuf)> = files
         .into_iter()
         .map(|f| {
-            let rel = f
-                .strip_prefix(root)
-                .unwrap_or(&f)
-                .display()
-                .to_string()
-                .trim_start_matches('/')
-                .to_string();
-            let rel = if rel.is_empty() {
-                f.file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string()
-            } else {
-                rel
-            };
+            let rel = f.strip_prefix(root).unwrap_or(&f).display().to_string().trim_start_matches('/').to_string();
+            let rel =
+                if rel.is_empty() { f.file_name().unwrap_or_default().to_string_lossy().to_string() } else { rel };
             (rel, f)
         })
         .collect();
@@ -917,10 +750,7 @@ fn compute_corpus_fingerprint(root: &Path) -> (String, usize) {
         let file_hash = format!("{:x}", inner.finalize());
         outer.update(format!("{}\t{}\n", rel, file_hash).as_bytes());
     }
-    (
-        format!("{:x}", outer.finalize()),
-        relative_and_absolute.len(),
-    )
+    (format!("{:x}", outer.finalize()), relative_and_absolute.len())
 }
 
 /// Deterministic across bindings for the same (corpus, engine, format, iterations) tuple.

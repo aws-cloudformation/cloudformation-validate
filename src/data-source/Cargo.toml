@@ -3,6 +3,10 @@ name = "data-source"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 name = "data_source"
@@ -52,3 +56,6 @@ zstd = { version = "0.13", default-features = false }
 
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
+
+[lints]
+workspace = true

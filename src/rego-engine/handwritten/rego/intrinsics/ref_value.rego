@@ -21,7 +21,7 @@ violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,
 }
 
 # W1030: Parameter default fails AMI ID format when used in ImageId property
-# Only fires when Default exists AND fails the AMI pattern (cfn-lint behavior)
+# Only fires when Default exists AND fails the AMI pattern
 violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,
     sprintf("{'Ref': '%s'} is not a 'AWS::EC2::Image.Id' when 'Ref' is resolved", [target]),
     "Use parameter type AWS::EC2::Image::Id",

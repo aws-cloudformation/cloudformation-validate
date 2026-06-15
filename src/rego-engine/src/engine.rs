@@ -7,60 +7,27 @@ use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
-    extract_diagnostics,
+    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, extract_diagnostics,
+    semantic_model_to_input_json,
 };
 
 static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
     vec![
-        (
-            "data/known_resource_types",
-            &*embedded::KNOWN_RESOURCE_TYPES_BYTES,
-        ),
-        (
-            "data/primary_identifiers",
-            &*embedded::PRIMARY_IDENTIFIERS_BYTES,
-        ),
-        (
-            "data/iam_action_resource_patterns",
-            &*embedded::IAM_ACTION_RESOURCE_PATTERNS_BYTES,
-        ),
-        (
-            "data/region_resource_types",
-            &*embedded::REGION_RESOURCE_TYPES_BYTES,
-        ),
-        (
-            "data/stateful_resource_types",
-            &*embedded::STATEFUL_RESOURCE_TYPES_BYTES,
-        ),
-        (
-            "data/aws_rds_dbinstance_dbinstanceclass_enum",
-            &*embedded::AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES,
-        ),
-        (
-            "data/aws_ec2_instance_instancetype_enum",
-            &*embedded::AWS_EC2_INSTANCE_INSTANCETYPE_ENUM_BYTES,
-        ),
+        ("data/known_resource_types", &*embedded::KNOWN_RESOURCE_TYPES_BYTES),
+        ("data/primary_identifiers", &*embedded::PRIMARY_IDENTIFIERS_BYTES),
+        ("data/iam_action_resource_patterns", &*embedded::IAM_ACTION_RESOURCE_PATTERNS_BYTES),
+        ("data/region_resource_types", &*embedded::REGION_RESOURCE_TYPES_BYTES),
+        ("data/stateful_resource_types", &*embedded::STATEFUL_RESOURCE_TYPES_BYTES),
+        ("data/aws_rds_dbinstance_dbinstanceclass_enum", &*embedded::AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES),
+        ("data/aws_ec2_instance_instancetype_enum", &*embedded::AWS_EC2_INSTANCE_INSTANCETYPE_ENUM_BYTES),
         (
             "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
             &*embedded::AWS_EMR_CLUSTER_INSTANCETYPECONFIG_INSTANCETYPE_ENUM_BYTES,
         ),
-        (
-            "data/aws_gamelift_fleet_ec2instancetype_enum",
-            &*embedded::AWS_GAMELIFT_FLEET_EC2INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_appstream_fleet_instancetype_enum",
-            &*embedded::AWS_APPSTREAM_FLEET_INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_dax_cluster_nodetype_enum",
-            &*embedded::AWS_DAX_CLUSTER_NODETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_docdb_dbinstance_dbinstanceclass_enum",
-            &*embedded::AWS_DOCDB_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES,
-        ),
+        ("data/aws_gamelift_fleet_ec2instancetype_enum", &*embedded::AWS_GAMELIFT_FLEET_EC2INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_appstream_fleet_instancetype_enum", &*embedded::AWS_APPSTREAM_FLEET_INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_dax_cluster_nodetype_enum", &*embedded::AWS_DAX_CLUSTER_NODETYPE_ENUM_BYTES),
+        ("data/aws_docdb_dbinstance_dbinstanceclass_enum", &*embedded::AWS_DOCDB_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES),
         (
             "data/aws_elasticache_cachecluster_cachenodetype_enum",
             &*embedded::AWS_ELASTICACHE_CACHECLUSTER_CACHENODETYPE_ENUM_BYTES,
@@ -77,34 +44,16 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
             "data/aws_rds_dbcluster_dbclusterinstanceclass_enum",
             &*embedded::AWS_RDS_DBCLUSTER_DBCLUSTERINSTANCECLASS_ENUM_BYTES,
         ),
-        (
-            "data/aws_rds_dbinstance_db_instance_class",
-            &*embedded::AWS_RDS_DBINSTANCE_DB_INSTANCE_CLASS_BYTES,
-        ),
-        (
-            "data/aws_redshift_cluster_nodetype_enum",
-            &*embedded::AWS_REDSHIFT_CLUSTER_NODETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_amazonmq_broker_instancetype_enum",
-            &*embedded::AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM_BYTES,
-        ),
+        ("data/aws_rds_dbinstance_db_instance_class", &*embedded::AWS_RDS_DBINSTANCE_DB_INSTANCE_CLASS_BYTES),
+        ("data/aws_redshift_cluster_nodetype_enum", &*embedded::AWS_REDSHIFT_CLUSTER_NODETYPE_ENUM_BYTES),
+        ("data/aws_amazonmq_broker_instancetype_enum", &*embedded::AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM_BYTES),
         (
             "data/aws_sagemaker_processing_instancetype_enum",
             &*embedded::AWS_SAGEMAKER_PROCESSING_INSTANCETYPE_ENUM_BYTES,
         ),
-        (
-            "data/aws_sagemaker_hosting_instancetype_enum",
-            &*embedded::AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_sagemaker_transform_instancetype_enum",
-            &*embedded::AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_sagemaker_cluster_instancetype_enum",
-            &*embedded::AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM_BYTES,
-        ),
+        ("data/aws_sagemaker_hosting_instancetype_enum", &*embedded::AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_sagemaker_transform_instancetype_enum", &*embedded::AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_sagemaker_cluster_instancetype_enum", &*embedded::AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM_BYTES),
         (
             "data/aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum",
             &*embedded::AWS_ELASTICSEARCH_DOMAIN_ELASTICSEARCHCLUSTERCONFIG_INSTANCETYPE_ENUM_BYTES,
@@ -113,22 +62,10 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
             "data/aws_opensearchservice_domain_clusterconfig_instancetype_enum",
             &*embedded::AWS_OPENSEARCHSERVICE_DOMAIN_CLUSTERCONFIG_INSTANCETYPE_ENUM_BYTES,
         ),
-        (
-            "data/getatt_attributes",
-            &*embedded::GETATT_ATTRIBUTES_BYTES,
-        ),
-        (
-            "data/codepipeline_action_artifact_counts",
-            &*embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES,
-        ),
-        (
-            "data/deprecated_resource_types",
-            &*embedded::DEPRECATED_RESOURCE_TYPES_BYTES,
-        ),
-        (
-            "data/retention_period_requirements",
-            &*embedded::RETENTION_PERIOD_REQUIREMENTS_BYTES,
-        ),
+        ("data/getatt_attributes", &*embedded::GETATT_ATTRIBUTES_BYTES),
+        ("data/codepipeline_action_artifact_counts", &*embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES),
+        ("data/deprecated_resource_types", &*embedded::DEPRECATED_RESOURCE_TYPES_BYTES),
+        ("data/retention_period_requirements", &*embedded::RETENTION_PERIOD_REQUIREMENTS_BYTES),
         ("data/sensitive_ports", &*embedded::SENSITIVE_PORTS_BYTES),
     ]
 });
@@ -214,13 +151,10 @@ impl RegoEngine {
         );
 
         let mut translated_guard_sources = Vec::new();
-        let mut guard_rule_metadata: Vec<(String, Option<String>, String, Severity, RuleOrigin)> =
-            Vec::new();
+        let mut guard_rule_metadata: Vec<(String, Option<String>, String, Severity, RuleOrigin)> = Vec::new();
         for entry in &config.guard_rules {
-            let guard_file =
-                guard_translator::parse_guard(&entry.content, &entry.name).map_err(|e| {
-                    anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e)
-                })?;
+            let guard_file = guard_translator::parse_guard(&entry.content, &entry.name)
+                .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
             let pack = guard_translator::pack_name_from_path(&entry.name);
             for tr in crate::guard_to_rego::translate_to_rego(&guard_file, &pack, &[]) {
                 guard_rule_metadata.push((
@@ -272,14 +206,12 @@ impl RegoEngine {
         let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
         for (id, cat, desc, severity, origin) in guard_rule_metadata {
-            external_rule_metadata
-                .entry(id)
-                .or_insert(RuleMetadataEntry {
-                    category: cat,
-                    description: desc,
-                    severity,
-                    origin,
-                });
+            external_rule_metadata.entry(id).or_insert(RuleMetadataEntry {
+                category: cat,
+                description: desc,
+                severity,
+                origin,
+            });
         }
 
         rego.set_input(regorus::Value::new_object());
@@ -323,9 +255,7 @@ impl RegoEngine {
         out: &mut Vec<Diagnostic>,
     ) -> Result<(), ValidationError> {
         let value = rego.eval_rule(package.to_string()).map_err(|e| {
-            ValidationError::Engine(format!(
-                "{source_label} rule package '{package}' failed to evaluate: {e}"
-            ))
+            ValidationError::Engine(format!("{source_label} rule package '{package}' failed to evaluate: {e}"))
         })?;
         let json_str = value.to_json_str().map_err(|e| {
             ValidationError::Engine(format!(
@@ -333,8 +263,7 @@ impl RegoEngine {
                  serialized to JSON: {e}"
             ))
         })?;
-        extract_diagnostics(&json_str, model, &self.registry_metadata, out, origin)
-            .map_err(ValidationError::from)
+        extract_diagnostics(&json_str, model, &self.registry_metadata, out, origin).map_err(ValidationError::from)
     }
 }
 
@@ -354,18 +283,11 @@ impl ValidationEngine for RegoEngine {
         *self.region_holder.lock().unwrap_or_else(|e| e.into_inner()) =
             config.pseudo_parameter_overrides.region.clone();
 
-        let _cleanup = HolderGuard {
-            model: self.model_holder.clone(),
-            region: self.region_holder.clone(),
-        };
+        let _cleanup = HolderGuard { model: self.model_holder.clone(), region: self.region_holder.clone() };
 
         let mut rego = self.base_rego.clone();
 
-        let input_json = serde_json::to_value(model.to_diagnostic_json()).map_err(|e| {
-            ValidationError::Engine(format!(
-                "Failed to serialize the semantic model for rule evaluation: {e}"
-            ))
-        })?;
+        let input_json = semantic_model_to_input_json(model)?;
         let input_value = crate::builtins::serde_json_to_rego_value(&input_json);
         rego.set_input(input_value);
 
@@ -387,29 +309,13 @@ impl ValidationEngine for RegoEngine {
                              serialized to JSON: {e}"
                         ))
                     })?;
-                    extract_diagnostics(
-                        &json_str,
-                        model,
-                        &self.registry_metadata,
-                        &mut diagnostics,
-                        None,
-                    )
-                    .map_err(ValidationError::from)?;
+                    extract_diagnostics(&json_str, model, &self.registry_metadata, &mut diagnostics, None)
+                        .map_err(ValidationError::from)?;
                 }
                 Err(e) => {
-                    warn!(
-                        "Aggregated eval failed ({}), falling back to individual packages",
-                        e
-                    );
+                    warn!("Aggregated eval failed ({}), falling back to individual packages", e);
                     for pkg in &needed_core {
-                        self.eval_package_into(
-                            &mut rego,
-                            pkg,
-                            "Core",
-                            model,
-                            None,
-                            &mut diagnostics,
-                        )?;
+                        self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
                     }
                 }
             }
@@ -421,42 +327,23 @@ impl ValidationEngine for RegoEngine {
         }
 
         for pkg in &self.custom_packages {
-            self.eval_package_into(
-                &mut rego,
-                pkg,
-                "Custom",
-                model,
-                Some(&RuleOrigin::Custom),
-                &mut diagnostics,
-            )?;
+            self.eval_package_into(&mut rego, pkg, "Custom", model, Some(&RuleOrigin::Custom), &mut diagnostics)?;
         }
 
         for pkg in &self.guard_packages {
-            self.eval_package_into(
-                &mut rego,
-                pkg,
-                "Guard",
-                model,
-                Some(&RuleOrigin::Guard),
-                &mut diagnostics,
-            )?;
+            self.eval_package_into(&mut rego, pkg, "Guard", model, Some(&RuleOrigin::Guard), &mut diagnostics)?;
         }
 
         if !self.custom_packages.is_empty() {
-            let mut discovered = self
-                .discovered_custom_metadata
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let mut discovered = self.discovered_custom_metadata.lock().unwrap_or_else(|e| e.into_inner());
             for d in &diagnostics {
                 if d.source == RuleOrigin::Custom {
-                    discovered
-                        .entry(d.rule_id.clone())
-                        .or_insert_with(|| RuleMetadataEntry {
-                            category: d.category.clone(),
-                            description: d.message.clone(),
-                            severity: d.severity,
-                            origin: RuleOrigin::Custom,
-                        });
+                    discovered.entry(d.rule_id.clone()).or_insert_with(|| RuleMetadataEntry {
+                        category: d.category.clone(),
+                        description: d.message.clone(),
+                        severity: d.severity,
+                        origin: RuleOrigin::Custom,
+                    });
                 }
             }
         }
@@ -467,10 +354,7 @@ impl ValidationEngine for RegoEngine {
     fn list_rules(&self) -> Vec<RuleInfo> {
         let mut merged = self.external_rule_metadata.clone();
         if !self.custom_packages.is_empty() {
-            let discovered = self
-                .discovered_custom_metadata
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let discovered = self.discovered_custom_metadata.lock().unwrap_or_else(|e| e.into_inner());
             merged.extend(discovered.iter().map(|(k, v)| (k.clone(), v.clone())));
         }
         build_rule_list(&self.registry_metadata, &merged)
@@ -485,10 +369,7 @@ impl ValidationEngine for RegoEngine {
     fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
         let mut merged = self.external_rule_metadata.clone();
         if !self.custom_packages.is_empty() {
-            let discovered = self
-                .discovered_custom_metadata
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let discovered = self.discovered_custom_metadata.lock().unwrap_or_else(|e| e.into_inner());
             merged.extend(discovered.iter().map(|(k, v)| (k.clone(), v.clone())));
         }
         merged
@@ -537,11 +418,7 @@ mod tests {
     fn init_metric_has_positive_duration() {
         let engine = make_engine();
         let metric = engine.init_metric();
-        assert!(
-            metric.duration_ms > 0.0,
-            "init duration should be > 0, got {}",
-            metric.duration_ms
-        );
+        assert!(metric.duration_ms > 0.0, "init duration should be > 0, got {}", metric.duration_ms);
     }
 
     #[test]
@@ -555,9 +432,7 @@ Resources:
     Type: AWS::S3::Bucket
 "#,
         );
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         assert!(
             diags.iter().all(|d| d.severity != rules::Severity::Fatal),
             "rego engine should not produce Fatal diagnostics"
@@ -574,9 +449,7 @@ Resources: {}
 "#,
         );
         // CloudFormation rejects templates with empty Resources, so the empty-resources diagnostic is expected.
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         assert!(
             diags.iter().any(|d| d.rule_id == "F0001"),
             "expected F0001 Fatal for empty Resources section, got: {:?}",
@@ -595,19 +468,16 @@ Resources:
     Type: AWS::S3::Bucket
 "#,
         );
-        let mut config = ValidateConfig::default();
-        config.filters = rules::FilterConfig::new(
-            rules::RuleFilterConfig::default(),
-            rules::RuleFilterConfig {
-                categories: vec!["best_practices".to_string()],
-                ..Default::default()
-            },
-        );
+        let config = ValidateConfig {
+            filters: rules::FilterConfig::new(
+                rules::RuleFilterConfig::default(),
+                rules::RuleFilterConfig { categories: vec!["best_practices".to_string()], ..Default::default() },
+            ),
+            ..Default::default()
+        };
         let diags_filtered = engine.evaluate_rules(&model, &config).unwrap();
 
-        let diags_all = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let diags_all = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
 
         assert!(
             diags_filtered.len() <= diags_all.len(),
@@ -630,10 +500,7 @@ violation contains v if {
 }
 "#;
         let config = EngineConfig {
-            custom_rules: vec![ExternalRuleSource {
-                name: "custom_test.rego".into(),
-                content: custom_rego.into(),
-            }],
+            custom_rules: vec![ExternalRuleSource { name: "custom_test.rego".into(), content: custom_rego.into() }],
             guard_rules: vec![],
         };
         let engine = RegoEngine::new(config).unwrap();
@@ -645,9 +512,7 @@ Resources:
     Type: AWS::S3::Bucket
 "#,
         );
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let custom = diags.iter().find(|d| d.rule_id == "CUSTOM001");
         assert!(custom.is_some(), "custom rule should fire");
     }
@@ -664,10 +529,7 @@ rule check_bucket_name {
 "#;
         let config = EngineConfig {
             custom_rules: vec![],
-            guard_rules: vec![ExternalRuleSource {
-                name: "test.guard".into(),
-                content: guard_source.into(),
-            }],
+            guard_rules: vec![ExternalRuleSource { name: "test.guard".into(), content: guard_source.into() }],
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(
@@ -678,14 +540,9 @@ Resources:
     Type: AWS::S3::Bucket
 "#,
         );
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name");
-        assert!(
-            guard_diag.is_some(),
-            "guard rule should fire when BucketName is missing"
-        );
+        assert!(guard_diag.is_some(), "guard rule should fire when BucketName is missing");
     }
 
     #[test]
@@ -704,10 +561,7 @@ rule check_bucket_name {
 "#;
         let config = EngineConfig {
             custom_rules: vec![],
-            guard_rules: vec![ExternalRuleSource {
-                name: "test.guard".into(),
-                content: guard_source.into(),
-            }],
+            guard_rules: vec![ExternalRuleSource { name: "test.guard".into(), content: guard_source.into() }],
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(
@@ -720,9 +574,7 @@ Resources:
       BucketName: my-bucket
 "#,
         );
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name");
         assert!(
             guard_diag.is_some(),
@@ -742,12 +594,8 @@ Resources:
 "#,
         );
         // Call twice to verify the mutex + HolderGuard cleanup works without deadlock.
-        let _ = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let _ = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         assert!(
             diags.iter().all(|d| d.severity != rules::Severity::Fatal),
             "rego engine should not produce Fatal diagnostics"
@@ -757,28 +605,15 @@ Resources:
     #[test]
     fn holder_guard_clears_model_on_drop() {
         let holder: SharedModel = Arc::new(Mutex::new(Some(Arc::new(
-            SemanticModel::from_bytes(b"AWSTemplateFormatVersion: '2010-09-09'\nResources: {}")
-                .unwrap(),
+            SemanticModel::from_bytes(b"AWSTemplateFormatVersion: '2010-09-09'\nResources: {}").unwrap(),
         ))));
         let region: SharedRegion = Arc::new(Mutex::new(Some("us-east-1".to_string())));
         {
-            let _guard = HolderGuard {
-                model: holder.clone(),
-                region: region.clone(),
-            };
-            assert!(
-                holder.lock().unwrap().is_some(),
-                "holder should be Some while guard is alive"
-            );
+            let _guard = HolderGuard { model: holder.clone(), region: region.clone() };
+            assert!(holder.lock().unwrap().is_some(), "holder should be Some while guard is alive");
         }
-        assert!(
-            holder.lock().unwrap().is_none(),
-            "holder should be None after guard dropped"
-        );
-        assert!(
-            region.lock().unwrap().is_none(),
-            "region should be None after guard dropped"
-        );
+        assert!(holder.lock().unwrap().is_none(), "holder should be None after guard dropped");
+        assert!(region.lock().unwrap().is_none(), "region should be None after guard dropped");
     }
 
     #[test]
@@ -836,17 +671,12 @@ Transform: AWS::Serverless-2016-10-31
 
     fn eval_builtin_policy(rego_source: &str, rule_id: &str) -> Vec<Diagnostic> {
         let config = EngineConfig {
-            custom_rules: vec![ExternalRuleSource {
-                name: "builtin_test.rego".into(),
-                content: rego_source.into(),
-            }],
+            custom_rules: vec![ExternalRuleSource { name: "builtin_test.rego".into(), content: rego_source.into() }],
             guard_rules: vec![],
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         diags.into_iter().filter(|d| d.rule_id == rule_id).collect()
     }
 
@@ -881,11 +711,7 @@ violation contains v if {
 "#,
             "B_RESOLVE_ALL",
         );
-        assert_eq!(
-            diags.len(),
-            1,
-            "resolve_all should return at least one value"
-        );
+        assert_eq!(diags.len(), 1, "resolve_all should return at least one value");
     }
 
     #[test]
@@ -1218,11 +1044,7 @@ violation contains v if {
 "#,
             "B_SP",
         );
-        assert_eq!(
-            diags.len(),
-            1,
-            "schema_properties should be callable and return array"
-        );
+        assert_eq!(diags.len(), 1, "schema_properties should be callable and return array");
     }
 
     #[test]
@@ -1239,11 +1061,7 @@ violation contains v if {
 "#,
             "B_SR",
         );
-        assert_eq!(
-            diags.len(),
-            1,
-            "schema_required should be callable and return array"
-        );
+        assert_eq!(diags.len(), 1, "schema_required should be callable and return array");
     }
 
     #[test]
@@ -1259,11 +1077,7 @@ violation contains v if {
 "#,
             "B_CC",
         );
-        assert_eq!(
-            diags.len(),
-            1,
-            "unconditional resources are always compatible"
-        );
+        assert_eq!(diags.len(), 1, "unconditional resources are always compatible");
     }
 
     #[test]
@@ -1295,10 +1109,7 @@ violation contains v if {
 }
 "#;
         let config = EngineConfig {
-            custom_rules: vec![ExternalRuleSource {
-                name: "region_test.rego".into(),
-                content: custom_rego.into(),
-            }],
+            custom_rules: vec![ExternalRuleSource { name: "region_test.rego".into(), content: custom_rego.into() }],
             guard_rules: vec![],
         };
         let engine = RegoEngine::new(config).unwrap();
@@ -1328,30 +1139,16 @@ violation contains v if {
 "#;
         let config = EngineConfig {
             custom_rules: vec![
-                ExternalRuleSource {
-                    name: "a.rego".into(),
-                    content: pkg_a.into(),
-                },
-                ExternalRuleSource {
-                    name: "b.rego".into(),
-                    content: pkg_b.into(),
-                },
+                ExternalRuleSource { name: "a.rego".into(), content: pkg_a.into() },
+                ExternalRuleSource { name: "b.rego".into(), content: pkg_b.into() },
             ],
             guard_rules: vec![],
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
-        let diags = engine
-            .evaluate_rules(&model, &ValidateConfig::default())
-            .unwrap();
-        assert!(
-            diags.iter().any(|d| d.rule_id == "PKG_A"),
-            "package A should fire"
-        );
-        assert!(
-            diags.iter().any(|d| d.rule_id == "PKG_B"),
-            "package B should fire"
-        );
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(diags.iter().any(|d| d.rule_id == "PKG_A"), "package A should fire");
+        assert!(diags.iter().any(|d| d.rule_id == "PKG_B"), "package B should fire");
     }
 
     #[test]
@@ -1365,24 +1162,14 @@ violation contains v if {
 "#;
         let config = EngineConfig {
             custom_rules: vec![
-                ExternalRuleSource {
-                    name: "a.rego".into(),
-                    content: source.into(),
-                },
-                ExternalRuleSource {
-                    name: "b.rego".into(),
-                    content: source.into(),
-                },
+                ExternalRuleSource { name: "a.rego".into(), content: source.into() },
+                ExternalRuleSource { name: "b.rego".into(), content: source.into() },
             ],
             guard_rules: vec![],
         };
         let engine = RegoEngine::new(config).unwrap();
         assert_eq!(
-            engine
-                .custom_packages
-                .iter()
-                .filter(|p| p.contains("custom_dedup"))
-                .count(),
+            engine.custom_packages.iter().filter(|p| p.contains("custom_dedup")).count(),
             1,
             "duplicate package should be deduplicated"
         );
@@ -1419,11 +1206,7 @@ violation contains v if {
             "B_IFP",
         );
         // Tags.0.Value uses Fn::If with a condition based on a parameter, so it's from a parameter
-        assert!(
-            diags.len() <= 1,
-            "expected at most 1 diagnostic, got {}",
-            diags.len()
-        );
+        assert!(diags.len() <= 1, "expected at most 1 diagnostic, got {}", diags.len());
     }
 
     #[test]
@@ -1457,11 +1240,7 @@ violation contains v if {
 "#,
             "B_RS2",
         );
-        assert_eq!(
-            diags.len(),
-            1,
-            "resolve_scenarios should return at least one scenario"
-        );
+        assert_eq!(diags.len(), 1, "resolve_scenarios should return at least one scenario");
     }
 
     #[test]
@@ -1510,10 +1289,6 @@ violation contains v if {
 "#,
             "B_ESL",
         );
-        assert_eq!(
-            diags.len(),
-            1,
-            "estimate_string_length should return positive length for 'my-bucket'"
-        );
+        assert_eq!(diags.len(), 1, "estimate_string_length should return positive length for 'my-bucket'");
     }
 }

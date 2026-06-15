@@ -142,11 +142,7 @@ fn is_false(b: &bool) -> bool {
 
 impl PropSchema {
     pub fn resolve<'a>(&'a self, defs: &'a HashMap<String, PropSchema>) -> &'a PropSchema {
-        if let Some(ref name) = self.ref_name {
-            defs.get(name).map(|d| d.resolve(defs)).unwrap_or(self)
-        } else {
-            self
-        }
+        if let Some(ref name) = self.ref_name { defs.get(name).map(|d| d.resolve(defs)).unwrap_or(self) } else { self }
     }
 }
 
@@ -218,10 +214,7 @@ mod tests {
 
     #[test]
     fn resolve_no_ref_returns_self() {
-        let schema = PropSchema {
-            prop_type: Some(PropType::Single("string".into())),
-            ..Default::default()
-        };
+        let schema = PropSchema { prop_type: Some(PropType::Single("string".into())), ..Default::default() };
         let defs = HashMap::new();
         let resolved = schema.resolve(&defs);
         assert!(ptr::eq(resolved, &schema));
@@ -229,55 +222,31 @@ mod tests {
 
     #[test]
     fn resolve_follows_ref_to_definition() {
-        let target = PropSchema {
-            prop_type: Some(PropType::Single("integer".into())),
-            ..Default::default()
-        };
+        let target = PropSchema { prop_type: Some(PropType::Single("integer".into())), ..Default::default() };
         let mut defs = HashMap::new();
         defs.insert("MyDef".into(), target);
 
-        let schema = PropSchema {
-            ref_name: Some("MyDef".into()),
-            ..Default::default()
-        };
+        let schema = PropSchema { ref_name: Some("MyDef".into()), ..Default::default() };
         let resolved = schema.resolve(&defs);
-        assert_eq!(
-            resolved.prop_type.as_ref().unwrap().primary(),
-            Some("integer")
-        );
+        assert_eq!(resolved.prop_type.as_ref().unwrap().primary(), Some("integer"));
     }
 
     #[test]
     fn resolve_chained_refs() {
-        let final_target = PropSchema {
-            prop_type: Some(PropType::Single("boolean".into())),
-            ..Default::default()
-        };
-        let intermediate = PropSchema {
-            ref_name: Some("Final".into()),
-            ..Default::default()
-        };
+        let final_target = PropSchema { prop_type: Some(PropType::Single("boolean".into())), ..Default::default() };
+        let intermediate = PropSchema { ref_name: Some("Final".into()), ..Default::default() };
         let mut defs = HashMap::new();
         defs.insert("Final".into(), final_target);
         defs.insert("Intermediate".into(), intermediate);
 
-        let schema = PropSchema {
-            ref_name: Some("Intermediate".into()),
-            ..Default::default()
-        };
+        let schema = PropSchema { ref_name: Some("Intermediate".into()), ..Default::default() };
         let resolved = schema.resolve(&defs);
-        assert_eq!(
-            resolved.prop_type.as_ref().unwrap().primary(),
-            Some("boolean")
-        );
+        assert_eq!(resolved.prop_type.as_ref().unwrap().primary(), Some("boolean"));
     }
 
     #[test]
     fn resolve_missing_ref_returns_self() {
-        let schema = PropSchema {
-            ref_name: Some("NonExistent".into()),
-            ..Default::default()
-        };
+        let schema = PropSchema { ref_name: Some("NonExistent".into()), ..Default::default() };
         let defs = HashMap::new();
         let resolved = schema.resolve(&defs);
         assert!(ptr::eq(resolved, &schema));
@@ -298,20 +267,14 @@ mod tests {
         };
         let json_str = serde_json::to_string(&schema).unwrap();
         let deserialized: PropSchema = serde_json::from_str(&json_str).unwrap();
-        assert_eq!(
-            deserialized.prop_type.as_ref().unwrap().primary(),
-            Some("string")
-        );
+        assert_eq!(deserialized.prop_type.as_ref().unwrap().primary(), Some("string"));
         assert_eq!(deserialized.enum_values.len(), 2);
         assert_eq!(deserialized.pattern.as_deref(), Some("^[a-z]+$"));
         assert_eq!(deserialized.minimum, Some(0.0));
         assert_eq!(deserialized.maximum, Some(100.0));
         assert_eq!(deserialized.min_length, Some(1));
         assert_eq!(deserialized.max_length, Some(256));
-        assert!(
-            deserialized.unique_items,
-            "unique_items should be true"
-        );
+        assert!(deserialized.unique_items, "unique_items should be true");
     }
 
     #[test]
@@ -334,15 +297,8 @@ mod tests {
         assert_eq!(schema.properties.len(), 0, "properties should be empty");
         assert_eq!(schema.definitions.len(), 0, "definitions should be empty");
         assert_eq!(schema.required.len(), 0, "required should be empty");
-        assert_eq!(
-            schema.additional_properties, None,
-            "additional_properties should be None"
-        );
-        assert_eq!(
-            schema.read_only_properties.len(),
-            0,
-            "read_only_properties should be empty"
-        );
+        assert_eq!(schema.additional_properties, None, "additional_properties should be None");
+        assert_eq!(schema.read_only_properties.len(), 0, "read_only_properties should be empty");
         assert_eq!(schema.if_then_else.len(), 0, "if_then_else should be empty");
     }
 
@@ -352,34 +308,19 @@ mod tests {
             condition: ConditionSchema {
                 properties: {
                     let mut m = HashMap::new();
-                    m.insert(
-                        "Engine".into(),
-                        PropSchema {
-                            enum_values: vec![json!("aurora")],
-                            ..Default::default()
-                        },
-                    );
+                    m.insert("Engine".into(), PropSchema { enum_values: vec![json!("aurora")], ..Default::default() });
                     m
                 },
                 ..Default::default()
             },
-            then_schema: Some(SubSchema {
-                required: vec!["Port".into()],
-                ..Default::default()
-            }),
+            then_schema: Some(SubSchema { required: vec!["Port".into()], ..Default::default() }),
             else_schema: None,
         };
         let json_str = serde_json::to_string(&ite).unwrap();
         let deserialized: IfThenElse = serde_json::from_str(&json_str).unwrap();
         assert_eq!(deserialized.condition.properties.len(), 1);
-        assert!(
-            deserialized.then_schema.is_some(),
-            "then_schema should be present"
-        );
-        assert!(
-            deserialized.else_schema.is_none(),
-            "else_schema should be None"
-        );
+        assert!(deserialized.then_schema.is_some(), "then_schema should be present");
+        assert!(deserialized.else_schema.is_none(), "else_schema should be None");
     }
 
     #[test]
@@ -389,11 +330,7 @@ mod tests {
         let val: serde_json::Value = serde_json::from_str(&json_str).unwrap();
         let obj = val.as_object().unwrap();
         // Default PropSchema should serialize to empty object (all fields skipped)
-        assert!(
-            obj.is_empty(),
-            "expected empty JSON for default PropSchema, got: {}",
-            json_str
-        );
+        assert!(obj.is_empty(), "expected empty JSON for default PropSchema, got: {}", json_str);
     }
 
     #[test]
@@ -408,9 +345,6 @@ mod tests {
         };
         let json_str = serde_json::to_string(&sub).unwrap();
         let deserialized: SubSchema = serde_json::from_str(&json_str).unwrap();
-        assert_eq!(
-            deserialized.dependent_required.get("A").unwrap(),
-            &vec!["B".to_string(), "C".to_string()]
-        );
+        assert_eq!(deserialized.dependent_required.get("A").unwrap(), &vec!["B".to_string(), "C".to_string()]);
     }
 }

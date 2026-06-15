@@ -399,6 +399,8 @@ class SmokeTest {
     private fun zeroPerformanceDurations(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
         if (filePath != null) out["filePath"] = filePath
+        // engineVersion bumps with every release and is not a behavioral signal.
+        out.remove("engineVersion")
         @Suppress("UNCHECKED_CAST")
         val perf = (out["performance"] as? Map<String, Any?>) ?: return out
         out["performance"] = perf.mapValues { (_, phase) ->

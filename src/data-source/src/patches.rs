@@ -50,10 +50,7 @@ pub fn sync_patches(rule_source_dir: &Path, output_dir: &Path) -> anyhow::Result
     let ext_count = if extensions_src.exists() {
         collect_patches_from_dir(&extensions_src, &mut all_patches)?
     } else {
-        warn!(
-            "Extension patches directory not found at {}, skipping",
-            extensions_src.display()
-        );
+        warn!("Extension patches directory not found at {}, skipping", extensions_src.display());
         0
     };
     info!("Found {} extension patch directories", ext_count);
@@ -66,11 +63,8 @@ pub fn sync_patches(rule_source_dir: &Path, output_dir: &Path) -> anyhow::Result
             stats.files_skipped += 1;
             continue;
         }
-        let serialized: Vec<serde_json::Value> = groups
-            .into_iter()
-            .filter(|g| !g.is_empty())
-            .map(serde_json::Value::Array)
-            .collect();
+        let serialized: Vec<serde_json::Value> =
+            groups.into_iter().filter(|g| !g.is_empty()).map(serde_json::Value::Array).collect();
         if serialized.is_empty() {
             stats.files_skipped += 1;
             continue;
@@ -85,10 +79,7 @@ pub fn sync_patches(rule_source_dir: &Path, output_dir: &Path) -> anyhow::Result
 }
 
 fn collect_patches_from_dir(src_dir: &Path, out: &mut PatchGroups) -> anyhow::Result<usize> {
-    let mut type_dirs: Vec<_> = fs::read_dir(src_dir)?
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().is_dir())
-        .collect();
+    let mut type_dirs: Vec<_> = fs::read_dir(src_dir)?.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).collect();
     type_dirs.sort_by_key(|e| e.file_name());
     let count = type_dirs.len();
 
@@ -124,11 +115,7 @@ fn collect_patch_files(dir: &Path) -> anyhow::Result<Vec<Vec<serde_json::Value>>
         let val: serde_json::Value = match serde_json::from_str(&content) {
             Ok(v) => v,
             Err(e) => {
-                warn!(
-                    "Skipping malformed patch file {}: {}",
-                    entry.path().file_name().unwrap().to_string_lossy(),
-                    e
-                );
+                warn!("Skipping malformed patch file {}: {}", entry.path().file_name().unwrap().to_string_lossy(), e);
                 continue;
             }
         };

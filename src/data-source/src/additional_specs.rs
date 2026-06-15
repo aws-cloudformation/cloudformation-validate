@@ -12,10 +12,7 @@ pub fn sync_additional_specs(
     let mut stats = SyncStats::default();
     let specs_dir = rule_source_dir.join("src/cfnlint/data/AdditionalSpecs");
     if !specs_dir.exists() {
-        anyhow::bail!(
-            "Rule-source AdditionalSpecs not found at: {}",
-            specs_dir.display()
-        );
+        anyhow::bail!("Rule-source AdditionalSpecs not found at: {}", specs_dir.display());
     }
     fs::create_dir_all(data_output_dir)?;
 
@@ -31,18 +28,9 @@ pub fn sync_additional_specs(
         let mut eol = Vec::new();
 
         for (runtime, info) in &lifecycle {
-            let create_block = info
-                .get("create-block")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            let update_block = info
-                .get("update-block")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            let deprecated_date = info
-                .get("deprecated")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let create_block = info.get("create-block").and_then(|v| v.as_str()).unwrap_or("");
+            let update_block = info.get("update-block").and_then(|v| v.as_str()).unwrap_or("");
+            let deprecated_date = info.get("deprecated").and_then(|v| v.as_str()).unwrap_or("");
 
             if !update_block.is_empty() && update_block <= today.as_str() {
                 eol.push(runtime.clone());
@@ -58,10 +46,7 @@ pub fn sync_additional_specs(
         let out = serde_json::json!({
             "lambda_runtimes": { "current": current, "deprecated": deprecated, "create_blocked": create_blocked, "eol": eol }
         });
-        fs::write(
-            data_output_dir.join("lambda_runtimes.json"),
-            serde_json::to_string_pretty(&out)?,
-        )?;
+        fs::write(data_output_dir.join("lambda_runtimes.json"), serde_json::to_string_pretty(&out)?)?;
         stats.files_written += 1;
         info!(
             "Synced lambda runtimes: {} current, {} deprecated, {} create-blocked, {} eol -> lambda_runtimes.json",
@@ -93,18 +78,14 @@ pub fn sync_additional_specs(
             for (res_name, res_val) in resources {
                 if let Some(arns) = res_val.get("ARNFormats").and_then(|v| v.as_array()) {
                     if let Some(first) = arns.first().and_then(|v| v.as_str()) {
-                        let normalized = first
-                            .replace("${Partition}", "*")
-                            .replace("${Region}", "*")
-                            .replace("${Account}", "*");
+                        let normalized =
+                            first.replace("${Partition}", "*").replace("${Region}", "*").replace("${Account}", "*");
                         res_arns.insert(res_name.to_lowercase(), normalized);
                     }
                 }
             }
             for (action_name, action_val) in actions {
-                if let Some(action_resources) =
-                    action_val.get("Resources").and_then(|v| v.as_array())
-                {
+                if let Some(action_resources) = action_val.get("Resources").and_then(|v| v.as_array()) {
                     if let Some(first_res) = action_resources.first().and_then(|v| v.as_str()) {
                         if let Some(arn) = res_arns.get(&first_res.to_lowercase()) {
                             let key = format!("{}:{}", service, action_name);
@@ -116,15 +97,9 @@ pub fn sync_additional_specs(
         }
 
         let out = serde_json::json!({ "iam_action_resource_patterns": patterns });
-        fs::write(
-            data_output_dir.join("iam_action_resource_patterns.json"),
-            serde_json::to_string_pretty(&out)?,
-        )?;
+        fs::write(data_output_dir.join("iam_action_resource_patterns.json"), serde_json::to_string_pretty(&out)?)?;
         stats.files_written += 1;
-        info!(
-            "Synced {} IAM action-resource patterns -> iam_action_resource_patterns.json",
-            patterns.len()
-        );
+        info!("Synced {} IAM action-resource patterns -> iam_action_resource_patterns.json", patterns.len());
     } else {
         warn!("Policies.json not found, skipping IAM patterns");
     }
@@ -137,38 +112,23 @@ pub fn sync_additional_specs(
             let mut list: Vec<String> = types.keys().cloned().collect();
             list.sort();
             let out = serde_json::json!({ "stateful_resource_types": list });
-            fs::write(
-                data_output_dir.join("stateful_resource_types.json"),
-                serde_json::to_string_pretty(&out)?,
-            )?;
+            fs::write(data_output_dir.join("stateful_resource_types.json"), serde_json::to_string_pretty(&out)?)?;
             stats.files_written += 1;
-            info!(
-                "Synced {} stateful resource types -> stateful_resource_types.json",
-                list.len()
-            );
+            info!("Synced {} stateful resource types -> stateful_resource_types.json", list.len());
         }
     } else {
         warn!("StatefulResources.json not found, skipping stateful types");
     }
 
-    let sf_schema =
-        rule_source_dir.join("src/cfnlint/data/schemas/other/step_functions/statemachine.json");
+    let sf_schema = rule_source_dir.join("src/cfnlint/data/schemas/other/step_functions/statemachine.json");
     if sf_schema.exists() {
         let content = fs::read_to_string(&sf_schema)?;
         let _: serde_json::Value = serde_json::from_str(&content)?;
-        fs::write(
-            upstream_dir.join("step_functions_statemachine.json"),
-            &content,
-        )?;
+        fs::write(upstream_dir.join("step_functions_statemachine.json"), &content)?;
         stats.files_written += 1;
-        info!(
-            "Synced Step Functions state machine schema -> upstream/step_functions_statemachine.json"
-        );
+        info!("Synced Step Functions state machine schema -> upstream/step_functions_statemachine.json");
     } else {
-        warn!(
-            "Step Functions schema not found at {:?}, skipping",
-            sf_schema
-        );
+        warn!("Step Functions schema not found at {:?}, skipping", sf_schema);
     }
 
     info!("Additional specs: {} files written", stats.files_written);

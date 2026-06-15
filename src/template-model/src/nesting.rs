@@ -4,37 +4,16 @@ use crate::ir::*;
 
 const CONDITION_CHILDREN: &[&str] = &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT];
 
-const EQUALS_CHILDREN: &[&str] = &[
-    FN_REF,
-    FN_FIND_IN_MAP,
-    FN_SUB,
-    FN_JOIN,
-    FN_SELECT,
-    FN_SPLIT,
-    FN_LENGTH,
-    FN_TO_JSON_STRING,
-];
+const EQUALS_CHILDREN: &[&str] =
+    &[FN_REF, FN_FIND_IN_MAP, FN_SUB, FN_JOIN, FN_SELECT, FN_SPLIT, FN_LENGTH, FN_TO_JSON_STRING];
 
 const FINDINMAP_KEY_CHILDREN: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
 
-const FINDINMAP_KEY_CHILDREN_EXT: &[&str] = &[
-    FN_REF,
-    FN_FIND_IN_MAP,
-    FN_JOIN,
-    FN_SUB,
-    FN_IF,
-    FN_SELECT,
-    FN_LENGTH,
-    FN_TO_JSON_STRING,
-];
+const FINDINMAP_KEY_CHILDREN_EXT: &[&str] =
+    &[FN_REF, FN_FIND_IN_MAP, FN_JOIN, FN_SUB, FN_IF, FN_SELECT, FN_LENGTH, FN_TO_JSON_STRING];
 
-pub fn validate_intrinsic_nesting(
-    arena: &Arena,
-    transforms: &[String],
-) -> Vec<diagnostics::Diagnostic> {
-    let has_lang_ext = transforms
-        .iter()
-        .any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
+pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<diagnostics::Diagnostic> {
+    let has_lang_ext = transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     let mut out = Vec::new();
 
     for idx in 0..arena.len() {
@@ -84,11 +63,7 @@ fn restricted_children(
             vec![(*child, condition_allow(in_rules))]
         }
         IntrinsicFn::FindInMap(map_name_ref, k1, k2, _) => {
-            let allow = if has_lang_ext {
-                FINDINMAP_KEY_CHILDREN_EXT
-            } else {
-                FINDINMAP_KEY_CHILDREN
-            };
+            let allow = if has_lang_ext { FINDINMAP_KEY_CHILDREN_EXT } else { FINDINMAP_KEY_CHILDREN };
             vec![(*map_name_ref, allow), (*k1, allow), (*k2, allow)]
         }
         _ => Vec::new(),
@@ -96,11 +71,7 @@ fn restricted_children(
 }
 
 fn condition_allow(in_rules: bool) -> &'static [&'static str] {
-    if in_rules {
-        CONDITION_CHILDREN_WITH_RULES
-    } else {
-        CONDITION_CHILDREN
-    }
+    if in_rules { CONDITION_CHILDREN_WITH_RULES } else { CONDITION_CHILDREN }
 }
 
 /// Combined condition + rules-only children (static, computed once via const).
@@ -146,9 +117,11 @@ mod tests {
         });
 
         let diags = validate_intrinsic_nesting(&arena, &[]);
-        assert!(diags.iter().any(|d| d.rule_id == "F1105"
-            && d.message.contains("Fn::GetAtt")
-            && d.message.contains("Fn::Equals")));
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.rule_id == "F1105" && d.message.contains("Fn::GetAtt") && d.message.contains("Fn::Equals"))
+        );
     }
 
     #[test]
@@ -189,19 +162,17 @@ mod tests {
         });
 
         let diags = validate_intrinsic_nesting(&arena, &[]);
-        assert!(diags.iter().any(|d| d.rule_id == "F1105"
-            && d.message.contains("Fn::GetAtt")
-            && d.message.contains("Fn::And")));
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.rule_id == "F1105" && d.message.contains("Fn::GetAtt") && d.message.contains("Fn::And"))
+        );
     }
 
     #[test]
     fn rules_section_allows_contains_in_and() {
         let mut arena = Arena::new();
-        let list = arena.alloc(SpannedNode {
-            node: Node::List(vec![]),
-            span: UNKNOWN_SPAN,
-            path: "Rules/R".into(),
-        });
+        let list = arena.alloc(SpannedNode { node: Node::List(vec![]), span: UNKNOWN_SPAN, path: "Rules/R".into() });
         let contains = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::Contains(list, list)),
             span: UNKNOWN_SPAN,
@@ -225,11 +196,8 @@ mod tests {
             span: UNKNOWN_SPAN,
             path: "Resources/R".into(),
         });
-        let map_name = arena.alloc(SpannedNode {
-            node: Node::String("M".into()),
-            span: UNKNOWN_SPAN,
-            path: "Resources/R".into(),
-        });
+        let map_name =
+            arena.alloc(SpannedNode { node: Node::String("M".into()), span: UNKNOWN_SPAN, path: "Resources/R".into() });
         arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::FindInMap(map_name, sub, sub, None)),
             span: UNKNOWN_SPAN,
@@ -248,11 +216,8 @@ mod tests {
             span: UNKNOWN_SPAN,
             path: "Resources/R".into(),
         });
-        let map_name = arena.alloc(SpannedNode {
-            node: Node::String("M".into()),
-            span: UNKNOWN_SPAN,
-            path: "Resources/R".into(),
-        });
+        let map_name =
+            arena.alloc(SpannedNode { node: Node::String("M".into()), span: UNKNOWN_SPAN, path: "Resources/R".into() });
         arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::FindInMap(map_name, sub, sub, None)),
             span: UNKNOWN_SPAN,
@@ -320,9 +285,9 @@ mod tests {
         });
 
         let diags = validate_intrinsic_nesting(&arena, &[]);
-        assert!(diags.iter().any(|d| d.rule_id == "F1105"
-            && d.message.contains("Ref")
-            && d.message.contains("Fn::Not")));
+        assert!(
+            diags.iter().any(|d| d.rule_id == "F1105" && d.message.contains("Ref") && d.message.contains("Fn::Not"))
+        );
     }
 
     #[test]

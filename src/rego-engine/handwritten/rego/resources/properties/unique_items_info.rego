@@ -21,7 +21,7 @@ _first_duplicate(arr) := arr[i] if {
     arr[j] == arr[i]
 }
 
-# Match serde_json::Value::to_string() formatting for parity with cel-engine.
+# Match serde_json::Value::to_string() formatting for consistent output.
 _format_item(x) := sprintf("\"%s\"", [x]) if is_string(x)
 _format_item(x) := format_int(x, 10) if is_number(x)
 _format_item(x) := "true" if x == true

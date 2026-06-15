@@ -17,21 +17,13 @@ pub fn cfn_coerce_to_integer(val: &Value) -> Option<i64> {
     match val {
         Value::Number(n) => n.as_i64().or_else(|| {
             let f = n.as_f64()?;
-            if f.fract() == 0.0 && f >= i64::MIN as f64 && f <= i64::MAX as f64 {
-                Some(f as i64)
-            } else {
-                None
-            }
+            if f.fract() == 0.0 && f >= i64::MIN as f64 && f <= i64::MAX as f64 { Some(f as i64) } else { None }
         }),
         Value::String(s) => {
             let s = s.trim();
             s.parse::<i64>().ok().or_else(|| {
                 let f = s.parse::<f64>().ok()?;
-                if f.fract() == 0.0 && f >= i64::MIN as f64 && f <= i64::MAX as f64 {
-                    Some(f as i64)
-                } else {
-                    None
-                }
+                if f.fract() == 0.0 && f >= i64::MIN as f64 && f <= i64::MAX as f64 { Some(f as i64) } else { None }
             })
         }
         _ => None,
@@ -65,10 +57,8 @@ pub fn cfn_coerce_to_bool(val: &Value) -> Option<bool> {
     match val {
         Value::Bool(b) => Some(*b),
         Value::String(s) => match s.as_str() {
-            "true" | "True" | "TRUE" | "yes" | "Yes" | "YES" | "on" | "On" | "ON" | "y" | "Y"
-            | "1" => Some(true),
-            "false" | "False" | "FALSE" | "no" | "No" | "NO" | "off" | "Off" | "OFF" | "n"
-            | "N" | "0" => Some(false),
+            "true" | "True" | "TRUE" | "yes" | "Yes" | "YES" | "on" | "On" | "ON" | "y" | "Y" | "1" => Some(true),
+            "false" | "False" | "FALSE" | "no" | "No" | "NO" | "off" | "Off" | "OFF" | "n" | "N" | "0" => Some(false),
             _ => None,
         },
         _ => None,
@@ -129,9 +119,7 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
     let native_match = match expected {
         "string" => val.is_string(),
         "integer" => {
-            val.is_i64()
-                || val.is_u64()
-                || (val.is_f64() && val.as_f64().map(|f| f.fract() == 0.0).unwrap_or(false))
+            val.is_i64() || val.is_u64() || (val.is_f64() && val.as_f64().map(|f| f.fract() == 0.0).unwrap_or(false))
         }
         "number" | "double" | "float" => val.is_number(),
         "boolean" => val.is_boolean(),
@@ -147,11 +135,7 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
     match expected {
         "string" => cfn_coerce_to_string(val)
             .map(|s| {
-                let from = if val.is_boolean() {
-                    "boolean"
-                } else {
-                    "number"
-                };
+                let from = if val.is_boolean() { "boolean" } else { "number" };
                 CoerceResult::Coerced(Value::String(s), format!("{} \u{2192} string", from))
             })
             .unwrap_or(CoerceResult::Failed),
@@ -160,9 +144,7 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
                 return CoerceResult::Failed;
             }
             cfn_coerce_to_integer(val)
-                .map(|i| {
-                    CoerceResult::Coerced(Value::Number(i.into()), "string \u{2192} integer".into())
-                })
+                .map(|i| CoerceResult::Coerced(Value::Number(i.into()), "string \u{2192} integer".into()))
                 .unwrap_or(CoerceResult::Failed)
         }
         "number" | "double" | "float" => {
@@ -171,9 +153,8 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
             }
             cfn_coerce_to_number(val)
                 .and_then(|f| {
-                    serde_json::Number::from_f64(f).map(|n| {
-                        CoerceResult::Coerced(Value::Number(n), "string \u{2192} number".into())
-                    })
+                    serde_json::Number::from_f64(f)
+                        .map(|n| CoerceResult::Coerced(Value::Number(n), "string \u{2192} number".into()))
                 })
                 .unwrap_or(CoerceResult::Failed)
         }
@@ -349,34 +330,13 @@ mod tests {
 
     #[test]
     fn coerce_value_already_correct() {
-        assert_eq!(
-            cfn_coerce_value(&json!("hello"), "string"),
-            CoerceResult::AlreadyCorrect
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!(42), "integer"),
-            CoerceResult::AlreadyCorrect
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!(3.14), "number"),
-            CoerceResult::AlreadyCorrect
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!(true), "boolean"),
-            CoerceResult::AlreadyCorrect
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!({}), "object"),
-            CoerceResult::AlreadyCorrect
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!([]), "array"),
-            CoerceResult::AlreadyCorrect
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!(null), "null"),
-            CoerceResult::AlreadyCorrect
-        );
+        assert_eq!(cfn_coerce_value(&json!("hello"), "string"), CoerceResult::AlreadyCorrect);
+        assert_eq!(cfn_coerce_value(&json!(42), "integer"), CoerceResult::AlreadyCorrect);
+        assert_eq!(cfn_coerce_value(&json!(3.14), "number"), CoerceResult::AlreadyCorrect);
+        assert_eq!(cfn_coerce_value(&json!(true), "boolean"), CoerceResult::AlreadyCorrect);
+        assert_eq!(cfn_coerce_value(&json!({}), "object"), CoerceResult::AlreadyCorrect);
+        assert_eq!(cfn_coerce_value(&json!([]), "array"), CoerceResult::AlreadyCorrect);
+        assert_eq!(cfn_coerce_value(&json!(null), "null"), CoerceResult::AlreadyCorrect);
     }
 
     #[test]
@@ -430,54 +390,27 @@ mod tests {
 
     #[test]
     fn coerce_value_bool_to_integer_fails() {
-        assert_eq!(
-            cfn_coerce_value(&json!(true), "integer"),
-            CoerceResult::Failed
-        );
+        assert_eq!(cfn_coerce_value(&json!(true), "integer"), CoerceResult::Failed);
     }
 
     #[test]
     fn coerce_value_bool_to_number_fails() {
-        assert_eq!(
-            cfn_coerce_value(&json!(true), "number"),
-            CoerceResult::Failed
-        );
+        assert_eq!(cfn_coerce_value(&json!(true), "number"), CoerceResult::Failed);
     }
 
     #[test]
     fn coerce_value_incompatible_fails() {
-        assert_eq!(
-            cfn_coerce_value(&json!(null), "string"),
-            CoerceResult::Failed
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!([1]), "string"),
-            CoerceResult::Failed
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!("abc"), "integer"),
-            CoerceResult::Failed
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!("abc"), "number"),
-            CoerceResult::Failed
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!("maybe"), "boolean"),
-            CoerceResult::Failed
-        );
+        assert_eq!(cfn_coerce_value(&json!(null), "string"), CoerceResult::Failed);
+        assert_eq!(cfn_coerce_value(&json!([1]), "string"), CoerceResult::Failed);
+        assert_eq!(cfn_coerce_value(&json!("abc"), "integer"), CoerceResult::Failed);
+        assert_eq!(cfn_coerce_value(&json!("abc"), "number"), CoerceResult::Failed);
+        assert_eq!(cfn_coerce_value(&json!("maybe"), "boolean"), CoerceResult::Failed);
     }
 
     #[test]
     fn coerce_value_double_and_float_aliases() {
-        assert_eq!(
-            cfn_coerce_value(&json!(1.5), "double"),
-            CoerceResult::AlreadyCorrect
-        );
-        assert_eq!(
-            cfn_coerce_value(&json!(1.5), "float"),
-            CoerceResult::AlreadyCorrect
-        );
+        assert_eq!(cfn_coerce_value(&json!(1.5), "double"), CoerceResult::AlreadyCorrect);
+        assert_eq!(cfn_coerce_value(&json!(1.5), "float"), CoerceResult::AlreadyCorrect);
         match cfn_coerce_value(&json!("1.5"), "double") {
             CoerceResult::Coerced(v, _) => assert_eq!(v.as_f64().unwrap(), 1.5),
             other => panic!("expected Coerced, got {:?}", other),
@@ -486,10 +419,7 @@ mod tests {
 
     #[test]
     fn coerce_value_unknown_type_fails() {
-        assert_eq!(
-            cfn_coerce_value(&json!("x"), "foobar"),
-            CoerceResult::Failed
-        );
+        assert_eq!(cfn_coerce_value(&json!("x"), "foobar"), CoerceResult::Failed);
     }
 
     #[test]

@@ -24,6 +24,7 @@ runs:
         if command -v rustc        >/dev/null 2>&1; then echo "rustc:        $(rustc --version)"; else echo "rustc:        not installed"; fi
         if command -v cargo        >/dev/null 2>&1; then echo "cargo:        $(cargo --version)"; else echo "cargo:        not installed"; fi
         if command -v cargo-clippy >/dev/null 2>&1; then echo "clippy:       $(cargo clippy --version 2>/dev/null | head -1)"; else echo "clippy:       not installed"; fi
+        if command -v rustfmt      >/dev/null 2>&1; then echo "rustfmt:      $(rustfmt --version 2>/dev/null | head -1)"; else echo "rustfmt:      not installed"; fi
         if command -v rustup       >/dev/null 2>&1; then
           echo "rustup:       $(rustup --version 2>/dev/null | head -1)"
           echo "toolchain:    $(rustup show active-toolchain 2>/dev/null || true)"

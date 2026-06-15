@@ -15,15 +15,10 @@ pub fn sync_regions(rule_source_dir: &Path, data_output_dir: &Path) -> anyhow::R
         );
     }
 
-    info!(
-        "Syncing regions: source={} output={}",
-        providers_dir.display(),
-        data_output_dir.display()
-    );
+    info!("Syncing regions: source={} output={}", providers_dir.display(), data_output_dir.display());
     fs::create_dir_all(data_output_dir)?;
 
-    let mut region_map: HashMap<String, serde_json::Map<String, serde_json::Value>> =
-        HashMap::new();
+    let mut region_map: HashMap<String, serde_json::Map<String, serde_json::Value>> = HashMap::new();
 
     let mut files: Vec<_> = fs::read_dir(&providers_dir)?
         .filter_map(|e| e.ok())
@@ -89,10 +84,7 @@ pub fn sync_regions(rule_source_dir: &Path, data_output_dir: &Path) -> anyhow::R
     let mut regions: Vec<_> = region_map.keys().cloned().collect();
     regions.sort();
     for region in regions {
-        sorted_map.insert(
-            region.clone(),
-            serde_json::Value::Object(region_map.remove(&region).unwrap()),
-        );
+        sorted_map.insert(region.clone(), serde_json::Value::Object(region_map.remove(&region).unwrap()));
     }
     let output = serde_json::json!({ "region_resource_types": sorted_map });
     fs::write(&out_file, serde_json::to_string_pretty(&output)?)?;

@@ -11,9 +11,7 @@ pub struct PhaseMetric {
 
 /// Creates a `PhaseMetric` from the elapsed time since `start`.
 pub fn phase_metric(start: Instant) -> PhaseMetric {
-    PhaseMetric {
-        duration_ms: start.elapsed().as_secs_f64() * 1000.0,
-    }
+    PhaseMetric { duration_ms: start.elapsed().as_secs_f64() * 1000.0 }
 }
 
 #[cfg(test)]
@@ -27,11 +25,7 @@ mod tests {
         let start = Instant::now();
         thread::sleep(Duration::from_millis(10));
         let metric = phase_metric(start);
-        assert!(
-            metric.duration_ms >= 5.0,
-            "Expected at least 5ms, got {}ms",
-            metric.duration_ms
-        );
+        assert!(metric.duration_ms >= 5.0, "Expected at least 5ms, got {}ms", metric.duration_ms);
     }
 
     #[test]
@@ -44,9 +38,7 @@ mod tests {
 
     #[test]
     fn phase_metric_serde_round_trips() {
-        let original = PhaseMetric {
-            duration_ms: 123.456,
-        };
+        let original = PhaseMetric { duration_ms: 123.456 };
         let json = serde_json::to_string(&original).unwrap();
         let deserialized: PhaseMetric = serde_json::from_str(&json).unwrap();
         assert!((deserialized.duration_ms - 123.456).abs() < f64::EPSILON);

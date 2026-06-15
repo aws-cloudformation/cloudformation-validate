@@ -1,4 +1,4 @@
-# Format validation rules matching cfn-lint rule IDs:
+# Format validation rules:
 # E1150 (SecurityGroup ID), E1151 (VPC ID), E1152 (AMI ID),
 # E1153 (Security Group Name), E1154 (Subnet ID), E1155 (Log Group Name), E1156 (IAM Role ARN)
 #

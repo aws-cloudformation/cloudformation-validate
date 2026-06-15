@@ -19,8 +19,8 @@
 //! Run: cargo run -p data-source --example embedding_format_bench --features bench --release
 
 use data_source::types::{
-    CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, KnownResourceTypes,
-    PrimaryIdentifiers, RetentionPeriodRequirements, SensitivePorts, StatefulResourceTypes,
+    CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, KnownResourceTypes, PrimaryIdentifiers,
+    RetentionPeriodRequirements, SensitivePorts, StatefulResourceTypes,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -47,10 +47,7 @@ const DATA_FILES: &[(&str, &str)] = &[
     ("stateful_resource_types", "generated/data"),
     ("aws_rds_dbinstance_dbinstanceclass_enum", "generated/data"),
     ("aws_ec2_instance_instancetype_enum", "generated/data"),
-    (
-        "aws_emr_cluster_instancetypeconfig_instancetype_enum",
-        "generated/data",
-    ),
+    ("aws_emr_cluster_instancetypeconfig_instancetype_enum", "generated/data"),
     ("aws_gamelift_fleet_ec2instancetype_enum", "generated/data"),
     ("codepipeline_action_artifact_counts", "handwritten"),
     ("deprecated_resource_types", "handwritten"),
@@ -183,10 +180,7 @@ fn measure_warm_percentiles_us(iterations: usize, mut operation: impl FnMut()) -
 
 // --- Benchmark routines ---
 
-fn bench_json_decompress(
-    mut decompress: impl FnMut(&[u8]) -> Vec<u8>,
-    compressed: &[u8],
-) -> (f64, f64, f64) {
+fn bench_json_decompress(mut decompress: impl FnMut(&[u8]) -> Vec<u8>, compressed: &[u8]) -> (f64, f64, f64) {
     let (p50, p99) = measure_warm_percentiles_us(WARM_ITERATIONS, || {
         let raw = decompress(compressed);
         let _: serde_json::Value = serde_json::from_slice(&raw).unwrap();
@@ -290,14 +284,8 @@ fn format_microseconds(us: f64) -> String {
     }
 }
 
-fn format_optional<F: Fn(&FormatCandidate) -> String>(
-    candidate: &Option<FormatCandidate>,
-    formatter: F,
-) -> String {
-    candidate
-        .as_ref()
-        .map(&formatter)
-        .unwrap_or_else(|| "n/a*".into())
+fn format_optional<F: Fn(&FormatCandidate) -> String>(candidate: &Option<FormatCandidate>, formatter: F) -> String {
+    candidate.as_ref().map(&formatter).unwrap_or_else(|| "n/a*".into())
 }
 
 fn main() {
@@ -332,8 +320,7 @@ fn main() {
 
         // zstd level 9 + libzstd (native C decoder — reference, not available in WASM)
         let zstd_compressed = compress_zstd(&minified_json, 9);
-        let (libzstd_cold, libzstd_p50, libzstd_p99) =
-            bench_json_decompress(decompress_libzstd, &zstd_compressed);
+        let (libzstd_cold, libzstd_p50, libzstd_p99) = bench_json_decompress(decompress_libzstd, &zstd_compressed);
         let zstd9_libzstd = FormatCandidate {
             compressed_bytes: zstd_compressed.len(),
             cold_start_us: libzstd_cold,
@@ -342,8 +329,7 @@ fn main() {
         };
 
         // zstd level 9 + ruzstd (pure-Rust — ACTUAL production decoder for WASM/JVM)
-        let (ruzstd_cold, ruzstd_p50, ruzstd_p99) =
-            bench_json_decompress(decompress_ruzstd, &zstd_compressed);
+        let (ruzstd_cold, ruzstd_p50, ruzstd_p99) = bench_json_decompress(decompress_ruzstd, &zstd_compressed);
         let zstd9_ruzstd = FormatCandidate {
             compressed_bytes: zstd_compressed.len(),
             cold_start_us: ruzstd_cold,
@@ -362,52 +348,46 @@ fn main() {
         };
 
         // Postcard (typed only) — uncompressed, zstd-compressed, and lz4-compressed
-        let (postcard_only, zstd9_postcard, lz4_postcard) =
-            match try_postcard_encode(file_stem, &minified_json) {
-                Some(postcard_bytes) => {
-                    let (pc_cold, pc_p50, pc_p99) =
-                        bench_postcard_deserialize(file_stem, &postcard_bytes, None);
-                    let postcard_candidate = FormatCandidate {
-                        compressed_bytes: postcard_bytes.len(),
-                        cold_start_us: pc_cold,
-                        warm_p50_us: pc_p50,
-                        warm_p99_us: pc_p99,
-                    };
+        let (postcard_only, zstd9_postcard, lz4_postcard) = match try_postcard_encode(file_stem, &minified_json) {
+            Some(postcard_bytes) => {
+                let (pc_cold, pc_p50, pc_p99) = bench_postcard_deserialize(file_stem, &postcard_bytes, None);
+                let postcard_candidate = FormatCandidate {
+                    compressed_bytes: postcard_bytes.len(),
+                    cold_start_us: pc_cold,
+                    warm_p50_us: pc_p50,
+                    warm_p99_us: pc_p99,
+                };
 
-                    let zstd_postcard_compressed = compress_zstd(&postcard_bytes, 9);
-                    let (zpc_cold, zpc_p50, zpc_p99) = bench_postcard_deserialize(
-                        file_stem,
-                        &postcard_bytes,
-                        Some((&zstd_postcard_compressed, decompress_ruzstd)),
-                    );
-                    let zstd_postcard_candidate = FormatCandidate {
-                        compressed_bytes: zstd_postcard_compressed.len(),
-                        cold_start_us: zpc_cold,
-                        warm_p50_us: zpc_p50,
-                        warm_p99_us: zpc_p99,
-                    };
+                let zstd_postcard_compressed = compress_zstd(&postcard_bytes, 9);
+                let (zpc_cold, zpc_p50, zpc_p99) = bench_postcard_deserialize(
+                    file_stem,
+                    &postcard_bytes,
+                    Some((&zstd_postcard_compressed, decompress_ruzstd)),
+                );
+                let zstd_postcard_candidate = FormatCandidate {
+                    compressed_bytes: zstd_postcard_compressed.len(),
+                    cold_start_us: zpc_cold,
+                    warm_p50_us: zpc_p50,
+                    warm_p99_us: zpc_p99,
+                };
 
-                    let lz4_postcard_compressed = compress_lz4(&postcard_bytes);
-                    let (lpc_cold, lpc_p50, lpc_p99) = bench_postcard_deserialize(
-                        file_stem,
-                        &postcard_bytes,
-                        Some((&lz4_postcard_compressed, decompress_lz4)),
-                    );
-                    let lz4_postcard_candidate = FormatCandidate {
-                        compressed_bytes: lz4_postcard_compressed.len(),
-                        cold_start_us: lpc_cold,
-                        warm_p50_us: lpc_p50,
-                        warm_p99_us: lpc_p99,
-                    };
+                let lz4_postcard_compressed = compress_lz4(&postcard_bytes);
+                let (lpc_cold, lpc_p50, lpc_p99) = bench_postcard_deserialize(
+                    file_stem,
+                    &postcard_bytes,
+                    Some((&lz4_postcard_compressed, decompress_lz4)),
+                );
+                let lz4_postcard_candidate = FormatCandidate {
+                    compressed_bytes: lz4_postcard_compressed.len(),
+                    cold_start_us: lpc_cold,
+                    warm_p50_us: lpc_p50,
+                    warm_p99_us: lpc_p99,
+                };
 
-                    (
-                        Some(postcard_candidate),
-                        Some(zstd_postcard_candidate),
-                        Some(lz4_postcard_candidate),
-                    )
-                }
-                None => (None, None, None),
-            };
+                (Some(postcard_candidate), Some(zstd_postcard_candidate), Some(lz4_postcard_candidate))
+            }
+            None => (None, None, None),
+        };
 
         reports.push(FileReport {
             name: file_stem.to_string(),
@@ -437,32 +417,22 @@ fn main() {
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "File", "json", "postcard", "zstd9", "zstd9+pc", "lz4", "lz4+pc"
     ));
-    report.push_str(&format!(
-        "|{:-<57}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|\n",
-        "", "", "", "", "", "", ""
-    ));
+    report
+        .push_str(&format!("|{:-<57}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|\n", "", "", "", "", "", "", ""));
 
-    let (mut total_json_bytes, mut total_zstd_bytes, mut total_lz4_bytes) =
-        (0usize, 0usize, 0usize);
-    let (mut typed_json_bytes, mut typed_postcard_bytes, mut typed_lz4pc_bytes) =
-        (0usize, 0usize, 0usize);
+    let (mut total_json_bytes, mut total_zstd_bytes, mut total_lz4_bytes) = (0usize, 0usize, 0usize);
+    let (mut typed_json_bytes, mut typed_postcard_bytes, mut typed_lz4pc_bytes) = (0usize, 0usize, 0usize);
 
     for file_report in &reports {
         report.push_str(&format!(
             "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
             file_report.name,
             format_bytes(file_report.raw_json.compressed_bytes),
-            format_optional(&file_report.postcard_only, |c| format_bytes(
-                c.compressed_bytes
-            )),
+            format_optional(&file_report.postcard_only, |c| format_bytes(c.compressed_bytes)),
             format_bytes(file_report.zstd9_ruzstd.compressed_bytes),
-            format_optional(&file_report.zstd9_postcard, |c| format_bytes(
-                c.compressed_bytes
-            )),
+            format_optional(&file_report.zstd9_postcard, |c| format_bytes(c.compressed_bytes)),
             format_bytes(file_report.lz4_json.compressed_bytes),
-            format_optional(&file_report.lz4_postcard, |c| format_bytes(
-                c.compressed_bytes
-            )),
+            format_optional(&file_report.lz4_postcard, |c| format_bytes(c.compressed_bytes)),
         ));
         total_json_bytes += file_report.raw_json.compressed_bytes;
         total_zstd_bytes += file_report.zstd9_ruzstd.compressed_bytes;
@@ -474,10 +444,8 @@ fn main() {
         }
     }
 
-    report.push_str(&format!(
-        "|{:-<57}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|\n",
-        "", "", "", "", "", "", ""
-    ));
+    report
+        .push_str(&format!("|{:-<57}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|{:-<12}|\n", "", "", "", "", "", "", ""));
     report.push_str(&format!(
         "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
         "TOTAL",
@@ -528,18 +496,12 @@ fn main() {
             "| {:<55} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} |\n",
             file_report.name,
             format_microseconds(file_report.raw_json.cold_start_us),
-            format_optional(&file_report.postcard_only, |c| format_microseconds(
-                c.cold_start_us
-            )),
+            format_optional(&file_report.postcard_only, |c| format_microseconds(c.cold_start_us)),
             format_microseconds(file_report.zstd9_libzstd.cold_start_us),
             format_microseconds(file_report.zstd9_ruzstd.cold_start_us),
-            format_optional(&file_report.zstd9_postcard, |c| format_microseconds(
-                c.cold_start_us
-            )),
+            format_optional(&file_report.zstd9_postcard, |c| format_microseconds(c.cold_start_us)),
             format_microseconds(file_report.lz4_json.cold_start_us),
-            format_optional(&file_report.lz4_postcard, |c| format_microseconds(
-                c.cold_start_us
-            )),
+            format_optional(&file_report.lz4_postcard, |c| format_microseconds(c.cold_start_us)),
         ));
         cold_json_total += file_report.raw_json.cold_start_us;
         cold_libzstd_total += file_report.zstd9_libzstd.cold_start_us;
@@ -574,13 +536,8 @@ fn main() {
         "", "", "", "", "", "", "", ""
     ));
 
-    let format_percentiles = |c: &FormatCandidate| {
-        format!(
-            "{}/{}",
-            format_microseconds(c.warm_p50_us),
-            format_microseconds(c.warm_p99_us)
-        )
-    };
+    let format_percentiles =
+        |c: &FormatCandidate| format!("{}/{}", format_microseconds(c.warm_p50_us), format_microseconds(c.warm_p99_us));
 
     for file_report in &reports {
         report.push_str(&format!(
@@ -606,17 +563,8 @@ fn main() {
 
     // Find the two largest files by cold start to show where time is spent
     let mut sorted_by_cold: Vec<&FileReport> = reports.iter().collect();
-    sorted_by_cold.sort_by(|a, b| {
-        b.zstd9_ruzstd
-            .cold_start_us
-            .partial_cmp(&a.zstd9_ruzstd.cold_start_us)
-            .unwrap()
-    });
-    let top_two_cold_us: f64 = sorted_by_cold
-        .iter()
-        .take(2)
-        .map(|r| r.zstd9_ruzstd.cold_start_us)
-        .sum();
+    sorted_by_cold.sort_by(|a, b| b.zstd9_ruzstd.cold_start_us.partial_cmp(&a.zstd9_ruzstd.cold_start_us).unwrap());
+    let top_two_cold_us: f64 = sorted_by_cold.iter().take(2).map(|r| r.zstd9_ruzstd.cold_start_us).sum();
     let top_two_cold_pct = top_two_cold_us / cold_ruzstd_total * 100.0;
 
     report.push_str("\n## Summary\n\n");

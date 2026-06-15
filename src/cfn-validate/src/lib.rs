@@ -14,10 +14,7 @@ pub fn collect_files(path: &Path) -> Vec<PathBuf> {
 }
 
 fn is_template_file(path: &Path) -> bool {
-    matches!(
-        path.extension().and_then(|s| s.to_str()),
-        Some("yaml" | "yml" | "json")
-    )
+    matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json"))
 }
 
 fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) {
@@ -43,19 +40,12 @@ pub fn parse_range(s: &str) -> Option<IdRange> {
     }
     let start_half = halves[0];
     let end_half = halves[1];
-    let prefix_len = start_half
-        .chars()
-        .take_while(|c| !c.is_ascii_digit())
-        .count();
+    let prefix_len = start_half.chars().take_while(|c| !c.is_ascii_digit()).count();
     let prefix = &start_half[..prefix_len];
     let start: u32 = start_half[prefix_len..].parse().ok()?;
     let end_prefix_len = end_half.chars().take_while(|c| !c.is_ascii_digit()).count();
     let end: u32 = end_half[end_prefix_len..].parse().ok()?;
-    Some(IdRange {
-        prefix: prefix.to_string(),
-        start,
-        end,
-    })
+    Some(IdRange { prefix: prefix.to_string(), start, end })
 }
 
 #[cfg(test)]
@@ -81,26 +71,17 @@ mod tests {
 
     #[test]
     fn parse_range_returns_none_for_missing_dash() {
-        assert!(
-            parse_range("E3000").is_none(),
-            "single rule ID without dash should return None"
-        );
+        assert!(parse_range("E3000").is_none(), "single rule ID without dash should return None");
     }
 
     #[test]
     fn parse_range_returns_none_for_too_many_dashes() {
-        assert!(
-            parse_range("E3000-E3099-E3199").is_none(),
-            "triple-segment range should return None"
-        );
+        assert!(parse_range("E3000-E3099-E3199").is_none(), "triple-segment range should return None");
     }
 
     #[test]
     fn parse_range_returns_none_for_non_numeric() {
-        assert!(
-            parse_range("abc-def").is_none(),
-            "non-numeric range should return None"
-        );
+        assert!(parse_range("abc-def").is_none(), "non-numeric range should return None");
     }
 
     #[test]
@@ -166,14 +147,7 @@ mod tests {
         fs::write(dir.path().join("e.md"), "e").unwrap();
 
         let result = collect_files(dir.path());
-        let names: Vec<_> = result
-            .iter()
-            .map(|p| p.file_name().unwrap().to_str().unwrap())
-            .collect();
-        assert_eq!(
-            names,
-            vec!["a.yaml", "b.yml", "c.json"],
-            "only .yaml, .yml, .json files should be collected"
-        );
+        let names: Vec<_> = result.iter().map(|p| p.file_name().unwrap().to_str().unwrap()).collect();
+        assert_eq!(names, vec!["a.yaml", "b.yml", "c.json"], "only .yaml, .yml, .json files should be collected");
     }
 }

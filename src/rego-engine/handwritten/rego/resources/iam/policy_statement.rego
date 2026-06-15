@@ -31,7 +31,7 @@ violation contains make_diag_full("E3514", "ERROR", name,
     not effect in {"Allow", "Deny"}
 }
 
-# E9005: IAM Statement must have Action or NotAction (engine-only; cfn-lint E3045 covers S3)
+# E9005: IAM Statement must have Action or NotAction (engine-only; E3045 covers S3)
 violation contains make_diag_full("E9005", "ERROR", name,
     "Properties.PolicyDocument",
     "IAM policy statement must have 'Action' or 'NotAction'",

@@ -5,9 +5,7 @@ use rules::Severity;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
-use template_model::coercion::{
-    CoerceResult, cfn_coerce_to_number, cfn_coerce_to_string, cfn_coerce_value,
-};
+use template_model::coercion::{CoerceResult, cfn_coerce_to_number, cfn_coerce_to_string, cfn_coerce_value};
 use template_model::consts::{FN_IF, KEY_PROPERTIES};
 use template_model::model::ResolvedResource;
 use template_model::resolver::{RefKind, ResolvedValue};
@@ -18,11 +16,7 @@ pub fn validate_all_resources(
     region: &str,
 ) -> Vec<Diagnostic> {
     let mut out = Vec::new();
-    let relevant: HashSet<&str> = model
-        .resources
-        .values()
-        .map(|r| r.resource_type.as_str())
-        .collect();
+    let relevant: HashSet<&str> = model.resources.values().map(|r| r.resource_type.as_str()).collect();
 
     validate_lifecycle(&mut out, store, model);
 
@@ -36,10 +30,7 @@ pub fn validate_all_resources(
                 out.push(build_diagnostic(
                     "E9001",
                     Severity::Error,
-                    &format!(
-                        "Resource type '{}' is not available in region '{}'",
-                        rtype, region
-                    ),
+                    &format!("Resource type '{}' is not available in region '{}'", rtype, region),
                     model,
                     rid,
                     "",
@@ -63,11 +54,7 @@ pub fn validate_all_resources(
     out
 }
 
-pub fn enrich_schema_context(
-    diagnostics: &mut Vec<Diagnostic>,
-    store: &CompiledSchemaStore,
-    model: &Arc<SemanticModel>,
-) {
+pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {
     for d in diagnostics.iter_mut() {
         if d.phase != Some(diagnostics::Phase::Schema) {
             continue;
@@ -94,19 +81,15 @@ pub fn enrich_schema_context(
             }
         }
 
-        if let Some(source) =
-            describe_resolution(model, rid, d.property_path.as_deref().unwrap_or(""))
-        {
-            let ctx = d
-                .context
-                .get_or_insert_with(|| diagnostics::ViolationContext {
-                    actual_value: None,
-                    expected_constraint: None,
-                    property: None,
-                    lifecycle: None,
-                    resolution_source: None,
-                    extra: None,
-                });
+        if let Some(source) = describe_resolution(model, rid, d.property_path.as_deref().unwrap_or("")) {
+            let ctx = d.context.get_or_insert_with(|| diagnostics::ViolationContext {
+                actual_value: None,
+                expected_constraint: None,
+                property: None,
+                lifecycle: None,
+                resolution_source: None,
+                extra: None,
+            });
             if ctx.resolution_source.is_none() {
                 ctx.resolution_source = Some(source);
             }
@@ -118,43 +101,41 @@ pub fn enrich_schema_context(
 
         macro_rules! ensure_ctx {
             ($d:expr) => {
-                $d.context
-                    .get_or_insert_with(|| diagnostics::ViolationContext {
-                        actual_value: None,
-                        expected_constraint: None,
-                        property: None,
-                        lifecycle: None,
-                        resolution_source: None,
-                        extra: None,
-                    })
+                $d.context.get_or_insert_with(|| diagnostics::ViolationContext {
+                    actual_value: None,
+                    expected_constraint: None,
+                    property: None,
+                    lifecycle: None,
+                    resolution_source: None,
+                    extra: None,
+                })
             };
         }
 
         match d.rule_id.as_str() {
             "F3012" => {
                 if let Some(ps) = prop_schema
-                    && let Some(ref pt) = ps.prop_type {
-                        ensure_ctx!(d).expected_constraint =
-                            Some(pt.primary().unwrap_or("unknown").to_string());
-                    }
+                    && let Some(ref pt) = ps.prop_type
+                {
+                    ensure_ctx!(d).expected_constraint = Some(pt.primary().unwrap_or("unknown").to_string());
+                }
             }
             "F3030" => {
                 if let Some(ps) = prop_schema
-                    && !ps.enum_values.is_empty() {
-                        ensure_ctx!(d)
-                            .extra
-                            .get_or_insert_with(HashMap::new)
-                            .insert(
-                                "allowed_values".into(),
-                                serde_json::json!(ps.enum_values).into(),
-                            );
-                    }
+                    && !ps.enum_values.is_empty()
+                {
+                    ensure_ctx!(d)
+                        .extra
+                        .get_or_insert_with(HashMap::new)
+                        .insert("allowed_values".into(), serde_json::json!(ps.enum_values).into());
+                }
             }
             "F3031" => {
                 if let Some(ps) = prop_schema
-                    && let Some(ref pat) = ps.pattern {
-                        ensure_ctx!(d).expected_constraint = Some(pat.clone());
-                    }
+                    && let Some(ref pat) = ps.pattern
+                {
+                    ensure_ctx!(d).expected_constraint = Some(pat.clone());
+                }
             }
             "F3034" => {
                 if let Some(ps) = prop_schema {
@@ -217,10 +198,7 @@ pub fn enrich_schema_context(
                 ensure_ctx!(d)
                     .extra
                     .get_or_insert_with(HashMap::new)
-                    .insert(
-                        "allowed_properties".into(),
-                        serde_json::json!(allowed).into(),
-                    );
+                    .insert("allowed_properties".into(), serde_json::json!(allowed).into());
             }
             "W9009" => {
                 ensure_ctx!(d).lifecycle = Some("deprecated".into());
@@ -242,10 +220,7 @@ pub fn enrich_schema_context(
     }
 }
 
-pub fn enrich_schema_context_standalone(
-    diagnostics: &mut Vec<Diagnostic>,
-    model: &Arc<SemanticModel>,
-) {
+pub fn enrich_schema_context_standalone(diagnostics: &mut [Diagnostic], model: &Arc<SemanticModel>) {
     let store = CompiledSchemaStore::new();
     enrich_schema_context(diagnostics, &store, model);
 }
@@ -267,11 +242,7 @@ fn find_prop_schema<'a>(
         };
     }
     for (pat, ps) in props.iter() {
-        if regex::Regex::new(pat)
-            .ok()
-            .map(|re| re.is_match(top))
-            .unwrap_or(false)
-        {
+        if regex::Regex::new(pat).ok().map(|re| re.is_match(top)).unwrap_or(false) {
             let resolved = ps.resolve(defs);
             return match rest {
                 Some(r) => find_prop_schema(r, &resolved.properties, defs),
@@ -286,25 +257,22 @@ fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<&
     if let Some(ps) = find_prop_schema(path, &schema.properties, &schema.definitions) {
         return Some(ps);
     }
-    for sub in schema
-        .one_of
-        .iter()
-        .chain(schema.any_of.iter())
-        .chain(schema.all_of.iter())
-    {
+    for sub in schema.one_of.iter().chain(schema.any_of.iter()).chain(schema.all_of.iter()) {
         if let Some(ps) = find_prop_schema(path, &sub.properties, &schema.definitions) {
             return Some(ps);
         }
     }
     for ite in &schema.if_then_else {
         if let Some(ref then_s) = ite.then_schema
-            && let Some(ps) = find_prop_schema(path, &then_s.properties, &schema.definitions) {
-                return Some(ps);
-            }
+            && let Some(ps) = find_prop_schema(path, &then_s.properties, &schema.definitions)
+        {
+            return Some(ps);
+        }
         if let Some(ref else_s) = ite.else_schema
-            && let Some(ps) = find_prop_schema(path, &else_s.properties, &schema.definitions) {
-                return Some(ps);
-            }
+            && let Some(ps) = find_prop_schema(path, &else_s.properties, &schema.definitions)
+        {
+            return Some(ps);
+        }
     }
     None
 }
@@ -357,10 +325,7 @@ fn validate_resource(
             out.push(build_diagnostic(
                 "I9001",
                 Severity::Info,
-                &format!(
-                    "Property '{}' is create-only; updating it will cause resource replacement",
-                    top
-                ),
+                &format!("Property '{}' is create-only; updating it will cause resource replacement", top),
                 m,
                 rid,
                 &format!("{}.{}", base, top),
@@ -373,24 +338,20 @@ fn validate_resource(
         let top = wo.split('.').next().unwrap_or(wo);
         for edge in m.graph.incoming(rid) {
             if let RefKind::GetAtt { attr } = &edge.kind
-                && attr == top && edge.source_resource.starts_with("__output__") {
-                    let output_name = edge
-                        .source_resource
-                        .strip_prefix("__output__")
-                        .unwrap_or(&edge.source_resource);
-                    out.push(build_diagnostic(
-                        "W3041",
-                        Severity::Warn,
-                        &format!(
-                            "Write-only property '{}' of '{}' is referenced in output '{}'",
-                            top, rid, output_name
-                        ),
-                        m,
-                        rid,
-                        &format!("{}.{}", base, top),
-                        None,
-                    ));
-                }
+                && attr == top
+                && edge.source_resource.starts_with("__output__")
+            {
+                let output_name = edge.source_resource.strip_prefix("__output__").unwrap_or(&edge.source_resource);
+                out.push(build_diagnostic(
+                    "W3041",
+                    Severity::Warn,
+                    &format!("Write-only property '{}' of '{}' is referenced in output '{}'", top, rid, output_name),
+                    m,
+                    rid,
+                    &format!("{}.{}", base, top),
+                    None,
+                ));
+            }
         }
     }
 
@@ -424,27 +385,14 @@ fn validate_resource(
     for (prop_name, prop_schema) in &schema.properties {
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("{}.{}", base, prop_name);
-        validate_prop(
-            out,
-            store,
-            m,
-            rid,
-            &res.resource_type,
-            &prop_path,
-            resolved,
-            defs,
-            &mut HashSet::new(),
-            region,
-        );
+        validate_prop(out, store, m, rid, &res.resource_type, &prop_path, resolved, defs, &mut HashSet::new(), region);
     }
 
     // Also validate properties that exist only inside conditional branches —
     // when Properties is wrapped in Fn::If, res.properties has only the
     // synthetic "Fn::If" key so the loop above would miss per-branch props.
-    let branch_property_names: HashSet<String> = key_scenarios
-        .iter()
-        .flat_map(|(keys, _)| keys.iter().cloned())
-        .collect();
+    let branch_property_names: HashSet<String> =
+        key_scenarios.iter().flat_map(|(keys, _)| keys.iter().cloned()).collect();
     for prop_name in &branch_property_names {
         if res.properties.contains_key(prop_name) {
             continue;
@@ -454,39 +402,15 @@ fn validate_resource(
         };
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("{}.{}", base, prop_name);
-        validate_prop(
-            out,
-            store,
-            m,
-            rid,
-            &res.resource_type,
-            &prop_path,
-            resolved,
-            defs,
-            &mut HashSet::new(),
-            region,
-        );
+        validate_prop(out, store, m, rid, &res.resource_type, &prop_path, resolved, defs, &mut HashSet::new(), region);
     }
 
     let actual_keys: Vec<String> = res.properties.keys().cloned().collect();
     for ite in &schema.if_then_else {
         let matches = condition_matches(&ite.condition, &actual_keys, m, rid, defs);
-        let sub = if matches {
-            &ite.then_schema
-        } else {
-            &ite.else_schema
-        };
+        let sub = if matches { &ite.then_schema } else { &ite.else_schema };
         if let Some(sub) = sub {
-            validate_sub(
-                out,
-                m,
-                rid,
-                &res.resource_type,
-                &actual_keys,
-                sub,
-                defs,
-                base,
-            );
+            validate_sub(out, m, rid, &res.resource_type, &actual_keys, sub, defs, base);
         }
     }
 }
@@ -585,10 +509,7 @@ fn validate_object_keys_inner(
         && rtype != "AWS::CloudFormation::CustomResource"
     {
         let known: HashSet<&str> = schema_props.keys().map(|s| s.as_str()).collect();
-        let pat_regexes: Vec<regex::Regex> = pattern_props
-            .keys()
-            .filter_map(|p| regex::Regex::new(p).ok())
-            .collect();
+        let pat_regexes: Vec<regex::Regex> = pattern_props.keys().filter_map(|p| regex::Regex::new(p).ok()).collect();
         for key in actual_keys {
             if known.contains(key.as_str()) {
                 continue;
@@ -598,24 +519,12 @@ fn validate_object_keys_inner(
             }
             let suggestion = find_similar(key, &known);
             let msg = match suggestion {
-                Some(s) => format!(
-                    "Additional properties are not allowed ('{}' was unexpected. Did you mean '{}'?)",
-                    key, s
-                ),
-                None => format!(
-                    "Additional properties are not allowed ('{}' was unexpected)",
-                    key
-                ),
+                Some(s) => {
+                    format!("Additional properties are not allowed ('{}' was unexpected. Did you mean '{}'?)", key, s)
+                }
+                None => format!("Additional properties are not allowed ('{}' was unexpected)", key),
             };
-            out.push(build_diagnostic(
-                "F3002",
-                Severity::Fatal,
-                &msg,
-                m,
-                rid,
-                &format!("{}.{}", base_path, key),
-                None,
-            ));
+            out.push(build_diagnostic("F3002", Severity::Fatal, &msg, m, rid, &format!("{}.{}", base_path, key), None));
         }
     }
 
@@ -656,11 +565,7 @@ fn validate_object_keys_inner(
     }
 
     if !req_or.is_empty() && !req_or.iter().any(|p| actual_keys.contains(p)) {
-        let names = req_or
-            .iter()
-            .map(|s| format!("'{}'", s))
-            .collect::<Vec<_>>()
-            .join(", ");
+        let names = req_or.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
         out.push(build_diagnostic(
             "F3058",
             Severity::Fatal,
@@ -675,11 +580,7 @@ fn validate_object_keys_inner(
     if !req_xor.is_empty() {
         let count = req_xor.iter().filter(|p| actual_keys.contains(p)).count();
         if count != 1 {
-            let names = req_xor
-                .iter()
-                .map(|s| format!("'{}'", s))
-                .collect::<Vec<_>>()
-                .join(", ");
+            let names = req_xor.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
             out.push(build_diagnostic(
                 "F3014",
                 Severity::Fatal,
@@ -706,10 +607,7 @@ fn validate_object_keys_inner(
             out.push(build_diagnostic(
                 "F3017",
                 Severity::Fatal,
-                &format!(
-                    "Value is not valid under any of the given schemas for {}",
-                    rtype
-                ),
+                &format!("Value is not valid under any of the given schemas for {}", rtype),
                 m,
                 rid,
                 base_path,
@@ -906,9 +804,7 @@ fn validate_prop(
             return;
         }
         if let Some(resolved) = defs.get(rn) {
-            validate_prop(
-                out, store, m, rid, rtype, prop_path, resolved, defs, visited, region,
-            );
+            validate_prop(out, store, m, rid, rtype, prop_path, resolved, defs, visited, region);
         }
         visited.remove(rn);
         return;
@@ -920,9 +816,7 @@ fn validate_prop(
         validate_reference_type(out, store, m, rid, prop_path, schema);
     }
 
-    let res_suffix = describe_resolution(m, rid, prop_path)
-        .map(|s| format!(" (from {})", s))
-        .unwrap_or_default();
+    let res_suffix = describe_resolution(m, rid, prop_path).map(|s| format!(" (from {})", s)).unwrap_or_default();
 
     // Type check — coerce before rejecting since string↔number, string↔boolean,
     // bool→string, number→string are silently coerced at deploy time.
@@ -957,12 +851,7 @@ fn validate_prop(
                         out.push(build_diagnostic_conditional(
                             "F3012",
                             Severity::Fatal,
-                            &format!(
-                                "{}{} is not of type '{}'",
-                                format_value(val),
-                                res_suffix,
-                                expected
-                            ),
+                            &format!("{}{} is not of type '{}'", format_value(val), res_suffix, expected),
                             m,
                             rid,
                             prop_path,
@@ -983,9 +872,7 @@ fn validate_prop(
                 continue;
             }
             let matches = if let Some(regional_vals) = regional {
-                val.as_str()
-                    .map(|s| regional_vals.iter().any(|v| v == s))
-                    .unwrap_or(false)
+                val.as_str().map(|s| regional_vals.iter().any(|v| v == s)).unwrap_or(false)
                     || enum_matches(val, &schema.enum_values)
             } else {
                 enum_matches(val, &schema.enum_values)
@@ -999,12 +886,7 @@ fn validate_prop(
                 out.push(build_diagnostic_conditional(
                     "F3030",
                     Severity::Fatal,
-                    &format!(
-                        "{}{} is not one of {}",
-                        format_value(val),
-                        res_suffix,
-                        enum_desc
-                    ),
+                    &format!("{}{} is not one of {}", format_value(val), res_suffix, enum_desc),
                     m,
                     rid,
                     prop_path,
@@ -1036,41 +918,42 @@ fn validate_prop(
     }
 
     if let Some(ref pat) = schema.pattern
-        && let Ok(re) = regex::Regex::new(pat) {
-            let from_param = m.is_from_parameter(rid, prop_path);
-            for (val, conds) in &scenarios {
-                if !is_satisfiable(m, conds) || val.is_null() {
+        && let Ok(re) = regex::Regex::new(pat)
+    {
+        let from_param = m.is_from_parameter(rid, prop_path);
+        for (val, conds) in &scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() {
+                continue;
+            }
+            if let Some(s) = cfn_coerce_to_string(val) {
+                if s.contains("{{resolve:") || s.contains("${") {
                     continue;
                 }
-                if let Some(s) = cfn_coerce_to_string(val) {
-                    if s.contains("{{resolve:") || s.contains("${") {
-                        continue;
-                    }
-                    // Malformed dynamic reference (e.g. "{{ resolve:ssm:... }}" with
-                    // spaces) — the pattern-mismatch warning reports this. Skip the Fatal
-                    // to avoid double-flagging; the downstream API (not CFN itself)
-                    // is what rejects the unresolved literal.
-                    if s.contains("{{") && s.contains("resolve") {
-                        continue;
-                    }
-                    if from_param {
-                        continue;
-                    }
-                    if !re.is_match(&s) {
-                        out.push(build_diagnostic_conditional(
-                            "F3031",
-                            Severity::Fatal,
-                            &format!("{} does not match pattern '{}'", format_value(val), pat),
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
-                    }
+                // Malformed dynamic reference (e.g. "{{ resolve:ssm:... }}" with
+                // spaces) — the pattern-mismatch warning reports this. Skip the Fatal
+                // to avoid double-flagging; the downstream API (not CFN itself)
+                // is what rejects the unresolved literal.
+                if s.contains("{{") && s.contains("resolve") {
+                    continue;
+                }
+                if from_param {
+                    continue;
+                }
+                if !re.is_match(&s) {
+                    out.push(build_diagnostic_conditional(
+                        "F3031",
+                        Severity::Fatal,
+                        &format!("{} does not match pattern '{}'", format_value(val), pat),
+                        m,
+                        rid,
+                        prop_path,
+                        None,
+                        condition_map(conds),
+                    ));
                 }
             }
         }
+    }
 
     if let Some(ref fmt) = schema.format {
         validate_format(out, m, rid, prop_path, fmt);
@@ -1084,57 +967,61 @@ fn validate_prop(
             continue;
         };
         if let Some(max) = schema.maximum
-            && n > max {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is greater than the maximum of {}", n, max),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n > max
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is greater than the maximum of {}", n, max),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
         if let Some(min) = schema.minimum
-            && n < min {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is less than the minimum of {}", n, min),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n < min
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is less than the minimum of {}", n, min),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
         if let Some(emax) = schema.exclusive_maximum
-            && n >= emax {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is >= exclusive maximum {}", n, emax),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n >= emax
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is >= exclusive maximum {}", n, emax),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
         if let Some(emin) = schema.exclusive_minimum
-            && n <= emin {
-                out.push(build_diagnostic_conditional(
-                    "F3034",
-                    Severity::Fatal,
-                    &format!("{} is <= exclusive minimum {}", n, emin),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
+            && n <= emin
+        {
+            out.push(build_diagnostic_conditional(
+                "F3034",
+                Severity::Fatal,
+                &format!("{} is <= exclusive minimum {}", n, emin),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conds),
+            ));
+        }
     }
 
     if schema.min_length.is_some() || schema.max_length.is_some() {
@@ -1154,31 +1041,33 @@ fn validate_prop(
             }
             let len = s.len() as u64;
             if let Some(max) = schema.max_length
-                && len > max {
-                    out.push(build_diagnostic_conditional(
-                        "F3033",
-                        Severity::Fatal,
-                        &format!("length {} exceeds maximum {}", len, max),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len > max
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3033",
+                    Severity::Fatal,
+                    &format!("length {} exceeds maximum {}", len, max),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
             if let Some(min) = schema.min_length
-                && len < min {
-                    out.push(build_diagnostic_conditional(
-                        "F3033",
-                        Severity::Fatal,
-                        &format!("length {} is below minimum {}", len, min),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len < min
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3033",
+                    Severity::Fatal,
+                    &format!("length {} is below minimum {}", len, min),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
         }
     }
 
@@ -1189,31 +1078,33 @@ fn validate_prop(
         if let Some(arr) = val.as_array() {
             let len = arr.len() as u64;
             if let Some(max) = schema.max_items
-                && len > max {
-                    out.push(build_diagnostic_conditional(
-                        "F3032",
-                        Severity::Fatal,
-                        &format!("expected maximum item count: {}, found: {}", max, len),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len > max
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3032",
+                    Severity::Fatal,
+                    &format!("expected maximum item count: {}, found: {}", max, len),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
             if let Some(min) = schema.min_items
-                && len < min {
-                    out.push(build_diagnostic_conditional(
-                        "F3032",
-                        Severity::Fatal,
-                        &format!("expected minimum item count: {}, found: {}", min, len),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                        condition_map(conds),
-                    ));
-                }
+                && len < min
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3032",
+                    Severity::Fatal,
+                    &format!("expected minimum item count: {}, found: {}", min, len),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
         }
     }
 
@@ -1286,30 +1177,31 @@ fn validate_prop(
             // evaluated at deploy time with the real parameter values.
             for (val, _conds) in m.resolve_scenarios(rid, prop_path) {
                 if let ResolvedValue::Concrete { value } = &val
-                    && let Some(obj) = value.as_object() {
-                        let keys: Vec<String> = obj.keys().cloned().collect();
-                        validate_object_keys(
-                            out,
-                            m,
-                            rid,
-                            rtype,
-                            &schema.properties,
-                            defs,
-                            &schema.required,
-                            schema.additional_properties,
-                            &schema.pattern_properties,
-                            &schema.dependent_required,
-                            &schema.dependent_excluded,
-                            &[],
-                            &[],
-                            &schema.all_of,
-                            &schema.any_of,
-                            &schema.one_of,
-                            &keys,
-                            prop_path,
-                            visited,
-                        );
-                    }
+                    && let Some(obj) = value.as_object()
+                {
+                    let keys: Vec<String> = obj.keys().cloned().collect();
+                    validate_object_keys(
+                        out,
+                        m,
+                        rid,
+                        rtype,
+                        &schema.properties,
+                        defs,
+                        &schema.required,
+                        schema.additional_properties,
+                        &schema.pattern_properties,
+                        &schema.dependent_required,
+                        &schema.dependent_excluded,
+                        &[],
+                        &[],
+                        &schema.all_of,
+                        &schema.any_of,
+                        &schema.one_of,
+                        &keys,
+                        prop_path,
+                        visited,
+                    );
+                }
             }
         }
         for (pn, ps) in &schema.properties {
@@ -1317,9 +1209,7 @@ fn validate_prop(
             let sub_path = format!("{}.{}", prop_path, pn);
             let sub_scenarios = m.resolve_scenarios_json(rid, &sub_path);
             if !sub_scenarios.is_empty() || m.resolve_deep(rid, &sub_path).is_some() {
-                validate_prop(
-                    out, store, m, rid, rtype, &sub_path, resolved, defs, visited, region,
-                );
+                validate_prop(out, store, m, rid, rtype, &sub_path, resolved, defs, visited, region);
             }
         }
     }
@@ -1329,23 +1219,16 @@ fn validate_prop(
         // Use per-index paths instead of wildcard {} to avoid dedup mismatches
         let mut did_per_index = false;
         {
-            let arr_len = match m
-                .resolve_deep(rid, prop_path)
-                .or_else(|| m.resolve(rid, prop_path).cloned())
-            {
+            let arr_len = match m.resolve_deep(rid, prop_path).or_else(|| m.resolve(rid, prop_path).cloned()) {
                 Some(ResolvedValue::List { items }) => Some(items.len()),
-                Some(ResolvedValue::Concrete { value: ref v }) if v.is_array() => {
-                    Some(v.as_array().unwrap().len())
-                }
+                Some(ResolvedValue::Concrete { value: ref v }) if v.is_array() => Some(v.as_array().unwrap().len()),
                 _ => None,
             };
             if let Some(len) = arr_len {
                 did_per_index = true;
                 for idx in 0..len {
                     let idx_path = format!("{}.{}", prop_path, idx);
-                    validate_prop(
-                        out, store, m, rid, rtype, &idx_path, resolved, defs, visited, region,
-                    );
+                    validate_prop(out, store, m, rid, rtype, &idx_path, resolved, defs, visited, region);
                 }
             } else {
                 validate_prop(
@@ -1362,9 +1245,7 @@ fn validate_prop(
                 );
             }
         }
-        if !did_per_index
-            && (!resolved.dependent_excluded.is_empty() || !resolved.dependent_required.is_empty())
-        {
+        if !did_per_index && (!resolved.dependent_excluded.is_empty() || !resolved.dependent_required.is_empty()) {
             validate_array_item_constraints(out, m, rid, prop_path, resolved);
         }
     }
@@ -1377,16 +1258,12 @@ fn validate_array_item_constraints(
     array_path: &str,
     item_schema: &PropSchema,
 ) {
-    let arr = match m
-        .resolve_deep(rid, array_path)
-        .or_else(|| m.resolve(rid, array_path).cloned())
-    {
+    let arr = match m.resolve_deep(rid, array_path).or_else(|| m.resolve(rid, array_path).cloned()) {
         Some(ResolvedValue::List { items }) => items,
         Some(ResolvedValue::Concrete { value: v }) => match v.into_inner() {
-            serde_json::Value::Array(items) => items
-                .into_iter()
-                .map(|i| ResolvedValue::Concrete { value: i.into() })
-                .collect(),
+            serde_json::Value::Array(items) => {
+                items.into_iter().map(|i| ResolvedValue::Concrete { value: i.into() }).collect()
+            }
             _ => return,
         },
         _ => return,
@@ -1394,9 +1271,7 @@ fn validate_array_item_constraints(
     for (idx, item) in arr.iter().enumerate() {
         let keys: Vec<String> = match item {
             ResolvedValue::Map { entries } => entries.iter().map(|e| e.key.clone()).collect(),
-            ResolvedValue::Concrete { value: v } if v.is_object() => {
-                v.as_object().unwrap().keys().cloned().collect()
-            }
+            ResolvedValue::Concrete { value: v } if v.is_object() => v.as_object().unwrap().keys().cloned().collect(),
             _ => continue,
         };
         let item_path = format!("{}.{}", array_path, idx);
@@ -1439,10 +1314,7 @@ fn validate_array_item_constraints(
 
 fn collect_keys_deep(m: &Arc<SemanticModel>, rid: &str, path: &str) -> Vec<String> {
     let mut keys = HashSet::new();
-    match m
-        .resolve_deep(rid, path)
-        .or_else(|| m.resolve(rid, path).cloned())
-    {
+    match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
         Some(ResolvedValue::Map { entries }) => {
             for e in &entries {
                 keys.insert(e.key.clone());
@@ -1481,9 +1353,7 @@ fn single_type(val: &serde_json::Value, expected: &str) -> bool {
     match expected {
         "string" => val.is_string(),
         "integer" => {
-            val.is_i64()
-                || val.is_u64()
-                || (val.is_f64() && val.as_f64().map(|f| f.fract() == 0.0).unwrap_or(false))
+            val.is_i64() || val.is_u64() || (val.is_f64() && val.as_f64().map(|f| f.fract() == 0.0).unwrap_or(false))
         }
         "number" | "double" | "float" => val.is_number(),
         "boolean" => val.is_boolean(),
@@ -1506,13 +1376,7 @@ fn enum_matches(val: &serde_json::Value, allowed: &[serde_json::Value]) -> bool 
     })
 }
 
-fn check_required_not_null(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    rid: &str,
-    base: &str,
-    req: &str,
-) {
+fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {
     for (val, conds) in &m.resolve_scenarios_json(rid, &format!("{}.{}", base, req)) {
         if !is_satisfiable(m, conds) {
             continue;
@@ -1536,20 +1400,11 @@ fn is_satisfiable(m: &Arc<SemanticModel>, conds: &HashMap<String, bool>) -> bool
     if conds.is_empty() {
         return true;
     }
-    m.conditions.is_satisfiable(
-        &conds
-            .iter()
-            .map(|(k, v)| (k.clone(), *v))
-            .collect::<Vec<_>>(),
-    )
+    m.conditions.is_satisfiable(&conds.iter().map(|(k, v)| (k.clone(), *v)).collect::<Vec<_>>())
 }
 
 fn condition_map(conds: &HashMap<String, bool>) -> Option<HashMap<String, bool>> {
-    if conds.is_empty() {
-        None
-    } else {
-        Some(conds.clone())
-    }
+    if conds.is_empty() { None } else { Some(conds.clone()) }
 }
 
 fn find_similar<'a>(key: &str, known: &HashSet<&'a str>) -> Option<&'a str> {
@@ -1571,18 +1426,16 @@ fn find_similar<'a>(key: &str, known: &HashSet<&'a str>) -> Option<&'a str> {
 fn levenshtein_distance(a: &str, b: &str) -> usize {
     let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
     let mut dp = vec![vec![0usize; b.len() + 1]; a.len() + 1];
-    for i in 0..=a.len() {
-        dp[i][0] = i;
+    for (i, row) in dp.iter_mut().enumerate() {
+        row[0] = i;
     }
-    for j in 0..=b.len() {
-        dp[0][j] = j;
+    for (j, cell) in dp[0].iter_mut().enumerate() {
+        *cell = j;
     }
     for i in 1..=a.len() {
         for j in 1..=b.len() {
             let c = if a[i - 1] == b[j - 1] { 0 } else { 1 };
-            dp[i][j] = (dp[i - 1][j] + 1)
-                .min(dp[i][j - 1] + 1)
-                .min(dp[i - 1][j - 1] + c);
+            dp[i][j] = (dp[i - 1][j] + 1).min(dp[i][j - 1] + 1).min(dp[i - 1][j - 1] + c);
         }
     }
     dp[a.len()][b.len()]
@@ -1603,10 +1456,7 @@ fn condition_matches(
     defs: &HashMap<String, PropSchema>,
 ) -> bool {
     if !cond.any_of.is_empty() {
-        return cond
-            .any_of
-            .iter()
-            .any(|sub| condition_matches(sub, actual_keys, m, rid, defs));
+        return cond.any_of.iter().any(|sub| condition_matches(sub, actual_keys, m, rid, defs));
     }
     for req in &cond.required {
         if !actual_keys.iter().any(|k| k == req) {
@@ -1630,10 +1480,7 @@ fn condition_matches(
             }
             continue;
         }
-        let compiled_pattern = resolved
-            .pattern
-            .as_ref()
-            .and_then(|pat| regex::Regex::new(pat).ok());
+        let compiled_pattern = resolved.pattern.as_ref().and_then(|pat| regex::Regex::new(pat).ok());
         // If the schema has a pattern but it failed to compile (e.g. lookahead),
         // we cannot verify the constraint — treat as non-matching.
         let pattern_uncompilable = resolved.pattern.is_some() && compiled_pattern.is_none();
@@ -1681,18 +1528,12 @@ fn validate_reference_type(
     let Some(ref expected_type) = schema.prop_type else {
         return;
     };
-    let raw = m
-        .resolve(rid, prop_path)
-        .cloned()
-        .or_else(|| m.resolve_deep(rid, prop_path));
+    let raw = m.resolve(rid, prop_path).cloned().or_else(|| m.resolve_deep(rid, prop_path));
     let Some(raw) = raw else { return };
 
     match &raw {
         ResolvedValue::Reference { target, kind } => {
-            let target_type = m
-                .resources
-                .get(target.as_str())
-                .map(|r| r.resource_type.as_str());
+            let target_type = m.resources.get(target.as_str()).map(|r| r.resource_type.as_str());
             let Some(target_rtype) = target_type else {
                 return;
             };
@@ -1739,10 +1580,7 @@ fn validate_reference_type(
                     out.push(build_diagnostic(
                         rule_id,
                         severity,
-                        &format!(
-                            "Ref to '{}' ({}) may not produce a valid '{}' value",
-                            target, target_rtype, fmt
-                        ),
+                        &format!("Ref to '{}' ({}) may not produce a valid '{}' value", target, target_rtype, fmt),
                         m,
                         rid,
                         prop_path,
@@ -1751,10 +1589,7 @@ fn validate_reference_type(
                 }
             }
         }
-        ResolvedValue::TypedDynamic {
-            reason: _name,
-            param_type,
-        } => {
+        ResolvedValue::TypedDynamic { reason: _name, param_type } => {
             let source = cfn_param_type_to_schema_type(param_type);
             if !types_compatible(source, expected_type) {
                 let expected = expected_type.primary().unwrap_or("unknown");
@@ -1762,10 +1597,7 @@ fn validate_reference_type(
                 out.push(build_diagnostic(
                     "W9003",
                     Severity::Warn,
-                    &format!(
-                        "Parameter type '{}' may not be compatible with expected type '{}'",
-                        param_type, expected
-                    ),
+                    &format!("Parameter type '{}' may not be compatible with expected type '{}'", param_type, expected),
                     m,
                     rid,
                     prop_path,
@@ -1806,13 +1638,7 @@ fn single_type_compatible(source: &str, expected: &str) -> bool {
     }
 }
 
-fn validate_format(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    rid: &str,
-    prop_path: &str,
-    format: &str,
-) {
+fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, prop_path: &str, format: &str) {
     let re_pattern = match format {
         "AWS::EC2::VPC.Id" => Some(r"^vpc-[a-f0-9]{8,17}$"),
         "AWS::EC2::Subnet.Id" => Some(r"^subnet-[a-f0-9]{8,17}$"),
@@ -1865,11 +1691,7 @@ fn validate_format(
     }
 }
 
-fn validate_lifecycle(
-    out: &mut Vec<Diagnostic>,
-    store: &CompiledSchemaStore,
-    model: &Arc<SemanticModel>,
-) {
+fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {
     let lifecycle = store.lifecycle();
     for (rid, res) in &model.resources {
         if let Some(entry) = lifecycle.resource_lifecycle(&res.resource_type) {
@@ -1877,18 +1699,12 @@ fn validate_lifecycle(
                 ("shutdown", Some(d)) => (
                     "E3710",
                     Severity::Error,
-                    format!(
-                        "Resource type '{}' is from a service that was shut down on {}",
-                        res.resource_type, d
-                    ),
+                    format!("Resource type '{}' is from a service that was shut down on {}", res.resource_type, d),
                 ),
                 ("shutdown", None) => (
                     "E3710",
                     Severity::Error,
-                    format!(
-                        "Resource type '{}' is from a service that has been shut down",
-                        res.resource_type
-                    ),
+                    format!("Resource type '{}' is from a service that has been shut down", res.resource_type),
                 ),
                 ("sunset", Some(d)) => (
                     "W3696",
@@ -1901,10 +1717,7 @@ fn validate_lifecycle(
                 ("sunset", None) => (
                     "W3696",
                     Severity::Warn,
-                    format!(
-                        "Resource type '{}' is from a service that is sunsetting",
-                        res.resource_type
-                    ),
+                    format!("Resource type '{}' is from a service that is sunsetting", res.resource_type),
                 ),
                 ("maintenance", Some(d)) => (
                     "W3697",
@@ -1917,21 +1730,14 @@ fn validate_lifecycle(
                 ("maintenance", None) => (
                     "W3697",
                     Severity::Warn,
-                    format!(
-                        "Resource type '{}' is from a service in maintenance mode",
-                        res.resource_type
-                    ),
+                    format!("Resource type '{}' is from a service in maintenance mode", res.resource_type),
                 ),
                 _ => continue,
             };
-            out.push(build_diagnostic(
-                rule_id, severity, &msg, model, rid, "", None,
-            ));
+            out.push(build_diagnostic(rule_id, severity, &msg, model, rid, "", None));
         }
 
-        if res.resource_type == "AWS::Lambda::Function"
-            || res.resource_type == "AWS::Serverless::Function"
-        {
+        if res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function" {
             for (val, _) in &model.resolve_scenarios_json(rid, "Properties.Runtime") {
                 let Some(runtime) = val.as_str() else {
                     continue;
@@ -2025,9 +1831,7 @@ fn validate_cfn_gather(
 
         let target_rid = if let Some(ref_path) = reference_path {
             let prop_key = ref_path.trim_start_matches('/');
-            model
-                .follow_ref(rid, &format!("Properties.{}", prop_key))
-                .map(String::from)
+            model.follow_ref(rid, &format!("Properties.{}", prop_key)).map(String::from)
         } else {
             Some(rid.to_string())
         };
@@ -2035,15 +1839,13 @@ fn validate_cfn_gather(
         let Some(target) = target_rid else { continue };
 
         if let Some(filter) = slot_obj.get("filter").and_then(|v| v.as_object())
-            && let Some(expected_type) = filter.get("type").and_then(|v| v.as_str()) {
-                let actual_type = model
-                    .resources
-                    .get(&target)
-                    .map(|r| r.resource_type.as_str());
-                if actual_type != Some(expected_type) {
-                    continue;
-                }
+            && let Some(expected_type) = filter.get("type").and_then(|v| v.as_str())
+        {
+            let actual_type = model.resources.get(&target).map(|r| r.resource_type.as_str());
+            if actual_type != Some(expected_type) {
+                continue;
             }
+        }
 
         let mut slot_values = serde_json::Map::new();
         if let Some(props) = properties {
@@ -2054,13 +1856,9 @@ fn validate_cfn_gather(
                     .map(|p| format!("Properties.{}", p.trim_start_matches('/')));
                 let default_val = prop_def.get("default").cloned();
 
-                let resolved = path.as_ref().and_then(|p| {
-                    model
-                        .resolve_scenarios_json(&target, p)
-                        .into_iter()
-                        .next()
-                        .map(|(v, _)| v)
-                });
+                let resolved = path
+                    .as_ref()
+                    .and_then(|p| model.resolve_scenarios_json(&target, p).into_iter().next().map(|(v, _)| v));
                 let value = resolved.or(default_val).unwrap_or(serde_json::Value::Null);
                 slot_values.insert(prop_name.clone(), value);
             }
@@ -2085,48 +1883,42 @@ fn validate_extension_if_then_else(
         return;
     };
     let if_matches = extension_condition_matches(if_schema, model, rid);
-    let branch = if if_matches {
-        ext.get("then")
-    } else {
-        ext.get("else")
-    };
+    let branch = if if_matches { ext.get("then") } else { ext.get("else") };
     let Some(branch_schema) = branch else { return };
 
     if let Some(required) = branch_schema.get("required").and_then(|v| v.as_array()) {
         for req in required {
             if let Some(prop_name) = req.as_str()
-                && !res.properties.contains_key(prop_name) {
-                    // Dedup: compiled base schema's if_then_else may already have
-                    // emitted a required-property diagnostic for the same required property (extensions
-                    // upstream sometimes mirror the base schema's conditional
-                    // requirements). Skip to avoid double-reporting.
-                    let already_reported = out.iter().any(|d| {
-                        d.rule_id == "F3003"
-                            && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(rid)
-                            && d.message
-                                .contains(&format!("'{}' is a required property", prop_name))
-                    });
-                    if already_reported {
-                        continue;
-                    }
-                    out.push(build_diagnostic(
-                        "F3003",
-                        Severity::Fatal,
-                        &format!("'{}' is a required property (from extension)", prop_name),
-                        model,
-                        rid,
-                        "Properties",
-                        Some(&format!("Add '{}'", prop_name)),
-                    ));
+                && !res.properties.contains_key(prop_name)
+            {
+                // Dedup: compiled base schema's if_then_else may already have
+                // emitted a required-property diagnostic for the same required property (extensions
+                // upstream sometimes mirror the base schema's conditional
+                // requirements). Skip to avoid double-reporting.
+                let already_reported = out.iter().any(|d| {
+                    d.rule_id == "F3003"
+                        && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(rid)
+                        && d.message.contains(&format!("'{}' is a required property", prop_name))
+                });
+                if already_reported {
+                    continue;
                 }
+                out.push(build_diagnostic(
+                    "F3003",
+                    Severity::Fatal,
+                    &format!("'{}' is a required property (from extension)", prop_name),
+                    model,
+                    rid,
+                    "Properties",
+                    Some(&format!("Add '{}'", prop_name)),
+                ));
+            }
         }
     }
 
     if let Some(props) = branch_schema.get("properties").and_then(|v| v.as_object()) {
         for (prop_name, constraint) in props {
-            if constraint == &serde_json::Value::Bool(false)
-                && res.properties.contains_key(prop_name)
-            {
+            if constraint == &serde_json::Value::Bool(false) && res.properties.contains_key(prop_name) {
                 // Extension marks the property as non-applicable in this configuration.
                 // CloudFormation does not reject such properties — it ignores them.
                 // Emit as Info so the finding is surfaced but does not block deployment
@@ -2134,10 +1926,7 @@ fn validate_extension_if_then_else(
                 out.push(build_diagnostic(
                     "I9002",
                     Severity::Info,
-                    &format!(
-                        "'{}' is ignored in this configuration (from extension)",
-                        prop_name
-                    ),
+                    &format!("'{}' is ignored in this configuration (from extension)", prop_name),
                     model,
                     rid,
                     &format!("Properties.{}", prop_name),
@@ -2164,23 +1953,14 @@ fn validate_extension_if_then_else(
                 let matches_enum = enum_vals.iter().any(|e| {
                     e == val
                         || cfn_coerce_to_string(e) == cfn_coerce_to_string(val)
-                        || e.as_str()
-                            .zip(val.as_str())
-                            .is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
+                        || e.as_str().zip(val.as_str()).is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
                 });
                 if !matches_enum {
-                    let allowed: Vec<String> = enum_vals
-                        .iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect();
+                    let allowed: Vec<String> = enum_vals.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                     out.push(build_diagnostic(
                         "E9006",
                         Severity::Error,
-                        &format!(
-                            "'{}' is not one of {:?}",
-                            cfn_coerce_to_string(val).unwrap_or_default(),
-                            allowed
-                        ),
+                        &format!("'{}' is not one of {:?}", cfn_coerce_to_string(val).unwrap_or_default(), allowed),
                         model,
                         rid,
                         &format!("Properties.{}", prop_name),
@@ -2195,32 +1975,20 @@ fn validate_extension_if_then_else(
 /// Check whether a resolved JSON value satisfies a single JSON Schema constraint object
 /// containing `enum`, `const`, or `pattern`.  Returns `true` when no recognised keyword
 /// is present (open constraint).
-fn match_constraint_value(
-    constraint: &serde_json::Map<String, serde_json::Value>,
-    val: &serde_json::Value,
-) -> bool {
+fn match_constraint_value(constraint: &serde_json::Map<String, serde_json::Value>, val: &serde_json::Value) -> bool {
     if let Some(enum_vals) = constraint.get("enum").and_then(|v| v.as_array()) {
-        return enum_vals
-            .iter()
-            .any(|e| e == val || cfn_coerce_to_string(e) == cfn_coerce_to_string(val));
+        return enum_vals.iter().any(|e| e == val || cfn_coerce_to_string(e) == cfn_coerce_to_string(val));
     }
     if let Some(cv) = constraint.get("const") {
         return val == cv || cfn_coerce_to_string(cv) == cfn_coerce_to_string(val);
     }
     if let Some(pat) = constraint.get("pattern").and_then(|v| v.as_str()) {
-        return val
-            .as_str()
-            .and_then(|s| regex::Regex::new(pat).ok().map(|re| re.is_match(s)))
-            .unwrap_or(false);
+        return val.as_str().and_then(|s| regex::Regex::new(pat).ok().map(|re| re.is_match(s))).unwrap_or(false);
     }
     true
 }
 
-fn extension_condition_matches(
-    if_schema: &serde_json::Value,
-    model: &Arc<SemanticModel>,
-    rid: &str,
-) -> bool {
+fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<SemanticModel>, rid: &str) -> bool {
     let Some(obj) = if_schema.as_object() else {
         return false;
     };
@@ -2264,10 +2032,7 @@ fn extension_condition_matches(
     true
 }
 
-fn resolve_data_in_schema(
-    schema: &serde_json::Value,
-    context: &serde_json::Value,
-) -> serde_json::Value {
+fn resolve_data_in_schema(schema: &serde_json::Value, context: &serde_json::Value) -> serde_json::Value {
     match schema {
         serde_json::Value::Object(obj) => {
             if let Some(lookup) = obj.get("$lookup").and_then(|v| v.as_object()) {
@@ -2290,11 +2055,9 @@ fn resolve_data_in_schema(
             }
             serde_json::Value::Object(result)
         }
-        serde_json::Value::Array(arr) => serde_json::Value::Array(
-            arr.iter()
-                .map(|v| resolve_data_in_schema(v, context))
-                .collect(),
-        ),
+        serde_json::Value::Array(arr) => {
+            serde_json::Value::Array(arr.iter().map(|v| resolve_data_in_schema(v, context)).collect())
+        }
         other => other.clone(),
     }
 }
@@ -2397,9 +2160,10 @@ fn gather_prop_matches(actual: &serde_json::Value, constraint: &serde_json::Valu
     if let Some(required) = obj.get("required").and_then(|v| v.as_array()) {
         for req in required {
             if let Some(name) = req.as_str()
-                && actual.get(name).is_none() {
-                    return false;
-                }
+                && actual.get(name).is_none()
+            {
+                return false;
+            }
         }
     }
     if let Some(cv) = obj.get("const") {
@@ -2424,14 +2188,7 @@ fn evaluate_gather_constraints(
     if let Some(props) = obj.get("properties").and_then(|v| v.as_object()) {
         for (slot_name, slot_constraints) in props {
             let slot_val = resolve_json_pointer(context, &format!("/{}", slot_name));
-            check_gather_property_constraints(
-                out,
-                model,
-                rid,
-                slot_name,
-                &slot_val,
-                slot_constraints,
-            );
+            check_gather_property_constraints(out, model, rid, slot_name, &slot_val, slot_constraints);
         }
     }
 }
@@ -2456,45 +2213,59 @@ fn check_gather_property_constraints(
             };
             if let Some(cv) = pc.get("const")
                 && !cv.is_null()
-                    && prop_val != cv
-                    && cfn_coerce_to_string(prop_val) != cfn_coerce_to_string(cv)
-                {
-                    out.push(build_diagnostic(
-                        "E3030",
-                        Severity::Fatal,
-                        &format!(
-                            "Cross-resource constraint: {}.{} is {} but must be {} (from referenced resource)",
-                            slot_name, prop_name, format_value(prop_val), format_value(cv)
-                        ),
-                        model, rid, "Properties", None,
-                    ));
-                }
+                && prop_val != cv
+                && cfn_coerce_to_string(prop_val) != cfn_coerce_to_string(cv)
+            {
+                out.push(build_diagnostic(
+                    "E3030",
+                    Severity::Fatal,
+                    &format!(
+                        "Cross-resource constraint: {}.{} is {} but must be {} (from referenced resource)",
+                        slot_name,
+                        prop_name,
+                        format_value(prop_val),
+                        format_value(cv)
+                    ),
+                    model,
+                    rid,
+                    "Properties",
+                    None,
+                ));
+            }
             if let Some(min_val) = pc.get("minimum").and_then(cfn_coerce_to_number)
                 && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                    && actual_num < min_val {
-                        out.push(build_diagnostic(
-                            "F3034",
-                            Severity::Fatal,
-                            &format!(
-                                "Cross-resource constraint: {}.{} is {} but must be >= {} (from referenced resource)",
-                                slot_name, prop_name, actual_num, min_val
-                            ),
-                            model, rid, "Properties", None,
-                        ));
-                    }
+                && actual_num < min_val
+            {
+                out.push(build_diagnostic(
+                    "F3034",
+                    Severity::Fatal,
+                    &format!(
+                        "Cross-resource constraint: {}.{} is {} but must be >= {} (from referenced resource)",
+                        slot_name, prop_name, actual_num, min_val
+                    ),
+                    model,
+                    rid,
+                    "Properties",
+                    None,
+                ));
+            }
             if let Some(max_val) = pc.get("maximum").and_then(cfn_coerce_to_number)
                 && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                    && actual_num > max_val {
-                        out.push(build_diagnostic(
-                            "F3034",
-                            Severity::Fatal,
-                            &format!(
-                                "Cross-resource constraint: {}.{} is {} but must be <= {} (from referenced resource)",
-                                slot_name, prop_name, actual_num, max_val
-                            ),
-                            model, rid, "Properties", None,
-                        ));
-                    }
+                && actual_num > max_val
+            {
+                out.push(build_diagnostic(
+                    "F3034",
+                    Severity::Fatal,
+                    &format!(
+                        "Cross-resource constraint: {}.{} is {} but must be <= {} (from referenced resource)",
+                        slot_name, prop_name, actual_num, max_val
+                    ),
+                    model,
+                    rid,
+                    "Properties",
+                    None,
+                ));
+            }
         }
     }
 }
@@ -2518,16 +2289,13 @@ fn describe_resolution(m: &Arc<SemanticModel>, rid: &str, prop_path: &str) -> Op
             Some(format!("{} to '{}'", kind_str, target))
         }
         ResolvedValue::Enum { variants: _ } => Some("parameter with AllowedValues".into()),
-        ResolvedValue::Conditional {
-            condition: cond,
-            if_true: _,
-            if_false: _,
-        } => Some(format!("Fn::If on condition '{}'", cond)),
+        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
+            Some(format!("Fn::If on condition '{}'", cond))
+        }
         ResolvedValue::Dynamic { reason: desc } => Some(format!("dynamic ({})", desc)),
-        ResolvedValue::TypedDynamic {
-            reason: name,
-            param_type: typ,
-        } => Some(format!("parameter '{}' (type {})", name, typ)),
+        ResolvedValue::TypedDynamic { reason: name, param_type: typ } => {
+            Some(format!("parameter '{}' (type {})", name, typ))
+        }
         _ => None,
     }
 }
@@ -2559,11 +2327,7 @@ fn build_diagnostic_conditional(
     } else {
         m.resource_span(rid, prop)
     };
-    let property_path = if prop.is_empty() {
-        None
-    } else {
-        Some(prop.into())
-    };
+    let property_path = if prop.is_empty() { None } else { Some(prop.into()) };
     Diagnostic {
         rule_id: rule_id.into(),
         severity,
@@ -2654,11 +2418,7 @@ mod tests {
     #[test]
     fn find_similar_no_match() {
         let known: HashSet<&str> = ["BucketName", "AccessControl"].into_iter().collect();
-        assert_eq!(
-            find_similar("CompletelyDifferent", &known),
-            None,
-            "dissimilar name should not match"
-        );
+        assert_eq!(find_similar("CompletelyDifferent", &known), None, "dissimilar name should not match");
     }
 
     #[test]
@@ -2669,92 +2429,47 @@ mod tests {
 
     #[test]
     fn type_matches_string() {
-        assert!(type_matches(
-            &json!("hello"),
-            &PropType::Single("string".into())
-        ));
-        assert!(!type_matches(
-            &json!(42),
-            &PropType::Single("string".into())
-        ));
+        assert!(type_matches(&json!("hello"), &PropType::Single("string".into())));
+        assert!(!type_matches(&json!(42), &PropType::Single("string".into())));
     }
 
     #[test]
     fn type_matches_integer() {
-        assert!(type_matches(
-            &json!(42),
-            &PropType::Single("integer".into())
-        ));
-        assert!(type_matches(
-            &json!(42.0),
-            &PropType::Single("integer".into())
-        ));
-        assert!(!type_matches(
-            &json!(42.5),
-            &PropType::Single("integer".into())
-        ));
-        assert!(!type_matches(
-            &json!("42"),
-            &PropType::Single("integer".into())
-        ));
+        assert!(type_matches(&json!(42), &PropType::Single("integer".into())));
+        assert!(type_matches(&json!(42.0), &PropType::Single("integer".into())));
+        assert!(!type_matches(&json!(42.5), &PropType::Single("integer".into())));
+        assert!(!type_matches(&json!("42"), &PropType::Single("integer".into())));
     }
 
     #[test]
     fn type_matches_number() {
         assert!(type_matches(&json!(42), &PropType::Single("number".into())));
-        assert!(type_matches(
-            &json!(3.14),
-            &PropType::Single("number".into())
-        ));
-        assert!(!type_matches(
-            &json!("3.14"),
-            &PropType::Single("number".into())
-        ));
+        assert!(type_matches(&json!(3.14), &PropType::Single("number".into())));
+        assert!(!type_matches(&json!("3.14"), &PropType::Single("number".into())));
     }
 
     #[test]
     fn type_matches_boolean() {
-        assert!(type_matches(
-            &json!(true),
-            &PropType::Single("boolean".into())
-        ));
-        assert!(!type_matches(
-            &json!("true"),
-            &PropType::Single("boolean".into())
-        ));
+        assert!(type_matches(&json!(true), &PropType::Single("boolean".into())));
+        assert!(!type_matches(&json!("true"), &PropType::Single("boolean".into())));
     }
 
     #[test]
     fn type_matches_array() {
-        assert!(type_matches(
-            &json!([1, 2]),
-            &PropType::Single("array".into())
-        ));
-        assert!(!type_matches(
-            &json!("[]"),
-            &PropType::Single("array".into())
-        ));
+        assert!(type_matches(&json!([1, 2]), &PropType::Single("array".into())));
+        assert!(!type_matches(&json!("[]"), &PropType::Single("array".into())));
     }
 
     #[test]
     fn type_matches_object() {
-        assert!(type_matches(
-            &json!({"a": 1}),
-            &PropType::Single("object".into())
-        ));
-        assert!(!type_matches(
-            &json!("{}"),
-            &PropType::Single("object".into())
-        ));
+        assert!(type_matches(&json!({"a": 1}), &PropType::Single("object".into())));
+        assert!(!type_matches(&json!("{}"), &PropType::Single("object".into())));
     }
 
     #[test]
     fn type_matches_null() {
         assert!(type_matches(&json!(null), &PropType::Single("null".into())));
-        assert!(!type_matches(
-            &json!("null"),
-            &PropType::Single("null".into())
-        ));
+        assert!(!type_matches(&json!("null"), &PropType::Single("null".into())));
     }
 
     #[test]
@@ -2767,10 +2482,7 @@ mod tests {
 
     #[test]
     fn type_matches_unknown_type_always_true() {
-        assert!(type_matches(
-            &json!("anything"),
-            &PropType::Single("custom_type".into())
-        ));
+        assert!(type_matches(&json!("anything"), &PropType::Single("custom_type".into())));
     }
 
     #[test]
@@ -2857,18 +2569,12 @@ mod tests {
     #[test]
     fn param_type_list_prefix() {
         assert_eq!(cfn_param_type_to_schema_type("List<Number>"), "array");
-        assert_eq!(
-            cfn_param_type_to_schema_type("List<AWS::EC2::Subnet::Id>"),
-            "array"
-        );
+        assert_eq!(cfn_param_type_to_schema_type("List<AWS::EC2::Subnet::Id>"), "array");
     }
 
     #[test]
     fn param_type_ssm_parameter() {
-        assert_eq!(
-            cfn_param_type_to_schema_type("AWS::SSM::Parameter::Value<String>"),
-            "string"
-        );
+        assert_eq!(cfn_param_type_to_schema_type("AWS::SSM::Parameter::Value<String>"), "string");
     }
 
     #[test]
@@ -2954,15 +2660,9 @@ mod tests {
 
     #[test]
     fn resolve_data_non_object_passthrough() {
-        assert_eq!(
-            resolve_data_in_schema(&json!("plain"), &json!({})),
-            json!("plain")
-        );
+        assert_eq!(resolve_data_in_schema(&json!("plain"), &json!({})), json!("plain"));
         assert_eq!(resolve_data_in_schema(&json!(42), &json!({})), json!(42));
-        assert_eq!(
-            resolve_data_in_schema(&json!(null), &json!({})),
-            json!(null)
-        );
+        assert_eq!(resolve_data_in_schema(&json!(null), &json!({})), json!(null));
     }
 
     #[test]
@@ -2977,10 +2677,7 @@ mod tests {
             }
         });
         let context = json!({"source": {"engine": "aurora"}});
-        assert_eq!(
-            resolve_data_in_schema(&schema, &context),
-            json!({"const": 3306})
-        );
+        assert_eq!(resolve_data_in_schema(&schema, &context), json!({"const": 3306}));
     }
 
     #[test]
@@ -2997,14 +2694,8 @@ mod tests {
 
     #[test]
     fn types_compatible_single() {
-        assert!(types_compatible(
-            "string",
-            &PropType::Single("string".into())
-        ));
-        assert!(!types_compatible(
-            "array",
-            &PropType::Single("string".into())
-        ));
+        assert!(types_compatible("string", &PropType::Single("string".into())));
+        assert!(!types_compatible("array", &PropType::Single("string".into())));
     }
 
     #[test]
@@ -3012,10 +2703,7 @@ mod tests {
         let pt = PropType::Multi(vec!["string".into(), "null".into()]);
         assert!(types_compatible("string", &pt));
         assert!(types_compatible("integer", &pt));
-        assert!(!types_compatible(
-            "array",
-            &PropType::Multi(vec!["string".into(), "integer".into()])
-        ));
+        assert!(!types_compatible("array", &PropType::Multi(vec!["string".into(), "integer".into()])));
     }
 
     #[test]
@@ -3040,10 +2728,7 @@ mod tests {
         let mut props = HashMap::new();
         props.insert(
             "Name".into(),
-            PropSchema {
-                prop_type: Some(PropType::Single("string".into())),
-                ..Default::default()
-            },
+            PropSchema { prop_type: Some(PropType::Single("string".into())), ..Default::default() },
         );
         let defs = HashMap::new();
         let result = find_prop_schema("Name", &props, &defs).expect("Name should be found");
@@ -3052,54 +2737,32 @@ mod tests {
 
     #[test]
     fn find_prop_schema_nested_path() {
-        let inner = PropSchema {
-            prop_type: Some(PropType::Single("integer".into())),
-            ..Default::default()
-        };
+        let inner = PropSchema { prop_type: Some(PropType::Single("integer".into())), ..Default::default() };
         let mut inner_props = HashMap::new();
         inner_props.insert("Port".into(), inner);
-        let outer = PropSchema {
-            properties: inner_props,
-            ..Default::default()
-        };
+        let outer = PropSchema { properties: inner_props, ..Default::default() };
         let mut props = HashMap::new();
         props.insert("Config".into(), outer);
         let defs = HashMap::new();
-        let result =
-            find_prop_schema("Config.Port", &props, &defs).expect("Config.Port should be found");
-        assert_eq!(
-            result.prop_type.as_ref().unwrap().primary(),
-            Some("integer")
-        );
+        let result = find_prop_schema("Config.Port", &props, &defs).expect("Config.Port should be found");
+        assert_eq!(result.prop_type.as_ref().unwrap().primary(), Some("integer"));
     }
 
     #[test]
     fn find_prop_schema_missing_returns_none() {
         let props = HashMap::new();
         let defs = HashMap::new();
-        assert!(
-            find_prop_schema("Missing", &props, &defs).is_none(),
-            "missing prop should return None"
-        );
+        assert!(find_prop_schema("Missing", &props, &defs).is_none(), "missing prop should return None");
     }
 
     #[test]
     fn find_prop_schema_resolves_ref() {
         let mut props = HashMap::new();
-        props.insert(
-            "Config".into(),
-            PropSchema {
-                ref_name: Some("ConfigDef".into()),
-                ..Default::default()
-            },
-        );
+        props.insert("Config".into(), PropSchema { ref_name: Some("ConfigDef".into()), ..Default::default() });
         let mut defs = HashMap::new();
         defs.insert(
             "ConfigDef".into(),
-            PropSchema {
-                prop_type: Some(PropType::Single("object".into())),
-                ..Default::default()
-            },
+            PropSchema { prop_type: Some(PropType::Single("object".into())), ..Default::default() },
         );
         let result = find_prop_schema("Config", &props, &defs).expect("Config should be found");
         assert_eq!(result.prop_type.as_ref().unwrap().primary(), Some("object"));
@@ -3110,20 +2773,10 @@ mod tests {
         let mut props = HashMap::new();
         props.insert(
             "Name".into(),
-            PropSchema {
-                prop_type: Some(PropType::Single("string".into())),
-                ..Default::default()
-            },
+            PropSchema { prop_type: Some(PropType::Single("string".into())), ..Default::default() },
         );
-        let schema = CompiledSchema {
-            type_name: "Test".into(),
-            properties: props,
-            ..Default::default()
-        };
-        assert!(
-            find_prop_schema_deep("Name", &schema).is_some(),
-            "direct property should be found"
-        );
+        let schema = CompiledSchema { type_name: "Test".into(), properties: props, ..Default::default() };
+        assert!(find_prop_schema_deep("Name", &schema).is_some(), "direct property should be found");
     }
 
     #[test]
@@ -3131,28 +2784,16 @@ mod tests {
         let mut sub_props = HashMap::new();
         sub_props.insert(
             "Special".into(),
-            PropSchema {
-                prop_type: Some(PropType::Single("boolean".into())),
-                ..Default::default()
-            },
+            PropSchema { prop_type: Some(PropType::Single("boolean".into())), ..Default::default() },
         );
         let schema = CompiledSchema {
             type_name: "Test".into(),
-            one_of: vec![crate::compiled::SubSchema {
-                properties: sub_props,
-                ..Default::default()
-            }],
+            one_of: vec![crate::compiled::SubSchema { properties: sub_props, ..Default::default() }],
             ..Default::default()
         };
         let result = find_prop_schema_deep("Special", &schema);
-        assert!(
-            result.is_some(),
-            "expected to find Special in oneOf sub-schema"
-        );
-        assert_eq!(
-            result.unwrap().prop_type.as_ref().unwrap().primary(),
-            Some("boolean")
-        );
+        assert!(result.is_some(), "expected to find Special in oneOf sub-schema");
+        assert_eq!(result.unwrap().prop_type.as_ref().unwrap().primary(), Some("boolean"));
     }
 
     #[test]
@@ -3160,19 +2801,13 @@ mod tests {
         let mut then_props = HashMap::new();
         then_props.insert(
             "ConditionalProp".into(),
-            PropSchema {
-                prop_type: Some(PropType::Single("string".into())),
-                ..Default::default()
-            },
+            PropSchema { prop_type: Some(PropType::Single("string".into())), ..Default::default() },
         );
         let schema = CompiledSchema {
             type_name: "Test".into(),
             if_then_else: vec![crate::compiled::IfThenElse {
                 condition: Default::default(),
-                then_schema: Some(crate::compiled::SubSchema {
-                    properties: then_props,
-                    ..Default::default()
-                }),
+                then_schema: Some(crate::compiled::SubSchema { properties: then_props, ..Default::default() }),
                 else_schema: None,
             }],
             ..Default::default()
@@ -3196,10 +2831,7 @@ mod tests {
 
     #[test]
     fn condition_matches_required_key_missing() {
-        let cond = ConditionSchema {
-            required: vec!["MissingKey".into()],
-            ..Default::default()
-        };
+        let cond = ConditionSchema { required: vec!["MissingKey".into()], ..Default::default() };
         let keys = vec!["A".into()];
         let model = Arc::new(SemanticModel::from_bytes(
             b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  R:\n    Type: AWS::CloudFormation::WaitConditionHandle"
@@ -3232,29 +2864,19 @@ mod tests {
     #[test]
     fn gather_prop_matches_const() {
         assert!(gather_prop_matches(&json!("tcp"), &json!({"const": "tcp"})));
-        assert!(!gather_prop_matches(
-            &json!("udp"),
-            &json!({"const": "tcp"})
-        ));
+        assert!(!gather_prop_matches(&json!("udp"), &json!({"const": "tcp"})));
     }
 
     #[test]
     fn gather_prop_matches_enum() {
-        assert!(gather_prop_matches(
-            &json!("a"),
-            &json!({"enum": ["a", "b"]})
-        ));
-        assert!(!gather_prop_matches(
-            &json!("c"),
-            &json!({"enum": ["a", "b"]})
-        ));
+        assert!(gather_prop_matches(&json!("a"), &json!({"enum": ["a", "b"]})));
+        assert!(!gather_prop_matches(&json!("c"), &json!({"enum": ["a", "b"]})));
     }
 
     #[test]
     fn gather_prop_matches_nested_properties() {
         let actual = json!({"inner": {"key": "val"}});
-        let constraint =
-            json!({"properties": {"inner": {"properties": {"key": {"const": "val"}}}}});
+        let constraint = json!({"properties": {"inner": {"properties": {"key": {"const": "val"}}}}});
         assert!(gather_prop_matches(&actual, &constraint));
     }
 }

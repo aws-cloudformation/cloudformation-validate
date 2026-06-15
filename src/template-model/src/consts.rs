@@ -39,11 +39,7 @@ pub fn partition_for_region(region: &str) -> &'static str {
 }
 
 pub fn url_suffix_for_region(region: &str) -> &'static str {
-    if CN_REGIONS.contains(&region) {
-        "amazonaws.com.cn"
-    } else {
-        DEFAULT_URL_SUFFIX
-    }
+    if CN_REGIONS.contains(&region) { "amazonaws.com.cn" } else { DEFAULT_URL_SUFFIX }
 }
 
 pub const SECTION_PARAMETERS: &str = "Parameters";
@@ -262,16 +258,8 @@ pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
 /// intrinsics (`Fn::Contains`, `Fn::EachMemberEquals`, `Fn::EachMemberIn`).
 /// Section-placement constraints are enforced separately in `rules.rs` via
 /// `validate_allowed_functions`.
-pub const BOOLEAN_FN_KEYS: &[&str] = &[
-    FN_CONDITION,
-    FN_EQUALS,
-    FN_AND,
-    FN_OR,
-    FN_NOT,
-    FN_CONTAINS,
-    FN_EACH_MEMBER_EQUALS,
-    FN_EACH_MEMBER_IN,
-];
+pub const BOOLEAN_FN_KEYS: &[&str] =
+    &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT, FN_CONTAINS, FN_EACH_MEMBER_EQUALS, FN_EACH_MEMBER_IN];
 
 /// Intrinsic functions whose output can stand in for a string-typed
 /// argument to `Fn::Equals`. An `Fn::Equals` argument that is a single-key

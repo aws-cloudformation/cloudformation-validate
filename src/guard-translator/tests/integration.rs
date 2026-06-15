@@ -61,18 +61,12 @@ fn parse_guard_returns_empty_file_for_empty_source() {
 fn parse_guard_returns_error_with_filename_on_invalid_syntax() {
     let result = parse_guard("rule { invalid syntax !!!", "bad.guard");
     let err = result.unwrap_err();
-    assert!(
-        err.contains("bad.guard"),
-        "error should mention filename, got: {err}"
-    );
+    assert!(err.contains("bad.guard"), "error should mention filename, got: {err}");
 }
 
 #[test]
 fn pack_name_from_path_strips_directory_and_extension() {
-    assert_eq!(
-        pack_name_from_path("security-policies/elb-listener.guard"),
-        "elb_listener"
-    );
+    assert_eq!(pack_name_from_path("security-policies/elb-listener.guard"), "elb_listener");
     assert_eq!(pack_name_from_path("/a/b/my-rule.ruleset"), "my_rule");
 }
 
@@ -104,11 +98,7 @@ fn load_pack_directory_errors_when_no_guard_files_found() {
 #[test]
 fn load_guard_sources_recursive_finds_files_in_subdirectories() {
     let sources = load_guard_sources_recursive("tests/fixtures").unwrap();
-    assert!(
-        sources.len() >= 3,
-        "expected at least 3 files, got {}",
-        sources.len()
-    );
+    assert!(sources.len() >= 3, "expected at least 3 files, got {}", sources.len());
 }
 
 #[test]
@@ -204,10 +194,7 @@ rule check {
     };
     assert_eq!(ac.operator, Operator::In);
     assert!(!ac.negated, "IN operator should not be negated");
-    assert!(
-        ac.compare_with.is_some(),
-        "IN clause should have compare_with"
-    );
+    assert!(ac.compare_with.is_some(), "IN clause should have compare_with");
 }
 
 #[test]

@@ -8,8 +8,7 @@ use template_model::{PseudoParameterOverrides, SemanticModel};
 use validation_engine::{EngineConfig, ValidationEngine, catch_panics, validate_bytes_with_path};
 use wasm_bindgen::prelude::*;
 
-const SERIALIZER: serde_wasm_bindgen::Serializer =
-    serde_wasm_bindgen::Serializer::json_compatible();
+const SERIALIZER: serde_wasm_bindgen::Serializer = serde_wasm_bindgen::Serializer::json_compatible();
 
 #[wasm_bindgen(start)]
 pub fn init() {
@@ -53,10 +52,7 @@ pub struct ValidateConfig {
     pub include_engine_rules: Option<bool>,
 }
 
-fn build_core_config(
-    opts: ValidateConfig,
-    detail_level: DetailLevel,
-) -> validation_engine::ValidateConfig {
+fn build_core_config(opts: ValidateConfig, detail_level: DetailLevel) -> validation_engine::ValidateConfig {
     let defaults = validation_engine::ValidateConfig::default();
     validation_engine::ValidateConfig {
         filters: FilterConfig::new(opts.include, opts.exclude),
@@ -65,9 +61,7 @@ fn build_core_config(
         parameter_overrides: opts.parameter_overrides.unwrap_or_default(),
         pseudo_parameter_overrides: opts.pseudo_parameter_overrides.unwrap_or_default(),
         strict: opts.strict.unwrap_or(defaults.strict),
-        include_engine_rules: opts
-            .include_engine_rules
-            .unwrap_or(defaults.include_engine_rules),
+        include_engine_rules: opts.include_engine_rules.unwrap_or(defaults.include_engine_rules),
     }
 }
 
@@ -89,9 +83,7 @@ pub struct WasmSchemaValidator {
 impl WasmSchemaValidator {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmSchemaValidator {
-        WasmSchemaValidator {
-            inner: SchemaValidator::new(),
-        }
+        WasmSchemaValidator { inner: SchemaValidator::new() }
     }
 
     #[wasm_bindgen(js_name = "listRules")]
@@ -108,12 +100,8 @@ impl WasmSchemaValidator {
         catch_panics(
             || {
                 let result = self.inner.validate(&model.model, region);
-                let diagnostics: Vec<_> =
-                    result.diagnostics.iter().map(|d| d.to_standard()).collect();
-                to_js(&WasmSchemaValidationResult {
-                    diagnostics,
-                    metric: result.metric,
-                })
+                let diagnostics: Vec<_> = result.diagnostics.iter().map(|d| d.to_standard()).collect();
+                to_js(&WasmSchemaValidationResult { diagnostics, metric: result.metric })
             },
             wasm_panic_err,
         )
@@ -137,10 +125,7 @@ macro_rules! wasm_engine {
                 catch_panics(
                     || {
                         let engine = <$inner>::new(config).map_err(to_js_err)?;
-                        Ok($wrapper {
-                            engine,
-                            schema_validator: SchemaValidator::new(),
-                        })
+                        Ok($wrapper { engine, schema_validator: SchemaValidator::new() })
                     },
                     wasm_panic_err,
                 )
@@ -156,14 +141,9 @@ macro_rules! wasm_engine {
                 catch_panics(
                     || {
                         let config = build_core_config(options, DetailLevel::Standard);
-                        let report = validate_bytes_with_path(
-                            &self.engine,
-                            &self.schema_validator,
-                            template,
-                            config,
-                            file_path,
-                        )
-                        .map_err(to_js_err)?;
+                        let report =
+                            validate_bytes_with_path(&self.engine, &self.schema_validator, template, config, file_path)
+                                .map_err(to_js_err)?;
                         to_js(&report.to_standard())
                     },
                     wasm_panic_err,
@@ -180,14 +160,9 @@ macro_rules! wasm_engine {
                 catch_panics(
                     || {
                         let config = build_core_config(options, DetailLevel::Detailed);
-                        let report = validate_bytes_with_path(
-                            &self.engine,
-                            &self.schema_validator,
-                            template,
-                            config,
-                            file_path,
-                        )
-                        .map_err(to_js_err)?;
+                        let report =
+                            validate_bytes_with_path(&self.engine, &self.schema_validator, template, config, file_path)
+                                .map_err(to_js_err)?;
                         to_js(&report.to_detailed())
                     },
                     wasm_panic_err,
@@ -222,11 +197,8 @@ impl WasmSemanticModel {
     pub fn parse(template: &[u8]) -> Result<WasmSemanticModel, JsValue> {
         catch_panics(
             || {
-                let result =
-                    SemanticModel::parse(template, Default::default()).map_err(to_js_err)?;
-                Ok(WasmSemanticModel {
-                    model: std::sync::Arc::new(result.model),
-                })
+                let result = SemanticModel::parse(template, Default::default()).map_err(to_js_err)?;
+                Ok(WasmSemanticModel { model: std::sync::Arc::new(result.model) })
             },
             wasm_panic_err,
         )

@@ -2,6 +2,7 @@ use crate::consts::*;
 use crate::ir::*;
 use log::{debug, info, warn};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::str::from_utf8;
 
 fn build_line_offsets(bytes: &[u8]) -> Vec<usize> {
@@ -15,10 +16,7 @@ fn build_line_offsets(bytes: &[u8]) -> Vec<usize> {
 }
 
 fn offset_to_line_col(line_offsets: &[usize], offset: usize) -> (u32, u32) {
-    let line_idx = match line_offsets.binary_search(&offset) {
-        Ok(i) => i,
-        Err(i) => i.saturating_sub(1),
-    };
+    let line_idx = line_offsets.binary_search(&offset).unwrap_or_else(|i| i.saturating_sub(1));
     let col = offset - line_offsets[line_idx] + 1;
     (line_idx as u32 + 1, col as u32)
 }
@@ -51,25 +49,16 @@ fn condition_element_error(val: &serde_json::Value) -> Option<String> {
         return Some("null is not of type 'boolean'".to_string());
     }
     let Some(obj) = val.as_object() else {
-        return Some(format!(
-            "{} is not of type 'boolean'",
-            describe_json_value(val)
-        ));
+        return Some(format!("{} is not of type 'boolean'", describe_json_value(val)));
     };
     if obj.len() != 1 {
-        return Some(format!(
-            "{} is not of type 'boolean'",
-            describe_json_value(val)
-        ));
+        return Some(format!("{} is not of type 'boolean'", describe_json_value(val)));
     }
     let key = obj.keys().next().map(String::as_str).unwrap_or("");
     if BOOLEAN_FN_KEYS.contains(&key) {
         None
     } else {
-        Some(format!(
-            "{} is not of type 'boolean'",
-            describe_json_value(val)
-        ))
+        Some(format!("{} is not of type 'boolean'", describe_json_value(val)))
     }
 }
 
@@ -84,42 +73,28 @@ fn equals_argument_error(val: &serde_json::Value) -> Option<String> {
         return None;
     }
     if let Some(obj) = val.as_object()
-        && obj.len() == 1 {
-            let key = obj.keys().next().map(String::as_str).unwrap_or("");
-            if EQUALS_ARG_FN_KEYS.contains(&key) {
-                return None;
-            }
+        && obj.len() == 1
+    {
+        let key = obj.keys().next().map(String::as_str).unwrap_or("");
+        if EQUALS_ARG_FN_KEYS.contains(&key) {
+            return None;
         }
-    Some(format!(
-        "{} is not of type 'string'",
-        describe_json_value(val)
-    ))
+    }
+    Some(format!("{} is not of type 'string'", describe_json_value(val)))
 }
 
 impl JsonBuilder {
     fn build_value(&mut self, val: &serde_json::Value, path: &str) -> NodeRef {
         match val {
-            serde_json::Value::Null => self.arena.alloc(SpannedNode {
-                node: Node::Null,
-                span: UNKNOWN_SPAN,
-                path: path.to_string(),
-            }),
-            serde_json::Value::Bool(b) => self.arena.alloc(SpannedNode {
-                node: Node::Bool(*b),
-                span: UNKNOWN_SPAN,
-                path: path.to_string(),
-            }),
+            serde_json::Value::Null => {
+                self.arena.alloc(SpannedNode { node: Node::Null, span: UNKNOWN_SPAN, path: path.to_string() })
+            }
+            serde_json::Value::Bool(b) => {
+                self.arena.alloc(SpannedNode { node: Node::Bool(*b), span: UNKNOWN_SPAN, path: path.to_string() })
+            }
             serde_json::Value::Number(n) => {
-                let node = if let Some(i) = n.as_i64() {
-                    Node::Int(i)
-                } else {
-                    Node::Float(n.as_f64().unwrap_or(0.0))
-                };
-                self.arena.alloc(SpannedNode {
-                    node,
-                    span: UNKNOWN_SPAN,
-                    path: path.to_string(),
-                })
+                let node = if let Some(i) = n.as_i64() { Node::Int(i) } else { Node::Float(n.as_f64().unwrap_or(0.0)) };
+                self.arena.alloc(SpannedNode { node, span: UNKNOWN_SPAN, path: path.to_string() })
             }
             serde_json::Value::String(s) => self.arena.alloc(SpannedNode {
                 node: Node::String(s.clone()),
@@ -135,21 +110,13 @@ impl JsonBuilder {
                         self.build_value(v, &child_path)
                     })
                     .collect();
-                self.arena.alloc(SpannedNode {
-                    node: Node::List(children),
-                    span: UNKNOWN_SPAN,
-                    path: path.to_string(),
-                })
+                self.arena.alloc(SpannedNode { node: Node::List(children), span: UNKNOWN_SPAN, path: path.to_string() })
             }
             serde_json::Value::Object(map) => self.build_map(map, path),
         }
     }
 
-    fn build_map(
-        &mut self,
-        map: &serde_json::Map<String, serde_json::Value>,
-        path: &str,
-    ) -> NodeRef {
+    fn build_map(&mut self, map: &serde_json::Map<String, serde_json::Value>, path: &str) -> NodeRef {
         if map.len() == 1 {
             let (key, val) = map.iter().next().unwrap();
             if let Some(intrinsic) = self.try_build_intrinsic(key, val, path) {
@@ -159,34 +126,27 @@ impl JsonBuilder {
 
         if map.len() == 1
             && let Some(cond_name) = map.get(FN_CONDITION)
-                && let serde_json::Value::String(name) = cond_name {
-                    let span = UNKNOWN_SPAN;
-                    return self.arena.alloc(SpannedNode {
-                        node: Node::Intrinsic(IntrinsicFn::Ref(format!("Condition:{}", name))),
-                        span,
-                        path: path.to_string(),
-                    });
-                }
+            && let serde_json::Value::String(name) = cond_name
+        {
+            let span = UNKNOWN_SPAN;
+            return self.arena.alloc(SpannedNode {
+                node: Node::Intrinsic(IntrinsicFn::Ref(format!("Condition:{}", name))),
+                span,
+                path: path.to_string(),
+            });
+        }
 
         let entries: Vec<(String, NodeRef)> = map
             .iter()
             .map(|(key, val)| {
-                let child_path = if path.is_empty() {
-                    key.clone()
-                } else {
-                    format!("{}/{}", path, key)
-                };
+                let child_path = if path.is_empty() { key.clone() } else { format!("{}/{}", path, key) };
                 let child_ref = self.build_value(val, &child_path);
                 self.global_index.insert(child_path.clone(), child_ref);
                 (key.clone(), child_ref)
             })
             .collect();
 
-        self.arena.alloc(SpannedNode {
-            node: Node::Map(entries),
-            span: UNKNOWN_SPAN,
-            path: path.to_string(),
-        })
+        self.arena.alloc(SpannedNode { node: Node::Map(entries), span: UNKNOWN_SPAN, path: path.to_string() })
     }
 
     fn intrinsic_error(&mut self, fn_name: &str, message: &str) {
@@ -229,12 +189,7 @@ impl JsonBuilder {
         ));
     }
 
-    fn try_build_intrinsic(
-        &mut self,
-        key: &str,
-        val: &serde_json::Value,
-        path: &str,
-    ) -> Option<NodeRef> {
+    fn try_build_intrinsic(&mut self, key: &str, val: &serde_json::Value, path: &str) -> Option<NodeRef> {
         match key {
             FN_REF => {
                 let target = match val.as_str() {
@@ -266,7 +221,10 @@ impl JsonBuilder {
                                     // cannot resolve statically. Fall through to plain map.
                                     return None;
                                 }
-                                self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                                self.intrinsic_error(
+                                    FN_GET_ATT,
+                                    "Fn::GetAtt value must be a two-element string array or a dotted string",
+                                );
                                 return None;
                             }
                         };
@@ -278,23 +236,30 @@ impl JsonBuilder {
                                     // cannot resolve statically. Fall through to plain map.
                                     return None;
                                 }
-                                self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                                self.intrinsic_error(
+                                    FN_GET_ATT,
+                                    "Fn::GetAtt value must be a two-element string array or a dotted string",
+                                );
                                 return None;
                             }
                         };
                         IntrinsicFn::GetAtt(resource, attr)
                     }
                     serde_json::Value::String(s) => match s.split_once('.') {
-                        Some((resource, attr)) => {
-                            IntrinsicFn::GetAtt(resource.to_string(), attr.to_string())
-                        }
+                        Some((resource, attr)) => IntrinsicFn::GetAtt(resource.to_string(), attr.to_string()),
                         None => {
-                            self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                            self.intrinsic_error(
+                                FN_GET_ATT,
+                                "Fn::GetAtt value must be a two-element string array or a dotted string",
+                            );
                             return None;
                         }
                     },
                     _ => {
-                        self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                        self.intrinsic_error(
+                            FN_GET_ATT,
+                            "Fn::GetAtt value must be a two-element string array or a dotted string",
+                        );
                         return None;
                     }
                 };
@@ -333,8 +298,7 @@ impl JsonBuilder {
                                 self.diagnostics.push(crate::make_parse_diagnostic(
                                     "F0010",
                                     rules_crate::Severity::Fatal,
-                                    "Fn::Sub second argument must be a map with string keys"
-                                        .to_string(),
+                                    "Fn::Sub second argument must be a map with string keys".to_string(),
                                     UNKNOWN_SPAN,
                                 ));
                                 None
@@ -350,10 +314,7 @@ impl JsonBuilder {
                         return None;
                     }
                     _ => {
-                        self.intrinsic_error(
-                            FN_SUB,
-                            "Fn::Sub value must be a string or a [string, object] array",
-                        );
+                        self.intrinsic_error(FN_SUB, "Fn::Sub value must be a string or a [string, object] array");
                         return None;
                     }
                 };
@@ -381,10 +342,7 @@ impl JsonBuilder {
                     return None;
                 }
                 if !arr[0].is_string() && !arr[0].is_object() {
-                    self.intrinsic_type_error(
-                        FN_JOIN,
-                        "Fn::Join delimiter (first element) must be a string",
-                    );
+                    self.intrinsic_type_error(FN_JOIN, "Fn::Join delimiter (first element) must be a string");
                 }
                 let delim = self.build_value(&arr[0], &format!("{}/Fn::Join/0", path));
                 let values = self.build_value(&arr[1], &format!("{}/Fn::Join/1", path));
@@ -413,10 +371,7 @@ impl JsonBuilder {
                     return None;
                 }
                 if !arr[0].is_number() && !arr[0].is_object() {
-                    self.intrinsic_type_error(
-                        FN_SELECT,
-                        "Fn::Select index (first element) must be an integer",
-                    );
+                    self.intrinsic_type_error(FN_SELECT, "Fn::Select index (first element) must be an integer");
                 }
                 let idx = self.build_value(&arr[0], &format!("{}/Fn::Select/0", path));
                 let list = self.build_value(&arr[1], &format!("{}/Fn::Select/1", path));
@@ -440,10 +395,7 @@ impl JsonBuilder {
                     }
                 };
                 if arr.len() != 3 {
-                    self.fn_if_structural_error(&format!(
-                        "must have exactly 3 elements, got {}",
-                        arr.len()
-                    ));
+                    self.fn_if_structural_error(&format!("must have exactly 3 elements, got {}", arr.len()));
                     return None;
                 }
                 let if_true = self.build_value(&arr[1], &format!("{}/Fn::If/1", path));
@@ -457,9 +409,7 @@ impl JsonBuilder {
                     None => {
                         let cond_node = self.build_value(&arr[0], &format!("{}/Fn::If/0", path));
                         Some(self.arena.alloc(SpannedNode {
-                            node: Node::Intrinsic(IntrinsicFn::IfExpr(
-                                cond_node, if_true, if_false,
-                            )),
+                            node: Node::Intrinsic(IntrinsicFn::IfExpr(cond_node, if_true, if_false)),
                             span: UNKNOWN_SPAN,
                             path: path.to_string(),
                         }))
@@ -470,10 +420,7 @@ impl JsonBuilder {
                 let arr = match val.as_array() {
                     Some(a) => a,
                     None => {
-                        self.intrinsic_error(
-                            FN_FIND_IN_MAP,
-                            "Fn::FindInMap value must be an array",
-                        );
+                        self.intrinsic_error(FN_FIND_IN_MAP, "Fn::FindInMap value must be an array");
                         return None;
                     }
                 };
@@ -492,19 +439,12 @@ impl JsonBuilder {
                     arr[3]
                         .as_object()
                         .and_then(|obj| obj.get("DefaultValue"))
-                        .map(|dv| {
-                            self.build_value(dv, &format!("{}/Fn::FindInMap/3/DefaultValue", path))
-                        })
+                        .map(|dv| self.build_value(dv, &format!("{}/Fn::FindInMap/3/DefaultValue", path)))
                 } else {
                     None
                 };
                 Some(self.arena.alloc(SpannedNode {
-                    node: Node::Intrinsic(IntrinsicFn::FindInMap(
-                        map_name_ref,
-                        k1,
-                        k2,
-                        default_ref,
-                    )),
+                    node: Node::Intrinsic(IntrinsicFn::FindInMap(map_name_ref, k1, k2, default_ref)),
                     span: UNKNOWN_SPAN,
                     path: path.to_string(),
                 }))
@@ -552,26 +492,19 @@ impl JsonBuilder {
                     }
                 };
                 if arr.len() != 3 {
-                    self.intrinsic_error(
-                        FN_CIDR,
-                        &format!("Fn::Cidr requires exactly 3 elements, got {}", arr.len()),
-                    );
+                    self.intrinsic_error(FN_CIDR, &format!("Fn::Cidr requires exactly 3 elements, got {}", arr.len()));
                     return None;
                 }
                 if let Some(n) = arr[1].as_i64()
-                    && (!(1..=256).contains(&n)) {
-                        self.intrinsic_type_error(
-                            FN_CIDR,
-                            "Fn::Cidr count (second element) must be between 1 and 256",
-                        );
-                    }
+                    && (!(1..=256).contains(&n))
+                {
+                    self.intrinsic_type_error(FN_CIDR, "Fn::Cidr count (second element) must be between 1 and 256");
+                }
                 if let Some(n) = arr[2].as_i64()
-                    && (!(1..=128).contains(&n)) {
-                        self.intrinsic_type_error(
-                            FN_CIDR,
-                            "Fn::Cidr cidrBits (third element) must be between 1 and 128",
-                        );
-                    }
+                    && (!(1..=128).contains(&n))
+                {
+                    self.intrinsic_type_error(FN_CIDR, "Fn::Cidr cidrBits (third element) must be between 1 and 128");
+                }
                 let a = self.build_value(&arr[0], &format!("{}/Fn::Cidr/0", path));
                 let b = self.build_value(&arr[1], &format!("{}/Fn::Cidr/1", path));
                 let c = self.build_value(&arr[2], &format!("{}/Fn::Cidr/2", path));
@@ -608,10 +541,7 @@ impl JsonBuilder {
                 let name_val = match obj.get("Name") {
                     Some(v) => v,
                     None => {
-                        self.intrinsic_error(
-                            FN_TRANSFORM,
-                            "Fn::Transform requires a 'Name' property",
-                        );
+                        self.intrinsic_error(FN_TRANSFORM, "Fn::Transform requires a 'Name' property");
                         return None;
                     }
                 };
@@ -651,17 +581,11 @@ impl JsonBuilder {
                     }
                 };
                 if arr.len() < 2 {
-                    self.condition_fn_error(
-                        FN_AND,
-                        &format!("expected minimum item count: 2, found: {}", arr.len()),
-                    );
+                    self.condition_fn_error(FN_AND, &format!("expected minimum item count: 2, found: {}", arr.len()));
                     return None;
                 }
                 if arr.len() > 10 {
-                    self.condition_fn_error(
-                        FN_AND,
-                        &format!("expected maximum item count: 10, found: {}", arr.len()),
-                    );
+                    self.condition_fn_error(FN_AND, &format!("expected maximum item count: 10, found: {}", arr.len()));
                     return None;
                 }
                 for (idx, elem) in arr.iter().enumerate() {
@@ -684,25 +608,16 @@ impl JsonBuilder {
                 let arr = match val.as_array() {
                     Some(a) => a,
                     None => {
-                        self.condition_fn_error(
-                            FN_OR,
-                            &format!("{} is not of type 'array'", describe_json_value(val)),
-                        );
+                        self.condition_fn_error(FN_OR, &format!("{} is not of type 'array'", describe_json_value(val)));
                         return None;
                     }
                 };
                 if arr.len() < 2 {
-                    self.condition_fn_error(
-                        FN_OR,
-                        &format!("expected minimum item count: 2, found: {}", arr.len()),
-                    );
+                    self.condition_fn_error(FN_OR, &format!("expected minimum item count: 2, found: {}", arr.len()));
                     return None;
                 }
                 if arr.len() > 10 {
-                    self.condition_fn_error(
-                        FN_OR,
-                        &format!("expected maximum item count: 10, found: {}", arr.len()),
-                    );
+                    self.condition_fn_error(FN_OR, &format!("expected maximum item count: 10, found: {}", arr.len()));
                     return None;
                 }
                 for (idx, elem) in arr.iter().enumerate() {
@@ -733,10 +648,7 @@ impl JsonBuilder {
                     }
                 };
                 if arr.len() != 1 {
-                    self.condition_fn_error(
-                        FN_NOT,
-                        &format!("must have exactly 1 element, got {}", arr.len()),
-                    );
+                    self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", arr.len()));
                     return None;
                 }
                 if let Some(reason) = condition_element_error(&arr[0]) {
@@ -770,10 +682,7 @@ impl JsonBuilder {
                 }
                 for (idx, elem) in arr.iter().enumerate() {
                     if let Some(reason) = equals_argument_error(elem) {
-                        self.condition_fn_error(
-                            FN_EQUALS,
-                            &format!("argument {}: {}", idx, reason),
-                        );
+                        self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason));
                     }
                 }
                 let a = self.build_value(&arr[0], &format!("{}/{}/0", path, FN_EQUALS));
@@ -818,29 +727,21 @@ impl JsonBuilder {
                 let unique_id = match arr[0].as_str() {
                     Some(s) => s.to_string(),
                     None => {
-                        self.intrinsic_error(
-                            FN_FOR_EACH,
-                            "Fn::ForEach first element must be a string",
-                        );
+                        self.intrinsic_error(FN_FOR_EACH, "Fn::ForEach first element must be a string");
                         return None;
                     }
                 };
                 let identifier = match arr[1].as_str() {
                     Some(s) => s.to_string(),
                     None => {
-                        self.intrinsic_error(
-                            FN_FOR_EACH,
-                            "Fn::ForEach second element must be a string",
-                        );
+                        self.intrinsic_error(FN_FOR_EACH, "Fn::ForEach second element must be a string");
                         return None;
                     }
                 };
                 let collection = self.build_value(&arr[2], &format!("{}/Fn::ForEach/2", path));
                 let body = self.build_value(&arr[3], &format!("{}/Fn::ForEach/3", path));
                 Some(self.arena.alloc(SpannedNode {
-                    node: Node::Intrinsic(IntrinsicFn::ForEach(
-                        unique_id, identifier, collection, body,
-                    )),
+                    node: Node::Intrinsic(IntrinsicFn::ForEach(unique_id, identifier, collection, body)),
                     span: UNKNOWN_SPAN,
                     path: path.to_string(),
                 }))
@@ -863,20 +764,14 @@ impl JsonBuilder {
                 let first = match arr[0].as_str() {
                     Some(s) => s.to_string(),
                     None => {
-                        self.intrinsic_error(
-                            FN_VALUE_OF,
-                            "Fn::ValueOf first element must be a string",
-                        );
+                        self.intrinsic_error(FN_VALUE_OF, "Fn::ValueOf first element must be a string");
                         return None;
                     }
                 };
                 let second = match arr[1].as_str() {
                     Some(s) => s.to_string(),
                     None => {
-                        self.intrinsic_error(
-                            FN_VALUE_OF,
-                            "Fn::ValueOf second element must be a string",
-                        );
+                        self.intrinsic_error(FN_VALUE_OF, "Fn::ValueOf second element must be a string");
                         return None;
                     }
                 };
@@ -890,40 +785,28 @@ impl JsonBuilder {
                 let arr = match val.as_array() {
                     Some(a) => a,
                     None => {
-                        self.intrinsic_error(
-                            FN_VALUE_OF_ALL,
-                            "Fn::ValueOfAll value must be an array",
-                        );
+                        self.intrinsic_error(FN_VALUE_OF_ALL, "Fn::ValueOfAll value must be an array");
                         return None;
                     }
                 };
                 if arr.len() != 2 {
                     self.intrinsic_error(
                         FN_VALUE_OF_ALL,
-                        &format!(
-                            "Fn::ValueOfAll requires exactly 2 elements, got {}",
-                            arr.len()
-                        ),
+                        &format!("Fn::ValueOfAll requires exactly 2 elements, got {}", arr.len()),
                     );
                     return None;
                 }
                 let first = match arr[0].as_str() {
                     Some(s) => s.to_string(),
                     None => {
-                        self.intrinsic_error(
-                            FN_VALUE_OF_ALL,
-                            "Fn::ValueOfAll first element must be a string",
-                        );
+                        self.intrinsic_error(FN_VALUE_OF_ALL, "Fn::ValueOfAll first element must be a string");
                         return None;
                     }
                 };
                 let second = match arr[1].as_str() {
                     Some(s) => s.to_string(),
                     None => {
-                        self.intrinsic_error(
-                            FN_VALUE_OF_ALL,
-                            "Fn::ValueOfAll second element must be a string",
-                        );
+                        self.intrinsic_error(FN_VALUE_OF_ALL, "Fn::ValueOfAll second element must be a string");
                         return None;
                     }
                 };
@@ -958,10 +841,7 @@ impl JsonBuilder {
                 if arr.len() != 2 {
                     self.intrinsic_error(
                         FN_CONTAINS,
-                        &format!(
-                            "Fn::Contains requires exactly 2 elements, got {}",
-                            arr.len()
-                        ),
+                        &format!("Fn::Contains requires exactly 2 elements, got {}", arr.len()),
                     );
                     return None;
                 }
@@ -977,20 +857,14 @@ impl JsonBuilder {
                 let arr = match val.as_array() {
                     Some(a) => a,
                     None => {
-                        self.intrinsic_error(
-                            FN_EACH_MEMBER_EQUALS,
-                            "Fn::EachMemberEquals value must be an array",
-                        );
+                        self.intrinsic_error(FN_EACH_MEMBER_EQUALS, "Fn::EachMemberEquals value must be an array");
                         return None;
                     }
                 };
                 if arr.len() != 2 {
                     self.intrinsic_error(
                         FN_EACH_MEMBER_EQUALS,
-                        &format!(
-                            "Fn::EachMemberEquals requires exactly 2 elements, got {}",
-                            arr.len()
-                        ),
+                        &format!("Fn::EachMemberEquals requires exactly 2 elements, got {}", arr.len()),
                     );
                     return None;
                 }
@@ -1006,20 +880,14 @@ impl JsonBuilder {
                 let arr = match val.as_array() {
                     Some(a) => a,
                     None => {
-                        self.intrinsic_error(
-                            FN_EACH_MEMBER_IN,
-                            "Fn::EachMemberIn value must be an array",
-                        );
+                        self.intrinsic_error(FN_EACH_MEMBER_IN, "Fn::EachMemberIn value must be an array");
                         return None;
                     }
                 };
                 if arr.len() != 2 {
                     self.intrinsic_error(
                         FN_EACH_MEMBER_IN,
-                        &format!(
-                            "Fn::EachMemberIn requires exactly 2 elements, got {}",
-                            arr.len()
-                        ),
+                        &format!("Fn::EachMemberIn requires exactly 2 elements, got {}", arr.len()),
                     );
                     return None;
                 }
@@ -1072,12 +940,13 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
             }
             b',' => {
                 if let Some(true) = in_array.last()
-                    && let Some(idx) = array_idx.last_mut() {
-                        *idx += 1;
-                        if let Some(top) = path_stack.last_mut() {
-                            *top = idx.to_string();
-                        }
+                    && let Some(idx) = array_idx.last_mut()
+                {
+                    *idx += 1;
+                    if let Some(top) = path_stack.last_mut() {
+                        *top = idx.to_string();
                     }
+                }
                 i += 1;
             }
             b'"' => {
@@ -1103,31 +972,16 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
                     if let Some(top) = path_stack.last_mut() {
                         *top = key.clone();
                     }
-                    let full_path = path_stack
-                        .iter()
-                        .filter(|s| !s.is_empty())
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join("/");
+                    let full_path = path_stack.iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join("/");
                     let (sl, sc) = offset_to_line_col(&line_offsets, start);
                     let (el, ec) = offset_to_line_col(&line_offsets, end);
                     path_to_span.insert(
                         full_path,
-                        SourceSpan {
-                            start_line: sl,
-                            start_column: sc,
-                            end_line: el,
-                            end_column: ec,
-                        },
+                        SourceSpan { start_line: sl, start_column: sc, end_line: el, end_column: ec },
                     );
                 } else if let Some(true) = in_array.last() {
                     // Record spans for array string values to enable precise diagnostics
-                    let full_path = path_stack
-                        .iter()
-                        .filter(|s| !s.is_empty())
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join("/");
+                    let full_path = path_stack.iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join("/");
                     if !full_path.is_empty() {
                         let (sl, sc) = offset_to_line_col(&line_offsets, start);
                         let (el, ec) = offset_to_line_col(&line_offsets, end);
@@ -1194,21 +1048,24 @@ fn detect_duplicate_keys(bytes: &[u8]) -> Vec<diagnostics::Diagnostic> {
                 if j < bytes.len() && bytes[j] == b':' {
                     let key = String::from_utf8_lossy(&bytes[start + 1..end]).to_string();
                     if let Some(current) = key_stacks.last_mut() {
-                        if current.contains_key(&key) {
-                            let (sl, sc) = offset_to_line_col(&line_offsets, start);
-                            diagnostics.push(crate::make_parse_diagnostic(
-                                "F0000",
-                                rules_crate::Severity::Fatal,
-                                format!("Duplicate key '{}'", key),
-                                SourceSpan {
-                                    start_line: sl,
-                                    start_column: sc,
-                                    end_line: sl,
-                                    end_column: sc + (end - start) as u32,
-                                },
-                            ));
-                        } else {
-                            current.insert(key, start);
+                        match current.entry(key) {
+                            Entry::Occupied(occupied) => {
+                                let (sl, sc) = offset_to_line_col(&line_offsets, start);
+                                diagnostics.push(crate::make_parse_diagnostic(
+                                    "F0000",
+                                    rules_crate::Severity::Fatal,
+                                    format!("Duplicate key '{}'", occupied.key()),
+                                    SourceSpan {
+                                        start_line: sl,
+                                        start_column: sc,
+                                        end_line: sl,
+                                        end_column: sc + (end - start) as u32,
+                                    },
+                                ));
+                            }
+                            Entry::Vacant(vacant) => {
+                                vacant.insert(start);
+                            }
                         }
                     }
                 }
@@ -1249,96 +1106,46 @@ pub fn parse_json(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
 
     let root = builder.build_map(obj, "");
 
-    let parameters = builder
-        .arena
-        .map_get(root, SECTION_PARAMETERS)
-        .unwrap_or(NULL_REF);
-    let mappings = builder
-        .arena
-        .map_get(root, SECTION_MAPPINGS)
-        .unwrap_or(NULL_REF);
-    let conditions = builder
-        .arena
-        .map_get(root, SECTION_CONDITIONS)
-        .unwrap_or(NULL_REF);
-    let resources = builder
-        .arena
-        .map_get(root, SECTION_RESOURCES)
-        .unwrap_or(NULL_REF);
-    let outputs = builder
-        .arena
-        .map_get(root, SECTION_OUTPUTS)
-        .unwrap_or(NULL_REF);
-    let rules = builder
-        .arena
-        .map_get(root, SECTION_RULES)
-        .unwrap_or(NULL_REF);
-    let template_metadata = builder
-        .arena
-        .map_get(root, SECTION_METADATA)
-        .unwrap_or(NULL_REF);
-    let globals = builder
-        .arena
-        .map_get(root, SECTION_GLOBALS)
-        .unwrap_or(NULL_REF);
+    let parameters = builder.arena.map_get(root, SECTION_PARAMETERS).unwrap_or(NULL_REF);
+    let mappings = builder.arena.map_get(root, SECTION_MAPPINGS).unwrap_or(NULL_REF);
+    let conditions = builder.arena.map_get(root, SECTION_CONDITIONS).unwrap_or(NULL_REF);
+    let resources = builder.arena.map_get(root, SECTION_RESOURCES).unwrap_or(NULL_REF);
+    let outputs = builder.arena.map_get(root, SECTION_OUTPUTS).unwrap_or(NULL_REF);
+    let rules = builder.arena.map_get(root, SECTION_RULES).unwrap_or(NULL_REF);
+    let template_metadata = builder.arena.map_get(root, SECTION_METADATA).unwrap_or(NULL_REF);
+    let globals = builder.arena.map_get(root, SECTION_GLOBALS).unwrap_or(NULL_REF);
 
     let format_version = builder
         .arena
         .map_get(root, SECTION_FORMAT_VERSION)
         .and_then(|r| builder.arena.as_str(r).map(|s| s.to_string()));
 
-    let description = builder
-        .arena
-        .map_get(root, SECTION_DESCRIPTION)
-        .and_then(|r| builder.arena.as_str(r).map(|s| s.to_string()));
+    let description =
+        builder.arena.map_get(root, SECTION_DESCRIPTION).and_then(|r| builder.arena.as_str(r).map(|s| s.to_string()));
 
     let transforms = extract_transforms(&builder.arena, root);
-    let raw_top_level_keys = builder
-        .arena
-        .as_map(root)
-        .map(|entries| entries.iter().map(|(k, _)| k.clone()).collect())
-        .unwrap_or_default();
+    let raw_top_level_keys =
+        builder.arena.as_map(root).map(|entries| entries.iter().map(|(k, _)| k.clone()).collect()).unwrap_or_default();
 
     debug!(
         "JSON IR built: {} resources, {} parameters, {} mappings, {} conditions, {} outputs, {} span index entries",
-        builder
-            .arena
-            .as_map(resources)
-            .map(|m| m.len())
-            .unwrap_or(0),
-        builder
-            .arena
-            .as_map(parameters)
-            .map(|m| m.len())
-            .unwrap_or(0),
+        builder.arena.as_map(resources).map(|m| m.len()).unwrap_or(0),
+        builder.arena.as_map(parameters).map(|m| m.len()).unwrap_or(0),
         builder.arena.as_map(mappings).map(|m| m.len()).unwrap_or(0),
-        builder
-            .arena
-            .as_map(conditions)
-            .map(|m| m.len())
-            .unwrap_or(0),
+        builder.arena.as_map(conditions).map(|m| m.len()).unwrap_or(0),
         builder.arena.as_map(outputs).map(|m| m.len()).unwrap_or(0),
         builder.span_index.len()
     );
     if !builder.diagnostics.is_empty() {
-        warn!(
-            "{} parse diagnostics from JSON (duplicate keys, malformed intrinsics)",
-            builder.diagnostics.len()
-        );
+        warn!("{} parse diagnostics from JSON (duplicate keys, malformed intrinsics)", builder.diagnostics.len());
     }
 
     for path in builder.global_index.keys() {
-        builder
-            .span_index
-            .entry(path.clone())
-            .or_insert(UNKNOWN_SPAN);
+        builder.span_index.entry(path.clone()).or_insert(UNKNOWN_SPAN);
     }
 
     scan_json_byte_spans(&mut builder.arena, &mut builder.span_index, bytes);
-    info!(
-        "JSON span assignment complete: {} entries",
-        builder.span_index.len()
-    );
+    info!("JSON span assignment complete: {} entries", builder.span_index.len());
 
     Ok(TemplateIR {
         arena: builder.arena,
@@ -1366,10 +1173,7 @@ fn extract_transforms(arena: &Arena, root: NodeRef) -> Vec<String> {
     };
     match arena.node(t_ref) {
         Node::String(s) => vec![s.clone()],
-        Node::List(items) => items
-            .iter()
-            .filter_map(|r| arena.as_str(*r).map(|s| s.to_string()))
-            .collect(),
+        Node::List(items) => items.iter().filter_map(|r| arena.as_str(*r).map(|s| s.to_string())).collect(),
         _ => vec![],
     }
 }
@@ -1448,10 +1252,7 @@ mod tests {
     fn global_index_contains_expected_paths() {
         let input = r#"{"Resources":{"MyBucket":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"test"}}}}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        assert!(
-            ir.global_index
-                .contains_key("Resources/MyBucket/Properties/BucketName")
-        );
+        assert!(ir.global_index.contains_key("Resources/MyBucket/Properties/BucketName"));
     }
 
     #[test]
@@ -1497,16 +1298,8 @@ mod tests {
             }
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir
-            .diagnostics
-            .iter()
-            .filter(|d| d.rule_id == "F0014")
-            .collect();
-        assert!(
-            f0014.is_empty(),
-            "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}",
-            f0014
-        );
+        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
+        assert!(f0014.is_empty(), "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}", f0014);
     }
 
     #[test]
@@ -1528,16 +1321,8 @@ mod tests {
             }
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir
-            .diagnostics
-            .iter()
-            .filter(|d| d.rule_id == "F0014")
-            .collect();
-        assert!(
-            f0014.is_empty(),
-            "Expected no F0014 for Fn::And of rule-section booleans, got: {:?}",
-            f0014
-        );
+        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
+        assert!(f0014.is_empty(), "Expected no F0014 for Fn::And of rule-section booleans, got: {:?}", f0014);
     }
 
     /// Genuinely-invalid input still produces F0014 — bare strings and
@@ -1570,9 +1355,7 @@ mod tests {
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics
-                .iter()
-                .any(|d| d.rule_id == "F0014" && d.message.contains("Fn::Not")),
+            ir.diagnostics.iter().any(|d| d.rule_id == "F0014" && d.message.contains("Fn::Not")),
             "Expected F0014 for Fn::Not wrapping Fn::Sub, got: {:?}",
             ir.diagnostics
         );

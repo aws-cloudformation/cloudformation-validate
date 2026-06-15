@@ -46,10 +46,7 @@ impl SemanticModel {
                 .conditions
                 .implications
                 .iter()
-                .map(|i| DiagnosticImplication {
-                    antecedent: i.antecedent.clone(),
-                    consequent: i.consequent.clone(),
-                })
+                .map(|i| DiagnosticImplication { antecedent: i.antecedent.clone(), consequent: i.consequent.clone() })
                 .collect(),
             condition_mutex_groups: self
                 .conditions
@@ -83,10 +80,7 @@ impl SemanticModel {
                         if self.conditions.satisfiability_budget_exhausted() {
                             break 'pairs;
                         }
-                        if !self
-                            .conditions
-                            .conditions_compatible(cond_names[i], cond_names[j])
-                        {
+                        if !self.conditions.conditions_compatible(cond_names[i], cond_names[j]) {
                             exclusions.push(vec![cond_names[i].clone(), cond_names[j].clone()]);
                         }
                     }
@@ -107,10 +101,10 @@ impl SemanticModel {
             sam_implicit_resources: self.sam_implicit_resources.iter().cloned().collect(),
             globals_param_refs: self.globals_param_refs.clone(),
             is_cdk: self.is_cdk,
-            has_parse_errors: self.diagnostics.iter().any(|d| {
-                d.severity == rules_crate::Severity::Fatal
-                    && d.phase == Some(diagnostics::Phase::Parse)
-            }),
+            has_parse_errors: self
+                .diagnostics
+                .iter()
+                .any(|d| d.severity == rules_crate::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse)),
             parsed_rules: self.parsed_rules.iter().map(build_rule).collect(),
             resolution_sources: self
                 .resolution_sources
@@ -132,11 +126,8 @@ fn build_resources(
     resources
         .iter()
         .map(|(id, res)| {
-            let props: HashMap<String, JsonValue> = res
-                .properties
-                .iter()
-                .map(|(k, v)| (k.clone(), JsonValue(resolved_value_to_json(v))))
-                .collect();
+            let props: HashMap<String, JsonValue> =
+                res.properties.iter().map(|(k, v)| (k.clone(), JsonValue(resolved_value_to_json(v)))).collect();
 
             let outgoing = graph
                 .outgoing(id)
@@ -173,22 +164,13 @@ fn build_resources(
                     resource_type: res.resource_type.clone(),
                     condition: res.condition.clone(),
                     depends_on: res.depends_on.clone(),
-                    deletion_policy: res
-                        .deletion_policy
-                        .as_ref()
-                        .map(|v| JsonValue(resolved_value_to_json(v))),
+                    deletion_policy: res.deletion_policy.as_ref().map(|v| JsonValue(resolved_value_to_json(v))),
                     update_replace_policy: res
                         .update_replace_policy
                         .as_ref()
                         .map(|v| JsonValue(resolved_value_to_json(v))),
-                    creation_policy: res
-                        .creation_policy
-                        .as_ref()
-                        .map(|v| JsonValue(serde_json::json!(v))),
-                    update_policy: res
-                        .update_policy
-                        .as_ref()
-                        .map(|v| JsonValue(serde_json::json!(v))),
+                    creation_policy: res.creation_policy.as_ref().map(|v| JsonValue(serde_json::json!(v))),
+                    update_policy: res.update_policy.as_ref().map(|v| JsonValue(serde_json::json!(v))),
                     properties: props,
                     outgoing_refs: outgoing,
                     incoming_refs: incoming,
@@ -197,10 +179,7 @@ fn build_resources(
                         .diagnostics
                         .simple_subs
                         .iter()
-                        .map(|s| PathVariable {
-                            path: s.path.clone(),
-                            variable: s.value.clone(),
-                        })
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
                         .collect(),
                     redundant_subs: res.diagnostics.redundant_subs.clone(),
                     empty_joins: res.diagnostics.empty_joins.clone(),
@@ -230,19 +209,13 @@ fn build_resources(
                         .diagnostics
                         .unsubstituted_variables
                         .iter()
-                        .map(|s| PathVariable {
-                            path: s.path.clone(),
-                            variable: s.value.clone(),
-                        })
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
                         .collect(),
                     invalid_refs: res
                         .diagnostics
                         .invalid_refs
                         .iter()
-                        .map(|s| PathTarget {
-                            path: s.path.clone(),
-                            target: s.value.clone(),
-                        })
+                        .map(|s| PathTarget { path: s.path.clone(), target: s.value.clone() })
                         .collect(),
                 },
             )
@@ -250,9 +223,7 @@ fn build_resources(
         .collect()
 }
 
-fn build_conditions(
-    conditions: &crate::conditions::ConditionModel,
-) -> HashMap<String, DiagnosticCondition> {
+fn build_conditions(conditions: &crate::conditions::ConditionModel) -> HashMap<String, DiagnosticCondition> {
     let mut out = HashMap::new();
     for name in conditions.names() {
         let (expression, deps) = if let Some(expr) = conditions.get(name) {
@@ -260,10 +231,7 @@ fn build_conditions(
             crate::conditions::collect_condition_deps(expr, &mut d);
             d.sort();
             d.dedup();
-            (
-                Some(crate::conditions::format_condition_expr(expr)),
-                if d.is_empty() { None } else { Some(d) },
-            )
+            (Some(crate::conditions::format_condition_expr(expr)), if d.is_empty() { None } else { Some(d) })
         } else {
             (None, None)
         };
@@ -284,11 +252,7 @@ fn build_conditions(
             DiagnosticCondition {
                 expression,
                 deps,
-                mutex_with: if mutex_with.is_empty() {
-                    None
-                } else {
-                    Some(mutex_with)
-                },
+                mutex_with: if mutex_with.is_empty() { None } else { Some(mutex_with) },
             },
         );
     }
@@ -319,15 +283,11 @@ fn build_outputs(
 ) -> HashMap<String, DiagnosticOutput> {
     let mut output_getatt_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
     for edge in &graph.edges {
-        if let Some(output_name) = edge
-            .source_resource
-            .strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX)
-            && let RefKind::GetAtt { attr } = &edge.kind {
-                output_getatt_refs
-                    .entry(output_name.to_string())
-                    .or_default()
-                    .push((edge.target.clone(), attr.clone()));
-            }
+        if let Some(output_name) = edge.source_resource.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX)
+            && let RefKind::GetAtt { attr } = &edge.kind
+        {
+            output_getatt_refs.entry(output_name.to_string()).or_default().push((edge.target.clone(), attr.clone()));
+        }
     }
 
     outputs
@@ -348,16 +308,10 @@ fn build_outputs(
                     value: JsonValue(resolved_value_to_json(&output.value)),
                     description: output.description.clone(),
                     condition: output.condition.clone(),
-                    export_name: output
-                        .export_name
-                        .as_ref()
-                        .map(|v| JsonValue(resolved_value_to_json(v))),
+                    export_name: output.export_name.as_ref().map(|v| JsonValue(resolved_value_to_json(v))),
                     getatt_refs: getatt_refs
                         .into_iter()
-                        .map(|(r, a)| GetAttRef {
-                            resource: r,
-                            attribute: a,
-                        })
+                        .map(|(r, a)| GetAttRef { resource: r, attribute: a })
                         .collect(),
                     condition_refs: {
                         let mut crefs = Vec::new();
@@ -398,10 +352,7 @@ fn filter_sam_cycles(
             .iter()
             .filter(|cycle| {
                 !cycle.iter().any(|rid| {
-                    resources
-                        .get(rid)
-                        .map(|r| r.resource_type.starts_with(SAM_SERVERLESS_TYPE_PREFIX))
-                        .unwrap_or(false)
+                    resources.get(rid).map(|r| r.resource_type.starts_with(SAM_SERVERLESS_TYPE_PREFIX)).unwrap_or(false)
                 })
             })
             .cloned()
@@ -414,9 +365,7 @@ fn filter_sam_cycles(
 pub fn resolved_value_to_json(val: &ResolvedValue) -> serde_json::Value {
     match val {
         ResolvedValue::Concrete { value: v } => v.0.clone(),
-        ResolvedValue::List { items } => {
-            serde_json::Value::Array(items.iter().map(resolved_value_to_json).collect())
-        }
+        ResolvedValue::List { items } => serde_json::Value::Array(items.iter().map(resolved_value_to_json).collect()),
         ResolvedValue::Map { entries } => {
             let mut map = serde_json::Map::new();
             for MapEntry { key: k, value: v } in entries {
@@ -427,11 +376,7 @@ pub fn resolved_value_to_json(val: &ResolvedValue) -> serde_json::Value {
         ResolvedValue::Enum { variants: vals } => {
             serde_json::json!({MARKER_ENUM: vals.iter().map(resolved_value_to_json).collect::<Vec<_>>()})
         }
-        ResolvedValue::Conditional {
-            condition: cond,
-            if_true: t,
-            if_false: f,
-        } => {
+        ResolvedValue::Conditional { condition: cond, if_true: t, if_false: f } => {
             serde_json::json!({MARKER_CONDITIONAL: cond, MARKER_IF_TRUE: resolved_value_to_json(t), MARKER_IF_FALSE: resolved_value_to_json(f)})
         }
         ResolvedValue::Reference { target, kind } => {
@@ -453,12 +398,9 @@ pub fn resolved_value_to_json(val: &ResolvedValue) -> serde_json::Value {
 pub fn resolved_value_to_json_clean(val: &ResolvedValue) -> Option<serde_json::Value> {
     match val {
         ResolvedValue::Concrete { value: v } => Some(v.0.clone()),
-        ResolvedValue::List { items } => Some(serde_json::Value::Array(
-            items
-                .iter()
-                .filter_map(resolved_value_to_json_clean)
-                .collect(),
-        )),
+        ResolvedValue::List { items } => {
+            Some(serde_json::Value::Array(items.iter().filter_map(resolved_value_to_json_clean).collect()))
+        }
         ResolvedValue::Map { entries } => {
             let mut map = serde_json::Map::new();
             for MapEntry { key: k, value: v } in entries {
@@ -469,26 +411,16 @@ pub fn resolved_value_to_json_clean(val: &ResolvedValue) -> Option<serde_json::V
             Some(serde_json::Value::Object(map))
         }
         ResolvedValue::Enum { variants: vals } => {
-            let concrete: Vec<serde_json::Value> = vals
-                .iter()
-                .filter_map(resolved_value_to_json_clean)
-                .collect();
+            let concrete: Vec<serde_json::Value> = vals.iter().filter_map(resolved_value_to_json_clean).collect();
             match concrete.len() {
                 0 => None,
                 1 => Some(concrete.into_iter().next().unwrap()),
                 _ => Some(serde_json::Value::Array(concrete)),
             }
         }
-        ResolvedValue::Conditional {
-            condition: _,
-            if_true: t,
-            if_false: _,
-        } => resolved_value_to_json_clean(t),
+        ResolvedValue::Conditional { condition: _, if_true: t, if_false: _ } => resolved_value_to_json_clean(t),
         ResolvedValue::Dynamic { reason: _ }
-        | ResolvedValue::TypedDynamic {
-            reason: _,
-            param_type: _,
-        }
+        | ResolvedValue::TypedDynamic { reason: _, param_type: _ }
         | ResolvedValue::Reference { target: _, kind: _ } => None,
     }
 }
@@ -504,10 +436,7 @@ fn ref_kind_to_str(kind: &RefKind) -> (&'static str, Option<String>) {
 
 fn collect_getatt_refs(val: &ResolvedValue, out: &mut Vec<(String, String)>) {
     match val {
-        ResolvedValue::Reference {
-            target,
-            kind: RefKind::GetAtt { attr },
-        } => out.push((target.clone(), attr.clone())),
+        ResolvedValue::Reference { target, kind: RefKind::GetAtt { attr } } => out.push((target.clone(), attr.clone())),
         ResolvedValue::List { items } => {
             for v in items {
                 collect_getatt_refs(v, out);
@@ -523,11 +452,7 @@ fn collect_getatt_refs(val: &ResolvedValue, out: &mut Vec<(String, String)>) {
                 collect_getatt_refs(v, out);
             }
         }
-        ResolvedValue::Conditional {
-            condition: _,
-            if_true: t,
-            if_false: f,
-        } => {
+        ResolvedValue::Conditional { condition: _, if_true: t, if_false: f } => {
             collect_getatt_refs(t, out);
             collect_getatt_refs(f, out);
         }
@@ -542,30 +467,16 @@ mod tests {
 
     #[test]
     fn to_json_concrete() {
-        assert_eq!(
-            resolved_value_to_json(&ResolvedValue::Concrete {
-                value: json!("hi").into()
-            }),
-            json!("hi")
-        );
-        assert_eq!(
-            resolved_value_to_json(&ResolvedValue::Concrete {
-                value: json!(42).into()
-            }),
-            json!(42)
-        );
+        assert_eq!(resolved_value_to_json(&ResolvedValue::Concrete { value: json!("hi").into() }), json!("hi"));
+        assert_eq!(resolved_value_to_json(&ResolvedValue::Concrete { value: json!(42).into() }), json!(42));
     }
 
     #[test]
     fn to_json_list() {
         let val = ResolvedValue::List {
             items: vec![
-                ResolvedValue::Concrete {
-                    value: json!(1).into(),
-                },
-                ResolvedValue::Concrete {
-                    value: json!(2).into(),
-                },
+                ResolvedValue::Concrete { value: json!(1).into() },
+                ResolvedValue::Concrete { value: json!(2).into() },
             ],
         };
         assert_eq!(resolved_value_to_json(&val), json!([1, 2]));
@@ -574,41 +485,24 @@ mod tests {
     #[test]
     fn to_json_map() {
         let val = ResolvedValue::Map {
-            entries: vec![MapEntry {
-                key: "k".into(),
-                value: ResolvedValue::Concrete {
-                    value: json!("v").into(),
-                },
-            }],
+            entries: vec![MapEntry { key: "k".into(), value: ResolvedValue::Concrete { value: json!("v").into() } }],
         };
         assert_eq!(resolved_value_to_json(&val), json!({"k": "v"}));
     }
 
     #[test]
     fn to_json_enum_uses_marker() {
-        let val = ResolvedValue::Enum {
-            variants: vec![ResolvedValue::Concrete {
-                value: json!("a").into(),
-            }],
-        };
+        let val = ResolvedValue::Enum { variants: vec![ResolvedValue::Concrete { value: json!("a").into() }] };
         let j = resolved_value_to_json(&val);
-        assert_ne!(
-            j.get(MARKER_ENUM),
-            None,
-            "expected MARKER_ENUM key in serialized enum"
-        );
+        assert_ne!(j.get(MARKER_ENUM), None, "expected MARKER_ENUM key in serialized enum");
     }
 
     #[test]
     fn to_json_conditional_uses_markers() {
         let val = ResolvedValue::Conditional {
             condition: "C".into(),
-            if_true: Box::new(ResolvedValue::Concrete {
-                value: json!(1).into(),
-            }),
-            if_false: Box::new(ResolvedValue::Concrete {
-                value: json!(2).into(),
-            }),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!(1).into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!(2).into() }),
         };
         let j = resolved_value_to_json(&val);
         assert_eq!(j[MARKER_CONDITIONAL], "C");
@@ -618,10 +512,7 @@ mod tests {
 
     #[test]
     fn to_json_reference_uses_markers() {
-        let val = ResolvedValue::Reference {
-            target: "R".into(),
-            kind: RefKind::GetAtt { attr: "Arn".into() },
-        };
+        let val = ResolvedValue::Reference { target: "R".into(), kind: RefKind::GetAtt { attr: "Arn".into() } };
         let j = resolved_value_to_json(&val);
         assert_eq!(j[MARKER_REF], "R");
         assert_eq!(j[MARKER_KIND], "getatt:Arn");
@@ -629,18 +520,13 @@ mod tests {
 
     #[test]
     fn to_json_dynamic_uses_marker() {
-        let val = ResolvedValue::Dynamic {
-            reason: "reason".into(),
-        };
+        let val = ResolvedValue::Dynamic { reason: "reason".into() };
         assert_eq!(resolved_value_to_json(&val)[MARKER_DYNAMIC], "reason");
     }
 
     #[test]
     fn to_json_typed_dynamic_includes_param_type() {
-        let val = ResolvedValue::TypedDynamic {
-            reason: "reason".into(),
-            param_type: "Number".into(),
-        };
+        let val = ResolvedValue::TypedDynamic { reason: "reason".into(), param_type: "Number".into() };
         let j = resolved_value_to_json(&val);
         assert_eq!(j[MARKER_DYNAMIC], "reason");
         assert_eq!(j[MARKER_PARAM_TYPE], "Number");
@@ -649,9 +535,7 @@ mod tests {
     #[test]
     fn to_json_clean_concrete() {
         assert_eq!(
-            resolved_value_to_json_clean(&ResolvedValue::Concrete {
-                value: json!("x").into()
-            }),
+            resolved_value_to_json_clean(&ResolvedValue::Concrete { value: json!("x").into() }),
             Some(json!("x"))
         );
     }
@@ -668,10 +552,7 @@ mod tests {
     #[test]
     fn to_json_clean_reference_returns_none() {
         assert_eq!(
-            resolved_value_to_json_clean(&ResolvedValue::Reference {
-                target: "R".into(),
-                kind: RefKind::Ref
-            }),
+            resolved_value_to_json_clean(&ResolvedValue::Reference { target: "R".into(), kind: RefKind::Ref }),
             None,
             "Reference should return None"
         );
@@ -681,23 +562,15 @@ mod tests {
     fn to_json_clean_conditional_takes_true_branch() {
         let val = ResolvedValue::Conditional {
             condition: "C".into(),
-            if_true: Box::new(ResolvedValue::Concrete {
-                value: json!("yes").into(),
-            }),
-            if_false: Box::new(ResolvedValue::Concrete {
-                value: json!("no").into(),
-            }),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!("yes").into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!("no").into() }),
         };
         assert_eq!(resolved_value_to_json_clean(&val), Some(json!("yes")));
     }
 
     #[test]
     fn to_json_clean_enum_single_unwraps() {
-        let val = ResolvedValue::Enum {
-            variants: vec![ResolvedValue::Concrete {
-                value: json!("only").into(),
-            }],
-        };
+        let val = ResolvedValue::Enum { variants: vec![ResolvedValue::Concrete { value: json!("only").into() }] };
         assert_eq!(resolved_value_to_json_clean(&val), Some(json!("only")));
     }
 
@@ -705,12 +578,8 @@ mod tests {
     fn to_json_clean_enum_multiple_returns_array() {
         let val = ResolvedValue::Enum {
             variants: vec![
-                ResolvedValue::Concrete {
-                    value: json!("a").into(),
-                },
-                ResolvedValue::Concrete {
-                    value: json!("b").into(),
-                },
+                ResolvedValue::Concrete { value: json!("a").into() },
+                ResolvedValue::Concrete { value: json!("b").into() },
             ],
         };
         assert_eq!(resolved_value_to_json_clean(&val), Some(json!(["a", "b"])));
@@ -718,23 +587,15 @@ mod tests {
 
     #[test]
     fn to_json_clean_enum_all_dynamic_returns_none() {
-        let val = ResolvedValue::Enum {
-            variants: vec![ResolvedValue::Dynamic { reason: "x".into() }],
-        };
-        assert_eq!(
-            resolved_value_to_json_clean(&val),
-            None,
-            "all-dynamic enum should return None"
-        );
+        let val = ResolvedValue::Enum { variants: vec![ResolvedValue::Dynamic { reason: "x".into() }] };
+        assert_eq!(resolved_value_to_json_clean(&val), None, "all-dynamic enum should return None");
     }
 
     #[test]
     fn to_json_clean_list_filters_dynamic() {
         let val = ResolvedValue::List {
             items: vec![
-                ResolvedValue::Concrete {
-                    value: json!(1).into(),
-                },
+                ResolvedValue::Concrete { value: json!(1).into() },
                 ResolvedValue::Dynamic { reason: "x".into() },
             ],
         };
@@ -745,16 +606,8 @@ mod tests {
     fn to_json_clean_map_filters_dynamic() {
         let val = ResolvedValue::Map {
             entries: vec![
-                MapEntry {
-                    key: "a".into(),
-                    value: ResolvedValue::Concrete {
-                        value: json!(1).into(),
-                    },
-                },
-                MapEntry {
-                    key: "b".into(),
-                    value: ResolvedValue::Dynamic { reason: "x".into() },
-                },
+                MapEntry { key: "a".into(), value: ResolvedValue::Concrete { value: json!(1).into() } },
+                MapEntry { key: "b".into(), value: ResolvedValue::Dynamic { reason: "x".into() } },
             ],
         };
         assert_eq!(resolved_value_to_json_clean(&val), Some(json!({"a": 1})));
@@ -763,33 +616,21 @@ mod tests {
     #[test]
     fn ref_kind_to_str_all_variants() {
         assert_eq!(ref_kind_to_str(&RefKind::Ref), ("Ref", None));
-        assert_eq!(
-            ref_kind_to_str(&RefKind::GetAtt { attr: "A".into() }),
-            ("GetAtt", Some("A".into()))
-        );
-        assert_eq!(
-            ref_kind_to_str(&RefKind::Sub { var: "V".into() }),
-            ("Sub", Some("V".into()))
-        );
+        assert_eq!(ref_kind_to_str(&RefKind::GetAtt { attr: "A".into() }), ("GetAtt", Some("A".into())));
+        assert_eq!(ref_kind_to_str(&RefKind::Sub { var: "V".into() }), ("Sub", Some("V".into())));
         assert_eq!(ref_kind_to_str(&RefKind::DependsOn), ("DependsOn", None));
     }
 
     #[test]
     fn to_json_reference_sub_kind() {
-        let val = ResolvedValue::Reference {
-            target: "R".into(),
-            kind: RefKind::Sub { var: "V".into() },
-        };
+        let val = ResolvedValue::Reference { target: "R".into(), kind: RefKind::Sub { var: "V".into() } };
         let j = resolved_value_to_json(&val);
         assert_eq!(j[MARKER_KIND], "sub:V");
     }
 
     #[test]
     fn to_json_reference_dependson_kind() {
-        let val = ResolvedValue::Reference {
-            target: "R".into(),
-            kind: RefKind::DependsOn,
-        };
+        let val = ResolvedValue::Reference { target: "R".into(), kind: RefKind::DependsOn };
         let j = resolved_value_to_json(&val);
         assert_eq!(j[MARKER_KIND], "dependson");
     }

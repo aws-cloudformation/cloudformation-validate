@@ -66,10 +66,7 @@ pub fn sync_extensions(
         debug!("Cleaned {} existing extension files", removed);
     }
 
-    let mut type_dirs: Vec<_> = fs::read_dir(&ext_src)?
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().is_dir())
-        .collect();
+    let mut type_dirs: Vec<_> = fs::read_dir(&ext_src)?.filter_map(|e| e.ok()).filter(|e| e.path().is_dir()).collect();
     type_dirs.sort_by_key(|e| e.file_name());
     info!("Found {} resource type directories", type_dirs.len());
 
@@ -91,49 +88,31 @@ pub fn sync_extensions(
             let file_stem = path.file_stem().unwrap().to_string_lossy().to_string();
 
             if is_data_document(&file_stem) {
-                debug!(
-                    "Extracting enum extension {}/{} as data document",
-                    dir_name, file_stem
-                );
+                debug!("Extracting enum extension {}/{} as data document", dir_name, file_stem);
                 match extract_and_write_data_doc(&path, &out_name, &file_stem, data_output_dir) {
                     Ok(()) => {
                         stats.files_written += 1;
                         data_doc_count += 1;
                     }
                     Err(e) => {
-                        error!(
-                            "Failed to extract data doc {}/{}: {}",
-                            dir_name, file_stem, e
-                        );
-                        stats
-                            .errors
-                            .push(format!("{}:{}: {}", dir_name, file_stem, e));
+                        error!("Failed to extract data doc {}/{}: {}", dir_name, file_stem, e);
+                        stats.errors.push(format!("{}:{}: {}", dir_name, file_stem, e));
                     }
                 }
             } else {
                 match fs::read_to_string(&path) {
                     Ok(content) => match serde_json::from_str::<serde_json::Value>(&content) {
                         Ok(fragment) => {
-                            codegen_fragments
-                                .entry(out_name.clone())
-                                .or_default()
-                                .push(fragment);
+                            codegen_fragments.entry(out_name.clone()).or_default().push(fragment);
                         }
                         Err(e) => {
-                            error!(
-                                "Failed to parse extension {}/{}: {}",
-                                dir_name, file_stem, e
-                            );
-                            stats
-                                .errors
-                                .push(format!("{}:{}: parse error: {}", dir_name, file_stem, e));
+                            error!("Failed to parse extension {}/{}: {}", dir_name, file_stem, e);
+                            stats.errors.push(format!("{}:{}: parse error: {}", dir_name, file_stem, e));
                         }
                     },
                     Err(e) => {
                         error!("Failed to read extension {}/{}: {}", dir_name, file_stem, e);
-                        stats
-                            .errors
-                            .push(format!("{}:{}: read error: {}", dir_name, file_stem, e));
+                        stats.errors.push(format!("{}:{}: read error: {}", dir_name, file_stem, e));
                     }
                 }
             }
@@ -158,11 +137,7 @@ pub fn sync_extensions(
         stats.files_written += 1;
     }
 
-    info!(
-        "Extensions complete: {} codegen, {} data documents",
-        stats.files_written - data_doc_count,
-        data_doc_count
-    );
+    info!("Extensions complete: {} codegen, {} data documents", stats.files_written - data_doc_count, data_doc_count);
     Ok(stats)
 }
 
@@ -180,10 +155,7 @@ fn extract_and_write_data_doc(
     let data_file = data_output_dir.join(format!("{}.json", data_key));
     let wrapped = serde_json::json!({ &data_key: data });
     fs::write(&data_file, serde_json::to_string_pretty(&wrapped)?)?;
-    debug!(
-        "Wrote data document: {}",
-        data_file.file_name().unwrap().to_string_lossy()
-    );
+    debug!("Wrote data document: {}", data_file.file_name().unwrap().to_string_lossy());
     Ok(())
 }
 

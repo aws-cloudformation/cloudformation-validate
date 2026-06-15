@@ -37,9 +37,7 @@ fn main() -> anyhow::Result<()> {
 
     data_source::sync_upstream(&upstream_dir, rule_source_root.as_deref())?;
 
-    info!(
-        "Sync complete — run `cargo run -p data-source --example generate` to regenerate outputs"
-    );
+    info!("Sync complete — run `cargo run -p data-source --example generate` to regenerate outputs");
     Ok(())
 }
 

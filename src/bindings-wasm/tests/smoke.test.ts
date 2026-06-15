@@ -56,6 +56,8 @@ function zeroPerformanceDurations(report: any, filePath?: string): unknown {
   if (filePath !== undefined) {
     clone.filePath = filePath;
   }
+  // engineVersion bumps with every release and is not a behavioral signal.
+  delete clone.engineVersion;
   if (clone.performance) {
     for (const phase of Object.values(clone.performance) as any[]) {
       if (phase && typeof phase === "object" && "durationMs" in phase) {

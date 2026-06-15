@@ -19,9 +19,7 @@ pub fn is_sam_transform_error_message(message: &str) -> bool {
 /// Panics if the rule is not registered — every built-in rule must be in the registry.
 /// For custom/guard rules (not in the registry), callers must set `source` directly.
 pub fn source_for_rule(rule_id: &str) -> RuleOrigin {
-    rules::lookup_rule(rule_id)
-        .unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id))
-        .origin
+    rules::lookup_rule(rule_id).unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id)).origin
 }
 
 /// Maps a rule ID to its template section (via `section_for_rule_id`) and
@@ -29,9 +27,7 @@ pub fn source_for_rule(rule_id: &str) -> RuleOrigin {
 /// if the rule has no associated section or the section has no span.
 pub fn resolve_section_span(rule_id: &str, span_provider: &dyn SpanProvider) -> SourceSpan {
     match section_for_rule_id(None, rule_id) {
-        Some(section) => span_provider
-            .source_location(section)
-            .unwrap_or(UNKNOWN_SPAN),
+        Some(section) => span_provider.source_location(section).unwrap_or(UNKNOWN_SPAN),
         None => UNKNOWN_SPAN,
     }
 }
@@ -47,11 +43,7 @@ mod tests {
 
     impl SpanProvider for FakeSpanProvider {
         fn source_location(&self, path: &str) -> Option<SourceSpan> {
-            if path == self.known_section {
-                Some(self.span)
-            } else {
-                None
-            }
+            if path == self.known_section { Some(self.span) } else { None }
         }
     }
 
@@ -64,16 +56,8 @@ mod tests {
 
     #[test]
     fn resolve_section_span_returns_span_when_section_and_provider_match() {
-        let expected = SourceSpan {
-            start_line: 5,
-            start_column: 0,
-            end_line: 10,
-            end_column: 0,
-        };
-        let provider = FakeSpanProvider {
-            known_section: "Resources",
-            span: expected,
-        };
+        let expected = SourceSpan { start_line: 5, start_column: 0, end_line: 10, end_column: 0 };
+        let provider = FakeSpanProvider { known_section: "Resources", span: expected };
 
         let result = resolve_section_span("F0001", &provider);
         assert_eq!(result, expected);
@@ -90,12 +74,7 @@ mod tests {
     fn resolve_section_span_returns_unknown_for_unmapped_rule() {
         let provider = FakeSpanProvider {
             known_section: "Resources",
-            span: SourceSpan {
-                start_line: 1,
-                start_column: 0,
-                end_line: 1,
-                end_column: 0,
-            },
+            span: SourceSpan { start_line: 1, start_column: 0, end_line: 1, end_column: 0 },
         };
         let result = resolve_section_span("ZZZZZ", &provider);
         assert_eq!(result, UNKNOWN_SPAN);

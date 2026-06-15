@@ -1,0 +1,21 @@
+edition = "2024"
+unstable_features = true
+
+# Imports
+imports_layout = "Vertical"
+group_imports = "StdExternalCrate"  # Groups imports cleanly into three sections: std/core, external crates, and local modules
+imports_granularity = "Crate"       # Merges imports from the same crate into a single nested line
+reorder_imports = true              # Alphabetizes imports within their groups
+reorder_impl_items = true           # Automatically re-orders implementation blocks to match structural declarations
+
+# Format
+format_macro_matchers = true        # Formats macro definitions to match standard Rust syntax spacing
+use_small_heuristics = "Max"        # Condenses short expressions (like struct instantiations or small arrays) onto a single line
+comment_width = 120
+max_width = 120
+doc_comment_code_block_width = 120
+format_code_in_doc_comments = true
+wrap_comments = true
+newline_style = "Unix"
+normalize_comments = true
+tab_spaces = 4

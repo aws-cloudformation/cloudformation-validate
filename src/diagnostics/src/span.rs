@@ -11,12 +11,8 @@ pub struct SourceSpan {
     pub end_column: u32,
 }
 
-pub const UNKNOWN_SPAN: SourceSpan = SourceSpan {
-    start_line: u32::MAX,
-    start_column: u32::MAX,
-    end_line: u32::MAX,
-    end_column: u32::MAX,
-};
+pub const UNKNOWN_SPAN: SourceSpan =
+    SourceSpan { start_line: u32::MAX, start_column: u32::MAX, end_line: u32::MAX, end_column: u32::MAX };
 
 /// Resolves a section path to its source span. Implemented by `SemanticModel`.
 pub trait SpanProvider {

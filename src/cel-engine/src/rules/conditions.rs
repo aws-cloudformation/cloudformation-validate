@@ -66,27 +66,19 @@ fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {
 
             let target_path = format!("Resources/{}", target);
             if let Some(span) = m.source_location(&target_path) {
-                d.related_resources
-                    .get_or_insert_with(Vec::new)
-                    .push(RelatedResource {
-                        resource: Some(diagnostics::ResourceRef {
-                            id: Some(target.clone()),
-                            resource_type: m
-                                .resources
-                                .get(target.as_str())
-                                .map(|r| r.resource_type.clone()),
-                        }),
-                        location: Some(diagnostics::SourceSpan {
-                            start_line: span.start_line,
-                            start_column: span.start_column,
-                            end_line: span.end_line,
-                            end_column: span.end_column,
-                        }),
-                        message: format!(
-                            "Conditional resource '{}' (condition '{}')",
-                            target, target_cond
-                        ),
-                    });
+                d.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+                    resource: Some(diagnostics::ResourceRef {
+                        id: Some(target.clone()),
+                        resource_type: m.resources.get(target.as_str()).map(|r| r.resource_type.clone()),
+                    }),
+                    location: Some(diagnostics::SourceSpan {
+                        start_line: span.start_line,
+                        start_column: span.start_column,
+                        end_line: span.end_line,
+                        end_column: span.end_column,
+                    }),
+                    message: format!("Conditional resource '{}' (condition '{}')", target, target_cond),
+                });
             }
             out.push(d);
         }
@@ -103,9 +95,10 @@ fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {
                 continue;
             }
             if let Some(sc) = source_cond
-                && m.conditions.condition_implies(sc, target_cond) {
-                    continue;
-                }
+                && m.conditions.condition_implies(sc, target_cond)
+            {
+                continue;
+            }
 
             out.push(make_resource_diagnostic("W2502",
                 &format!("Resource '{}' has DependsOn '{}' which is conditional (condition '{}'), but '{}' does not have a matching condition",
@@ -156,20 +149,13 @@ fn find_unreachable_branches(
     assumptions: &[(String, bool)],
 ) {
     match value {
-        ResolvedValue::Conditional {
-            condition: cond,
-            if_true: true_branch,
-            if_false: false_branch,
-        } => {
+        ResolvedValue::Conditional { condition: cond, if_true: true_branch, if_false: false_branch } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             if !model.conditions.is_satisfiable(&true_assumptions) {
                 out.push(make_resource_diagnostic(
                     "W1028",
-                    &format!(
-                        "['Fn::If', 1] is not reachable. When setting condition '{}' to True",
-                        cond
-                    ),
+                    &format!("['Fn::If', 1] is not reachable. When setting condition '{}' to True", cond),
                     model,
                     resource_id,
                     &format!("{}.Fn::If.1", path),
@@ -222,36 +208,19 @@ fn find_unreachable_branches(
         }
         ResolvedValue::List { items } => {
             for (i, val) in items.iter().enumerate() {
-                find_unreachable_branches(
-                    out,
-                    model,
-                    resource_id,
-                    val,
-                    &format!("{}.{}", path, i),
-                    assumptions,
-                );
+                find_unreachable_branches(out, model, resource_id, val, &format!("{}.{}", path, i), assumptions);
             }
         }
         _ => {}
     }
 }
 
-fn build_unreachable_explanation(
-    condition: &str,
-    target_value: bool,
-    assumptions: &[(String, bool)],
-) -> String {
+fn build_unreachable_explanation(condition: &str, target_value: bool, assumptions: &[(String, bool)]) -> String {
     let setting = if target_value { "True" } else { "False" };
     let existing: Vec<String> = assumptions
         .iter()
         .filter(|(name, _)| name != condition)
-        .map(|(name, val)| {
-            format!(
-                "condition '{}' is {}",
-                name,
-                if *val { "True" } else { "False" }
-            )
-        })
+        .map(|(name, val)| format!("condition '{}' is {}", name, if *val { "True" } else { "False" }))
         .collect();
     if existing.is_empty() {
         format!(

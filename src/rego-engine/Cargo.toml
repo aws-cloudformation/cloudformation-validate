@@ -3,6 +3,10 @@ name = "rego-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 name = "rego_engine"
@@ -25,4 +29,7 @@ web-time = "1"
 
 [dev-dependencies]
 schema-validator = { path = "../schema-validator" }
-validation-engine = { path = "../validation-engine", features = ["test-support"] }
+validation-engine = { path = "../validation-engine", features = ["test"] }
+
+[lints]
+workspace = true

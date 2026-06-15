@@ -10,10 +10,7 @@ pub struct DiagnosticModel {
     pub template: DiagnosticTemplate,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, JsonValue>"))]
     pub parameters: HashMap<String, JsonValue>,
-    #[cfg_attr(
-        feature = "wasm-bindings",
-        tsify(type = "Record<string, DiagnosticCondition>")
-    )]
+    #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, DiagnosticCondition>"))]
     pub conditions: HashMap<String, DiagnosticCondition>,
     pub condition_param_refs: Vec<String>,
     pub condition_implications: Vec<DiagnosticImplication>,
@@ -22,15 +19,9 @@ pub struct DiagnosticModel {
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, string>"))]
     pub resource_condition_map: HashMap<String, String>,
     pub mappings: JsonValue,
-    #[cfg_attr(
-        feature = "wasm-bindings",
-        tsify(type = "Record<string, DiagnosticResource>")
-    )]
+    #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, DiagnosticResource>"))]
     pub resources: HashMap<String, DiagnosticResource>,
-    #[cfg_attr(
-        feature = "wasm-bindings",
-        tsify(type = "Record<string, DiagnosticOutput>")
-    )]
+    #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, DiagnosticOutput>"))]
     pub outputs: HashMap<String, DiagnosticOutput>,
     pub edges: Vec<ReferenceEdge>,
     pub cycles: Vec<Vec<String>>,

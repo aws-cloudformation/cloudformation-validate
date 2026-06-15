@@ -303,6 +303,7 @@ jobs:
         branch: automated/build-artifacts
         delete-branch: true
         title: 'chore: Update Bindings'
+        base: main
         body: |
           Automated update of the binding bundles and CLI binaries.
 

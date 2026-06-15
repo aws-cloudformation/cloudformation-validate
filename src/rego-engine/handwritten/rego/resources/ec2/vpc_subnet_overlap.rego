@@ -3,9 +3,9 @@ package resources
 import rego.v1
 
 # E3060: VPC subnet CIDR overlap.
-# Matches cfn-lint behavior: emits one diagnostic per (later_subnet, earlier_subnet)
-# overlapping pair. A later subnet that overlaps with K earlier subnets produces K
-# findings (each attributed to the later subnet, with the earlier as related).
+# Emits one diagnostic per (later_subnet, earlier_subnet) overlapping pair. A later
+# subnet that overlaps with K earlier subnets produces K findings (each attributed
+# to the later subnet, with the earlier as related).
 violation contains make_diag_related("E3060", "ERROR", b_name,
     "Properties.CidrBlock",
     sprintf("'%s' overlaps with '%s'", [b_cidr, a_cidr]),

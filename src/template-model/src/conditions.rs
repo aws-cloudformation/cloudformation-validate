@@ -1,6 +1,5 @@
 use crate::consts::{
-    CONDITION_REF_PREFIX, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS, MAX_TOTAL_SAT_ITERATIONS,
-    PSEUDO_PREFIX,
+    CONDITION_REF_PREFIX, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS, MAX_TOTAL_SAT_ITERATIONS, PSEUDO_PREFIX,
 };
 use crate::ir::*;
 use crate::model::PseudoParameterOverrides;
@@ -24,11 +23,7 @@ pub enum ValueExpr {
     ParamRef(String),
     Literal(String),
     PseudoParam(String),
-    MappingLookup {
-        map_name: String,
-        key1: Box<ValueExpr>,
-        key2: Box<ValueExpr>,
-    },
+    MappingLookup { map_name: String, key1: Box<ValueExpr>, key2: Box<ValueExpr> },
     Other,
 }
 
@@ -101,16 +96,9 @@ fn format_value_expr(expr: &ValueExpr) -> String {
         ValueExpr::ParamRef(name) => format!("Param({})", name),
         ValueExpr::Literal(s) => format!("\"{}\"", s),
         ValueExpr::PseudoParam(name) => name.clone(),
-        ValueExpr::MappingLookup {
-            map_name,
-            key1,
-            key2,
-        } => format!(
-            "FindInMap({}, {}, {})",
-            map_name,
-            format_value_expr(key1),
-            format_value_expr(key2)
-        ),
+        ValueExpr::MappingLookup { map_name, key1, key2 } => {
+            format!("FindInMap({}, {}, {})", map_name, format_value_expr(key1), format_value_expr(key2))
+        }
         ValueExpr::Other => "?".into(),
     }
 }
@@ -125,12 +113,13 @@ impl ConditionModel {
         let mut conditions = HashMap::new();
 
         if ir.conditions != NULL_REF
-            && let Some(entries) = ir.arena.as_map(ir.conditions) {
-                for (name, node_ref) in entries {
-                    let expr = parse_condition_expr(&ir.arena, *node_ref, parameters);
-                    conditions.insert(name.clone(), expr);
-                }
+            && let Some(entries) = ir.arena.as_map(ir.conditions)
+        {
+            for (name, node_ref) in entries {
+                let expr = parse_condition_expr(&ir.arena, *node_ref, parameters);
+                conditions.insert(name.clone(), expr);
             }
+        }
 
         let mutex_groups = extract_mutex_groups(&conditions);
         let implications = extract_implications(&conditions);
@@ -139,10 +128,7 @@ impl ConditionModel {
             "Condition model: {} conditions, {} mutex groups (params: {:?}), {} implications",
             conditions.len(),
             mutex_groups.len(),
-            mutex_groups
-                .iter()
-                .map(|g| g.parameter.as_str())
-                .collect::<Vec<_>>(),
+            mutex_groups.iter().map(|g| g.parameter.as_str()).collect::<Vec<_>>(),
             implications.len()
         );
         ConditionModel {
@@ -203,33 +189,25 @@ impl ConditionModel {
         if n == 0 {
             return true;
         }
-        debug!(
-            "Checking satisfiability of {:?} against {} conditions",
-            assumptions, n
-        );
+        debug!("Checking satisfiability of {:?} against {} conditions", assumptions, n);
 
-        let name_to_idx: HashMap<&str, usize> = cond_names
-            .iter()
-            .enumerate()
-            .map(|(i, n)| (n.as_str(), i))
-            .collect();
+        let name_to_idx: HashMap<&str, usize> = cond_names.iter().enumerate().map(|(i, n)| (n.as_str(), i)).collect();
 
         let mut assumption_map: HashMap<usize, bool> = HashMap::new();
         for (name, val) in assumptions {
             if let Some(&idx) = name_to_idx.get(name.as_str()) {
                 if let Some(&existing) = assumption_map.get(&idx)
-                    && existing != *val {
-                        return false;
-                    }
+                    && existing != *val
+                {
+                    return false;
+                }
                 assumption_map.insert(idx, *val);
             }
         }
 
         let relevant = self.find_relevant_conditions(assumptions);
-        let mut relevant_indices: Vec<usize> = relevant
-            .iter()
-            .filter_map(|name| name_to_idx.get(name.as_str()).copied())
-            .collect();
+        let mut relevant_indices: Vec<usize> =
+            relevant.iter().filter_map(|name| name_to_idx.get(name.as_str()).copied()).collect();
         // `find_relevant_conditions` returns a HashSet, whose iteration order is
         // randomized per process. The satisfiability result is order-independent,
         // but the number of search steps charged to the cumulative budget before
@@ -264,8 +242,7 @@ impl ConditionModel {
             // count plus the relevant-closure size — so a flood of cap-tripped
             // queries over a large condition graph draws the cumulative budget
             // down in proportion to the work performed, not merely by `n`.
-            self.sat_iterations_used
-                .fetch_add(n as u64 + relevant_indices.len() as u64, Ordering::Relaxed);
+            self.sat_iterations_used.fetch_add(n as u64 + relevant_indices.len() as u64, Ordering::Relaxed);
             return true;
         }
 
@@ -284,8 +261,7 @@ impl ConditionModel {
             &relevant_param_values,
             &mut iterations,
         );
-        self.sat_iterations_used
-            .fetch_add(iterations + n as u64, Ordering::Relaxed);
+        self.sat_iterations_used.fetch_add(iterations + n as u64, Ordering::Relaxed);
         satisfiable
     }
 
@@ -337,6 +313,7 @@ impl ConditionModel {
         relevant
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn search_relevant(
         &self,
         rel_idx: usize,
@@ -369,9 +346,10 @@ impl ConditionModel {
 
         for &val in &[false, true] {
             if let Some(&required) = assumptions.get(&idx)
-                && val != required {
-                    continue;
-                }
+                && val != required
+            {
+                continue;
+            }
 
             assignment[idx] = val;
 
@@ -431,11 +409,7 @@ impl ConditionModel {
         }
         let mut param_values: HashMap<String, Vec<String>> = HashMap::new();
         for (param_name, literals) in &compared_literals {
-            if let Some(allowed_values) = self
-                .parameters
-                .get(param_name)
-                .and_then(|p| p.allowed_values.clone())
-            {
+            if let Some(allowed_values) = self.parameters.get(param_name).and_then(|p| p.allowed_values.clone()) {
                 param_values.insert(param_name.clone(), allowed_values);
             } else {
                 let mut values = literals.clone();
@@ -453,14 +427,8 @@ impl ConditionModel {
     /// parameters is exact — a parameter no relevant condition references cannot
     /// change any relevant condition's value — and keeps the enumerated space as
     /// small as the query actually requires.
-    fn relevant_param_values(
-        &self,
-        relevant_indices: &[usize],
-        cond_names: &[String],
-    ) -> HashMap<String, Vec<String>> {
-        let all_values = self
-            .referenced_param_values
-            .get_or_init(|| self.collect_referenced_param_values());
+    fn relevant_param_values(&self, relevant_indices: &[usize], cond_names: &[String]) -> HashMap<String, Vec<String>> {
+        let all_values = self.referenced_param_values.get_or_init(|| self.collect_referenced_param_values());
         let mut referenced: HashMap<String, Vec<String>> = HashMap::new();
         for &i in relevant_indices {
             collect_equals_pairs(&self.conditions[&cond_names[i]], &mut referenced);
@@ -486,19 +454,14 @@ impl ConditionModel {
             // entry is a placeholder, not a real value.
             for &i in relevant {
                 let expr = &self.conditions[&cond_names[i]];
-                let evaluated = self.eval_expr_concrete(
-                    expr,
-                    &HashMap::new(),
-                    assignment,
-                    cond_names,
-                    name_to_idx,
-                    iterations,
-                );
+                let evaluated =
+                    self.eval_expr_concrete(expr, &HashMap::new(), assignment, cond_names, name_to_idx, iterations);
                 // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
                 if let Some(eval_val) = evaluated
-                    && eval_val != assignment[i] {
-                        return false;
-                    }
+                    && eval_val != assignment[i]
+                {
+                    return false;
+                }
             }
             return true;
         }
@@ -511,10 +474,7 @@ impl ConditionModel {
         // sort of `relevant_indices` in `is_satisfiable`).
         let mut param_names: Vec<String> = param_values.keys().cloned().collect();
         param_names.sort_unstable();
-        let param_vals: Vec<Vec<String>> = param_names
-            .iter()
-            .map(|n| param_values[n].clone())
-            .collect();
+        let param_vals: Vec<Vec<String>> = param_names.iter().map(|n| param_values[n].clone()).collect();
 
         let mut indices = vec![0usize; param_names.len()];
         loop {
@@ -542,20 +502,15 @@ impl ConditionModel {
             let mut consistent = true;
             for &i in relevant {
                 let expr = &self.conditions[&cond_names[i]];
-                let evaluated = self.eval_expr_concrete(
-                    expr,
-                    &param_assignment,
-                    assignment,
-                    cond_names,
-                    name_to_idx,
-                    iterations,
-                );
+                let evaluated =
+                    self.eval_expr_concrete(expr, &param_assignment, assignment, cond_names, name_to_idx, iterations);
                 // None means can't evaluate (e.g., depends on a pseudo-parameter) — treat as compatible
                 if let Some(eval_val) = evaluated
-                    && eval_val != assignment[i] {
-                        consistent = false;
-                        break;
-                    }
+                    && eval_val != assignment[i]
+                {
+                    consistent = false;
+                    break;
+                }
             }
             if consistent {
                 return true;
@@ -586,7 +541,7 @@ impl ConditionModel {
         expr: &ConditionExpr,
         param_assignment: &HashMap<String, String>,
         cond_assignment: &[bool],
-        cond_names: &[String],
+        _cond_names: &[String],
         name_to_idx: &HashMap<&str, usize>,
         iterations: &mut u64,
     ) -> Option<bool> {
@@ -610,7 +565,7 @@ impl ConditionModel {
                             e,
                             param_assignment,
                             cond_assignment,
-                            cond_names,
+                            _cond_names,
                             name_to_idx,
                             iterations,
                         )?;
@@ -625,7 +580,7 @@ impl ConditionModel {
                             e,
                             param_assignment,
                             cond_assignment,
-                            cond_names,
+                            _cond_names,
                             name_to_idx,
                             iterations,
                         )?;
@@ -636,30 +591,20 @@ impl ConditionModel {
                 e,
                 param_assignment,
                 cond_assignment,
-                cond_names,
+                _cond_names,
                 name_to_idx,
                 iterations,
             )?),
-            ConditionExpr::ConditionRef(name) => {
-                name_to_idx.get(name.as_str()).map(|&i| cond_assignment[i])
-            }
+            ConditionExpr::ConditionRef(name) => name_to_idx.get(name.as_str()).map(|&i| cond_assignment[i]),
         }
     }
 
-    fn eval_value_concrete(
-        &self,
-        expr: &ValueExpr,
-        param_assignment: &HashMap<String, String>,
-    ) -> Option<String> {
+    fn eval_value_concrete(&self, expr: &ValueExpr, param_assignment: &HashMap<String, String>) -> Option<String> {
         match expr {
             ValueExpr::Literal(s) => Some(s.clone()),
             ValueExpr::ParamRef(name) => param_assignment.get(name).cloned(),
             ValueExpr::PseudoParam(name) => self.pseudo_overrides.get(name),
-            ValueExpr::MappingLookup {
-                map_name,
-                key1,
-                key2,
-            } => {
+            ValueExpr::MappingLookup { map_name, key1, key2 } => {
                 let k1 = self.eval_value_concrete(key1, param_assignment)?;
                 let k2 = self.eval_value_concrete(key2, param_assignment)?;
                 let value = self.mappings.get(map_name)?.get(&k1)?.get(&k2)?;
@@ -799,17 +744,11 @@ pub fn parse_condition_expr(
             ConditionExpr::Equals(va, vb)
         }
         Node::Intrinsic(IntrinsicFn::And(children)) => {
-            let exprs = children
-                .iter()
-                .map(|c| parse_condition_expr(arena, *c, parameters))
-                .collect();
+            let exprs = children.iter().map(|c| parse_condition_expr(arena, *c, parameters)).collect();
             ConditionExpr::And(exprs)
         }
         Node::Intrinsic(IntrinsicFn::Or(children)) => {
-            let exprs = children
-                .iter()
-                .map(|c| parse_condition_expr(arena, *c, parameters))
-                .collect();
+            let exprs = children.iter().map(|c| parse_condition_expr(arena, *c, parameters)).collect();
             ConditionExpr::Or(exprs)
         }
         Node::Intrinsic(IntrinsicFn::Not(child)) => {
@@ -827,61 +766,54 @@ pub fn parse_condition_expr(
         _ => {
             // Try to parse as a map with intrinsic keys
             if let Some(entries) = arena.as_map(node_ref)
-                && entries.len() == 1 {
-                    let (key, val) = &entries[0];
-                    match key.as_str() {
-                        "Fn::Equals" => {
-                            if let Some(arr) = arena.as_list(*val)
-                                && arr.len() == 2 {
-                                    let va = parse_value_expr(arena, arr[0], parameters);
-                                    let vb = parse_value_expr(arena, arr[1], parameters);
-                                    return ConditionExpr::Equals(va, vb);
-                                }
+                && entries.len() == 1
+            {
+                let (key, val) = &entries[0];
+                match key.as_str() {
+                    "Fn::Equals" => {
+                        if let Some(arr) = arena.as_list(*val)
+                            && arr.len() == 2
+                        {
+                            let va = parse_value_expr(arena, arr[0], parameters);
+                            let vb = parse_value_expr(arena, arr[1], parameters);
+                            return ConditionExpr::Equals(va, vb);
                         }
-                        "Fn::And" => {
-                            if let Some(arr) = arena.as_list(*val) {
-                                let exprs = arr
-                                    .iter()
-                                    .map(|c| parse_condition_expr(arena, *c, parameters))
-                                    .collect();
-                                return ConditionExpr::And(exprs);
-                            }
-                        }
-                        "Fn::Or" => {
-                            if let Some(arr) = arena.as_list(*val) {
-                                let exprs = arr
-                                    .iter()
-                                    .map(|c| parse_condition_expr(arena, *c, parameters))
-                                    .collect();
-                                return ConditionExpr::Or(exprs);
-                            }
-                        }
-                        "Fn::Not" => {
-                            if let Some(arr) = arena.as_list(*val)
-                                && !arr.is_empty() {
-                                    let expr = parse_condition_expr(arena, arr[0], parameters);
-                                    return ConditionExpr::Not(Box::new(expr));
-                                }
-                        }
-                        "Condition" => {
-                            if let Some(name) = arena.as_str(*val) {
-                                return ConditionExpr::ConditionRef(name.to_string());
-                            }
-                        }
-                        _ => {}
                     }
+                    "Fn::And" => {
+                        if let Some(arr) = arena.as_list(*val) {
+                            let exprs = arr.iter().map(|c| parse_condition_expr(arena, *c, parameters)).collect();
+                            return ConditionExpr::And(exprs);
+                        }
+                    }
+                    "Fn::Or" => {
+                        if let Some(arr) = arena.as_list(*val) {
+                            let exprs = arr.iter().map(|c| parse_condition_expr(arena, *c, parameters)).collect();
+                            return ConditionExpr::Or(exprs);
+                        }
+                    }
+                    "Fn::Not" => {
+                        if let Some(arr) = arena.as_list(*val)
+                            && !arr.is_empty()
+                        {
+                            let expr = parse_condition_expr(arena, arr[0], parameters);
+                            return ConditionExpr::Not(Box::new(expr));
+                        }
+                    }
+                    "Condition" => {
+                        if let Some(name) = arena.as_str(*val) {
+                            return ConditionExpr::ConditionRef(name.to_string());
+                        }
+                    }
+                    _ => {}
                 }
+            }
             // Fallback
             ConditionExpr::Equals(ValueExpr::Other, ValueExpr::Other)
         }
     }
 }
 
-fn parse_value_expr(
-    arena: &Arena,
-    node_ref: NodeRef,
-    parameters: &HashMap<String, ParameterInfo>,
-) -> ValueExpr {
+fn parse_value_expr(arena: &Arena, node_ref: NodeRef, parameters: &HashMap<String, ParameterInfo>) -> ValueExpr {
     match arena.node(node_ref) {
         Node::String(s) => ValueExpr::Literal(s.clone()),
         Node::Int(i) => ValueExpr::Literal(i.to_string()),
@@ -903,11 +835,7 @@ fn parse_value_expr(
                     let map_name = arena.as_str(*m).unwrap_or("?").to_string();
                     let key1 = parse_value_expr(arena, *k1, parameters);
                     let key2 = parse_value_expr(arena, *k2, parameters);
-                    return ValueExpr::MappingLookup {
-                        map_name,
-                        key1: Box::new(key1),
-                        key2: Box::new(key2),
-                    };
+                    return ValueExpr::MappingLookup { map_name, key1: Box::new(key1), key2: Box::new(key2) };
                 }
                 IntrinsicFn::Join(_, _) => "Join(...)".to_string(),
                 IntrinsicFn::Sub(t, _) => format!("Sub({})", t),
@@ -926,8 +854,8 @@ fn parse_value_expr(
 fn collect_equals_pairs(expr: &ConditionExpr, out: &mut HashMap<String, Vec<String>>) {
     match expr {
         ConditionExpr::Equals(a, b) => {
-            if let (ValueExpr::ParamRef(p), ValueExpr::Literal(v))
-            | (ValueExpr::Literal(v), ValueExpr::ParamRef(p)) = (a, b)
+            if let (ValueExpr::ParamRef(p), ValueExpr::Literal(v)) | (ValueExpr::Literal(v), ValueExpr::ParamRef(p)) =
+                (a, b)
             {
                 out.entry(p.clone()).or_default().push(v.clone());
             } else {
@@ -946,10 +874,7 @@ fn collect_equals_pairs(expr: &ConditionExpr, out: &mut HashMap<String, Vec<Stri
     }
 }
 
-fn collect_param_refs_from_value_into_pairs(
-    expr: &ValueExpr,
-    out: &mut HashMap<String, Vec<String>>,
-) {
+fn collect_param_refs_from_value_into_pairs(expr: &ValueExpr, out: &mut HashMap<String, Vec<String>>) {
     match expr {
         ValueExpr::ParamRef(p) => {
             out.entry(p.clone()).or_default();
@@ -990,10 +915,7 @@ fn extract_mutex_groups(conditions: &HashMap<String, ConditionExpr>) -> Vec<Mute
             // testing Equals(Param, "X") and Equals(Param, "Y") are mutex.
             // Not(Equals(Param, "X")) is compatible with Equals(Param, "Y").
             if is_positive {
-                param_tests
-                    .entry(param)
-                    .or_default()
-                    .push((name.clone(), _lit));
+                param_tests.entry(param).or_default().push((name.clone(), _lit));
             }
         }
     }
@@ -1004,11 +926,7 @@ fn extract_mutex_groups(conditions: &HashMap<String, ConditionExpr>) -> Vec<Mute
         .map(|(param, tests)| {
             let conditions = tests.iter().map(|(n, _)| n.clone()).collect();
             let values = tests.iter().map(|(_, v)| v.clone()).collect();
-            MutexGroup {
-                conditions,
-                parameter: param,
-                values,
-            }
+            MutexGroup { conditions, parameter: param, values }
         })
         .collect()
 }
@@ -1016,8 +934,8 @@ fn extract_mutex_groups(conditions: &HashMap<String, ConditionExpr>) -> Vec<Mute
 fn extract_equals_test(expr: &ConditionExpr) -> Option<(String, String, bool)> {
     match expr {
         ConditionExpr::Equals(a, b) => {
-            if let (ValueExpr::ParamRef(p), ValueExpr::Literal(v))
-            | (ValueExpr::Literal(v), ValueExpr::ParamRef(p)) = (a, b)
+            if let (ValueExpr::ParamRef(p), ValueExpr::Literal(v)) | (ValueExpr::Literal(v), ValueExpr::ParamRef(p)) =
+                (a, b)
             {
                 return Some((p.clone(), v.clone(), true));
             }
@@ -1044,10 +962,7 @@ fn extract_implications(conditions: &HashMap<String, ConditionExpr>) -> Vec<Impl
                 let mut refs = Vec::new();
                 collect_nested_condition_refs_from_list(children, &mut refs);
                 for ref_name in refs {
-                    implications.push(Implication {
-                        antecedent: name.clone(),
-                        consequent: ref_name,
-                    });
+                    implications.push(Implication { antecedent: name.clone(), consequent: ref_name });
                 }
             }
             ConditionExpr::Or(children) => {
@@ -1055,10 +970,7 @@ fn extract_implications(conditions: &HashMap<String, ConditionExpr>) -> Vec<Impl
                 let mut refs = Vec::new();
                 collect_nested_condition_refs_from_list(children, &mut refs);
                 for ref_name in refs {
-                    implications.push(Implication {
-                        antecedent: ref_name,
-                        consequent: name.clone(),
-                    });
+                    implications.push(Implication { antecedent: ref_name, consequent: name.clone() });
                 }
             }
             _ => {}
@@ -1244,10 +1156,7 @@ Resources:
 "#;
         let model = build_condition_model(input);
         // Same condition assumed both true and false is unsatisfiable
-        assert!(!model.is_satisfiable(&[
-            ("isProduction".into(), true),
-            ("isProduction".into(), false),
-        ]));
+        assert!(!model.is_satisfiable(&[("isProduction".into(), true), ("isProduction".into(), false),]));
     }
 
     #[test]
@@ -1385,18 +1294,8 @@ Resources:
 "#;
         let model = build_condition_model(input);
         // ProdAndDB = And(IsProd, CreateDB) → ProdAndDB implies IsProd and CreateDB
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "ProdAndDB" && i.consequent == "IsProd")
-        );
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "ProdAndDB" && i.consequent == "CreateDB")
-        );
+        assert!(model.implications.iter().any(|i| i.antecedent == "ProdAndDB" && i.consequent == "IsProd"));
+        assert!(model.implications.iter().any(|i| i.antecedent == "ProdAndDB" && i.consequent == "CreateDB"));
     }
 
     #[test]
@@ -1421,18 +1320,8 @@ Resources:
 "#;
         let model = build_condition_model(input);
         // Or(IsProd, IsDev) → IsProd implies ProdOrDev, IsDev implies ProdOrDev
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "IsProd" && i.consequent == "ProdOrDev")
-        );
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "IsDev" && i.consequent == "ProdOrDev")
-        );
+        assert!(model.implications.iter().any(|i| i.antecedent == "IsProd" && i.consequent == "ProdOrDev"));
+        assert!(model.implications.iter().any(|i| i.antecedent == "IsDev" && i.consequent == "ProdOrDev"));
     }
 
     #[test]
@@ -1502,10 +1391,7 @@ Resources:
     fn get_returns_none_for_unknown_condition() {
         let input = r#"{"Resources":{"R":{"Type":"T"}}}"#;
         let model = build_condition_model(input);
-        assert!(
-            model.get("NonExistent").is_none(),
-            "unknown condition should return None"
-        );
+        assert!(model.get("NonExistent").is_none(), "unknown condition should return None");
     }
 
     #[test]
@@ -1569,10 +1455,7 @@ Resources:
         .unwrap();
         let (params, _) = extract_parameters(&ir);
         let (mappings, _) = extract_mappings(&ir);
-        let pseudo = PseudoParameterOverrides {
-            region: Some("eu-west-1".to_string()),
-            ..Default::default()
-        };
+        let pseudo = PseudoParameterOverrides { region: Some("eu-west-1".to_string()), ..Default::default() };
         let model = ConditionModel::from_ir(&ir, &params, &pseudo, &mappings);
         // With eu-west-1, IsUsEast1=true should be unsatisfiable
         assert!(!model.is_satisfiable(&[("IsUsEast1".into(), true)]));
@@ -1654,8 +1537,7 @@ Resources:
             ValueExpr::Literal("Prod".into()),
         )));
         let result = extract_equals_test(&expr);
-        let (param, lit, positive) =
-            result.expect("extract_equals_test should return Some for Not(Equals)");
+        let (param, lit, positive) = result.expect("extract_equals_test should return Some for Not(Equals)");
         assert_eq!(param, "Env");
         assert_eq!(lit, "Prod");
         assert!(!positive);
@@ -1693,24 +1575,9 @@ Resources:
 "#;
         let model = build_condition_model(input);
         // NestedAnd = And(And(CondA, CondB), CondC) should imply all three
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "NestedAnd" && i.consequent == "CondA")
-        );
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "NestedAnd" && i.consequent == "CondB")
-        );
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "NestedAnd" && i.consequent == "CondC")
-        );
+        assert!(model.implications.iter().any(|i| i.antecedent == "NestedAnd" && i.consequent == "CondA"));
+        assert!(model.implications.iter().any(|i| i.antecedent == "NestedAnd" && i.consequent == "CondB"));
+        assert!(model.implications.iter().any(|i| i.antecedent == "NestedAnd" && i.consequent == "CondC"));
     }
 
     #[test]
@@ -1739,18 +1606,8 @@ Resources:
 "#;
         let model = build_condition_model(input);
         // CondA implies NestedOr, CondB implies NestedOr (through nested Or)
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "CondA" && i.consequent == "NestedOr")
-        );
-        assert!(
-            model
-                .implications
-                .iter()
-                .any(|i| i.antecedent == "CondB" && i.consequent == "NestedOr")
-        );
+        assert!(model.implications.iter().any(|i| i.antecedent == "CondA" && i.consequent == "NestedOr"));
+        assert!(model.implications.iter().any(|i| i.antecedent == "CondB" && i.consequent == "NestedOr"));
     }
 
     #[test]
@@ -1772,10 +1629,7 @@ Resources:
         // Register an inline condition that tests the same param
         model.register_inline(
             "__inline_1".to_string(),
-            ConditionExpr::Equals(
-                ValueExpr::ParamRef("Env".to_string()),
-                ValueExpr::Literal("Dev".to_string()),
-            ),
+            ConditionExpr::Equals(ValueExpr::ParamRef("Env".to_string()), ValueExpr::Literal("Dev".to_string())),
         );
         assert_eq!(model.conditions.len(), 2);
         // Mutex groups should be rebuilt to include the new condition
@@ -1803,10 +1657,7 @@ Resources:
             Some(crate::resolver::ResolvedValue::Concrete { value: v }) => {
                 assert_eq!(v.as_str().unwrap(), "yes");
             }
-            other => panic!(
-                "Expected Concrete(\"yes\") from eager eval, got {:?}",
-                other
-            ),
+            other => panic!("Expected Concrete(\"yes\") from eager eval, got {:?}", other),
         }
     }
 
@@ -1852,16 +1703,8 @@ Resources:
 "#;
         let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
         // Should have registered an inline condition
-        let inline_count = model
-            .conditions
-            .conditions
-            .keys()
-            .filter(|k| k.starts_with("__inline_cond_"))
-            .count();
-        assert!(
-            inline_count > 0,
-            "Expected at least one inline condition registered"
-        );
+        let inline_count = model.conditions.conditions.keys().filter(|k| k.starts_with("__inline_cond_")).count();
+        assert!(inline_count > 0, "Expected at least one inline condition registered");
     }
 
     /// Builds a template whose conditions form a chain `chain_len` long, topped
@@ -1948,10 +1791,7 @@ Resources:
         use std::fmt::Write;
         let mut s = String::from("Parameters:\n");
         for i in 0..param_count {
-            let _ = write!(
-                s,
-                "  P{i:02}:\n    Type: String\n    AllowedValues: [yes, no]\n"
-            );
+            let _ = write!(s, "  P{i:02}:\n    Type: String\n    AllowedValues: [yes, no]\n");
         }
         s.push_str("Conditions:\n");
         for i in 0..param_count {
@@ -2019,15 +1859,8 @@ Resources:
         const CHAIN: usize = 8;
         let model = build_condition_model(&chain_with_contradiction(CHAIN));
 
-        assert_eq!(
-            model.sat_iterations_used(),
-            0,
-            "a freshly built model has spent none of its cumulative budget"
-        );
-        assert!(
-            !model.satisfiability_budget_exhausted(),
-            "a freshly built model's cumulative budget is not exhausted"
-        );
+        assert_eq!(model.sat_iterations_used(), 0, "a freshly built model has spent none of its cumulative budget");
+        assert!(!model.satisfiability_budget_exhausted(), "a freshly built model's cumulative budget is not exhausted");
 
         // (1) Real queries accumulate across queries — a per-query reset would
         // be a silent denial-of-service regression. Issuing the same saturating

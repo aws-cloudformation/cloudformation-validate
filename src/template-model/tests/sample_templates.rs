@@ -32,46 +32,25 @@ fn assert_concrete_str(v: &ResolvedValue, expected: &str) {
 
 #[test]
 fn parse_rejects_empty_file() {
-    assert!(
-        try_load("bad/empty_file.yaml").is_err(),
-        "expected error for empty file"
-    );
-    assert!(
-        try_load("empty.yaml").is_err(),
-        "expected error for empty.yaml"
-    );
+    assert!(try_load("bad/empty_file.yaml").is_err(), "expected error for empty file");
+    assert!(try_load("empty.yaml").is_err(), "expected error for empty.yaml");
 }
 
 #[test]
 fn parse_rejects_invalid_json() {
-    assert!(
-        try_load("bad/json_parse.json").is_err(),
-        "expected error for invalid JSON"
-    );
-    assert!(
-        try_load("bad/core/config_invalid_json.json").is_err(),
-        "expected error for invalid JSON config"
-    );
+    assert!(try_load("bad/json_parse.json").is_err(), "expected error for invalid JSON");
+    assert!(try_load("bad/core/config_invalid_json.json").is_err(), "expected error for invalid JSON config");
 }
 
 #[test]
 fn parse_rejects_invalid_yaml() {
-    assert!(
-        try_load("bad/core/config_invalid_yaml.yaml").is_err(),
-        "expected error for invalid YAML config"
-    );
-    assert!(
-        try_load("bad/template.yaml").is_err(),
-        "expected error for bad template"
-    );
+    assert!(try_load("bad/core/config_invalid_yaml.yaml").is_err(), "expected error for invalid YAML config");
+    assert!(try_load("bad/template.yaml").is_err(), "expected error for bad template");
 }
 
 #[test]
 fn parse_rejects_non_mapping_root() {
-    assert!(
-        try_load("bad/string.yaml").is_err(),
-        "expected error for non-mapping root"
-    );
+    assert!(try_load("bad/string.yaml").is_err(), "expected error for non-mapping root");
 }
 
 // ── Format version / description / transforms ──────────────────────────
@@ -80,20 +59,13 @@ fn parse_rejects_non_mapping_root() {
 fn template_metadata_fields() {
     let m = load("lsp/comprehensive.yaml");
     assert_eq!(m.format_version.as_deref(), Some("2010-09-09"));
-    assert!(
-        m.description.as_ref().unwrap().contains("Comprehensive"),
-        "description should contain 'Comprehensive'"
-    );
+    assert!(m.description.as_ref().unwrap().contains("Comprehensive"), "description should contain 'Comprehensive'");
     assert_eq!(m.transforms.len(), 2);
     assert!(
-        m.transforms
-            .contains(&"AWS::Serverless-2016-10-31".to_string()),
+        m.transforms.contains(&"AWS::Serverless-2016-10-31".to_string()),
         "transforms should contain AWS::Serverless-2016-10-31"
     );
-    assert!(
-        m.transforms.contains(&"AWS::Include".to_string()),
-        "transforms should contain AWS::Include"
-    );
+    assert!(m.transforms.contains(&"AWS::Include".to_string()), "transforms should contain AWS::Include");
 }
 
 // ── Parameters: all types ──────────────────────────────────────────────
@@ -113,11 +85,7 @@ fn parameters_all_types() {
 
     let count = &m.parameters["InstanceCount"];
     assert_eq!(count.param_type, "Number");
-    assert_eq!(
-        count.default.as_deref(),
-        Some("2"),
-        "numeric Default should be extracted"
-    );
+    assert_eq!(count.default.as_deref(), Some("2"), "numeric Default should be extracted");
 
     let cidrs = &m.parameters["SubnetCidrs"];
     assert_eq!(cidrs.param_type, "CommaDelimitedList");
@@ -135,14 +103,8 @@ fn parameters_all_types() {
 fn mappings_extraction_and_lookup() {
     let m = load("lsp/comprehensive.yaml");
     assert_eq!(m.mappings.len(), 2);
-    assert_eq!(
-        m.mappings["RegionMap"]["us-east-1"]["AMI"],
-        "ami-0abcdef1234567890"
-    );
-    assert_eq!(
-        m.mappings["EnvironmentMap"]["production"]["LogLevel"],
-        Severity::Warn.as_str()
-    );
+    assert_eq!(m.mappings["RegionMap"]["us-east-1"]["AMI"], "ami-0abcdef1234567890");
+    assert_eq!(m.mappings["EnvironmentMap"]["production"]["LogLevel"], Severity::Warn.as_str());
 
     // FindInMap with enum key → Enum of looked-up values
     let db = m.resource("Database").unwrap();
@@ -156,14 +118,8 @@ fn mappings_extraction_and_lookup() {
                     _ => None,
                 })
                 .collect();
-            assert!(
-                strs.contains(&"db.t3.micro".to_string()),
-                "expected db.t3.micro in variants"
-            );
-            assert!(
-                strs.contains(&"db.t3.large".to_string()),
-                "expected db.t3.large in variants"
-            );
+            assert!(strs.contains(&"db.t3.micro".to_string()), "expected db.t3.micro in variants");
+            assert!(strs.contains(&"db.t3.large".to_string()), "expected db.t3.large in variants");
         }
         other => panic!("expected Enum for DBInstanceClass, got {:?}", other),
     }
@@ -176,24 +132,10 @@ fn conditions_nested_short_form_tags() {
     let m = load("lsp/comprehensive.yaml");
     assert_eq!(m.conditions.conditions.len(), 6);
     // These use nested !Or [!Condition ..., !Equals [...]] etc.
-    assert!(
-        m.conditions
-            .conditions
-            .contains_key("IsProductionOrStaging"),
-        "missing condition IsProductionOrStaging"
-    );
-    assert!(
-        m.conditions.conditions.contains_key("ComplexCondition"),
-        "missing condition ComplexCondition"
-    );
-    assert!(
-        m.conditions.conditions.contains_key("HasMultipleAZs"),
-        "missing condition HasMultipleAZs"
-    );
-    assert!(
-        m.conditions.conditions.contains_key("IsNotProduction"),
-        "missing condition IsNotProduction"
-    );
+    assert!(m.conditions.conditions.contains_key("IsProductionOrStaging"), "missing condition IsProductionOrStaging");
+    assert!(m.conditions.conditions.contains_key("ComplexCondition"), "missing condition ComplexCondition");
+    assert!(m.conditions.conditions.contains_key("HasMultipleAZs"), "missing condition HasMultipleAZs");
+    assert!(m.conditions.conditions.contains_key("IsNotProduction"), "missing condition IsNotProduction");
 }
 
 #[test]
@@ -215,88 +157,40 @@ fn conditions_all_forms_mixed() {
         "NotProduction",
         "ComplexCondition",
     ] {
-        assert!(
-            m.conditions.conditions.contains_key(*name),
-            "missing condition {}",
-            name
-        );
+        assert!(m.conditions.conditions.contains_key(*name), "missing condition {}", name);
     }
 }
 
 #[test]
 fn conditions_mutex_groups() {
     let m = load("lsp/condition-usage.yaml");
-    assert!(
-        !m.conditions.mutex_groups.is_empty(),
-        "expected at least one mutex group"
-    );
+    assert!(!m.conditions.mutex_groups.is_empty(), "expected at least one mutex group");
     let mg = &m.conditions.mutex_groups[0];
-    assert!(
-        mg.conditions.contains(&"IsProduction".to_string()),
-        "mutex group should contain IsProduction"
-    );
-    assert!(
-        mg.conditions.contains(&"IsDevelopment".to_string()),
-        "mutex group should contain IsDevelopment"
-    );
-    assert!(
-        !m.conditions
-            .conditions_compatible("IsProduction", "IsDevelopment")
-    );
+    assert!(mg.conditions.contains(&"IsProduction".to_string()), "mutex group should contain IsProduction");
+    assert!(mg.conditions.contains(&"IsDevelopment".to_string()), "mutex group should contain IsDevelopment");
+    assert!(!m.conditions.conditions_compatible("IsProduction", "IsDevelopment"));
 }
 
 #[test]
 fn conditions_implications() {
     let m = load("lsp/condition-usage.yaml");
     // IsProductionAndCreateDB = And(IsProduction, ShouldCreateDatabase)
-    assert!(
-        m.conditions
-            .condition_implies("IsProductionAndCreateDB", "IsProduction")
-    );
-    assert!(
-        m.conditions
-            .condition_implies("IsProductionAndCreateDB", "ShouldCreateDatabase")
-    );
+    assert!(m.conditions.condition_implies("IsProductionAndCreateDB", "IsProduction"));
+    assert!(m.conditions.condition_implies("IsProductionAndCreateDB", "ShouldCreateDatabase"));
     // IsDevelopment → IsDevOrCreateDB (Or includes IsDevelopment)
-    assert!(
-        m.conditions
-            .condition_implies("IsDevelopment", "IsDevOrCreateDB")
-    );
+    assert!(m.conditions.condition_implies("IsDevelopment", "IsDevOrCreateDB"));
 }
 
 #[test]
 fn conditions_core_complex_nesting() {
     // core/conditions.yaml: And with Condition refs, Or with mixed Condition/Equals
     let m = load("good/core/conditions.yaml");
-    assert!(
-        m.conditions.conditions.len() >= 7,
-        "expected >= 7 conditions, got {}",
-        m.conditions.conditions.len()
-    );
-    assert!(
-        m.conditions
-            .conditions
-            .contains_key("isPrimaryAndProduction"),
-        "missing condition isPrimaryAndProduction"
-    );
-    assert!(
-        m.conditions
-            .conditions
-            .contains_key("isProductionOrStaging"),
-        "missing condition isProductionOrStaging"
-    );
-    assert!(
-        m.conditions.conditions.contains_key("isNotProduction"),
-        "missing condition isNotProduction"
-    );
-    assert!(
-        m.conditions
-            .condition_implies("isPrimaryAndProduction", "isProduction")
-    );
-    assert!(
-        m.conditions
-            .condition_implies("isPrimaryAndProduction", "isPrimary")
-    );
+    assert!(m.conditions.conditions.len() >= 7, "expected >= 7 conditions, got {}", m.conditions.conditions.len());
+    assert!(m.conditions.conditions.contains_key("isPrimaryAndProduction"), "missing condition isPrimaryAndProduction");
+    assert!(m.conditions.conditions.contains_key("isProductionOrStaging"), "missing condition isProductionOrStaging");
+    assert!(m.conditions.conditions.contains_key("isNotProduction"), "missing condition isNotProduction");
+    assert!(m.conditions.condition_implies("isPrimaryAndProduction", "isProduction"));
+    assert!(m.conditions.condition_implies("isPrimaryAndProduction", "isPrimary"));
 }
 
 // ── Fn::If: named conditions and inline expressions ────────────────────
@@ -306,11 +200,7 @@ fn fn_if_named_condition() {
     let m = load("lsp/condition-usage.yaml");
     let r = m.resource("ProductionBucket").unwrap();
     match r.properties.get("BucketName") {
-        Some(ResolvedValue::Conditional {
-            condition: c,
-            if_true: t,
-            if_false: f,
-        }) => {
+        Some(ResolvedValue::Conditional { condition: c, if_true: t, if_false: f }) => {
             assert_eq!(c, "IsProduction");
             assert_concrete_str(t, "my-prod-bucket");
             assert_concrete_str(f, "my-dev-bucket");
@@ -326,16 +216,8 @@ fn fn_if_inline_condition_expr() {
     let r = m.resource("LogicalConditionResource").unwrap();
     // AlarmName: !If [Fn::And: [...], "prod-db-alarm", "dev-alarm"]
     match r.properties.get("AlarmName") {
-        Some(ResolvedValue::Conditional {
-            condition: c,
-            if_true: t,
-            if_false: f,
-        }) => {
-            assert!(
-                c.starts_with("__inline_cond_"),
-                "expected inline cond, got {}",
-                c
-            );
+        Some(ResolvedValue::Conditional { condition: c, if_true: t, if_false: f }) => {
+            assert!(c.starts_with("__inline_cond_"), "expected inline cond, got {}", c);
             assert_concrete_str(t, "prod-db-alarm");
             assert_concrete_str(f, "dev-alarm");
         }
@@ -349,15 +231,9 @@ fn fn_if_nested_conditionals() {
     let m = load("good/core/conditions.yaml");
     let r = m.resource("myInstance4").unwrap();
     match r.properties.get("InstanceType") {
-        Some(ResolvedValue::Conditional {
-            condition: outer,
-            if_true: t,
-            if_false: f,
-        }) => {
+        Some(ResolvedValue::Conditional { condition: outer, if_true: t, if_false: f }) => {
             assert_eq!(outer, "isPrimaryAndProduction");
-            assert!(
-                matches!(t.as_ref(), ResolvedValue::Conditional { condition: inner, .. } if inner == "isPrimary")
-            );
+            assert!(matches!(t.as_ref(), ResolvedValue::Conditional { condition: inner, .. } if inner == "isPrimary"));
             assert_concrete_str(f, "t3.medium");
         }
         other => panic!("expected nested Conditional, got {:?}", other),
@@ -379,14 +255,8 @@ fn fn_sub_with_allowed_values_produces_enum() {
                     _ => None,
                 })
                 .collect();
-            assert!(
-                strs.contains(&"development-alerts"),
-                "expected development-alerts in variants"
-            );
-            assert!(
-                strs.contains(&"production-alerts"),
-                "expected production-alerts in variants"
-            );
+            assert!(strs.contains(&"development-alerts"), "expected development-alerts in variants");
+            assert!(strs.contains(&"production-alerts"), "expected production-alerts in variants");
         }
         other => panic!("expected Enum for TopicName, got {:?}", other),
     }
@@ -402,10 +272,7 @@ fn fn_sub_with_explicit_map() {
     match vpc.properties.get("CidrBlock") {
         Some(ResolvedValue::Dynamic { reason: _ }) => {} // expected: CidrBlock param unknown
         Some(ResolvedValue::Concrete { value: _ }) => {} // also ok if default resolves
-        other => panic!(
-            "expected Dynamic or Concrete for CidrBlock Sub, got {:?}",
-            other
-        ),
+        other => panic!("expected Dynamic or Concrete for CidrBlock Sub, got {:?}", other),
     }
 }
 
@@ -421,10 +288,7 @@ fn fn_join_concrete() {
         Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "us-east-1-bucketName");
         }
-        other => panic!(
-            "expected Concrete for Join with pseudo-param, got {:?}",
-            other
-        ),
+        other => panic!("expected Concrete for Join with pseudo-param, got {:?}", other),
     }
 }
 
@@ -469,10 +333,7 @@ fn ref_to_resource_produces_reference() {
     let m = load("lsp/comprehensive.yaml");
     let dbsg = m.resource("DatabaseSecurityGroup").unwrap();
     match dbsg.properties.get("VpcId") {
-        Some(ResolvedValue::Reference {
-            target: t,
-            kind: RefKind::Ref,
-        }) => assert_eq!(t, "VPC"),
+        Some(ResolvedValue::Reference { target: t, kind: RefKind::Ref }) => assert_eq!(t, "VPC"),
         other => panic!("expected Reference(VPC, Ref), got {:?}", other),
     }
 }
@@ -497,17 +358,11 @@ fn getatt_produces_reference_with_attr() {
     let m = load("lsp/comprehensive.yaml");
     let lambda = m.resource("LambdaFunction").unwrap();
     match lambda.properties.get("Role") {
-        Some(ResolvedValue::Reference {
-            target: t,
-            kind: RefKind::GetAtt { attr },
-        }) => {
+        Some(ResolvedValue::Reference { target: t, kind: RefKind::GetAtt { attr } }) => {
             assert_eq!(t, "LambdaRole");
             assert_eq!(attr, "Arn");
         }
-        other => panic!(
-            "expected Reference(LambdaRole, GetAtt(Arn)), got {:?}",
-            other
-        ),
+        other => panic!("expected Reference(LambdaRole, GetAtt(Arn)), got {:?}", other),
     }
 }
 
@@ -516,19 +371,10 @@ fn getatt_produces_reference_with_attr() {
 #[test]
 fn resource_condition() {
     let m = load("lsp/condition-usage.yaml");
+    assert_eq!(m.resource("ProductionBucket").unwrap().condition.as_deref(), Some("IsProduction"));
+    assert_eq!(m.resource("Database").unwrap().condition.as_deref(), Some("ShouldCreateDatabase"));
     assert_eq!(
-        m.resource("ProductionBucket").unwrap().condition.as_deref(),
-        Some("IsProduction")
-    );
-    assert_eq!(
-        m.resource("Database").unwrap().condition.as_deref(),
-        Some("ShouldCreateDatabase")
-    );
-    assert_eq!(
-        m.resource("ConditionalResource")
-            .unwrap()
-            .condition
-            .as_deref(),
+        m.resource("ConditionalResource").unwrap().condition.as_deref(),
         None,
         "ConditionalResource should have no condition"
     );
@@ -539,11 +385,7 @@ fn resource_conditional_deletion_policy() {
     let m = load("lsp/comprehensive.yaml");
     let db = m.resource("Database").unwrap();
     match &db.deletion_policy {
-        Some(ResolvedValue::Conditional {
-            condition: c,
-            if_true: t,
-            if_false: f,
-        }) => {
+        Some(ResolvedValue::Conditional { condition: c, if_true: t, if_false: f }) => {
             assert_eq!(c, "IsProduction");
             assert_concrete_str(t, "Snapshot");
             assert_concrete_str(f, "Delete");
@@ -558,11 +400,7 @@ fn resource_depends_on() {
     let has_depends = m.resources.values().any(|r| !r.depends_on.is_empty());
     assert!(has_depends, "expected at least one resource with DependsOn");
     // DependsOn edges should appear in the graph
-    let dependson_edges = m
-        .graph
-        .edges
-        .iter()
-        .any(|e| matches!(e.kind, RefKind::DependsOn));
+    let dependson_edges = m.graph.edges.iter().any(|e| matches!(e.kind, RefKind::DependsOn));
     assert!(dependson_edges, "expected DependsOn edges in graph");
 }
 
@@ -582,23 +420,12 @@ fn outputs_value_condition_export() {
     assert_eq!(m.outputs.len(), 6);
 
     let vpc_out = &m.outputs["VPCId"];
-    assert!(
-        matches!(&vpc_out.value, ResolvedValue::Reference { target: t, kind: RefKind::Ref } if t == "VPC")
-    );
-    assert!(
-        vpc_out.export_name.is_some(),
-        "VPCId output should have an export name"
-    );
+    assert!(matches!(&vpc_out.value, ResolvedValue::Reference { target: t, kind: RefKind::Ref } if t == "VPC"));
+    assert!(vpc_out.export_name.is_some(), "VPCId output should have an export name");
 
     let db_out = &m.outputs["DatabaseEndpoint"];
     assert_eq!(db_out.condition.as_deref(), Some("IsProductionOrStaging"));
-    assert!(matches!(
-        &db_out.value,
-        ResolvedValue::Reference {
-            kind: RefKind::GetAtt { .. },
-            ..
-        }
-    ));
+    assert!(matches!(&db_out.value, ResolvedValue::Reference { kind: RefKind::GetAtt { .. }, .. }));
 }
 
 #[test]
@@ -607,11 +434,7 @@ fn outputs_conditional_values() {
     assert_eq!(m.outputs.len(), 7);
     let full = &m.outputs["FullFormConditionalOutput"];
     match &full.value {
-        ResolvedValue::Conditional {
-            condition: c,
-            if_true: t,
-            if_false: f,
-        } => {
+        ResolvedValue::Conditional { condition: c, if_true: t, if_false: f } => {
             assert_eq!(c, "IsProduction");
             assert_concrete_str(t, "Production Environment");
             assert_concrete_str(f, "Development Environment");
@@ -625,11 +448,7 @@ fn outputs_conditional_values() {
 #[test]
 fn graph_edges_and_traversal() {
     let m = load("lsp/comprehensive.yaml");
-    assert!(
-        m.graph.edges.len() >= 50,
-        "expected >= 50 edges, got {}",
-        m.graph.edges.len()
-    );
+    assert!(m.graph.edges.len() >= 50, "expected >= 50 edges, got {}", m.graph.edges.len());
     // DatabaseSecurityGroup → VPC via Ref
     assert!(m.graph.depends_on("DatabaseSecurityGroup", "VPC"));
     // LambdaFunction → LambdaRole via GetAtt
@@ -641,19 +460,13 @@ fn graph_edges_and_traversal() {
 #[test]
 fn graph_circular_dependency_detection() {
     let m = load("bad/resources_circular_dependency.yaml");
-    assert!(
-        !m.graph.cycles().is_empty(),
-        "expected circular dependency cycles"
-    );
+    assert!(!m.graph.cycles().is_empty(), "expected circular dependency cycles");
 }
 
 #[test]
 fn graph_dependson_circular() {
     let m = load("bad/resources_circular_dependency_dependson.yaml");
-    assert!(
-        !m.graph.cycles().is_empty(),
-        "expected DependsOn circular dependency cycles"
-    );
+    assert!(!m.graph.cycles().is_empty(), "expected DependsOn circular dependency cycles");
 }
 
 // ── Dynamic references ({{resolve:...}}) ───────────────────────────────
@@ -715,11 +528,7 @@ fn resolve_deep_through_conditional() {
 fn resolve_scenarios_expands_conditional() {
     let m = load("lsp/comprehensive.yaml");
     let scenarios = m.resolve_scenarios("Database", "Properties.AllocatedStorage");
-    assert!(
-        scenarios.len() >= 2,
-        "expected >=2 scenarios, got {}",
-        scenarios.len()
-    );
+    assert!(scenarios.len() >= 2, "expected >=2 scenarios, got {}", scenarios.len());
     // One scenario with IsProduction=true → 100, one with false → 20
     let vals: Vec<i64> = scenarios
         .iter()
@@ -739,10 +548,7 @@ fn json_yaml_equivalence_simple() {
     let yaml = load("lsp/simple.yaml");
     let json = load("lsp/simple.json");
     assert_eq!(yaml.resources.len(), json.resources.len());
-    assert_eq!(
-        yaml.resources.keys().collect::<Vec<_>>(),
-        json.resources.keys().collect::<Vec<_>>()
-    );
+    assert_eq!(yaml.resources.keys().collect::<Vec<_>>(), json.resources.keys().collect::<Vec<_>>());
 }
 
 #[test]
@@ -751,14 +557,8 @@ fn json_yaml_equivalence_conditions() {
     let json = load("lsp/condition-usage.json");
     // JSON version may have fewer conditions (no ComplexCondition) but core ones match
     for name in &["IsProduction", "IsDevelopment", "ShouldCreateDatabase"] {
-        assert!(
-            yaml.conditions.conditions.contains_key(*name),
-            "yaml missing condition {name}"
-        );
-        assert!(
-            json.conditions.conditions.contains_key(*name),
-            "json missing condition {name}"
-        );
+        assert!(yaml.conditions.conditions.contains_key(*name), "yaml missing condition {name}");
+        assert!(json.conditions.conditions.contains_key(*name), "json missing condition {name}");
     }
 }
 
@@ -768,8 +568,7 @@ fn json_yaml_equivalence_conditions() {
 fn transforms_extracted() {
     let m = load("good/transform/language_extension.yaml");
     assert!(
-        m.transforms
-            .contains(&"AWS::LanguageExtensions".to_string()),
+        m.transforms.contains(&"AWS::LanguageExtensions".to_string()),
         "transforms should contain AWS::LanguageExtensions"
     );
 }
@@ -777,10 +576,7 @@ fn transforms_extracted() {
 #[test]
 fn sam_transform() {
     let m = load("good/transform_serverless_function.yaml");
-    assert!(
-        m.transforms.iter().any(|t| t.contains("Serverless")),
-        "transforms should contain a Serverless transform"
-    );
+    assert!(m.transforms.iter().any(|t| t.contains("Serverless")), "transforms should contain a Serverless transform");
 }
 
 // ── Condition refs tracked on resources ────────────────────────────────
@@ -789,15 +585,10 @@ fn sam_transform() {
 fn condition_refs_tracked() {
     let m = load("lsp/condition-usage.yaml");
     let r = m.resource("ConditionalResource").unwrap();
-    assert!(
-        !r.diagnostics.condition_refs.is_empty(),
-        "ConditionalResource should have condition refs"
-    );
+    assert!(!r.diagnostics.condition_refs.is_empty(), "ConditionalResource should have condition refs");
     // Uses IsProductionAndCreateDB, IsProduction, ShouldCreateDatabase, ComplexCondition
     assert!(
-        r.diagnostics
-            .condition_refs
-            .contains(&"IsProduction".to_string()),
+        r.diagnostics.condition_refs.contains(&"IsProduction".to_string()),
         "condition_refs should contain IsProduction"
     );
 }
@@ -809,9 +600,7 @@ fn findinmap_refs_tracked() {
     let m = load("lsp/comprehensive.yaml");
     let db = m.resource("Database").unwrap();
     assert!(
-        db.diagnostics
-            .find_in_map_refs
-            .contains(&"EnvironmentMap".to_string()),
+        db.diagnostics.find_in_map_refs.contains(&"EnvironmentMap".to_string()),
         "find_in_map_refs should contain EnvironmentMap"
     );
 }
@@ -822,10 +611,7 @@ fn findinmap_refs_tracked() {
 fn rego_input_complete_structure() {
     let m = load("lsp/comprehensive.yaml");
     let json = serde_json::to_value(m.to_diagnostic_json()).unwrap();
-    assert!(
-        json["template"]["formatVersion"].as_str().is_some(),
-        "formatVersion should be a string"
-    );
+    assert!(json["template"]["formatVersion"].as_str().is_some(), "formatVersion should be a string");
     assert_eq!(json["template"]["transforms"].as_array().unwrap().len(), 2);
     assert_eq!(json["parameters"].as_object().unwrap().len(), 8);
     assert_eq!(json["resources"].as_object().unwrap().len(), 12);
@@ -835,10 +621,7 @@ fn rego_input_complete_structure() {
         "expected >= 50 edges, got {}",
         json["edges"].as_array().unwrap().len()
     );
-    assert!(
-        json["cycles"].as_array().unwrap().is_empty(),
-        "comprehensive template should have no cycles"
-    );
+    assert!(json["cycles"].as_array().unwrap().is_empty(), "comprehensive template should have no cycles");
     assert_eq!(json["mappings"].as_object().unwrap().len(), 2);
 }
 
@@ -847,55 +630,24 @@ fn rego_input_complete_structure() {
 #[test]
 fn quickstart_vpc_json_large() {
     let m = load("quickstart/vpc.json");
-    assert!(
-        m.resources.len() > 50,
-        "expected > 50 resources, got {}",
-        m.resources.len()
-    );
-    assert!(
-        m.conditions.conditions.len() > 10,
-        "expected > 10 conditions, got {}",
-        m.conditions.conditions.len()
-    );
-    assert!(
-        m.outputs.len() > 20,
-        "expected > 20 outputs, got {}",
-        m.outputs.len()
-    );
-    assert!(
-        m.graph.cycles().is_empty(),
-        "quickstart vpc should have no cycles"
-    );
+    assert!(m.resources.len() > 50, "expected > 50 resources, got {}", m.resources.len());
+    assert!(m.conditions.conditions.len() > 10, "expected > 10 conditions, got {}", m.conditions.conditions.len());
+    assert!(m.outputs.len() > 20, "expected > 20 outputs, got {}", m.outputs.len());
+    assert!(m.graph.cycles().is_empty(), "quickstart vpc should have no cycles");
 }
 
 #[test]
 fn quickstart_cis_benchmark_large() {
     let m = load("quickstart/cis_benchmark.yaml");
-    assert!(
-        m.resources.len() > 50,
-        "expected > 50 resources, got {}",
-        m.resources.len()
-    );
-    assert!(
-        m.graph.edges.len() > 100,
-        "expected > 100 edges, got {}",
-        m.graph.edges.len()
-    );
+    assert!(m.resources.len() > 50, "expected > 50 resources, got {}", m.resources.len());
+    assert!(m.graph.edges.len() > 100, "expected > 100 edges, got {}", m.graph.edges.len());
 }
 
 #[test]
 fn public_watchmaker_json_large() {
     let m = load("public/watchmaker.json");
-    assert!(
-        m.parameters.len() > 20,
-        "expected > 20 parameters, got {}",
-        m.parameters.len()
-    );
-    assert!(
-        m.conditions.conditions.len() > 10,
-        "expected > 10 conditions, got {}",
-        m.conditions.conditions.len()
-    );
+    assert!(m.parameters.len() > 20, "expected > 20 parameters, got {}", m.parameters.len());
+    assert!(m.conditions.conditions.len() > 10, "expected > 10 conditions, got {}", m.conditions.conditions.len());
 }
 
 // ── All parseable templates: bulk smoke test ───────────────────────────
@@ -931,9 +683,10 @@ fn walk_recursive(dir: &std::path::Path, out: &mut Vec<String>) {
             walk_recursive(&p, out);
         } else if p.is_file()
             && let Some(ext) = p.extension()
-                && (ext == "yaml" || ext == "json" || ext == "yml") {
-                    out.push(p.display().to_string());
-                }
+            && (ext == "yaml" || ext == "json" || ext == "yml")
+        {
+            out.push(p.display().to_string());
+        }
     }
 }
 
@@ -942,28 +695,19 @@ fn walk_recursive(dir: &std::path::Path, out: &mut Vec<String>) {
 #[test]
 fn template_level_metadata_extracted() {
     let m = load("lsp/comprehensive.yaml");
-    let meta = m
-        .template_metadata
-        .as_ref()
-        .expect("template_metadata should be Some");
+    let meta = m.template_metadata.as_ref().expect("template_metadata should be Some");
     assert!(
         meta.get("AWS::CloudFormation::Interface").is_some(),
         "metadata should contain AWS::CloudFormation::Interface"
     );
-    assert!(
-        meta.get("CustomMetadata").is_some(),
-        "metadata should contain CustomMetadata"
-    );
+    assert!(meta.get("CustomMetadata").is_some(), "metadata should contain CustomMetadata");
     assert_eq!(meta["CustomMetadata"]["Version"], "1.0.0");
 }
 
 #[test]
 fn template_level_metadata_absent_when_missing() {
     let m = load("good/minimal.yaml");
-    assert_eq!(
-        m.template_metadata, None,
-        "minimal template should have no metadata"
-    );
+    assert_eq!(m.template_metadata, None, "minimal template should have no metadata");
 }
 
 // ── Rules ──────────────────────────────────────────────────────────────
@@ -974,20 +718,11 @@ fn rules_extracted() {
     let rules = m.rules.as_ref().expect("rules should be Some");
     let obj = rules.as_object().unwrap();
     assert_eq!(obj.len(), 2);
-    assert!(
-        obj.contains_key("ValidateRegionAndEnvironment"),
-        "missing rule ValidateRegionAndEnvironment"
-    );
-    assert!(
-        obj.contains_key("ValidateParameterCombinations"),
-        "missing rule ValidateParameterCombinations"
-    );
+    assert!(obj.contains_key("ValidateRegionAndEnvironment"), "missing rule ValidateRegionAndEnvironment");
+    assert!(obj.contains_key("ValidateParameterCombinations"), "missing rule ValidateParameterCombinations");
     // Assertions are present
     let rule = &obj["ValidateRegionAndEnvironment"];
-    assert!(
-        rule.get("RuleCondition").is_some(),
-        "rule should have a RuleCondition"
-    );
+    assert!(rule.get("RuleCondition").is_some(), "rule should have a RuleCondition");
     let assertions = rule["Assertions"].as_array().unwrap();
     assert_eq!(assertions.len(), 2);
 }
@@ -1004,24 +739,12 @@ fn rules_absent_when_missing() {
 fn resource_update_policy_and_creation_policy() {
     let m = load("lsp/comprehensive.yaml");
     let asg = m.resource("AutoScalingGroup").unwrap();
-    let up = asg
-        .update_policy
-        .as_ref()
-        .expect("UpdatePolicy should be Some");
-    assert!(
-        up.get("AutoScalingRollingUpdate").is_some(),
-        "UpdatePolicy should contain AutoScalingRollingUpdate"
-    );
+    let up = asg.update_policy.as_ref().expect("UpdatePolicy should be Some");
+    assert!(up.get("AutoScalingRollingUpdate").is_some(), "UpdatePolicy should contain AutoScalingRollingUpdate");
     assert_eq!(up["AutoScalingRollingUpdate"]["MinInstancesInService"], 1);
 
-    let cp = asg
-        .creation_policy
-        .as_ref()
-        .expect("CreationPolicy should be Some");
-    assert!(
-        cp.get("ResourceSignal").is_some(),
-        "CreationPolicy should contain ResourceSignal"
-    );
+    let cp = asg.creation_policy.as_ref().expect("CreationPolicy should be Some");
+    assert!(cp.get("ResourceSignal").is_some(), "CreationPolicy should contain ResourceSignal");
     assert_eq!(cp["ResourceSignal"]["Timeout"], "PT10M");
 }
 
@@ -1030,10 +753,7 @@ fn resource_without_policies_has_none() {
     let m = load("lsp/comprehensive.yaml");
     let vpc = m.resource("VPC").unwrap();
     assert_eq!(vpc.update_policy, None, "VPC should have no UpdatePolicy");
-    assert_eq!(
-        vpc.creation_policy, None,
-        "VPC should have no CreationPolicy"
-    );
+    assert_eq!(vpc.creation_policy, None, "VPC should have no CreationPolicy");
 }
 
 // ── Select on non-list value ───────────────────────────────────────────
@@ -1047,11 +767,7 @@ fn select_on_non_list_gives_correct_message() {
     let cidr = &subnet.properties["CidrBlock"];
     match cidr {
         ResolvedValue::Dynamic { reason: msg } => {
-            assert!(
-                msg.contains("non-list"),
-                "expected 'non-list' in message, got: {}",
-                msg
-            );
+            assert!(msg.contains("non-list"), "expected 'non-list' in message, got: {}", msg);
         }
         other => panic!("expected Dynamic, got {:?}", other),
     }
@@ -1066,11 +782,7 @@ fn condition_intrinsic_value_not_question_mark() {
     // The !Select should render as "Select(...)" not "?"
     let expr = m.conditions.get("HasMultipleAZs").unwrap();
     let formatted = format!("{:?}", expr);
-    assert!(
-        !formatted.contains("Other"),
-        "condition should describe intrinsic, not fall back to Other: {}",
-        formatted
-    );
+    assert!(!formatted.contains("Other"), "condition should describe intrinsic, not fall back to Other: {}", formatted);
 }
 
 // ── Condition refs from Metadata blocks ─────────────────────────────────
@@ -1084,10 +796,7 @@ fn condition_refs_include_metadata_fn_if() {
     let instance = m.resource("WatchmakerInstance").unwrap();
     // InstallCloudWatchAgent is used in Fn::If inside Metadata, not Properties
     assert!(
-        instance
-            .diagnostics
-            .condition_refs
-            .contains(&"InstallCloudWatchAgent".to_string()),
+        instance.diagnostics.condition_refs.contains(&"InstallCloudWatchAgent".to_string()),
         "condition_refs should include 'InstallCloudWatchAgent' from Metadata Fn::If, got: {:?}",
         instance.diagnostics.condition_refs
     );
@@ -1099,12 +808,6 @@ fn condition_refs_include_metadata_fn_if() {
 fn to_json_has_condition_implications() {
     let m = load("good/conditions.yaml");
     let json = serde_json::to_value(m.to_diagnostic_json()).unwrap();
-    assert!(
-        json.get("conditionImplications").is_some(),
-        "to_json should include conditionImplications"
-    );
-    assert!(
-        json.get("resourceConditionMap").is_some(),
-        "to_json should include resourceConditionMap"
-    );
+    assert!(json.get("conditionImplications").is_some(), "to_json should include conditionImplications");
+    assert!(json.get("resourceConditionMap").is_some(), "to_json should include resourceConditionMap");
 }

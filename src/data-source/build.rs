@@ -15,87 +15,33 @@ const GENERATED_JSON: &[(&str, &str)] = &[
     ("lambda_runtimes", "LAMBDA_RUNTIMES"),
     // shared across all engines
     ("schema_metadata", "SCHEMA_METADATA"),
-    (
-        "iam_action_resource_patterns",
-        "IAM_ACTION_RESOURCE_PATTERNS",
-    ),
+    ("iam_action_resource_patterns", "IAM_ACTION_RESOURCE_PATTERNS"),
     ("region_resource_types", "REGION_RESOURCE_TYPES"),
     ("primary_identifiers", "PRIMARY_IDENTIFIERS"),
     ("getatt_attributes", "GETATT_ATTRIBUTES"),
     ("known_resource_types", "KNOWN_RESOURCE_TYPES"),
     ("stateful_resource_types", "STATEFUL_RESOURCE_TYPES"),
-    (
-        "aws_rds_dbinstance_dbinstanceclass_enum",
-        "AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM",
-    ),
-    (
-        "aws_ec2_instance_instancetype_enum",
-        "AWS_EC2_INSTANCE_INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_emr_cluster_instancetypeconfig_instancetype_enum",
-        "AWS_EMR_CLUSTER_INSTANCETYPECONFIG_INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_gamelift_fleet_ec2instancetype_enum",
-        "AWS_GAMELIFT_FLEET_EC2INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_appstream_fleet_instancetype_enum",
-        "AWS_APPSTREAM_FLEET_INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_dax_cluster_nodetype_enum",
-        "AWS_DAX_CLUSTER_NODETYPE_ENUM",
-    ),
-    (
-        "aws_docdb_dbinstance_dbinstanceclass_enum",
-        "AWS_DOCDB_DBINSTANCE_DBINSTANCECLASS_ENUM",
-    ),
-    (
-        "aws_elasticache_cachecluster_cachenodetype_enum",
-        "AWS_ELASTICACHE_CACHECLUSTER_CACHENODETYPE_ENUM",
-    ),
+    ("aws_rds_dbinstance_dbinstanceclass_enum", "AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM"),
+    ("aws_ec2_instance_instancetype_enum", "AWS_EC2_INSTANCE_INSTANCETYPE_ENUM"),
+    ("aws_emr_cluster_instancetypeconfig_instancetype_enum", "AWS_EMR_CLUSTER_INSTANCETYPECONFIG_INSTANCETYPE_ENUM"),
+    ("aws_gamelift_fleet_ec2instancetype_enum", "AWS_GAMELIFT_FLEET_EC2INSTANCETYPE_ENUM"),
+    ("aws_appstream_fleet_instancetype_enum", "AWS_APPSTREAM_FLEET_INSTANCETYPE_ENUM"),
+    ("aws_dax_cluster_nodetype_enum", "AWS_DAX_CLUSTER_NODETYPE_ENUM"),
+    ("aws_docdb_dbinstance_dbinstanceclass_enum", "AWS_DOCDB_DBINSTANCE_DBINSTANCECLASS_ENUM"),
+    ("aws_elasticache_cachecluster_cachenodetype_enum", "AWS_ELASTICACHE_CACHECLUSTER_CACHENODETYPE_ENUM"),
     (
         "aws_managedblockchain_node_nodeconfiguration_instancetype_enum",
         "AWS_MANAGEDBLOCKCHAIN_NODE_NODECONFIGURATION_INSTANCETYPE_ENUM",
     ),
-    (
-        "aws_neptune_dbinstance_dbinstanceclass_enum",
-        "AWS_NEPTUNE_DBINSTANCE_DBINSTANCECLASS_ENUM",
-    ),
-    (
-        "aws_rds_dbcluster_dbclusterinstanceclass_enum",
-        "AWS_RDS_DBCLUSTER_DBCLUSTERINSTANCECLASS_ENUM",
-    ),
-    (
-        "aws_rds_dbinstance_db_instance_class",
-        "AWS_RDS_DBINSTANCE_DB_INSTANCE_CLASS",
-    ),
-    (
-        "aws_redshift_cluster_nodetype_enum",
-        "AWS_REDSHIFT_CLUSTER_NODETYPE_ENUM",
-    ),
-    (
-        "aws_amazonmq_broker_instancetype_enum",
-        "AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_sagemaker_processing_instancetype_enum",
-        "AWS_SAGEMAKER_PROCESSING_INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_sagemaker_hosting_instancetype_enum",
-        "AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_sagemaker_transform_instancetype_enum",
-        "AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM",
-    ),
-    (
-        "aws_sagemaker_cluster_instancetype_enum",
-        "AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM",
-    ),
+    ("aws_neptune_dbinstance_dbinstanceclass_enum", "AWS_NEPTUNE_DBINSTANCE_DBINSTANCECLASS_ENUM"),
+    ("aws_rds_dbcluster_dbclusterinstanceclass_enum", "AWS_RDS_DBCLUSTER_DBCLUSTERINSTANCECLASS_ENUM"),
+    ("aws_rds_dbinstance_db_instance_class", "AWS_RDS_DBINSTANCE_DB_INSTANCE_CLASS"),
+    ("aws_redshift_cluster_nodetype_enum", "AWS_REDSHIFT_CLUSTER_NODETYPE_ENUM"),
+    ("aws_amazonmq_broker_instancetype_enum", "AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM"),
+    ("aws_sagemaker_processing_instancetype_enum", "AWS_SAGEMAKER_PROCESSING_INSTANCETYPE_ENUM"),
+    ("aws_sagemaker_hosting_instancetype_enum", "AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM"),
+    ("aws_sagemaker_transform_instancetype_enum", "AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM"),
+    ("aws_sagemaker_cluster_instancetype_enum", "AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM"),
     (
         "aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum",
         "AWS_ELASTICSEARCH_DOMAIN_ELASTICSEARCHCLUSTERCONFIG_INSTANCETYPE_ENUM",
@@ -108,15 +54,9 @@ const GENERATED_JSON: &[(&str, &str)] = &[
 
 /// Handwritten JSON data files (from data-source/handwritten/).
 const HANDWRITTEN_JSON: &[(&str, &str)] = &[
-    (
-        "codepipeline_action_artifact_counts",
-        "CODEPIPELINE_ACTION_ARTIFACT_COUNTS",
-    ),
+    ("codepipeline_action_artifact_counts", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),
     ("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"),
-    (
-        "retention_period_requirements",
-        "RETENTION_PERIOD_REQUIREMENTS",
-    ),
+    ("retention_period_requirements", "RETENTION_PERIOD_REQUIREMENTS"),
     ("sensitive_ports", "SENSITIVE_PORTS"),
 ];
 
@@ -128,19 +68,9 @@ fn main() {
     let generated_sv_dir = manifest_dir.join("generated").join("schema-validator");
     let generated_cel_dir = manifest_dir.join("generated").join("cel-rules");
     let handwritten_dir = manifest_dir.join("handwritten");
-    let rego_hw_dir = manifest_dir
-        .parent()
-        .unwrap()
-        .join("rego-engine")
-        .join("handwritten")
-        .join("rego");
+    let rego_hw_dir = manifest_dir.parent().unwrap().join("rego-engine").join("handwritten").join("rego");
 
-    for dir in [
-        &generated_data_dir,
-        &generated_sv_dir,
-        &generated_cel_dir,
-        &handwritten_dir,
-    ] {
+    for dir in [&generated_data_dir, &generated_sv_dir, &generated_cel_dir, &handwritten_dir] {
         println!("cargo:rerun-if-changed={}", dir.display());
     }
     println!("cargo:rerun-if-changed={}", rego_hw_dir.display());
@@ -175,7 +105,9 @@ fn main() {
     }
     code.push_str("];\n");
 
-    code.push_str("\n/// Force-decompress every embedded data LazyLock. Safe to call multiple times (no-op after first).\n");
+    code.push_str(
+        "\n/// Force-decompress every embedded data LazyLock. Safe to call multiple times (no-op after first).\n",
+    );
     code.push_str("pub fn warm_all() {\n");
     for (_filename, const_name) in GENERATED_JSON.iter().chain(HANDWRITTEN_JSON.iter()) {
         code.push_str(&format!("    let _ = &*{}_BYTES;\n", const_name));
@@ -238,10 +170,8 @@ fn embed_minified_json(path: &Path, const_name: &str, out_dir: &Path, code: &mut
 }
 
 fn collect_rego_files(base: &Path, dir: &Path, code: &mut String) {
-    let mut entries: Vec<_> = fs::read_dir(dir)
-        .unwrap()
-        .map(|e| e.expect("failed to read rego directory entry"))
-        .collect();
+    let mut entries: Vec<_> =
+        fs::read_dir(dir).unwrap().map(|e| e.expect("failed to read rego directory entry")).collect();
     entries.sort_by_key(|e| e.path());
     for entry in entries {
         let path = entry.path();

@@ -3,6 +3,10 @@ name = "schema-validator"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 name = "schema_validator"
@@ -20,3 +24,6 @@ regex = "1"
 web-time = "1"
 
 [dev-dependencies]
+
+[lints]
+workspace = true

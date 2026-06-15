@@ -2,11 +2,9 @@ package resources
 
 import rego.v1
 
-# E3019: Primary identifier uniqueness. Matches cfn-lint's PrimaryIdentifiers rule:
-# groups resources by their resolved primary-identifier value tuple and, for each
-# group containing more than one resource, emits one diagnostic per resource in the
-# group. Diagnostic message mirrors cfn-lint:
-#   Primary identifiers {<dict>} should have unique values across the resources {<set>}
+# E3019: Primary identifier uniqueness. Groups resources by their resolved
+# primary-identifier value tuple and, for each group containing more than one
+# resource, emits one diagnostic per resource in the group.
 
 violation contains make_diag_at("E3019", "ERROR", rname,
     _e3019_path(id_props),

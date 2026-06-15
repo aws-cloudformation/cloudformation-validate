@@ -2,8 +2,8 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::{
-    DETAILED_ONLY_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates, load_combined_golden,
-    load_template, zero_durations,
+    DETAILED_ONLY_DIAGNOSTIC_FIELDS, deep_diff, discover_all_templates, load_combined_golden, load_template,
+    zero_durations,
 };
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
@@ -18,11 +18,9 @@ fn validate_to_json(
     detail_level: DetailLevel,
 ) -> serde_json::Value {
     let sv = SchemaValidator::new();
-    let mut config = ValidateConfig::default();
-    config.detail_level = detail_level.clone();
-    config.severity_level = Severity::Debug;
-    let report = validate_bytes_with_path(engine, &sv, bytes, config, relative_path.to_string())
-        .expect("validate");
+    let config =
+        ValidateConfig { detail_level: detail_level.clone(), severity_level: Severity::Debug, ..Default::default() };
+    let report = validate_bytes_with_path(engine, &sv, bytes, config, relative_path.to_string()).expect("validate");
     match detail_level {
         DetailLevel::Detailed => serde_json::to_value(report.to_detailed()).expect("serialize"),
         DetailLevel::Standard => serde_json::to_value(report.to_standard()).expect("serialize"),
@@ -30,11 +28,7 @@ fn validate_to_json(
 }
 
 fn strip_detailed_only_fields(val: &mut serde_json::Value) {
-    if let Some(diags) = val
-        .as_object_mut()
-        .and_then(|o| o.get_mut("diagnostics"))
-        .and_then(|d| d.as_array_mut())
-    {
+    if let Some(diags) = val.as_object_mut().and_then(|o| o.get_mut("diagnostics")).and_then(|d| d.as_array_mut()) {
         for diag in diags {
             if let Some(obj) = diag.as_object_mut() {
                 for field in DETAILED_ONLY_DIAGNOSTIC_FIELDS {
@@ -65,10 +59,8 @@ fn check_detailed(engine_name: &str, engine: &dyn validation_engine::ValidationE
 
         let diffs = deep_diff(&expected, &actual, "");
         if !diffs.is_empty() {
-            failures.push(format!(
-                "{relative_path}:\n{}",
-                diffs.iter().take(5).cloned().collect::<Vec<_>>().join("\n")
-            ));
+            failures
+                .push(format!("{relative_path}:\n{}", diffs.iter().take(5).cloned().collect::<Vec<_>>().join("\n")));
         }
     }
 
@@ -76,12 +68,7 @@ fn check_detailed(engine_name: &str, engine: &dyn validation_engine::ValidationE
         missing_goldens.is_empty(),
         "{engine_name} detailed: {} template(s) missing from all_templates.json — run generate.py:\n{}",
         missing_goldens.len(),
-        missing_goldens
-            .iter()
-            .take(20)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n")
+        missing_goldens.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
     );
     assert!(
         failures.is_empty(),
@@ -112,10 +99,8 @@ fn check_standard(engine_name: &str, engine: &dyn validation_engine::ValidationE
 
         let diffs = deep_diff(&expected, &actual, "");
         if !diffs.is_empty() {
-            failures.push(format!(
-                "{relative_path}:\n{}",
-                diffs.iter().take(5).cloned().collect::<Vec<_>>().join("\n")
-            ));
+            failures
+                .push(format!("{relative_path}:\n{}", diffs.iter().take(5).cloned().collect::<Vec<_>>().join("\n")));
         }
     }
 
@@ -123,12 +108,7 @@ fn check_standard(engine_name: &str, engine: &dyn validation_engine::ValidationE
         missing_goldens.is_empty(),
         "{engine_name} standard: {} template(s) missing from all_templates.json — run generate.py:\n{}",
         missing_goldens.len(),
-        missing_goldens
-            .iter()
-            .take(20)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n")
+        missing_goldens.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
     );
     assert!(
         failures.is_empty(),

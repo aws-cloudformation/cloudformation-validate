@@ -8,8 +8,8 @@ use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity};
 use schema_validator::SchemaValidator;
 use template_model::PseudoParameterOverrides;
 use validation_engine::{
-    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, guard,
-    validate_bytes_with_path, validate_catching_panics,
+    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, guard, validate_bytes_with_path,
+    validate_catching_panics,
 };
 
 fn main() {
@@ -40,31 +40,19 @@ fn main() {
         match args[i].as_str() {
             "--include-ids" => {
                 i += 1;
-                include_ids = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                include_ids = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--exclude-ids" => {
                 i += 1;
-                exclude_ids = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                exclude_ids = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--include-categories" => {
                 i += 1;
-                include_categories = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                include_categories = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--exclude-categories" => {
                 i += 1;
-                exclude_categories = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                exclude_categories = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--include-range" => {
                 i += 1;
@@ -82,10 +70,7 @@ fn main() {
                 i += 1;
                 if let Some(path) = args.get(i) {
                     match fs::read_to_string(path) {
-                        Ok(content) => custom_rules.push(ExternalRuleSource {
-                            name: path.clone(),
-                            content,
-                        }),
+                        Ok(content) => custom_rules.push(ExternalRuleSource { name: path.clone(), content }),
                         Err(e) => {
                             error!("Failed to read rule source {}: {}", path, e);
                             process::exit(2);
@@ -144,42 +129,30 @@ fn main() {
             "--parameter" => {
                 i += 1;
                 if let Some(kv) = args.get(i)
-                    && let Some((k, v)) = kv.split_once('=') {
-                        parameter_overrides.insert(k.to_string(), v.to_string());
-                    }
+                    && let Some((k, v)) = kv.split_once('=')
+                {
+                    parameter_overrides.insert(k.to_string(), v.to_string());
+                }
             }
             "--pseudo-parameter" => {
                 i += 1;
                 if let Some(kv) = args.get(i)
-                    && let Some((k, v)) = kv.split_once('=') {
-                        match k {
-                            "AWS::AccountId" => {
-                                pseudo_parameter_overrides.account_id = Some(v.to_string())
-                            }
-                            "AWS::NotificationARNs" => {
-                                pseudo_parameter_overrides.notification_arns = Some(v.to_string())
-                            }
-                            "AWS::Partition" => {
-                                pseudo_parameter_overrides.partition = Some(v.to_string())
-                            }
-                            "AWS::Region" => {
-                                pseudo_parameter_overrides.region = Some(v.to_string())
-                            }
-                            "AWS::StackId" => {
-                                pseudo_parameter_overrides.stack_id = Some(v.to_string())
-                            }
-                            "AWS::StackName" => {
-                                pseudo_parameter_overrides.stack_name = Some(v.to_string())
-                            }
-                            "AWS::URLSuffix" => {
-                                pseudo_parameter_overrides.url_suffix = Some(v.to_string())
-                            }
-                            _ => {
-                                error!("Unknown pseudo-parameter: {}", k);
-                                process::exit(2);
-                            }
+                    && let Some((k, v)) = kv.split_once('=')
+                {
+                    match k {
+                        "AWS::AccountId" => pseudo_parameter_overrides.account_id = Some(v.to_string()),
+                        "AWS::NotificationARNs" => pseudo_parameter_overrides.notification_arns = Some(v.to_string()),
+                        "AWS::Partition" => pseudo_parameter_overrides.partition = Some(v.to_string()),
+                        "AWS::Region" => pseudo_parameter_overrides.region = Some(v.to_string()),
+                        "AWS::StackId" => pseudo_parameter_overrides.stack_id = Some(v.to_string()),
+                        "AWS::StackName" => pseudo_parameter_overrides.stack_name = Some(v.to_string()),
+                        "AWS::URLSuffix" => pseudo_parameter_overrides.url_suffix = Some(v.to_string()),
+                        _ => {
+                            error!("Unknown pseudo-parameter: {}", k);
+                            process::exit(2);
                         }
                     }
+                }
             }
             s if !s.starts_with('-') => template_path = Some(s.to_string()),
             other => {
@@ -202,10 +175,7 @@ fn main() {
         Vec::new()
     };
 
-    let engine_config = EngineConfig {
-        custom_rules,
-        guard_rules,
-    };
+    let engine_config = EngineConfig { custom_rules, guard_rules };
 
     let schema_validator = SchemaValidator::new();
 
@@ -306,7 +276,11 @@ fn main() {
             report.metadata.counts.warnings,
             report.metadata.counts.informational
         );
-        print_report(&report, &detail_level);
+        if let Err(e) = print_report(&report, &detail_level) {
+            error!("Failed to render report for {}: {}", file_str, e);
+            has_errors = true;
+            continue;
+        }
         if report.metadata.counts.fatal > 0 || report.metadata.counts.errors > 0 {
             has_errors = true;
         }
@@ -317,17 +291,13 @@ fn main() {
     }
 }
 
-fn print_report(report: &ValidationReport, format: &DetailLevel) {
-    match format {
-        DetailLevel::Standard => println!(
-            "{}",
-            serde_json::to_string_pretty(&report.to_standard()).unwrap()
-        ),
-        DetailLevel::Detailed => println!(
-            "{}",
-            serde_json::to_string_pretty(&report.to_detailed()).unwrap()
-        ),
-    }
+fn print_report(report: &ValidationReport, format: &DetailLevel) -> Result<(), serde_json::Error> {
+    let json = match format {
+        DetailLevel::Standard => serde_json::to_string_pretty(&report.to_standard())?,
+        DetailLevel::Detailed => serde_json::to_string_pretty(&report.to_detailed())?,
+    };
+    println!("{}", json);
+    Ok(())
 }
 
 fn print_help() {
@@ -356,8 +326,6 @@ fn print_help() {
     eprintln!("  --pseudo-parameter Key=Value  Override a pseudo-parameter value (repeatable)");
     eprintln!("  --strict                      Upgrade Warn-severity diagnostics to Error");
     eprintln!("  --no-strict                   Disable strict mode (the default)");
-    eprintln!(
-        "  --no-engine-rules             Suppress engine-native (RuleOrigin::Engine) diagnostics"
-    );
+    eprintln!("  --no-engine-rules             Suppress engine-native (RuleOrigin::Engine) diagnostics");
     eprintln!("  --list-rules                  List all available rules and exit");
 }

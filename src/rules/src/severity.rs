@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash, Default,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash, Default)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -49,7 +47,7 @@ impl std::str::FromStr for Severity {
             "WARN" => Ok(Severity::Warn),
             "INFO" => Ok(Severity::Info),
             "DEBUG" => Ok(Severity::Debug),
-            _ => Err(format!("Invalid severity: {}", s)),
+            _ => Err(format!("Invalid severity '{s}'; expected one of: fatal, error, warn, info, debug")),
         }
     }
 }
@@ -98,7 +96,7 @@ mod tests {
         use std::str::FromStr;
 
         let err = Severity::from_str("test").unwrap_err();
-        assert_eq!(err, "Invalid severity: test");
+        assert_eq!(err, "Invalid severity 'test'; expected one of: fatal, error, warn, info, debug");
     }
 
     #[test]
@@ -132,21 +130,9 @@ mod tests {
 
     #[test]
     fn ordering_ranks_debug_lowest_and_fatal_highest() {
-        assert!(
-            Severity::Debug < Severity::Info,
-            "Debug should rank below Info"
-        );
-        assert!(
-            Severity::Info < Severity::Warn,
-            "Info should rank below Warn"
-        );
-        assert!(
-            Severity::Warn < Severity::Error,
-            "Warn should rank below Error"
-        );
-        assert!(
-            Severity::Error < Severity::Fatal,
-            "Error should rank below Fatal"
-        );
+        assert!(Severity::Debug < Severity::Info, "Debug should rank below Info");
+        assert!(Severity::Info < Severity::Warn, "Info should rank below Warn");
+        assert!(Severity::Warn < Severity::Error, "Warn should rank below Error");
+        assert!(Severity::Error < Severity::Fatal, "Error should rank below Fatal");
     }
 }

@@ -3,6 +3,10 @@ name = "validation-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 name = "validation_engine"
@@ -11,7 +15,7 @@ path = "src/lib.rs"
 [features]
 wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
 uniffi-bindings = ["dep:uniffi"]
-test-support = []
+test = []
 
 [dependencies]
 diagnostics = { path = "../diagnostics" }
@@ -26,3 +30,6 @@ web-time = "1"
 tsify = { version = "0.4", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }
 uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }
+
+[lints]
+workspace = true

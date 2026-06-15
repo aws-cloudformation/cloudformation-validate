@@ -196,15 +196,8 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
     }
 
     let json_bytes = serde_json::to_string_pretty(&compiled)?;
-    fs::write(
-        output_dir.join("compiled_schemas.json"),
-        json_bytes.as_bytes(),
-    )?;
-    info!(
-        "Compiled {} schemas ({} bytes) -> compiled_schemas.json",
-        compiled.len(),
-        json_bytes.len()
-    );
+    fs::write(output_dir.join("compiled_schemas.json"), json_bytes.as_bytes())?;
+    info!("Compiled {} schemas ({} bytes) -> compiled_schemas.json", compiled.len(), json_bytes.len());
 
     generate_ref_types(generated_dir, &raw, &output_dir)?;
     generate_region_enums(generated_dir, &output_dir)?;
@@ -224,25 +217,15 @@ fn generate_ref_types(
     let mut getatt_returns: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
 
     for (type_name, schema) in raw_schemas {
-        let primary_ids = schema
-            .get("primaryIdentifier")
-            .and_then(|v| v.as_array())
-            .unwrap_or(&Vec::new())
-            .clone();
+        let primary_ids = schema.get("primaryIdentifier").and_then(|v| v.as_array()).unwrap_or(&Vec::new()).clone();
         let read_only: HashSet<String> = schema
             .get("readOnlyProperties")
             .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
             .unwrap_or_default();
 
         if primary_ids.len() != 1
-            || primary_ids
-                .iter()
-                .any(|p| p.as_str().map(|s| read_only.contains(s)).unwrap_or(false))
+            || primary_ids.iter().any(|p| p.as_str().map(|s| read_only.contains(s)).unwrap_or(false))
         {
             if !primary_ids.is_empty() {
                 ref_returns.insert(type_name.clone(), "string".into());
@@ -250,10 +233,7 @@ fn generate_ref_types(
             continue;
         }
 
-        if let Some(path) = primary_ids[0]
-            .as_str()
-            .and_then(|s| s.strip_prefix("/properties/"))
-        {
+        if let Some(path) = primary_ids[0].as_str().and_then(|s| s.strip_prefix("/properties/")) {
             let prop_type = resolve_property_type(schema, path);
             ref_returns.insert(type_name.clone(), prop_type);
         }
@@ -263,10 +243,7 @@ fn generate_ref_types(
     if getatt_path.exists() {
         if let Ok(content) = fs::read_to_string(&getatt_path) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(types) = json
-                    .get("getatt_attribute_types")
-                    .and_then(|v| v.as_object())
-                {
+                if let Some(types) = json.get("getatt_attribute_types").and_then(|v| v.as_object()) {
                     for (type_name, attrs) in types {
                         if let Some(attr_obj) = attrs.as_object() {
                             let mut attr_map = BTreeMap::new();
@@ -288,21 +265,12 @@ fn generate_ref_types(
     let format_compatible: BTreeMap<String, Vec<String>> = [
         ("AWS::EC2::VPC.Id", vec!["AWS::EC2::VPC"]),
         ("AWS::EC2::Subnet.Id", vec!["AWS::EC2::Subnet"]),
-        (
-            "AWS::EC2::SecurityGroup.Id",
-            vec!["AWS::EC2::SecurityGroup"],
-        ),
+        ("AWS::EC2::SecurityGroup.Id", vec!["AWS::EC2::SecurityGroup"]),
         ("AWS::EC2::Image.Id", vec![]),
         ("AWS::EC2::KeyPair.KeyName", vec!["AWS::EC2::KeyPair"]),
         ("AWS::EC2::Volume.Id", vec!["AWS::EC2::Volume"]),
-        (
-            "AWS::EC2::NetworkInterface.Id",
-            vec!["AWS::EC2::NetworkInterface"],
-        ),
-        (
-            "AWS::Route53::HostedZone.Id",
-            vec!["AWS::Route53::HostedZone"],
-        ),
+        ("AWS::EC2::NetworkInterface.Id", vec!["AWS::EC2::NetworkInterface"]),
+        ("AWS::Route53::HostedZone.Id", vec!["AWS::Route53::HostedZone"]),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_string(), v.into_iter().map(String::from).collect()))
@@ -347,12 +315,9 @@ fn resolve_property_type(schema: &serde_json::Value, prop_path: &str) -> String 
 fn extract_type_string(prop: &serde_json::Value) -> String {
     match prop.get("type") {
         Some(serde_json::Value::String(s)) => s.clone(),
-        Some(serde_json::Value::Array(arr)) => arr
-            .iter()
-            .filter_map(|v| v.as_str())
-            .find(|s| *s != "null")
-            .unwrap_or("string")
-            .to_string(),
+        Some(serde_json::Value::Array(arr)) => {
+            arr.iter().filter_map(|v| v.as_str()).find(|s| *s != "null").unwrap_or("string").to_string()
+        }
         _ => "string".into(),
     }
 }
@@ -360,21 +325,9 @@ fn extract_type_string(prop: &serde_json::Value) -> String {
 /// Build region_enums.json from per-region enum data files.
 fn generate_region_enums(generated_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
     let enum_file_mappings: &[(&str, &str, &str)] = &[
-        (
-            "aws_ec2_instance_instancetype_enum",
-            "AWS::EC2::Instance",
-            "InstanceType",
-        ),
-        (
-            "aws_emr_cluster_instancetypeconfig_instancetype_enum",
-            "AWS::EMR::Cluster",
-            "Instances.MasterInstanceType",
-        ),
-        (
-            "aws_gamelift_fleet_ec2instancetype_enum",
-            "AWS::GameLift::Fleet",
-            "EC2InstanceType",
-        ),
+        ("aws_ec2_instance_instancetype_enum", "AWS::EC2::Instance", "InstanceType"),
+        ("aws_emr_cluster_instancetypeconfig_instancetype_enum", "AWS::EMR::Cluster", "Instances.MasterInstanceType"),
+        ("aws_gamelift_fleet_ec2instancetype_enum", "AWS::GameLift::Fleet", "EC2InstanceType"),
     ];
 
     let mut region_enums: BTreeMap<String, BTreeMap<String, Vec<String>>> = BTreeMap::new();
@@ -395,10 +348,7 @@ fn generate_region_enums(generated_dir: &Path, output_dir: &Path) -> anyhow::Res
         let mut per_region: BTreeMap<String, Vec<String>> = BTreeMap::new();
         for (region, region_data) in data {
             if let Some(enum_vals) = region_data.get("enum").and_then(|v| v.as_array()) {
-                let vals: Vec<String> = enum_vals
-                    .iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect();
+                let vals: Vec<String> = enum_vals.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                 if !vals.is_empty() {
                     per_region.insert(region.clone(), vals);
                 }
@@ -411,10 +361,7 @@ fn generate_region_enums(generated_dir: &Path, output_dir: &Path) -> anyhow::Res
 
     let bytes = serde_json::to_string_pretty(&region_enums)?;
     fs::write(output_dir.join("region_enums.json"), bytes.as_bytes())?;
-    info!(
-        "Compiled {} regional enum overrides -> region_enums.json",
-        region_enums.len()
-    );
+    info!("Compiled {} regional enum overrides -> region_enums.json", region_enums.len());
     Ok(())
 }
 
@@ -456,10 +403,7 @@ fn generate_extension_data(upstream_dir: &Path, output_dir: &Path) -> anyhow::Re
     }
     let bytes = serde_json::to_string_pretty(&extensions)?;
     fs::write(output_dir.join("extensions.json"), bytes.as_bytes())?;
-    info!(
-        "Compiled {} resource type extensions -> extensions.json",
-        extensions.len()
-    );
+    info!("Compiled {} resource type extensions -> extensions.json", extensions.len());
     Ok(())
 }
 
@@ -468,11 +412,7 @@ fn convert_property_paths(raw: &serde_json::Value) -> Vec<String> {
     raw.as_array()
         .map(|arr| {
             arr.iter()
-                .filter_map(|v| {
-                    v.as_str()
-                        .and_then(|s| s.strip_prefix("/properties/"))
-                        .map(|s| s.replace('/', "."))
-                })
+                .filter_map(|v| v.as_str().and_then(|s| s.strip_prefix("/properties/")).map(|s| s.replace('/', ".")))
                 .collect()
         })
         .unwrap_or_default()
@@ -512,30 +452,20 @@ fn compile_schema(type_name: &str, raw: &serde_json::Value) -> CompiledSchema {
         definitions: defs,
         required: str_arr(raw.get("required")),
         additional_properties: raw.get("additionalProperties").and_then(|v| v.as_bool()),
-        read_only_properties: convert_property_paths(
-            raw.get("readOnlyProperties")
-                .unwrap_or(&serde_json::Value::Null),
-        ),
+        read_only_properties: convert_property_paths(raw.get("readOnlyProperties").unwrap_or(&serde_json::Value::Null)),
         write_only_properties: convert_property_paths(
-            raw.get("writeOnlyProperties")
-                .unwrap_or(&serde_json::Value::Null),
+            raw.get("writeOnlyProperties").unwrap_or(&serde_json::Value::Null),
         ),
         create_only_properties: convert_property_paths(
-            raw.get("createOnlyProperties")
-                .unwrap_or(&serde_json::Value::Null),
+            raw.get("createOnlyProperties").unwrap_or(&serde_json::Value::Null),
         ),
         deprecated_properties: convert_property_paths(
-            raw.get("deprecatedProperties")
-                .unwrap_or(&serde_json::Value::Null),
+            raw.get("deprecatedProperties").unwrap_or(&serde_json::Value::Null),
         ),
         conditional_create_only_properties: convert_property_paths(
-            raw.get("conditionalCreateOnlyProperties")
-                .unwrap_or(&serde_json::Value::Null),
+            raw.get("conditionalCreateOnlyProperties").unwrap_or(&serde_json::Value::Null),
         ),
-        primary_identifier: convert_property_paths(
-            raw.get("primaryIdentifier")
-                .unwrap_or(&serde_json::Value::Null),
-        ),
+        primary_identifier: convert_property_paths(raw.get("primaryIdentifier").unwrap_or(&serde_json::Value::Null)),
         replacement_strategy: raw
             .get("replacementStrategy")
             .and_then(|v| v.as_str())
@@ -546,16 +476,8 @@ fn compile_schema(type_name: &str, raw: &serde_json::Value) -> CompiledSchema {
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
             .map(String::from),
-        source_url: raw
-            .get("sourceUrl")
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(String::from),
-        description: raw
-            .get("description")
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(String::from),
+        source_url: raw.get("sourceUrl").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from),
+        description: raw.get("description").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from),
         all_of,
         any_of: compile_subs(raw.get("anyOf")),
         one_of: compile_subs(raw.get("oneOf")),
@@ -575,11 +497,7 @@ fn compile_if_then_else(raw: &serde_json::Value) -> Option<IfThenElse> {
     if then_schema.is_none() && else_schema.is_none() {
         return None;
     }
-    Some(IfThenElse {
-        condition,
-        then_schema,
-        else_schema,
-    })
+    Some(IfThenElse { condition, then_schema, else_schema })
 }
 
 fn compile_condition_schema(raw: &serde_json::Value) -> ConditionSchema {
@@ -598,11 +516,7 @@ fn compile_condition_schema(raw: &serde_json::Value) -> ConditionSchema {
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().map(compile_condition_schema).collect())
         .unwrap_or_default();
-    ConditionSchema {
-        properties: props,
-        required: str_arr(obj.get("required")),
-        any_of,
-    }
+    ConditionSchema { properties: props, required: str_arr(obj.get("required")), any_of }
 }
 
 fn compile_prop(raw: &serde_json::Value) -> PropSchema {
@@ -612,21 +526,14 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
     };
     if let Some(ref_str) = obj.get("$ref").and_then(|v| v.as_str()) {
         if let Some(def_name) = ref_str.strip_prefix("#/definitions/") {
-            return PropSchema {
-                ref_name: Some(def_name.to_string()),
-                ..Default::default()
-            };
+            return PropSchema { ref_name: Some(def_name.to_string()), ..Default::default() };
         }
         return PropSchema::default();
     }
 
     let prop_type = obj.get("type").map(|v| match v {
         serde_json::Value::String(s) => PropType::Single(s.clone()),
-        serde_json::Value::Array(a) => PropType::Multi(
-            a.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect(),
-        ),
+        serde_json::Value::Array(a) => PropType::Multi(a.iter().filter_map(|v| v.as_str().map(String::from)).collect()),
         _ => PropType::Single("string".into()),
     });
     let mut sub_props = BTreeMap::new();
@@ -646,22 +553,10 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
     PropSchema {
         ref_name: None,
         prop_type,
-        enum_values: obj
-            .get("enum")
-            .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default(),
-        not_enum: obj
-            .get("not")
-            .and_then(|v| v.get("enum"))
-            .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default(),
+        enum_values: obj.get("enum").and_then(|v| v.as_array()).cloned().unwrap_or_default(),
+        not_enum: obj.get("not").and_then(|v| v.get("enum")).and_then(|v| v.as_array()).cloned().unwrap_or_default(),
         const_value: obj.get("const").cloned(),
-        pattern: obj
-            .get("pattern")
-            .and_then(|v| v.as_str())
-            .map(String::from),
+        pattern: obj.get("pattern").and_then(|v| v.as_str()).map(String::from),
         minimum: obj.get("minimum").and_then(|v| v.as_f64()),
         maximum: obj.get("maximum").and_then(|v| v.as_f64()),
         exclusive_minimum: obj.get("exclusiveMinimum").and_then(|v| v.as_f64()),
@@ -670,18 +565,11 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
         max_length: obj.get("maxLength").and_then(|v| v.as_u64()),
         min_items: obj.get("minItems").and_then(|v| v.as_u64()),
         max_items: obj.get("maxItems").and_then(|v| v.as_u64()),
-        unique_items: obj
-            .get("uniqueItems")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
+        unique_items: obj.get("uniqueItems").and_then(|v| v.as_bool()).unwrap_or(false),
         min_properties: obj.get("minProperties").and_then(|v| v.as_u64()),
         max_properties: obj.get("maxProperties").and_then(|v| v.as_u64()),
         format: obj.get("format").and_then(|v| v.as_str()).map(String::from),
-        description: obj
-            .get("description")
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(String::from),
+        description: obj.get("description").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from),
         properties: sub_props,
         required: str_arr(obj.get("required").cloned().as_ref()),
         additional_properties: obj.get("additionalProperties").and_then(|v| v.as_bool()),
@@ -698,10 +586,7 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
 fn compile_sub(raw: &serde_json::Value) -> SubSchema {
     let obj = raw.as_object();
     let mut props = BTreeMap::new();
-    if let Some(p) = obj
-        .and_then(|o| o.get("properties"))
-        .and_then(|v| v.as_object())
-    {
+    if let Some(p) = obj.and_then(|o| o.get("properties")).and_then(|v| v.as_object()) {
         for (k, v) in p {
             props.insert(k.clone(), compile_prop(v));
         }
@@ -709,9 +594,7 @@ fn compile_sub(raw: &serde_json::Value) -> SubSchema {
     SubSchema {
         required: str_arr(obj.and_then(|o| o.get("required"))),
         properties: props,
-        additional_properties: obj
-            .and_then(|o| o.get("additionalProperties"))
-            .and_then(|v| v.as_bool()),
+        additional_properties: obj.and_then(|o| o.get("additionalProperties")).and_then(|v| v.as_bool()),
         dependent_required: str_map(obj.and_then(|o| o.get("dependentRequired"))),
         dependent_excluded: str_map(obj.and_then(|o| o.get("dependentExcluded"))),
     }
@@ -726,20 +609,12 @@ fn compile_subs(val: Option<&serde_json::Value>) -> Vec<SubSchema> {
 
 fn str_arr(val: Option<&serde_json::Value>) -> Vec<String> {
     val.and_then(|v| v.as_array())
-        .map(|a| {
-            a.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
+        .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
         .unwrap_or_default()
 }
 fn str_map(val: Option<&serde_json::Value>) -> BTreeMap<String, Vec<String>> {
     val.and_then(|v| v.as_object())
-        .map(|m| {
-            m.iter()
-                .map(|(k, v)| (k.clone(), str_arr(Some(v))))
-                .collect()
-        })
+        .map(|m| m.iter().map(|(k, v)| (k.clone(), str_arr(Some(v)))).collect())
         .unwrap_or_default()
 }
 
@@ -749,10 +624,7 @@ fn str_map(val: Option<&serde_json::Value>) -> BTreeMap<String, Vec<String>> {
 pub fn compile_step_functions_schema(upstream_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
     let raw_path = upstream_dir.join("step_functions_statemachine.json");
     if !raw_path.exists() {
-        info!(
-            "Step Functions schema not found at {}, skipping",
-            raw_path.display()
-        );
+        info!("Step Functions schema not found at {}, skipping", raw_path.display());
         return Ok(());
     }
     let content = fs::read_to_string(&raw_path)?;
@@ -767,10 +639,7 @@ pub fn compile_step_functions_schema(upstream_dir: &Path, output_dir: &Path) -> 
 
     let compiled = compile_schema("AWS::StepFunctions::StateMachine::DefinitionBody", &schema);
     let json = serde_json::to_string_pretty(&compiled)?;
-    fs::write(
-        output_dir.join("step_functions_definition_schema.json"),
-        json.as_bytes(),
-    )?;
+    fs::write(output_dir.join("step_functions_definition_schema.json"), json.as_bytes())?;
     info!("Compiled Step Functions definition schema -> step_functions_definition_schema.json");
     Ok(())
 }
@@ -784,18 +653,12 @@ pub fn compile_step_functions_schema(upstream_dir: &Path, output_dir: &Path) -> 
 /// 4. Rewrite all `$ref` pointers to use the flattened names
 fn flatten_sf_schema(schema: &mut serde_json::Value) {
     let mut hoisted: Vec<(String, serde_json::Value)> = Vec::new();
-    if let Some(defs) = schema
-        .get_mut("definitions")
-        .and_then(|v| v.as_object_mut())
-    {
+    if let Some(defs) = schema.get_mut("definitions").and_then(|v| v.as_object_mut()) {
         for (parent_name, def_val) in defs.iter_mut() {
             if let Some(nested) = def_val.get("definitions").cloned() {
                 if let Some(nested_obj) = nested.as_object() {
                     for (child_name, child_val) in nested_obj {
-                        hoisted.push((
-                            format!("{}__{}", parent_name, child_name),
-                            child_val.clone(),
-                        ));
+                        hoisted.push((format!("{}__{}", parent_name, child_name), child_val.clone()));
                     }
                 }
                 def_val.as_object_mut().unwrap().remove("definitions");
@@ -812,19 +675,13 @@ fn flatten_sf_schema(schema: &mut serde_json::Value) {
             root_def.insert((*key).to_string(), v.clone());
         }
     }
-    if let Some(defs) = schema
-        .get_mut("definitions")
-        .and_then(|v| v.as_object_mut())
-    {
+    if let Some(defs) = schema.get_mut("definitions").and_then(|v| v.as_object_mut()) {
         defs.insert("__root".into(), serde_json::Value::Object(root_def));
     }
 
     let defs_snapshot = schema.get("definitions").cloned().unwrap_or_default();
     if let Some(defs_obj) = defs_snapshot.as_object() {
-        if let Some(defs_mut) = schema
-            .get_mut("definitions")
-            .and_then(|v| v.as_object_mut())
-        {
+        if let Some(defs_mut) = schema.get_mut("definitions").and_then(|v| v.as_object_mut()) {
             for (_name, def_val) in defs_mut.iter_mut() {
                 let def_obj = match def_val.as_object_mut() {
                     Some(o) => o,
@@ -903,8 +760,7 @@ fn rewrite_refs(value: &mut serde_json::Value) {
                         if rest.contains("/definitions/") {
                             // e.g. "choice/definitions/Operator" → "choice__Operator"
                             let mangled = rest.replace("/definitions/", "__");
-                            *ref_val =
-                                serde_json::Value::String(format!("#/definitions/{}", mangled));
+                            *ref_val = serde_json::Value::String(format!("#/definitions/{}", mangled));
                         }
                     }
                 }

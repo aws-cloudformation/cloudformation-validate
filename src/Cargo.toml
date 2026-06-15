@@ -1,14 +1,42 @@
 [workspace]
-members = ["rules", "diagnostics", "template-model", "validation-engine", "rego-engine", "cel-engine", "data-source", "cfn-validate", "bindings-wasm", "bindings-jvm", "schema-validator", "guard-translator"]
+members = [
+    "bindings-jvm",
+    "bindings-wasm",
+    "cel-engine",
+    "cfn-validate",
+    "data-source",
+    "diagnostics",
+    "guard-translator",
+    "rego-engine",
+    "rules",
+    "schema-validator",
+    "template-model",
+    "validation-engine",
+]
 resolver = "2"
 
 [workspace.metadata]
 name = "cloudformation-validate"
 
 [workspace.package]
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 license = "Apache-2.0"
+description = "AWS CloudFormation Validate"
+repository = "https://github.com/aws-cloudformation/cloudformation-validate"
+keywords = [
+    "aws",
+    "cloudformation",
+    "lint",
+    "template",
+    "validate"
+]
+categories = [
+    "development-tools",
+    "command-line-utilities",
+    "parser-implementations",
+    "config"
+]
 
 [profile.dev]
 incremental = true
@@ -22,3 +50,26 @@ codegen-units = 1
 opt-level = 3
 strip = "debuginfo"
 panic = "unwind"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+style = { level = "deny", priority = -1 }
+complexity = { level = "deny", priority = -1 }
+perf = { level = "deny", priority = -1 }
+
+cargo = { level = "warn", priority = -1 }
+
+pedantic = { level = "allow", priority = -1 }
+restriction = { level = "allow", priority = -1 }
+nursery = { level = "allow", priority = -1 }
+
+approx_constant = "allow"
+type_complexity = "allow"
+multiple_crate_versions = "allow"
+len_without_is_empty = "allow"
+too_many_arguments = "allow"
+new_without_default = "allow"

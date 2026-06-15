@@ -7,10 +7,7 @@ use rules::{RuleOrigin, Severity};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
-fn serialize_sorted_optional_map<S, V>(
-    map: &Option<HashMap<String, V>>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_sorted_optional_map<S, V>(map: &Option<HashMap<String, V>>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
     V: Serialize,
@@ -51,11 +48,7 @@ pub struct ViolationContext {
     pub lifecycle: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolution_source: Option<String>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_sorted_optional_map"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, JsonValue>"))]
     pub extra: Option<HashMap<String, JsonValue>>,
 }
@@ -93,11 +86,7 @@ pub struct Diagnostic {
     pub location: Option<SourceSpan>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub related_resources: Option<Vec<RelatedResource>>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_sorted_optional_map"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
     pub condition_scenario: Option<HashMap<String, bool>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rule_description: Option<String>,
@@ -120,9 +109,7 @@ impl Filterable for Diagnostic {
         self.resource.as_ref().and_then(|r| r.id.as_deref())
     }
     fn resource_type(&self) -> Option<&str> {
-        self.resource
-            .as_ref()
-            .and_then(|r| r.resource_type.as_deref())
+        self.resource.as_ref().and_then(|r| r.resource_type.as_deref())
     }
 }
 
@@ -273,14 +260,7 @@ impl Diagnostic {
             phase,
             section,
             context,
-        ) = flatten_diagnostic!(
-            self,
-            documentation_url,
-            rule_description,
-            phase,
-            section,
-            context
-        );
+        ) = flatten_diagnostic!(self, documentation_url, rule_description, phase, section, context);
         DetailedDiagnostic {
             rule_id,
             severity,
@@ -428,31 +408,18 @@ mod tests {
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "Property not allowed".into(),
-            resource: Some(ResourceRef {
-                id: Some("MyBucket".into()),
-                resource_type: Some("AWS::S3::Bucket".into()),
-            }),
+            resource: Some(ResourceRef { id: Some("MyBucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
             property_path: Some("/Resources/MyBucket/Properties/Foo".into()),
             suggested_fix: Some("Remove the property".into()),
             documentation_url: Some("https://example.com/E3012".into()),
             category: Some("schema".into()),
-            location: Some(SourceSpan {
-                start_line: 10,
-                start_column: 5,
-                end_line: 10,
-                end_column: 20,
-            }),
+            location: Some(SourceSpan { start_line: 10, start_column: 5, end_line: 10, end_column: 20 }),
             related_resources: Some(vec![RelatedResource {
                 resource: Some(ResourceRef {
                     id: Some("OtherResource".into()),
                     resource_type: Some("AWS::EC2::Instance".into()),
                 }),
-                location: Some(SourceSpan {
-                    start_line: 20,
-                    start_column: 1,
-                    end_line: 20,
-                    end_column: 30,
-                }),
+                location: Some(SourceSpan { start_line: 20, start_column: 1, end_line: 20, end_column: 30 }),
                 message: "Referenced here".into(),
             }]),
             condition_scenario: Some(HashMap::from([("IsProduction".into(), true)])),
@@ -508,10 +475,7 @@ mod tests {
         assert_eq!(s.category.as_deref(), Some("schema"));
         assert_eq!(s.suggested_fix.as_deref(), Some("Remove the property"));
         assert_eq!(s.related_resources.as_ref().unwrap().len(), 1);
-        assert_ne!(
-            s.condition_scenario, None,
-            "condition_scenario should be present"
-        );
+        assert_ne!(s.condition_scenario, None, "condition_scenario should be present");
     }
 
     #[test]
@@ -521,10 +485,7 @@ mod tests {
 
         assert_eq!(f.rule_id, "E3012");
         assert_eq!(f.resource_id.as_deref(), Some("MyBucket"));
-        assert!(
-            f.context.is_some(),
-            "full diagnostic should include context"
-        );
+        assert!(f.context.is_some(), "full diagnostic should include context");
         let ctx = f.context.unwrap();
         assert_eq!(ctx.property.as_deref(), Some("Foo"));
         assert_eq!(ctx.expected_constraint.as_deref(), Some("Must not exist"));
@@ -550,10 +511,7 @@ mod tests {
         assert_eq!(deserialized.message, d.message);
         assert_eq!(deserialized.severity, d.severity);
         assert_eq!(deserialized.source, d.source);
-        assert_eq!(
-            deserialized.location.as_ref().unwrap().start_line,
-            d.location.as_ref().unwrap().start_line
-        );
+        assert_eq!(deserialized.location.as_ref().unwrap().start_line, d.location.as_ref().unwrap().start_line);
     }
 
     #[test]
@@ -561,24 +519,12 @@ mod tests {
         let d = sample_diagnostic();
         let s = d.to_standard();
         let json = serde_json::to_string(&s).unwrap();
-        assert!(
-            json.contains("ruleId"),
-            "expected camelCase 'ruleId' in JSON"
-        );
+        assert!(json.contains("ruleId"), "expected camelCase 'ruleId' in JSON");
         assert!(json.contains("startLine"), "expected 'startLine' in JSON");
         assert!(json.contains("resourceId"), "expected 'resourceId' in JSON");
-        assert!(
-            json.contains("resourceType"),
-            "expected 'resourceType' in JSON"
-        );
-        assert!(
-            json.contains("propertyPath"),
-            "expected 'propertyPath' in JSON"
-        );
-        assert!(
-            !json.contains("\"context\""),
-            "standard format should not include 'context'"
-        );
+        assert!(json.contains("resourceType"), "expected 'resourceType' in JSON");
+        assert!(json.contains("propertyPath"), "expected 'propertyPath' in JSON");
+        assert!(!json.contains("\"context\""), "standard format should not include 'context'");
     }
 
     #[test]
@@ -586,57 +532,27 @@ mod tests {
         let d = sample_diagnostic();
         let f = d.to_detailed();
         let json = serde_json::to_string(&f).unwrap();
-        assert!(
-            json.contains("\"context\""),
-            "full format should include 'context'"
-        );
-        assert!(
-            json.contains("actualValue"),
-            "full format should include 'actualValue'"
-        );
-        assert!(
-            json.contains("expectedConstraint"),
-            "full format should include 'expectedConstraint'"
-        );
+        assert!(json.contains("\"context\""), "full format should include 'context'");
+        assert!(json.contains("actualValue"), "full format should include 'actualValue'");
+        assert!(json.contains("expectedConstraint"), "full format should include 'expectedConstraint'");
     }
 
     #[test]
     fn none_fields_are_omitted_from_serialization() {
         let d = minimal_diagnostic();
         let json = serde_json::to_string(&d).unwrap();
-        assert!(
-            !json.contains("suggestedFix"),
-            "None suggestedFix should be omitted"
-        );
-        assert!(
-            !json.contains("documentationUrl"),
-            "None documentationUrl should be omitted"
-        );
+        assert!(!json.contains("suggestedFix"), "None suggestedFix should be omitted");
+        assert!(!json.contains("documentationUrl"), "None documentationUrl should be omitted");
         assert!(!json.contains("context"), "None context should be omitted");
-        assert!(
-            !json.contains("relatedResources"),
-            "None relatedResources should be omitted"
-        );
-        assert!(
-            !json.contains("conditionScenario"),
-            "None conditionScenario should be omitted"
-        );
-        assert!(
-            !json.contains("propertyPath"),
-            "None propertyPath should be omitted"
-        );
-        assert!(
-            !json.contains("category"),
-            "None category should be omitted"
-        );
+        assert!(!json.contains("relatedResources"), "None relatedResources should be omitted");
+        assert!(!json.contains("conditionScenario"), "None conditionScenario should be omitted");
+        assert!(!json.contains("propertyPath"), "None propertyPath should be omitted");
+        assert!(!json.contains("category"), "None category should be omitted");
     }
 
     #[test]
     fn report_status_serializes_as_screaming_snake_case() {
         assert_eq!(serde_json::to_string(&ReportStatus::Ok).unwrap(), "\"OK\"");
-        assert_eq!(
-            serde_json::to_string(&ReportStatus::Error).unwrap(),
-            "\"ERROR\""
-        );
+        assert_eq!(serde_json::to_string(&ReportStatus::Error).unwrap(), "\"ERROR\"");
     }
 }

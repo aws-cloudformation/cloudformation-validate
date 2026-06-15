@@ -18,9 +18,9 @@ pub(crate) mod serialization;
 
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{
-    DEFAULT_ACCOUNT_ID, DEFAULT_PARTITION, DEFAULT_REGION, DEFAULT_STACK_NAME, DEFAULT_URL_SUFFIX,
-    FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE,
-    MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_KIND, MARKER_PARAM_TYPE, MARKER_REF,
+    DEFAULT_ACCOUNT_ID, DEFAULT_PARTITION, DEFAULT_REGION, DEFAULT_STACK_NAME, DEFAULT_URL_SUFFIX, FORMAT_VERSION,
+    MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_KIND,
+    MARKER_PARAM_TYPE, MARKER_REF,
 };
 pub use ir::*;
 pub use model::{ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
@@ -42,11 +42,7 @@ pub(crate) fn make_parse_diagnostic(
         category: Some(rules_crate::Category::Structure.as_str().into()),
         phase: Some(diagnostics::Phase::Parse),
         source: diagnostics::source_for_rule(rule_id),
-        location: if span == diagnostics::UNKNOWN_SPAN {
-            None
-        } else {
-            Some(span)
-        },
+        location: if span == diagnostics::UNKNOWN_SPAN { None } else { Some(span) },
         related_resources: None,
         condition_scenario: None,
         rule_description: None,
