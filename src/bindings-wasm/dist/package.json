@@ -1,7 +1,18 @@
 {
     "name": "@aws/cloudformation-validate",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "AWS CloudFormation Validate",
+    "keywords": [
+        "aws",
+        "amazon",
+        "aws-cloudformation",
+        "cloudformation",
+        "iac",
+        "infrastructure-as-code",
+        "lint",
+        "template",
+        "validate"
+    ],
     "author": {
         "name": "Amazon Web Services",
         "url": "https://aws.amazon.com"
