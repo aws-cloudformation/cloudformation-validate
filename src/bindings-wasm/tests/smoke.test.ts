@@ -70,9 +70,33 @@ function zeroPerformanceDurations(report: any, filePath?: string): unknown {
 
 // ── version ──────────────────────────────────────────────────────────────────
 
+function readWorkspaceVersion(): string {
+  const cargoTomlPath = path.resolve(__dirname, "../../Cargo.toml");
+  const lines = fs.readFileSync(cargoTomlPath, "utf-8").split("\n");
+  let inWorkspacePackage = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "[workspace.package]") {
+      inWorkspacePackage = true;
+      continue;
+    }
+    if (inWorkspacePackage && trimmed.startsWith("[")) {
+      break;
+    }
+    if (inWorkspacePackage && trimmed.startsWith("version = ")) {
+      const value = trimmed.slice("version = ".length).trim();
+      if (!value.startsWith("\"") || !value.endsWith("\"")) {
+        throw new Error(`malformed version line in ${cargoTomlPath}: ${line}`);
+      }
+      return value.slice(1, -1);
+    }
+  }
+  throw new Error(`missing 'version = ' under [workspace.package] in ${cargoTomlPath}`);
+}
+
 describe("version", () => {
-  it("returns the crate version", () => {
-    expect(version()).toBe("1.0.0");
+  it("returns the crate version from workspace Cargo.toml", () => {
+    expect(version()).toBe(readWorkspaceVersion());
   });
 });
 

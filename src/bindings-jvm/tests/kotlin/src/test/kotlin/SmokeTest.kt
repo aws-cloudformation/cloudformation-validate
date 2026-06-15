@@ -83,9 +83,32 @@ class SmokeTest {
 
     // ── version ──────────────────────────────────────────────────────────────
 
+    private fun readWorkspaceVersion(): String {
+        val cargoToml = File(resourcesRoot.parentFile, "Cargo.toml")
+        var inWorkspacePackage = false
+        for (line in cargoToml.readLines()) {
+            val trimmed = line.trim()
+            if (trimmed == "[workspace.package]") {
+                inWorkspacePackage = true
+                continue
+            }
+            if (inWorkspacePackage && trimmed.startsWith("[")) {
+                break
+            }
+            if (inWorkspacePackage && trimmed.startsWith("version = ")) {
+                val value = trimmed.removePrefix("version = ").trim()
+                require(value.startsWith("\"") && value.endsWith("\"")) {
+                    "malformed version line in ${cargoToml.path}: $line"
+                }
+                return value.substring(1, value.length - 1)
+            }
+        }
+        error("missing 'version = ' under [workspace.package] in ${cargoToml.path}")
+    }
+
     @Test
-    fun versionReturnsCrateVersion() {
-        assertEquals("1.0.0", version())
+    fun versionReturnsCrateVersionFromWorkspaceCargoToml() {
+        assertEquals(readWorkspaceVersion(), version())
     }
 
     // ── Engine construction ──────────────────────────────────────────────────
