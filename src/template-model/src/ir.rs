@@ -8,11 +8,7 @@ pub type NodeRef = u32;
 
 pub const NULL_REF: NodeRef = u32::MAX;
 
-static SENTINEL_NODE: SpannedNode = SpannedNode {
-    node: Node::Null,
-    span: UNKNOWN_SPAN,
-    path: String::new(),
-};
+static SENTINEL_NODE: SpannedNode = SpannedNode { node: Node::Null, span: UNKNOWN_SPAN, path: String::new() };
 
 #[derive(Debug)]
 pub struct Arena {
@@ -34,11 +30,7 @@ impl Arena {
         match self.nodes.get(r as usize) {
             Some(node) => node,
             None => {
-                log::warn!(
-                    "NodeRef {} out of bounds (arena size {}), returning sentinel",
-                    r,
-                    self.nodes.len()
-                );
+                log::warn!("NodeRef {} out of bounds (arena size {}), returning sentinel", r, self.nodes.len());
                 &SENTINEL_NODE
             }
         }
@@ -74,10 +66,7 @@ impl Arena {
     }
 
     pub fn map_get(&self, r: NodeRef, key: &str) -> Option<NodeRef> {
-        self.as_map(r)?
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, v)| *v)
+        self.as_map(r)?.iter().find(|(k, _)| k == key).map(|(_, v)| *v)
     }
 
     pub fn as_list(&self, r: NodeRef) -> Option<&[NodeRef]> {
@@ -234,12 +223,7 @@ mod tests {
         let mut arena = Arena::new();
         let r = arena.alloc(SpannedNode {
             node: Node::String("hello".into()),
-            span: SourceSpan {
-                start_line: 1,
-                start_column: 1,
-                end_line: 1,
-                end_column: 5,
-            },
+            span: SourceSpan { start_line: 1, start_column: 1, end_line: 1, end_column: 5 },
             path: "test".into(),
         });
         assert_eq!(arena.as_str(r), Some("hello"));
@@ -249,13 +233,7 @@ mod tests {
     fn arena_multiple_nodes() {
         let mut arena = Arena::new();
         let refs: Vec<NodeRef> = (0..100)
-            .map(|i| {
-                arena.alloc(SpannedNode {
-                    node: Node::Int(i),
-                    span: UNKNOWN_SPAN,
-                    path: format!("{}", i),
-                })
-            })
+            .map(|i| arena.alloc(SpannedNode { node: Node::Int(i), span: UNKNOWN_SPAN, path: format!("{}", i) }))
             .collect();
         for (i, r) in refs.iter().enumerate() {
             match arena.node(*r) {
@@ -268,11 +246,8 @@ mod tests {
     #[test]
     fn node_accessor_map_get() {
         let mut arena = Arena::new();
-        let child = arena.alloc(SpannedNode {
-            node: Node::String("value".into()),
-            span: UNKNOWN_SPAN,
-            path: "map/key".into(),
-        });
+        let child =
+            arena.alloc(SpannedNode { node: Node::String("value".into()), span: UNKNOWN_SPAN, path: "map/key".into() });
         let map = arena.alloc(SpannedNode {
             node: Node::Map(vec![("key".into(), child)]),
             span: UNKNOWN_SPAN,
@@ -295,15 +270,7 @@ mod tests {
         assert!(matches!(node.node, Node::Null));
         assert_eq!(node.span, UNKNOWN_SPAN);
         assert!(!arena.is_valid(999));
-        assert_eq!(
-            arena.as_map(999),
-            None,
-            "out-of-bounds as_map should return None"
-        );
-        assert_eq!(
-            arena.as_list(999),
-            None,
-            "out-of-bounds as_list should return None"
-        );
+        assert_eq!(arena.as_map(999), None, "out-of-bounds as_map should return None");
+        assert_eq!(arena.as_list(999), None, "out-of-bounds as_list should return None");
     }
 }

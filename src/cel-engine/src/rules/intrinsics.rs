@@ -3,12 +3,11 @@ use diagnostics::Diagnostic;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITIONS,
-    FIELD_DEPENDS_ON, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS,
-    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FN_FOR_EACH, FN_GET_AZS, FN_IMPORT_VALUE, FN_LENGTH, FN_TO_JSON_STRING, KEY_DEFAULT,
-    KEY_DEPENDS_ON, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME,
-    SECTION_CONDITIONS, SECTION_OUTPUTS, TRANSFORM_LANGUAGE_EXTENSIONS,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITIONS, FIELD_DEPENDS_ON, FIELD_KIND,
+    FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_FOR_EACH, FN_GET_AZS, FN_IMPORT_VALUE, FN_LENGTH, FN_TO_JSON_STRING,
+    KEY_DEFAULT, KEY_DEPENDS_ON, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, SECTION_CONDITIONS,
+    SECTION_OUTPUTS, TRANSFORM_LANGUAGE_EXTENSIONS,
 };
 use template_model::resolver::RefKind;
 use template_model::resolver::ResolvedValue;
@@ -50,9 +49,10 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Suppress ref validation when the template has parse errors — the model
     // is incomplete and refs to unparsed sections would be false positives.
-    let has_parse_errors = m.diagnostics.iter().any(|d| {
-        d.severity == rules::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse)
-    });
+    let has_parse_errors = m
+        .diagnostics
+        .iter()
+        .any(|d| d.severity == rules::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse));
 
     // Load GetAtt attribute data
     let getatt_attrs = &ctx.cached_data.getatt_attrs;
@@ -63,10 +63,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
         if let Some(edges) = refs {
             for edge in edges {
                 let kind = edge.get(FIELD_KIND).and_then(|k| k.as_str()).unwrap_or("");
-                let target = edge
-                    .get(FIELD_TARGET)
-                    .and_then(|t| t.as_str())
-                    .unwrap_or("");
+                let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
 
                 match kind {
                     EDGE_KIND_REF => {
@@ -75,40 +72,35 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             && !pseudo.contains(target)
                             && !sam_implicit.contains(target)
                         {
-                            out.push(make_resource_diagnostic("F1010",
-                                &format!("Ref '{}' does not reference a valid resource, parameter, or pseudo-parameter", target),
-                                m,
-                                name,
-                                "",
-                                Some("Check that the Ref target exists as a resource, parameter, or pseudo-parameter"),
-        ));
-                        }
-                    }
-                    EDGE_KIND_GET_ATT => {
-                        let attr = edge.get(FIELD_ATTR).and_then(|a| a.as_str()).unwrap_or("");
-                        let source_path = edge
-                            .get(FIELD_SOURCE_PATH)
-                            .and_then(|p| p.as_str())
-                            .unwrap_or("");
-
-                        if !resource_keys.contains(target) && !has_parse_errors {
                             out.push(make_resource_diagnostic(
-                                "F1020",
+                                "F1010",
                                 &format!(
-                                    "Fn::GetAtt references non-existent resource '{}'",
+                                    "Ref '{}' does not reference a valid resource, parameter, or pseudo-parameter",
                                     target
                                 ),
                                 m,
                                 name,
                                 "",
-                                Some(
-                                    "Check that the GetAtt target resource exists in the template",
-                                ),
+                                Some("Check that the Ref target exists as a resource, parameter, or pseudo-parameter"),
+                            ));
+                        }
+                    }
+                    EDGE_KIND_GET_ATT => {
+                        let attr = edge.get(FIELD_ATTR).and_then(|a| a.as_str()).unwrap_or("");
+                        let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
+
+                        if !resource_keys.contains(target) && !has_parse_errors {
+                            out.push(make_resource_diagnostic(
+                                "F1020",
+                                &format!("Fn::GetAtt references non-existent resource '{}'", target),
+                                m,
+                                name,
+                                "",
+                                Some("Check that the GetAtt target resource exists in the template"),
                             ));
                         } else if !attr.is_empty()
                             && let Some(target_res) = resources.get(target)
-                            && let Some(rtype) =
-                                target_res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str())
+                            && let Some(rtype) = target_res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str())
                         {
                             if let Some(valid_list) = getatt_attrs.get(rtype)
                                 && !valid_list.iter().any(|a| a == attr)
@@ -118,54 +110,47 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 && rtype != "AWS::CloudFormation::Macro"
                             {
                                 out.push(make_resource_diagnostic(
-                                                "E9004",
-                                                &format!(
-                                                    "'{}' is not one of {:?}",
-                                                    attr, valid_list
-                                                ),
-                                                m,
-                                                name,
-                                                source_path,
-                                                Some("Check the resource type documentation for valid GetAtt attributes"),
-                                            ));
+                                    "E9004",
+                                    &format!("'{}' is not one of {:?}", attr, valid_list),
+                                    m,
+                                    name,
+                                    source_path,
+                                    Some("Check the resource type documentation for valid GetAtt attributes"),
+                                ));
                             }
 
-                            if let Some(ret_type) =
-                                getatt_attr_types.get(rtype).and_then(|m| m.get(attr))
+                            if let Some(ret_type) = getatt_attr_types.get(rtype).and_then(|m| m.get(attr))
                                 && matches!(ret_type.as_str(), "integer" | "number" | "boolean")
                             {
-                                let res_type = m
-                                    .resources
-                                    .get(name)
-                                    .map(|r| r.resource_type.as_str())
-                                    .unwrap_or("");
-                                if res_type == "AWS::SSM::Parameter"
-                                    && source_path.contains("Value")
-                                {
-                                    out.push(make_resource_diagnostic("E9003",
-                                                    &format!("{{'Fn::GetAtt': ['{}', '{}']}} is not of type 'string'", target, attr),
-                                                    m,
-                                                    name,
-                                                    source_path,
-                                                    Some("GetAtt returns a non-string type"),
-                                                ));
+                                let res_type = m.resources.get(name).map(|r| r.resource_type.as_str()).unwrap_or("");
+                                if res_type == "AWS::SSM::Parameter" && source_path.contains("Value") {
+                                    out.push(make_resource_diagnostic(
+                                        "E9003",
+                                        &format!(
+                                            "{{'Fn::GetAtt': ['{}', '{}']}} is not of type 'string'",
+                                            target, attr
+                                        ),
+                                        m,
+                                        name,
+                                        source_path,
+                                        Some("GetAtt returns a non-string type"),
+                                    ));
                                 }
                             }
                         }
                     }
-                    EDGE_KIND_SUB => {
+                    EDGE_KIND_SUB
                         if !resource_keys.contains(target)
                             && !param_keys.contains(target)
-                            && !pseudo.contains(target)
-                        {
-                            out.push(make_resource_diagnostic("F1018",
+                            && !pseudo.contains(target) =>
+                    {
+                        out.push(make_resource_diagnostic("F1018",
                                 &format!("Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or pseudo-parameter", target),
                                 m,
                                 name,
                                 "",
                                 None,
         ));
-                        }
                     }
                     _ => {}
                 }
@@ -176,12 +161,8 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
             && !has_language_extensions(m)
             && let Some(invalid) = res.get("invalidRefs").and_then(|r| r.as_array())
         {
-            let mut valid_targets: Vec<&str> = resource_keys
-                .iter()
-                .chain(param_keys.iter())
-                .chain(pseudo.iter())
-                .copied()
-                .collect();
+            let mut valid_targets: Vec<&str> =
+                resource_keys.iter().chain(param_keys.iter()).chain(pseudo.iter()).copied().collect();
             valid_targets.sort();
             for entry in invalid {
                 let target = entry.get("target").and_then(|t| t.as_str()).unwrap_or("");
@@ -190,13 +171,13 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                     continue;
                 }
                 out.push(make_resource_diagnostic(
-                        "F1020",
-                        &format!("'{}' is not one of {:?}", target, valid_targets),
-                        m,
-                        name,
-                        path,
-                        Some("Check that the Ref target exists as a resource, parameter, or pseudo-parameter"),
-                    ));
+                    "F1020",
+                    &format!("'{}' is not one of {:?}", target, valid_targets),
+                    m,
+                    name,
+                    path,
+                    Some("Check that the Ref target exists as a resource, parameter, or pseudo-parameter"),
+                ));
             }
         }
 
@@ -207,10 +188,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                 {
                     out.push(make_resource_diagnostic(
                         "F1012",
-                        &format!(
-                            "Fn::FindInMap references non-existent mapping '{}'",
-                            map_name
-                        ),
+                        &format!("Fn::FindInMap references non-existent mapping '{}'", map_name),
                         m,
                         name,
                         "",
@@ -245,10 +223,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                 {
                     out.push(make_resource_diagnostic(
                         "F1060",
-                        &format!(
-                            "Fn::If condition '{}' does not exist in Conditions section",
-                            cname
-                        ),
+                        &format!("Fn::If condition '{}' does not exist in Conditions section", cname),
                         m,
                         name,
                         "",
@@ -296,22 +271,16 @@ static AMI_ID_RE: LazyLock<regex::Regex> =
 static SUBNET_ID_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^subnet-[a-f0-9]{8,17}$").expect("Invalid SUBNET_ID_RE"));
 
-static LOG_GROUP_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^[\.\-_/#A-Za-z0-9]{1,512}$").expect("Invalid LOG_GROUP_RE")
-});
+static LOG_GROUP_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"^[\.\-_/#A-Za-z0-9]{1,512}$").expect("Invalid LOG_GROUP_RE"));
 
 static IAM_ROLE_ARN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(
-        r"^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):iam::[0-9]{12}:role/.*$",
-    )
-    .expect("Invalid IAM_ROLE_ARN_RE")
+    regex::Regex::new(r"^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):iam::[0-9]{12}:role/.*$")
+        .expect("Invalid IAM_ROLE_ARN_RE")
 });
 
 fn resolve_concrete_fmt(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
-    match m
-        .resolve_deep(rid, path)
-        .or_else(|| m.resolve(rid, path).cloned())?
-    {
+    match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned())? {
         ResolvedValue::Concrete { value: v } => Some(v.into_inner()),
         _ => None,
     }
@@ -350,13 +319,7 @@ fn check_format(
     }
 }
 
-fn check_format_arn(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    prop: &str,
-    re: &regex::Regex,
-) {
+fn check_format_arn(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, prop: &str, re: &regex::Regex) {
     let path = format!("Properties.{}", prop);
     if let Some(serde_json::Value::String(val)) = resolve_concrete_fmt(m, name, &path)
         && !val.starts_with("{{")
@@ -383,18 +346,20 @@ fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
         for name in m.resources_of_type(rtype) {
             for &prop in props {
                 let path = format!("Properties.{}", prop);
-                if let Some(serde_json::Value::Array(items)) = resolve_concrete_fmt(m, name, &path)
-                {
+                if let Some(serde_json::Value::Array(items)) = resolve_concrete_fmt(m, name, &path) {
                     for item in items.iter() {
                         if let Some(val) = item.as_str()
                             && !val.starts_with("{{")
                             && !SG_ID_RE.is_match(val)
                         {
                             out.push(make_resource_diagnostic(
-                                    "E1150",
-                                    &format!("Value '{}' does not match Security Group ID format (sg-xxxxxxxxx)", val),
-                                    m, name, &path, None,
-                                ));
+                                "E1150",
+                                &format!("Value '{}' does not match Security Group ID format (sg-xxxxxxxxx)", val),
+                                m,
+                                name,
+                                &path,
+                                None,
+                            ));
                         }
                     }
                 }
@@ -418,16 +383,11 @@ fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
             let mut seen: HashSet<String> = HashSet::new();
             for ni_idx in 0..ni_len {
                 let gs_path = format!("Properties.NetworkInterfaces.{}.GroupSet", ni_idx);
-                let Some(rv) = m
-                    .resolve_deep(name, &gs_path)
-                    .or_else(|| m.resolve(name, &gs_path).cloned())
-                else {
+                let Some(rv) = m.resolve_deep(name, &gs_path).or_else(|| m.resolve(name, &gs_path).cloned()) else {
                     continue;
                 };
                 let items: Vec<serde_json::Value> = match rv {
-                    ResolvedValue::Concrete { value: v } => {
-                        v.as_array().cloned().unwrap_or_default()
-                    }
+                    ResolvedValue::Concrete { value: v } => v.as_array().cloned().unwrap_or_default(),
                     ResolvedValue::List { items } => items
                         .iter()
                         .filter_map(|it| match it {
@@ -439,10 +399,7 @@ fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
                 };
                 for item in &items {
                     let Some(val) = item.as_str() else { continue };
-                    if val.starts_with("sg-")
-                        && !SG_ID_MIXED_RE.is_match(val)
-                        && seen.insert(val.to_string())
-                    {
+                    if val.starts_with("sg-") && !SG_ID_MIXED_RE.is_match(val) && seen.insert(val.to_string()) {
                         out.push(make_resource_diagnostic(
                             "E1150",
                             &format!("'{}' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{{8}}|[a-fA-F0-9]{{17}})$'", val),
@@ -464,41 +421,17 @@ fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
     for &(rtype, props) in vpc_id_props {
         for name in m.resources_of_type(rtype) {
             for &prop in props {
-                check_format(
-                    &mut out,
-                    m,
-                    name,
-                    prop,
-                    "E1151",
-                    "VPC ID format (vpc-xxxxxxxxx)",
-                    &VPC_ID_RE,
-                );
+                check_format(&mut out, m, name, prop, "E1151", "VPC ID format (vpc-xxxxxxxxx)", &VPC_ID_RE);
             }
         }
     }
 
     for name in m.resources_of_type("AWS::EC2::Instance") {
-        check_format(
-            &mut out,
-            m,
-            name,
-            "ImageId",
-            "E1152",
-            "AMI ID format (ami-xxxxxxxxx)",
-            &AMI_ID_RE,
-        );
+        check_format(&mut out, m, name, "ImageId", "E1152", "AMI ID format (ami-xxxxxxxxx)", &AMI_ID_RE);
     }
 
     for name in m.resources_of_type("AWS::AutoScaling::LaunchConfiguration") {
-        check_format(
-            &mut out,
-            m,
-            name,
-            "ImageId",
-            "E1152",
-            "AMI ID format (ami-xxxxxxxxx)",
-            &AMI_ID_RE,
-        );
+        check_format(&mut out, m, name, "ImageId", "E1152", "AMI ID format (ami-xxxxxxxxx)", &AMI_ID_RE);
     }
 
     for name in m.resources_of_type("AWS::EC2::LaunchTemplate") {
@@ -513,44 +446,23 @@ fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
         );
     }
 
-    let subnet_id_props: &[(&str, &[&str])] = &[
-        ("AWS::EC2::Instance", &["SubnetId"]),
-        ("AWS::EC2::NetworkInterface", &["SubnetId"]),
-    ];
+    let subnet_id_props: &[(&str, &[&str])] =
+        &[("AWS::EC2::Instance", &["SubnetId"]), ("AWS::EC2::NetworkInterface", &["SubnetId"])];
     for &(rtype, props) in subnet_id_props {
         for name in m.resources_of_type(rtype) {
             for &prop in props {
-                check_format(
-                    &mut out,
-                    m,
-                    name,
-                    prop,
-                    "E1154",
-                    "Subnet ID format (subnet-xxxxxxxxx)",
-                    &SUBNET_ID_RE,
-                );
+                check_format(&mut out, m, name, prop, "E1154", "Subnet ID format (subnet-xxxxxxxxx)", &SUBNET_ID_RE);
             }
         }
     }
 
     for name in m.resources_of_type("AWS::Logs::LogGroup") {
-        check_format(
-            &mut out,
-            m,
-            name,
-            "LogGroupName",
-            "E1155",
-            "Log Group Name format",
-            &LOG_GROUP_RE,
-        );
+        check_format(&mut out, m, name, "LogGroupName", "E1155", "Log Group Name format", &LOG_GROUP_RE);
     }
 
     let iam_role_arn_props: &[(&str, &[&str])] = &[
         ("AWS::Lambda::Function", &["Role"]),
-        (
-            "AWS::ECS::TaskDefinition",
-            &["ExecutionRoleArn", "TaskRoleArn"],
-        ),
+        ("AWS::ECS::TaskDefinition", &["ExecutionRoleArn", "TaskRoleArn"]),
         ("AWS::StepFunctions::StateMachine", &["RoleArn"]),
     ];
     for &(rtype, props) in iam_role_arn_props {
@@ -605,10 +517,7 @@ static VALID_REGIONS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 });
 
 fn has_language_extensions(model: &SemanticModel) -> bool {
-    model
-        .transforms
-        .iter()
-        .any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS)
+    model.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS)
 }
 
 fn eval_intrinsic_params(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -625,18 +534,9 @@ fn eval_intrinsic_params(ctx: &EvalContext) -> Vec<Diagnostic> {
         if let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) {
             for edge in edges {
                 let kind = edge.get(FIELD_KIND).and_then(|k| k.as_str()).unwrap_or("");
-                let target = edge
-                    .get(FIELD_TARGET)
-                    .and_then(|t| t.as_str())
-                    .unwrap_or("");
-                let source_path = edge
-                    .get(FIELD_SOURCE_PATH)
-                    .and_then(|p| p.as_str())
-                    .unwrap_or("");
-                if kind == EDGE_KIND_REF
-                    && target == PSEUDO_STACK_NAME
-                    && source_path.contains(FN_IMPORT_VALUE)
-                {
+                let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
+                let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
+                if kind == EDGE_KIND_REF && target == PSEUDO_STACK_NAME && source_path.contains(FN_IMPORT_VALUE) {
                     out.push(make_resource_diagnostic(
                         "E1016",
                         "Fn::ImportValue cannot use Ref to 'AWS::StackName'",
@@ -798,8 +698,7 @@ fn scan_for_lang_ext_intrinsics(
 }
 
 static DYNAMIC_REF_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"\{\{resolve:(ssm-secure|ssm|secretsmanager):([^}]*)\}\}")
-        .expect("Invalid DYNAMIC_REF_RE")
+    regex::Regex::new(r"\{\{resolve:(ssm-secure|ssm|secretsmanager):([^}]*)\}\}").expect("Invalid DYNAMIC_REF_RE")
 });
 
 fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -820,14 +719,7 @@ fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     // Dynamic references in Conditions
     if let Some(conds) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
         for (_cname, cval) in conds {
-            scan_for_dynamic_refs_in_section(
-                &mut out,
-                m,
-                cval,
-                SECTION_CONDITIONS,
-                "E1051",
-                "E1052",
-            );
+            scan_for_dynamic_refs_in_section(&mut out, m, cval, SECTION_CONDITIONS, "E1051", "E1052");
         }
     }
 
@@ -899,10 +791,7 @@ fn check_dynamic_ref_string(
             "ssm-secure" => {
                 out.push(make_resource_diagnostic(
                     "E1027",
-                    &format!(
-                        "Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in {}",
-                        location
-                    ),
+                    &format!("Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in {}", location),
                     m,
                     resource_id,
                     "",
@@ -913,23 +802,21 @@ fn check_dynamic_ref_string(
                 out.push(make_resource_diagnostic(
                     "E1051",
                     &format!("Dynamic reference '{{{{resolve:secretsmanager:...}}}}' is not supported in {}", location),
-                    m, resource_id, "", None,
+                    m,
+                    resource_id,
+                    "",
+                    None,
                 ));
             }
-            "ssm" => {
-                if location != KEY_DEFAULT {
-                    out.push(make_resource_diagnostic(
-                        "E1052",
-                        &format!(
-                            "Dynamic reference '{{{{resolve:ssm:...}}}}' is not supported in {}",
-                            location
-                        ),
-                        m,
-                        resource_id,
-                        "",
-                        None,
-                    ));
-                }
+            "ssm" if location != KEY_DEFAULT => {
+                out.push(make_resource_diagnostic(
+                    "E1052",
+                    &format!("Dynamic reference '{{{{resolve:ssm:...}}}}' is not supported in {}", location),
+                    m,
+                    resource_id,
+                    "",
+                    None,
+                ));
             }
             _ => {}
         }
@@ -952,22 +839,37 @@ fn scan_for_dynamic_refs_in_section(
                     "ssm-secure" => {
                         out.push(make_resource_diagnostic(
                             "E1027",
-                            &format!("Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in {}", section),
-                            m, "", "", None,
+                            &format!(
+                                "Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in {}",
+                                section
+                            ),
+                            m,
+                            "",
+                            "",
+                            None,
                         ));
                     }
                     "secretsmanager" => {
                         out.push(make_resource_diagnostic(
                             "E1051",
-                            &format!("Dynamic reference '{{{{resolve:secretsmanager:...}}}}' is not supported in {}", section),
-                            m, "", "", None,
+                            &format!(
+                                "Dynamic reference '{{{{resolve:secretsmanager:...}}}}' is not supported in {}",
+                                section
+                            ),
+                            m,
+                            "",
+                            "",
+                            None,
                         ));
                     }
                     "ssm" => {
                         out.push(make_resource_diagnostic(
                             "E1052",
                             &format!("Dynamic reference '{{{{resolve:ssm:...}}}}' is not supported in {}", section),
-                            m, "", "", None,
+                            m,
+                            "",
+                            "",
+                            None,
                         ));
                     }
                     _ => {}
@@ -1002,16 +904,14 @@ fn check_secrets_manager_arn(
 }
 
 fn scan_for_sm_cross_account(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    resource_id: &str,
+    _out: &mut Vec<Diagnostic>,
+    _m: &Arc<SemanticModel>,
+    _resource_id: &str,
     val: &serde_json::Value,
 ) {
     match val {
         serde_json::Value::String(s) => {
-            if s.contains("{{resolve:secretsmanager:")
-                && !s.contains("{{resolve:secretsmanager:arn:")
-            {
+            if s.contains("{{resolve:secretsmanager:") && !s.contains("{{resolve:secretsmanager:arn:") {
                 // Secrets Manager should use full ARN for cross-account
                 // Only warn if the reference looks like it could be cross-account (has a colon-separated secret name)
                 // The pattern {{resolve:secretsmanager:SECRET_NAME:...}} without arn: prefix
@@ -1020,12 +920,12 @@ fn scan_for_sm_cross_account(
         }
         serde_json::Value::Array(arr) => {
             for item in arr {
-                scan_for_sm_cross_account(out, m, resource_id, item);
+                scan_for_sm_cross_account(_out, _m, _resource_id, item);
             }
         }
         serde_json::Value::Object(obj) => {
             for (_, v) in obj {
-                scan_for_sm_cross_account(out, m, resource_id, v);
+                scan_for_sm_cross_account(_out, _m, _resource_id, v);
             }
         }
         _ => {}

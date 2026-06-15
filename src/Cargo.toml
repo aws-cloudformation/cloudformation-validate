@@ -68,3 +68,8 @@ restriction = { level = "allow", priority = -1 }
 nursery = { level = "allow", priority = -1 }
 
 approx_constant = "allow"
+type_complexity = "allow"
+multiple_crate_versions = "allow"
+len_without_is_empty = "allow"
+too_many_arguments = "allow"
+new_without_default = "allow"

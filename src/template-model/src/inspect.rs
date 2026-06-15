@@ -66,12 +66,7 @@ fn inspect_file(path: &str) {
         }
     };
 
-    let result = match SemanticModel::parse(
-        &bytes,
-        ParseConfig {
-            ..Default::default()
-        },
-    ) {
+    let result = match SemanticModel::parse(&bytes, ParseConfig { ..Default::default() }) {
         Ok(r) => r,
         Err(e) => {
             error!("Parse error in {}: {}", path, e);
@@ -110,10 +105,7 @@ fn inspect_file(path: &str) {
     }
 
     if !model.parameters.is_empty() {
-        println!(
-            "── Parameters ({}) ─────────────────────────────────────",
-            model.parameters.len()
-        );
+        println!("── Parameters ({}) ─────────────────────────────────────", model.parameters.len());
         for (name, info) in &model.parameters {
             print!("  {} ({})", name, info.param_type);
             if let Some(ref d) = info.default {
@@ -141,13 +133,7 @@ fn inspect_file(path: &str) {
                 print!(" [NoEcho]");
             }
             if let Some(ref av) = info.allowed_values {
-                print!(
-                    "  → Enum[{}]",
-                    av.iter()
-                        .map(|v| format!("\"{}\"", v))
-                        .collect::<Vec<_>>()
-                        .join(" | ")
-                );
+                print!("  → Enum[{}]", av.iter().map(|v| format!("\"{}\"", v)).collect::<Vec<_>>().join(" | "));
             } else if let Some(ref d) = info.default {
                 print!("  → \"{}\"", d);
             } else {
@@ -162,10 +148,7 @@ fn inspect_file(path: &str) {
     }
 
     if !model.mappings.is_empty() {
-        println!(
-            "── Mappings ({}) ───────────────────────────────────────",
-            model.mappings.len()
-        );
+        println!("── Mappings ({}) ───────────────────────────────────────", model.mappings.len());
         for (name, l1) in &model.mappings {
             println!("  {}:", name);
             for (k1, l2) in l1 {
@@ -178,47 +161,30 @@ fn inspect_file(path: &str) {
         println!();
     }
 
-    if !model.sam_globals.is_empty()
-        || !model.sam_implicit_resources.is_empty()
-        || !model.globals_param_refs.is_empty()
+    if !model.sam_globals.is_empty() || !model.sam_implicit_resources.is_empty() || !model.globals_param_refs.is_empty()
     {
         println!("── SAM ────────────────────────────────────────────────");
         if !model.sam_globals.is_empty() {
             println!("  Globals:");
             for (type_name, props) in &model.sam_globals {
-                let items: Vec<String> = props
-                    .iter()
-                    .map(|(k, v)| format!("{}: {}", k, format_json_compact(v)))
-                    .collect();
+                let items: Vec<String> =
+                    props.iter().map(|(k, v)| format!("{}: {}", k, format_json_compact(v))).collect();
                 println!("    {} → {{{}}}", type_name, items.join(", "));
             }
         }
         if !model.sam_implicit_resources.is_empty() {
             let mut implicit: Vec<&String> = model.sam_implicit_resources.iter().collect();
             implicit.sort();
-            println!(
-                "  Implicit resources: {}",
-                implicit
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
+            println!("  Implicit resources: {}", implicit.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
         }
         if !model.globals_param_refs.is_empty() {
-            println!(
-                "  Globals parameter refs: {}",
-                model.globals_param_refs.join(", ")
-            );
+            println!("  Globals parameter refs: {}", model.globals_param_refs.join(", "));
         }
         println!();
     }
 
     if !model.conditions.conditions.is_empty() {
-        println!(
-            "── Conditions ({}) ────────────────────────────────────",
-            model.conditions.conditions.len()
-        );
+        println!("── Conditions ({}) ────────────────────────────────────", model.conditions.conditions.len());
         for name in model.conditions.names() {
             let expr = model.conditions.get(name).unwrap();
             println!("  {}: {}", name, format_condition_expr(expr));
@@ -227,12 +193,7 @@ fn inspect_file(path: &str) {
             println!();
             println!("  Mutex groups:");
             for g in &model.conditions.mutex_groups {
-                println!(
-                    "    [{}] (param: {}, values: {})",
-                    g.conditions.join(", "),
-                    g.parameter,
-                    g.values.join(", ")
-                );
+                println!("    [{}] (param: {}, values: {})", g.conditions.join(", "), g.parameter, g.values.join(", "));
             }
         }
         if !model.conditions.implications.is_empty() {
@@ -243,40 +204,21 @@ fn inspect_file(path: &str) {
         }
         let ref_params = model.conditions.referenced_params();
         if !ref_params.is_empty() {
-            println!(
-                "  Condition-driving parameters: [{}]",
-                ref_params.join(", ")
-            );
+            println!("  Condition-driving parameters: [{}]", ref_params.join(", "));
         }
         for (cond_name, always_val) in model.conditions.tautological_equals() {
-            println!(
-                "  ⚠ Tautological: {} always {}",
-                cond_name,
-                if always_val { "True" } else { "False" }
-            );
+            println!("  ⚠ Tautological: {} always {}", cond_name, if always_val { "True" } else { "False" });
         }
         // Pairwise compatibility (SAT analysis) — cap at 20 conditions
         // Skip conditions that are tautologically always-false (already flagged above)
-        let tautological: HashSet<String> = model
-            .conditions
-            .tautological_equals()
-            .into_iter()
-            .filter(|(_, v)| !v)
-            .map(|(n, _)| n)
-            .collect();
-        let cond_names: Vec<&str> = model
-            .conditions
-            .names()
-            .filter(|n| !tautological.contains(*n))
-            .collect();
+        let tautological: HashSet<String> =
+            model.conditions.tautological_equals().into_iter().filter(|(_, v)| !v).map(|(n, _)| n).collect();
+        let cond_names: Vec<&str> = model.conditions.names().filter(|n| !tautological.contains(*n)).collect();
         if cond_names.len() >= 2 && cond_names.len() <= 20 {
             let mut incompatible = Vec::new();
             for i in 0..cond_names.len() {
                 for j in (i + 1)..cond_names.len() {
-                    if !model
-                        .conditions
-                        .conditions_compatible(cond_names[i], cond_names[j])
-                    {
+                    if !model.conditions.conditions_compatible(cond_names[i], cond_names[j]) {
                         incompatible.push((cond_names[i], cond_names[j]));
                     }
                 }
@@ -291,10 +233,7 @@ fn inspect_file(path: &str) {
         println!();
     }
 
-    println!(
-        "── Resources ({}) ─────────────────────────────────────",
-        model.resources.len()
-    );
+    println!("── Resources ({}) ─────────────────────────────────────", model.resources.len());
 
     let mut types: Vec<&String> = model.resources_by_type.keys().collect();
     types.sort();
@@ -342,9 +281,7 @@ fn inspect_file(path: &str) {
             let is_lambda = res.resource_type == "AWS::Lambda::Function";
             let is_sam_fn = res.resource_type == SAM_FUNCTION_TYPE;
             for (key, val) in props {
-                if (is_lambda && key.as_str() == "Code")
-                    || (is_sam_fn && key.as_str() == "InlineCode")
-                {
+                if (is_lambda && key.as_str() == "Code") || (is_sam_fn && key.as_str() == "InlineCode") {
                     println!("  │    {}: <inline code suppressed>", key);
                 } else {
                     println!("  │    {}: {}", key, format_resolved(val));
@@ -353,10 +290,7 @@ fn inspect_file(path: &str) {
         }
 
         if !res.diagnostics.find_in_map_refs.is_empty() {
-            println!(
-                "  │  FindInMap refs: {}",
-                res.diagnostics.find_in_map_refs.join(", ")
-            );
+            println!("  │  FindInMap refs: {}", res.diagnostics.find_in_map_refs.join(", "));
         }
         if !res.diagnostics.simple_subs.is_empty() {
             println!("  │  Simple Subs:");
@@ -377,10 +311,7 @@ fn inspect_file(path: &str) {
             }
         }
         if !res.diagnostics.condition_refs.is_empty() {
-            println!(
-                "  │  Condition refs: {}",
-                res.diagnostics.condition_refs.join(", ")
-            );
+            println!("  │  Condition refs: {}", res.diagnostics.condition_refs.join(", "));
         }
         if !res.diagnostics.hardcoded_partition_arns.is_empty() {
             println!("  │  Hardcoded partition ARNs:");
@@ -391,24 +322,14 @@ fn inspect_file(path: &str) {
         if !res.diagnostics.conditionally_null_props.is_empty() {
             println!("  │  Conditionally null properties:");
             for s in &res.diagnostics.conditionally_null_props {
-                let branch = if s.null_in_true_branch {
-                    "true"
-                } else {
-                    "false"
-                };
-                println!(
-                    "  │    {} → null when {} is {}",
-                    s.path, s.condition, branch
-                );
+                let branch = if s.null_in_true_branch { "true" } else { "false" };
+                println!("  │    {} → null when {} is {}", s.path, s.condition, branch);
             }
         }
         if !res.diagnostics.foreach_expansions.is_empty() {
             println!("  │  ForEach expansions:");
             for fe in &res.diagnostics.foreach_expansions {
-                println!(
-                    "  │    {} (id: {}, collection: {})",
-                    fe.property_path, fe.identifier, fe.collection_source
-                );
+                println!("  │    {} (id: {}, collection: {})", fe.property_path, fe.identifier, fe.collection_source);
             }
         }
         if !res.diagnostics.unsubstituted_variables.is_empty() {
@@ -428,18 +349,8 @@ fn inspect_file(path: &str) {
         if !outgoing.is_empty() {
             println!("  │  References out:");
             for e in &outgoing {
-                let cond_ctx = e
-                    .condition_context
-                    .as_ref()
-                    .map(|c| format!(" [condition: {}]", c))
-                    .unwrap_or_default();
-                println!(
-                    "  │    → {} (via {} at {}){}",
-                    e.target,
-                    format_ref_kind(&e.kind),
-                    e.source_path,
-                    cond_ctx
-                );
+                let cond_ctx = e.condition_context.as_ref().map(|c| format!(" [condition: {}]", c)).unwrap_or_default();
+                println!("  │    → {} (via {} at {}){}", e.target, format_ref_kind(&e.kind), e.source_path, cond_ctx);
             }
         }
 
@@ -447,11 +358,7 @@ fn inspect_file(path: &str) {
         if !incoming.is_empty() {
             println!("  │  Referenced by:");
             for e in &incoming {
-                let cond_ctx = e
-                    .condition_context
-                    .as_ref()
-                    .map(|c| format!(" [condition: {}]", c))
-                    .unwrap_or_default();
+                let cond_ctx = e.condition_context.as_ref().map(|c| format!(" [condition: {}]", c)).unwrap_or_default();
                 println!(
                     "  │    ← {} (via {} at {}){}",
                     e.source_resource,
@@ -466,10 +373,7 @@ fn inspect_file(path: &str) {
     }
     println!();
 
-    println!(
-        "── Reference Graph ({} edges) ────────────────────────",
-        model.graph.edges.len()
-    );
+    println!("── Reference Graph ({} edges) ────────────────────────", model.graph.edges.len());
     let cycles = model.graph.cycles();
     if cycles.is_empty() {
         println!("  No circular dependencies.");
@@ -482,10 +386,7 @@ fn inspect_file(path: &str) {
     println!();
 
     if !model.outputs.is_empty() {
-        println!(
-            "── Outputs ({}) ──────────────────────────────────────",
-            model.outputs.len()
-        );
+        println!("── Outputs ({}) ──────────────────────────────────────", model.outputs.len());
         for (name, out) in &model.outputs {
             let span_suffix = model
                 .source_location(&format!("Outputs/{}", name))
@@ -514,10 +415,7 @@ fn inspect_file(path: &str) {
     }
 
     if !model.parsed_rules.is_empty() {
-        println!(
-            "── Rules ({}) ─────────────────────────────────────────",
-            model.parsed_rules.len()
-        );
+        println!("── Rules ({}) ─────────────────────────────────────────", model.parsed_rules.len());
         for rule in &model.parsed_rules {
             println!("  {}:", rule.name);
             if let Some(ref cond) = rule.condition {
@@ -533,18 +431,12 @@ fn inspect_file(path: &str) {
     }
 
     if !model.diagnostics.is_empty() {
-        println!(
-            "── Diagnostics ({}) ─────────────────────────────────",
-            model.diagnostics.len()
-        );
+        println!("── Diagnostics ({}) ─────────────────────────────────", model.diagnostics.len());
         for d in &model.diagnostics {
             let sev = d.severity.as_str();
             if d.location.as_ref().is_some_and(|l| l.start_line > 0) {
                 let loc = d.location.as_ref().unwrap();
-                println!(
-                    "  [{}] L{}:C{} {}",
-                    sev, loc.start_line, loc.start_column, d.message
-                );
+                println!("  [{}] L{}:C{} {}", sev, loc.start_line, loc.start_column, d.message);
             } else {
                 println!("  [{}] {}", sev, d.message);
             }
@@ -574,36 +466,20 @@ fn inspect_file(path: &str) {
     if !model.resolution_sources.is_empty() {
         println!("  Resolution sources: {}", model.resolution_sources.len());
     }
-    let total_empty_joins: usize = model
-        .resources
-        .values()
-        .map(|r| r.diagnostics.empty_joins.len())
-        .sum::<usize>()
+    let total_empty_joins: usize = model.resources.values().map(|r| r.diagnostics.empty_joins.len()).sum::<usize>()
         + model.output_empty_joins.len();
     if total_empty_joins > 0 {
         println!("  Empty joins:  {}", total_empty_joins);
     }
-    let total_invalid_refs: usize = model
-        .resources
-        .values()
-        .map(|r| r.diagnostics.invalid_refs.len())
-        .sum();
+    let total_invalid_refs: usize = model.resources.values().map(|r| r.diagnostics.invalid_refs.len()).sum();
     if total_invalid_refs > 0 {
         println!("  Invalid refs: {}", total_invalid_refs);
     }
-    let total_hardcoded: usize = model
-        .resources
-        .values()
-        .map(|r| r.diagnostics.hardcoded_partition_arns.len())
-        .sum();
+    let total_hardcoded: usize = model.resources.values().map(|r| r.diagnostics.hardcoded_partition_arns.len()).sum();
     if total_hardcoded > 0 {
         println!("  Hardcoded ARNs: {}", total_hardcoded);
     }
-    let total_foreach: usize = model
-        .resources
-        .values()
-        .map(|r| r.diagnostics.foreach_expansions.len())
-        .sum();
+    let total_foreach: usize = model.resources.values().map(|r| r.diagnostics.foreach_expansions.len()).sum();
     if total_foreach > 0 {
         println!("  ForEach expansions: {}", total_foreach);
     }
@@ -623,27 +499,16 @@ fn format_resolved(val: &ResolvedValue) -> String {
             format!("[{}]", parts.join(", "))
         }
         ResolvedValue::Map { entries } => {
-            let parts: Vec<String> = entries
-                .iter()
-                .map(|entry| format!("{}: {}", entry.key, format_resolved(&entry.value)))
-                .collect();
+            let parts: Vec<String> =
+                entries.iter().map(|entry| format!("{}: {}", entry.key, format_resolved(&entry.value))).collect();
             format!("{{{}}}", parts.join(", "))
         }
         ResolvedValue::Enum { variants: vals } => {
             let items: Vec<String> = vals.iter().map(format_resolved).collect();
             format!("Enum[{}]", items.join(" | "))
         }
-        ResolvedValue::Conditional {
-            condition: cond,
-            if_true: t,
-            if_false: f,
-        } => {
-            format!(
-                "If({}) ? {} : {}",
-                cond,
-                format_resolved(t),
-                format_resolved(f)
-            )
+        ResolvedValue::Conditional { condition: cond, if_true: t, if_false: f } => {
+            format!("If({}) ? {} : {}", cond, format_resolved(t), format_resolved(f))
         }
         ResolvedValue::Reference { target, kind } => {
             format!("→{} ({})", target, format_ref_kind(kind))
@@ -671,10 +536,7 @@ fn format_json_compact(v: &serde_json::Value) -> String {
             format!("[{}]", items.join(", "))
         }
         serde_json::Value::Object(map) => {
-            let items: Vec<String> = map
-                .iter()
-                .map(|(k, v)| format!("{}: {}", k, format_json_compact(v)))
-                .collect();
+            let items: Vec<String> = map.iter().map(|(k, v)| format!("{}: {}", k, format_json_compact(v))).collect();
             format!("{{{}}}", items.join(", "))
         }
         other => other.to_string(),

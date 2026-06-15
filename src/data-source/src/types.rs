@@ -66,44 +66,31 @@ mod tests {
 
     #[test]
     fn postcard_roundtrip_known_resource_types() {
-        let original = KnownResourceTypes {
-            known_resource_types: vec!["AWS::S3::Bucket".into(), "AWS::EC2::Instance".into()],
-        };
+        let original =
+            KnownResourceTypes { known_resource_types: vec!["AWS::S3::Bucket".into(), "AWS::EC2::Instance".into()] };
         let bytes = postcard::to_allocvec(&original).unwrap();
         let restored: KnownResourceTypes = postcard::from_bytes(&bytes).unwrap();
         assert_eq!(restored.known_resource_types.len(), 2);
-        assert!(
-            restored
-                .known_resource_types
-                .contains(&"AWS::S3::Bucket".to_string())
-        );
+        assert!(restored.known_resource_types.contains(&"AWS::S3::Bucket".to_string()));
     }
 
     #[test]
     fn postcard_roundtrip_getatt_data() {
         let mut original = GetattData::default();
-        original.getatt_attributes.insert(
-            "AWS::S3::Bucket".into(),
-            vec!["Arn".into(), "DomainName".into()],
-        );
-        original.getatt_attribute_types.insert(
-            "AWS::EC2::CapacityReservation".into(),
-            [("InstanceCount".into(), "integer".into())].into(),
-        );
+        original.getatt_attributes.insert("AWS::S3::Bucket".into(), vec!["Arn".into(), "DomainName".into()]);
+        original
+            .getatt_attribute_types
+            .insert("AWS::EC2::CapacityReservation".into(), [("InstanceCount".into(), "integer".into())].into());
         let bytes = postcard::to_allocvec(&original).unwrap();
         let restored: GetattData = postcard::from_bytes(&bytes).unwrap();
         assert_eq!(restored.getatt_attributes["AWS::S3::Bucket"].len(), 2);
-        assert_eq!(
-            restored.getatt_attribute_types["AWS::EC2::CapacityReservation"]["InstanceCount"],
-            "integer"
-        );
+        assert_eq!(restored.getatt_attribute_types["AWS::EC2::CapacityReservation"]["InstanceCount"], "integer");
     }
 
     #[test]
     fn postcard_roundtrip_stateful_resource_types() {
         let original = StatefulResourceTypes {
-            stateful_resource_types: ["AWS::SQS::Queue".into(), "AWS::DynamoDB::Table".into()]
-                .into(),
+            stateful_resource_types: ["AWS::SQS::Queue".into(), "AWS::DynamoDB::Table".into()].into(),
         };
         let bytes = postcard::to_allocvec(&original).unwrap();
         let restored: StatefulResourceTypes = postcard::from_bytes(&bytes).unwrap();
@@ -113,17 +100,10 @@ mod tests {
     #[test]
     fn postcard_roundtrip_retention_period_requirements() {
         let original = RetentionPeriodRequirements {
-            retention_period_requirements: [(
-                "AWS::SQS::Queue".into(),
-                vec!["MessageRetentionPeriod".into()],
-            )]
-            .into(),
+            retention_period_requirements: [("AWS::SQS::Queue".into(), vec!["MessageRetentionPeriod".into()])].into(),
         };
         let bytes = postcard::to_allocvec(&original).unwrap();
         let restored: RetentionPeriodRequirements = postcard::from_bytes(&bytes).unwrap();
-        assert_eq!(
-            restored.retention_period_requirements["AWS::SQS::Queue"],
-            vec!["MessageRetentionPeriod"]
-        );
+        assert_eq!(restored.retention_period_requirements["AWS::SQS::Queue"], vec!["MessageRetentionPeriod"]);
     }
 }

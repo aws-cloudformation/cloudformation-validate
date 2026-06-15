@@ -8,8 +8,8 @@ use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity};
 use schema_validator::SchemaValidator;
 use template_model::PseudoParameterOverrides;
 use validation_engine::{
-    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, guard,
-    validate_bytes_with_path, validate_catching_panics,
+    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, guard, validate_bytes_with_path,
+    validate_catching_panics,
 };
 
 fn main() {
@@ -40,31 +40,19 @@ fn main() {
         match args[i].as_str() {
             "--include-ids" => {
                 i += 1;
-                include_ids = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                include_ids = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--exclude-ids" => {
                 i += 1;
-                exclude_ids = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                exclude_ids = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--include-categories" => {
                 i += 1;
-                include_categories = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                include_categories = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--exclude-categories" => {
                 i += 1;
-                exclude_categories = args
-                    .get(i)
-                    .map(|s| s.split(',').map(String::from).collect())
-                    .unwrap_or_default();
+                exclude_categories = args.get(i).map(|s| s.split(',').map(String::from).collect()).unwrap_or_default();
             }
             "--include-range" => {
                 i += 1;
@@ -82,10 +70,7 @@ fn main() {
                 i += 1;
                 if let Some(path) = args.get(i) {
                     match fs::read_to_string(path) {
-                        Ok(content) => custom_rules.push(ExternalRuleSource {
-                            name: path.clone(),
-                            content,
-                        }),
+                        Ok(content) => custom_rules.push(ExternalRuleSource { name: path.clone(), content }),
                         Err(e) => {
                             error!("Failed to read rule source {}: {}", path, e);
                             process::exit(2);
@@ -155,23 +140,13 @@ fn main() {
                     && let Some((k, v)) = kv.split_once('=')
                 {
                     match k {
-                        "AWS::AccountId" => {
-                            pseudo_parameter_overrides.account_id = Some(v.to_string())
-                        }
-                        "AWS::NotificationARNs" => {
-                            pseudo_parameter_overrides.notification_arns = Some(v.to_string())
-                        }
-                        "AWS::Partition" => {
-                            pseudo_parameter_overrides.partition = Some(v.to_string())
-                        }
+                        "AWS::AccountId" => pseudo_parameter_overrides.account_id = Some(v.to_string()),
+                        "AWS::NotificationARNs" => pseudo_parameter_overrides.notification_arns = Some(v.to_string()),
+                        "AWS::Partition" => pseudo_parameter_overrides.partition = Some(v.to_string()),
                         "AWS::Region" => pseudo_parameter_overrides.region = Some(v.to_string()),
                         "AWS::StackId" => pseudo_parameter_overrides.stack_id = Some(v.to_string()),
-                        "AWS::StackName" => {
-                            pseudo_parameter_overrides.stack_name = Some(v.to_string())
-                        }
-                        "AWS::URLSuffix" => {
-                            pseudo_parameter_overrides.url_suffix = Some(v.to_string())
-                        }
+                        "AWS::StackName" => pseudo_parameter_overrides.stack_name = Some(v.to_string()),
+                        "AWS::URLSuffix" => pseudo_parameter_overrides.url_suffix = Some(v.to_string()),
                         _ => {
                             error!("Unknown pseudo-parameter: {}", k);
                             process::exit(2);
@@ -200,10 +175,7 @@ fn main() {
         Vec::new()
     };
 
-    let engine_config = EngineConfig {
-        custom_rules,
-        guard_rules,
-    };
+    let engine_config = EngineConfig { custom_rules, guard_rules };
 
     let schema_validator = SchemaValidator::new();
 
@@ -354,8 +326,6 @@ fn print_help() {
     eprintln!("  --pseudo-parameter Key=Value  Override a pseudo-parameter value (repeatable)");
     eprintln!("  --strict                      Upgrade Warn-severity diagnostics to Error");
     eprintln!("  --no-strict                   Disable strict mode (the default)");
-    eprintln!(
-        "  --no-engine-rules             Suppress engine-native (RuleOrigin::Engine) diagnostics"
-    );
+    eprintln!("  --no-engine-rules             Suppress engine-native (RuleOrigin::Engine) diagnostics");
     eprintln!("  --list-rules                  List all available rules and exit");
 }

@@ -37,14 +37,9 @@ pub fn rule_source_dir_to_name(dir_name: &str) -> String {
 /// Resolve the rule-source root directory, returning an error if not provided or missing.
 #[cfg(feature = "full")]
 pub fn resolve_rule_source_dir(path: Option<&str>) -> anyhow::Result<PathBuf> {
-    let p =
-        path.ok_or_else(|| anyhow::anyhow!("Pass --cfn-lint-root to the cfn-lint repo root"))?;
+    let p = path.ok_or_else(|| anyhow::anyhow!("Pass --cfn-lint-root to the cfn-lint repo root"))?;
     let pb = PathBuf::from(p);
-    anyhow::ensure!(
-        pb.exists(),
-        "Rule-source directory not found: {}",
-        pb.display()
-    );
+    anyhow::ensure!(pb.exists(), "Rule-source directory not found: {}", pb.display());
     Ok(pb)
 }
 
@@ -74,12 +69,7 @@ impl SyncStats {
     pub fn fail_on_errors(&self, label: &str) -> anyhow::Result<()> {
         self.log(label);
         if !self.errors.is_empty() {
-            anyhow::bail!(
-                "{} completed with {} error(s):\n  {}",
-                label,
-                self.errors.len(),
-                self.errors.join("\n  ")
-            );
+            anyhow::bail!("{} completed with {} error(s):\n  {}", label, self.errors.len(), self.errors.join("\n  "));
         }
         Ok(())
     }
@@ -96,33 +86,18 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: Option<&str>) -> any
         let rule_source_dir = resolve_rule_source_dir(Some(root))?;
 
         info!("Step 2: Syncing patches from {}", rule_source_dir.display());
-        patches::sync_patches(&rule_source_dir, &upstream_dir.join("patches"))?
-            .fail_on_errors("Patches")?;
+        patches::sync_patches(&rule_source_dir, &upstream_dir.join("patches"))?.fail_on_errors("Patches")?;
 
-        info!(
-            "Step 3: Syncing extensions from {}",
-            rule_source_dir.display()
-        );
-        let generated_data = upstream_dir
-            .parent()
-            .unwrap()
-            .join("generated")
-            .join("data");
+        info!("Step 3: Syncing extensions from {}", rule_source_dir.display());
+        let generated_data = upstream_dir.parent().unwrap().join("generated").join("data");
         fs::create_dir_all(&generated_data)?;
-        extensions::sync_extensions(
-            &rule_source_dir,
-            &upstream_dir.join("extensions"),
-            &generated_data,
-        )?
-        .fail_on_errors("Extensions")?;
+        extensions::sync_extensions(&rule_source_dir, &upstream_dir.join("extensions"), &generated_data)?
+            .fail_on_errors("Extensions")?;
 
         info!("Step 4: Syncing regions from {}", rule_source_dir.display());
         regions::sync_regions(&rule_source_dir, &generated_data)?.fail_on_errors("Regions")?;
 
-        info!(
-            "Step 5: Syncing additional specs from {}",
-            rule_source_dir.display()
-        );
+        info!("Step 5: Syncing additional specs from {}", rule_source_dir.display());
         additional_specs::sync_additional_specs(&rule_source_dir, &generated_data, upstream_dir)?
             .fail_on_errors("AdditionalSpecs")?;
 
@@ -136,11 +111,7 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: Option<&str>) -> any
 }
 
 #[cfg(feature = "full")]
-pub fn generate_all(
-    upstream_dir: &Path,
-    generated_dir: &Path,
-    handwritten_dir: &Path,
-) -> anyhow::Result<()> {
+pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     info!("=== Generate phase ===");
 
     info!("Step 1: Processing schemas (patches, extensions, metadata)");
@@ -229,23 +200,11 @@ fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Resul
     // Check sync-produced files are still present and populated
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &data_dir, None, "Sync")?;
     // Check generate-produced files
-    verify_files_exist_and_populated(
-        REQUIRED_GENERATE_FILES,
-        &data_dir,
-        Some(&sv_dir),
-        "Generate",
-    )?;
+    verify_files_exist_and_populated(REQUIRED_GENERATE_FILES, &data_dir, Some(&sv_dir), "Generate")?;
     // Check handwritten files
-    verify_files_exist_and_populated(
-        REQUIRED_HANDWRITTEN_FILES,
-        handwritten_dir,
-        None,
-        "Handwritten",
-    )?;
+    verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, None, "Handwritten")?;
 
-    let total = REQUIRED_SYNC_FILES.len()
-        + REQUIRED_GENERATE_FILES.len()
-        + REQUIRED_HANDWRITTEN_FILES.len();
+    let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len();
     info!("Verified {total} required data files");
     Ok(())
 }

@@ -48,10 +48,7 @@ impl GeneratedRuleRegistry {
             if rule.resource_type.is_empty() {
                 global_rules.push(rule);
             } else {
-                rules_by_type
-                    .entry(rule.resource_type.clone())
-                    .or_default()
-                    .push(rule);
+                rules_by_type.entry(rule.resource_type.clone()).or_default().push(rule);
             }
         }
         log::info!(
@@ -60,10 +57,7 @@ impl GeneratedRuleRegistry {
             rules_by_type.len(),
             global_rules.len()
         );
-        Ok(GeneratedRuleRegistry {
-            rules_by_type,
-            global_rules,
-        })
+        Ok(GeneratedRuleRegistry { rules_by_type, global_rules })
     }
 
     pub fn evaluate(
@@ -79,14 +73,8 @@ impl GeneratedRuleRegistry {
             if rids.is_empty() {
                 continue;
             }
-            let rules: Vec<&RuleDescriptor> = rules
-                .iter()
-                .filter(|r| {
-                    !r.category
-                        .as_deref()
-                        .is_some_and(|c| excluded_cats.contains(c))
-                })
-                .collect();
+            let rules: Vec<&RuleDescriptor> =
+                rules.iter().filter(|r| !r.category.as_deref().is_some_and(|c| excluded_cats.contains(c))).collect();
             if rules.is_empty() {
                 continue;
             }
@@ -98,11 +86,7 @@ impl GeneratedRuleRegistry {
         }
 
         for rule in &self.global_rules {
-            if rule
-                .category
-                .as_deref()
-                .is_some_and(|c| excluded_cats.contains(c))
-            {
+            if rule.category.as_deref().is_some_and(|c| excluded_cats.contains(c)) {
                 continue;
             }
             for (rid, res) in &model.resources {
@@ -127,10 +111,7 @@ fn make_diag(
         rule_id: rule.rule_id.clone(),
         severity: rule.severity,
         message: rule.message.clone(),
-        resource: Some(diagnostics::ResourceRef {
-            id: Some(rid.to_string()),
-            resource_type: Some(rtype.to_string()),
-        }),
+        resource: Some(diagnostics::ResourceRef { id: Some(rid.to_string()), resource_type: Some(rtype.to_string()) }),
         property_path: rule.prop_path.clone(),
         suggested_fix: rule.suggested_fix.clone(),
         documentation_url: None,
@@ -159,13 +140,7 @@ fn satisfiable(m: &SemanticModel, conds: &HashMap<String, bool>) -> bool {
     m.conditions.is_satisfiable(&pairs)
 }
 
-fn evaluate_rule(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    rid: &str,
-    rtype: &str,
-    rule: &RuleDescriptor,
-) {
+fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, rtype: &str, rule: &RuleDescriptor) {
     let expr = &rule.expression;
 
     // Simple expression: "true" — always fires (e.g., deprecated resource type)
@@ -179,12 +154,7 @@ fn evaluate_rule(
         && let Some(rest) = expr.strip_prefix("!has_property(name, \"")
         && let Some(prop) = rest.strip_suffix("\")")
     {
-        if !m
-            .resources
-            .get(rid)
-            .map(|r| r.properties.contains_key(prop))
-            .unwrap_or(false)
-        {
+        if !m.resources.get(rid).map(|r| r.properties.contains_key(prop)).unwrap_or(false) {
             out.push(make_diag(rule, m, rid, rtype, None));
         }
         return;
@@ -194,13 +164,10 @@ fn evaluate_rule(
     if expr.starts_with("has_property(name, \"") && expr.contains(" && !has_property(name, \"") {
         let parts: Vec<&str> = expr.split(" && ").collect();
         if parts.len() == 2
-            && let (Some(trigger), Some(dep)) =
-                (extract_has_prop(parts[0]), extract_not_has_prop(parts[1]))
+            && let (Some(trigger), Some(dep)) = (extract_has_prop(parts[0]), extract_not_has_prop(parts[1]))
         {
             let res = m.resources.get(rid);
-            let has_trigger = res
-                .map(|r| r.properties.contains_key(trigger))
-                .unwrap_or(false);
+            let has_trigger = res.map(|r| r.properties.contains_key(trigger)).unwrap_or(false);
             let has_dep = res.map(|r| r.properties.contains_key(dep)).unwrap_or(false);
             if has_trigger && !has_dep {
                 out.push(make_diag(rule, m, rid, rtype, None));
@@ -216,10 +183,7 @@ fn evaluate_rule(
             && let (Some(a), Some(b)) = (extract_has_prop(parts[0]), extract_has_prop(parts[1]))
         {
             let res = m.resources.get(rid);
-            if res
-                .map(|r| r.properties.contains_key(a) && r.properties.contains_key(b))
-                .unwrap_or(false)
-            {
+            if res.map(|r| r.properties.contains_key(a) && r.properties.contains_key(b)).unwrap_or(false) {
                 out.push(make_diag(rule, m, rid, rtype, None));
             }
             return;
@@ -229,19 +193,11 @@ fn evaluate_rule(
     // All !has_property combined (requiredOr/requiredXor)
     if expr.contains("!has_property(name, \"") && !expr.contains("scenario_") {
         let parts: Vec<&str> = expr.split(" && ").collect();
-        if parts
-            .iter()
-            .all(|p| p.starts_with("!has_property(name, \""))
-        {
-            let props: Vec<&str> = parts
-                .iter()
-                .filter_map(|p| extract_not_has_prop(p))
-                .collect();
+        if parts.iter().all(|p| p.starts_with("!has_property(name, \"")) {
+            let props: Vec<&str> = parts.iter().filter_map(|p| extract_not_has_prop(p)).collect();
             if props.len() == parts.len() {
                 let res = m.resources.get(rid);
-                let all_missing = props
-                    .iter()
-                    .all(|p| !res.map(|r| r.properties.contains_key(*p)).unwrap_or(false));
+                let all_missing = props.iter().all(|p| !res.map(|r| r.properties.contains_key(*p)).unwrap_or(false));
                 if all_missing {
                     out.push(make_diag(rule, m, rid, rtype, None));
                 }
@@ -287,9 +243,7 @@ fn evaluate_rule(
             let suffix = &path[first_wc + 2..];
             let arr_len = match m.resolve_deep(rid, arr_path) {
                 Some(ResolvedValue::List { items }) => items.len(),
-                Some(ResolvedValue::Concrete { value: v }) if v.is_array() => {
-                    v.as_array().unwrap().len()
-                }
+                Some(ResolvedValue::Concrete { value: v }) if v.is_array() => v.as_array().unwrap().len(),
                 _ => 0,
             };
             if arr_len > 0 {
@@ -301,11 +255,7 @@ fn evaluate_rule(
                             continue;
                         }
                         if eval_val_check(check_expr, val) {
-                            let cond_map = if conds.is_empty() {
-                                None
-                            } else {
-                                Some(conds.clone())
-                            };
+                            let cond_map = if conds.is_empty() { None } else { Some(conds.clone()) };
                             let mut d = make_diag(rule, m, rid, rtype, cond_map);
                             d.property_path = Some(idx_path.clone());
                             out.push(d);
@@ -319,11 +269,7 @@ fn evaluate_rule(
                         continue;
                     }
                     if eval_val_check(check_expr, val) {
-                        let cond_map = if conds.is_empty() {
-                            None
-                        } else {
-                            Some(conds.clone())
-                        };
+                        let cond_map = if conds.is_empty() { None } else { Some(conds.clone()) };
                         out.push(make_diag(rule, m, rid, rtype, cond_map));
                     }
                 }
@@ -338,11 +284,7 @@ fn evaluate_rule(
                     continue;
                 }
                 if eval_val_check(check_expr, val) {
-                    let cond_map = if conds.is_empty() {
-                        None
-                    } else {
-                        Some(conds.clone())
-                    };
+                    let cond_map = if conds.is_empty() { None } else { Some(conds.clone()) };
                     out.push(make_diag(rule, m, rid, rtype, cond_map));
                 }
             }
@@ -377,21 +319,13 @@ fn evaluate_rule(
                 let matches = valid_vals.iter().any(|v| match v {
                     serde_json::Value::String(s) => coerced.as_deref() == Some(s.as_str()),
                     serde_json::Value::Number(n) => cfn_coerce_to_number(val)
-                        .map(|nv| {
-                            n.as_f64()
-                                .map(|nf| (nv - nf).abs() < f64::EPSILON)
-                                .unwrap_or(false)
-                        })
+                        .map(|nv| n.as_f64().map(|nf| (nv - nf).abs() < f64::EPSILON).unwrap_or(false))
                         .unwrap_or(false),
                     serde_json::Value::Bool(b) => val.as_bool() == Some(*b),
                     _ => val == v,
                 });
                 if !matches {
-                    let cond_map = if conds.is_empty() {
-                        None
-                    } else {
-                        Some(conds.clone())
-                    };
+                    let cond_map = if conds.is_empty() { None } else { Some(conds.clone()) };
                     let mut d = make_diag(rule, m, rid, rtype, cond_map);
                     d.message = format!("{} got '{}'", rule.message, val);
                     out.push(d);
@@ -420,11 +354,7 @@ fn evaluate_rule(
                         continue;
                     }
                     if !re.is_match(&s) {
-                        let cond_map = if conds.is_empty() {
-                            None
-                        } else {
-                            Some(conds.clone())
-                        };
+                        let cond_map = if conds.is_empty() { None } else { Some(conds.clone()) };
                         out.push(make_diag(rule, m, rid, rtype, cond_map));
                     }
                 }
@@ -438,9 +368,7 @@ fn evaluate_rule(
         && let Some(idx) = rest.find("\", \"")
     {
         let path = &rest[..idx];
-        let key = rest[idx + 4..]
-            .strip_suffix("\")")
-            .unwrap_or(&rest[idx + 4..]);
+        let key = rest[idx + 4..].strip_suffix("\")").unwrap_or(&rest[idx + 4..]);
         let scenarios = m.resolve_scenarios_json(rid, path);
         for (val, conds) in &scenarios {
             if !satisfiable(m, conds) {
@@ -449,16 +377,11 @@ fn evaluate_rule(
             if let Some(arr) = val.as_array() {
                 for item in arr {
                     if let Some(obj) = item.as_object() {
-                        if obj.contains_key(MARKER_CONDITIONAL) || obj.contains_key(MARKER_DYNAMIC)
-                        {
+                        if obj.contains_key(MARKER_CONDITIONAL) || obj.contains_key(MARKER_DYNAMIC) {
                             continue;
                         }
                         if !obj.contains_key(key) {
-                            let cond_map = if conds.is_empty() {
-                                None
-                            } else {
-                                Some(conds.clone())
-                            };
+                            let cond_map = if conds.is_empty() { None } else { Some(conds.clone()) };
                             out.push(make_diag(rule, m, rid, rtype, cond_map));
                         }
                     }
@@ -503,11 +426,7 @@ fn evaluate_rule(
             let cond_met = eval_resolve_condition(m, rid, parts[0]);
             if cond_met
                 && let Some(prop) = extract_not_has_prop(parts[1])
-                && !m
-                    .resources
-                    .get(rid)
-                    .map(|r| r.properties.contains_key(prop))
-                    .unwrap_or(false)
+                && !m.resources.get(rid).map(|r| r.properties.contains_key(prop)).unwrap_or(false)
             {
                 out.push(make_diag(rule, m, rid, rtype, None));
             }
@@ -529,20 +448,12 @@ fn evaluate_rule(
                 if let Some(s) = val.as_str()
                     && runtimes.iter().any(|r| r == s)
                 {
-                    let cond_map = if conds.is_empty() {
-                        None
-                    } else {
-                        Some(conds.clone())
-                    };
+                    let cond_map = if conds.is_empty() { None } else { Some(conds.clone()) };
                     let mut d = make_diag(rule, m, rid, rtype, cond_map);
                     d.message = format!(
                         "Lambda runtime '{}' {}",
                         s,
-                        if rule.rule_id == "E2533" {
-                            "is end-of-life and cannot be updated"
-                        } else {
-                            "is deprecated"
-                        }
+                        if rule.rule_id == "E2533" { "is end-of-life and cannot be updated" } else { "is deprecated" }
                     );
                     out.push(d);
                 }
@@ -556,8 +467,7 @@ fn extract_has_prop(s: &str) -> Option<&str> {
 }
 
 fn extract_not_has_prop(s: &str) -> Option<&str> {
-    s.strip_prefix("!has_property(name, \"")?
-        .strip_suffix("\")")
+    s.strip_prefix("!has_property(name, \"")?.strip_suffix("\")")
 }
 
 /// Convert a ResolvedValue to a JSON stub preserving only object keys.
@@ -566,10 +476,8 @@ fn extract_not_has_prop(s: &str) -> Option<&str> {
 fn resolved_value_to_key_stub(rv: &ResolvedValue) -> serde_json::Value {
     match rv {
         ResolvedValue::Map { entries } => {
-            let obj: serde_json::Map<String, serde_json::Value> = entries
-                .iter()
-                .map(|e| (e.key.clone(), serde_json::Value::Bool(true)))
-                .collect();
+            let obj: serde_json::Map<String, serde_json::Value> =
+                entries.iter().map(|e| (e.key.clone(), serde_json::Value::Bool(true))).collect();
             serde_json::Value::Object(obj)
         }
         ResolvedValue::Concrete { value: v } => v.0.clone(),
@@ -602,26 +510,16 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
     }
 
     if expr.starts_with("is_object(val) && !has_key(val, \"")
-        && let Some(key) = expr
-            .strip_prefix("is_object(val) && !has_key(val, \"")
-            .and_then(|r| r.strip_suffix("\")"))
+        && let Some(key) = expr.strip_prefix("is_object(val) && !has_key(val, \"").and_then(|r| r.strip_suffix("\")"))
     {
-        return val
-            .as_object()
-            .map(|obj| !obj.contains_key(key))
-            .unwrap_or(false);
+        return val.as_object().map(|obj| !obj.contains_key(key)).unwrap_or(false);
     }
 
-    if expr.starts_with("is_object(val) && has_key(val, \"") && expr.contains("&& !has_key(val, \"")
-    {
+    if expr.starts_with("is_object(val) && has_key(val, \"") && expr.contains("&& !has_key(val, \"") {
         let parts: Vec<&str> = expr.split(" && ").collect();
         if parts.len() == 3 {
-            let trigger = parts[1]
-                .strip_prefix("has_key(val, \"")
-                .and_then(|r| r.strip_suffix("\")"));
-            let dep = parts[2]
-                .strip_prefix("!has_key(val, \"")
-                .and_then(|r| r.strip_suffix("\")"));
+            let trigger = parts[1].strip_prefix("has_key(val, \"").and_then(|r| r.strip_suffix("\")"));
+            let dep = parts[2].strip_prefix("!has_key(val, \"").and_then(|r| r.strip_suffix("\")"));
             if let (Some(t), Some(d)) = (trigger, dep)
                 && let Some(obj) = val.as_object()
             {
@@ -632,17 +530,11 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
     }
 
     // Nested dependentExcluded: is_object(val) && has_key(val, "A") && has_key(val, "B")
-    if expr.starts_with("is_object(val) && has_key(val, \"")
-        && expr.matches("has_key(val, \"").count() == 2
-    {
+    if expr.starts_with("is_object(val) && has_key(val, \"") && expr.matches("has_key(val, \"").count() == 2 {
         let parts: Vec<&str> = expr.split(" && ").collect();
         if parts.len() == 3 {
-            let a = parts[1]
-                .strip_prefix("has_key(val, \"")
-                .and_then(|r| r.strip_suffix("\")"));
-            let b = parts[2]
-                .strip_prefix("has_key(val, \"")
-                .and_then(|r| r.strip_suffix("\")"));
+            let a = parts[1].strip_prefix("has_key(val, \"").and_then(|r| r.strip_suffix("\")"));
+            let b = parts[2].strip_prefix("has_key(val, \"").and_then(|r| r.strip_suffix("\")"));
             if let (Some(ka), Some(kb)) = (a, b)
                 && let Some(obj) = val.as_object()
             {
@@ -656,32 +548,24 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) > ")
         && let Ok(n) = rest.parse::<i64>()
     {
-        return cfn_coerce_to_number(val)
-            .map(|v| v > n as f64)
-            .unwrap_or(false);
+        return cfn_coerce_to_number(val).map(|v| v > n as f64).unwrap_or(false);
     }
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) < ")
         && let Ok(n) = rest.parse::<i64>()
     {
-        return cfn_coerce_to_number(val)
-            .map(|v| v < n as f64)
-            .unwrap_or(false);
+        return cfn_coerce_to_number(val).map(|v| v < n as f64).unwrap_or(false);
     }
 
     // String length: size(coerce_to_string(val)) > N or < N
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) > ")
         && let Ok(n) = rest.parse::<u64>()
     {
-        return cfn_coerce_to_string(val)
-            .map(|s| s.len() as u64 > n)
-            .unwrap_or(false);
+        return cfn_coerce_to_string(val).map(|s| s.len() as u64 > n).unwrap_or(false);
     }
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) < ")
         && let Ok(n) = rest.parse::<u64>()
     {
-        return cfn_coerce_to_string(val)
-            .map(|s| (s.len() as u64) < n)
-            .unwrap_or(false);
+        return cfn_coerce_to_string(val).map(|s| (s.len() as u64) < n).unwrap_or(false);
     }
 
     // Array size: is_array(val) && size(val) > N or < N
@@ -693,10 +577,7 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
     if let Some(rest) = expr.strip_prefix("is_array(val) && size(val) < ")
         && let Ok(n) = rest.parse::<u64>()
     {
-        return val
-            .as_array()
-            .map(|a| (a.len() as u64) < n)
-            .unwrap_or(false);
+        return val.as_array().map(|a| (a.len() as u64) < n).unwrap_or(false);
     }
 
     // uniqueItems: is_array(val) && has_duplicates(val)
@@ -718,19 +599,15 @@ fn eval_resolve_condition(m: &SemanticModel, rid: &str, expr: &str) -> bool {
         && let Some(idx) = rest.find("\", ")
     {
         let path = &rest[..idx];
-        let json_str = rest[idx + 3..]
-            .strip_suffix(')')
-            .unwrap_or(&rest[idx + 3..]);
+        let json_str = rest[idx + 3..].strip_suffix(')').unwrap_or(&rest[idx + 3..]);
         if let Ok(valid) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
             let scenarios = m.resolve_scenarios_json(rid, path);
             for (val, _) in &scenarios {
-                if valid.iter().any(|v| {
-                    if let (Some(a), Some(b)) = (v.as_str(), val.as_str()) {
-                        a == b
-                    } else {
-                        v == val
-                    }
-                }) {
+                if valid.iter().any(
+                    |v| {
+                        if let (Some(a), Some(b)) = (v.as_str(), val.as_str()) { a == b } else { v == val }
+                    },
+                ) {
                     return true;
                 }
             }
@@ -741,9 +618,7 @@ fn eval_resolve_condition(m: &SemanticModel, rid: &str, expr: &str) -> bool {
         && let Some(idx) = rest.find("\", ")
     {
         let path = &rest[..idx];
-        let json_str = rest[idx + 3..]
-            .strip_suffix(')')
-            .unwrap_or(&rest[idx + 3..]);
+        let json_str = rest[idx + 3..].strip_suffix(')').unwrap_or(&rest[idx + 3..]);
         if let Ok(expected) = serde_json::from_str::<serde_json::Value>(json_str) {
             let scenarios = m.resolve_scenarios_json(rid, path);
             for (val, _) in &scenarios {
@@ -774,9 +649,8 @@ fn check_array_dep(
                     if let Some(obj) = item.as_object() {
                         let has_trigger = obj.contains_key(trigger);
                         let has_dep = obj.contains_key(dep);
-                        if excluded && has_trigger && has_dep {
-                            out.push(make_diag(rule, m, rid, rtype, None));
-                        } else if !excluded && has_trigger && !has_dep {
+                        let violates = if excluded { has_dep } else { !has_dep };
+                        if has_trigger && violates {
                             out.push(make_diag(rule, m, rid, rtype, None));
                         }
                     }
@@ -786,9 +660,8 @@ fn check_array_dep(
         ResolvedValue::Map { entries } => {
             let has_trigger = entries.iter().any(|e| e.key == trigger);
             let has_dep = entries.iter().any(|e| e.key == dep);
-            if excluded && has_trigger && has_dep {
-                out.push(make_diag(rule, m, rid, rtype, None));
-            } else if !excluded && has_trigger && !has_dep {
+            let violates = if excluded { has_dep } else { !has_dep };
+            if has_trigger && violates {
                 out.push(make_diag(rule, m, rid, rtype, None));
             }
         }
@@ -811,10 +684,7 @@ mod tests {
 
     #[test]
     fn extract_has_prop_valid() {
-        assert_eq!(
-            extract_has_prop("has_property(name, \"BucketName\")"),
-            Some("BucketName")
-        );
+        assert_eq!(extract_has_prop("has_property(name, \"BucketName\")"), Some("BucketName"));
     }
 
     #[test]
@@ -829,10 +699,7 @@ mod tests {
 
     #[test]
     fn extract_not_has_prop_valid() {
-        assert_eq!(
-            extract_not_has_prop("!has_property(name, \"Encryption\")"),
-            Some("Encryption")
-        );
+        assert_eq!(extract_not_has_prop("!has_property(name, \"Encryption\")"), Some("Encryption"));
     }
 
     #[test]
@@ -844,18 +711,8 @@ mod tests {
     fn key_stub_from_map_preserves_keys() {
         let rv = ResolvedValue::Map {
             entries: vec![
-                MapEntry {
-                    key: "KeyA".into(),
-                    value: ResolvedValue::Dynamic {
-                        reason: "ref".into(),
-                    },
-                },
-                MapEntry {
-                    key: "KeyB".into(),
-                    value: ResolvedValue::Concrete {
-                        value: json!(42).into(),
-                    },
-                },
+                MapEntry { key: "KeyA".into(), value: ResolvedValue::Dynamic { reason: "ref".into() } },
+                MapEntry { key: "KeyB".into(), value: ResolvedValue::Concrete { value: json!(42).into() } },
             ],
         };
         let stub = resolved_value_to_key_stub(&rv);
@@ -867,133 +724,78 @@ mod tests {
 
     #[test]
     fn key_stub_from_concrete_passes_through() {
-        let rv = ResolvedValue::Concrete {
-            value: json!({"x": 1}).into(),
-        };
+        let rv = ResolvedValue::Concrete { value: json!({"x": 1}).into() };
         let stub = resolved_value_to_key_stub(&rv);
         assert_eq!(stub, json!({"x": 1}));
     }
 
     #[test]
     fn key_stub_from_other_returns_null() {
-        let rv = ResolvedValue::Dynamic {
-            reason: "something".into(),
-        };
+        let rv = ResolvedValue::Dynamic { reason: "something".into() };
         assert_eq!(resolved_value_to_key_stub(&rv), json!(null));
     }
 
     // Type checks
     #[test]
     fn eval_not_string_and_not_null_rejects_string() {
-        assert!(!eval_val_check(
-            "!is_string(val) && !is_null(val)",
-            &json!("hello")
-        ));
+        assert!(!eval_val_check("!is_string(val) && !is_null(val)", &json!("hello")));
     }
 
     #[test]
     fn eval_not_string_and_not_null_rejects_null() {
-        assert!(!eval_val_check(
-            "!is_string(val) && !is_null(val)",
-            &json!(null)
-        ));
+        assert!(!eval_val_check("!is_string(val) && !is_null(val)", &json!(null)));
     }
 
     #[test]
     fn eval_not_string_and_not_null_accepts_number() {
-        assert!(eval_val_check(
-            "!is_string(val) && !is_null(val)",
-            &json!(42)
-        ));
+        assert!(eval_val_check("!is_string(val) && !is_null(val)", &json!(42)));
     }
 
     #[test]
     fn eval_not_number_and_not_null() {
-        assert!(eval_val_check(
-            "!is_number(val) && !is_null(val)",
-            &json!("x")
-        ));
-        assert!(!eval_val_check(
-            "!is_number(val) && !is_null(val)",
-            &json!(1)
-        ));
+        assert!(eval_val_check("!is_number(val) && !is_null(val)", &json!("x")));
+        assert!(!eval_val_check("!is_number(val) && !is_null(val)", &json!(1)));
     }
 
     #[test]
     fn eval_not_boolean_and_not_null() {
-        assert!(eval_val_check(
-            "!is_boolean(val) && !is_null(val)",
-            &json!(1)
-        ));
-        assert!(!eval_val_check(
-            "!is_boolean(val) && !is_null(val)",
-            &json!(true)
-        ));
+        assert!(eval_val_check("!is_boolean(val) && !is_null(val)", &json!(1)));
+        assert!(!eval_val_check("!is_boolean(val) && !is_null(val)", &json!(true)));
     }
 
     #[test]
     fn eval_not_object_and_not_null() {
-        assert!(eval_val_check(
-            "!is_object(val) && !is_null(val)",
-            &json!("x")
-        ));
-        assert!(!eval_val_check(
-            "!is_object(val) && !is_null(val)",
-            &json!({"a": 1})
-        ));
+        assert!(eval_val_check("!is_object(val) && !is_null(val)", &json!("x")));
+        assert!(!eval_val_check("!is_object(val) && !is_null(val)", &json!({"a": 1})));
     }
 
     #[test]
     fn eval_not_array_and_not_null() {
-        assert!(eval_val_check(
-            "!is_array(val) && !is_null(val)",
-            &json!("x")
-        ));
-        assert!(!eval_val_check(
-            "!is_array(val) && !is_null(val)",
-            &json!([1])
-        ));
+        assert!(eval_val_check("!is_array(val) && !is_null(val)", &json!("x")));
+        assert!(!eval_val_check("!is_array(val) && !is_null(val)", &json!([1])));
     }
 
     #[test]
     fn eval_not_string_not_number_not_null() {
-        assert!(eval_val_check(
-            "!is_string(val) && !is_number(val) && !is_null(val)",
-            &json!(true)
-        ));
-        assert!(!eval_val_check(
-            "!is_string(val) && !is_number(val) && !is_null(val)",
-            &json!("x")
-        ));
-        assert!(!eval_val_check(
-            "!is_string(val) && !is_number(val) && !is_null(val)",
-            &json!(1)
-        ));
+        assert!(eval_val_check("!is_string(val) && !is_number(val) && !is_null(val)", &json!(true)));
+        assert!(!eval_val_check("!is_string(val) && !is_number(val) && !is_null(val)", &json!("x")));
+        assert!(!eval_val_check("!is_string(val) && !is_number(val) && !is_null(val)", &json!(1)));
     }
 
     // Nested required: is_object && !has_key
     #[test]
     fn eval_object_missing_key() {
-        assert!(eval_val_check(
-            "is_object(val) && !has_key(val, \"Required\")",
-            &json!({"Other": 1})
-        ));
+        assert!(eval_val_check("is_object(val) && !has_key(val, \"Required\")", &json!({"Other": 1})));
     }
 
     #[test]
     fn eval_object_has_key() {
-        assert!(!eval_val_check(
-            "is_object(val) && !has_key(val, \"Required\")",
-            &json!({"Required": 1})
-        ));
+        assert!(!eval_val_check("is_object(val) && !has_key(val, \"Required\")", &json!({"Required": 1})));
     }
 
     #[test]
     fn eval_object_missing_key_on_non_object() {
-        assert!(!eval_val_check(
-            "is_object(val) && !has_key(val, \"X\")",
-            &json!("string")
-        ));
+        assert!(!eval_val_check("is_object(val) && !has_key(val, \"X\")", &json!("string")));
     }
 
     // Nested dependentRequired: is_object && has_key(A) && !has_key(B)
@@ -1024,10 +826,7 @@ mod tests {
 
     #[test]
     fn eval_dependent_excluded_not_both() {
-        assert!(!eval_val_check(
-            "is_object(val) && has_key(val, \"A\") && has_key(val, \"B\")",
-            &json!({"A": 1})
-        ));
+        assert!(!eval_val_check("is_object(val) && has_key(val, \"A\") && has_key(val, \"B\")", &json!({"A": 1})));
     }
 
     // Numeric checks
@@ -1051,84 +850,48 @@ mod tests {
     // String length checks
     #[test]
     fn eval_string_size_gt() {
-        assert!(eval_val_check(
-            "size(coerce_to_string(val)) > 5",
-            &json!("longstring")
-        ));
-        assert!(!eval_val_check(
-            "size(coerce_to_string(val)) > 5",
-            &json!("hi")
-        ));
+        assert!(eval_val_check("size(coerce_to_string(val)) > 5", &json!("longstring")));
+        assert!(!eval_val_check("size(coerce_to_string(val)) > 5", &json!("hi")));
     }
 
     #[test]
     fn eval_string_size_lt() {
-        assert!(eval_val_check(
-            "size(coerce_to_string(val)) < 3",
-            &json!("ab")
-        ));
-        assert!(!eval_val_check(
-            "size(coerce_to_string(val)) < 3",
-            &json!("abcdef")
-        ));
+        assert!(eval_val_check("size(coerce_to_string(val)) < 3", &json!("ab")));
+        assert!(!eval_val_check("size(coerce_to_string(val)) < 3", &json!("abcdef")));
     }
 
     // Array size checks
     #[test]
     fn eval_array_size_gt() {
-        assert!(eval_val_check(
-            "is_array(val) && size(val) > 2",
-            &json!([1, 2, 3])
-        ));
-        assert!(!eval_val_check(
-            "is_array(val) && size(val) > 2",
-            &json!([1])
-        ));
+        assert!(eval_val_check("is_array(val) && size(val) > 2", &json!([1, 2, 3])));
+        assert!(!eval_val_check("is_array(val) && size(val) > 2", &json!([1])));
     }
 
     #[test]
     fn eval_array_size_lt() {
-        assert!(eval_val_check(
-            "is_array(val) && size(val) < 2",
-            &json!([1])
-        ));
-        assert!(!eval_val_check(
-            "is_array(val) && size(val) < 2",
-            &json!([1, 2, 3])
-        ));
+        assert!(eval_val_check("is_array(val) && size(val) < 2", &json!([1])));
+        assert!(!eval_val_check("is_array(val) && size(val) < 2", &json!([1, 2, 3])));
     }
 
     #[test]
     fn eval_array_size_on_non_array() {
-        assert!(!eval_val_check(
-            "is_array(val) && size(val) > 0",
-            &json!("x")
-        ));
+        assert!(!eval_val_check("is_array(val) && size(val) > 0", &json!("x")));
     }
 
     // Duplicates
     #[test]
     fn eval_has_duplicates_true() {
-        assert!(eval_val_check(
-            "is_array(val) && has_duplicates(val)",
-            &json!([1, 2, 1])
-        ));
+        assert!(eval_val_check("is_array(val) && has_duplicates(val)", &json!([1, 2, 1])));
     }
 
     #[test]
     fn eval_has_duplicates_false() {
-        assert!(!eval_val_check(
-            "is_array(val) && has_duplicates(val)",
-            &json!([1, 2, 3])
-        ));
+        assert!(!eval_val_check("is_array(val) && has_duplicates(val)", &json!([1, 2, 3])));
     }
 
     #[test]
     fn eval_has_duplicates_non_array() {
-        assert!(!eval_val_check(
-            "is_array(val) && has_duplicates(val)",
-            &json!("x")
-        ));
+        assert!(!eval_val_check("is_array(val) && has_duplicates(val)", &json!("x")));
     }
 
     // Null guard

@@ -99,18 +99,12 @@ impl RuleFilterConfig {
             return true;
         }
         if let Some(rid) = resource_id
-            && self
-                .resource_ids
-                .iter()
-                .any(|f| f.rule_id == rule_id && f.resource_id == rid)
+            && self.resource_ids.iter().any(|f| f.rule_id == rule_id && f.resource_id == rid)
         {
             return true;
         }
         if let Some(rtype) = resource_type
-            && self
-                .resource_types
-                .iter()
-                .any(|f| f.rule_id == rule_id && f.resource_type == rtype)
+            && self.resource_types.iter().any(|f| f.rule_id == rule_id && f.resource_type == rtype)
         {
             return true;
         }
@@ -135,21 +129,13 @@ pub struct FilterConfig {
 
 impl Clone for FilterConfig {
     fn clone(&self) -> Self {
-        FilterConfig {
-            include: self.include.clone(),
-            exclude: self.exclude.clone(),
-            compiled: OnceLock::new(),
-        }
+        FilterConfig { include: self.include.clone(), exclude: self.exclude.clone(), compiled: OnceLock::new() }
     }
 }
 
 impl FilterConfig {
     pub fn new(include: RuleFilterConfig, exclude: RuleFilterConfig) -> Self {
-        FilterConfig {
-            include,
-            exclude,
-            compiled: OnceLock::new(),
-        }
+        FilterConfig { include, exclude, compiled: OnceLock::new() }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -173,23 +159,11 @@ impl FilterConfig {
     ) -> bool {
         let compiled = self.compiled();
         if !self.include.is_empty()
-            && !self.include.matches(
-                rule_id,
-                category,
-                resource_id,
-                resource_type,
-                &compiled.include,
-            )
+            && !self.include.matches(rule_id, category, resource_id, resource_type, &compiled.include)
         {
             return false;
         }
-        if self.exclude.matches(
-            rule_id,
-            category,
-            resource_id,
-            resource_type,
-            &compiled.exclude,
-        ) {
+        if self.exclude.matches(rule_id, category, resource_id, resource_type, &compiled.exclude) {
             return false;
         }
         true
@@ -253,21 +227,13 @@ mod tests {
     fn empty_filter_matches_all_rules() {
         let f = FilterConfig::default();
         assert!(f.matches_rule("E3012", Some("schema"), None, None));
-        assert!(f.matches_rule(
-            "W9037",
-            Some("security"),
-            Some("Bucket"),
-            Some("AWS::S3::Bucket")
-        ));
+        assert!(f.matches_rule("W9037", Some("security"), Some("Bucket"), Some("AWS::S3::Bucket")));
     }
 
     #[test]
     fn include_by_id_accepts_matching_and_rejects_others() {
         let f = FilterConfig {
-            include: RuleFilterConfig {
-                ids: vec!["E3012".into()],
-                ..Default::default()
-            },
+            include: RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(f.matches_rule("E3012", Some("schema"), None, None));
@@ -277,10 +243,7 @@ mod tests {
     #[test]
     fn exclude_by_id_rejects_matching_and_accepts_others() {
         let f = FilterConfig {
-            exclude: RuleFilterConfig {
-                ids: vec!["E3012".into()],
-                ..Default::default()
-            },
+            exclude: RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(!f.matches_rule("E3012", Some("schema"), None, None));
@@ -290,10 +253,7 @@ mod tests {
     #[test]
     fn include_by_category_accepts_matching_category_only() {
         let f = FilterConfig {
-            include: RuleFilterConfig {
-                categories: vec!["schema".into()],
-                ..Default::default()
-            },
+            include: RuleFilterConfig { categories: vec!["schema".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(f.matches_rule("E3012", Some("schema"), None, None));
@@ -303,10 +263,7 @@ mod tests {
     #[test]
     fn exclude_by_category_rejects_matching_category() {
         let f = FilterConfig {
-            exclude: RuleFilterConfig {
-                categories: vec!["best-practice".into()],
-                ..Default::default()
-            },
+            exclude: RuleFilterConfig { categories: vec!["best-practice".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(f.matches_rule("E3012", Some("schema"), None, None));
@@ -317,11 +274,7 @@ mod tests {
     fn include_by_id_range_accepts_within_bounds_only() {
         let f = FilterConfig {
             include: RuleFilterConfig {
-                id_ranges: vec![IdRange {
-                    prefix: "E".into(),
-                    start: 3000,
-                    end: 3099,
-                }],
+                id_ranges: vec![IdRange { prefix: "E".into(), start: 3000, end: 3099 }],
                 ..Default::default()
             },
             ..Default::default()
@@ -334,10 +287,7 @@ mod tests {
     #[test]
     fn include_by_regex_matches_pattern() {
         let f = FilterConfig {
-            include: RuleFilterConfig {
-                id_patterns: vec!["^E3\\d{3}$".into()],
-                ..Default::default()
-            },
+            include: RuleFilterConfig { id_patterns: vec!["^E3\\d{3}$".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(f.matches_rule("E3012", Some("schema"), None, None));
@@ -348,26 +298,13 @@ mod tests {
     fn exclude_by_resource_id_suppresses_specific_resource() {
         let f = FilterConfig {
             exclude: RuleFilterConfig {
-                resource_ids: vec![ResourceIdFilter {
-                    rule_id: "E3012".into(),
-                    resource_id: "MyBucket".into(),
-                }],
+                resource_ids: vec![ResourceIdFilter { rule_id: "E3012".into(), resource_id: "MyBucket".into() }],
                 ..Default::default()
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule(
-            "E3012",
-            Some("schema"),
-            Some("MyBucket"),
-            Some("AWS::S3::Bucket")
-        ));
-        assert!(f.matches_rule(
-            "E3012",
-            Some("schema"),
-            Some("OtherBucket"),
-            Some("AWS::S3::Bucket")
-        ));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("MyBucket"), Some("AWS::S3::Bucket")));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("OtherBucket"), Some("AWS::S3::Bucket")));
     }
 
     #[test]
@@ -383,25 +320,14 @@ mod tests {
             ..Default::default()
         };
         assert!(!f.matches_rule("E3012", Some("schema"), Some("B"), Some("AWS::S3::Bucket")));
-        assert!(f.matches_rule(
-            "E3012",
-            Some("schema"),
-            Some("I"),
-            Some("AWS::EC2::Instance")
-        ));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("I"), Some("AWS::EC2::Instance")));
     }
 
     #[test]
     fn include_and_exclude_combined_applies_both() {
         let f = FilterConfig {
-            include: RuleFilterConfig {
-                categories: vec!["schema".into()],
-                ..Default::default()
-            },
-            exclude: RuleFilterConfig {
-                ids: vec!["E3012".into()],
-                ..Default::default()
-            },
+            include: RuleFilterConfig { categories: vec!["schema".into()], ..Default::default() },
+            exclude: RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(!f.matches_rule("E3012", Some("schema"), None, None));
@@ -416,30 +342,18 @@ mod tests {
                 categories: vec!["best-practice".into(), "schema".into()],
                 ..Default::default()
             },
-            include: RuleFilterConfig {
-                categories: vec!["schema".into()],
-                ..Default::default()
-            },
+            include: RuleFilterConfig { categories: vec!["schema".into()], ..Default::default() },
             ..Default::default()
         };
         let cats = f.excluded_categories();
-        assert!(
-            cats.contains("best-practice"),
-            "expected 'best-practice' in excluded categories"
-        );
-        assert!(
-            !cats.contains("schema"),
-            "'schema' should not be in excluded categories"
-        );
+        assert!(cats.contains("best-practice"), "expected 'best-practice' in excluded categories");
+        assert!(!cats.contains("schema"), "'schema' should not be in excluded categories");
     }
 
     #[test]
     fn invalid_regex_pattern_is_skipped_and_valid_patterns_still_match() {
         let f = FilterConfig {
-            include: RuleFilterConfig {
-                id_patterns: vec!["[invalid".into(), "^E3\\d+$".into()],
-                ..Default::default()
-            },
+            include: RuleFilterConfig { id_patterns: vec!["[invalid".into(), "^E3\\d+$".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(f.matches_rule("E3012", Some("schema"), None, None));
@@ -448,10 +362,7 @@ mod tests {
     #[test]
     fn cloned_filter_recompiles_patterns_and_matches() {
         let f = FilterConfig {
-            include: RuleFilterConfig {
-                id_patterns: vec!["^E3\\d+$".into()],
-                ..Default::default()
-            },
+            include: RuleFilterConfig { id_patterns: vec!["^E3\\d+$".into()], ..Default::default() },
             ..Default::default()
         };
         assert!(f.matches_rule("E3012", Some("schema"), None, None));

@@ -8,19 +8,12 @@ use std::path::Path;
 pub fn generate(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     let schema_source = generated_dir.join("patched_schemas");
     if !schema_source.exists() {
-        anyhow::bail!(
-            "Patched schema directory not found: {}\nRun process step first.",
-            schema_source.display()
-        );
+        anyhow::bail!("Patched schema directory not found: {}\nRun process step first.", schema_source.display());
     }
 
     let rules_dir = generated_dir.join("cel-rules");
     fs::create_dir_all(&rules_dir)?;
-    info!(
-        "CEL codegen: schemas={} rules={}",
-        schema_source.display(),
-        rules_dir.display()
-    );
+    info!("CEL codegen: schemas={} rules={}", schema_source.display(), rules_dir.display());
 
     let mut raw_schemas: HashMap<String, serde_json::Value> = HashMap::new();
     for entry in fs::read_dir(&schema_source)? {
@@ -59,19 +52,13 @@ pub fn generate(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<
     let all_rules = generate_data_driven_rules(&ds_data, handwritten_dir);
 
     let rules_json = json!({ "rules": all_rules });
-    fs::write(
-        rules_dir.join("generated_rules.json"),
-        serde_json::to_string_pretty(&rules_json)?,
-    )?;
+    fs::write(rules_dir.join("generated_rules.json"), serde_json::to_string_pretty(&rules_json)?)?;
     info!("Generated {} CEL rules total", all_rules.len());
 
     Ok(())
 }
 
-fn generate_data_driven_rules(
-    _generated_dir: &Path,
-    _handwritten_dir: &Path,
-) -> Vec<serde_json::Value> {
+fn generate_data_driven_rules(_generated_dir: &Path, _handwritten_dir: &Path) -> Vec<serde_json::Value> {
     // Deprecated resource types are handled by the native Rust rule
     // eval_deprecated_resource_types() in cel-engine/src/rules/best_practices.rs.
     // No data-driven CEL rules are currently needed.

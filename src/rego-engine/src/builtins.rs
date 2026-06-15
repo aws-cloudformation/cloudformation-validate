@@ -5,8 +5,8 @@ use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 use template_model::coercion::{cfn_coerce_to_number, cfn_coerce_to_string, cfn_type_compatible};
 use template_model::consts::{
-    DEFAULT_REGION, FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES,
-    FIELD_RESOURCE_TYPE, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
+    DEFAULT_REGION, FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
 };
 use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, ResolvedValue};
@@ -20,11 +20,7 @@ fn get_model(holder: &SharedModel) -> Option<Arc<SemanticModel>> {
     holder.lock().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
-pub(crate) fn register_all(
-    rego: &mut regorus::Engine,
-    holder: SharedModel,
-    region_holder: SharedRegion,
-) {
+pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, region_holder: SharedRegion) {
     register_resolve(rego, holder.clone());
     register_resolve_all(rego, holder.clone());
     register_is_dynamic(rego, holder.clone());
@@ -123,14 +119,8 @@ fn resolved_all_to_rego(rv: &ResolvedValue) -> Vec<Value> {
             }
             vec![json_to_value(&serde_json::Value::Object(map))]
         }
-        ResolvedValue::Enum { variants: vals } => {
-            vals.iter().flat_map(resolved_all_to_rego).collect()
-        }
-        ResolvedValue::Conditional {
-            if_true: t,
-            if_false: f,
-            ..
-        } => {
+        ResolvedValue::Enum { variants: vals } => vals.iter().flat_map(resolved_all_to_rego).collect(),
+        ResolvedValue::Conditional { if_true: t, if_false: f, .. } => {
             let mut r = resolved_all_to_rego(t);
             r.extend(resolved_all_to_rego(f));
             r
@@ -138,9 +128,7 @@ fn resolved_all_to_rego(rv: &ResolvedValue) -> Vec<Value> {
         // Unresolved references and dynamic values have no concrete literal to return.
         // Returning the logical ID of a Ref target would cause false positives in rules
         // that validate literal content (e.g. format-validation rules).
-        ResolvedValue::Reference { .. }
-        | ResolvedValue::Dynamic { .. }
-        | ResolvedValue::TypedDynamic { .. } => vec![],
+        ResolvedValue::Reference { .. } | ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => vec![],
     }
 }
 
@@ -158,15 +146,11 @@ fn json_to_value(v: &serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::from(s.as_str()),
-        serde_json::Value::Array(arr) => {
-            Value::from(arr.iter().map(json_to_value).collect::<Vec<_>>())
-        }
+        serde_json::Value::Array(arr) => Value::from(arr.iter().map(json_to_value).collect::<Vec<_>>()),
         serde_json::Value::Object(map) => {
             let mut obj = regorus::Value::new_object();
             for (k, v) in map {
-                obj.as_object_mut()
-                    .unwrap()
-                    .insert(Value::from(k.as_str()), json_to_value(v));
+                obj.as_object_mut().unwrap().insert(Value::from(k.as_str()), json_to_value(v));
             }
             obj
         }
@@ -213,11 +197,7 @@ fn contains_dynamic(rv: &ResolvedValue) -> bool {
         ResolvedValue::List { items } => items.iter().any(contains_dynamic),
         ResolvedValue::Map { entries } => entries.iter().any(|e| contains_dynamic(&e.value)),
         ResolvedValue::Enum { variants: vals } => vals.iter().any(contains_dynamic),
-        ResolvedValue::Conditional {
-            if_true: t,
-            if_false: f,
-            ..
-        } => contains_dynamic(t) || contains_dynamic(f),
+        ResolvedValue::Conditional { if_true: t, if_false: f, .. } => contains_dynamic(t) || contains_dynamic(f),
         ResolvedValue::Reference { .. } => true,
         ResolvedValue::Concrete { value: v } => json_contains_markers(v),
     }
@@ -273,10 +253,7 @@ fn register_resolve_all(rego: &mut regorus::Engine, holder: SharedModel) {
             if scenarios.is_empty() {
                 return Ok(Value::from(Vec::<Value>::new()));
             }
-            let vals: Vec<Value> = scenarios
-                .into_iter()
-                .map(|(v, _)| serde_json_to_rego_value(&v))
-                .collect();
+            let vals: Vec<Value> = scenarios.into_iter().map(|(v, _)| serde_json_to_rego_value(&v)).collect();
             Ok(Value::from(vals))
         }),
     );
@@ -334,44 +311,61 @@ fn register_is_from_intrinsic(rego: &mut regorus::Engine, holder: SharedModel) {
 }
 
 fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
-    let _ = rego.add_extension("resolve_scenarios".into(), 2, Box::new(move |params: Vec<Value>| {
-        let Some(model) = get_model(&holder) else { return Ok(Value::Undefined); };
-        let rid = params[0].as_string()?;
-        let path = params[1].as_string()?;
-
-        if path.contains("{}") {
-            let arr_path = path.split(".{}").next().unwrap_or(path);
-            let suffix = path.split_once("{}").map(|x| x.1).unwrap_or("");
-            let arr_len = match model.resolve_deep(rid, arr_path) {
-                Some(ResolvedValue::List { items }) => items.len(),
-                Some(ResolvedValue::Concrete { value: v }) if v.as_array().is_some() => v.as_array().unwrap().len(),
-                _ => 0,
+    let _ = rego.add_extension(
+        "resolve_scenarios".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
             };
-            if arr_len > 0 {
-                let mut results: Vec<Value> = Vec::new();
-                for i in 0..arr_len {
-                    let idx_path = format!("{}.{}{}", arr_path, i, suffix);
-                    let scenarios = model.resolve_scenarios_json(rid, &idx_path);
-                    for (v_json, conds) in scenarios {
-                        let mut conds_map = serde_json::Map::new();
-                        for (k, b) in &conds { conds_map.insert(k.clone(), serde_json::Value::Bool(*b)); }
-                        if let Ok(v) = Value::from_json_str(&serde_json::json!({"value": v_json, "conditions": conds_map, "path": idx_path}).to_string()) {
-                            results.push(v);
+            let rid = params[0].as_string()?;
+            let path = params[1].as_string()?;
+
+            if path.contains("{}") {
+                let arr_path = path.split(".{}").next().unwrap_or(path);
+                let suffix = path.split_once("{}").map(|x| x.1).unwrap_or("");
+                let arr_len = match model.resolve_deep(rid, arr_path) {
+                    Some(ResolvedValue::List { items }) => items.len(),
+                    Some(ResolvedValue::Concrete { value: v }) if v.as_array().is_some() => v.as_array().unwrap().len(),
+                    _ => 0,
+                };
+                if arr_len > 0 {
+                    let mut results: Vec<Value> = Vec::new();
+                    for i in 0..arr_len {
+                        let idx_path = format!("{}.{}{}", arr_path, i, suffix);
+                        let scenarios = model.resolve_scenarios_json(rid, &idx_path);
+                        for (v_json, conds) in scenarios {
+                            let mut conds_map = serde_json::Map::new();
+                            for (k, b) in &conds {
+                                conds_map.insert(k.clone(), serde_json::Value::Bool(*b));
+                            }
+                            if let Ok(v) = Value::from_json_str(
+                                &serde_json::json!({"value": v_json, "conditions": conds_map, "path": idx_path})
+                                    .to_string(),
+                            ) {
+                                results.push(v);
+                            }
                         }
                     }
+                    return Ok(Value::from(results));
                 }
-                return Ok(Value::from(results));
             }
-        }
 
-        let scenarios = model.resolve_scenarios_json(rid, path);
-        let results: Vec<Value> = scenarios.into_iter().filter_map(|(v_json, conds)| {
-            let mut conds_map = serde_json::Map::new();
-            for (k, b) in &conds { conds_map.insert(k.clone(), serde_json::Value::Bool(*b)); }
-            Value::from_json_str(&serde_json::json!({"value": v_json, "conditions": conds_map}).to_string()).ok()
-        }).collect();
-        Ok(Value::from(results))
-    }));
+            let scenarios = model.resolve_scenarios_json(rid, path);
+            let results: Vec<Value> = scenarios
+                .into_iter()
+                .filter_map(|(v_json, conds)| {
+                    let mut conds_map = serde_json::Map::new();
+                    for (k, b) in &conds {
+                        conds_map.insert(k.clone(), serde_json::Value::Bool(*b));
+                    }
+                    Value::from_json_str(&serde_json::json!({"value": v_json, "conditions": conds_map}).to_string())
+                        .ok()
+                })
+                .collect();
+            Ok(Value::from(results))
+        }),
+    );
 }
 
 fn register_is_satisfiable(rego: &mut regorus::Engine, holder: SharedModel) {
@@ -386,11 +380,7 @@ fn register_is_satisfiable(rego: &mut regorus::Engine, holder: SharedModel) {
             let conds_val: serde_json::Value = serde_json::from_str(&conds_str).unwrap_or_default();
             let assumptions: Vec<(String, bool)> = conds_val
                 .as_object()
-                .map(|m| {
-                    m.iter()
-                        .filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b)))
-                        .collect()
-                })
+                .map(|m| m.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect())
                 .unwrap_or_default();
             if assumptions.is_empty() {
                 return Ok(Value::from(true));
@@ -409,10 +399,7 @@ fn register_follow_ref(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            Ok(model
-                .follow_ref(rid, path)
-                .map(Value::from)
-                .unwrap_or(Value::Undefined))
+            Ok(model.follow_ref(rid, path).map(Value::from).unwrap_or(Value::Undefined))
         }),
     );
 }
@@ -427,10 +414,7 @@ fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let type_name = params[0].as_string()?;
             let ids = model.resources_of_type(type_name);
-            let set: Vec<Value> = ids
-                .iter()
-                .map(|s: &String| Value::from(s.as_str()))
-                .collect();
+            let set: Vec<Value> = ids.iter().map(|s: &String| Value::from(s.as_str())).collect();
             Ok(Value::from(set))
         }),
     );
@@ -445,12 +429,7 @@ fn register_ref_targets(rego: &mut regorus::Engine, holder: SharedModel) {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
-            let targets: Vec<Value> = model
-                .graph
-                .ref_targets(rid)
-                .into_iter()
-                .map(Value::from)
-                .collect();
+            let targets: Vec<Value> = model.graph.ref_targets(rid).into_iter().map(Value::from).collect();
             Ok(Value::from(targets))
         }),
     );
@@ -465,12 +444,7 @@ fn register_ref_sources(rego: &mut regorus::Engine, holder: SharedModel) {
                 return Ok(Value::Undefined);
             };
             let rid = params[0].as_string()?;
-            let sources: Vec<Value> = model
-                .graph
-                .ref_sources(rid)
-                .into_iter()
-                .map(Value::from)
-                .collect();
+            let sources: Vec<Value> = model.graph.ref_sources(rid).into_iter().map(Value::from).collect();
             Ok(Value::from(sources))
         }),
     );
@@ -500,17 +474,9 @@ fn register_conditions_compatible(rego: &mut regorus::Engine, holder: SharedMode
             };
             let resource_a = params[0].as_string()?;
             let resource_b = params[1].as_string()?;
-            let cond_a = model
-                .resources
-                .get(resource_a.as_ref())
-                .and_then(|r| r.condition.as_deref());
-            let cond_b = model
-                .resources
-                .get(resource_b.as_ref())
-                .and_then(|r| r.condition.as_deref());
-            Ok(Value::from(
-                model.conditions.resources_compatible(cond_a, cond_b),
-            ))
+            let cond_a = model.resources.get(resource_a.as_ref()).and_then(|r| r.condition.as_deref());
+            let cond_b = model.resources.get(resource_b.as_ref()).and_then(|r| r.condition.as_deref());
+            Ok(Value::from(model.conditions.resources_compatible(cond_a, cond_b)))
         }),
     );
 }
@@ -531,9 +497,7 @@ fn register_condition_implies(rego: &mut regorus::Engine, holder: SharedModel) {
             }
             let antecedent = params[0].as_string()?;
             let consequent = params[1].as_string()?;
-            Ok(Value::from(
-                model.conditions.condition_implies(antecedent, consequent),
-            ))
+            Ok(Value::from(model.conditions.condition_implies(antecedent, consequent)))
         }),
     );
 }
@@ -594,11 +558,8 @@ fn register_has_property(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            let has = model
-                .resources
-                .get(rid.as_ref())
-                .map(|r| r.properties.contains_key(prop.as_ref()))
-                .unwrap_or(false);
+            let has =
+                model.resources.get(rid.as_ref()).map(|r| r.properties.contains_key(prop.as_ref())).unwrap_or(false);
             Ok(Value::from(has))
         }),
     );
@@ -613,16 +574,9 @@ fn register_param_allowed_values(rego: &mut regorus::Engine, holder: SharedModel
                 return Ok(Value::Undefined);
             };
             let name = params[0].as_string()?;
-            match model
-                .parameters
-                .get(name.as_ref())
-                .and_then(|p| p.allowed_values.as_ref())
-            {
+            match model.parameters.get(name.as_ref()).and_then(|p| p.allowed_values.as_ref()) {
                 Some(vals) => {
-                    let v: Vec<Value> = vals
-                        .iter()
-                        .map(|s: &String| Value::from(s.as_str()))
-                        .collect();
+                    let v: Vec<Value> = vals.iter().map(|s: &String| Value::from(s.as_str())).collect();
                     Ok(Value::from(v))
                 }
                 None => Ok(Value::from(Vec::<Value>::new())),
@@ -679,9 +633,7 @@ fn register_has_transform(rego: &mut regorus::Engine, holder: SharedModel) {
                 return Ok(Value::Undefined);
             };
             let name = params[0].as_string()?;
-            Ok(Value::from(
-                model.transforms.iter().any(|t| t.as_str() == name.as_ref()),
-            ))
+            Ok(Value::from(model.transforms.iter().any(|t| t.as_str() == name.as_ref())))
         }),
     );
 }
@@ -755,9 +707,7 @@ fn register_flatten_list(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            let val = model
-                .resolve_deep(rid, path)
-                .or_else(|| model.resolve(rid, path).cloned());
+            let val = model.resolve_deep(rid, path).or_else(|| model.resolve(rid, path).cloned());
             let Some(resolved) = val else {
                 return Ok(Value::from(Vec::<Value>::new()));
             };
@@ -778,27 +728,16 @@ fn register_flatten_list(rego: &mut regorus::Engine, holder: SharedModel) {
 
 fn flatten_resolved_list(rv: &ResolvedValue) -> Vec<ResolvedValue> {
     match rv {
-        ResolvedValue::Concrete { value: v } if v.is_array() => v
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|v| ResolvedValue::Concrete {
-                value: v.clone().into(),
-            })
-            .collect(),
+        ResolvedValue::Concrete { value: v } if v.is_array() => {
+            v.as_array().unwrap().iter().map(|v| ResolvedValue::Concrete { value: v.clone().into() }).collect()
+        }
         ResolvedValue::List { items } => items.clone(),
-        ResolvedValue::Conditional {
-            if_true: t,
-            if_false: f,
-            ..
-        } => {
+        ResolvedValue::Conditional { if_true: t, if_false: f, .. } => {
             let mut items = flatten_resolved_list(t);
             items.extend(flatten_resolved_list(f));
             items
         }
-        ResolvedValue::Enum { variants: vals } => {
-            vals.iter().flat_map(flatten_resolved_list).collect()
-        }
+        ResolvedValue::Enum { variants: vals } => vals.iter().flat_map(flatten_resolved_list).collect(),
         _ => vec![rv.clone()],
     }
 }
@@ -831,12 +770,10 @@ fn register_ip_overlaps(rego: &mut regorus::Engine) {
         Box::new(|params: Vec<Value>| {
             let a_str = params[0].as_string()?;
             let b_str = params[1].as_string()?;
-            let net_a: ipnetwork::IpNetwork = a_str
-                .parse()
-                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", a_str, e))?;
-            let net_b: ipnetwork::IpNetwork = b_str
-                .parse()
-                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", b_str, e))?;
+            let net_a: ipnetwork::IpNetwork =
+                a_str.parse().map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", a_str, e))?;
+            let net_b: ipnetwork::IpNetwork =
+                b_str.parse().map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", b_str, e))?;
             let overlaps = net_a.contains(net_b.network()) || net_b.contains(net_a.network());
             Ok(Value::from(overlaps))
         }),
@@ -850,12 +787,10 @@ fn register_ip_subnet_of(rego: &mut regorus::Engine) {
         Box::new(|params: Vec<Value>| {
             let sub_str = params[0].as_string()?;
             let vpc_str = params[1].as_string()?;
-            let sub_net: ipnetwork::IpNetwork = sub_str
-                .parse()
-                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", sub_str, e))?;
-            let vpc_net: ipnetwork::IpNetwork = vpc_str
-                .parse()
-                .map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", vpc_str, e))?;
+            let sub_net: ipnetwork::IpNetwork =
+                sub_str.parse().map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", sub_str, e))?;
+            let vpc_net: ipnetwork::IpNetwork =
+                vpc_str.parse().map_err(|e| anyhow::anyhow!("Invalid CIDR '{}': {}", vpc_str, e))?;
             let is_sub = match (sub_net, vpc_net) {
                 (ipnetwork::IpNetwork::V4(s), ipnetwork::IpNetwork::V4(v)) => s.is_subnet_of(v),
                 (ipnetwork::IpNetwork::V6(s), ipnetwork::IpNetwork::V6(v)) => s.is_subnet_of(v),
@@ -878,11 +813,7 @@ fn register_is_valid_cidr_strict(rego: &mut regorus::Engine) {
                     ipnetwork::IpNetwork::V4(n) => {
                         let ip: u32 = n.ip().into();
                         let host_bits = 32u32.saturating_sub(n.prefix() as u32);
-                        let mask = if host_bits >= 32 {
-                            0u32
-                        } else {
-                            !0u32 << host_bits
-                        };
+                        let mask = if host_bits >= 32 { 0u32 } else { !0u32 << host_bits };
                         ip & !mask == 0
                     }
                     ipnetwork::IpNetwork::V6(_) => true,
@@ -960,11 +891,9 @@ fn register_input_region(rego: &mut regorus::Engine, holder: SharedRegion) {
     let _ = rego.add_extension(
         "input_region".into(),
         0,
-        Box::new(move |_: Vec<Value>| {
-            match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-                Some(r) => Ok(Value::from(r.as_str())),
-                None => Ok(Value::Null),
-            }
+        Box::new(move |_: Vec<Value>| match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+            Some(r) => Ok(Value::from(r.as_str())),
+            None => Ok(Value::Null),
         }),
     );
 }
@@ -977,11 +906,9 @@ fn register_effective_region(rego: &mut regorus::Engine, holder: SharedRegion) {
     let _ = rego.add_extension(
         "effective_region".into(),
         0,
-        Box::new(move |_: Vec<Value>| {
-            match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-                Some(r) => Ok(Value::from(r.as_str())),
-                None => Ok(Value::from(DEFAULT_REGION)),
-            }
+        Box::new(move |_: Vec<Value>| match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+            Some(r) => Ok(Value::from(r.as_str())),
+            None => Ok(Value::from(DEFAULT_REGION)),
         }),
     );
 }
@@ -1044,9 +971,7 @@ fn register_resolve_type(rego: &mut regorus::Engine, holder: SharedModel) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            let val = model
-                .resolve_deep(rid, path)
-                .or_else(|| model.resolve(rid, path).cloned());
+            let val = model.resolve_deep(rid, path).or_else(|| model.resolve(rid, path).cloned());
             let type_str = match val {
                 Some(ResolvedValue::Concrete { value: v }) if v.is_string() => "string",
                 Some(ResolvedValue::Concrete { value: v }) if v.is_number() => "number",
@@ -1111,11 +1036,7 @@ fn register_schema_properties(rego: &mut regorus::Engine, registry: LazySchemaRe
             let rtype = params[0].as_string()?;
             match schema_reg(&registry).get(rtype.as_ref()) {
                 Some(info) => {
-                    let vals: Vec<Value> = info
-                        .properties
-                        .iter()
-                        .map(|s| Value::from(s.as_str()))
-                        .collect();
+                    let vals: Vec<Value> = info.properties.iter().map(|s| Value::from(s.as_str())).collect();
                     Ok(Value::from(vals))
                 }
                 None => Ok(Value::from(Vec::<Value>::new())),
@@ -1132,11 +1053,7 @@ fn register_schema_required(rego: &mut regorus::Engine, registry: LazySchemaRegi
             let rtype = params[0].as_string()?;
             match schema_reg(&registry).get(rtype.as_ref()) {
                 Some(info) => {
-                    let vals: Vec<Value> = info
-                        .required
-                        .iter()
-                        .map(|s| Value::from(s.as_str()))
-                        .collect();
+                    let vals: Vec<Value> = info.required.iter().map(|s| Value::from(s.as_str())).collect();
                     Ok(Value::from(vals))
                 }
                 None => Ok(Value::from(Vec::<Value>::new())),
@@ -1152,10 +1069,7 @@ fn register_schema_type(rego: &mut regorus::Engine, registry: LazySchemaRegistry
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            match schema_reg(&registry)
-                .get(rtype.as_ref())
-                .and_then(|i| i.property_types.get(prop.as_ref()))
-            {
+            match schema_reg(&registry).get(rtype.as_ref()).and_then(|i| i.property_types.get(prop.as_ref())) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::Undefined),
             }
@@ -1170,10 +1084,7 @@ fn register_schema_enum(rego: &mut regorus::Engine, registry: LazySchemaRegistry
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let prop = params[1].as_string()?;
-            match schema_reg(&registry)
-                .get(rtype.as_ref())
-                .and_then(|i| i.property_enums.get(prop.as_ref()))
-            {
+            match schema_reg(&registry).get(rtype.as_ref()).and_then(|i| i.property_enums.get(prop.as_ref())) {
                 Some(vals) => {
                     let v: Vec<Value> = vals.iter().map(json_to_value).collect();
                     Ok(Value::from(v))
@@ -1191,10 +1102,7 @@ fn register_attribute_type(rego: &mut regorus::Engine, registry: LazySchemaRegis
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let attr = params[1].as_string()?;
-            match schema_reg(&registry)
-                .get(rtype.as_ref())
-                .and_then(|i| i.property_types.get(attr.as_ref()))
-            {
+            match schema_reg(&registry).get(rtype.as_ref()).and_then(|i| i.property_types.get(attr.as_ref())) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::Undefined),
             }
@@ -1203,9 +1111,8 @@ fn register_attribute_type(rego: &mut regorus::Engine, registry: LazySchemaRegis
 }
 
 fn load_getatt_type_registry() -> HashMap<String, HashMap<String, String>> {
-    let data: data_source::types::GetattData =
-        serde_json::from_slice(&data_source::embedded::GETATT_ATTRIBUTES_BYTES)
-            .expect("Failed to deserialize getatt_attributes JSON data");
+    let data: data_source::types::GetattData = serde_json::from_slice(&data_source::embedded::GETATT_ATTRIBUTES_BYTES)
+        .expect("Failed to deserialize getatt_attributes JSON data");
     data.getatt_attribute_types
 }
 
@@ -1216,10 +1123,7 @@ fn register_getatt_return_type(rego: &mut regorus::Engine, registry: LazyGetattR
         Box::new(move |params: Vec<Value>| {
             let rtype = params[0].as_string()?;
             let attr = params[1].as_string()?;
-            match getatt_reg(&registry)
-                .get(rtype.as_ref())
-                .and_then(|m| m.get(attr.as_ref()))
-            {
+            match getatt_reg(&registry).get(rtype.as_ref()).and_then(|m| m.get(attr.as_ref())) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::from("string")),
             }
@@ -1295,11 +1199,8 @@ fn register_make_diag(rego: &mut regorus::Engine, holder: SharedModel) {
             let severity = params[1].as_string()?;
             let resource_id = params[2].as_string()?;
             let message = params[3].as_string()?;
-            let span = if resource_id.is_empty() {
-                diagnostics::UNKNOWN_SPAN
-            } else {
-                model.resource_span(resource_id, "")
-            };
+            let span =
+                if resource_id.is_empty() { diagnostics::UNKNOWN_SPAN } else { model.resource_span(resource_id, "") };
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
                 "message": message.as_ref(), "resource_id": resource_id.as_ref(),
@@ -1352,11 +1253,7 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn resolve_span(
-    model: &SemanticModel,
-    resource_id: &str,
-    prop_path: &str,
-) -> diagnostics::SourceSpan {
+fn resolve_span(model: &SemanticModel, resource_id: &str, prop_path: &str) -> diagnostics::SourceSpan {
     model.resource_span(resource_id, prop_path)
 }
 
@@ -1376,11 +1273,8 @@ fn register_make_diag_full(rego: &mut regorus::Engine, holder: SharedModel) {
             let fix = params[5].as_string()?;
             let doc_url = params[6].as_string()?;
             let span = resolve_span(&model, resource_id, prop_path);
-            let fix_val = if fix.is_empty() {
-                serde_json::Value::Null
-            } else {
-                serde_json::Value::String(fix.to_string())
-            };
+            let fix_val =
+                if fix.is_empty() { serde_json::Value::Null } else { serde_json::Value::String(fix.to_string()) };
             let doc_val = if doc_url.is_empty() {
                 serde_json::Value::Null
             } else {
@@ -1457,8 +1351,7 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
             let message = params[4].as_string()?;
             let conds_str = params[5].to_json_str()?;
             let span = resolve_span(&model, resource_id, prop_path);
-            let conds_val: serde_json::Value =
-                serde_json::from_str(&conds_str).unwrap_or(serde_json::Value::Null);
+            let conds_val: serde_json::Value = serde_json::from_str(&conds_str).unwrap_or(serde_json::Value::Null);
 
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
@@ -1511,11 +1404,7 @@ fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchem
                 Some(c) => c,
                 None => return Ok(Value::Undefined),
             };
-            let is_string = info
-                .property_types
-                .get(prop.as_ref())
-                .map(|t| t == "string")
-                .unwrap_or(false);
+            let is_string = info.property_types.get(prop.as_ref()).map(|t| t == "string").unwrap_or(false);
             let mut map = serde_json::Map::new();
             if let Some(v) = constraints.get("minLength") {
                 map.insert("minLength".into(), v.clone());
@@ -1578,14 +1467,7 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedMo
             let mut results = Vec::new();
             for (prop_key, prop_val) in &res.properties {
                 let path_prefix = format!("Properties.{}", prop_key);
-                collect_unreachable_branches(
-                    &model,
-                    rid,
-                    prop_val,
-                    &path_prefix,
-                    &base_assumptions,
-                    &mut results,
-                );
+                collect_unreachable_branches(&model, rid, prop_val, &path_prefix, &base_assumptions, &mut results);
             }
             Ok(Value::from(results))
         }),
@@ -1601,23 +1483,13 @@ fn collect_unreachable_branches(
     results: &mut Vec<Value>,
 ) {
     match value {
-        ResolvedValue::Conditional {
-            condition: cond,
-            if_true: true_branch,
-            if_false: false_branch,
-        } => {
+        ResolvedValue::Conditional { condition: cond, if_true: true_branch, if_false: false_branch } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             if !model.conditions.is_satisfiable(&true_assumptions) {
                 let mut map = serde_json::Map::new();
-                map.insert(
-                    "resourceId".into(),
-                    serde_json::Value::String(resource_id.to_string()),
-                );
-                map.insert(
-                    "path".into(),
-                    serde_json::Value::String(format!("{}.{}.1", path, FN_IF)),
-                );
+                map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
+                map.insert("path".into(), serde_json::Value::String(format!("{}.{}.1", path, FN_IF)));
                 map.insert(
                     "message".into(),
                     serde_json::Value::String(format!(
@@ -1634,19 +1506,10 @@ fn collect_unreachable_branches(
                 let existing: Vec<String> = assumptions
                     .iter()
                     .filter(|(name, _)| name != cond)
-                    .map(|(name, val)| {
-                        format!(
-                            "condition '{}' is {}",
-                            name,
-                            if *val { "True" } else { "False" }
-                        )
-                    })
+                    .map(|(name, val)| format!("condition '{}' is {}", name, if *val { "True" } else { "False" }))
                     .collect();
                 let explanation = if existing.is_empty() {
-                    format!(
-                        "When setting condition '{}' to False from current status True",
-                        cond
-                    )
+                    format!("When setting condition '{}' to False from current status True", cond)
                 } else {
                     format!(
                         "When setting condition '{}' to False. Where existing status for {}",
@@ -1655,20 +1518,11 @@ fn collect_unreachable_branches(
                     )
                 };
                 let mut map = serde_json::Map::new();
-                map.insert(
-                    "resourceId".into(),
-                    serde_json::Value::String(resource_id.to_string()),
-                );
-                map.insert(
-                    "path".into(),
-                    serde_json::Value::String(format!("{}.{}.2", path, FN_IF)),
-                );
+                map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
+                map.insert("path".into(), serde_json::Value::String(format!("{}.{}.2", path, FN_IF)));
                 map.insert(
                     "message".into(),
-                    serde_json::Value::String(format!(
-                        "['Fn::If', 2] is not reachable. {}",
-                        explanation
-                    )),
+                    serde_json::Value::String(format!("['Fn::If', 2] is not reachable. {}", explanation)),
                 );
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
@@ -1704,14 +1558,7 @@ fn collect_unreachable_branches(
         }
         ResolvedValue::List { items } => {
             for (i, val) in items.iter().enumerate() {
-                collect_unreachable_branches(
-                    model,
-                    resource_id,
-                    val,
-                    &format!("{}.{}", path, i),
-                    assumptions,
-                    results,
-                );
+                collect_unreachable_branches(model, resource_id, val, &format!("{}.{}", path, i), assumptions, results);
             }
         }
         _ => {}
@@ -1744,10 +1591,7 @@ mod tests {
 
     #[test]
     fn rego_to_json_round_trips_primitives() {
-        assert_eq!(
-            rego_to_json(&Value::from("hello")),
-            serde_json::json!("hello")
-        );
+        assert_eq!(rego_to_json(&Value::from("hello")), serde_json::json!("hello"));
         assert_eq!(rego_to_json(&Value::from(42i64)), serde_json::json!(42));
         assert_eq!(rego_to_json(&Value::from(true)), serde_json::json!(true));
         assert_eq!(rego_to_json(&Value::Null), serde_json::Value::Null);
@@ -1755,17 +1599,13 @@ mod tests {
 
     #[test]
     fn resolved_to_rego_concrete_string() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!("test").into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!("test").into() };
         assert_eq!(resolved_to_rego(&rv), Value::from("test"));
     }
 
     #[test]
     fn resolved_to_rego_concrete_number() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!(99).into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!(99).into() };
         assert_eq!(resolved_to_rego(&rv), Value::from(99i64));
     }
 
@@ -1773,12 +1613,8 @@ mod tests {
     fn resolved_to_rego_list() {
         let rv = ResolvedValue::List {
             items: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!(1).into(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!(2).into(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!(1).into() },
+                ResolvedValue::Concrete { value: serde_json::json!(2).into() },
             ],
         };
         let v = resolved_to_rego(&rv);
@@ -1791,26 +1627,19 @@ mod tests {
         let rv = ResolvedValue::Map {
             entries: vec![MapEntry {
                 key: "key".to_string(),
-                value: ResolvedValue::Concrete {
-                    value: serde_json::json!("val").into(),
-                },
+                value: ResolvedValue::Concrete { value: serde_json::json!("val").into() },
             }],
         };
         let v = resolved_to_rego(&rv);
-        v.as_object()
-            .expect("resolved_to_rego should produce a valid object");
+        v.as_object().expect("resolved_to_rego should produce a valid object");
     }
 
     #[test]
     fn resolved_to_rego_enum_picks_first_concrete() {
         let rv = ResolvedValue::Enum {
             variants: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("first").into(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("second").into(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!("first").into() },
+                ResolvedValue::Concrete { value: serde_json::json!("second").into() },
             ],
         };
         assert_eq!(resolved_to_rego(&rv), Value::from("first"));
@@ -1826,47 +1655,33 @@ mod tests {
     fn resolved_to_rego_conditional_returns_true_branch() {
         let rv = ResolvedValue::Conditional {
             condition: "cond".to_string(),
-            if_true: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("yes").into(),
-            }),
-            if_false: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("no").into(),
-            }),
+            if_true: Box::new(ResolvedValue::Concrete { value: serde_json::json!("yes").into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: serde_json::json!("no").into() }),
         };
         assert_eq!(resolved_to_rego(&rv), Value::from("yes"));
     }
 
     #[test]
     fn resolved_to_rego_reference() {
-        let rv = ResolvedValue::Reference {
-            target: "MyBucket".to_string(),
-            kind: RefKind::Ref,
-        };
+        let rv = ResolvedValue::Reference { target: "MyBucket".to_string(), kind: RefKind::Ref };
         assert_eq!(resolved_to_rego(&rv), Value::from("MyBucket"));
     }
 
     #[test]
     fn resolved_to_rego_dynamic_returns_undefined() {
-        let rv = ResolvedValue::Dynamic {
-            reason: "param".to_string(),
-        };
+        let rv = ResolvedValue::Dynamic { reason: "param".to_string() };
         assert_eq!(resolved_to_rego(&rv), Value::Undefined);
     }
 
     #[test]
     fn resolved_to_rego_typed_dynamic_returns_undefined() {
-        let rv = ResolvedValue::TypedDynamic {
-            reason: "param".to_string(),
-            param_type: "String".to_string(),
-        };
+        let rv = ResolvedValue::TypedDynamic { reason: "param".to_string(), param_type: "String".to_string() };
         assert_eq!(resolved_to_rego(&rv), Value::Undefined);
     }
 
     #[test]
     fn resolved_all_concrete_returns_single() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!("x").into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!("x").into() };
         let vals = resolved_all_to_rego(&rv);
         assert_eq!(vals.len(), 1);
         assert_eq!(vals[0], Value::from("x"));
@@ -1876,12 +1691,8 @@ mod tests {
     fn resolved_all_enum_expands_all() {
         let rv = ResolvedValue::Enum {
             variants: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("a").into(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("b").into(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!("a").into() },
+                ResolvedValue::Concrete { value: serde_json::json!("b").into() },
             ],
         };
         let vals = resolved_all_to_rego(&rv);
@@ -1892,12 +1703,8 @@ mod tests {
     fn resolved_all_conditional_expands_both_branches() {
         let rv = ResolvedValue::Conditional {
             condition: "c".to_string(),
-            if_true: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("t").into(),
-            }),
-            if_false: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("f").into(),
-            }),
+            if_true: Box::new(ResolvedValue::Concrete { value: serde_json::json!("t").into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: serde_json::json!("f").into() }),
         };
         let vals = resolved_all_to_rego(&rv);
         assert_eq!(vals.len(), 2);
@@ -1905,43 +1712,31 @@ mod tests {
 
     #[test]
     fn resolved_all_dynamic_returns_empty() {
-        let rv = ResolvedValue::Dynamic {
-            reason: "x".to_string(),
-        };
+        let rv = ResolvedValue::Dynamic { reason: "x".to_string() };
         assert!(resolved_all_to_rego(&rv).is_empty());
     }
 
     #[test]
     fn contains_dynamic_concrete_false() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!("static").into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!("static").into() };
         assert!(!contains_dynamic(&rv));
     }
 
     #[test]
     fn contains_dynamic_dynamic_true() {
-        let rv = ResolvedValue::Dynamic {
-            reason: "param".to_string(),
-        };
+        let rv = ResolvedValue::Dynamic { reason: "param".to_string() };
         assert!(contains_dynamic(&rv));
     }
 
     #[test]
     fn contains_dynamic_typed_dynamic_true() {
-        let rv = ResolvedValue::TypedDynamic {
-            reason: "p".to_string(),
-            param_type: "String".to_string(),
-        };
+        let rv = ResolvedValue::TypedDynamic { reason: "p".to_string(), param_type: "String".to_string() };
         assert!(contains_dynamic(&rv));
     }
 
     #[test]
     fn contains_dynamic_reference_true() {
-        let rv = ResolvedValue::Reference {
-            target: "Ref".to_string(),
-            kind: RefKind::Ref,
-        };
+        let rv = ResolvedValue::Reference { target: "Ref".to_string(), kind: RefKind::Ref };
         assert!(contains_dynamic(&rv));
     }
 
@@ -1949,12 +1744,8 @@ mod tests {
     fn contains_dynamic_nested_list() {
         let rv = ResolvedValue::List {
             items: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("ok").into(),
-                },
-                ResolvedValue::Dynamic {
-                    reason: "param".to_string(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!("ok").into() },
+                ResolvedValue::Dynamic { reason: "param".to_string() },
             ],
         };
         assert!(contains_dynamic(&rv));
@@ -1966,16 +1757,9 @@ mod tests {
             entries: vec![
                 MapEntry {
                     key: "a".to_string(),
-                    value: ResolvedValue::Concrete {
-                        value: serde_json::json!("ok").into(),
-                    },
+                    value: ResolvedValue::Concrete { value: serde_json::json!("ok").into() },
                 },
-                MapEntry {
-                    key: "b".to_string(),
-                    value: ResolvedValue::Dynamic {
-                        reason: "p".to_string(),
-                    },
-                },
+                MapEntry { key: "b".to_string(), value: ResolvedValue::Dynamic { reason: "p".to_string() } },
             ],
         };
         assert!(contains_dynamic(&rv));
@@ -1985,31 +1769,21 @@ mod tests {
     fn contains_dynamic_conditional_true_branch() {
         let rv = ResolvedValue::Conditional {
             condition: "c".to_string(),
-            if_true: Box::new(ResolvedValue::Dynamic {
-                reason: "p".to_string(),
-            }),
-            if_false: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("ok").into(),
-            }),
+            if_true: Box::new(ResolvedValue::Dynamic { reason: "p".to_string() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: serde_json::json!("ok").into() }),
         };
         assert!(contains_dynamic(&rv));
     }
 
     #[test]
     fn resolved_value_to_json_static_concrete() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!(42).into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!(42).into() };
         assert_eq!(resolved_value_to_json_static(&rv), serde_json::json!(42));
     }
 
     #[test]
     fn resolved_value_to_json_static_list() {
-        let rv = ResolvedValue::List {
-            items: vec![ResolvedValue::Concrete {
-                value: serde_json::json!(1).into(),
-            }],
-        };
+        let rv = ResolvedValue::List { items: vec![ResolvedValue::Concrete { value: serde_json::json!(1).into() }] };
         assert_eq!(resolved_value_to_json_static(&rv), serde_json::json!([1]));
     }
 
@@ -2018,9 +1792,7 @@ mod tests {
         let rv = ResolvedValue::Map {
             entries: vec![MapEntry {
                 key: "k".to_string(),
-                value: ResolvedValue::Concrete {
-                    value: serde_json::json!("v").into(),
-                },
+                value: ResolvedValue::Concrete { value: serde_json::json!("v").into() },
             }],
         };
         let j = resolved_value_to_json_static(&rv);
@@ -2031,27 +1803,16 @@ mod tests {
     fn resolved_value_to_json_static_enum_picks_first_concrete() {
         let rv = ResolvedValue::Enum {
             variants: vec![
-                ResolvedValue::Dynamic {
-                    reason: "x".to_string(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("found").into(),
-                },
+                ResolvedValue::Dynamic { reason: "x".to_string() },
+                ResolvedValue::Concrete { value: serde_json::json!("found").into() },
             ],
         };
-        assert_eq!(
-            resolved_value_to_json_static(&rv),
-            serde_json::json!("found")
-        );
+        assert_eq!(resolved_value_to_json_static(&rv), serde_json::json!("found"));
     }
 
     #[test]
     fn resolved_value_to_json_static_enum_no_concrete_returns_null() {
-        let rv = ResolvedValue::Enum {
-            variants: vec![ResolvedValue::Dynamic {
-                reason: "x".to_string(),
-            }],
-        };
+        let rv = ResolvedValue::Enum { variants: vec![ResolvedValue::Dynamic { reason: "x".to_string() }] };
         assert_eq!(resolved_value_to_json_static(&rv), serde_json::Value::Null);
     }
 
@@ -2059,40 +1820,29 @@ mod tests {
     fn resolved_value_to_json_static_conditional_returns_true_branch() {
         let rv = ResolvedValue::Conditional {
             condition: "c".to_string(),
-            if_true: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("yes").into(),
-            }),
-            if_false: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("no").into(),
-            }),
+            if_true: Box::new(ResolvedValue::Concrete { value: serde_json::json!("yes").into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: serde_json::json!("no").into() }),
         };
         assert_eq!(resolved_value_to_json_static(&rv), serde_json::json!("yes"));
     }
 
     #[test]
     fn resolved_value_to_json_static_reference_produces_marker() {
-        let rv = ResolvedValue::Reference {
-            target: "MyBucket".to_string(),
-            kind: RefKind::Ref,
-        };
+        let rv = ResolvedValue::Reference { target: "MyBucket".to_string(), kind: RefKind::Ref };
         let j = resolved_value_to_json_static(&rv);
         assert_ne!(j.get(MARKER_REF), None, "expected MARKER_REF key");
     }
 
     #[test]
     fn resolved_value_to_json_static_dynamic_produces_marker() {
-        let rv = ResolvedValue::Dynamic {
-            reason: "param".to_string(),
-        };
+        let rv = ResolvedValue::Dynamic { reason: "param".to_string() };
         let j = resolved_value_to_json_static(&rv);
         assert_ne!(j.get(MARKER_DYNAMIC), None, "expected MARKER_DYNAMIC key");
     }
 
     #[test]
     fn flatten_resolved_list_concrete_array() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!([1, 2, 3]).into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!([1, 2, 3]).into() };
         let items = flatten_resolved_list(&rv);
         assert_eq!(items.len(), 3);
     }
@@ -2101,12 +1851,8 @@ mod tests {
     fn flatten_resolved_list_ir_list() {
         let rv = ResolvedValue::List {
             items: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("a").into(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("b").into(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!("a").into() },
+                ResolvedValue::Concrete { value: serde_json::json!("b").into() },
             ],
         };
         let items = flatten_resolved_list(&rv);
@@ -2118,14 +1864,10 @@ mod tests {
         let rv = ResolvedValue::Conditional {
             condition: "c".to_string(),
             if_true: Box::new(ResolvedValue::List {
-                items: vec![ResolvedValue::Concrete {
-                    value: serde_json::json!("a").into(),
-                }],
+                items: vec![ResolvedValue::Concrete { value: serde_json::json!("a").into() }],
             }),
             if_false: Box::new(ResolvedValue::List {
-                items: vec![ResolvedValue::Concrete {
-                    value: serde_json::json!("b").into(),
-                }],
+                items: vec![ResolvedValue::Concrete { value: serde_json::json!("b").into() }],
             }),
         };
         let items = flatten_resolved_list(&rv);
@@ -2134,18 +1876,14 @@ mod tests {
 
     #[test]
     fn flatten_resolved_list_scalar_wraps() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!("scalar").into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!("scalar").into() };
         let items = flatten_resolved_list(&rv);
         assert_eq!(items.len(), 1);
     }
 
     #[test]
     fn flatten_resolved_list_empty_array() {
-        let rv = ResolvedValue::Concrete {
-            value: serde_json::json!([]).into(),
-        };
+        let rv = ResolvedValue::Concrete { value: serde_json::json!([]).into() };
         assert!(flatten_resolved_list(&rv).is_empty());
     }
 
@@ -2169,9 +1907,7 @@ mod tests {
 
     #[test]
     fn arn_matches_wildcard_region() {
-        let v = eval_builtin(
-            r#"arn_matches("arn:aws:s3:us-east-1:123:bucket", "arn:aws:s3:*:123:bucket")"#,
-        );
+        let v = eval_builtin(r#"arn_matches("arn:aws:s3:us-east-1:123:bucket", "arn:aws:s3:*:123:bucket")"#);
         assert_eq!(v, Value::from(true));
     }
 
@@ -2361,11 +2097,7 @@ mod tests {
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
         register_all(&mut rego, holder, region);
-        rego.add_policy(
-            "test.rego".into(),
-            "package test\nimport rego.v1\nresult := input_region()".into(),
-        )
-        .unwrap();
+        rego.add_policy("test.rego".into(), "package test\nimport rego.v1\nresult := input_region()".into()).unwrap();
         rego.set_input(Value::new_object());
         let v = rego.eval_rule("data.test.result".into()).unwrap();
         assert_eq!(v, Value::from("us-west-2"));
@@ -2379,11 +2111,7 @@ mod tests {
         };
         let j = resolved_value_to_json_static(&rv);
         assert_ne!(j.get(MARKER_DYNAMIC), None, "expected MARKER_DYNAMIC key");
-        assert_ne!(
-            j.get(MARKER_PARAM_TYPE),
-            None,
-            "expected MARKER_PARAM_TYPE key"
-        );
+        assert_ne!(j.get(MARKER_PARAM_TYPE), None, "expected MARKER_PARAM_TYPE key");
         assert_eq!(j[MARKER_PARAM_TYPE], "AWS::SSM::Parameter::Value<String>");
     }
 
@@ -2391,19 +2119,13 @@ mod tests {
     fn resolved_all_list_returns_single_array() {
         let rv = ResolvedValue::List {
             items: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!(1).into(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!(2).into(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!(1).into() },
+                ResolvedValue::Concrete { value: serde_json::json!(2).into() },
             ],
         };
         let vals = resolved_all_to_rego(&rv);
         assert_eq!(vals.len(), 1, "List wraps into a single array value");
-        vals[0]
-            .as_array()
-            .expect("first element should be an array");
+        vals[0].as_array().expect("first element should be an array");
     }
 
     #[test]
@@ -2411,9 +2133,7 @@ mod tests {
         let rv = ResolvedValue::Map {
             entries: vec![MapEntry {
                 key: "k".to_string(),
-                value: ResolvedValue::Concrete {
-                    value: serde_json::json!("v").into(),
-                },
+                value: ResolvedValue::Concrete { value: serde_json::json!("v").into() },
             }],
         };
         let vals = resolved_all_to_rego(&rv);
@@ -2424,19 +2144,13 @@ mod tests {
     fn resolved_all_reference_returns_empty() {
         // References are omitted so format-validation rules don't mistake a logical ID
         // for a literal value.
-        let rv = ResolvedValue::Reference {
-            target: "Target".to_string(),
-            kind: RefKind::Ref,
-        };
+        let rv = ResolvedValue::Reference { target: "Target".to_string(), kind: RefKind::Ref };
         assert!(resolved_all_to_rego(&rv).is_empty());
     }
 
     #[test]
     fn resolved_all_typed_dynamic_returns_empty() {
-        let rv = ResolvedValue::TypedDynamic {
-            reason: "p".to_string(),
-            param_type: "String".to_string(),
-        };
+        let rv = ResolvedValue::TypedDynamic { reason: "p".to_string(), param_type: "String".to_string() };
         assert!(resolved_all_to_rego(&rv).is_empty());
     }
 
@@ -2444,12 +2158,8 @@ mod tests {
     fn flatten_resolved_list_enum_flattens_all_variants() {
         let rv = ResolvedValue::Enum {
             variants: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!([1, 2]).into(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!([3]).into(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!([1, 2]).into() },
+                ResolvedValue::Concrete { value: serde_json::json!([3]).into() },
             ],
         };
         let items = flatten_resolved_list(&rv);
@@ -2460,12 +2170,8 @@ mod tests {
     fn contains_dynamic_enum_all_static_false() {
         let rv = ResolvedValue::Enum {
             variants: vec![
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("a").into(),
-                },
-                ResolvedValue::Concrete {
-                    value: serde_json::json!("b").into(),
-                },
+                ResolvedValue::Concrete { value: serde_json::json!("a").into() },
+                ResolvedValue::Concrete { value: serde_json::json!("b").into() },
             ],
         };
         assert!(!contains_dynamic(&rv));
@@ -2475,12 +2181,8 @@ mod tests {
     fn contains_dynamic_conditional_false_branch_only() {
         let rv = ResolvedValue::Conditional {
             condition: "c".to_string(),
-            if_true: Box::new(ResolvedValue::Concrete {
-                value: serde_json::json!("ok").into(),
-            }),
-            if_false: Box::new(ResolvedValue::Dynamic {
-                reason: "p".to_string(),
-            }),
+            if_true: Box::new(ResolvedValue::Concrete { value: serde_json::json!("ok").into() }),
+            if_false: Box::new(ResolvedValue::Dynamic { reason: "p".to_string() }),
         };
         assert!(contains_dynamic(&rv));
     }

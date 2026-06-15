@@ -4,8 +4,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::consts::{
-    EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_RESOURCES, FIELD_SOURCE_PATH,
-    FIELD_TARGET, KEY_PROPERTIES,
+    EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_PROPERTIES,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
@@ -13,9 +12,8 @@ use validation_engine::make_resource_diagnostic;
 static AMI_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^ami-[0-9a-f]{8,17}$").expect("Invalid AMI_RE pattern"));
 
-static ACCT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:").expect("Invalid ACCT_RE pattern")
-});
+static ACCT_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:").expect("Invalid ACCT_RE pattern"));
 
 /// Compile-time fallback when generated stateful_resource_types.json is absent.
 static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {
@@ -43,17 +41,12 @@ static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {
 pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(rules::Category::BestPractice, eval_best_practices);
     reg.add(rules::Category::BestPractice, eval_retention_period_rules);
-    reg.add(
-        rules::Category::BestPractice,
-        eval_deprecated_resource_types,
-    );
+    reg.add(rules::Category::BestPractice, eval_deprecated_resource_types);
     reg.add(rules::Category::Security, eval_sensitive_port_rules);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
-    let rv = m
-        .resolve_deep(rid, path)
-        .or_else(|| m.resolve(rid, path).cloned())?;
+    let rv = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned())?;
     match rv {
         ResolvedValue::Concrete { value: v } => Some(v.into_inner()),
         _ => None,
@@ -94,22 +87,24 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (name, res) in &m.resources {
         if res.deletion_policy.is_some() && res.update_replace_policy.is_none() {
-            out.push(make_resource_diagnostic("W3011",
-"Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
-m,
-name,
-"",
-None,
-));
+            out.push(make_resource_diagnostic(
+                "W3011",
+                "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
+                m,
+                name,
+                "",
+                None,
+            ));
         }
         if res.update_replace_policy.is_some() && res.deletion_policy.is_none() {
-            out.push(make_resource_diagnostic("W3011",
-"Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
-m,
-name,
-"",
-None,
-));
+            out.push(make_resource_diagnostic(
+                "W3011",
+                "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
+                m,
+                name,
+                "",
+                None,
+            ));
         }
     }
 
@@ -129,9 +124,7 @@ None,
     }
     for rtype in &["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
         for name in m.resources_of_type(rtype) {
-            if let Some(serde_json::Value::Array(policies)) =
-                resolve_concrete(m, name, "Properties.Policies")
-            {
+            if let Some(serde_json::Value::Array(policies)) = resolve_concrete(m, name, "Properties.Policies") {
                 for policy in &policies {
                     if let Some(doc) = policy.get("PolicyDocument") {
                         check_notaction_policy(&mut out, m, name, doc);
@@ -198,20 +191,25 @@ None,
                 && s.starts_with("arn:aws:")
                 && !crate::functions::contains_unresolvable_content(val)
             {
-                out.push(make_resource_diagnostic("I3042",
-"Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability",
-m,
-name,
-"",
-None,
-));
+                out.push(make_resource_diagnostic(
+                    "I3042",
+                    "Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability",
+                    m,
+                    name,
+                    "",
+                    None,
+                ));
                 break;
             }
         }
         // Fn::Sub templates
         for path in &res.diagnostics.hardcoded_partition_arns {
-            out.push(make_resource_diagnostic("I3042",
-                &format!("ARN in Resource {} contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters", name),
+            out.push(make_resource_diagnostic(
+                "I3042",
+                &format!(
+                    "ARN in Resource {} contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters",
+                    name
+                ),
                 m,
                 name,
                 &format!("Properties.{}", path),
@@ -239,14 +237,8 @@ None,
                     if edge.get(FIELD_KIND).and_then(|k| k.as_str()) != Some(EDGE_KIND_REF) {
                         continue;
                     }
-                    let sp = edge
-                        .get(FIELD_SOURCE_PATH)
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
-                    let target = edge
-                        .get(FIELD_TARGET)
-                        .and_then(|t| t.as_str())
-                        .unwrap_or("");
+                    let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
+                    let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
                     if let Some(prop) = sp.strip_prefix("Properties.")
                         && PASSWORD_PROPS.contains(&prop)
                         && m.parameters.contains_key(target)
@@ -271,10 +263,17 @@ None,
                         && !reason.contains("{{resolve:ssm-secure:")
                         && !reason.contains("{{resolve:secretsmanager:")
                     {
-                        out.push(make_resource_diagnostic("W2501",
-                                &format!("Password should use a secure dynamic reference for Resources/{}/Properties/{}", rname, prop),
-                                m, rname, &path, None,
-                            ));
+                        out.push(make_resource_diagnostic(
+                            "W2501",
+                            &format!(
+                                "Password should use a secure dynamic reference for Resources/{}/Properties/{}",
+                                rname, prop
+                            ),
+                            m,
+                            rname,
+                            &path,
+                            None,
+                        ));
                     }
                     continue;
                 }
@@ -282,8 +281,7 @@ None,
                 if let Some(scenarios) = m.resolve_scenarios_json(rname, &path).first()
                     && let serde_json::Value::String(s) = &scenarios.0
                 {
-                    let is_secure = s.contains("{{resolve:ssm-secure:")
-                        || s.contains("{{resolve:secretsmanager:");
+                    let is_secure = s.contains("{{resolve:ssm-secure:") || s.contains("{{resolve:secretsmanager:");
                     let is_any_dynamic_ref = s.contains("{{resolve:");
 
                     if is_secure {
@@ -292,10 +290,17 @@ None,
 
                     // Non-secure dynamic reference in resolved string
                     if is_any_dynamic_ref {
-                        out.push(make_resource_diagnostic("W2501",
-                                &format!("Password should use a secure dynamic reference for Resources/{}/Properties/{}", rname, prop),
-                                m, rname, &path, None,
-                            ));
+                        out.push(make_resource_diagnostic(
+                            "W2501",
+                            &format!(
+                                "Password should use a secure dynamic reference for Resources/{}/Properties/{}",
+                                rname, prop
+                            ),
+                            m,
+                            rname,
+                            &path,
+                            None,
+                        ));
                         continue;
                     }
 
@@ -328,10 +333,7 @@ None,
                 if edge.get(FIELD_KIND).and_then(|k| k.as_str()) != Some(EDGE_KIND_REF) {
                     continue;
                 }
-                let sp = edge
-                    .get(FIELD_SOURCE_PATH)
-                    .and_then(|p| p.as_str())
-                    .unwrap_or("");
+                let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                 let prop = sp.strip_prefix("Properties.").unwrap_or("");
                 if !PASSWORD_PROPS.contains(&prop) {
                     continue;
@@ -344,10 +346,7 @@ None,
                 {
                     out.push(make_resource_diagnostic(
                         "W2501",
-                        &format!(
-                            "Parameter {} used as {}, therefore NoEcho should be True",
-                            target, prop
-                        ),
+                        &format!("Parameter {} used as {}, therefore NoEcho should be True", target, prop),
                         m,
                         "",
                         &format!("Parameters.{}", target),
@@ -367,10 +366,7 @@ None,
                 if edge.get(FIELD_KIND).and_then(|k| k.as_str()) != Some(EDGE_KIND_REF) {
                     continue;
                 }
-                let sp = edge
-                    .get(FIELD_SOURCE_PATH)
-                    .and_then(|p| p.as_str())
-                    .unwrap_or("");
+                let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                 let prop = sp.strip_prefix("Properties.").unwrap_or("");
                 if !PASSWORD_PROPS.contains(&prop) {
                     continue;
@@ -429,38 +425,25 @@ None,
             && snapstart_runtimes.contains(&rt.as_str())
         {
             let has_snap = resolve_concrete(m, name, "Properties.SnapStart")
-                .and_then(|v| {
-                    v.get("ApplyOn")
-                        .and_then(|a| a.as_str())
-                        .map(|s| s.to_string())
-                })
+                .and_then(|v| v.get("ApplyOn").and_then(|a| a.as_str()).map(|s| s.to_string()))
                 .unwrap_or_default();
             if has_snap != "PublishedVersions" {
                 let mut diag = make_resource_diagnostic(
                     "I2530",
-                    &format!(
-                        "Runtime '{}' should consider using SnapStart for improved performance",
-                        rt
-                    ),
+                    &format!("Runtime '{}' should consider using SnapStart for improved performance", rt),
                     m,
                     name,
                     "Properties.Runtime",
                     Some("Add SnapStart with ApplyOn set to 'PublishedVersions'"),
                 );
-                diag.documentation_url =
-                    Some("https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html".into());
+                diag.documentation_url = Some("https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html".into());
                 out.push(diag);
             }
         }
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if !m
-            .resources
-            .get(name.as_str())
-            .map(|r| r.properties.contains_key("StorageEncrypted"))
-            .unwrap_or(false)
-        {
+        if !m.resources.get(name.as_str()).map(|r| r.properties.contains_key("StorageEncrypted")).unwrap_or(false) {
             out.push(make_resource_diagnostic(
                 "W9008",
                 "RDS instance should have StorageEncrypted set to true",
@@ -473,11 +456,7 @@ None,
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if resolve_concrete(m, name, "Properties.PubliclyAccessible")
-            .as_ref()
-            .and_then(|v| v.as_bool())
-            == Some(true)
-        {
+        if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(|v| v.as_bool()) == Some(true) {
             out.push(make_resource_diagnostic(
                 "W9011",
                 "RDS instance has PubliclyAccessible set to true — consider restricting access",
@@ -518,12 +497,7 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
-fn check_notaction_policy(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    doc: &serde_json::Value,
-) {
+fn check_notaction_policy(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, doc: &serde_json::Value) {
     if let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
         for stmt in stmts {
             let effect = stmt.get("Effect").and_then(|e| e.as_str()).unwrap_or("");
@@ -546,24 +520,14 @@ None,
 fn eval_deprecated_resource_types(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     for (name, res) in &ctx.model.resources {
-        if ctx
-            .cached_data
-            .deprecated_resource_types
-            .contains(&res.resource_type)
-        {
+        if ctx.cached_data.deprecated_resource_types.contains(&res.resource_type) {
             out.push(make_resource_diagnostic(
                 "W9009",
-                &format!(
-                    "Resource type '{}' is deprecated — consider using a newer alternative",
-                    res.resource_type
-                ),
+                &format!("Resource type '{}' is deprecated — consider using a newer alternative", res.resource_type),
                 ctx.model,
                 name,
                 "",
-                Some(&format!(
-                    "Replace {} with a supported alternative",
-                    res.resource_type
-                )),
+                Some(&format!("Replace {} with a supported alternative", res.resource_type)),
             ));
         }
     }
@@ -585,13 +549,7 @@ fn eval_sensitive_port_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
             continue;
         };
         for idx in 0..len {
-            check_sg_rule(
-                &mut out,
-                m,
-                name,
-                &format!("{}.{}", ingress_path, idx),
-                ports,
-            );
+            check_sg_rule(&mut out, m, name, &format!("{}.{}", ingress_path, idx), ports);
         }
     }
     // Check standalone AWS::EC2::SecurityGroupIngress resources
@@ -602,9 +560,7 @@ fn eval_sensitive_port_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
 }
 
 fn resolve_array_len(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<usize> {
-    let rv = m
-        .resolve_deep(name, path)
-        .or_else(|| m.resolve(name, path).cloned())?;
+    let rv = m.resolve_deep(name, path).or_else(|| m.resolve(name, path).cloned())?;
     match rv {
         ResolvedValue::Concrete { value: v } => v.as_array().map(|a| a.len()),
         _ => None,
@@ -627,23 +583,13 @@ fn resolve_i64(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<i64> {
     }
 }
 
-fn check_sg_rule(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    rule_path: &str,
-    ports: &[u16],
-) {
+fn check_sg_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, rule_path: &str, ports: &[u16]) {
     let cidr4 = resolve_str(m, name, &format!("{}.CidrIp", rule_path)).unwrap_or_default();
     let cidr6 = resolve_str(m, name, &format!("{}.CidrIpv6", rule_path)).unwrap_or_default();
     if cidr4 != "0.0.0.0/0" && cidr6 != "::/0" {
         return;
     }
-    let open_cidr = if cidr4 == "0.0.0.0/0" {
-        "0.0.0.0/0"
-    } else {
-        "::/0"
-    };
+    let open_cidr = if cidr4 == "0.0.0.0/0" { "0.0.0.0/0" } else { "::/0" };
     let diag_path = if rule_path.starts_with("Properties.SecurityGroupIngress") {
         "Properties.SecurityGroupIngress"
     } else {
@@ -654,10 +600,7 @@ fn check_sg_rule(
         for port in ports {
             out.push(make_resource_diagnostic(
                 "W2508",
-                &format!(
-                    "Security group allows all traffic from {} — sensitive port {} is exposed",
-                    open_cidr, port
-                ),
+                &format!("Security group allows all traffic from {} — sensitive port {} is exposed", open_cidr, port),
                 m,
                 name,
                 diag_path,

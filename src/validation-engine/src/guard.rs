@@ -2,9 +2,7 @@ use crate::engine::ExternalRuleSource;
 use std::fs;
 use std::path::Path;
 
-pub fn resolve_guard_config(
-    rule_source_paths: &[String],
-) -> Result<Vec<ExternalRuleSource>, String> {
+pub fn resolve_guard_config(rule_source_paths: &[String]) -> Result<Vec<ExternalRuleSource>, String> {
     let mut entries = Vec::new();
 
     for path in rule_source_paths {
@@ -12,18 +10,12 @@ pub fn resolve_guard_config(
         if p.is_dir() {
             let sources = guard_translator::load_guard_sources_recursive(path)?;
             for (file_path, file_content) in sources {
-                entries.push(ExternalRuleSource {
-                    name: file_path,
-                    content: file_content,
-                });
+                entries.push(ExternalRuleSource { name: file_path, content: file_content });
             }
         } else if p.is_file() {
-            let file_content = fs::read_to_string(p)
-                .map_err(|e| format!("Failed to read guard file '{}': {}", path, e))?;
-            entries.push(ExternalRuleSource {
-                name: path.clone(),
-                content: file_content,
-            });
+            let file_content =
+                fs::read_to_string(p).map_err(|e| format!("Failed to read guard file '{}': {}", path, e))?;
+            entries.push(ExternalRuleSource { name: path.clone(), content: file_content });
         } else {
             return Err(format!("Guard rule source not found: {}", path));
         }
@@ -75,10 +67,7 @@ mod tests {
     fn resolve_guard_config_nonexistent_path_returns_error() {
         let result = resolve_guard_config(&["/nonexistent/path/to/guard.guard".into()]);
         let err = result.unwrap_err();
-        assert!(
-            err.contains("not found"),
-            "error should mention 'not found', got: {err}"
-        );
+        assert!(err.contains("not found"), "error should mention 'not found', got: {err}");
     }
 
     #[test]
@@ -98,10 +87,8 @@ mod tests {
         fs::write(&standalone, "rule standalone { true }").unwrap();
         fs::write(sub.join("packed.guard"), "rule packed { true }").unwrap();
 
-        let result = resolve_guard_config(&[
-            standalone.to_string_lossy().to_string(),
-            sub.to_string_lossy().to_string(),
-        ]);
+        let result =
+            resolve_guard_config(&[standalone.to_string_lossy().to_string(), sub.to_string_lossy().to_string()]);
         let entries = result.expect("mixed file and dir should succeed");
         assert_eq!(entries.len(), 2);
 
@@ -114,8 +101,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let file = dir.join("content.guard");
-        let guard_source =
-            "rule check_bucket {\n  AWS::S3::Bucket {\n    Properties.BucketName exists\n  }\n}";
+        let guard_source = "rule check_bucket {\n  AWS::S3::Bucket {\n    Properties.BucketName exists\n  }\n}";
         fs::write(&file, guard_source).unwrap();
 
         let entries = resolve_guard_config(&[file.to_string_lossy().to_string()]).unwrap();

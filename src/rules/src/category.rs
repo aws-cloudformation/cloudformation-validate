@@ -81,26 +81,15 @@ mod tests {
             Category::General,
         ];
         for cat in all {
-            assert_eq!(
-                Category::from_str(cat.as_str()).unwrap(),
-                cat,
-                "round-trip failed for {:?}",
-                cat
-            );
+            assert_eq!(Category::from_str(cat.as_str()).unwrap(), cat, "round-trip failed for {:?}", cat);
         }
     }
 
     #[test]
     fn from_str_parses_case_insensitively() {
         assert_eq!(Category::from_str("SCHEMA").unwrap(), Category::Schema);
-        assert_eq!(
-            Category::from_str("Best Practice").unwrap(),
-            Category::BestPractice
-        );
-        assert_eq!(
-            Category::from_str("BEST PRACTICE").unwrap(),
-            Category::BestPractice
-        );
+        assert_eq!(Category::from_str("Best Practice").unwrap(), Category::BestPractice);
+        assert_eq!(Category::from_str("BEST PRACTICE").unwrap(), Category::BestPractice);
     }
 
     #[test]

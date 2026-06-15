@@ -6,8 +6,7 @@ use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
-    semantic_model_to_input_json,
+    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
 };
 
 use crate::rule_evaluator::GeneratedRuleRegistry;
@@ -74,19 +73,12 @@ impl CelEngine {
 
         let mut translated_guard_sources = Vec::new();
         for entry in &config.guard_rules {
-            let guard_file =
-                guard_translator::parse_guard(&entry.content, &entry.name).map_err(|e| {
-                    anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e)
-                })?;
+            let guard_file = guard_translator::parse_guard(&entry.content, &entry.name)
+                .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
             let pack = guard_translator::pack_name_from_path(&entry.name);
             let translated = crate::guard_to_cel::translate_to_cel(&guard_file, &pack, &[]);
-            let json = crate::guard_to_cel::to_custom_rule_json(&translated).map_err(|e| {
-                anyhow::anyhow!(
-                    "Failed to translate guard file '{}' to CEL: {}",
-                    entry.name,
-                    e
-                )
-            })?;
+            let json = crate::guard_to_cel::to_custom_rule_json(&translated)
+                .map_err(|e| anyhow::anyhow!("Failed to translate guard file '{}' to CEL: {}", entry.name, e))?;
             translated_guard_sources.push((entry.name.clone(), json));
         }
 
@@ -96,23 +88,17 @@ impl CelEngine {
                 Ok(rules) => {
                     info!("Loaded {} custom rules from {}", rules.len(), entry.name);
                     for r in &rules {
-                        external_rule_metadata
-                            .entry(r.rule_id.clone())
-                            .or_insert_with(|| RuleMetadataEntry {
-                                category: r.category.clone(),
-                                description: r.message.clone(),
-                                severity: r.severity,
-                                origin: RuleOrigin::Custom,
-                            });
+                        external_rule_metadata.entry(r.rule_id.clone()).or_insert_with(|| RuleMetadataEntry {
+                            category: r.category.clone(),
+                            description: r.message.clone(),
+                            severity: r.severity,
+                            origin: RuleOrigin::Custom,
+                        });
                     }
                     custom_rules.extend(rules);
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!(
-                        "Failed to load rules from {}: {}",
-                        entry.name,
-                        e
-                    ));
+                    return Err(anyhow::anyhow!("Failed to load rules from {}: {}", entry.name, e));
                 }
             }
         }
@@ -121,23 +107,17 @@ impl CelEngine {
                 Ok(rules) => {
                     info!("Loaded {} guard rules from {}", rules.len(), path);
                     for r in &rules {
-                        external_rule_metadata
-                            .entry(r.rule_id.clone())
-                            .or_insert_with(|| RuleMetadataEntry {
-                                category: r.category.clone(),
-                                description: r.message.clone(),
-                                severity: r.severity,
-                                origin: RuleOrigin::Guard,
-                            });
+                        external_rule_metadata.entry(r.rule_id.clone()).or_insert_with(|| RuleMetadataEntry {
+                            category: r.category.clone(),
+                            description: r.message.clone(),
+                            severity: r.severity,
+                            origin: RuleOrigin::Guard,
+                        });
                     }
                     custom_rules.extend(rules);
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!(
-                        "Failed to load guard rules from {}: {}",
-                        path,
-                        e
-                    ));
+                    return Err(anyhow::anyhow!("Failed to load guard rules from {}: {}", path, e));
                 }
             }
         }
@@ -177,42 +157,29 @@ impl ValidationEngine for CelEngine {
         let excluded_cats = config.filters.excluded_categories();
         let region = config.pseudo_parameter_overrides.region.clone();
 
-        let ctx = EvalContext {
-            model,
-            input: &input_json,
-            region: &region,
-            cached_data: &self.cached_data,
-        };
+        let ctx = EvalContext { model, input: &input_json, region: &region, cached_data: &self.cached_data };
 
         let mut diagnostics = self.native_rules.evaluate(&ctx, &excluded_cats);
 
         {
-            let gen_diags = self
-                .generated_rules
-                .evaluate(model, &input_json, &excluded_cats);
+            let gen_diags = self.generated_rules.evaluate(model, &input_json, &excluded_cats);
             diagnostics.extend(gen_diags);
         }
 
         for rule in &self.custom_rules {
-            if rule
-                .category
-                .as_deref()
-                .is_some_and(|c| excluded_cats.contains(c))
-            {
+            if rule.category.as_deref().is_some_and(|c| excluded_cats.contains(c)) {
                 continue;
             }
             if let Some(ref rtype) = rule.resource_type {
                 for rid in model.resources_of_type(rtype) {
-                    let cel_ctx =
-                        crate::functions::build_custom_context(&input_json, Some(rid), Some(model));
+                    let cel_ctx = crate::functions::build_custom_context(&input_json, Some(rid), Some(model));
                     if execute_custom_rule(rule, &cel_ctx)? {
                         let msg = rule.message.replace("{name}", rid);
                         emit_custom_diagnostic(&mut diagnostics, rule, model, rid, &msg);
                     }
                 }
             } else {
-                let cel_ctx =
-                    crate::functions::build_custom_context(&input_json, None, Some(model));
+                let cel_ctx = crate::functions::build_custom_context(&input_json, None, Some(model));
                 if execute_custom_rule(rule, &cel_ctx)? {
                     emit_custom_diagnostic(&mut diagnostics, rule, model, "", &rule.message);
                 }
@@ -239,24 +206,17 @@ impl ValidationEngine for CelEngine {
     }
 }
 
-fn execute_custom_rule(
-    rule: &CustomRule,
-    cel_ctx: &Context<'static>,
-) -> Result<bool, ValidationError> {
+fn execute_custom_rule(rule: &CustomRule, cel_ctx: &Context<'static>) -> Result<bool, ValidationError> {
     match rule.program.execute(cel_ctx) {
         Ok(CelValue::Bool(fired)) => Ok(fired),
         Ok(_) => Ok(false),
         Err(error) if matches!(rule.source, RuleOrigin::Guard) => {
-            log::error!(
-                "Guard rule '{}' failed to evaluate (tolerated): {error}",
-                rule.rule_id
-            );
+            log::error!("Guard rule '{}' failed to evaluate (tolerated): {error}", rule.rule_id);
             Ok(false)
         }
-        Err(error) => Err(ValidationError::Engine(format!(
-            "Custom rule '{}' failed to evaluate: {error}",
-            rule.rule_id
-        ))),
+        Err(error) => {
+            Err(ValidationError::Engine(format!("Custom rule '{}' failed to evaluate: {error}", rule.rule_id)))
+        }
     }
 }
 
@@ -288,11 +248,7 @@ fn emit_custom_diagnostic(
         suggested_fix: rule.suggested_fix.clone(),
         documentation_url: None,
         category: rule.category.clone(),
-        location: if span == diagnostics::UNKNOWN_SPAN {
-            None
-        } else {
-            Some(span)
-        },
+        location: if span == diagnostics::UNKNOWN_SPAN { None } else { Some(span) },
         related_resources: None,
         condition_scenario: None,
         rule_description: None,
@@ -320,11 +276,7 @@ fn load_custom_rules(source: &str, origin: RuleOrigin) -> anyhow::Result<Vec<Cus
                 source: origin,
             }),
             Err(e) => {
-                return Err(anyhow::anyhow!(
-                    "Failed to compile CEL expression for rule '{}': {}",
-                    def.rule_id,
-                    e
-                ));
+                return Err(anyhow::anyhow!("Failed to compile CEL expression for rule '{}': {}", def.rule_id, e));
             }
         }
     }
@@ -363,16 +315,13 @@ mod tests {
             )
         };
 
-        let error_rules =
-            load_custom_rules(&make(Severity::Error.as_str()), RuleOrigin::Custom).unwrap();
+        let error_rules = load_custom_rules(&make(Severity::Error.as_str()), RuleOrigin::Custom).unwrap();
         assert_eq!(error_rules[0].severity, Severity::Error);
 
-        let warn_rules =
-            load_custom_rules(&make(Severity::Warn.as_str()), RuleOrigin::Custom).unwrap();
+        let warn_rules = load_custom_rules(&make(Severity::Warn.as_str()), RuleOrigin::Custom).unwrap();
         assert_eq!(warn_rules[0].severity, Severity::Warn);
 
-        let info_rules =
-            load_custom_rules(&make(Severity::Info.as_str()), RuleOrigin::Custom).unwrap();
+        let info_rules = load_custom_rules(&make(Severity::Info.as_str()), RuleOrigin::Custom).unwrap();
         assert_eq!(info_rules[0].severity, Severity::Info);
     }
 
@@ -432,11 +381,7 @@ mod tests {
         }]}"#;
         let result = load_custom_rules(json, RuleOrigin::Custom);
         let err_msg = format!("{}", result.unwrap_err());
-        assert!(
-            err_msg.contains("R1"),
-            "Error should mention rule_id, got: {}",
-            err_msg
-        );
+        assert!(err_msg.contains("R1"), "Error should mention rule_id, got: {}", err_msg);
     }
 
     #[test]

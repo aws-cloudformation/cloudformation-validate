@@ -1,8 +1,7 @@
 use data_source::embedded;
 use data_source::types::{
-    ArtifactCountEntry, CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData,
-    KnownResourceTypes, PrimaryIdentifiers, RetentionPeriodRequirements, SensitivePorts,
-    StatefulResourceTypes,
+    ArtifactCountEntry, CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, KnownResourceTypes,
+    PrimaryIdentifiers, RetentionPeriodRequirements, SensitivePorts, StatefulResourceTypes,
 };
 use diagnostics::Diagnostic;
 use std::collections::{HashMap, HashSet};
@@ -42,34 +41,16 @@ pub struct CachedData {
 /// Enum data files and their embedded byte constants.
 static ENUM_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
     vec![
-        (
-            "data/aws_ec2_instance_instancetype_enum",
-            &*embedded::AWS_EC2_INSTANCE_INSTANCETYPE_ENUM_BYTES,
-        ),
+        ("data/aws_ec2_instance_instancetype_enum", &*embedded::AWS_EC2_INSTANCE_INSTANCETYPE_ENUM_BYTES),
         (
             "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
             &*embedded::AWS_EMR_CLUSTER_INSTANCETYPECONFIG_INSTANCETYPE_ENUM_BYTES,
         ),
-        (
-            "data/aws_gamelift_fleet_ec2instancetype_enum",
-            &*embedded::AWS_GAMELIFT_FLEET_EC2INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_rds_dbinstance_dbinstanceclass_enum",
-            &*embedded::AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES,
-        ),
-        (
-            "data/aws_appstream_fleet_instancetype_enum",
-            &*embedded::AWS_APPSTREAM_FLEET_INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_dax_cluster_nodetype_enum",
-            &*embedded::AWS_DAX_CLUSTER_NODETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_docdb_dbinstance_dbinstanceclass_enum",
-            &*embedded::AWS_DOCDB_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES,
-        ),
+        ("data/aws_gamelift_fleet_ec2instancetype_enum", &*embedded::AWS_GAMELIFT_FLEET_EC2INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_rds_dbinstance_dbinstanceclass_enum", &*embedded::AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES),
+        ("data/aws_appstream_fleet_instancetype_enum", &*embedded::AWS_APPSTREAM_FLEET_INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_dax_cluster_nodetype_enum", &*embedded::AWS_DAX_CLUSTER_NODETYPE_ENUM_BYTES),
+        ("data/aws_docdb_dbinstance_dbinstanceclass_enum", &*embedded::AWS_DOCDB_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES),
         (
             "data/aws_elasticache_cachecluster_cachenodetype_enum",
             &*embedded::AWS_ELASTICACHE_CACHECLUSTER_CACHENODETYPE_ENUM_BYTES,
@@ -86,34 +67,16 @@ static ENUM_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
             "data/aws_rds_dbcluster_dbclusterinstanceclass_enum",
             &*embedded::AWS_RDS_DBCLUSTER_DBCLUSTERINSTANCECLASS_ENUM_BYTES,
         ),
-        (
-            "data/aws_rds_dbinstance_db_instance_class",
-            &*embedded::AWS_RDS_DBINSTANCE_DB_INSTANCE_CLASS_BYTES,
-        ),
-        (
-            "data/aws_redshift_cluster_nodetype_enum",
-            &*embedded::AWS_REDSHIFT_CLUSTER_NODETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_amazonmq_broker_instancetype_enum",
-            &*embedded::AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM_BYTES,
-        ),
+        ("data/aws_rds_dbinstance_db_instance_class", &*embedded::AWS_RDS_DBINSTANCE_DB_INSTANCE_CLASS_BYTES),
+        ("data/aws_redshift_cluster_nodetype_enum", &*embedded::AWS_REDSHIFT_CLUSTER_NODETYPE_ENUM_BYTES),
+        ("data/aws_amazonmq_broker_instancetype_enum", &*embedded::AWS_AMAZONMQ_BROKER_INSTANCETYPE_ENUM_BYTES),
         (
             "data/aws_sagemaker_processing_instancetype_enum",
             &*embedded::AWS_SAGEMAKER_PROCESSING_INSTANCETYPE_ENUM_BYTES,
         ),
-        (
-            "data/aws_sagemaker_hosting_instancetype_enum",
-            &*embedded::AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_sagemaker_transform_instancetype_enum",
-            &*embedded::AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM_BYTES,
-        ),
-        (
-            "data/aws_sagemaker_cluster_instancetype_enum",
-            &*embedded::AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM_BYTES,
-        ),
+        ("data/aws_sagemaker_hosting_instancetype_enum", &*embedded::AWS_SAGEMAKER_HOSTING_INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_sagemaker_transform_instancetype_enum", &*embedded::AWS_SAGEMAKER_TRANSFORM_INSTANCETYPE_ENUM_BYTES),
+        ("data/aws_sagemaker_cluster_instancetype_enum", &*embedded::AWS_SAGEMAKER_CLUSTER_INSTANCETYPE_ENUM_BYTES),
         (
             "data/aws_elasticsearch_domain_elasticsearchclusterconfig_instancetype_enum",
             &*embedded::AWS_ELASTICSEARCH_DOMAIN_ELASTICSEARCHCLUSTERCONFIG_INSTANCETYPE_ENUM_BYTES,
@@ -127,22 +90,17 @@ static ENUM_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
 
 impl CachedData {
     pub fn load() -> anyhow::Result<Self> {
-        let known_resource_types: KnownResourceTypes =
-            serde_json::from_slice(&embedded::KNOWN_RESOURCE_TYPES_BYTES)
-                .map_err(|e| anyhow::anyhow!("Failed to parse embedded known_resource_types data: {}", e))?;
-        let known_types: HashSet<String> = known_resource_types
-            .known_resource_types
-            .into_iter()
-            .collect();
+        let known_resource_types: KnownResourceTypes = serde_json::from_slice(&embedded::KNOWN_RESOURCE_TYPES_BYTES)
+            .map_err(|e| anyhow::anyhow!("Failed to parse embedded known_resource_types data: {}", e))?;
+        let known_types: HashSet<String> = known_resource_types.known_resource_types.into_iter().collect();
 
         let getatt_data: GetattData = serde_json::from_slice(&embedded::GETATT_ATTRIBUTES_BYTES)
             .map_err(|e| anyhow::anyhow!("Failed to parse embedded getatt_attributes data: {}", e))?;
         let getatt_attrs = getatt_data.getatt_attributes;
         let getatt_attr_types = getatt_data.getatt_attribute_types;
 
-        let stateful_data: StatefulResourceTypes =
-            serde_json::from_slice(&embedded::STATEFUL_RESOURCE_TYPES_BYTES)
-                .map_err(|e| anyhow::anyhow!("Failed to parse embedded stateful_resource_types data: {}", e))?;
+        let stateful_data: StatefulResourceTypes = serde_json::from_slice(&embedded::STATEFUL_RESOURCE_TYPES_BYTES)
+            .map_err(|e| anyhow::anyhow!("Failed to parse embedded stateful_resource_types data: {}", e))?;
         let stateful_resource_types = stateful_data.stateful_resource_types;
 
         let retention_data: RetentionPeriodRequirements =
@@ -150,27 +108,24 @@ impl CachedData {
                 .map_err(|e| anyhow::anyhow!("Failed to parse embedded retention_period_requirements data: {}", e))?;
         let retention_period_requirements = retention_data.retention_period_requirements;
 
-        let primary_id_data: PrimaryIdentifiers =
-            serde_json::from_slice(&embedded::PRIMARY_IDENTIFIERS_BYTES)
-                .map_err(|e| anyhow::anyhow!("Failed to parse embedded primary_identifiers data: {}", e))?;
+        let primary_id_data: PrimaryIdentifiers = serde_json::from_slice(&embedded::PRIMARY_IDENTIFIERS_BYTES)
+            .map_err(|e| anyhow::anyhow!("Failed to parse embedded primary_identifiers data: {}", e))?;
         let primary_identifiers = primary_id_data.primary_identifiers;
 
         let pipeline_data: CodepipelineArtifactCounts =
-            serde_json::from_slice(&embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES)
-                .map_err(|e| anyhow::anyhow!("Failed to parse embedded codepipeline_action_artifact_counts data: {}", e))?;
+            serde_json::from_slice(&embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES).map_err(|e| {
+                anyhow::anyhow!("Failed to parse embedded codepipeline_action_artifact_counts data: {}", e)
+            })?;
         let codepipeline_artifact_counts = pipeline_data.codepipeline_action_artifact_counts;
 
         let deprecated_data: DeprecatedResourceTypes =
             serde_json::from_slice(&embedded::DEPRECATED_RESOURCE_TYPES_BYTES)
                 .map_err(|e| anyhow::anyhow!("Failed to parse embedded deprecated_resource_types data: {}", e))?;
-        let deprecated_resource_types: HashSet<String> = deprecated_data
-            .deprecated_resource_types
-            .into_iter()
-            .collect();
+        let deprecated_resource_types: HashSet<String> =
+            deprecated_data.deprecated_resource_types.into_iter().collect();
 
-        let sensitive_data: SensitivePorts =
-            serde_json::from_slice(&embedded::SENSITIVE_PORTS_BYTES)
-                .map_err(|e| anyhow::anyhow!("Failed to parse embedded sensitive_ports data: {}", e))?;
+        let sensitive_data: SensitivePorts = serde_json::from_slice(&embedded::SENSITIVE_PORTS_BYTES)
+            .map_err(|e| anyhow::anyhow!("Failed to parse embedded sensitive_ports data: {}", e))?;
         let sensitive_ports = sensitive_data.sensitive_ports;
 
         let mut enum_data = HashMap::new();
@@ -206,8 +161,7 @@ impl CachedData {
     /// Lazy accessor — parses the 14MB `schema_metadata` JSON on first call.
     pub fn schema_metadata(&self) -> &serde_json::Value {
         self.schema_metadata_lazy.get_or_init(|| {
-            serde_json::from_slice(&embedded::SCHEMA_METADATA_BYTES)
-                .expect("Failed to parse schema_metadata JSON")
+            serde_json::from_slice(&embedded::SCHEMA_METADATA_BYTES).expect("Failed to parse schema_metadata JSON")
         })
     }
 }

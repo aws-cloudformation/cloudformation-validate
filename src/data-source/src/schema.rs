@@ -6,8 +6,7 @@ use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-const CFN_SCHEMA_ZIP_URL: &str =
-    "https://schema.cloudformation.us-east-1.amazonaws.com/CloudformationSchema.zip";
+const CFN_SCHEMA_ZIP_URL: &str = "https://schema.cloudformation.us-east-1.amazonaws.com/CloudformationSchema.zip";
 const SAM_SCHEMA_URL: &str = "https://raw.githubusercontent.com/aws/serverless-application-model/refs/heads/develop/samtranslator/schema/schema.json";
 
 /// Download CloudFormation schemas into `output_dir`.
@@ -15,11 +14,7 @@ pub fn download_schemas(output_dir: &Path) -> anyhow::Result<SyncStats> {
     let mut stats = SyncStats::default();
     fs::create_dir_all(output_dir)?;
 
-    info!(
-        "Downloading schemas from {} to {}",
-        CFN_SCHEMA_ZIP_URL,
-        output_dir.display()
-    );
+    info!("Downloading schemas from {} to {}", CFN_SCHEMA_ZIP_URL, output_dir.display());
     let resp = ureq::get(CFN_SCHEMA_ZIP_URL).call()?;
     let bytes = resp.into_body().read_to_vec()?;
     info!("Downloaded {} bytes, extracting", bytes.len());
@@ -79,10 +74,7 @@ fn download_sam_schemas(output_dir: &Path) -> anyhow::Result<usize> {
         };
 
         let mut local_defs = Map::new();
-        let resolved_props = props_schema
-            .get("properties")
-            .cloned()
-            .unwrap_or(Value::Object(Map::new()));
+        let resolved_props = props_schema.get("properties").cloned().unwrap_or(Value::Object(Map::new()));
         collect_referenced_defs(&resolved_props, defs, &mut local_defs, &mut HashSet::new());
 
         let mut cfn_schema = serde_json::json!({
@@ -101,11 +93,7 @@ fn download_sam_schemas(output_dir: &Path) -> anyhow::Result<usize> {
         let filename = type_name.replace("::", "-").to_lowercase();
         let out_path = output_dir.join(format!("{}.json", filename));
         fs::write(&out_path, serde_json::to_string_pretty(&cfn_schema)?)?;
-        debug!(
-            "SAM: {} -> {}",
-            type_name,
-            out_path.file_name().unwrap().to_string_lossy()
-        );
+        debug!("SAM: {} -> {}", type_name, out_path.file_name().unwrap().to_string_lossy());
         count += 1;
     }
     Ok(count)

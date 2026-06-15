@@ -54,24 +54,12 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, uniffi::Enum)]
 pub enum JsonValueEnum {
     Null,
-    Bool {
-        value: bool,
-    },
-    Int {
-        value: i64,
-    },
-    Float {
-        value: f64,
-    },
-    String {
-        value: String,
-    },
-    Array {
-        items: Vec<JsonValueEnum>,
-    },
-    Object {
-        entries: HashMap<String, JsonValueEnum>,
-    },
+    Bool { value: bool },
+    Int { value: i64 },
+    Float { value: f64 },
+    String { value: String },
+    Array { items: Vec<JsonValueEnum> },
+    Object { entries: HashMap<String, JsonValueEnum> },
 }
 
 #[cfg(feature = "uniffi-bindings")]
@@ -84,20 +72,15 @@ impl From<&serde_json::Value> for JsonValueEnum {
                 if let Some(i) = n.as_i64() {
                     JsonValueEnum::Int { value: i }
                 } else {
-                    JsonValueEnum::Float {
-                        value: n.as_f64().unwrap_or(0.0),
-                    }
+                    JsonValueEnum::Float { value: n.as_f64().unwrap_or(0.0) }
                 }
             }
             serde_json::Value::String(s) => JsonValueEnum::String { value: s.clone() },
-            serde_json::Value::Array(arr) => JsonValueEnum::Array {
-                items: arr.iter().map(JsonValueEnum::from).collect(),
-            },
+            serde_json::Value::Array(arr) => {
+                JsonValueEnum::Array { items: arr.iter().map(JsonValueEnum::from).collect() }
+            }
             serde_json::Value::Object(obj) => JsonValueEnum::Object {
-                entries: obj
-                    .iter()
-                    .map(|(k, v)| (k.clone(), JsonValueEnum::from(v)))
-                    .collect(),
+                entries: obj.iter().map(|(k, v)| (k.clone(), JsonValueEnum::from(v))).collect(),
             },
         }
     }
@@ -110,13 +93,11 @@ impl From<JsonValueEnum> for serde_json::Value {
             JsonValueEnum::Null => serde_json::Value::Null,
             JsonValueEnum::Bool { value } => serde_json::Value::Bool(value),
             JsonValueEnum::Int { value } => serde_json::json!(value),
-            JsonValueEnum::Float { value } => serde_json::Number::from_f64(value)
-                .map(serde_json::Value::Number)
-                .unwrap_or(serde_json::Value::Null),
-            JsonValueEnum::String { value } => serde_json::Value::String(value),
-            JsonValueEnum::Array { items } => {
-                serde_json::Value::Array(items.into_iter().map(Into::into).collect())
+            JsonValueEnum::Float { value } => {
+                serde_json::Number::from_f64(value).map(serde_json::Value::Number).unwrap_or(serde_json::Value::Null)
             }
+            JsonValueEnum::String { value } => serde_json::Value::String(value),
+            JsonValueEnum::Array { items } => serde_json::Value::Array(items.into_iter().map(Into::into).collect()),
             JsonValueEnum::Object { entries } => {
                 serde_json::Value::Object(entries.into_iter().map(|(k, v)| (k, v.into())).collect())
             }

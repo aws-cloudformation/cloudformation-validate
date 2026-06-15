@@ -17,38 +17,19 @@ pub fn validate_definition(
     }
 
     if definition.get("StartAt").is_none() {
-        out.push(mk(
-            model,
-            resource_id,
-            prop_key,
-            "State machine definition must have 'StartAt'",
-        ));
+        out.push(mk(model, resource_id, prop_key, "State machine definition must have 'StartAt'"));
     }
     if definition.get("States").is_none() {
-        out.push(mk(
-            model,
-            resource_id,
-            prop_key,
-            "State machine definition must have 'States'",
-        ));
+        out.push(mk(model, resource_id, prop_key, "State machine definition must have 'States'"));
         return out;
     }
 
     validate_start_at(&mut out, definition, model, resource_id, prop_key, "");
 
     if let Some(states) = definition.get("States").and_then(|s| s.as_object()) {
-        let is_jsonata =
-            definition.get("QueryLanguage").and_then(|v| v.as_str()) == Some("JSONata");
+        let is_jsonata = definition.get("QueryLanguage").and_then(|v| v.as_str()) == Some("JSONata");
         for (state_name, state) in states {
-            validate_state(
-                &mut out,
-                state_name,
-                state,
-                is_jsonata,
-                model,
-                resource_id,
-                prop_key,
-            );
+            validate_state(&mut out, state_name, state, is_jsonata, model, resource_id, prop_key);
         }
     }
 
@@ -79,12 +60,7 @@ pub fn validate_all_state_machines(model: &Arc<SemanticModel>) -> Vec<Diagnostic
                 }
                 _ => continue,
             };
-            out.extend(validate_definition(
-                &def,
-                model,
-                name,
-                &format!("Properties.{}", key),
-            ));
+            out.extend(validate_definition(&def, model, name, &format!("Properties.{}", key)));
             break;
         }
     }
@@ -109,19 +85,12 @@ fn validate_start_at(
     };
 
     if !states.contains_key(start_at) {
-        let display = if path_prefix.is_empty() {
-            "StartAt".to_string()
-        } else {
-            format!("{}/StartAt", path_prefix)
-        };
+        let display = if path_prefix.is_empty() { "StartAt".to_string() } else { format!("{}/StartAt", path_prefix) };
         out.push(mk(
             model,
             rid,
             prop_key,
-            &format!(
-                "StartAt '{}' does not reference a valid state at {}",
-                start_at, display
-            ),
+            &format!("StartAt '{}' does not reference a valid state at {}", start_at, display),
         ));
     }
 
@@ -140,14 +109,7 @@ fn validate_start_at(
             && let Some(branches) = state.get("Branches").and_then(|v| v.as_array())
         {
             for (i, branch) in branches.iter().enumerate() {
-                validate_start_at(
-                    out,
-                    branch,
-                    model,
-                    rid,
-                    prop_key,
-                    &format!("{}/Branches/{}", state_path, i),
-                );
+                validate_start_at(out, branch, model, rid, prop_key, &format!("{}/Branches/{}", state_path, i));
             }
         }
         if stype == "Map" {
@@ -155,14 +117,7 @@ fn validate_start_at(
                 if let Some(proc) = state.get(key)
                     && proc.is_object()
                 {
-                    validate_start_at(
-                        out,
-                        proc,
-                        model,
-                        rid,
-                        prop_key,
-                        &format!("{}/{}", state_path, key),
-                    );
+                    validate_start_at(out, proc, model, rid, prop_key, &format!("{}/{}", state_path, key));
                 }
             }
         }
@@ -184,49 +139,30 @@ fn validate_state(
     let stype = match state.get(KEY_TYPE).and_then(|v| v.as_str()) {
         Some(t) => t,
         None => {
-            out.push(mk(
-                model,
-                rid,
-                prop_key,
-                &format!("State '{}' is missing required 'Type' property", name),
-            ));
+            out.push(mk(model, rid, prop_key, &format!("State '{}' is missing required 'Type' property", name)));
             return;
         }
     };
 
-    let valid_types = [
-        "Task", "Pass", "Choice", "Wait", "Succeed", "Fail", "Parallel", "Map",
-    ];
+    let valid_types = ["Task", "Pass", "Choice", "Wait", "Succeed", "Fail", "Parallel", "Map"];
     if !valid_types.contains(&stype) {
         out.push(mk(
             model,
             rid,
             prop_key,
-            &format!(
-                "State '{}' has invalid Type '{}'. Must be one of {:?}",
-                name, stype, valid_types
-            ),
+            &format!("State '{}' has invalid Type '{}'. Must be one of {:?}", name, stype, valid_types),
         ));
         return;
     }
 
     if is_jsonata {
-        for forbidden in &[
-            "InputPath",
-            "OutputPath",
-            "Parameters",
-            "ResultPath",
-            "ResultSelector",
-        ] {
+        for forbidden in &["InputPath", "OutputPath", "Parameters", "ResultPath", "ResultSelector"] {
             if state.get(*forbidden).is_some() {
                 out.push(mk(
                     model,
                     rid,
                     prop_key,
-                    &format!(
-                        "State '{}': '{}' is not allowed when QueryLanguage is JSONata",
-                        name, forbidden
-                    ),
+                    &format!("State '{}': '{}' is not allowed when QueryLanguage is JSONata", name, forbidden),
                 ));
             }
         }
@@ -239,10 +175,7 @@ fn validate_state(
                     model,
                     rid,
                     prop_key,
-                    &format!(
-                        "Task state '{}' is missing required 'Resource' property",
-                        name
-                    ),
+                    &format!("Task state '{}' is missing required 'Resource' property", name),
                 ));
             }
         }
@@ -252,19 +185,23 @@ fn validate_state(
                     model,
                     rid,
                     prop_key,
-                    &format!(
-                        "Choice state '{}' is missing required 'Choices' property",
-                        name
-                    ),
+                    &format!("Choice state '{}' is missing required 'Choices' property", name),
                 ));
             }
         }
         "Wait" => {
-            let has_wait = ["Seconds", "Timestamp", "SecondsPath", "TimestampPath"]
-                .iter()
-                .any(|k| state.get(k).is_some());
+            let has_wait =
+                ["Seconds", "Timestamp", "SecondsPath", "TimestampPath"].iter().any(|k| state.get(k).is_some());
             if !has_wait {
-                out.push(mk(model, rid, prop_key, &format!("Wait state '{}' must have one of Seconds, Timestamp, SecondsPath, or TimestampPath", name)));
+                out.push(mk(
+                    model,
+                    rid,
+                    prop_key,
+                    &format!(
+                        "Wait state '{}' must have one of Seconds, Timestamp, SecondsPath, or TimestampPath",
+                        name
+                    ),
+                ));
             }
         }
         _ => {}
@@ -356,11 +293,7 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.message.contains("NonExistent") && d.message.contains("StartAt"))
-        );
+        assert!(diags.iter().any(|d| d.message.contains("NonExistent") && d.message.contains("StartAt")));
     }
 
     #[test]
@@ -373,11 +306,7 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.message.contains("missing required 'Type'"))
-        );
+        assert!(diags.iter().any(|d| d.message.contains("missing required 'Type'")));
     }
 
     #[test]
@@ -396,9 +325,7 @@ Resources:
     #[test]
     fn all_valid_state_types_accepted() {
         let model = minimal_arc_model();
-        for stype in &[
-            "Task", "Pass", "Choice", "Wait", "Succeed", "Fail", "Parallel", "Map",
-        ] {
+        for stype in &["Task", "Pass", "Choice", "Wait", "Succeed", "Fail", "Parallel", "Map"] {
             let mut states = serde_json::Map::new();
             let mut state = serde_json::Map::new();
             state.insert("Type".into(), json!(stype));
@@ -406,10 +333,7 @@ Resources:
             // Add required fields per type
             match *stype {
                 "Task" => {
-                    state.insert(
-                        "Resource".into(),
-                        json!("arn:aws:lambda:us-east-1:123:function:fn"),
-                    );
+                    state.insert("Resource".into(), json!("arn:aws:lambda:us-east-1:123:function:fn"));
                 }
                 "Choice" => {
                     state.insert("Choices".into(), json!([]));
@@ -431,10 +355,7 @@ Resources:
             states.insert("TheState".into(), json!(state));
             let def = json!({"StartAt": "TheState", "States": states});
             let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-            let type_errors: Vec<_> = diags
-                .iter()
-                .filter(|d| d.message.contains("invalid Type"))
-                .collect();
+            let type_errors: Vec<_> = diags.iter().filter(|d| d.message.contains("invalid Type")).collect();
             assert!(
                 type_errors.is_empty(),
                 "Type '{}' should be valid, got: {:?}",
@@ -502,13 +423,7 @@ Resources:
     #[test]
     fn jsonata_mode_forbids_all_restricted_fields() {
         let model = minimal_arc_model();
-        for field in &[
-            "InputPath",
-            "OutputPath",
-            "Parameters",
-            "ResultPath",
-            "ResultSelector",
-        ] {
+        for field in &["InputPath", "OutputPath", "Parameters", "ResultPath", "ResultSelector"] {
             let mut state = serde_json::Map::new();
             state.insert("Type".into(), json!("Pass"));
             state.insert((*field).into(), json!("$.x"));
@@ -520,9 +435,7 @@ Resources:
             });
             let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
             assert!(
-                diags
-                    .iter()
-                    .any(|d| d.message.contains(field) && d.message.contains("JSONata")),
+                diags.iter().any(|d| d.message.contains(field) && d.message.contains("JSONata")),
                 "Expected diagnostic for forbidden field '{}' in JSONata mode",
                 field
             );
@@ -559,11 +472,7 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.message.contains("Ghost") && d.message.contains("StartAt"))
-        );
+        assert!(diags.iter().any(|d| d.message.contains("Ghost") && d.message.contains("StartAt")));
     }
 
     #[test]
@@ -585,11 +494,7 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.message.contains("Missing") && d.message.contains("StartAt"))
-        );
+        assert!(diags.iter().any(|d| d.message.contains("Missing") && d.message.contains("StartAt")));
     }
 
     #[test]
@@ -611,11 +516,7 @@ Resources:
             }
         });
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.message.contains("Ghost") && d.message.contains("StartAt"))
-        );
+        assert!(diags.iter().any(|d| d.message.contains("Ghost") && d.message.contains("StartAt")));
     }
 
     #[test]
@@ -638,11 +539,7 @@ Resources:
         let model = Arc::new(SemanticModel::from_bytes(&bytes).expect("should parse"));
         let diags = validate_all_state_machines(&model);
         assert!(!diags.is_empty());
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.message.contains("InvalidType") || d.message.contains("NonExistent"))
-        );
+        assert!(diags.iter().any(|d| d.message.contains("InvalidType") || d.message.contains("NonExistent")));
     }
 
     #[test]
@@ -665,11 +562,7 @@ Resources:
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
         assert!(!diags.is_empty());
         for d in &diags {
-            assert_eq!(
-                d.rule_id, "E3601",
-                "Expected E3601, got {} for: {}",
-                d.rule_id, d.message
-            );
+            assert_eq!(d.rule_id, "E3601", "Expected E3601, got {} for: {}", d.rule_id, d.message);
         }
     }
 
@@ -683,11 +576,7 @@ Resources:
         let diags = validate_definition(&def, &model, "SM", "Properties.DefinitionString");
         // Non-string StartAt is silently skipped by validate_start_at (no crash)
         // Only the missing-StartAt-as-string path is skipped, no StartAt error
-        assert!(
-            !diags
-                .iter()
-                .any(|d| d.message.contains("does not reference"))
-        );
+        assert!(!diags.iter().any(|d| d.message.contains("does not reference")));
     }
 
     #[test]

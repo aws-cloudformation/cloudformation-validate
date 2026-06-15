@@ -1,9 +1,8 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION_CONTEXT, FIELD_KIND,
-    FIELD_OUTGOING_REFS, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_DEPENDS_ON,
-    OUTPUT_PSEUDO_RESOURCE_PREFIX,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION_CONTEXT, FIELD_KIND, FIELD_OUTGOING_REFS,
+    FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_DEPENDS_ON, OUTPUT_PSEUDO_RESOURCE_PREFIX,
 };
 use template_model::resolver::RefKind;
 use validation_engine::make_resource_diagnostic;
@@ -38,10 +37,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                 && let Some(ref dep_cond) = dep_res.condition
             {
                 let source_cond = res.condition.as_deref();
-                if !m
-                    .conditions
-                    .condition_implies(source_cond.unwrap_or(""), dep_cond)
-                    && source_cond.is_some()
+                if !m.conditions.condition_implies(source_cond.unwrap_or(""), dep_cond) && source_cond.is_some()
                     || (source_cond.is_none() && dep_res.condition.is_some())
                 {
                     // Only flag if source doesn't imply target condition
@@ -52,17 +48,11 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     if !implies {
                         out.push(make_resource_diagnostic(
                             "E3005",
-                            &format!(
-                                "'{}' will not exist when condition '{}' is False",
-                                dep, dep_cond
-                            ),
+                            &format!("'{}' will not exist when condition '{}' is False", dep, dep_cond),
                             m,
                             name,
                             KEY_DEPENDS_ON,
-                            Some(&format!(
-                                "Add a Condition to '{}' that implies '{}'",
-                                name, dep_cond
-                            )),
+                            Some(&format!("Add a Condition to '{}' that implies '{}'", name, dep_cond)),
                         ));
                     }
                 }
@@ -82,10 +72,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     };
                     out.push(make_resource_diagnostic(
                         "W3005",
-                        &format!(
-                            "'{}' dependency already enforced by a '{}' at '{}'",
-                            dep, kind_str, edge.source_path
-                        ),
+                        &format!("'{}' dependency already enforced by a '{}' at '{}'", dep, kind_str, edge.source_path),
                         m,
                         name,
                         KEY_DEPENDS_ON,
@@ -104,21 +91,12 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     if kind != EDGE_KIND_REF && kind != EDGE_KIND_GET_ATT {
                         continue;
                     }
-                    let target = edge
-                        .get(FIELD_TARGET)
-                        .and_then(|t| t.as_str())
-                        .unwrap_or("");
-                    let source_path = edge
-                        .get(FIELD_SOURCE_PATH)
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
+                    let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
+                    let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                     if let Some(target_res) = m.resources.get(target)
                         && let Some(ref target_cond) = target_res.condition
                     {
-                        let source_cond = m
-                            .resources
-                            .get(source.as_str())
-                            .and_then(|r| r.condition.as_deref());
+                        let source_cond = m.resources.get(source.as_str()).and_then(|r| r.condition.as_deref());
                         let implies = match source_cond {
                             Some(sc) => m.conditions.condition_implies(sc, target_cond),
                             None => false,
@@ -134,10 +112,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 .and_then(|c| c.as_str())
                                 .map(|cc| {
                                     cc.split(',').filter(|p| !p.is_empty()).any(|part| {
-                                        let mut assumptions: Vec<(String, bool)> = vec![
-                                            (target_cond.clone(), false),
-                                            (part.to_string(), true),
-                                        ];
+                                        let mut assumptions: Vec<(String, bool)> =
+                                            vec![(target_cond.clone(), false), (part.to_string(), true)];
                                         if let Some(sc) = source_cond {
                                             assumptions.push((sc.to_string(), true));
                                         }

@@ -3,11 +3,7 @@ use rules::Severity;
 use std::collections::HashMap;
 use template_model::consts::KEY_TYPE;
 
-pub fn translate_to_rego(
-    file: &GuardFile,
-    pack_name: &str,
-    controls: &[(String, Vec<String>)],
-) -> Vec<TranslatedRule> {
+pub fn translate_to_rego(file: &GuardFile, pack_name: &str, controls: &[(String, Vec<String>)]) -> Vec<TranslatedRule> {
     let pkg = sanitize_identifier(pack_name);
     let mut lines = Vec::new();
     lines.push(format!("package guard_{}", pkg));
@@ -40,8 +36,7 @@ pub fn translate_to_rego(
         .iter()
         .zip(file.rules.iter())
         .map(|(rule_id, rule)| {
-            let description = first_custom_message(&rule.block)
-                .unwrap_or_else(|| format!("Rule {} failed", rule_id));
+            let description = first_custom_message(&rule.block).unwrap_or_else(|| format!("Rule {} failed", rule_id));
             TranslatedRule {
                 path: format!("guard/{}/{}.rego", pkg, rule_id),
                 source: source.clone(),
@@ -55,38 +50,22 @@ pub fn translate_to_rego(
 }
 
 fn first_custom_message(block: &BlockIR<RuleClauseIR>) -> Option<String> {
-    block
-        .conjunctions
-        .iter()
-        .flatten()
-        .find_map(|clause| match clause {
-            RuleClauseIR::Guard(gc) => extract_custom_message(gc),
-            RuleClauseIR::WhenBlock(_, inner) => extract_custom_message_from_block(inner),
-            RuleClauseIR::TypeBlock(tb) => extract_custom_message_from_block(&tb.block),
-        })
+    block.conjunctions.iter().flatten().find_map(|clause| match clause {
+        RuleClauseIR::Guard(gc) => extract_custom_message(gc),
+        RuleClauseIR::WhenBlock(_, inner) => extract_custom_message_from_block(inner),
+        RuleClauseIR::TypeBlock(tb) => extract_custom_message_from_block(&tb.block),
+    })
 }
 
-fn emit_rule(
-    lines: &mut Vec<String>,
-    rule: &GuardRule,
-    resource_type_vars: &HashMap<String, Vec<String>>,
-) {
-    let scoped_types = rule
-        .conditions
-        .as_ref()
-        .and_then(|conds| find_resource_types_from_when(conds, resource_type_vars));
+fn emit_rule(lines: &mut Vec<String>, rule: &GuardRule, resource_type_vars: &HashMap<String, Vec<String>>) {
+    let scoped_types =
+        rule.conditions.as_ref().and_then(|conds| find_resource_types_from_when(conds, resource_type_vars));
 
     for disj in rule.block.conjunctions.iter() {
         for clause in disj {
             match clause {
                 RuleClauseIR::TypeBlock(tb) => {
-                    emit_type_block_violation(
-                        lines,
-                        &rule.name,
-                        tb,
-                        &rule.conditions,
-                        &rule.block.assignments,
-                    );
+                    emit_type_block_violation(lines, &rule.name, tb, &rule.conditions, &rule.block.assignments);
                 }
                 RuleClauseIR::Guard(gc) => {
                     if let Some(ref types) = scoped_types {
@@ -107,12 +86,7 @@ fn emit_rule(
                                     emit_resource_scoped_violation(lines, &rule.name, gc, rtype);
                                 }
                             } else {
-                                emit_guard_clause_violation(
-                                    lines,
-                                    &rule.name,
-                                    gc,
-                                    &Some(merged.clone()),
-                                );
+                                emit_guard_clause_violation(lines, &rule.name, gc, &Some(merged.clone()));
                             }
                         }
                     }
@@ -129,8 +103,7 @@ fn emit_type_block_violation(
     rule_conditions: &Option<ConjunctionsIR<WhenClauseIR>>,
     assignments: &[LetExprIR],
 ) {
-    let msg = extract_custom_message_from_block(&tb.block)
-        .unwrap_or_else(|| format!("Rule {} failed", rule_name));
+    let msg = extract_custom_message_from_block(&tb.block).unwrap_or_else(|| format!("Rule {} failed", rule_name));
     let sanitized_msg = sanitize_rego_string(&msg);
 
     // Each clause must be true; violation fires when any clause fails (negated).
@@ -148,10 +121,7 @@ fn emit_type_block_violation(
             Severity::Error.as_str(),
             sanitized_msg,
         ));
-        lines.push(format!(
-            "    some name in resources_of_type(\"{}\")",
-            tb.type_name
-        ));
+        lines.push(format!("    some name in resources_of_type(\"{}\")", tb.type_name));
         if let Some(conds) = rule_conditions {
             emit_when_conditions_body(lines, conds, "    ");
         }
@@ -188,28 +158,14 @@ fn emit_guard_clause_violation(
     lines.push(String::new());
 }
 
-fn emit_guard_clause_body(
-    lines: &mut Vec<String>,
-    gc: &GuardClauseIR,
-    indent: &str,
-    resource_var: &str,
-) {
+fn emit_guard_clause_body(lines: &mut Vec<String>, gc: &GuardClauseIR, indent: &str, resource_var: &str) {
     match gc {
         GuardClauseIR::Access(ac) => {
-            lines.push(format!(
-                "{}{}",
-                indent,
-                access_to_rego_check(ac, resource_var)
-            ));
+            lines.push(format!("{}{}", indent, access_to_rego_check(ac, resource_var)));
         }
         GuardClauseIR::NamedRule(nr) => {
             let op = if nr.negated { "> 0" } else { "== 0" };
-            lines.push(format!(
-                "{}count(data.guard_{}.violation) {}",
-                indent,
-                sanitize_identifier(&nr.rule_name),
-                op
-            ));
+            lines.push(format!("{}count(data.guard_{}.violation) {}", indent, sanitize_identifier(&nr.rule_name), op));
         }
         GuardClauseIR::Block(bc) => {
             for disj in &bc.block.conjunctions {
@@ -227,19 +183,12 @@ fn emit_guard_clause_body(
             }
         }
         GuardClauseIR::ParameterizedNamedRule(_) => {
-            lines.push(format!(
-                "{}true # parameterized rule call (complex)",
-                indent
-            ));
+            lines.push(format!("{}true # parameterized rule call (complex)", indent));
         }
     }
 }
 
-fn emit_when_conditions_body(
-    lines: &mut Vec<String>,
-    conds: &ConjunctionsIR<WhenClauseIR>,
-    indent: &str,
-) {
+fn emit_when_conditions_body(lines: &mut Vec<String>, conds: &ConjunctionsIR<WhenClauseIR>, indent: &str) {
     for disj in conds {
         for wc in disj {
             match wc {
@@ -282,26 +231,14 @@ fn access_to_rego_check(ac: &AccessClauseIR, resource_var: &str) -> String {
             }
         }
         Operator::Eq => {
-            let rhs = ac
-                .compare_with
-                .as_ref()
-                .map(|v| let_value_to_string(v, ""))
-                .unwrap_or_else(|| "true".into());
+            let rhs = ac.compare_with.as_ref().map(|v| let_value_to_string(v, "")).unwrap_or_else(|| "true".into());
             let op = if ac.negated { "!=" } else { "==" };
             format!("resolve({}, \"{}\") {} {}", resource_var, path, op, rhs)
         }
         Operator::In => {
-            let rhs = ac
-                .compare_with
-                .as_ref()
-                .map(|v| let_value_to_string(v, ""))
-                .unwrap_or_else(|| "[]".into());
+            let rhs = ac.compare_with.as_ref().map(|v| let_value_to_string(v, "")).unwrap_or_else(|| "[]".into());
             let val = format!("resolve({}, \"{}\")", resource_var, path);
-            if ac.negated {
-                format!("not {} in {}", val, rhs)
-            } else {
-                format!("{} in {}", val, rhs)
-            }
+            if ac.negated { format!("not {} in {}", val, rhs) } else { format!("{} in {}", val, rhs) }
         }
         Operator::Gt | Operator::Lt | Operator::Ge | Operator::Le => {
             let op_str = match ac.operator {
@@ -311,11 +248,7 @@ fn access_to_rego_check(ac: &AccessClauseIR, resource_var: &str) -> String {
                 Operator::Le => "<=",
                 _ => unreachable!(),
             };
-            let rhs = ac
-                .compare_with
-                .as_ref()
-                .map(|v| let_value_to_string(v, ""))
-                .unwrap_or_else(|| "0".into());
+            let rhs = ac.compare_with.as_ref().map(|v| let_value_to_string(v, "")).unwrap_or_else(|| "0".into());
             format!("resolve({}, \"{}\") {} {}", resource_var, path, op_str, rhs)
         }
         Operator::IsString => format!("{}is_string(resolve({}, \"{}\"))", neg, resource_var, path),
@@ -330,25 +263,13 @@ fn access_to_rego_check(ac: &AccessClauseIR, resource_var: &str) -> String {
 }
 
 fn emit_let_assignment(lines: &mut Vec<String>, assign: &LetExprIR, indent: &str) {
-    lines.push(format!(
-        "{}{} := {}",
-        indent,
-        assign.var,
-        let_value_to_string(&assign.value, "")
-    ));
+    lines.push(format!("{}{} := {}", indent, assign.var, let_value_to_string(&assign.value, "")));
 }
 
 fn emit_parameterized_rule(lines: &mut Vec<String>, pr: &ParameterizedGuardRule) {
     let params = pr.parameter_names.join(", ");
-    lines.push(format!(
-        "# Parameterized rule: {}({})",
-        pr.rule.name, params
-    ));
-    lines.push(format!(
-        "guard_{}({}) := true if {{",
-        sanitize_identifier(&pr.rule.name),
-        params
-    ));
+    lines.push(format!("# Parameterized rule: {}({})", pr.rule.name, params));
+    lines.push(format!("guard_{}({}) := true if {{", sanitize_identifier(&pr.rule.name), params));
     for disj in &pr.rule.block.conjunctions {
         for clause in disj {
             match clause {
@@ -378,12 +299,8 @@ fn strip_variable_prefix(path: &str) -> String {
             return String::new();
         }
     }
-    while p.starts_with("[*].") || p.starts_with("*.") {
-        p = if p.starts_with("[*].") {
-            &p[4..]
-        } else {
-            &p[2..]
-        };
+    while let Some(stripped) = p.strip_prefix("[*].").or_else(|| p.strip_prefix("*.")) {
+        p = stripped;
     }
     if p == "[*]" || p == "*" {
         return String::new();
@@ -403,21 +320,12 @@ fn sanitize_rego_string(s: &str) -> String {
 }
 
 /// Emits the negation of a guard clause: violation fires when the original check fails.
-fn emit_negated_guard_clause(
-    lines: &mut Vec<String>,
-    gc: &GuardClauseIR,
-    indent: &str,
-    resource_var: &str,
-) {
+fn emit_negated_guard_clause(lines: &mut Vec<String>, gc: &GuardClauseIR, indent: &str, resource_var: &str) {
     match gc {
         GuardClauseIR::Access(ac) => {
             let mut negated = ac.clone();
             negated.negated = !negated.negated;
-            lines.push(format!(
-                "{}{}",
-                indent,
-                access_to_rego_check(&negated, resource_var)
-            ));
+            lines.push(format!("{}{}", indent, access_to_rego_check(&negated, resource_var)));
         }
         GuardClauseIR::Block(bc) => {
             for disj in &bc.block.conjunctions {
@@ -486,16 +394,12 @@ fn extract_types_from_filter(parts: &[QueryPartIR]) -> Vec<String> {
                         }
                         match ac.operator {
                             Operator::Eq => {
-                                if let Some(LetValueIR::Value(ValueIR::String(s))) =
-                                    &ac.compare_with
-                                {
+                                if let Some(LetValueIR::Value(ValueIR::String(s))) = &ac.compare_with {
                                     return vec![s.clone()];
                                 }
                             }
                             Operator::In => {
-                                if let Some(LetValueIR::Value(ValueIR::List(items))) =
-                                    &ac.compare_with
-                                {
+                                if let Some(LetValueIR::Value(ValueIR::List(items))) = &ac.compare_with {
                                     let types: Vec<String> = items
                                         .iter()
                                         .filter_map(|v| match v {
@@ -538,12 +442,7 @@ fn find_resource_types_from_when(
     None
 }
 
-fn emit_resource_scoped_violation(
-    lines: &mut Vec<String>,
-    rule_name: &str,
-    gc: &GuardClauseIR,
-    resource_type: &str,
-) {
+fn emit_resource_scoped_violation(lines: &mut Vec<String>, rule_name: &str, gc: &GuardClauseIR, resource_type: &str) {
     let msg = extract_custom_message(gc).unwrap_or_else(|| format!("Rule {} failed", rule_name));
     lines.push(format!(
         "violation contains make_diag(\"{}\", \"{}\", name, \"{}\") if {{",
@@ -551,10 +450,7 @@ fn emit_resource_scoped_violation(
         Severity::Error,
         sanitize_rego_string(&msg),
     ));
-    lines.push(format!(
-        "    some name in resources_of_type(\"{}\")",
-        resource_type
-    ));
+    lines.push(format!("    some name in resources_of_type(\"{}\")", resource_type));
     emit_negated_guard_clause(lines, gc, "    ", "name");
     lines.push("}".into());
     lines.push(String::new());
@@ -640,16 +536,9 @@ mod tests {
         assert_eq!(sanitize_rego_string(""), "");
     }
 
-    fn make_access(
-        op: Operator,
-        negated: bool,
-        compare_with: Option<LetValueIR>,
-    ) -> AccessClauseIR {
+    fn make_access(op: Operator, negated: bool, compare_with: Option<LetValueIR>) -> AccessClauseIR {
         AccessClauseIR {
-            query: vec![
-                QueryPartIR::Key("Properties".into()),
-                QueryPartIR::Key("Enabled".into()),
-            ],
+            query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Enabled".into())],
             match_all: false,
             operator: op,
             negated,
@@ -674,22 +563,14 @@ mod tests {
 
     #[test]
     fn access_to_rego_check_eq() {
-        let ac = make_access(
-            Operator::Eq,
-            false,
-            Some(LetValueIR::Value(ValueIR::Bool(true))),
-        );
+        let ac = make_access(Operator::Eq, false, Some(LetValueIR::Value(ValueIR::Bool(true))));
         let result = access_to_rego_check(&ac, "name");
         assert_eq!(result, r#"resolve(name, "Properties.Enabled") == true"#);
     }
 
     #[test]
     fn access_to_rego_check_neq() {
-        let ac = make_access(
-            Operator::Eq,
-            true,
-            Some(LetValueIR::Value(ValueIR::String("prod".into()))),
-        );
+        let ac = make_access(Operator::Eq, true, Some(LetValueIR::Value(ValueIR::String("prod".into()))));
         let result = access_to_rego_check(&ac, "name");
         assert_eq!(result, r#"resolve(name, "Properties.Enabled") != "prod""#);
     }
@@ -699,52 +580,30 @@ mod tests {
         let ac = make_access(
             Operator::In,
             false,
-            Some(LetValueIR::Value(ValueIR::List(vec![
-                ValueIR::String("a".into()),
-                ValueIR::String("b".into()),
-            ]))),
+            Some(LetValueIR::Value(ValueIR::List(vec![ValueIR::String("a".into()), ValueIR::String("b".into())]))),
         );
         let result = access_to_rego_check(&ac, "name");
-        assert_eq!(
-            result,
-            r#"resolve(name, "Properties.Enabled") in ["a", "b"]"#
-        );
+        assert_eq!(result, r#"resolve(name, "Properties.Enabled") in ["a", "b"]"#);
     }
 
     #[test]
     fn access_to_rego_check_not_in() {
-        let ac = make_access(
-            Operator::In,
-            true,
-            Some(LetValueIR::Value(ValueIR::List(vec![ValueIR::String(
-                "x".into(),
-            )]))),
-        );
+        let ac =
+            make_access(Operator::In, true, Some(LetValueIR::Value(ValueIR::List(vec![ValueIR::String("x".into())]))));
         let result = access_to_rego_check(&ac, "name");
-        assert_eq!(
-            result,
-            r#"not resolve(name, "Properties.Enabled") in ["x"]"#
-        );
+        assert_eq!(result, r#"not resolve(name, "Properties.Enabled") in ["x"]"#);
     }
 
     #[test]
     fn access_to_rego_check_gt() {
-        let ac = make_access(
-            Operator::Gt,
-            false,
-            Some(LetValueIR::Value(ValueIR::Int(10))),
-        );
+        let ac = make_access(Operator::Gt, false, Some(LetValueIR::Value(ValueIR::Int(10))));
         let result = access_to_rego_check(&ac, "name");
         assert_eq!(result, r#"resolve(name, "Properties.Enabled") > 10"#);
     }
 
     #[test]
     fn access_to_rego_check_le() {
-        let ac = make_access(
-            Operator::Le,
-            false,
-            Some(LetValueIR::Value(ValueIR::Int(100))),
-        );
+        let ac = make_access(Operator::Le, false, Some(LetValueIR::Value(ValueIR::Int(100))));
         let result = access_to_rego_check(&ac, "name");
         assert_eq!(result, r#"resolve(name, "Properties.Enabled") <= 100"#);
     }
@@ -774,10 +633,7 @@ mod tests {
     fn access_to_rego_check_not_is_string() {
         let ac = make_access(Operator::IsString, true, None);
         let result = access_to_rego_check(&ac, "name");
-        assert_eq!(
-            result,
-            r#"not is_string(resolve(name, "Properties.Enabled"))"#
-        );
+        assert_eq!(result, r#"not is_string(resolve(name, "Properties.Enabled"))"#);
     }
 
     #[test]
@@ -827,9 +683,7 @@ mod tests {
                             match_all: false,
                             operator: Operator::Eq,
                             negated: false,
-                            compare_with: Some(LetValueIR::Value(ValueIR::String(
-                                "AWS::S3::Bucket".into(),
-                            ))),
+                            compare_with: Some(LetValueIR::Value(ValueIR::String("AWS::S3::Bucket".into()))),
                             custom_message: None,
                         })]],
                     ),
@@ -838,10 +692,7 @@ mod tests {
             ),
         }];
         let vars = extract_resource_type_vars(&assignments);
-        assert_eq!(
-            vars.get("buckets"),
-            Some(&vec!["AWS::S3::Bucket".to_string()])
-        );
+        assert_eq!(vars.get("buckets"), Some(&vec!["AWS::S3::Bucket".to_string()]));
     }
 
     #[test]
@@ -879,10 +730,8 @@ mod tests {
 
     #[test]
     fn extract_resource_type_vars_no_filter() {
-        let assignments = vec![LetExprIR {
-            var: "x".into(),
-            value: LetValueIR::Value(ValueIR::String("hello".into())),
-        }];
+        let assignments =
+            vec![LetExprIR { var: "x".into(), value: LetValueIR::Value(ValueIR::String("hello".into())) }];
         let vars = extract_resource_type_vars(&assignments);
         assert!(vars.is_empty());
     }
@@ -927,11 +776,7 @@ mod tests {
 
     #[test]
     fn translate_to_rego_empty_file() {
-        let file = GuardFile {
-            assignments: vec![],
-            rules: vec![],
-            parameterized_rules: vec![],
-        };
+        let file = GuardFile { assignments: vec![], rules: vec![], parameterized_rules: vec![] };
         let results = translate_to_rego(&file, "test_pack", &[]);
         assert!(results.is_empty());
     }
@@ -973,11 +818,7 @@ mod tests {
         assert_eq!(results[0].rule_id, "check_bucket");
         assert!(results[0].source.contains("package guard_test_pack"));
         assert!(results[0].source.contains("violation contains"));
-        assert!(
-            results[0]
-                .source
-                .contains(r#"resources_of_type("AWS::S3::Bucket")"#)
-        );
+        assert!(results[0].source.contains(r#"resources_of_type("AWS::S3::Bucket")"#));
         // Violation fires when property does NOT exist (negated)
         assert!(results[0].source.contains("not has_property"));
     }
@@ -991,19 +832,14 @@ mod tests {
                 conditions: None,
                 block: BlockIR {
                     assignments: vec![],
-                    conjunctions: vec![vec![RuleClauseIR::Guard(GuardClauseIR::Access(
-                        AccessClauseIR {
-                            query: vec![
-                                QueryPartIR::Key("Properties".into()),
-                                QueryPartIR::Key("Enabled".into()),
-                            ],
-                            match_all: false,
-                            operator: Operator::Eq,
-                            negated: false,
-                            compare_with: Some(LetValueIR::Value(ValueIR::Bool(true))),
-                            custom_message: Some("Must be enabled".into()),
-                        },
-                    ))]],
+                    conjunctions: vec![vec![RuleClauseIR::Guard(GuardClauseIR::Access(AccessClauseIR {
+                        query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Enabled".into())],
+                        match_all: false,
+                        operator: Operator::Eq,
+                        negated: false,
+                        compare_with: Some(LetValueIR::Value(ValueIR::Bool(true))),
+                        custom_message: Some("Must be enabled".into()),
+                    }))]],
                 },
             }],
             parameterized_rules: vec![],
@@ -1030,9 +866,7 @@ mod tests {
                                 match_all: false,
                                 operator: Operator::Eq,
                                 negated: false,
-                                compare_with: Some(LetValueIR::Value(ValueIR::String(
-                                    "AWS::S3::Bucket".into(),
-                                ))),
+                                compare_with: Some(LetValueIR::Value(ValueIR::String("AWS::S3::Bucket".into()))),
                                 custom_message: None,
                             })]],
                         ),
@@ -1052,19 +886,14 @@ mod tests {
                 })]]),
                 block: BlockIR {
                     assignments: vec![],
-                    conjunctions: vec![vec![RuleClauseIR::Guard(GuardClauseIR::Access(
-                        AccessClauseIR {
-                            query: vec![
-                                QueryPartIR::Key("Properties".into()),
-                                QueryPartIR::Key("Tags".into()),
-                            ],
-                            match_all: false,
-                            operator: Operator::Exists,
-                            negated: false,
-                            compare_with: None,
-                            custom_message: Some("Tags required".into()),
-                        },
-                    ))]],
+                    conjunctions: vec![vec![RuleClauseIR::Guard(GuardClauseIR::Access(AccessClauseIR {
+                        query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Tags".into())],
+                        match_all: false,
+                        operator: Operator::Exists,
+                        negated: false,
+                        compare_with: None,
+                        custom_message: Some("Tags required".into()),
+                    }))]],
                 },
             }],
             parameterized_rules: vec![],
@@ -1072,11 +901,7 @@ mod tests {
         let results = translate_to_rego(&file, "s3_rules", &[]);
         assert_eq!(results.len(), 1);
         // Should scope to AWS::S3::Bucket via resources_of_type
-        assert!(
-            results[0]
-                .source
-                .contains(r#"resources_of_type("AWS::S3::Bucket")"#)
-        );
+        assert!(results[0].source.contains(r#"resources_of_type("AWS::S3::Bucket")"#));
     }
 
     #[test]
@@ -1094,10 +919,7 @@ mod tests {
                         block: BlockIR {
                             assignments: vec![],
                             conjunctions: vec![vec![GuardClauseIR::Access(AccessClauseIR {
-                                query: vec![
-                                    QueryPartIR::Key("Properties".into()),
-                                    QueryPartIR::Key("Runtime".into()),
-                                ],
+                                query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Runtime".into())],
                                 match_all: false,
                                 operator: Operator::Exists,
                                 negated: false,
@@ -1128,16 +950,14 @@ mod tests {
                     conditions: None,
                     block: BlockIR {
                         assignments: vec![],
-                        conjunctions: vec![vec![RuleClauseIR::Guard(GuardClauseIR::Access(
-                            AccessClauseIR {
-                                query: vec![QueryPartIR::Key("Type".into())],
-                                match_all: false,
-                                operator: Operator::Exists,
-                                negated: false,
-                                compare_with: None,
-                                custom_message: None,
-                            },
-                        ))]],
+                        conjunctions: vec![vec![RuleClauseIR::Guard(GuardClauseIR::Access(AccessClauseIR {
+                            query: vec![QueryPartIR::Key("Type".into())],
+                            match_all: false,
+                            operator: Operator::Exists,
+                            negated: false,
+                            compare_with: None,
+                            custom_message: None,
+                        }))]],
                     },
                 },
             }],
@@ -1183,109 +1003,68 @@ rule check_runtime {
 
     #[test]
     fn access_to_rego_check_ge() {
-        let ac = make_access(
-            Operator::Ge,
-            false,
-            Some(LetValueIR::Value(ValueIR::Int(5))),
-        );
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"resolve(r, "Properties.Enabled") >= 5"#
-        );
+        let ac = make_access(Operator::Ge, false, Some(LetValueIR::Value(ValueIR::Int(5))));
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"resolve(r, "Properties.Enabled") >= 5"#);
     }
 
     #[test]
     fn access_to_rego_check_lt() {
-        let ac = make_access(
-            Operator::Lt,
-            false,
-            Some(LetValueIR::Value(ValueIR::Int(3))),
-        );
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"resolve(r, "Properties.Enabled") < 3"#
-        );
+        let ac = make_access(Operator::Lt, false, Some(LetValueIR::Value(ValueIR::Int(3))));
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"resolve(r, "Properties.Enabled") < 3"#);
     }
 
     #[test]
     fn access_to_rego_check_is_map() {
         let ac = make_access(Operator::IsMap, false, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"is_object(resolve(r, "Properties.Enabled"))"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"is_object(resolve(r, "Properties.Enabled"))"#);
     }
 
     #[test]
     fn access_to_rego_check_not_is_map() {
         let ac = make_access(Operator::IsMap, true, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"not is_object(resolve(r, "Properties.Enabled"))"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"not is_object(resolve(r, "Properties.Enabled"))"#);
     }
 
     #[test]
     fn access_to_rego_check_is_bool() {
         let ac = make_access(Operator::IsBool, false, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"is_boolean(resolve(r, "Properties.Enabled"))"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"is_boolean(resolve(r, "Properties.Enabled"))"#);
     }
 
     #[test]
     fn access_to_rego_check_is_int() {
         let ac = make_access(Operator::IsInt, false, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"is_number(resolve(r, "Properties.Enabled"))"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"is_number(resolve(r, "Properties.Enabled"))"#);
     }
 
     #[test]
     fn access_to_rego_check_is_float() {
         let ac = make_access(Operator::IsFloat, false, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"is_number(resolve(r, "Properties.Enabled"))"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"is_number(resolve(r, "Properties.Enabled"))"#);
     }
 
     #[test]
     fn access_to_rego_check_not_is_null() {
         let ac = make_access(Operator::IsNull, true, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"not is_null(resolve(r, "Properties.Enabled"))"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"not is_null(resolve(r, "Properties.Enabled"))"#);
     }
 
     #[test]
     fn access_to_rego_check_eq_no_rhs_defaults_true() {
         let ac = make_access(Operator::Eq, false, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"resolve(r, "Properties.Enabled") == true"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"resolve(r, "Properties.Enabled") == true"#);
     }
 
     #[test]
     fn access_to_rego_check_in_no_rhs_defaults_empty_list() {
         let ac = make_access(Operator::In, false, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"resolve(r, "Properties.Enabled") in []"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"resolve(r, "Properties.Enabled") in []"#);
     }
 
     #[test]
     fn access_to_rego_check_gt_no_rhs_defaults_zero() {
         let ac = make_access(Operator::Gt, false, None);
-        assert_eq!(
-            access_to_rego_check(&ac, "r"),
-            r#"resolve(r, "Properties.Enabled") > 0"#
-        );
+        assert_eq!(access_to_rego_check(&ac, "r"), r#"resolve(r, "Properties.Enabled") > 0"#);
     }
 
     #[test]
@@ -1302,10 +1081,7 @@ rule r1 {
         .unwrap();
         let results = translate_to_rego(&file, "neg", &[]);
         let src = &results[0].source;
-        assert!(
-            src.contains("!= true"),
-            "negated access should flip == to !="
-        );
+        assert!(src.contains("!= true"), "negated access should flip == to !=");
     }
 
     #[test]
@@ -1321,10 +1097,7 @@ rule r1 {
         .unwrap();
         let results = translate_to_rego(&file, "neg2", &[]);
         let src = &results[0].source;
-        assert!(
-            src.contains("not has_property"),
-            "negated EXISTS should become not has_property"
-        );
+        assert!(src.contains("not has_property"), "negated EXISTS should become not has_property");
     }
 
     #[test]
@@ -1343,17 +1116,11 @@ rule r1 {
     #[test]
     fn emit_guard_clause_body_named_rule_negated() {
         let mut lines = Vec::new();
-        let gc = GuardClauseIR::NamedRule(NamedRuleRefIR {
-            rule_name: "dep".into(),
-            negated: true,
-            custom_message: None,
-        });
+        let gc =
+            GuardClauseIR::NamedRule(NamedRuleRefIR { rule_name: "dep".into(), negated: true, custom_message: None });
         emit_guard_clause_body(&mut lines, &gc, "    ", "name");
         let joined = lines.join("\n");
-        assert!(
-            joined.contains("> 0"),
-            "negated named rule should check > 0"
-        );
+        assert!(joined.contains("> 0"), "negated named rule should check > 0");
     }
 
     #[test]
@@ -1384,10 +1151,7 @@ rule r1 {
         let gc = GuardClauseIR::Block(BlockClauseIR {
             query: vec![],
             match_all: false,
-            block: BlockIR {
-                assignments: vec![],
-                conjunctions: vec![vec![inner]],
-            },
+            block: BlockIR { assignments: vec![], conjunctions: vec![vec![inner]] },
             not_empty: false,
         });
         emit_guard_clause_body(&mut lines, &gc, "    ", "name");
@@ -1398,15 +1162,14 @@ rule r1 {
     #[test]
     fn emit_guard_clause_body_when_block() {
         let mut lines = Vec::new();
-        let conds: ConjunctionsIR<WhenClauseIR> =
-            vec![vec![WhenClauseIR::Access(AccessClauseIR {
-                query: vec![QueryPartIR::Key("Env".into())],
-                match_all: false,
-                operator: Operator::Eq,
-                negated: false,
-                compare_with: Some(LetValueIR::Value(ValueIR::String("prod".into()))),
-                custom_message: None,
-            })]];
+        let conds: ConjunctionsIR<WhenClauseIR> = vec![vec![WhenClauseIR::Access(AccessClauseIR {
+            query: vec![QueryPartIR::Key("Env".into())],
+            match_all: false,
+            operator: Operator::Eq,
+            negated: false,
+            compare_with: Some(LetValueIR::Value(ValueIR::String("prod".into()))),
+            custom_message: None,
+        })]];
         let inner = GuardClauseIR::Access(AccessClauseIR {
             query: vec![QueryPartIR::Key("Tags".into())],
             match_all: false,
@@ -1415,34 +1178,21 @@ rule r1 {
             compare_with: None,
             custom_message: None,
         });
-        let gc = GuardClauseIR::WhenBlock(
-            conds,
-            BlockIR {
-                assignments: vec![],
-                conjunctions: vec![vec![inner]],
-            },
-        );
+        let gc = GuardClauseIR::WhenBlock(conds, BlockIR { assignments: vec![], conjunctions: vec![vec![inner]] });
         emit_guard_clause_body(&mut lines, &gc, "    ", "name");
         let joined = lines.join("\n");
-        assert!(
-            joined.contains(r#"resolve(name, "Env") == "prod""#),
-            "should emit when condition"
-        );
-        assert!(
-            joined.contains(r#"has_property(name, "Tags")"#),
-            "should emit inner clause"
-        );
+        assert!(joined.contains(r#"resolve(name, "Env") == "prod""#), "should emit when condition");
+        assert!(joined.contains(r#"has_property(name, "Tags")"#), "should emit inner clause");
     }
 
     #[test]
     fn emit_when_conditions_body_named_rule() {
         let mut lines = Vec::new();
-        let conds: ConjunctionsIR<WhenClauseIR> =
-            vec![vec![WhenClauseIR::NamedRule(NamedRuleRefIR {
-                rule_name: "prereq".into(),
-                negated: false,
-                custom_message: None,
-            })]];
+        let conds: ConjunctionsIR<WhenClauseIR> = vec![vec![WhenClauseIR::NamedRule(NamedRuleRefIR {
+            rule_name: "prereq".into(),
+            negated: false,
+            custom_message: None,
+        })]];
         emit_when_conditions_body(&mut lines, &conds, "    ");
         let joined = lines.join("\n");
         assert!(joined.contains("count(data.guard_prereq.violation) == 0"));
@@ -1451,14 +1201,13 @@ rule r1 {
     #[test]
     fn emit_when_conditions_body_parameterized_named_rule() {
         let mut lines = Vec::new();
-        let conds: ConjunctionsIR<WhenClauseIR> = vec![vec![WhenClauseIR::ParameterizedNamedRule(
-            ParameterizedNamedRuleRefIR {
+        let conds: ConjunctionsIR<WhenClauseIR> =
+            vec![vec![WhenClauseIR::ParameterizedNamedRule(ParameterizedNamedRuleRefIR {
                 rule_name: "check_param".into(),
                 parameters: vec![],
                 negated: false,
                 custom_message: None,
-            },
-        )]];
+            })]];
         emit_when_conditions_body(&mut lines, &conds, "    ");
         let joined = lines.join("\n");
         assert!(joined.contains("true # parameterized when condition"));
@@ -1492,10 +1241,7 @@ rule r1 {
         let gc = GuardClauseIR::Block(BlockClauseIR {
             query: vec![],
             match_all: false,
-            block: BlockIR {
-                assignments: vec![],
-                conjunctions: vec![vec![inner]],
-            },
+            block: BlockIR { assignments: vec![], conjunctions: vec![vec![inner]] },
             not_empty: false,
         });
         let mut out = Vec::new();
@@ -1513,13 +1259,7 @@ rule r1 {
             compare_with: None,
             custom_message: None,
         });
-        let gc = GuardClauseIR::WhenBlock(
-            vec![],
-            BlockIR {
-                assignments: vec![],
-                conjunctions: vec![vec![inner]],
-            },
-        );
+        let gc = GuardClauseIR::WhenBlock(vec![], BlockIR { assignments: vec![], conjunctions: vec![vec![inner]] });
         let mut out = Vec::new();
         collect_access_checks(&gc, &mut out);
         assert_eq!(out.len(), 1, "should recurse into WhenBlock");
@@ -1527,11 +1267,8 @@ rule r1 {
 
     #[test]
     fn collect_access_checks_named_rule_pushed_as_is() {
-        let gc = GuardClauseIR::NamedRule(NamedRuleRefIR {
-            rule_name: "dep".into(),
-            negated: false,
-            custom_message: None,
-        });
+        let gc =
+            GuardClauseIR::NamedRule(NamedRuleRefIR { rule_name: "dep".into(), negated: false, custom_message: None });
         let mut out = Vec::new();
         collect_access_checks(&gc, &mut out);
         assert_eq!(out.len(), 1, "NamedRule pushed directly");
@@ -1541,10 +1278,7 @@ rule r1 {
     fn emit_resource_scoped_violation_output() {
         let mut lines = Vec::new();
         let gc = GuardClauseIR::Access(AccessClauseIR {
-            query: vec![
-                QueryPartIR::Key("Properties".into()),
-                QueryPartIR::Key("Encrypted".into()),
-            ],
+            query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Encrypted".into())],
             match_all: false,
             operator: Operator::Eq,
             negated: false,
@@ -1592,10 +1326,6 @@ rule multi_check {
         let src = &results[0].source;
         // Should produce separate violation rules for each check
         let violation_count = src.matches("violation contains").count();
-        assert!(
-            violation_count >= 2,
-            "each check should produce a violation rule, got {}",
-            violation_count
-        );
+        assert!(violation_count >= 2, "each check should produce a violation rule, got {}", violation_count);
     }
 }

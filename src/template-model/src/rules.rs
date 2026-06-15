@@ -39,19 +39,12 @@ pub fn validate_rules(
     out
 }
 
-fn validate_structure(
-    rules_json: &Option<serde_json::Value>,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<diagnostics::Diagnostic>) {
     let Some(rules) = rules_json else {
         return;
     };
     let Some(rules_obj) = rules.as_object() else {
-        out.push(rule_diag(
-            "F8600",
-            rules_crate::Severity::Fatal,
-            "Rules section must be an object".into(),
-        ));
+        out.push(rule_diag("F8600", rules_crate::Severity::Fatal, "Rules section must be an object".into()));
         return;
     };
 
@@ -60,17 +53,9 @@ fn validate_structure(
     }
 }
 
-fn validate_single_rule(
-    rule_name: &str,
-    rule_value: &serde_json::Value,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &mut Vec<diagnostics::Diagnostic>) {
     let Some(rule_obj) = rule_value.as_object() else {
-        out.push(rule_diag(
-            "F8601",
-            rules_crate::Severity::Fatal,
-            format!("Rule '{}' must be an object", rule_name),
-        ));
+        out.push(rule_diag("F8601", rules_crate::Severity::Fatal, format!("Rule '{}' must be an object", rule_name)));
         return;
     };
 
@@ -79,10 +64,7 @@ fn validate_single_rule(
             out.push(rule_diag(
                 "W8602",
                 rules_crate::Severity::Warn,
-                format!(
-                    "Rule '{}' has unknown property '{}' — expected one of {:?}",
-                    rule_name, key, VALID_RULE_KEYS
-                ),
+                format!("Rule '{}' has unknown property '{}' — expected one of {:?}", rule_name, key, VALID_RULE_KEYS),
             ));
         }
     }
@@ -91,10 +73,7 @@ fn validate_single_rule(
         out.push(rule_diag(
             "F8603",
             rules_crate::Severity::Fatal,
-            format!(
-                "Rule '{}' is missing required '{}' property",
-                rule_name, KEY_ASSERTIONS
-            ),
+            format!("Rule '{}' is missing required '{}' property", rule_name, KEY_ASSERTIONS),
         ));
         return;
     };
@@ -147,10 +126,7 @@ fn validate_single_assertion(
         out.push(rule_diag(
             "F8607",
             rules_crate::Severity::Fatal,
-            format!(
-                "Rule '{}' {}[{}] must be an object",
-                rule_name, KEY_ASSERTIONS, idx
-            ),
+            format!("Rule '{}' {}[{}] must be an object", rule_name, KEY_ASSERTIONS, idx),
         ));
         return;
     };
@@ -172,10 +148,7 @@ fn validate_single_assertion(
         out.push(rule_diag(
             "F8609",
             rules_crate::Severity::Fatal,
-            format!(
-                "Rule '{}' {}[{}] is missing required '{}' property",
-                rule_name, KEY_ASSERTIONS, idx, KEY_ASSERT
-            ),
+            format!("Rule '{}' {}[{}] is missing required '{}' property", rule_name, KEY_ASSERTIONS, idx, KEY_ASSERT),
         ));
         return;
     };
@@ -196,22 +169,14 @@ fn validate_single_assertion(
     }
 }
 
-fn validate_allowed_functions(
-    arena: &Arena,
-    rules_node: NodeRef,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn validate_allowed_functions(arena: &Arena, rules_node: NodeRef, out: &mut Vec<diagnostics::Diagnostic>) {
     if rules_node == NULL_REF {
         return;
     }
     walk_for_disallowed_functions(arena, rules_node, out);
 }
 
-fn walk_for_disallowed_functions(
-    arena: &Arena,
-    node_ref: NodeRef,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec<diagnostics::Diagnostic>) {
     if !arena.is_valid(node_ref) {
         return;
     }
@@ -244,11 +209,7 @@ fn walk_for_disallowed_functions(
     }
 }
 
-fn walk_intrinsic_children(
-    arena: &Arena,
-    intrinsic: &IntrinsicFn,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, out: &mut Vec<diagnostics::Diagnostic>) {
     let mut children = Vec::new();
     match intrinsic {
         IntrinsicFn::Ref(_)
@@ -323,11 +284,7 @@ fn json_type_name(val: &serde_json::Value) -> &'static str {
     }
 }
 
-fn rule_diag(
-    rule_id: &str,
-    severity: rules_crate::Severity,
-    message: String,
-) -> diagnostics::Diagnostic {
+fn rule_diag(rule_id: &str, severity: rules_crate::Severity, message: String) -> diagnostics::Diagnostic {
     diagnostics::Diagnostic {
         rule_id: rule_id.into(),
         severity,
@@ -365,10 +322,7 @@ mod tests {
             }
         });
         let diags = validate_rules(&Some(rules), &Arena::new(), NULL_REF);
-        let errors: Vec<_> = diags
-            .iter()
-            .filter(|d| d.severity == rules_crate::Severity::Error)
-            .collect();
+        let errors: Vec<_> = diags.iter().filter(|d| d.severity == rules_crate::Severity::Error).collect();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
     }
 
@@ -444,9 +398,7 @@ mod tests {
 
         let diags = validate_rules(&None, &arena, rule_map);
         assert!(
-            diags
-                .iter()
-                .any(|d| d.rule_id == "F8611" && d.message.contains("Fn::GetAtt")),
+            diags.iter().any(|d| d.rule_id == "F8611" && d.message.contains("Fn::GetAtt")),
             "Expected F8611 for Fn::GetAtt, got: {:?}",
             diags
         );
@@ -473,10 +425,6 @@ mod tests {
 
         let diags = validate_rules(&None, &arena, equals);
         let errors: Vec<_> = diags.iter().filter(|d| d.rule_id == "F8611").collect();
-        assert!(
-            errors.is_empty(),
-            "Expected no F8611 errors, got: {:?}",
-            errors
-        );
+        assert!(errors.is_empty(), "Expected no F8611 errors, got: {:?}", errors);
     }
 }

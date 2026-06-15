@@ -41,9 +41,7 @@ impl CfnYamlLoader {
     fn load(text: &str) -> Result<(Vec<Yaml>, HashMap<String, (u32, u32)>), String> {
         let mut loader = Self::new();
         let mut parser = Parser::new_from_str(text);
-        parser
-            .load(&mut loader, true)
-            .map_err(|e| format!("{}", e))?;
+        parser.load(&mut loader, true).map_err(|e| format!("{}", e))?;
         Ok((loader.docs, loader.span_map))
     }
 
@@ -56,11 +54,9 @@ impl CfnYamlLoader {
         if tag.handle == "!" {
             let name = &tag.suffix;
             match name.as_str() {
-                "Ref" | "GetAtt" | "Sub" | "Join" | "Select" | "If" | "FindInMap" | "Split"
-                | "Base64" | "Cidr" | "GetAZs" | "ImportValue" | "Transform" | "And" | "Or"
-                | "Not" | "Equals" | "Condition" | "ToJsonString" | "Length" | "ForEach" => {
-                    Some(name.clone())
-                }
+                "Ref" | "GetAtt" | "Sub" | "Join" | "Select" | "If" | "FindInMap" | "Split" | "Base64" | "Cidr"
+                | "GetAZs" | "ImportValue" | "Transform" | "And" | "Or" | "Not" | "Equals" | "Condition"
+                | "ToJsonString" | "Length" | "ForEach" => Some(name.clone()),
                 _ => None,
             }
         } else {
@@ -165,11 +161,8 @@ impl MarkedEventReceiver for CfnYamlLoader {
             Event::MappingEnd => {
                 self.key_stack.pop();
                 if !self.path_stack.is_empty() {
-                    let parent_is_array = self
-                        .doc_stack
-                        .last()
-                        .map(|(y, _)| matches!(y, Yaml::Array(_)))
-                        .unwrap_or(false);
+                    let parent_is_array =
+                        self.doc_stack.last().map(|(y, _)| matches!(y, Yaml::Array(_))).unwrap_or(false);
                     if !parent_is_array {
                         self.path_stack.pop();
                     }
@@ -196,8 +189,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                             self.path_stack.push(v.clone());
                             let path = self.current_path();
                             // mark.line() and mark.col() are 0-based
-                            self.span_map
-                                .insert(path, (mark.line() as u32 + 1, mark.col() as u32 + 1));
+                            self.span_map.insert(path, (mark.line() as u32 + 1, mark.col() as u32 + 1));
                         }
                     } else if matches!(parent.0, Yaml::Array(_))
                         && let Some(idx) = self.array_idx_stack.last_mut()
@@ -235,11 +227,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     })?;
 
     if docs.is_empty() {
-        return Err(ParseError {
-            message: "Empty YAML document".into(),
-            line: Some(1),
-            column: Some(1),
-        });
+        return Err(ParseError { message: "Empty YAML document".into(), line: Some(1), column: Some(1) });
     }
 
     let hash = docs[0].as_hash().ok_or_else(|| ParseError {
@@ -256,52 +244,23 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     };
     let root = builder.build_hash(hash, "");
 
-    let parameters = builder
-        .arena
-        .map_get(root, SECTION_PARAMETERS)
-        .unwrap_or(NULL_REF);
-    let mappings = builder
-        .arena
-        .map_get(root, SECTION_MAPPINGS)
-        .unwrap_or(NULL_REF);
-    let conditions = builder
-        .arena
-        .map_get(root, SECTION_CONDITIONS)
-        .unwrap_or(NULL_REF);
-    let resources = builder
-        .arena
-        .map_get(root, SECTION_RESOURCES)
-        .unwrap_or(NULL_REF);
-    let outputs = builder
-        .arena
-        .map_get(root, SECTION_OUTPUTS)
-        .unwrap_or(NULL_REF);
-    let rules = builder
-        .arena
-        .map_get(root, SECTION_RULES)
-        .unwrap_or(NULL_REF);
-    let template_metadata = builder
-        .arena
-        .map_get(root, SECTION_METADATA)
-        .unwrap_or(NULL_REF);
-    let globals = builder
-        .arena
-        .map_get(root, SECTION_GLOBALS)
-        .unwrap_or(NULL_REF);
+    let parameters = builder.arena.map_get(root, SECTION_PARAMETERS).unwrap_or(NULL_REF);
+    let mappings = builder.arena.map_get(root, SECTION_MAPPINGS).unwrap_or(NULL_REF);
+    let conditions = builder.arena.map_get(root, SECTION_CONDITIONS).unwrap_or(NULL_REF);
+    let resources = builder.arena.map_get(root, SECTION_RESOURCES).unwrap_or(NULL_REF);
+    let outputs = builder.arena.map_get(root, SECTION_OUTPUTS).unwrap_or(NULL_REF);
+    let rules = builder.arena.map_get(root, SECTION_RULES).unwrap_or(NULL_REF);
+    let template_metadata = builder.arena.map_get(root, SECTION_METADATA).unwrap_or(NULL_REF);
+    let globals = builder.arena.map_get(root, SECTION_GLOBALS).unwrap_or(NULL_REF);
     let format_version = builder
         .arena
         .map_get(root, SECTION_FORMAT_VERSION)
         .and_then(|r| builder.arena.as_str(r).map(|s| s.to_string()));
-    let description = builder
-        .arena
-        .map_get(root, SECTION_DESCRIPTION)
-        .and_then(|r| builder.arena.as_str(r).map(|s| s.to_string()));
+    let description =
+        builder.arena.map_get(root, SECTION_DESCRIPTION).and_then(|r| builder.arena.as_str(r).map(|s| s.to_string()));
     let transforms = extract_transforms(&builder.arena, root);
-    let raw_top_level_keys = builder
-        .arena
-        .as_map(root)
-        .map(|entries| entries.iter().map(|(k, _)| k.clone()).collect())
-        .unwrap_or_default();
+    let raw_top_level_keys =
+        builder.arena.as_map(root).map(|entries| entries.iter().map(|(k, _)| k.clone()).collect()).unwrap_or_default();
 
     for (path, (line, col)) in &raw_spans {
         builder.span_index.insert(
@@ -314,37 +273,19 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
             },
         );
     }
-    info!(
-        "YAML span assignment complete: {} entries from marker tracking",
-        builder.span_index.len()
-    );
+    info!("YAML span assignment complete: {} entries from marker tracking", builder.span_index.len());
 
     debug!(
         "YAML IR built: {} resources, {} parameters, {} mappings, {} conditions, {} outputs, {} span entries",
-        builder
-            .arena
-            .as_map(resources)
-            .map(|m| m.len())
-            .unwrap_or(0),
-        builder
-            .arena
-            .as_map(parameters)
-            .map(|m| m.len())
-            .unwrap_or(0),
+        builder.arena.as_map(resources).map(|m| m.len()).unwrap_or(0),
+        builder.arena.as_map(parameters).map(|m| m.len()).unwrap_or(0),
         builder.arena.as_map(mappings).map(|m| m.len()).unwrap_or(0),
-        builder
-            .arena
-            .as_map(conditions)
-            .map(|m| m.len())
-            .unwrap_or(0),
+        builder.arena.as_map(conditions).map(|m| m.len()).unwrap_or(0),
         builder.arena.as_map(outputs).map(|m| m.len()).unwrap_or(0),
         builder.span_index.len()
     );
     if !builder.diagnostics.is_empty() {
-        warn!(
-            "{} parse diagnostics from YAML (malformed intrinsics)",
-            builder.diagnostics.len()
-        );
+        warn!("{} parse diagnostics from YAML (malformed intrinsics)", builder.diagnostics.len());
     }
 
     Ok(TemplateIR {
@@ -390,10 +331,7 @@ fn describe_yaml_value(val: &Yaml) -> String {
             let entries: Vec<String> = h
                 .iter()
                 .map(|(k, v)| {
-                    let ks = k
-                        .as_str()
-                        .map(|s| format!("'{}'", s))
-                        .unwrap_or_else(|| "?".to_string());
+                    let ks = k.as_str().map(|s| format!("'{}'", s)).unwrap_or_else(|| "?".to_string());
                     format!("{}: {}", ks, describe_yaml_value(v))
                 })
                 .collect();
@@ -412,25 +350,16 @@ fn condition_element_error_yaml(val: &Yaml) -> Option<String> {
         return Some("null is not of type 'boolean'".to_string());
     }
     let Some(hash) = val.as_hash() else {
-        return Some(format!(
-            "{} is not of type 'boolean'",
-            describe_yaml_value(val)
-        ));
+        return Some(format!("{} is not of type 'boolean'", describe_yaml_value(val)));
     };
     if hash.len() != 1 {
-        return Some(format!(
-            "{} is not of type 'boolean'",
-            describe_yaml_value(val)
-        ));
+        return Some(format!("{} is not of type 'boolean'", describe_yaml_value(val)));
     }
     let key = hash.keys().next().and_then(|k| k.as_str()).unwrap_or("");
     if BOOLEAN_FN_KEYS.contains(&key) {
         None
     } else {
-        Some(format!(
-            "{} is not of type 'boolean'",
-            describe_yaml_value(val)
-        ))
+        Some(format!("{} is not of type 'boolean'", describe_yaml_value(val)))
     }
 }
 
@@ -452,58 +381,36 @@ fn equals_argument_error_yaml(val: &Yaml) -> Option<String> {
             return None;
         }
     }
-    Some(format!(
-        "{} is not of type 'string'",
-        describe_yaml_value(val)
-    ))
+    Some(format!("{} is not of type 'string'", describe_yaml_value(val)))
 }
 
 impl YamlBuilder {
     fn build_yaml(&mut self, yaml: &Yaml, path: &str) -> NodeRef {
         match yaml {
-            Yaml::Null | Yaml::BadValue => self.arena.alloc(SpannedNode {
-                node: Node::Null,
-                span: UNKNOWN_SPAN,
-                path: path.into(),
-            }),
-            Yaml::Boolean(b) => self.arena.alloc(SpannedNode {
-                node: Node::Bool(*b),
-                span: UNKNOWN_SPAN,
-                path: path.into(),
-            }),
-            Yaml::Integer(i) => self.arena.alloc(SpannedNode {
-                node: Node::Int(*i),
-                span: UNKNOWN_SPAN,
-                path: path.into(),
-            }),
+            Yaml::Null | Yaml::BadValue => {
+                self.arena.alloc(SpannedNode { node: Node::Null, span: UNKNOWN_SPAN, path: path.into() })
+            }
+            Yaml::Boolean(b) => {
+                self.arena.alloc(SpannedNode { node: Node::Bool(*b), span: UNKNOWN_SPAN, path: path.into() })
+            }
+            Yaml::Integer(i) => {
+                self.arena.alloc(SpannedNode { node: Node::Int(*i), span: UNKNOWN_SPAN, path: path.into() })
+            }
             Yaml::Real(s) => self.arena.alloc(SpannedNode {
                 node: Node::Float(s.parse().unwrap_or(0.0)),
                 span: UNKNOWN_SPAN,
                 path: path.into(),
             }),
-            Yaml::String(s) => self.arena.alloc(SpannedNode {
-                node: Node::String(s.clone()),
-                span: UNKNOWN_SPAN,
-                path: path.into(),
-            }),
+            Yaml::String(s) => {
+                self.arena.alloc(SpannedNode { node: Node::String(s.clone()), span: UNKNOWN_SPAN, path: path.into() })
+            }
             Yaml::Array(arr) => {
-                let c: Vec<NodeRef> = arr
-                    .iter()
-                    .enumerate()
-                    .map(|(i, v)| self.build_yaml(v, &format!("{}/{}", path, i)))
-                    .collect();
-                self.arena.alloc(SpannedNode {
-                    node: Node::List(c),
-                    span: UNKNOWN_SPAN,
-                    path: path.into(),
-                })
+                let c: Vec<NodeRef> =
+                    arr.iter().enumerate().map(|(i, v)| self.build_yaml(v, &format!("{}/{}", path, i))).collect();
+                self.arena.alloc(SpannedNode { node: Node::List(c), span: UNKNOWN_SPAN, path: path.into() })
             }
             Yaml::Hash(hash) => self.build_hash(hash, path),
-            Yaml::Alias(_) => self.arena.alloc(SpannedNode {
-                node: Node::Null,
-                span: UNKNOWN_SPAN,
-                path: path.into(),
-            }),
+            Yaml::Alias(_) => self.arena.alloc(SpannedNode { node: Node::Null, span: UNKNOWN_SPAN, path: path.into() }),
         }
     }
 
@@ -520,22 +427,14 @@ impl YamlBuilder {
             .iter()
             .filter_map(|(k, v)| {
                 let key = yaml_as_string(k)?;
-                let cp = if path.is_empty() {
-                    key.clone()
-                } else {
-                    format!("{}/{}", path, key)
-                };
+                let cp = if path.is_empty() { key.clone() } else { format!("{}/{}", path, key) };
                 let cr = self.build_yaml(v, &cp);
                 self.global_index.insert(cp.clone(), cr);
                 self.span_index.entry(cp).or_insert(UNKNOWN_SPAN);
                 Some((key, cr))
             })
             .collect();
-        self.arena.alloc(SpannedNode {
-            node: Node::Map(entries),
-            span: UNKNOWN_SPAN,
-            path: path.into(),
-        })
+        self.arena.alloc(SpannedNode { node: Node::Map(entries), span: UNKNOWN_SPAN, path: path.into() })
     }
 
     fn intrinsic_error(&mut self, fn_name: &str, message: &str) {
@@ -591,7 +490,10 @@ impl YamlBuilder {
                                 // cannot resolve statically. Fall through to plain map.
                                 return None;
                             }
-                            self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                            self.intrinsic_error(
+                                FN_GET_ATT,
+                                "Fn::GetAtt value must be a two-element string array or a dotted string",
+                            );
                             return None;
                         };
                         let Some(attr) = yaml_as_string(&a[1]) else {
@@ -600,20 +502,29 @@ impl YamlBuilder {
                                 // cannot resolve statically. Fall through to plain map.
                                 return None;
                             }
-                            self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                            self.intrinsic_error(
+                                FN_GET_ATT,
+                                "Fn::GetAtt value must be a two-element string array or a dotted string",
+                            );
                             return None;
                         };
                         IntrinsicFn::GetAtt(r, attr)
                     }
                     Yaml::String(s) => {
                         let Some((r, a)) = s.split_once('.') else {
-                            self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                            self.intrinsic_error(
+                                FN_GET_ATT,
+                                "Fn::GetAtt value must be a two-element string array or a dotted string",
+                            );
                             return None;
                         };
                         IntrinsicFn::GetAtt(r.into(), a.into())
                     }
                     _ => {
-                        self.intrinsic_error(FN_GET_ATT, "Fn::GetAtt value must be a two-element string array or a dotted string");
+                        self.intrinsic_error(
+                            FN_GET_ATT,
+                            "Fn::GetAtt value must be a two-element string array or a dotted string",
+                        );
                         return None;
                     }
                 }
@@ -622,10 +533,7 @@ impl YamlBuilder {
                 Yaml::String(s) => IntrinsicFn::Sub(s.clone(), None),
                 Yaml::Array(a) if !a.is_empty() => {
                     let Some(t) = yaml_as_string(&a[0]) else {
-                        self.intrinsic_error(
-                            FN_SUB,
-                            "Fn::Sub value must be a string or a [string, object] array",
-                        );
+                        self.intrinsic_error(FN_SUB, "Fn::Sub value must be a string or a [string, object] array");
                         return None;
                     };
                     let subs = if a.len() > 1 {
@@ -634,8 +542,7 @@ impl YamlBuilder {
                                 h.iter()
                                     .filter_map(|(k, v)| {
                                         let ks = yaml_as_string(k)?;
-                                        let r = self
-                                            .build_yaml(v, &format!("{}/Fn::Sub/1/{}", path, ks));
+                                        let r = self.build_yaml(v, &format!("{}/Fn::Sub/1/{}", path, ks));
                                         Some((ks, r))
                                     })
                                     .collect(),
@@ -644,8 +551,7 @@ impl YamlBuilder {
                                 self.diagnostics.push(crate::make_parse_diagnostic(
                                     "F0010",
                                     rules_crate::Severity::Fatal,
-                                    "Fn::Sub second argument must be a map with string keys"
-                                        .to_string(),
+                                    "Fn::Sub second argument must be a map with string keys".to_string(),
                                     UNKNOWN_SPAN,
                                 ));
                                 None
@@ -662,10 +568,7 @@ impl YamlBuilder {
                     return None;
                 }
                 _ => {
-                    self.intrinsic_error(
-                        FN_SUB,
-                        "Fn::Sub value must be a string or a [string, object] array",
-                    );
+                    self.intrinsic_error(FN_SUB, "Fn::Sub value must be a string or a [string, object] array");
                     return None;
                 }
             },
@@ -733,10 +636,7 @@ impl YamlBuilder {
                     return None;
                 };
                 if a.len() != 3 {
-                    self.fn_if_structural_error(&format!(
-                        "must have exactly 3 elements, got {}",
-                        a.len()
-                    ));
+                    self.fn_if_structural_error(&format!("must have exactly 3 elements, got {}", a.len()));
                     return None;
                 }
                 let t = self.build_yaml(&a[1], &format!("{}/Fn::If/1", path));
@@ -757,10 +657,7 @@ impl YamlBuilder {
                 if a.len() != 3 && a.len() != 4 {
                     self.intrinsic_error(
                         FN_FIND_IN_MAP,
-                        &format!(
-                            "Fn::FindInMap value must be a 3 or 4-element array, got {}",
-                            a.len()
-                        ),
+                        &format!("Fn::FindInMap value must be a 3 or 4-element array, got {}", a.len()),
                     );
                     return None;
                 }
@@ -770,9 +667,7 @@ impl YamlBuilder {
                 let default_ref = if a.len() == 4 {
                     a[3].as_hash()
                         .and_then(|h| h.get(&Yaml::String("DefaultValue".into())))
-                        .map(|dv| {
-                            self.build_yaml(dv, &format!("{}/Fn::FindInMap/3/DefaultValue", path))
-                        })
+                        .map(|dv| self.build_yaml(dv, &format!("{}/Fn::FindInMap/3/DefaultValue", path)))
                 } else {
                     None
                 };
@@ -852,10 +747,7 @@ impl YamlBuilder {
                         ph.iter()
                             .filter_map(|(k, v)| {
                                 let ks = yaml_as_string(k)?;
-                                let r = self.build_yaml(
-                                    v,
-                                    &format!("{}/Fn::Transform/Parameters/{}", path, ks),
-                                );
+                                let r = self.build_yaml(v, &format!("{}/Fn::Transform/Parameters/{}", path, ks));
                                 Some((ks, r))
                             })
                             .collect()
@@ -865,24 +757,15 @@ impl YamlBuilder {
             }
             FN_AND => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(
-                        FN_AND,
-                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
-                    );
+                    self.condition_fn_error(FN_AND, &format!("{} is not of type 'array'", describe_yaml_value(val)));
                     return None;
                 };
                 if a.len() < 2 {
-                    self.condition_fn_error(
-                        FN_AND,
-                        &format!("expected minimum item count: 2, found: {}", a.len()),
-                    );
+                    self.condition_fn_error(FN_AND, &format!("expected minimum item count: 2, found: {}", a.len()));
                     return None;
                 }
                 if a.len() > 10 {
-                    self.condition_fn_error(
-                        FN_AND,
-                        &format!("expected maximum item count: 10, found: {}", a.len()),
-                    );
+                    self.condition_fn_error(FN_AND, &format!("expected maximum item count: 10, found: {}", a.len()));
                     return None;
                 }
                 for (idx, elem) in a.iter().enumerate() {
@@ -899,24 +782,15 @@ impl YamlBuilder {
             }
             FN_OR => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(
-                        FN_OR,
-                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
-                    );
+                    self.condition_fn_error(FN_OR, &format!("{} is not of type 'array'", describe_yaml_value(val)));
                     return None;
                 };
                 if a.len() < 2 {
-                    self.condition_fn_error(
-                        FN_OR,
-                        &format!("expected minimum item count: 2, found: {}", a.len()),
-                    );
+                    self.condition_fn_error(FN_OR, &format!("expected minimum item count: 2, found: {}", a.len()));
                     return None;
                 }
                 if a.len() > 10 {
-                    self.condition_fn_error(
-                        FN_OR,
-                        &format!("expected maximum item count: 10, found: {}", a.len()),
-                    );
+                    self.condition_fn_error(FN_OR, &format!("expected maximum item count: 10, found: {}", a.len()));
                     return None;
                 }
                 for (idx, elem) in a.iter().enumerate() {
@@ -933,17 +807,11 @@ impl YamlBuilder {
             }
             FN_NOT => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(
-                        FN_NOT,
-                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
-                    );
+                    self.condition_fn_error(FN_NOT, &format!("{} is not of type 'array'", describe_yaml_value(val)));
                     return None;
                 };
                 if a.len() != 1 {
-                    self.condition_fn_error(
-                        FN_NOT,
-                        &format!("must have exactly 1 element, got {}", a.len()),
-                    );
+                    self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", a.len()));
                     return None;
                 }
                 if let Some(reason) = condition_element_error_yaml(&a[0]) {
@@ -954,10 +822,7 @@ impl YamlBuilder {
             }
             FN_EQUALS => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(
-                        FN_EQUALS,
-                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
-                    );
+                    self.condition_fn_error(FN_EQUALS, &format!("{} is not of type 'array'", describe_yaml_value(val)));
                     return None;
                 };
                 if a.len() != 2 {
@@ -970,10 +835,7 @@ impl YamlBuilder {
                 }
                 for (idx, elem) in a.iter().enumerate() {
                     if let Some(reason) = equals_argument_error_yaml(elem) {
-                        self.condition_fn_error(
-                            FN_EQUALS,
-                            &format!("argument {}: {}", idx, reason),
-                        );
+                        self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason));
                     }
                 }
                 let x = self.build_yaml(&a[0], &format!("{}/{}/0", path, FN_EQUALS));
@@ -996,25 +858,16 @@ impl YamlBuilder {
                 if a.len() != 4 {
                     self.intrinsic_error(
                         FN_FOR_EACH,
-                        &format!(
-                            "Fn::ForEach value must be a 4-element array, got {}",
-                            a.len()
-                        ),
+                        &format!("Fn::ForEach value must be a 4-element array, got {}", a.len()),
                     );
                     return None;
                 }
                 let Some(uid) = yaml_as_string(&a[0]) else {
-                    self.intrinsic_error(
-                        FN_FOR_EACH,
-                        "Fn::ForEach first argument must be a string (unique ID)",
-                    );
+                    self.intrinsic_error(FN_FOR_EACH, "Fn::ForEach first argument must be a string (unique ID)");
                     return None;
                 };
                 let Some(ident) = yaml_as_string(&a[1]) else {
-                    self.intrinsic_error(
-                        FN_FOR_EACH,
-                        "Fn::ForEach second argument must be a string (identifier)",
-                    );
+                    self.intrinsic_error(FN_FOR_EACH, "Fn::ForEach second argument must be a string (identifier)");
                     return None;
                 };
                 let coll = self.build_yaml(&a[2], &format!("{}/Fn::ForEach/2", path));
@@ -1029,25 +882,16 @@ impl YamlBuilder {
                 if a.len() != 2 {
                     self.intrinsic_error(
                         FN_VALUE_OF,
-                        &format!(
-                            "Fn::ValueOf value must be a 2-element array, got {}",
-                            a.len()
-                        ),
+                        &format!("Fn::ValueOf value must be a 2-element array, got {}", a.len()),
                     );
                     return None;
                 }
                 let Some(s0) = yaml_as_string(&a[0]) else {
-                    self.intrinsic_error(
-                        FN_VALUE_OF,
-                        "Fn::ValueOf first argument must be a string",
-                    );
+                    self.intrinsic_error(FN_VALUE_OF, "Fn::ValueOf first argument must be a string");
                     return None;
                 };
                 let Some(s1) = yaml_as_string(&a[1]) else {
-                    self.intrinsic_error(
-                        FN_VALUE_OF,
-                        "Fn::ValueOf second argument must be a string",
-                    );
+                    self.intrinsic_error(FN_VALUE_OF, "Fn::ValueOf second argument must be a string");
                     return None;
                 };
                 IntrinsicFn::ValueOf(s0, s1)
@@ -1060,25 +904,16 @@ impl YamlBuilder {
                 if a.len() != 2 {
                     self.intrinsic_error(
                         FN_VALUE_OF_ALL,
-                        &format!(
-                            "Fn::ValueOfAll value must be a 2-element array, got {}",
-                            a.len()
-                        ),
+                        &format!("Fn::ValueOfAll value must be a 2-element array, got {}", a.len()),
                     );
                     return None;
                 }
                 let Some(s0) = yaml_as_string(&a[0]) else {
-                    self.intrinsic_error(
-                        FN_VALUE_OF_ALL,
-                        "Fn::ValueOfAll first argument must be a string",
-                    );
+                    self.intrinsic_error(FN_VALUE_OF_ALL, "Fn::ValueOfAll first argument must be a string");
                     return None;
                 };
                 let Some(s1) = yaml_as_string(&a[1]) else {
-                    self.intrinsic_error(
-                        FN_VALUE_OF_ALL,
-                        "Fn::ValueOfAll second argument must be a string",
-                    );
+                    self.intrinsic_error(FN_VALUE_OF_ALL, "Fn::ValueOfAll second argument must be a string");
                     return None;
                 };
                 IntrinsicFn::ValueOfAll(s0, s1)
@@ -1098,10 +933,7 @@ impl YamlBuilder {
                 if a.len() != 2 {
                     self.intrinsic_error(
                         FN_CONTAINS,
-                        &format!(
-                            "Fn::Contains value must be a 2-element array, got {}",
-                            a.len()
-                        ),
+                        &format!("Fn::Contains value must be a 2-element array, got {}", a.len()),
                     );
                     return None;
                 }
@@ -1111,19 +943,13 @@ impl YamlBuilder {
             }
             FN_EACH_MEMBER_EQUALS => {
                 let Some(a) = val.as_vec() else {
-                    self.intrinsic_error(
-                        FN_EACH_MEMBER_EQUALS,
-                        "Fn::EachMemberEquals value must be an array",
-                    );
+                    self.intrinsic_error(FN_EACH_MEMBER_EQUALS, "Fn::EachMemberEquals value must be an array");
                     return None;
                 };
                 if a.len() != 2 {
                     self.intrinsic_error(
                         FN_EACH_MEMBER_EQUALS,
-                        &format!(
-                            "Fn::EachMemberEquals value must be a 2-element array, got {}",
-                            a.len()
-                        ),
+                        &format!("Fn::EachMemberEquals value must be a 2-element array, got {}", a.len()),
                     );
                     return None;
                 }
@@ -1133,19 +959,13 @@ impl YamlBuilder {
             }
             FN_EACH_MEMBER_IN => {
                 let Some(a) = val.as_vec() else {
-                    self.intrinsic_error(
-                        FN_EACH_MEMBER_IN,
-                        "Fn::EachMemberIn value must be an array",
-                    );
+                    self.intrinsic_error(FN_EACH_MEMBER_IN, "Fn::EachMemberIn value must be an array");
                     return None;
                 };
                 if a.len() != 2 {
                     self.intrinsic_error(
                         FN_EACH_MEMBER_IN,
-                        &format!(
-                            "Fn::EachMemberIn value must be a 2-element array, got {}",
-                            a.len()
-                        ),
+                        &format!("Fn::EachMemberIn value must be a 2-element array, got {}", a.len()),
                     );
                     return None;
                 }
@@ -1162,11 +982,7 @@ impl YamlBuilder {
             }
             _ => return None,
         };
-        Some(self.arena.alloc(SpannedNode {
-            node: Node::Intrinsic(i),
-            span: UNKNOWN_SPAN,
-            path: path.into(),
-        }))
+        Some(self.arena.alloc(SpannedNode { node: Node::Intrinsic(i), span: UNKNOWN_SPAN, path: path.into() }))
     }
 }
 
@@ -1186,10 +1002,7 @@ fn extract_transforms(arena: &Arena, root: NodeRef) -> Vec<String> {
     };
     match arena.node(t) {
         Node::String(s) => vec![s.clone()],
-        Node::List(items) => items
-            .iter()
-            .filter_map(|r| arena.as_str(*r).map(|s| s.to_string()))
-            .collect(),
+        Node::List(items) => items.iter().filter_map(|r| arena.as_str(*r).map(|s| s.to_string())).collect(),
         _ => vec![],
     }
 }
@@ -1221,8 +1034,7 @@ mod tests {
 
     #[test]
     fn parse_tag_form_getatt() {
-        let input =
-            "Resources:\n  R:\n    Type: T\n    Properties:\n      Role: !GetAtt LambdaRole.Arn\n";
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Role: !GetAtt LambdaRole.Arn\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let res = ir.arena.as_map(ir.resources).unwrap();
         let props = ir.arena.map_get(res[0].1, "Properties").unwrap();
@@ -1256,21 +1068,18 @@ mod tests {
 
     #[test]
     fn yaml_json_equivalence() {
-        let y = parse_yaml(b"Resources:\n  B:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: test\n").unwrap();
+        let y = parse_yaml(b"Resources:\n  B:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: test\n")
+            .unwrap();
         let j = super::super::json::parse_json(
             br#"{"Resources":{"B":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"test"}}}}"#,
         )
         .unwrap();
-        assert_eq!(
-            y.arena.as_map(y.resources).unwrap().len(),
-            j.arena.as_map(j.resources).unwrap().len()
-        );
+        assert_eq!(y.arena.as_map(y.resources).unwrap().len(), j.arena.as_map(j.resources).unwrap().len());
     }
 
     #[test]
     fn parse_inline_ref_in_flow_sequence() {
-        let input =
-            "Conditions:\n  C:\n    Fn::Equals: [!Ref Env, Prod]\nResources:\n  R:\n    Type: T\n";
+        let input = "Conditions:\n  C:\n    Fn::Equals: [!Ref Env, Prod]\nResources:\n  R:\n    Type: T\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let conds = ir.arena.as_map(ir.conditions).unwrap();
         match ir.arena.node(conds[0].1) {
@@ -1302,16 +1111,8 @@ mod tests {
     fn fn_not_accepts_fn_contains_argument_no_f0014() {
         let input = "Parameters:\n  BootstrapVersion:\n    Type: String\nResources:\n  B:\n    Type: AWS::S3::Bucket\nRules:\n  CheckBootstrapVersion:\n    Assertions:\n      - Assert:\n          Fn::Not:\n            - Fn::Contains:\n                - [\"1\", \"2\", \"3\", \"4\", \"5\"]\n                - Ref: BootstrapVersion\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir
-            .diagnostics
-            .iter()
-            .filter(|d| d.rule_id == "F0014")
-            .collect();
-        assert!(
-            f0014.is_empty(),
-            "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}",
-            f0014
-        );
+        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
+        assert!(f0014.is_empty(), "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}", f0014);
     }
 
     #[test]

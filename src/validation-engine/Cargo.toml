@@ -15,7 +15,7 @@ path = "src/lib.rs"
 [features]
 wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
 uniffi-bindings = ["dep:uniffi"]
-test-support = []
+test = []
 
 [dependencies]
 diagnostics = { path = "../diagnostics" }

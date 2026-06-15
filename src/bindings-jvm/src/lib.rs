@@ -5,23 +5,19 @@ use std::sync::Arc;
 use validation_engine::ValidationEngine;
 
 pub use diagnostics::{
-    DetailLevel, DetailedDiagnostic, DetailedReport, JsonValue, PerformanceMetrics, PhaseMetric,
-    RelatedResource, ReportMetadata, ReportStatus, ResourceRef, SourceSpan, StandardDiagnostic,
-    StandardReport, Summary, ViolationContext,
+    DetailLevel, DetailedDiagnostic, DetailedReport, JsonValue, PerformanceMetrics, PhaseMetric, RelatedResource,
+    ReportMetadata, ReportStatus, ResourceRef, SourceSpan, StandardDiagnostic, StandardReport, Summary,
+    ViolationContext,
 };
-pub use rules::{
-    IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, Severity,
-};
+pub use rules::{IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, Severity};
 pub use template_model::PseudoParameterOverrides;
 pub use template_model::diagnostic::{
-    ConditionalNull, DiagnosticCondition, DiagnosticForEachExpansion, DiagnosticImplication,
-    DiagnosticModel, DiagnosticMutexGroup, DiagnosticOutput, DiagnosticResource, DiagnosticRule,
-    DiagnosticRuleAssertion, DiagnosticTemplate, GetAttRef, IncomingRef, OutgoingRef, PathTarget,
-    PathVariable, ReferenceEdge, ResolutionSource,
+    ConditionalNull, DiagnosticCondition, DiagnosticForEachExpansion, DiagnosticImplication, DiagnosticModel,
+    DiagnosticMutexGroup, DiagnosticOutput, DiagnosticResource, DiagnosticRule, DiagnosticRuleAssertion,
+    DiagnosticTemplate, GetAttRef, IncomingRef, OutgoingRef, PathTarget, PathVariable, ReferenceEdge, ResolutionSource,
 };
 pub use template_model::model::{
-    ConditionalNullEntry, ForEachExpansion, PathValuePair, ResolvedOutput, ResolvedResource,
-    ResourceDiagnostics,
+    ConditionalNullEntry, ForEachExpansion, PathValuePair, ResolvedOutput, ResolvedResource, ResourceDiagnostics,
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use validation_engine::{EngineConfig, EngineType, ExternalRuleSource};
@@ -54,9 +50,7 @@ impl ValidateConfig {
             parameter_overrides: self.parameter_overrides.clone(),
             pseudo_parameter_overrides: self.pseudo_parameter_overrides.clone(),
             strict: self.strict.unwrap_or(defaults.strict),
-            include_engine_rules: self
-                .include_engine_rules
-                .unwrap_or(defaults.include_engine_rules),
+            include_engine_rules: self.include_engine_rules.unwrap_or(defaults.include_engine_rules),
         }
     }
 }
@@ -76,9 +70,7 @@ pub enum ValidationError {
 /// exported method into an `InternalException`; this upgrades the result to the
 /// typed `ValidationError` callers handle.)
 fn panic_to_error(message: String) -> ValidationError {
-    ValidationError::Engine {
-        msg: format!("Internal validation error: {message}"),
-    }
+    ValidationError::Engine { msg: format!("Internal validation error: {message}") }
 }
 
 // ── SchemaValidator ──────────────────────────────────────────────────────────
@@ -98,9 +90,7 @@ pub struct JvmSchemaValidator {
 impl JvmSchemaValidator {
     #[uniffi::constructor]
     pub fn new() -> Arc<Self> {
-        Arc::new(Self {
-            inner: schema_validator::SchemaValidator::new(),
-        })
+        Arc::new(Self { inner: schema_validator::SchemaValidator::new() })
     }
 
     pub fn list_rules(&self) -> Result<Vec<RuleInfo>, ValidationError> {
@@ -145,12 +135,9 @@ macro_rules! impl_jvm_engine {
             pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
-                        let engine = $constructor(config)
-                            .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(Arc::new(Self {
-                            engine,
-                            schema_validator: schema_validator::SchemaValidator::new(),
-                        }))
+                        let engine =
+                            $constructor(config).map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
+                        Ok(Arc::new(Self { engine, schema_validator: schema_validator::SchemaValidator::new() }))
                     },
                     panic_to_error,
                 )
@@ -213,16 +200,8 @@ macro_rules! impl_jvm_engine {
     };
 }
 
-impl_jvm_engine!(
-    JvmRegoEngine,
-    rego_engine::RegoEngine,
-    rego_engine::RegoEngine::new
-);
-impl_jvm_engine!(
-    JvmCelEngine,
-    cel_engine::CelEngine,
-    cel_engine::CelEngine::new
-);
+impl_jvm_engine!(JvmRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new);
+impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new);
 
 // ── SemanticModel ────────────────────────────────────────────────────────────
 
@@ -239,29 +218,21 @@ impl JvmSemanticModel {
             || {
                 let result = template_model::SemanticModel::parse(&template, Default::default())
                     .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                Ok(Arc::new(Self {
-                    model: Arc::new(result.model),
-                }))
+                Ok(Arc::new(Self { model: Arc::new(result.model) }))
             },
             panic_to_error,
         )
     }
 
-    pub fn resources(
-        &self,
-    ) -> Result<HashMap<String, template_model::model::ResolvedResource>, ValidationError> {
+    pub fn resources(&self) -> Result<HashMap<String, template_model::model::ResolvedResource>, ValidationError> {
         validation_engine::catch_panics(|| Ok(self.model.resources.clone()), panic_to_error)
     }
 
-    pub fn parameters(
-        &self,
-    ) -> Result<HashMap<String, template_model::resolver::ParameterInfo>, ValidationError> {
+    pub fn parameters(&self) -> Result<HashMap<String, template_model::resolver::ParameterInfo>, ValidationError> {
         validation_engine::catch_panics(|| Ok(self.model.parameters.clone()), panic_to_error)
     }
 
-    pub fn outputs(
-        &self,
-    ) -> Result<HashMap<String, template_model::model::ResolvedOutput>, ValidationError> {
+    pub fn outputs(&self) -> Result<HashMap<String, template_model::model::ResolvedOutput>, ValidationError> {
         validation_engine::catch_panics(|| Ok(self.model.outputs.clone()), panic_to_error)
     }
 
@@ -283,17 +254,12 @@ impl JvmSemanticModel {
         self.model.description.clone()
     }
 
-    pub fn to_diagnostic_model(
-        &self,
-    ) -> Result<template_model::diagnostic::DiagnosticModel, ValidationError> {
+    pub fn to_diagnostic_model(&self) -> Result<template_model::diagnostic::DiagnosticModel, ValidationError> {
         validation_engine::catch_panics(|| Ok(self.model.to_diagnostic_json()), panic_to_error)
     }
 
     pub fn source_location(&self, path: String) -> Result<Option<SourceSpan>, ValidationError> {
-        validation_engine::catch_panics(
-            || Ok(self.model.source_location(&path).copied()),
-            panic_to_error,
-        )
+        validation_engine::catch_panics(|| Ok(self.model.source_location(&path).copied()), panic_to_error)
     }
 }
 

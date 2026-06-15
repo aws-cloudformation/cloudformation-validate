@@ -23,14 +23,9 @@ pub fn json_to_cel(v: &serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::String(Arc::new(s.clone())),
-        serde_json::Value::Array(arr) => {
-            Value::from(arr.iter().map(json_to_cel).collect::<Vec<_>>())
-        }
+        serde_json::Value::Array(arr) => Value::from(arr.iter().map(json_to_cel).collect::<Vec<_>>()),
         serde_json::Value::Object(map) => {
-            let hm: HashMap<String, Value> = map
-                .iter()
-                .map(|(k, v)| (k.clone(), json_to_cel(v)))
-                .collect();
+            let hm: HashMap<String, Value> = map.iter().map(|(k, v)| (k.clone(), json_to_cel(v))).collect();
             Value::from(hm)
         }
     }
@@ -39,14 +34,10 @@ pub fn json_to_cel(v: &serde_json::Value) -> Value {
 pub fn resolved_to_cel(rv: &ResolvedValue) -> Value {
     match rv {
         ResolvedValue::Concrete { value: v } => json_to_cel(v),
-        ResolvedValue::List { items } => {
-            Value::from(items.iter().map(resolved_to_cel).collect::<Vec<_>>())
-        }
+        ResolvedValue::List { items } => Value::from(items.iter().map(resolved_to_cel).collect::<Vec<_>>()),
         ResolvedValue::Map { entries } => {
-            let hm: HashMap<String, Value> = entries
-                .iter()
-                .map(|e| (e.key.clone(), resolved_to_cel(&e.value)))
-                .collect();
+            let hm: HashMap<String, Value> =
+                entries.iter().map(|e| (e.key.clone(), resolved_to_cel(&e.value))).collect();
             Value::from(hm)
         }
         ResolvedValue::Enum { variants: vals } => {
@@ -57,17 +48,9 @@ pub fn resolved_to_cel(rv: &ResolvedValue) -> Value {
             }
             Value::Null
         }
-        ResolvedValue::Conditional {
-            condition: _,
-            if_true: t,
-            if_false: _,
-        } => resolved_to_cel(t),
+        ResolvedValue::Conditional { condition: _, if_true: t, if_false: _ } => resolved_to_cel(t),
         ResolvedValue::Reference { target, kind: _ } => Value::String(Arc::new(target.clone())),
-        ResolvedValue::Dynamic { reason: _ }
-        | ResolvedValue::TypedDynamic {
-            reason: _,
-            param_type: _,
-        } => Value::Null,
+        ResolvedValue::Dynamic { reason: _ } | ResolvedValue::TypedDynamic { reason: _, param_type: _ } => Value::Null,
     }
 }
 
@@ -102,11 +85,8 @@ pub fn build_custom_context(
         if let Some(model) = model
             && let Some(res) = model.resources.get(rid)
         {
-            let resolved: HashMap<String, Value> = res
-                .properties
-                .iter()
-                .map(|(k, v)| (k.clone(), resolved_to_cel(v)))
-                .collect();
+            let resolved: HashMap<String, Value> =
+                res.properties.iter().map(|(k, v)| (k.clone(), resolved_to_cel(v))).collect();
             let _ = ctx.add_variable("resolved_properties", Value::from(resolved));
         }
     }
@@ -143,10 +123,7 @@ mod tests {
 
     #[test]
     fn json_string_to_cel() {
-        assert_eq!(
-            json_to_cel(&json!("hello")),
-            Value::String(Arc::new("hello".into()))
-        );
+        assert_eq!(json_to_cel(&json!("hello")), Value::String(Arc::new("hello".into())));
     }
 
     #[test]
@@ -173,9 +150,7 @@ mod tests {
 
     #[test]
     fn resolved_concrete_delegates_to_json_to_cel() {
-        let rv = ResolvedValue::Concrete {
-            value: json!(42).into(),
-        };
+        let rv = ResolvedValue::Concrete { value: json!(42).into() };
         assert_eq!(resolved_to_cel(&rv), Value::Int(42));
     }
 
@@ -183,12 +158,8 @@ mod tests {
     fn resolved_list_converts_items() {
         let rv = ResolvedValue::List {
             items: vec![
-                ResolvedValue::Concrete {
-                    value: json!(1).into(),
-                },
-                ResolvedValue::Concrete {
-                    value: json!(2).into(),
-                },
+                ResolvedValue::Concrete { value: json!(1).into() },
+                ResolvedValue::Concrete { value: json!(2).into() },
             ],
         };
         match resolved_to_cel(&rv) {
@@ -200,12 +171,7 @@ mod tests {
     #[test]
     fn resolved_map_converts_entries() {
         let rv = ResolvedValue::Map {
-            entries: vec![MapEntry {
-                key: "a".into(),
-                value: ResolvedValue::Concrete {
-                    value: json!(1).into(),
-                },
-            }],
+            entries: vec![MapEntry { key: "a".into(), value: ResolvedValue::Concrete { value: json!(1).into() } }],
         };
         match resolved_to_cel(&rv) {
             Value::Map(ref _map) => {} // Map type is opaque; just verify variant
@@ -217,56 +183,34 @@ mod tests {
     fn resolved_enum_picks_first_concrete() {
         let rv = ResolvedValue::Enum {
             variants: vec![
-                ResolvedValue::Dynamic {
-                    reason: "ref".into(),
-                },
-                ResolvedValue::Concrete {
-                    value: json!("picked").into(),
-                },
+                ResolvedValue::Dynamic { reason: "ref".into() },
+                ResolvedValue::Concrete { value: json!("picked").into() },
             ],
         };
-        assert_eq!(
-            resolved_to_cel(&rv),
-            Value::String(Arc::new("picked".into()))
-        );
+        assert_eq!(resolved_to_cel(&rv), Value::String(Arc::new("picked".into())));
     }
 
     #[test]
     fn resolved_enum_all_dynamic_returns_null() {
-        let rv = ResolvedValue::Enum {
-            variants: vec![ResolvedValue::Dynamic {
-                reason: "ref".into(),
-            }],
-        };
+        let rv = ResolvedValue::Enum { variants: vec![ResolvedValue::Dynamic { reason: "ref".into() }] };
         assert_eq!(resolved_to_cel(&rv), Value::Null);
     }
 
     #[test]
     fn resolved_reference_returns_target_string() {
-        let rv = ResolvedValue::Reference {
-            target: "MyBucket".into(),
-            kind: RefKind::Ref,
-        };
-        assert_eq!(
-            resolved_to_cel(&rv),
-            Value::String(Arc::new("MyBucket".into()))
-        );
+        let rv = ResolvedValue::Reference { target: "MyBucket".into(), kind: RefKind::Ref };
+        assert_eq!(resolved_to_cel(&rv), Value::String(Arc::new("MyBucket".into())));
     }
 
     #[test]
     fn resolved_dynamic_returns_null() {
-        let rv = ResolvedValue::Dynamic {
-            reason: "something".into(),
-        };
+        let rv = ResolvedValue::Dynamic { reason: "something".into() };
         assert_eq!(resolved_to_cel(&rv), Value::Null);
     }
 
     #[test]
     fn resolved_typed_dynamic_returns_null() {
-        let rv = ResolvedValue::TypedDynamic {
-            reason: "x".into(),
-            param_type: "String".into(),
-        };
+        let rv = ResolvedValue::TypedDynamic { reason: "x".into(), param_type: "String".into() };
         assert_eq!(resolved_to_cel(&rv), Value::Null);
     }
 
@@ -274,28 +218,20 @@ mod tests {
     fn resolved_conditional_uses_true_branch() {
         let rv = ResolvedValue::Conditional {
             condition: "cond".into(),
-            if_true: Box::new(ResolvedValue::Concrete {
-                value: json!("yes").into(),
-            }),
-            if_false: Box::new(ResolvedValue::Concrete {
-                value: json!("no").into(),
-            }),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!("yes").into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!("no").into() }),
         };
         assert_eq!(resolved_to_cel(&rv), Value::String(Arc::new("yes".into())));
     }
 
     #[test]
     fn concrete_is_resolvable() {
-        assert!(!contains_unresolvable_content(&ResolvedValue::Concrete {
-            value: json!(1).into()
-        }));
+        assert!(!contains_unresolvable_content(&ResolvedValue::Concrete { value: json!(1).into() }));
     }
 
     #[test]
     fn dynamic_is_unresolvable() {
-        assert!(contains_unresolvable_content(&ResolvedValue::Dynamic {
-            reason: "x".into()
-        }));
+        assert!(contains_unresolvable_content(&ResolvedValue::Dynamic { reason: "x".into() }));
     }
 
     // ── build_custom_context ────────────────────────────────────────────
@@ -352,14 +288,8 @@ Resources:
         .unwrap();
         let input = serde_json::to_value(model.to_diagnostic_json()).unwrap();
         let ctx = build_custom_context(&input, Some("MyBucket"), Some(&model));
-        let prog =
-            cel_interpreter::Program::compile("resolved_properties.BucketName == 'my-bucket'")
-                .unwrap();
+        let prog = cel_interpreter::Program::compile("resolved_properties.BucketName == 'my-bucket'").unwrap();
         let result = prog.execute(&ctx).unwrap();
-        assert_eq!(
-            result,
-            Value::Bool(true),
-            "resolved_properties should contain clean resolved values"
-        );
+        assert_eq!(result, Value::Bool(true), "resolved_properties should contain clean resolved values");
     }
 }

@@ -1,12 +1,11 @@
 use diagnostics::{
-    DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RelatedResource,
-    ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport,
-    ViolationContext, apply_filters, is_sam_transform_error_message, phase_metric,
-    resolve_section_span,
+    DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RelatedResource, ReportMetadata, ReportStatus,
+    ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext, apply_filters,
+    is_sam_transform_error_message, phase_metric, resolve_section_span,
 };
 use rules::{
-    FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, category_for_rule_id,
-    is_fatal_rule, section_for_rule_id,
+    FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, category_for_rule_id, is_fatal_rule,
+    section_for_rule_id,
 };
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -15,17 +14,11 @@ use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
-use template_model::{
-    ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel,
-};
+use template_model::{ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel};
 use web_time::Instant;
 
 fn span_to_option(span: SourceSpan) -> Option<SourceSpan> {
-    if span == UNKNOWN_SPAN {
-        None
-    } else {
-        Some(span)
-    }
+    if span == UNKNOWN_SPAN { None } else { Some(span) }
 }
 
 #[derive(Debug)]
@@ -96,9 +89,7 @@ impl EngineType {
         match raw.to_lowercase().as_str() {
             "rego" => Ok(EngineType::Rego),
             "cel" => Ok(EngineType::Cel),
-            other => Err(format!(
-                "Unknown engine type '{other}'; expected 'rego' or 'cel'"
-            )),
+            other => Err(format!("Unknown engine type '{other}'; expected 'rego' or 'cel'")),
         }
     }
 }
@@ -204,8 +195,7 @@ pub(crate) fn validate(
         engine.engine_name()
     );
 
-    let schema_result =
-        schema_validator.validate(&model, config.pseudo_parameter_overrides.region());
+    let schema_result = schema_validator.validate(&model, config.pseudo_parameter_overrides.region());
     let mut all_diagnostics = schema_result.diagnostics;
 
     let t_eval = Instant::now();
@@ -222,13 +212,7 @@ pub(crate) fn validate(
 
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
-    enrich_diagnostics(
-        &mut all_diagnostics,
-        &model,
-        registry_metadata,
-        &external_metadata,
-        &config.detail_level,
-    );
+    enrich_diagnostics(&mut all_diagnostics, &model, registry_metadata, &external_metadata, &config.detail_level);
 
     if config.detail_level.needs_context() {
         schema_validator.enrich_context(&mut all_diagnostics, &model);
@@ -244,27 +228,16 @@ pub(crate) fn validate(
         }
     }
 
-    let (total_before, suppressed) =
-        finalize_diagnostics(&mut all_diagnostics, &config, registry_metadata);
+    let (total_before, suppressed) = finalize_diagnostics(&mut all_diagnostics, &config, registry_metadata);
 
     if suppressed > 0 {
-        log::info!(
-            "Filtered {} -> {} diagnostics ({} suppressed)",
-            total_before,
-            all_diagnostics.len(),
-            suppressed
-        );
+        log::info!("Filtered {} -> {} diagnostics ({} suppressed)", total_before, all_diagnostics.len(), suppressed);
     }
 
     let excluded_cats = config.filters.excluded_categories();
     let active_rule_count = registry_metadata
         .iter()
-        .filter(|(_, entry)| {
-            !entry
-                .category
-                .as_deref()
-                .is_some_and(|c| excluded_cats.contains(c))
-        })
+        .filter(|(_, entry)| !entry.category.as_deref().is_some_and(|c| excluded_cats.contains(c)))
         .count() as u32;
 
     let mut report = build_report(
@@ -288,7 +261,7 @@ pub(crate) fn validate(
     Ok(report)
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 pub fn validate_bytes(
     engine: &dyn ValidationEngine,
     schema_validator: &schema_validator::SchemaValidator,
@@ -316,12 +289,7 @@ pub fn validate_bytes_with_path(
         Ok(r) => r,
         Err(e) => {
             let location = match (e.line, e.column) {
-                (Some(l), Some(c)) => Some(SourceSpan {
-                    start_line: l,
-                    start_column: c,
-                    end_line: l,
-                    end_column: c,
-                }),
+                (Some(l), Some(c)) => Some(SourceSpan { start_line: l, start_column: c, end_line: l, end_column: c }),
                 _ => None,
             };
             let def = rules::lookup_rule("F1101").expect("F1101 must be in RULE_REGISTRY");
@@ -352,13 +320,7 @@ pub fn validate_bytes_with_path(
                 metadata: ReportMetadata {
                     rules_evaluated: None,
                     resources_scanned: 0,
-                    counts: Summary {
-                        fatal: 1,
-                        errors: 0,
-                        warnings: 0,
-                        informational: 0,
-                        debug: 0,
-                    },
+                    counts: Summary { fatal: 1, errors: 0, warnings: 0, informational: 0, debug: 0 },
                     suppressed: 0,
                     strict: config.strict,
                     severity_level: config.severity_level,
@@ -420,18 +382,12 @@ pub fn validate_catching_panics<F>(validate: F) -> Result<ValidationReport, Vali
 where
     F: FnOnce() -> Result<ValidationReport, ValidationError>,
 {
-    catch_panics(validate, |message| {
-        ValidationError::Engine(format!("Internal validation error: {message}"))
-    })
+    catch_panics(validate, |message| ValidationError::Engine(format!("Internal validation error: {message}")))
 }
 
-pub fn semantic_model_to_input_json(
-    model: &SemanticModel,
-) -> Result<serde_json::Value, ValidationError> {
+pub fn semantic_model_to_input_json(model: &SemanticModel) -> Result<serde_json::Value, ValidationError> {
     serde_json::to_value(model.to_diagnostic_json()).map_err(|e| {
-        ValidationError::Engine(format!(
-            "Failed to serialize the semantic model for rule evaluation: {e}"
-        ))
+        ValidationError::Engine(format!("Failed to serialize the semantic model for rule evaluation: {e}"))
     })
 }
 
@@ -451,11 +407,8 @@ pub(crate) fn parse_diagnostic(
     registry_metadata: &HashMap<String, RuleMetadataEntry>,
     source_override: Option<&RuleOrigin>,
 ) -> Result<Diagnostic, String> {
-    let rule_id = val
-        .get("rule_id")
-        .and_then(|v| v.as_str())
-        .ok_or("Diagnostic missing required field 'rule_id'")?
-        .to_string();
+    let rule_id =
+        val.get("rule_id").and_then(|v| v.as_str()).ok_or("Diagnostic missing required field 'rule_id'")?.to_string();
     let severity_str = val
         .get("severity")
         .and_then(|v| v.as_str())
@@ -466,28 +419,14 @@ pub(crate) fn parse_diagnostic(
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("Diagnostic '{}' missing required field 'message'", rule_id))?
         .to_string();
-    let severity = if is_fatal_rule(&rule_id) {
-        Severity::Fatal
-    } else {
-        severity
-    };
-    let resource_id = val
-        .get("resource_id")
-        .and_then(|v| v.as_str())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
+    let severity = if is_fatal_rule(&rule_id) { Severity::Fatal } else { severity };
+    let resource_id = val.get("resource_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
     let resource = resource_id.as_ref().map(|rid| ResourceRef {
         id: Some(rid.clone()),
-        resource_type: model
-            .resources
-            .get(rid.as_str())
-            .map(|r| r.resource_type.clone()),
+        resource_type: model.resources.get(rid.as_str()).map(|r| r.resource_type.clone()),
     });
-    let property_path = val
-        .get("resource_path")
-        .and_then(|v| v.as_str())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
+    let property_path =
+        val.get("resource_path").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
     let span = if let Some(ref rid) = resource_id {
         model.resource_span(rid, property_path.as_deref().unwrap_or(""))
@@ -505,14 +444,11 @@ pub(crate) fn parse_diagnostic(
         }
     };
 
-    let is_custom_or_guard =
-        source_override.is_some_and(|o| matches!(o, RuleOrigin::Custom | RuleOrigin::Guard));
+    let is_custom_or_guard = source_override.is_some_and(|o| matches!(o, RuleOrigin::Custom | RuleOrigin::Guard));
 
     let category: Option<String> = if is_custom_or_guard {
         // Custom/guard rules never consult the registry — use only what the rule provides
-        val.get("category")
-            .and_then(|v| v.as_str())
-            .map(|c| c.to_string())
+        val.get("category").and_then(|v| v.as_str()).map(|c| c.to_string())
     } else if let Some(entry) = registry_metadata.get(&rule_id) {
         entry.category.clone()
     } else {
@@ -522,52 +458,33 @@ pub(crate) fn parse_diagnostic(
             .or_else(|| Some(category_for_rule_id(&rule_id).as_str().into()))
     };
 
-    let suggested_fix = val
-        .get("suggested_fix")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let documentation_url = val
-        .get("documentation_url")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let related_resources = val
-        .get("related_locations")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|r| {
-                    let rel_rid = r
-                        .get("resource_id")
-                        .and_then(|v| v.as_str())
-                        .map(|s| s.to_string());
-                    let rel_resource = rel_rid.as_ref().map(|rid| ResourceRef {
-                        id: Some(rid.clone()),
-                        resource_type: model
-                            .resources
-                            .get(rid.as_str())
-                            .map(|res| res.resource_type.clone()),
-                    });
-                    Some(RelatedResource {
-                        resource: rel_resource,
-                        location: Some(SourceSpan {
-                            start_line: r.get("start_line")?.as_u64()? as u32,
-                            start_column: r.get("start_column")?.as_u64()? as u32,
-                            end_line: r.get("end_line")?.as_u64()? as u32,
-                            end_column: r.get("end_column")?.as_u64()? as u32,
-                        }),
-                        message: r.get("message")?.as_str()?.to_string(),
-                    })
+    let suggested_fix = val.get("suggested_fix").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let documentation_url = val.get("documentation_url").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let related_resources = val.get("related_locations").and_then(|v| v.as_array()).map(|arr| {
+        arr.iter()
+            .filter_map(|r| {
+                let rel_rid = r.get("resource_id").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let rel_resource = rel_rid.as_ref().map(|rid| ResourceRef {
+                    id: Some(rid.clone()),
+                    resource_type: model.resources.get(rid.as_str()).map(|res| res.resource_type.clone()),
+                });
+                Some(RelatedResource {
+                    resource: rel_resource,
+                    location: Some(SourceSpan {
+                        start_line: r.get("start_line")?.as_u64()? as u32,
+                        start_column: r.get("start_column")?.as_u64()? as u32,
+                        end_line: r.get("end_line")?.as_u64()? as u32,
+                        end_column: r.get("end_column")?.as_u64()? as u32,
+                    }),
+                    message: r.get("message")?.as_str()?.to_string(),
                 })
-                .collect()
-        });
+            })
+            .collect()
+    });
     let condition_scenario = val
         .get("condition_scenario")
         .and_then(|v| v.as_object())
-        .map(|m| {
-            m.iter()
-                .filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b)))
-                .collect()
-        });
+        .map(|m| m.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect());
 
     let source = if let Some(origin) = source_override {
         *origin
@@ -605,18 +522,11 @@ pub fn extract_diagnostics(
     out: &mut Vec<Diagnostic>,
     source_override: Option<&RuleOrigin>,
 ) -> Result<(), String> {
-    let json_val: serde_json::Value = serde_json::from_str(json_str)
-        .map_err(|e| format!("Failed to parse diagnostic JSON: {}", e))?;
-    let items = json_val
-        .as_array()
-        .ok_or("Diagnostic output must be a JSON array")?;
+    let json_val: serde_json::Value =
+        serde_json::from_str(json_str).map_err(|e| format!("Failed to parse diagnostic JSON: {}", e))?;
+    let items = json_val.as_array().ok_or("Diagnostic output must be a JSON array")?;
     for item in items {
-        out.push(parse_diagnostic(
-            item,
-            model,
-            registry_metadata,
-            source_override,
-        )?);
+        out.push(parse_diagnostic(item, model, registry_metadata, source_override)?);
     }
     Ok(())
 }
@@ -630,22 +540,10 @@ pub(crate) fn build_report(
     severity_level: Severity,
     file_path: String,
 ) -> ValidationReport {
-    let fatal = diagnostics
-        .iter()
-        .filter(|d| d.severity == Severity::Fatal)
-        .count() as u32;
-    let errors = diagnostics
-        .iter()
-        .filter(|d| d.severity == Severity::Error)
-        .count() as u32;
-    let warnings = diagnostics
-        .iter()
-        .filter(|d| d.severity == Severity::Warn)
-        .count() as u32;
-    let debug = diagnostics
-        .iter()
-        .filter(|d| d.severity == Severity::Debug)
-        .count() as u32;
+    let fatal = diagnostics.iter().filter(|d| d.severity == Severity::Fatal).count() as u32;
+    let errors = diagnostics.iter().filter(|d| d.severity == Severity::Error).count() as u32;
+    let warnings = diagnostics.iter().filter(|d| d.severity == Severity::Warn).count() as u32;
+    let debug = diagnostics.iter().filter(|d| d.severity == Severity::Debug).count() as u32;
     let informational = diagnostics.len() as u32 - fatal - errors - warnings - debug;
     ValidationReport {
         file_path,
@@ -655,13 +553,7 @@ pub(crate) fn build_report(
         metadata: ReportMetadata {
             rules_evaluated,
             resources_scanned: model.resources.len() as u32,
-            counts: Summary {
-                fatal,
-                errors,
-                warnings,
-                informational,
-                debug,
-            },
+            counts: Summary { fatal, errors, warnings, informational, debug },
             suppressed,
             strict,
             severity_level,
@@ -687,10 +579,7 @@ pub(crate) fn finalize_diagnostics(
 
     if !config.include_engine_rules {
         diagnostics.retain(|d| {
-            registry_metadata
-                .get(&d.rule_id)
-                .map(|entry| !matches!(entry.origin, RuleOrigin::Engine))
-                .unwrap_or(true)
+            registry_metadata.get(&d.rule_id).map(|entry| !matches!(entry.origin, RuleOrigin::Engine)).unwrap_or(true)
         });
     }
 
@@ -732,8 +621,7 @@ pub(crate) fn finalize_diagnostics(
             .then(a.message.cmp(&b.message))
     });
     diagnostics.dedup_by(|a, b| {
-        a.location.as_ref().map(|l| l.start_line).unwrap_or(0)
-            == b.location.as_ref().map(|l| l.start_line).unwrap_or(0)
+        a.location.as_ref().map(|l| l.start_line).unwrap_or(0) == b.location.as_ref().map(|l| l.start_line).unwrap_or(0)
             && a.location.as_ref().map(|l| l.start_column).unwrap_or(0)
                 == b.location.as_ref().map(|l| l.start_column).unwrap_or(0)
             && a.rule_id == b.rule_id
@@ -769,8 +657,8 @@ pub(crate) fn build_context(
                 actual_value = resolve_val(property_path).map(Into::into);
             }
         }
-        "F3030" | "E3030" | "F3031" | "E3031" | "F3034" | "E3034" | "F3037" | "W3045" | "E1103"
-        | "E1150" | "E1151" | "E1152" | "E1153" | "E1154" | "E1155" | "E1156" => {
+        "F3030" | "E3030" | "F3031" | "E3031" | "F3034" | "E3034" | "F3037" | "W3045" | "E1103" | "E1150" | "E1151"
+        | "E1152" | "E1153" | "E1154" | "E1155" | "E1156" => {
             actual_value = resolve_val(property_path).map(Into::into);
         }
         "F3033" | "W9006" => {
@@ -813,10 +701,7 @@ pub(crate) fn build_context(
         }
         "E9001" => {
             if let Some(res) = model.resources.get(rid) {
-                extra.insert(
-                    "resource_type".into(),
-                    serde_json::json!(res.resource_type).into(),
-                );
+                extra.insert("resource_type".into(), serde_json::json!(res.resource_type).into());
             }
         }
         "E3501" => {
@@ -881,16 +766,14 @@ pub(crate) fn build_context(
 /// schema and lint findings on the untransformed template are noise. Retaining
 /// only the transform errors mirrors that short-circuit.
 fn gate_sam_transform_errors(diagnostics: &mut Vec<Diagnostic>) {
-    let has_transform_error = diagnostics
-        .iter()
-        .any(|d| is_sam_transform_error_message(&d.message));
+    let has_transform_error = diagnostics.iter().any(|d| is_sam_transform_error_message(&d.message));
     if has_transform_error {
         diagnostics.retain(|d| is_sam_transform_error_message(&d.message));
     }
 }
 
 pub(crate) fn enrich_diagnostics(
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut [Diagnostic],
     model: &SemanticModel,
     registry_metadata: &HashMap<String, RuleMetadataEntry>,
     external_metadata: &HashMap<String, RuleMetadataEntry>,
@@ -907,11 +790,7 @@ pub(crate) fn enrich_diagnostics(
             d.section = section_for_rule_id(rid, &d.rule_id).map(Into::into);
         }
         if d.phase.is_none() {
-            d.phase = Some(if is_fatal_rule(&d.rule_id) {
-                Phase::Schema
-            } else {
-                Phase::Lint
-            });
+            d.phase = Some(if is_fatal_rule(&d.rule_id) { Phase::Schema } else { Phase::Lint });
         }
         if d.rule_description.is_none() {
             d.rule_description = registry_metadata
@@ -957,8 +836,7 @@ pub fn make_resource_diagnostic(
     prop_path: &str,
     suggested_fix: Option<&str>,
 ) -> Diagnostic {
-    let def = rules::lookup_rule(rule_id)
-        .unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id));
+    let def = rules::lookup_rule(rule_id).unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id));
     let severity = def.severity();
     let category = def.category;
     let span = if resource_id.is_empty() {
@@ -971,17 +849,10 @@ pub fn make_resource_diagnostic(
     } else {
         Some(ResourceRef {
             id: Some(resource_id.into()),
-            resource_type: model
-                .resources
-                .get(resource_id)
-                .map(|r| r.resource_type.clone()),
+            resource_type: model.resources.get(resource_id).map(|r| r.resource_type.clone()),
         })
     };
-    let property_path = if prop_path.is_empty() {
-        None
-    } else {
-        Some(prop_path.into())
-    };
+    let property_path = if prop_path.is_empty() { None } else { Some(prop_path.into()) };
     Diagnostic {
         rule_id: rule_id.into(),
         severity,
@@ -1060,14 +931,8 @@ Resources:
         assert_eq!(diag.rule_id, "E3012");
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "Type mismatch");
-        assert_eq!(
-            diag.resource.as_ref().unwrap().id.as_deref(),
-            Some("Bucket")
-        );
-        assert_eq!(
-            diag.resource.as_ref().unwrap().resource_type.as_deref(),
-            Some("AWS::S3::Bucket")
-        );
+        assert_eq!(diag.resource.as_ref().unwrap().id.as_deref(), Some("Bucket"));
+        assert_eq!(diag.resource.as_ref().unwrap().resource_type.as_deref(), Some("AWS::S3::Bucket"));
     }
 
     #[test]
@@ -1133,10 +998,7 @@ Resources:
         });
         let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
         assert_eq!(diag.suggested_fix.as_deref(), Some("fix it"));
-        assert_eq!(
-            diag.documentation_url.as_deref(),
-            Some("https://example.com")
-        );
+        assert_eq!(diag.documentation_url.as_deref(), Some("https://example.com"));
     }
 
     #[test]
@@ -1150,10 +1012,7 @@ Resources:
             "resource_id": ""
         });
         let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
-        assert!(
-            diag.resource.is_none(),
-            "diagnostic without resource_id should have no resource"
-        );
+        assert!(diag.resource.is_none(), "diagnostic without resource_id should have no resource");
     }
 
     #[test]
@@ -1184,10 +1043,7 @@ Resources:
         });
         let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
         let expected_cat = &meta.get("E3012").unwrap().category;
-        assert_eq!(
-            diag.category.as_deref(),
-            Some(expected_cat.as_deref().unwrap())
-        );
+        assert_eq!(diag.category.as_deref(), Some(expected_cat.as_deref().unwrap()));
     }
 
     #[test]
@@ -1237,10 +1093,7 @@ Resources:
         });
         let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
         assert_eq!(diag.related_resources.as_ref().unwrap().len(), 1);
-        assert_eq!(
-            diag.related_resources.as_ref().unwrap()[0].message,
-            "related"
-        );
+        assert_eq!(diag.related_resources.as_ref().unwrap()[0].message, "related");
     }
 
     #[test]
@@ -1303,11 +1156,7 @@ Resources:
         let mut out = Vec::new();
         let result = extract_diagnostics(&json.to_string(), &model, &meta, &mut out, None);
         result.unwrap_err();
-        assert_eq!(
-            out.len(),
-            1,
-            "first valid item should have been added before failure"
-        );
+        assert_eq!(out.len(), 1, "first valid item should have been added before failure");
     }
 
     #[test]
@@ -1332,27 +1181,10 @@ Resources:
                 message: "error2".into(),
                 ..default_diag()
             },
-            Diagnostic {
-                rule_id: "W3045".into(),
-                severity: Severity::Warn,
-                message: "warn".into(),
-                ..default_diag()
-            },
-            Diagnostic {
-                severity: Severity::Info,
-                message: "info".into(),
-                ..default_diag()
-            },
+            Diagnostic { rule_id: "W3045".into(), severity: Severity::Warn, message: "warn".into(), ..default_diag() },
+            Diagnostic { severity: Severity::Info, message: "info".into(), ..default_diag() },
         ];
-        let report = build_report(
-            diags,
-            &model,
-            3,
-            Some(50),
-            false,
-            Severity::Info,
-            String::new(),
-        );
+        let report = build_report(diags, &model, 3, Some(50), false, Severity::Info, String::new());
         assert_eq!(report.metadata.counts.fatal, 1);
         assert_eq!(report.metadata.counts.errors, 2);
         assert_eq!(report.metadata.counts.warnings, 1);
@@ -1368,15 +1200,7 @@ Resources:
     #[test]
     fn build_report_empty_diagnostics() {
         let model = minimal_model();
-        let report = build_report(
-            vec![],
-            &model,
-            0,
-            None,
-            true,
-            Severity::Error,
-            String::new(),
-        );
+        let report = build_report(vec![], &model, 0, None, true, Severity::Error, String::new());
         assert_eq!(report.metadata.counts.fatal, 0);
         assert_eq!(report.metadata.counts.errors, 0);
         assert_eq!(report.metadata.counts.warnings, 0);
@@ -1388,20 +1212,8 @@ Resources:
     #[test]
     fn build_report_debug_severity_counted() {
         let model = minimal_model();
-        let diags = vec![Diagnostic {
-            severity: Severity::Debug,
-            message: "dbg".into(),
-            ..default_diag()
-        }];
-        let report = build_report(
-            diags,
-            &model,
-            0,
-            None,
-            false,
-            Severity::Debug,
-            String::new(),
-        );
+        let diags = vec![Diagnostic { severity: Severity::Debug, message: "dbg".into(), ..default_diag() }];
+        let report = build_report(diags, &model, 0, None, false, Severity::Debug, String::new());
         assert_eq!(report.metadata.counts.debug, 1);
         assert_eq!(report.metadata.counts.informational, 0);
     }
@@ -1523,12 +1335,7 @@ Resources:
             rule_id: rule_id.into(),
             severity,
             message: format!("msg for {}", rule_id),
-            location: Some(SourceSpan {
-                start_line: line,
-                start_column: col,
-                end_line: line,
-                end_column: col,
-            }),
+            location: Some(SourceSpan { start_line: line, start_column: col, end_line: line, end_column: col }),
             ..default_diag()
         }
     }
@@ -1539,12 +1346,7 @@ Resources:
                 "{} Resource with id [Fn] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
                 diagnostics::SAM_TRANSFORM_ERROR_PREFIX
             ),
-            ..make_diag(
-                diagnostics::SAM_TRANSFORM_ERROR_RULE_ID,
-                Severity::Error,
-                1,
-                1,
-            )
+            ..make_diag(diagnostics::SAM_TRANSFORM_ERROR_RULE_ID, Severity::Error, 1, 1)
         }
     }
 
@@ -1562,10 +1364,7 @@ Resources:
 
     #[test]
     fn gate_keeps_all_diagnostics_when_no_transform_error() {
-        let mut diags = vec![
-            make_diag("E3012", Severity::Error, 5, 1),
-            make_diag("I9040", Severity::Info, 7, 1),
-        ];
+        let mut diags = vec![make_diag("E3012", Severity::Error, 5, 1), make_diag("I9040", Severity::Info, 7, 1)];
         gate_sam_transform_errors(&mut diags);
         assert_eq!(diags.len(), 2);
     }
@@ -1599,10 +1398,7 @@ Resources:
     #[test]
     fn finalize_keeps_f_and_e_as_separate_diagnostics() {
         let config = ValidateConfig::default();
-        let mut diags = vec![
-            make_diag("F3012", Severity::Fatal, 5, 1),
-            make_diag("E3012", Severity::Error, 5, 1),
-        ];
+        let mut diags = vec![make_diag("F3012", Severity::Fatal, 5, 1), make_diag("E3012", Severity::Error, 5, 1)];
         let (_, suppressed) = finalize_diagnostics(&mut diags, &config, &HashMap::new());
         assert_eq!(suppressed, 0);
         assert_eq!(diags.len(), 2);
@@ -1612,21 +1408,12 @@ Resources:
 
     #[test]
     fn finalize_severity_filter_retains_fatal_always() {
-        let config = ValidateConfig {
-            severity_level: Severity::Error,
-            strict: false,
-            ..Default::default()
-        };
+        let config = ValidateConfig { severity_level: Severity::Error, strict: false, ..Default::default() };
         let mut diags = vec![
             make_diag("F3012", Severity::Fatal, 1, 1),
             make_diag("E3012", Severity::Error, 2, 1),
             make_diag("W3045", Severity::Warn, 3, 1),
-            Diagnostic {
-                severity: Severity::Info,
-                message: "info".into(),
-                location: None,
-                ..default_diag()
-            },
+            Diagnostic { severity: Severity::Info, message: "info".into(), location: None, ..default_diag() },
         ];
         finalize_diagnostics(&mut diags, &config, &HashMap::new());
         assert!(
@@ -1667,11 +1454,7 @@ Resources:
         a2.message = "param pWebServerAMI".into();
         let mut diags = vec![a1, sib, a2];
         finalize_diagnostics(&mut diags, &config, &HashMap::new());
-        assert_eq!(
-            diags.len(),
-            2,
-            "W2506 pWebServerAMI must dedup across sibling"
-        );
+        assert_eq!(diags.len(), 2, "W2506 pWebServerAMI must dedup across sibling");
         let msgs: Vec<&str> = diags.iter().map(|d| d.message.as_str()).collect();
         assert!(msgs.contains(&"param pAppAmi"));
         assert!(msgs.contains(&"param pWebServerAMI"));
@@ -1679,54 +1462,25 @@ Resources:
 
     #[test]
     fn finalize_strict_upgrades_warnings_to_errors() {
-        let config = ValidateConfig {
-            strict: true,
-            ..Default::default()
-        };
+        let config = ValidateConfig { strict: true, ..Default::default() };
         let mut diags = vec![
             make_diag("W3045", Severity::Warn, 1, 1),
             make_diag("E3012", Severity::Error, 2, 1),
             make_diag("F3012", Severity::Fatal, 3, 1),
         ];
         finalize_diagnostics(&mut diags, &config, &HashMap::new());
-        assert_eq!(
-            diags[0].severity,
-            Severity::Error,
-            "Warn should be upgraded to Error"
-        );
-        assert_eq!(
-            diags[1].severity,
-            Severity::Error,
-            "Error should stay Error"
-        );
-        assert_eq!(
-            diags[2].severity,
-            Severity::Fatal,
-            "Fatal should stay Fatal"
-        );
+        assert_eq!(diags[0].severity, Severity::Error, "Warn should be upgraded to Error");
+        assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
+        assert_eq!(diags[2].severity, Severity::Fatal, "Fatal should stay Fatal");
     }
 
     #[test]
     fn finalize_non_strict_preserves_warning_severity() {
-        let config = ValidateConfig {
-            strict: false,
-            ..Default::default()
-        };
-        let mut diags = vec![
-            make_diag("W3045", Severity::Warn, 1, 1),
-            make_diag("E3012", Severity::Error, 2, 1),
-        ];
+        let config = ValidateConfig { strict: false, ..Default::default() };
+        let mut diags = vec![make_diag("W3045", Severity::Warn, 1, 1), make_diag("E3012", Severity::Error, 2, 1)];
         finalize_diagnostics(&mut diags, &config, &HashMap::new());
-        assert_eq!(
-            diags[0].severity,
-            Severity::Warn,
-            "Warn should be preserved"
-        );
-        assert_eq!(
-            diags[1].severity,
-            Severity::Error,
-            "Error should stay Error"
-        );
+        assert_eq!(diags[0].severity, Severity::Warn, "Warn should be preserved");
+        assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
     }
 
     #[test]
@@ -1750,14 +1504,8 @@ Resources:
                 origin: RuleOrigin::CfnLint,
             },
         );
-        let config = ValidateConfig {
-            include_engine_rules: false,
-            ..Default::default()
-        };
-        let mut diags = vec![
-            make_diag("E9001", Severity::Error, 1, 1),
-            make_diag("E3012", Severity::Error, 2, 1),
-        ];
+        let config = ValidateConfig { include_engine_rules: false, ..Default::default() };
+        let mut diags = vec![make_diag("E9001", Severity::Error, 1, 1), make_diag("E3012", Severity::Error, 2, 1)];
         finalize_diagnostics(&mut diags, &config, &meta);
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].rule_id, "E3012");
@@ -1789,25 +1537,13 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef {
-                id: Some("Bucket".into()),
-                resource_type: Some("AWS::S3::Bucket".into()),
-            }),
+            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
             category: Some(Category::Schema.as_str().into()),
             ..default_diag()
         }];
-        enrich_diagnostics(
-            &mut diags,
-            &model,
-            &meta,
-            &HashMap::new(),
-            &DetailLevel::Detailed,
-        );
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Detailed);
         assert_eq!(diags[0].phase, Some(Phase::Lint));
-        assert!(
-            diags[0].rule_description.is_some(),
-            "enriched diagnostic should have rule_description"
-        );
+        assert!(diags[0].rule_description.is_some(), "enriched diagnostic should have rule_description");
     }
 
     #[test]
@@ -1822,13 +1558,7 @@ Resources:
             phase: Some(Phase::Parse),
             ..default_diag()
         }];
-        enrich_diagnostics(
-            &mut diags,
-            &model,
-            &meta,
-            &HashMap::new(),
-            &DetailLevel::Detailed,
-        );
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Detailed);
         assert_eq!(diags[0].phase, Some(Phase::Parse));
     }
 
@@ -1842,13 +1572,7 @@ Resources:
             message: "x".into(),
             ..default_diag()
         }];
-        enrich_diagnostics(
-            &mut diags,
-            &model,
-            &meta,
-            &HashMap::new(),
-            &DetailLevel::Detailed,
-        );
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Detailed);
         assert_eq!(diags[0].phase, Some(Phase::Schema));
     }
 
@@ -1860,24 +1584,12 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef {
-                id: Some("Bucket".into()),
-                resource_type: Some("AWS::S3::Bucket".into()),
-            }),
+            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
             property_path: Some("Properties.BucketName".into()),
             ..default_diag()
         }];
-        enrich_diagnostics(
-            &mut diags,
-            &model,
-            &meta,
-            &HashMap::new(),
-            &DetailLevel::Detailed,
-        );
-        assert!(
-            diags[0].context.is_some(),
-            "enriched diagnostic should have context"
-        );
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Detailed);
+        assert!(diags[0].context.is_some(), "enriched diagnostic should have context");
     }
 
     #[test]
@@ -1888,36 +1600,15 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef {
-                id: Some("Bucket".into()),
-                resource_type: Some("AWS::S3::Bucket".into()),
-            }),
+            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
             property_path: Some("Properties.BucketName".into()),
             ..default_diag()
         }];
-        enrich_diagnostics(
-            &mut diags,
-            &model,
-            &meta,
-            &HashMap::new(),
-            &DetailLevel::Standard,
-        );
-        assert!(
-            diags[0].phase.is_none(),
-            "unenriched diagnostic should have no phase"
-        );
-        assert!(
-            diags[0].rule_description.is_none(),
-            "unenriched diagnostic should have no rule_description"
-        );
-        assert!(
-            diags[0].section.is_none(),
-            "unenriched diagnostic should have no section"
-        );
-        assert!(
-            diags[0].context.is_none(),
-            "unenriched diagnostic should have no context"
-        );
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Standard);
+        assert!(diags[0].phase.is_none(), "unenriched diagnostic should have no phase");
+        assert!(diags[0].rule_description.is_none(), "unenriched diagnostic should have no rule_description");
+        assert!(diags[0].section.is_none(), "unenriched diagnostic should have no section");
+        assert!(diags[0].context.is_none(), "unenriched diagnostic should have no context");
     }
 
     #[test]
@@ -1933,10 +1624,7 @@ Resources:
         );
         assert_eq!(diag.rule_id, "E3012");
         assert_eq!(diag.severity, Severity::Error);
-        assert_eq!(
-            diag.resource.as_ref().unwrap().id.as_deref(),
-            Some("Bucket")
-        );
+        assert_eq!(diag.resource.as_ref().unwrap().id.as_deref(), Some("Bucket"));
         assert_eq!(diag.suggested_fix.as_deref(), Some("Use a string"));
     }
 
@@ -1951,19 +1639,13 @@ Resources:
     fn make_resource_diagnostic_empty_resource_id() {
         let model = minimal_model();
         let diag = make_resource_diagnostic("E3012", "msg", &model, "", "", None);
-        assert!(
-            diag.resource.is_none(),
-            "diagnostic without resource_id should have no resource"
-        );
+        assert!(diag.resource.is_none(), "diagnostic without resource_id should have no resource");
     }
 
     #[test]
     fn build_context_no_resource_returns_none() {
         let model = minimal_model();
-        assert!(
-            build_context("E3012", None, "Properties.X", &model).is_none(),
-            "no resource should return None"
-        );
+        assert!(build_context("E3012", None, "Properties.X", &model).is_none(), "no resource should return None");
     }
 
     #[test]
@@ -1980,10 +1662,7 @@ Resources:
         let model = minimal_model();
         let ctx = build_context("E3012", Some("Bucket"), "Properties.BucketName", &model)
             .expect("E3012 with property path should return context");
-        assert!(
-            ctx.actual_value.is_some(),
-            "context should have actual_value"
-        );
+        assert!(ctx.actual_value.is_some(), "context should have actual_value");
     }
 
     #[test]
@@ -2004,24 +1683,21 @@ Resources:
     #[test]
     fn build_context_w3042_sets_deprecated_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("W9009", Some("Bucket"), "", &model)
-            .expect("W9009 should return context");
+        let ctx = build_context("W9009", Some("Bucket"), "", &model).expect("W9009 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("deprecated"));
     }
 
     #[test]
     fn build_context_i3043_sets_create_only_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("I9001", Some("Bucket"), "", &model)
-            .expect("I9001 should return context");
+        let ctx = build_context("I9001", Some("Bucket"), "", &model).expect("I9001 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("create-only"));
     }
 
     #[test]
     fn build_context_w3041_sets_write_only_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("W3041", Some("Bucket"), "", &model)
-            .expect("W3041 should return context");
+        let ctx = build_context("W3041", Some("Bucket"), "", &model).expect("W3041 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("write-only"));
     }
 
@@ -2061,10 +1737,7 @@ Resources:
             "message": "x"
         });
         let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
-        assert_eq!(
-            diag.category,
-            Some(rules::category_for_rule_id("E3012").as_str().into())
-        );
+        assert_eq!(diag.category, Some(rules::category_for_rule_id("E3012").as_str().into()));
     }
 
     #[test]
@@ -2072,31 +1745,21 @@ Resources:
         let model = minimal_model();
         let ctx = build_context("E3030", Some("Bucket"), "Properties.BucketName", &model)
             .expect("E3030 should return context");
-        assert!(
-            ctx.actual_value.is_some(),
-            "E3030 context should have actual_value"
-        );
+        assert!(ctx.actual_value.is_some(), "E3030 context should have actual_value");
     }
 
     #[test]
     fn build_context_e3037_adds_resource_type() {
         let model = minimal_model();
-        let ctx = build_context("E9001", Some("Bucket"), "", &model)
-            .expect("E9001 should return context");
+        let ctx = build_context("E9001", Some("Bucket"), "", &model).expect("E9001 should return context");
         let extra = ctx.extra.unwrap();
-        assert_eq!(
-            extra.get("resource_type").and_then(|v| v.as_str()),
-            Some("AWS::S3::Bucket")
-        );
+        assert_eq!(extra.get("resource_type").and_then(|v| v.as_str()), Some("AWS::S3::Bucket"));
     }
 
     #[test]
     fn build_context_f3003_noop_returns_none() {
         let model = minimal_model();
-        assert!(
-            build_context("F3003", Some("Bucket"), "", &model).is_none(),
-            "F3003 should return None"
-        );
+        assert!(build_context("F3003", Some("Bucket"), "", &model).is_none(), "F3003 should return None");
     }
 
     #[test]
@@ -2104,10 +1767,7 @@ Resources:
         let model = minimal_model();
         let ctx = build_context("E3053", Some("Bucket"), "Properties.BucketName", &model)
             .expect("E3053 should return context");
-        assert!(
-            ctx.actual_value.is_some(),
-            "E3053 context should have actual_value"
-        );
+        assert!(ctx.actual_value.is_some(), "E3053 context should have actual_value");
     }
 
     #[test]
@@ -2132,8 +1792,8 @@ Resources:
     Condition: IsProd
 "#;
         let model = SemanticModel::from_bytes(yaml).expect("model with condition");
-        let ctx = build_context("W2503", Some("Bucket"), "", &model)
-            .expect("W2503 with condition should return context");
+        let ctx =
+            build_context("W2503", Some("Bucket"), "", &model).expect("W2503 with condition should return context");
         let extra = ctx.extra.unwrap();
         assert!(extra.contains_key("source_condition"));
     }
@@ -2160,13 +1820,7 @@ Resources:
             rule_description: Some("custom desc".into()),
             ..default_diag()
         }];
-        enrich_diagnostics(
-            &mut diags,
-            &model,
-            &meta,
-            &HashMap::new(),
-            &DetailLevel::Standard,
-        );
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Standard);
         assert_eq!(diags[0].section.as_deref(), Some("CustomSection"));
         assert_eq!(diags[0].phase, Some(Phase::Lint));
         assert_eq!(diags[0].rule_description.as_deref(), Some("custom desc"));
@@ -2174,20 +1828,12 @@ Resources:
 
     #[test]
     fn finalize_warning_level_filters_info() {
-        let config = ValidateConfig {
-            severity_level: Severity::Warn,
-            ..Default::default()
-        };
+        let config = ValidateConfig { severity_level: Severity::Warn, ..Default::default() };
         let mut diags = vec![
             make_diag("F3012", Severity::Fatal, 1, 1),
             make_diag("E3012", Severity::Error, 2, 1),
             make_diag("W3045", Severity::Warn, 3, 1),
-            Diagnostic {
-                severity: Severity::Info,
-                message: "info".into(),
-                location: None,
-                ..default_diag()
-            },
+            Diagnostic { severity: Severity::Info, message: "info".into(), location: None, ..default_diag() },
         ];
         finalize_diagnostics(&mut diags, &config, &HashMap::new());
         assert!(
@@ -2246,8 +1892,8 @@ Resources:
 
     #[test]
     fn engine_type_parse_returns_error_for_unknown_value() {
-        let error = EngineType::parse("unknown")
-            .expect_err("an unknown engine selector must return an error, not a default");
+        let error =
+            EngineType::parse("unknown").expect_err("an unknown engine selector must return an error, not a default");
         assert!(
             error.contains("Unknown engine type 'unknown'") && error.contains("rego"),
             "the error must name the bad selector and the valid options, got: {error}"
@@ -2260,8 +1906,7 @@ Resources:
             .expect_err("a panic must be converted into a structured error, not propagated");
         match error {
             ValidationError::Engine(message) => assert!(
-                message.contains("Internal validation error")
-                    && message.contains("simulated invariant violation"),
+                message.contains("Internal validation error") && message.contains("simulated invariant violation"),
                 "error must wrap the panic payload as a structured engine error, got: {message}"
             ),
             other => panic!("expected ValidationError::Engine, got {other:?}"),
@@ -2272,22 +1917,10 @@ Resources:
     fn validate_catching_panics_passes_success_through_unchanged() {
         let model = minimal_model();
         let report = validate_catching_panics(|| {
-            Ok(build_report(
-                vec![],
-                &model,
-                0,
-                Some(7),
-                false,
-                Severity::Info,
-                "inline".to_string(),
-            ))
+            Ok(build_report(vec![], &model, 0, Some(7), false, Severity::Info, "inline".to_string()))
         })
         .expect("a non-panicking Ok result must pass through the guard unchanged");
-        assert_eq!(
-            report.metadata.rules_evaluated,
-            Some(7),
-            "the guard must return the closure's report verbatim"
-        );
+        assert_eq!(report.metadata.rules_evaluated, Some(7), "the guard must return the closure's report verbatim");
     }
 
     /// A test engine that fails on demand, to prove that engine failures surface
@@ -2305,11 +1938,7 @@ Resources:
 
     impl ExplodingEngine {
         fn new(mode: Explosion) -> Self {
-            Self {
-                mode,
-                metadata: HashMap::new(),
-                metric: PhaseMetric { duration_ms: 0.0 },
-            }
+            Self { mode, metadata: HashMap::new(), metric: PhaseMetric { duration_ms: 0.0 } }
         }
     }
 
@@ -2325,9 +1954,7 @@ Resources:
         ) -> Result<Vec<Diagnostic>, ValidationError> {
             match self.mode {
                 Explosion::Panic => panic!("simulated engine invariant violation"),
-                Explosion::ReturnErr => Err(ValidationError::Engine(
-                    "Simulated engine evaluation failure".to_string(),
-                )),
+                Explosion::ReturnErr => Err(ValidationError::Engine("Simulated engine evaluation failure".to_string())),
             }
         }
 

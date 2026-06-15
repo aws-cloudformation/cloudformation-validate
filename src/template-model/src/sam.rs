@@ -5,10 +5,7 @@ use crate::resolver::ResolvedValue;
 use diagnostics::SAM_TRANSFORM_ERROR_RULE_ID;
 use std::collections::{HashMap, HashSet};
 
-pub fn extract_sam_globals(
-    arena: &Arena,
-    globals_ref: NodeRef,
-) -> HashMap<String, HashMap<String, serde_json::Value>> {
+pub fn extract_sam_globals(arena: &Arena, globals_ref: NodeRef) -> HashMap<String, HashMap<String, serde_json::Value>> {
     let mut result = HashMap::new();
     if globals_ref == NULL_REF {
         return result;
@@ -36,10 +33,7 @@ pub fn apply_sam_globals(
     globals: &HashMap<String, HashMap<String, serde_json::Value>>,
 ) {
     for (short_name, defaults) in globals {
-        let full_type = SAM_GLOBALS_TYPE_MAP
-            .iter()
-            .find(|(s, _)| *s == short_name)
-            .map(|(_, t)| *t);
+        let full_type = SAM_GLOBALS_TYPE_MAP.iter().find(|(s, _)| *s == short_name).map(|(_, t)| *t);
         let Some(full_type) = full_type else { continue };
         for res in resources.values_mut() {
             if res.resource_type != full_type {
@@ -47,21 +41,14 @@ pub fn apply_sam_globals(
             }
             for (prop, val) in defaults {
                 if !res.properties.contains_key(prop) {
-                    res.properties.insert(
-                        prop.clone(),
-                        ResolvedValue::Concrete {
-                            value: val.clone().into(),
-                        },
-                    );
+                    res.properties.insert(prop.clone(), ResolvedValue::Concrete { value: val.clone().into() });
                 }
             }
         }
     }
 }
 
-pub fn collect_sam_implicit_resources(
-    resources: &HashMap<String, ResolvedResource>,
-) -> HashSet<String> {
+pub fn collect_sam_implicit_resources(resources: &HashMap<String, ResolvedResource>) -> HashSet<String> {
     let mut implicit = HashSet::new();
     let mut has_api_event = false;
     for (name, res) in resources {
@@ -84,10 +71,7 @@ fn events_contain_api(events: &ResolvedValue) -> bool {
         ResolvedValue::Concrete { value: v } => {
             if let Some(obj) = v.as_object() {
                 obj.values().any(|ev| {
-                    ev.as_object()
-                        .and_then(|o| o.get(KEY_TYPE))
-                        .and_then(|t| t.as_str())
-                        == Some(SAM_EVENT_TYPE_API)
+                    ev.as_object().and_then(|o| o.get(KEY_TYPE)).and_then(|t| t.as_str()) == Some(SAM_EVENT_TYPE_API)
                 })
             } else {
                 false
@@ -130,8 +114,7 @@ pub fn cycle_involves_sam_diagnostic(
     resources: &HashMap<String, ResolvedResource>,
 ) -> bool {
     resources.iter().any(|(name, res)| {
-        res.resource_type.starts_with(SAM_SERVERLESS_TYPE_PREFIX)
-            && diagnostic.message.contains(name.as_str())
+        res.resource_type.starts_with(SAM_SERVERLESS_TYPE_PREFIX) && diagnostic.message.contains(name.as_str())
     })
 }
 
@@ -202,14 +185,7 @@ pub fn collect_transform_errors(
     parameter_names: &HashSet<String>,
     span_index: &SourceSpanIndex,
 ) -> Vec<diagnostics::Diagnostic> {
-    let context = TransformErrorContext {
-        arena,
-        resources_node,
-        globals_node,
-        resources,
-        parameter_names,
-        span_index,
-    };
+    let context = TransformErrorContext { arena, resources_node, globals_node, resources, parameter_names, span_index };
 
     let mut errors = Vec::new();
     auto_publish_alias_must_be_string_or_parameter_ref(&context, &mut errors);
@@ -244,11 +220,8 @@ impl<'a> TransformErrorContext<'a> {
 
     fn span_for(&self, resource_id: &str, prop_path: &str) -> SourceSpan {
         let resource_path = format!("Resources/{}", resource_id);
-        let specific_path = if prop_path.is_empty() {
-            resource_path.clone()
-        } else {
-            format!("{}/{}", resource_path, prop_path)
-        };
+        let specific_path =
+            if prop_path.is_empty() { resource_path.clone() } else { format!("{}/{}", resource_path, prop_path) };
         self.span_index
             .get(&specific_path)
             .or_else(|| self.span_index.get(&resource_path))
@@ -262,14 +235,10 @@ fn auto_publish_alias_must_be_string_or_parameter_ref(
     out: &mut Vec<diagnostics::Diagnostic>,
 ) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
-        let Some(located) =
-            located_auto_publish_alias(ctx.arena, ctx.resources_node, ctx.globals_node, name)
-        else {
+        let Some(located) = located_auto_publish_alias(ctx.arena, ctx.resources_node, ctx.globals_node, name) else {
             continue;
         };
-        let Some(message_suffix) =
-            auto_publish_alias_violation(ctx.arena, located.node, ctx.parameter_names)
-        else {
+        let Some(message_suffix) = auto_publish_alias_violation(ctx.arena, located.node, ctx.parameter_names) else {
             continue;
         };
         out.push(make_transform_error(
@@ -293,29 +262,18 @@ fn auto_publish_alias_must_be_string_or_parameter_ref(
 /// while every other unresolvable case (single-key non-Ref intrinsic, Ref to
 /// a non-parameter resource, Sub/GetAtt/etc.) surfaces as the alias-type
 /// message.
-fn auto_publish_alias_violation(
-    arena: &Arena,
-    node: NodeRef,
-    parameter_names: &HashSet<String>,
-) -> Option<String> {
+fn auto_publish_alias_violation(arena: &Arena, node: NodeRef, parameter_names: &HashSet<String>) -> Option<String> {
     match arena.node(node) {
         Node::String(_) => None,
         Node::Intrinsic(IntrinsicFn::Ref(target)) if parameter_names.contains(target) => None,
-        Node::Map(entries) if entries.len() != 1 => Some(format!(
-            "Type of property '{}' is invalid.",
-            SAM_AUTO_PUBLISH_ALIAS
-        )),
-        _ => Some(format!(
-            "'{}' must be a string or a Ref to a template parameter",
-            SAM_AUTO_PUBLISH_ALIAS
-        )),
+        Node::Map(entries) if entries.len() != 1 => {
+            Some(format!("Type of property '{}' is invalid.", SAM_AUTO_PUBLISH_ALIAS))
+        }
+        _ => Some(format!("'{}' must be a string or a Ref to a template parameter", SAM_AUTO_PUBLISH_ALIAS)),
     }
 }
 
-fn layer_version_must_have_content_uri(
-    ctx: &TransformErrorContext,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn layer_version_must_have_content_uri(ctx: &TransformErrorContext, out: &mut Vec<diagnostics::Diagnostic>) {
     for name in ctx.resources_of_type(SAM_LAYER_VERSION_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_LAYER_CONTENT_URI) {
             continue;
@@ -335,10 +293,7 @@ fn layer_version_must_have_content_uri(
     }
 }
 
-fn application_must_have_location(
-    ctx: &TransformErrorContext,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn application_must_have_location(ctx: &TransformErrorContext, out: &mut Vec<diagnostics::Diagnostic>) {
     for name in ctx.resources_of_type(SAM_APPLICATION_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_APPLICATION_LOCATION) {
             continue;
@@ -349,23 +304,18 @@ fn application_must_have_location(
             prop_path.clone(),
             format!(
                 "{} Resource with id [{}] is invalid. Resource is missing the required [{}] property.",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX, name, SAM_APPLICATION_LOCATION
+                diagnostics::SAM_TRANSFORM_ERROR_PREFIX,
+                name,
+                SAM_APPLICATION_LOCATION
             ),
             ctx.span_for(name, &prop_path),
         ));
     }
 }
 
-fn schedule_event_must_have_schedule(
-    ctx: &TransformErrorContext,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn schedule_event_must_have_schedule(ctx: &TransformErrorContext, out: &mut Vec<diagnostics::Diagnostic>) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
-        let Some(events_value) = ctx
-            .resources
-            .get(name)
-            .and_then(|res| res.properties.get(SAM_FUNCTION_EVENTS))
-        else {
+        let Some(events_value) = ctx.resources.get(name).and_then(|res| res.properties.get(SAM_FUNCTION_EVENTS)) else {
             continue;
         };
         for (event_name, event_object) in event_object_entries(events_value) {
@@ -393,15 +343,8 @@ fn sam_property_path(prefix: &str, property: &str) -> String {
     format!("{}/{}", prefix, property)
 }
 
-fn resource_has_property(
-    resources: &HashMap<String, ResolvedResource>,
-    resource_id: &str,
-    property: &str,
-) -> bool {
-    resources
-        .get(resource_id)
-        .map(|r| r.properties.contains_key(property))
-        .unwrap_or(false)
+fn resource_has_property(resources: &HashMap<String, ResolvedResource>, resource_id: &str, property: &str) -> bool {
+    resources.get(resource_id).map(|r| r.properties.contains_key(property)).unwrap_or(false)
 }
 
 /// Flattens a SAM `Events` map into `(event_name, event_json)` pairs, skipping
@@ -475,20 +418,12 @@ impl LocatedAlias {
     fn diagnostic_span(&self, function_name: &str, span_index: &SourceSpanIndex) -> SourceSpan {
         let resource_path = format!("Resources/{}", function_name);
         let property_path = match self.source {
-            AliasSource::Resource => format!(
-                "Resources/{}/{}/{}",
-                function_name, KEY_PROPERTIES, SAM_AUTO_PUBLISH_ALIAS
-            ),
-            AliasSource::GlobalsFunction => format!(
-                "Globals/{}/{}",
-                SAM_FUNCTION_GLOBALS_KEY, SAM_AUTO_PUBLISH_ALIAS
-            ),
+            AliasSource::Resource => {
+                format!("Resources/{}/{}/{}", function_name, KEY_PROPERTIES, SAM_AUTO_PUBLISH_ALIAS)
+            }
+            AliasSource::GlobalsFunction => format!("Globals/{}/{}", SAM_FUNCTION_GLOBALS_KEY, SAM_AUTO_PUBLISH_ALIAS),
         };
-        span_index
-            .get(&property_path)
-            .or_else(|| span_index.get(&resource_path))
-            .copied()
-            .unwrap_or(UNKNOWN_SPAN)
+        span_index.get(&property_path).or_else(|| span_index.get(&resource_path)).copied().unwrap_or(UNKNOWN_SPAN)
     }
 }
 
@@ -505,17 +440,11 @@ fn located_auto_publish_alias(
     if let Some(props) = arena.map_get(resource, KEY_PROPERTIES)
         && let Some(node) = present_alias(arena, props)
     {
-        return Some(LocatedAlias {
-            node,
-            source: AliasSource::Resource,
-        });
+        return Some(LocatedAlias { node, source: AliasSource::Resource });
     }
     let function_globals = arena.map_get(globals_node, SAM_FUNCTION_GLOBALS_KEY)?;
     let node = present_alias(arena, function_globals)?;
-    Some(LocatedAlias {
-        node,
-        source: AliasSource::GlobalsFunction,
-    })
+    Some(LocatedAlias { node, source: AliasSource::GlobalsFunction })
 }
 
 fn present_alias(arena: &Arena, container: NodeRef) -> Option<NodeRef> {
@@ -545,23 +474,12 @@ fn make_transform_error(
         rule_id: SAM_TRANSFORM_ERROR_RULE_ID.into(),
         severity: definition.severity(),
         message,
-        resource: Some(diagnostics::ResourceRef {
-            id: Some(resource_id.into()),
-            resource_type: None,
-        }),
-        property_path: if property_path.is_empty() {
-            None
-        } else {
-            Some(property_path)
-        },
+        resource: Some(diagnostics::ResourceRef { id: Some(resource_id.into()), resource_type: None }),
+        property_path: if property_path.is_empty() { None } else { Some(property_path) },
         suggested_fix: None,
         documentation_url: None,
         category: Some(definition.category.as_str().into()),
-        location: if span == UNKNOWN_SPAN {
-            None
-        } else {
-            Some(span)
-        },
+        location: if span == UNKNOWN_SPAN { None } else { Some(span) },
         related_resources: None,
         condition_scenario: None,
         rule_description: None,
@@ -578,20 +496,12 @@ mod tests {
     use diagnostics::Diagnostic;
 
     fn transform_errors(template: &str) -> Vec<String> {
-        sam_transform_diagnostics(template)
-            .into_iter()
-            .map(|d| d.message)
-            .collect()
+        sam_transform_diagnostics(template).into_iter().map(|d| d.message).collect()
     }
 
     fn sam_transform_diagnostics(template: &str) -> Vec<Diagnostic> {
         let model = SemanticModel::from_bytes(template.as_bytes()).expect("template should parse");
-        model
-            .diagnostics
-            .iter()
-            .filter(|d| diagnostics::is_sam_transform_error_message(&d.message))
-            .cloned()
-            .collect()
+        model.diagnostics.iter().filter(|d| diagnostics::is_sam_transform_error_message(&d.message)).cloned().collect()
     }
 
     #[test]
@@ -836,10 +746,7 @@ Resources:
             "Error transforming template: Resource with id [App] is invalid. \
              Resource is missing the required [Location] property."
         );
-        assert_eq!(
-            diag.resource.as_ref().and_then(|r| r.id.as_deref()),
-            Some("App")
-        );
+        assert_eq!(diag.resource.as_ref().and_then(|r| r.id.as_deref()), Some("App"));
         assert_eq!(diag.property_path.as_deref(), Some("Properties/Location"));
     }
 
@@ -980,23 +887,13 @@ Resources:
 "#;
         let messages = transform_errors(template);
         assert_eq!(messages.len(), 4, "got: {:#?}", messages);
+        assert!(messages.iter().any(|m| m.contains("Missing required property 'ContentUri'")));
+        assert!(messages.iter().any(|m| m.contains("Resource is missing the required [Location] property")));
         assert!(
             messages
                 .iter()
-                .any(|m| m.contains("Missing required property 'ContentUri'"))
+                .any(|m| { m.contains("'AutoPublishAlias' must be a string or a Ref to a template parameter") })
         );
-        assert!(
-            messages
-                .iter()
-                .any(|m| m.contains("Resource is missing the required [Location] property"))
-        );
-        assert!(messages.iter().any(|m| {
-            m.contains("'AutoPublishAlias' must be a string or a Ref to a template parameter")
-        }));
-        assert!(
-            messages
-                .iter()
-                .any(|m| m.contains("[FnHourly] is invalid. Missing required property 'Schedule'"))
-        );
+        assert!(messages.iter().any(|m| m.contains("[FnHourly] is invalid. Missing required property 'Schedule'")));
     }
 }

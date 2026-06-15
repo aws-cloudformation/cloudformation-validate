@@ -67,11 +67,7 @@ impl RuleDefinition {
     /// Derive severity from the first character of the rule ID.
     /// Panics if the rule ID is empty — every registered rule must have a valid ID.
     pub fn severity(&self) -> Severity {
-        let prefix = self
-            .id
-            .chars()
-            .next()
-            .unwrap_or_else(|| panic!("RuleDefinition has empty ID"));
+        let prefix = self.id.chars().next().unwrap_or_else(|| panic!("RuleDefinition has empty ID"));
         Severity::from_prefix(prefix)
     }
 
@@ -1778,12 +1774,7 @@ mod tests {
         for rule in RULE_REGISTRY {
             let prefix = rule.id.chars().next().unwrap();
             let expected = Severity::from_prefix(prefix);
-            assert_eq!(
-                rule.severity(),
-                expected,
-                "Rule {} severity mismatch",
-                rule.id
-            );
+            assert_eq!(rule.severity(), expected, "Rule {} severity mismatch", rule.id);
         }
     }
 
@@ -1803,10 +1794,7 @@ mod tests {
 
     #[test]
     fn lookup_rule_returns_none_for_unregistered_id() {
-        assert!(
-            lookup_rule("Z9999").is_none(),
-            "unregistered rule ID Z9999 should return None"
-        );
+        assert!(lookup_rule("Z9999").is_none(), "unregistered rule ID Z9999 should return None");
     }
 
     #[test]
@@ -1839,13 +1827,9 @@ mod tests {
 
     #[test]
     fn rule_origin_serde_round_trips() {
-        for origin in [
-            RuleOrigin::Schema,
-            RuleOrigin::CfnLint,
-            RuleOrigin::Engine,
-            RuleOrigin::Custom,
-            RuleOrigin::Guard,
-        ] {
+        for origin in
+            [RuleOrigin::Schema, RuleOrigin::CfnLint, RuleOrigin::Engine, RuleOrigin::Custom, RuleOrigin::Guard]
+        {
             let json = serde_json::to_string(&origin).unwrap();
             let deserialized: RuleOrigin = serde_json::from_str(&json).unwrap();
             assert_eq!(deserialized, origin, "round-trip failed for {:?}", origin);
@@ -1889,10 +1873,7 @@ mod tests {
                 }
                 Severity::Warn => {
                     assert!(
-                        matches!(
-                            rule.category,
-                            Category::Security | Category::Deprecation | Category::BestPractice
-                        ),
+                        matches!(rule.category, Category::Security | Category::Deprecation | Category::BestPractice),
                         "Warn rule {} has disallowed category {:?}",
                         rule.id,
                         rule.category
@@ -1922,22 +1903,14 @@ mod tests {
     fn rule_ids_match_expected_format() {
         let id_re = regex::Regex::new(r"^[FEWID]\d{4}$").unwrap();
         for rule in RULE_REGISTRY {
-            assert!(
-                id_re.is_match(rule.id),
-                "Rule ID '{}' does not match [FEWID]NNNN format",
-                rule.id
-            );
+            assert!(id_re.is_match(rule.id), "Rule ID '{}' does not match [FEWID]NNNN format", rule.id);
         }
     }
 
     #[test]
     fn no_empty_descriptions() {
         for rule in RULE_REGISTRY {
-            assert!(
-                !rule.description.trim().is_empty(),
-                "Rule {} has empty description",
-                rule.id
-            );
+            assert!(!rule.description.trim().is_empty(), "Rule {} has empty description", rule.id);
         }
     }
 }

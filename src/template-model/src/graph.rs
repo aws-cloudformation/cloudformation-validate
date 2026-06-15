@@ -39,14 +39,8 @@ impl ReferenceGraph {
         let mut edges_by_target: HashMap<String, Vec<usize>> = HashMap::new();
 
         for (i, edge) in edges.iter().enumerate() {
-            edges_by_source
-                .entry(edge.source_resource.clone())
-                .or_default()
-                .push(i);
-            edges_by_target
-                .entry(edge.target.clone())
-                .or_default()
-                .push(i);
+            edges_by_source.entry(edge.source_resource.clone()).or_default().push(i);
+            edges_by_target.entry(edge.target.clone()).or_default().push(i);
         }
 
         let resource_set: BTreeSet<&str> = resource_ids.iter().map(|s| s.as_str()).collect();
@@ -56,11 +50,7 @@ impl ReferenceGraph {
             warn!(
                 "{} circular dependencies: {}",
                 cycles.len(),
-                cycles
-                    .iter()
-                    .map(|c| c.join(" → "))
-                    .collect::<Vec<_>>()
-                    .join("; ")
+                cycles.iter().map(|c| c.join(" → ")).collect::<Vec<_>>().join("; ")
             );
         }
         info!(
@@ -71,12 +61,7 @@ impl ReferenceGraph {
             edges_by_target.len(),
             cycles.len()
         );
-        ReferenceGraph {
-            edges,
-            edges_by_source,
-            edges_by_target,
-            cycles,
-        }
+        ReferenceGraph { edges, edges_by_source, edges_by_target, cycles }
     }
 
     pub fn outgoing(&self, resource_id: &str) -> Vec<&Edge> {
@@ -125,17 +110,11 @@ impl ReferenceGraph {
     }
 
     pub fn ref_targets(&self, resource_id: &str) -> Vec<&str> {
-        self.outgoing(resource_id)
-            .iter()
-            .map(|e| e.target.as_str())
-            .collect()
+        self.outgoing(resource_id).iter().map(|e| e.target.as_str()).collect()
     }
 
     pub fn ref_sources(&self, resource_id: &str) -> Vec<&str> {
-        self.incoming(resource_id)
-            .iter()
-            .map(|e| e.source_resource.as_str())
-            .collect()
+        self.incoming(resource_id).iter().map(|e| e.source_resource.as_str()).collect()
     }
 
     pub fn cycle_diagnostics(
@@ -147,10 +126,7 @@ impl ReferenceGraph {
             for i in 0..cycle.len() {
                 let source = &cycle[i];
                 let target = &cycle[(i + 1) % cycle.len()];
-                let span = span_index
-                    .get(&format!("Resources/{}", source))
-                    .copied()
-                    .unwrap_or(UNKNOWN_SPAN);
+                let span = span_index.get(&format!("Resources/{}", source)).copied().unwrap_or(UNKNOWN_SPAN);
                 out.push(diagnostics::Diagnostic {
                     rule_id: "F3004".into(),
                     severity: rules_crate::Severity::Fatal,
@@ -158,21 +134,14 @@ impl ReferenceGraph {
                         "Circular Dependencies for resource {}. Circular dependency with [{}]",
                         source, target
                     ),
-                    resource: Some(diagnostics::ResourceRef {
-                        id: Some(source.clone()),
-                        resource_type: None,
-                    }),
+                    resource: Some(diagnostics::ResourceRef { id: Some(source.clone()), resource_type: None }),
                     property_path: Some(format!("Resources/{}", source)),
                     suggested_fix: None,
                     documentation_url: None,
                     category: Some(rules_crate::Category::Structure.as_str().into()),
                     phase: Some(diagnostics::Phase::Lint),
                     source: diagnostics::source_for_rule("F3004"),
-                    location: if span == UNKNOWN_SPAN {
-                        None
-                    } else {
-                        Some(span)
-                    },
+                    location: if span == UNKNOWN_SPAN { None } else { Some(span) },
                     related_resources: None,
                     condition_scenario: None,
                     rule_description: None,
@@ -188,12 +157,8 @@ impl ReferenceGraph {
 fn detect_cycles(edges: &[Edge], resource_ids: &BTreeSet<&str>) -> Vec<Vec<String>> {
     let mut adj: HashMap<&str, BTreeSet<&str>> = HashMap::new();
     for edge in edges {
-        if resource_ids.contains(edge.source_resource.as_str())
-            && resource_ids.contains(edge.target.as_str())
-        {
-            adj.entry(edge.source_resource.as_str())
-                .or_default()
-                .insert(edge.target.as_str());
+        if resource_ids.contains(edge.source_resource.as_str()) && resource_ids.contains(edge.target.as_str()) {
+            adj.entry(edge.source_resource.as_str()).or_default().insert(edge.target.as_str());
         }
     }
 
@@ -208,11 +173,7 @@ fn detect_cycles(edges: &[Edge], resource_ids: &BTreeSet<&str>) -> Vec<Vec<Strin
         }
     }
 
-    let mut queue: VecDeque<&str> = in_degree
-        .iter()
-        .filter(|(_, deg)| **deg == 0)
-        .map(|(&id, _)| id)
-        .collect();
+    let mut queue: VecDeque<&str> = in_degree.iter().filter(|(_, deg)| **deg == 0).map(|(&id, _)| id).collect();
 
     let mut processed = BTreeSet::new();
     while let Some(node) = queue.pop_front() {
@@ -229,11 +190,7 @@ fn detect_cycles(edges: &[Edge], resource_ids: &BTreeSet<&str>) -> Vec<Vec<Strin
         }
     }
 
-    let cycle_nodes: BTreeSet<&str> = resource_ids
-        .iter()
-        .filter(|id| !processed.contains(**id))
-        .copied()
-        .collect();
+    let cycle_nodes: BTreeSet<&str> = resource_ids.iter().filter(|id| !processed.contains(**id)).copied().collect();
 
     if cycle_nodes.is_empty() {
         return vec![];
@@ -248,22 +205,12 @@ fn detect_cycles(edges: &[Edge], resource_ids: &BTreeSet<&str>) -> Vec<Vec<Strin
         }
         let mut path = Vec::new();
         let mut on_stack = BTreeSet::new();
-        extract_cycles(
-            start,
-            &adj,
-            &cycle_nodes,
-            &mut path,
-            &mut on_stack,
-            &mut visited_global,
-            &mut cycles,
-        );
+        extract_cycles(start, &adj, &cycle_nodes, &mut path, &mut on_stack, &mut visited_global, &mut cycles);
     }
 
     // Self-cycles (A→A) may not be caught by DFS if adj deduplicates them
     for edge in edges {
-        if edge.source_resource == edge.target
-            && resource_ids.contains(edge.source_resource.as_str())
-        {
+        if edge.source_resource == edge.target && resource_ids.contains(edge.source_resource.as_str()) {
             let self_cycle = vec![edge.source_resource.clone()];
             if !cycles.contains(&self_cycle) {
                 cycles.push(self_cycle);
@@ -363,11 +310,7 @@ mod tests {
 
     #[test]
     fn graph_three_node_cycle() {
-        let edges = vec![
-            make_edge("A", "B"),
-            make_edge("B", "C"),
-            make_edge("C", "A"),
-        ];
+        let edges = vec![make_edge("A", "B"), make_edge("B", "C"), make_edge("C", "A")];
         let ids = vec!["A".into(), "B".into(), "C".into()];
         let graph = ReferenceGraph::build(edges, &ids);
         assert_eq!(graph.cycles().len(), 1);
@@ -386,12 +329,7 @@ mod tests {
 
     #[test]
     fn graph_diamond_no_cycle() {
-        let edges = vec![
-            make_edge("A", "B"),
-            make_edge("A", "C"),
-            make_edge("B", "D"),
-            make_edge("C", "D"),
-        ];
+        let edges = vec![make_edge("A", "B"), make_edge("A", "C"), make_edge("B", "D"), make_edge("C", "D")];
         let ids = vec!["A".into(), "B".into(), "C".into(), "D".into()];
         let graph = ReferenceGraph::build(edges, &ids);
         assert!(graph.cycles().is_empty());
@@ -399,11 +337,7 @@ mod tests {
 
     #[test]
     fn graph_ref_targets_and_sources() {
-        let edges = vec![
-            make_edge("A", "B"),
-            make_edge("A", "C"),
-            make_edge("D", "A"),
-        ];
+        let edges = vec![make_edge("A", "B"), make_edge("A", "C"), make_edge("D", "A")];
         let ids = vec!["A".into(), "B".into(), "C".into(), "D".into()];
         let graph = ReferenceGraph::build(edges, &ids);
         let mut targets: Vec<&str> = graph.ref_targets("A");
@@ -423,16 +357,8 @@ mod tests {
         let diags = graph.cycle_diagnostics(&span_index);
         assert_eq!(diags.len(), 2, "one diagnostic per resource in cycle");
         assert!(diags.iter().all(|d| d.rule_id == "F3004"));
-        assert!(
-            diags[0]
-                .message
-                .contains("Circular Dependencies for resource A")
-        );
-        assert!(
-            diags[1]
-                .message
-                .contains("Circular Dependencies for resource B")
-        );
+        assert!(diags[0].message.contains("Circular Dependencies for resource A"));
+        assert!(diags[1].message.contains("Circular Dependencies for resource B"));
     }
 
     #[test]
@@ -473,12 +399,7 @@ mod tests {
 
     #[test]
     fn graph_overlapping_cycles_no_duplicates() {
-        let edges = vec![
-            make_edge("A", "B"),
-            make_edge("B", "A"),
-            make_edge("B", "C"),
-            make_edge("C", "A"),
-        ];
+        let edges = vec![make_edge("A", "B"), make_edge("B", "A"), make_edge("B", "C"), make_edge("C", "A")];
         let ids = vec!["A".into(), "B".into(), "C".into()];
         let graph = ReferenceGraph::build(edges, &ids);
         assert!(graph.cycles().len() >= 2);

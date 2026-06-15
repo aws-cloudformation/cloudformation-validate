@@ -20,15 +20,8 @@ fn unescape_json_pointer(seg: &str) -> String {
 }
 
 /// Navigate a JSON Pointer path, returning the parent value and the final key.
-fn navigate_to_parent<'a>(
-    root: &'a mut serde_json::Value,
-    path: &str,
-) -> Option<(&'a mut serde_json::Value, String)> {
-    let segments: Vec<String> = path
-        .trim_start_matches('/')
-        .split('/')
-        .map(unescape_json_pointer)
-        .collect();
+fn navigate_to_parent<'a>(root: &'a mut serde_json::Value, path: &str) -> Option<(&'a mut serde_json::Value, String)> {
+    let segments: Vec<String> = path.trim_start_matches('/').split('/').map(unescape_json_pointer).collect();
     if segments.is_empty() {
         return None;
     }
@@ -48,11 +41,7 @@ fn json_pointer_get<'a>(root: &'a serde_json::Value, path: &str) -> Option<&'a s
     if path == "/" || path.is_empty() {
         return Some(root);
     }
-    let segments: Vec<String> = path
-        .trim_start_matches('/')
-        .split('/')
-        .map(unescape_json_pointer)
-        .collect();
+    let segments: Vec<String> = path.trim_start_matches('/').split('/').map(unescape_json_pointer).collect();
     let mut current = root;
     for seg in &segments {
         current = match current {
@@ -68,10 +57,7 @@ fn apply_patch_batch(schema_json: &mut serde_json::Value, ops: &[serde_json::Val
     for patch in ops {
         let op = patch["op"].as_str().unwrap_or("");
         let path = patch["path"].as_str().unwrap_or("");
-        let value = patch
-            .get("value")
-            .cloned()
-            .unwrap_or(serde_json::Value::Null);
+        let value = patch.get("value").cloned().unwrap_or(serde_json::Value::Null);
         match op {
             "test" => match json_pointer_get(schema_json, path) {
                 Some(actual) if *actual == value => {}
@@ -79,9 +65,7 @@ fn apply_patch_batch(schema_json: &mut serde_json::Value, ops: &[serde_json::Val
             },
             "add" => {
                 if path == "/" || path.is_empty() {
-                    if let (Some(target), Some(source)) =
-                        (schema_json.as_object_mut(), value.as_object())
-                    {
+                    if let (Some(target), Some(source)) = (schema_json.as_object_mut(), value.as_object()) {
                         for (k, v) in source {
                             target.insert(k.clone(), v.clone());
                         }
@@ -139,20 +123,14 @@ fn apply_patch_batch(schema_json: &mut serde_json::Value, ops: &[serde_json::Val
                 }
             }
             other => {
-                warn!(
-                    "Unknown JSON Patch operation '{}' at path '{}'",
-                    other, path
-                );
+                warn!("Unknown JSON Patch operation '{}' at path '{}'", other, path);
             }
         }
     }
     true
 }
 
-pub(crate) fn apply_patches(
-    schema_json: &mut serde_json::Value,
-    patch_groups: &[serde_json::Value],
-) {
+pub(crate) fn apply_patches(schema_json: &mut serde_json::Value, patch_groups: &[serde_json::Value]) {
     for group in patch_groups {
         if let Some(ops) = group.as_array() {
             apply_patch_batch(schema_json, ops);
@@ -190,16 +168,8 @@ fn extract_primary_type(v: &serde_json::Value) -> Option<String> {
     match v {
         serde_json::Value::String(s) => Some(s.clone()),
         serde_json::Value::Array(arr) => {
-            let non_null: Vec<&str> = arr
-                .iter()
-                .filter_map(|v| v.as_str())
-                .filter(|s| *s != "null")
-                .collect();
-            if non_null.len() == 1 {
-                Some(non_null[0].to_string())
-            } else {
-                None
-            }
+            let non_null: Vec<&str> = arr.iter().filter_map(|v| v.as_str()).filter(|s| *s != "null").collect();
+            if non_null.len() == 1 { Some(non_null[0].to_string()) } else { None }
         }
         _ => None,
     }
@@ -211,10 +181,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
     let mut stats = SyncStats::default();
     let schema_source = crate::schema::schema_dir(upstream_dir);
     if !schema_source.exists() {
-        anyhow::bail!(
-            "Schema directory not found: {}\nRun sync first.",
-            schema_source.display()
-        );
+        anyhow::bail!("Schema directory not found: {}\nRun sync first.", schema_source.display());
     }
     let data_dir = generated_dir.join("data");
     fs::create_dir_all(&data_dir)?;
@@ -247,8 +214,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
             if !patch_file.exists() {
                 continue;
             }
-            let patch_groups: Vec<serde_json::Value> =
-                serde_json::from_str(&fs::read_to_string(&patch_file)?)?;
+            let patch_groups: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(&patch_file)?)?;
             apply_patches(schema_json, &patch_groups);
             patch_count += 1;
         }
@@ -264,8 +230,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
             if !ext_file.exists() {
                 continue;
             }
-            let fragments: Vec<serde_json::Value> =
-                serde_json::from_str(&fs::read_to_string(&ext_file)?)?;
+            let fragments: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(&ext_file)?)?;
             if fragments.is_empty() {
                 continue;
             }
@@ -302,48 +267,27 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
     fs::create_dir_all(&patched_dir)?;
     for (type_name, json) in &raw_schemas {
         let filename = type_name.replace("::", "-").to_lowercase();
-        fs::write(
-            patched_dir.join(format!("{}.json", filename)),
-            serde_json::to_string_pretty(json)?,
-        )?;
+        fs::write(patched_dir.join(format!("{}.json", filename)), serde_json::to_string_pretty(json)?)?;
         stats.files_written += 1;
     }
-    info!(
-        "Wrote {} patched schemas to patched_schemas/",
-        raw_schemas.len()
-    );
+    info!("Wrote {} patched schemas to patched_schemas/", raw_schemas.len());
 
-    fs::write(
-        data_dir.join("schema_metadata.json"),
-        generate_schema_metadata(&schemas, &raw_schemas),
-    )?;
-    fs::write(
-        data_dir.join("getatt_attributes.json"),
-        generate_getatt_data(&schemas, &raw_schemas),
-    )?;
+    fs::write(data_dir.join("schema_metadata.json"), generate_schema_metadata(&schemas, &raw_schemas))?;
+    fs::write(data_dir.join("getatt_attributes.json"), generate_getatt_data(&schemas, &raw_schemas))?;
     let mut all_types: Vec<String> = schemas.keys().cloned().collect();
     all_types.sort();
     fs::write(
         data_dir.join("known_resource_types.json"),
         serde_json::to_string_pretty(&serde_json::json!({"known_resource_types": all_types}))?,
     )?;
-    fs::write(
-        data_dir.join("primary_identifiers.json"),
-        generate_primary_identifiers(&raw_schemas),
-    )?;
-    fs::write(
-        data_dir.join("resource_lifecycle.json"),
-        generate_resource_lifecycle(&raw_schemas),
-    )?;
+    fs::write(data_dir.join("primary_identifiers.json"), generate_primary_identifiers(&raw_schemas))?;
+    fs::write(data_dir.join("resource_lifecycle.json"), generate_resource_lifecycle(&raw_schemas))?;
     stats.files_written += 5;
     info!(
         "Wrote schema_metadata, getatt_attributes, known_resource_types, primary_identifiers, resource_lifecycle -> data/"
     );
 
-    info!(
-        "Schema processing complete: {} files written",
-        stats.files_written
-    );
+    info!("Schema processing complete: {} files written", stats.files_written);
     Ok(stats)
 }
 
@@ -377,9 +321,7 @@ fn build_property_schema_obj(
     raw: Option<&serde_json::Value>,
     visiting: &mut HashSet<String>,
 ) -> serde_json::Value {
-    let mut props: Vec<String> = properties
-        .map(|p| p.keys().cloned().collect())
-        .unwrap_or_default();
+    let mut props: Vec<String> = properties.map(|p| p.keys().cloned().collect()).unwrap_or_default();
     props.sort();
     let req: Vec<String> = required.cloned().unwrap_or_default();
     let mut pt: BTreeMap<String, String> = BTreeMap::new();
@@ -451,16 +393,7 @@ fn extract_property_constraints(
     };
     let mut c = serde_json::Map::new();
 
-    for &key in &[
-        "pattern",
-        "minimum",
-        "maximum",
-        "minLength",
-        "maxLength",
-        "minItems",
-        "maxItems",
-        "format",
-    ] {
+    for &key in &["pattern", "minimum", "maximum", "minLength", "maxLength", "minItems", "maxItems", "format"] {
         if let Some(v) = obj.get(key) {
             c.insert(key.to_string(), v.clone());
         }
@@ -470,17 +403,13 @@ fn extract_property_constraints(
     }
 
     if let Some(sub_props) = obj.get("properties").and_then(|v| v.as_object()) {
-        let sub_req = obj.get("required").and_then(|v| v.as_array()).map(|a| {
-            a.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect::<Vec<_>>()
-        });
-        let sub_map: HashMap<String, serde_json::Value> = sub_props
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-        let nested =
-            build_property_schema_obj(Some(&sub_map), sub_req.as_ref(), defs, None, visiting);
+        let sub_req = obj
+            .get("required")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>());
+        let sub_map: HashMap<String, serde_json::Value> =
+            sub_props.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let nested = build_property_schema_obj(Some(&sub_map), sub_req.as_ref(), defs, None, visiting);
         c.insert("sub_properties".to_string(), nested);
         if let Some(de) = obj.get("dependentExcluded") {
             c.insert("dependent_excluded".to_string(), de.clone());
@@ -491,15 +420,9 @@ fn extract_property_constraints(
     }
 
     if let Some(items) = obj.get("items") {
-        let item_ref_name = items
-            .get("$ref")
-            .and_then(|v| v.as_str())
-            .and_then(|s| s.strip_prefix("#/definitions/"))
-            .map(String::from);
-        let skip_items = item_ref_name
-            .as_ref()
-            .map(|n| visiting.contains(n))
-            .unwrap_or(false);
+        let item_ref_name =
+            items.get("$ref").and_then(|v| v.as_str()).and_then(|s| s.strip_prefix("#/definitions/")).map(String::from);
+        let skip_items = item_ref_name.as_ref().map(|n| visiting.contains(n)).unwrap_or(false);
         if !skip_items {
             if let Some(ref name) = item_ref_name {
                 visiting.insert(name.clone());
@@ -514,22 +437,10 @@ fn extract_property_constraints(
                     let item_req = items_obj
                         .get("required")
                         .and_then(|v| v.as_array())
-                        .map(|a| {
-                            a.iter()
-                                .filter_map(|v| v.as_str().map(String::from))
-                                .collect::<Vec<_>>()
-                        });
-                    let item_map: HashMap<String, serde_json::Value> = item_props
-                        .iter()
-                        .map(|(k, v)| (k.clone(), v.clone()))
-                        .collect();
-                    let nested = build_property_schema_obj(
-                        Some(&item_map),
-                        item_req.as_ref(),
-                        defs,
-                        None,
-                        visiting,
-                    );
+                        .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>());
+                    let item_map: HashMap<String, serde_json::Value> =
+                        item_props.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+                    let nested = build_property_schema_obj(Some(&item_map), item_req.as_ref(), defs, None, visiting);
                     item_schema.insert("schema".to_string(), nested);
                 }
                 if let Some(de) = items_obj.get("dependentExcluded") {
@@ -548,11 +459,7 @@ fn extract_property_constraints(
         }
     }
 
-    if c.is_empty() {
-        serde_json::Value::Null
-    } else {
-        serde_json::Value::Object(c)
-    }
+    if c.is_empty() { serde_json::Value::Null } else { serde_json::Value::Object(c) }
 }
 
 /// Generates GetAtt attribute names and types per resource type from readOnlyProperties.
@@ -592,10 +499,8 @@ fn generate_getatt_data(
             attr_types.insert(tn.clone(), tt);
         }
     }
-    serde_json::to_string_pretty(
-        &serde_json::json!({"getatt_attributes": attrs, "getatt_attribute_types": attr_types}),
-    )
-    .unwrap()
+    serde_json::to_string_pretty(&serde_json::json!({"getatt_attributes": attrs, "getatt_attribute_types": attr_types}))
+        .unwrap()
 }
 
 /// Generates user-settable primary identifier properties per resource type,
@@ -613,10 +518,7 @@ fn generate_primary_identifiers(raw: &HashMap<String, serde_json::Value>) -> Str
             .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
             .unwrap_or_default();
         // Skip if any primary ID is read-only (service-generated)
-        if primary
-            .iter()
-            .any(|p| p.as_str().map(|s| read_only.contains(s)).unwrap_or(false))
-        {
+        if primary.iter().any(|p| p.as_str().map(|s| read_only.contains(s)).unwrap_or(false)) {
             continue;
         }
         let props: Vec<String> = primary
@@ -664,10 +566,7 @@ mod tests {
     #[test]
     fn resolve_schema_follows_ref() {
         let mut defs = HashMap::new();
-        defs.insert(
-            "MyType".to_string(),
-            json!({"type": "string", "maxLength": 128}),
-        );
+        defs.insert("MyType".to_string(), json!({"type": "string", "maxLength": 128}));
         let schema = json!({"$ref": "#/definitions/MyType"});
         let resolved = resolve_schema(&schema, Some(&defs), &mut HashSet::new());
         assert_eq!(resolved["type"], "string");
@@ -683,11 +582,7 @@ mod tests {
         let schema = json!({"$ref": "#/definitions/A"});
         let resolved = resolve_schema(&schema, Some(&defs), &mut HashSet::new());
         // Should return the unresolved $ref for the cycle-breaking point
-        assert_ne!(
-            resolved.get("$ref"),
-            None,
-            "resolved schema should contain $ref"
-        );
+        assert_ne!(resolved.get("$ref"), None, "resolved schema should contain $ref");
     }
 
     #[test]
@@ -696,11 +591,7 @@ mod tests {
         defs.insert("Self".to_string(), json!({"$ref": "#/definitions/Self"}));
         let schema = json!({"$ref": "#/definitions/Self"});
         let resolved = resolve_schema(&schema, Some(&defs), &mut HashSet::new());
-        assert_ne!(
-            resolved.get("$ref"),
-            None,
-            "resolved schema should contain $ref"
-        );
+        assert_ne!(resolved.get("$ref"), None, "resolved schema should contain $ref");
     }
 
     #[test]
@@ -719,8 +610,7 @@ mod tests {
 
     #[test]
     fn apply_patches_add_replace_remove() {
-        let mut schema =
-            json!({"typeName": "AWS::Test::Resource", "properties": {"A": {"type": "string"}}});
+        let mut schema = json!({"typeName": "AWS::Test::Resource", "properties": {"A": {"type": "string"}}});
         let patches = vec![
             json!([{"op": "add", "path": "/properties/B", "value": {"type": "integer"}}]),
             json!([{"op": "replace", "path": "/properties/A/type", "value": "number"}]),
@@ -731,11 +621,7 @@ mod tests {
 
         let remove_patch = vec![json!([{"op": "remove", "path": "/properties/B"}])];
         apply_patches(&mut schema, &remove_patch);
-        assert_eq!(
-            schema["properties"].get("B"),
-            None,
-            "read-only property B should be removed"
-        );
+        assert_eq!(schema["properties"].get("B"), None, "read-only property B should be removed");
     }
 
     #[test]
@@ -747,11 +633,7 @@ mod tests {
             {"op": "add", "path": "/properties/B", "value": {"type": "boolean"}}
         ])];
         apply_patches(&mut schema, &patches);
-        assert_eq!(
-            schema["properties"].get("B"),
-            None,
-            "read-only property B should be removed"
-        );
+        assert_eq!(schema["properties"].get("B"), None, "read-only property B should be removed");
     }
 
     #[test]
@@ -767,18 +649,12 @@ mod tests {
 
     #[test]
     fn extract_primary_type_simple_string() {
-        assert_eq!(
-            extract_primary_type(&json!("string")),
-            Some("string".to_string())
-        );
+        assert_eq!(extract_primary_type(&json!("string")), Some("string".to_string()));
     }
 
     #[test]
     fn extract_primary_type_array_with_null() {
-        assert_eq!(
-            extract_primary_type(&json!(["integer", "null"])),
-            Some("integer".to_string())
-        );
+        assert_eq!(extract_primary_type(&json!(["integer", "null"])), Some("integer".to_string()));
     }
 
     #[test]
@@ -809,39 +685,20 @@ mod tests {
             }),
         );
         let required = vec!["Config".to_string()];
-        let result = build_property_schema_obj(
-            Some(&properties),
-            Some(&required),
-            None,
-            None,
-            &mut HashSet::new(),
-        );
+        let result = build_property_schema_obj(Some(&properties), Some(&required), None, None, &mut HashSet::new());
 
         // Top level
         assert_eq!(result["required"], json!(["Config"]));
         // Nested constraints should exist (no depth truncation)
         let config_constraints = &result["property_constraints"]["Config"];
-        assert_ne!(
-            config_constraints.get("sub_properties"),
-            None,
-            "Config should have sub_properties"
-        );
+        assert_ne!(config_constraints.get("sub_properties"), None, "Config should have sub_properties");
         let sub = &config_constraints["sub_properties"];
         assert!(sub["required"].as_array().unwrap().contains(&json!("Name")));
         // Deep nesting should also be present
         let inner_constraints = &sub["property_constraints"]["Inner"];
-        assert_ne!(
-            inner_constraints.get("sub_properties"),
-            None,
-            "Inner should have sub_properties"
-        );
+        assert_ne!(inner_constraints.get("sub_properties"), None, "Inner should have sub_properties");
         let deep_sub = &inner_constraints["sub_properties"];
-        assert!(
-            deep_sub["required"]
-                .as_array()
-                .unwrap()
-                .contains(&json!("Deep"))
-        );
+        assert!(deep_sub["required"].as_array().unwrap().contains(&json!("Deep")));
     }
 
     #[test]
@@ -861,16 +718,12 @@ mod tests {
         }
         let mut properties = HashMap::new();
         properties.insert("root".to_string(), make_nested(6));
-        let result =
-            build_property_schema_obj(Some(&properties), None, None, None, &mut HashSet::new());
+        let result = build_property_schema_obj(Some(&properties), None, None, None, &mut HashSet::new());
 
         // Walk down all 6 levels — none should be truncated
         let mut current = &result["property_constraints"]["root"];
         for _ in 0..6 {
-            assert!(
-                current.get("sub_properties").is_some(),
-                "Nested level was truncated"
-            );
+            assert!(current.get("sub_properties").is_some(), "Nested level was truncated");
             current = &current["sub_properties"]["property_constraints"]["child"];
         }
     }
@@ -893,24 +746,10 @@ mod tests {
             }),
         );
         let mut properties = HashMap::new();
-        properties.insert(
-            "Root".to_string(),
-            json!({"$ref": "#/definitions/TreeNode"}),
-        );
+        properties.insert("Root".to_string(), json!({"$ref": "#/definitions/TreeNode"}));
         // Must terminate without stack overflow
-        let result = build_property_schema_obj(
-            Some(&properties),
-            None,
-            Some(&defs),
-            None,
-            &mut HashSet::new(),
-        );
-        assert!(
-            result["properties"]
-                .as_array()
-                .unwrap()
-                .contains(&json!("Root"))
-        );
+        let result = build_property_schema_obj(Some(&properties), None, Some(&defs), None, &mut HashSet::new());
+        assert!(result["properties"].as_array().unwrap().contains(&json!("Root")));
     }
 
     /// End-to-end: process_schemas on the real generated data.
@@ -933,19 +772,12 @@ mod tests {
             copy_dir(&upstream_dir.join("patches"), &tmp_upstream.join("patches"));
         }
         if upstream_dir.join("extensions").exists() {
-            copy_dir(
-                &upstream_dir.join("extensions"),
-                &tmp_upstream.join("extensions"),
-            );
+            copy_dir(&upstream_dir.join("extensions"), &tmp_upstream.join("extensions"));
         }
 
         let result = process_schemas(&tmp_upstream, &tmp);
         let stats = result.expect("process_schemas should succeed");
-        assert!(
-            stats.files_written > 0,
-            "expected files_written > 0, got {}",
-            stats.files_written
-        );
+        assert!(stats.files_written > 0, "expected files_written > 0, got {}", stats.files_written);
 
         // Verify output files exist
         let data_dir = tmp.join("data");
@@ -959,11 +791,7 @@ mod tests {
         let meta_content = fs::read_to_string(data_dir.join("schema_metadata.json")).unwrap();
         let meta: serde_json::Value = serde_json::from_str(&meta_content).unwrap();
         let meta_obj = meta["schema_metadata"].as_object().unwrap();
-        assert!(
-            meta_obj.len() > 100,
-            "Expected 100+ resource types, got {}",
-            meta_obj.len()
-        );
+        assert!(meta_obj.len() > 100, "Expected 100+ resource types, got {}", meta_obj.len());
 
         // Spot-check a well-known resource type
         let s3 = &meta_obj["AWS::S3::Bucket"];
