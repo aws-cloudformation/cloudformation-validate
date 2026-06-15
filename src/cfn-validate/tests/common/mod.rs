@@ -100,8 +100,10 @@ pub fn zero_durations(val: &mut Value) {
 /// Deep-compares `actual` against `expected`, collecting every path where they
 /// differ. Returns the list of mismatch descriptions (empty = identical).
 pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
-    // Fields that can legitimately differ between engines due to internal dedup timing
-    const SKIP_FIELDS: &[&str] = &["suppressed"];
+    // Fields excluded from golden comparison:
+    // - `suppressed`: can legitimately differ between engines due to internal dedup timing
+    // - `engineVersion`: bumps with every release and is not a behavioral signal
+    const SKIP_FIELDS: &[&str] = &["suppressed", "engineVersion"];
 
     let mut diffs = Vec::new();
     match (expected, actual) {
