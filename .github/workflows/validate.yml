@@ -38,7 +38,7 @@ jobs:
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
-    - name: Lint
+    - name: Format
       working-directory: ${{ needs.get-configs.outputs.working-dir }}
       run: cargo fmt --all --check
 
