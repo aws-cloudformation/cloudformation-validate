@@ -1487,15 +1487,13 @@ fn collect_unreachable_branches(
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             if !model.conditions.is_satisfiable(&true_assumptions) {
+                let explanation = build_unreachable_explanation(cond, true, assumptions);
                 let mut map = serde_json::Map::new();
                 map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
                 map.insert("path".into(), serde_json::Value::String(format!("{}.{}.1", path, FN_IF)));
                 map.insert(
                     "message".into(),
-                    serde_json::Value::String(format!(
-                        "['Fn::If', 1] is not reachable. When setting condition '{}' to True",
-                        cond
-                    )),
+                    serde_json::Value::String(format!("['Fn::If', 1] is not reachable. {}", explanation)),
                 );
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
@@ -1503,20 +1501,7 @@ fn collect_unreachable_branches(
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
             if !model.conditions.is_satisfiable(&false_assumptions) {
-                let existing: Vec<String> = assumptions
-                    .iter()
-                    .filter(|(name, _)| name != cond)
-                    .map(|(name, val)| format!("condition '{}' is {}", name, if *val { "True" } else { "False" }))
-                    .collect();
-                let explanation = if existing.is_empty() {
-                    format!("When setting condition '{}' to False from current status True", cond)
-                } else {
-                    format!(
-                        "When setting condition '{}' to False. Where existing status for {}",
-                        cond,
-                        existing.join(" and ")
-                    )
-                };
+                let explanation = build_unreachable_explanation(cond, false, assumptions);
                 let mut map = serde_json::Map::new();
                 map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
                 map.insert("path".into(), serde_json::Value::String(format!("{}.{}.2", path, FN_IF)));
@@ -1562,6 +1547,25 @@ fn collect_unreachable_branches(
             }
         }
         _ => {}
+    }
+}
+
+fn build_unreachable_explanation(condition: &str, target_value: bool, assumptions: &[(String, bool)]) -> String {
+    let setting = if target_value { "True" } else { "False" };
+    let existing: Vec<String> = assumptions
+        .iter()
+        .filter(|(name, _)| name != condition)
+        .map(|(name, val)| format!("'{}' is {}", name, if *val { "True" } else { "False" }))
+        .collect();
+    if existing.is_empty() {
+        format!("When setting condition '{}' to {}", condition, setting)
+    } else {
+        format!(
+            "When setting condition '{}' to {}. Where existing status for {}",
+            condition,
+            setting,
+            existing.join(" and ")
+        )
     }
 }
 

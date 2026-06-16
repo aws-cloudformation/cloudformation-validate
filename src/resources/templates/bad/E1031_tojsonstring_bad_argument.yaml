@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: E1031 - Fn::ToJsonString parameter must be a non-empty array or object
+Transform: AWS::LanguageExtensions
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # Fn::ToJsonString argument must be array or object; "literal" is a string → E1031
+      BucketName: !ToJsonString "literal"

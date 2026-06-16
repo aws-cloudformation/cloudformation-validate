@@ -20,7 +20,7 @@
 
 use data_source::types::{
     CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, KnownResourceTypes, PrimaryIdentifiers,
-    RetentionPeriodRequirements, SensitivePorts, StatefulResourceTypes,
+    RetentionPeriodRequirements, SecretsManagerArnFields, SensitivePorts, StatefulResourceTypes,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -52,6 +52,7 @@ const DATA_FILES: &[(&str, &str)] = &[
     ("codepipeline_action_artifact_counts", "handwritten"),
     ("deprecated_resource_types", "handwritten"),
     ("retention_period_requirements", "handwritten"),
+    ("secretsmanager_arn_fields", "handwritten"),
     ("sensitive_ports", "handwritten"),
     ("generated_rules", "generated/cel-rules"),
 ];
@@ -215,6 +216,7 @@ fn try_postcard_encode(name: &str, json_bytes: &[u8]) -> Option<Vec<u8>> {
         "codepipeline_action_artifact_counts" => encode!(CodepipelineArtifactCounts),
         "deprecated_resource_types" => encode!(DeprecatedResourceTypes),
         "retention_period_requirements" => encode!(RetentionPeriodRequirements),
+        "secretsmanager_arn_fields" => encode!(SecretsManagerArnFields),
         "sensitive_ports" => encode!(SensitivePorts),
         _ => None,
     }
@@ -257,6 +259,7 @@ fn bench_postcard_deserialize(
         "codepipeline_action_artifact_counts" => bench!(CodepipelineArtifactCounts),
         "deprecated_resource_types" => bench!(DeprecatedResourceTypes),
         "retention_period_requirements" => bench!(RetentionPeriodRequirements),
+        "secretsmanager_arn_fields" => bench!(SecretsManagerArnFields),
         "sensitive_ports" => bench!(SensitivePorts),
         _ => unreachable!("no postcard type for {name}"),
     }

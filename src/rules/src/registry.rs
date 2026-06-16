@@ -129,6 +129,31 @@ pub fn build_rule_metadata_map() -> HashMap<String, RuleMetadataEntry> {
         .collect()
 }
 
+/// Static registry of every rule the engine can emit.
+///
+/// Each rule has a stable ID, a category, a description, and an origin tag.
+///
+/// # Origin policy
+///
+/// `RuleOrigin` reflects where a rule's *logic* originates. The categories are:
+///
+/// - `Schema`  — structural rule provable against the parser or compiled
+///   CloudFormation resource schemas. Triggers a guaranteed
+///   deployment failure if violated.
+/// - `Engine`  — implemented natively by this engine; no external counterpart.
+/// - `CfnLint` — historically ported from an external linter; the rule
+///   surfaces a semantic concern (best practice, deprecation,
+///   risky pattern) that does not by itself block deployment.
+/// - `Schema`-tagged structural rules take precedence over `CfnLint`: when a
+///   diagnostic is a guaranteed deployment failure (wrong intrinsic arity,
+///   wrong shape, undefined condition reference, malformed dynamic reference),
+///   it is classified as `Schema` regardless of any external linter that
+///   happens to share the rule ID. Examples: `E8001`–`E8007` (condition
+///   shape and reference existence), `E1028` (`Fn::If` references undefined
+///   condition), `E1029` (`${X}` substitution requires `Fn::Sub`),
+///   `E1033` (`Fn::GetStackOutput` parameter shape and transform requirement),
+///   `E1050` (dynamic-reference structure). The IDs themselves are stable
+///   so authors can search for them across tools.
 pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "F0000",
@@ -212,12 +237,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "F0013",
         category: Category::Intrinsic,
         description: "Fn::If must have exactly 3 elements",
-        origin: RuleOrigin::Schema,
-    },
-    RuleDefinition {
-        id: "F0014",
-        category: Category::Intrinsic,
-        description: "Fn::Equals must have exactly 2 elements",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
@@ -347,9 +366,99 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
-        id: "F8002",
+        id: "E1058",
+        category: Category::Intrinsic,
+        description: "Fn::Split first argument must not be a dynamic reference",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "W1019",
+        category: Category::BestPractice,
+        description: "Fn::Sub parameter map keys must be referenced in the template string",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E1059",
+        category: Category::Intrinsic,
+        description: "Fn::Base64 nested function must be on the allowed list",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "E1029",
+        category: Category::Intrinsic,
+        description: "Substitution variable ${X} requires Fn::Sub",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1033",
+        category: Category::Intrinsic,
+        description: "Fn::GetStackOutput parameter shape and AWS::LanguageExtensions transform requirement",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1050",
+        category: Category::Intrinsic,
+        description: "Dynamic reference structure must match the per-flavor format",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "W1051",
+        category: Category::BestPractice,
+        description: "Secrets Manager dynamic reference resolves to value, not ARN — placing it where an ARN is expected is incorrect",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1054",
+        category: Category::BestPractice,
+        description: "Pseudo-parameter referenced as a raw string instead of via Ref",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E1106",
+        category: Category::Structure,
+        description: "Cycle detected in condition reference graph",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "I9052",
+        category: Category::Structure,
+        description: "Condition or intrinsic could not be fully analyzed because the SAT solver budget was exceeded",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "E8002",
         category: Category::Structure,
         description: "Condition referenced by resource is not defined",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8003",
+        category: Category::Intrinsic,
+        description: "Fn::Equals must take exactly two operands of compatible types",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8004",
+        category: Category::Intrinsic,
+        description: "Fn::And must take between 2 and 10 boolean conditions",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8005",
+        category: Category::Intrinsic,
+        description: "Fn::Not must take exactly one boolean condition",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8006",
+        category: Category::Intrinsic,
+        description: "Fn::Or must take between 2 and 10 boolean conditions",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8007",
+        category: Category::Intrinsic,
+        description: "Condition function value must be a string referencing a defined condition",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
@@ -415,8 +524,8 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E8001",
         category: Category::Structure,
-        description: "Conditions have appropriate properties",
-        origin: RuleOrigin::CfnLint,
+        description: "Conditions section must have valid structure",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "W8001",
@@ -429,6 +538,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         category: Category::BestPractice,
         description: "Fn::Equals will always return true or false",
         origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W9053",
+        category: Category::BestPractice,
+        description: "Conditions are semantically equivalent and can be consolidated",
+        origin: RuleOrigin::Engine,
     },
     RuleDefinition {
         id: "F8600",
@@ -539,10 +654,10 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
-        id: "F1029",
-        category: Category::Intrinsic,
-        description: "Sub is required if a variable is used in a string",
-        origin: RuleOrigin::Schema,
+        id: "W1056",
+        category: Category::BestPractice,
+        description: "Fn::Sub template contains escaped intrinsic syntax suggesting a nesting mistake",
+        origin: RuleOrigin::Engine,
     },
     RuleDefinition {
         id: "E1040",
@@ -563,9 +678,9 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
-        id: "F1060",
+        id: "E1028",
         category: Category::Intrinsic,
-        description: "Fn::If condition must exist in Conditions",
+        description: "Fn::If condition must exist in Conditions section",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
@@ -587,16 +702,10 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "F1104",
-        category: Category::Structure,
-        description: "Duplicate logical ID in template",
-        origin: RuleOrigin::Schema,
-    },
-    RuleDefinition {
-        id: "F1105",
+        id: "E1101",
         category: Category::Intrinsic,
         description: "Invalid nesting of intrinsic functions",
-        origin: RuleOrigin::Schema,
+        origin: RuleOrigin::Engine,
     },
     RuleDefinition {
         id: "E1150",
@@ -1241,6 +1350,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "W9032",
+        category: Category::BestPractice,
+        description: "Fn::ForEach macro could not be expanded statically",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "W3663",
         category: Category::Security,
         description: "Validate SourceAccount is required property",
@@ -1553,6 +1668,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E1017",
+        category: Category::Intrinsic,
+        description: "Fn::Select requires exactly two operands and a list source",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
         id: "E1027",
         category: Category::Intrinsic,
         description: "Check dynamic references secure strings are in supported locations",
@@ -1561,20 +1682,20 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E1030",
         category: Category::Intrinsic,
-        description: "Length validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        description: "Fn::Length requires AWS::LanguageExtensions transform and a list argument",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1031",
         category: Category::Intrinsic,
-        description: "ToJsonString validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        description: "Fn::ToJsonString requires AWS::LanguageExtensions transform",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1032",
         category: Category::Intrinsic,
-        description: "Validates ForEach functions",
-        origin: RuleOrigin::CfnLint,
+        description: "Fn::ForEach requires AWS::LanguageExtensions transform",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1051",

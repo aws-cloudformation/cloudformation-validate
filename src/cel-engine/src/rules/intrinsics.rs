@@ -2,6 +2,7 @@ use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
+use template_model::aws_regions::availability_zone_suffixes;
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITIONS, FIELD_DEPENDS_ON, FIELD_KIND,
     FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
@@ -9,8 +10,8 @@ use template_model::consts::{
     KEY_DEFAULT, KEY_DEPENDS_ON, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, SECTION_CONDITIONS,
     SECTION_OUTPUTS, TRANSFORM_LANGUAGE_EXTENSIONS,
 };
-use template_model::resolver::RefKind;
-use template_model::resolver::ResolvedValue;
+use template_model::model::ResolvedResource;
+use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{PSEUDO_PARAMETERS, SemanticModel};
 use validation_engine::make_resource_diagnostic;
 
@@ -19,6 +20,8 @@ pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(rules::Category::Intrinsic, eval_format_validation);
     reg.add(rules::Category::Intrinsic, eval_intrinsic_params);
     reg.add(rules::Category::Intrinsic, eval_dynamic_references);
+    reg.add(rules::Category::Intrinsic, eval_intrinsic_misc);
+    reg.add(rules::Category::BestPractice, eval_raw_pseudo_params);
 }
 
 fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -222,7 +225,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                     && !cond_keys.contains(cname)
                 {
                     out.push(make_resource_diagnostic(
-                        "F1060",
+                        "E1028",
                         &format!("Fn::If condition '{}' does not exist in Conditions section", cname),
                         m,
                         name,
@@ -476,45 +479,13 @@ fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
-static VALID_REGIONS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
-    [
-        "af-south-1",
-        "ap-east-1",
-        "ap-northeast-1",
-        "ap-northeast-2",
-        "ap-northeast-3",
-        "ap-south-1",
-        "ap-south-2",
-        "ap-southeast-1",
-        "ap-southeast-2",
-        "ap-southeast-3",
-        "ap-southeast-4",
-        "ca-central-1",
-        "ca-west-1",
-        "eu-central-1",
-        "eu-central-2",
-        "eu-north-1",
-        "eu-south-1",
-        "eu-south-2",
-        "eu-west-1",
-        "eu-west-2",
-        "eu-west-3",
-        "il-central-1",
-        "me-central-1",
-        "me-south-1",
-        "sa-east-1",
-        "us-east-1",
-        "us-east-2",
-        "us-west-1",
-        "us-west-2",
-        "us-gov-east-1",
-        "us-gov-west-1",
-        "cn-north-1",
-        "cn-northwest-1",
-    ]
-    .into_iter()
-    .collect()
-});
+// Region-valid lookup. Sources the canonical GA region list directly from
+// `template_model::aws_regions` so the validator and the resolver share one
+// truth — adding a region in `aws_regions.rs` automatically extends the
+// validator's accepted set, eliminating the historical drift between the two.
+fn is_known_region(region: &str) -> bool {
+    availability_zone_suffixes(region).is_some()
+}
 
 fn has_language_extensions(model: &SemanticModel) -> bool {
     model.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS)
@@ -614,7 +585,7 @@ fn scan_value_for_intrinsics(
             if let Some(param) = obj.get(FN_GET_AZS)
                 && let Some(s) = param.as_str()
                 && !s.is_empty()
-                && !VALID_REGIONS.contains(s)
+                && !is_known_region(s)
             {
                 out.push(make_resource_diagnostic(
                     "E1015",
@@ -930,4 +901,306 @@ fn scan_for_sm_cross_account(
         }
         _ => {}
     }
+}
+
+static SSM_FORMAT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"^\{\{resolve:ssm(?:-secure)?:[a-zA-Z0-9_.\-/]+(?::\d+)?\}\}$").expect("Invalid SSM_FORMAT_RE")
+});
+
+static SM_FORMAT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(
+        r"^\{\{resolve:secretsmanager:(?:arn:[^:]+:[^:]*:[^:]*:[^:]*:secret:[^:]+|[^:}]+)(?::(?:SecretString|)(?::[^:}]*(?::[^:}]*)?)?)?\}\}$",
+    )
+    .expect("Invalid SM_FORMAT_RE")
+});
+
+static DYNREF_EXTRACT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"\{\{resolve:(ssm-secure|ssm|secretsmanager):[^}]*\}\}").expect("Invalid DYNREF_EXTRACT_RE")
+});
+
+const RULE_SPLIT_DYNAMIC_REF: &str = "E1058";
+const RULE_SUB_UNUSED_KEY: &str = "W1019";
+const RULE_BASE64_NESTED: &str = "E1059";
+const RULE_DYNREF_FORMAT: &str = "E1050";
+const RULE_SECRETSMANAGER_AT_ARN: &str = "W1051";
+const RULE_RAW_PSEUDO_PARAM: &str = "W1054";
+
+fn eval_intrinsic_misc(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+
+    for (name, res) in &m.resources {
+        for path in &res.diagnostics.split_dynamic_ref_delimiters {
+            out.push(make_resource_diagnostic(
+                RULE_SPLIT_DYNAMIC_REF,
+                "Fn::Split delimiter must not be a dynamic reference",
+                m,
+                name,
+                path,
+                None,
+            ));
+        }
+
+        for entry in &res.diagnostics.unused_sub_keys {
+            out.push(make_resource_diagnostic(
+                RULE_SUB_UNUSED_KEY,
+                &format!(
+                    "Parameter '{}' in Fn::Sub variable map is not referenced in the template string",
+                    entry.value
+                ),
+                m,
+                name,
+                &entry.path,
+                None,
+            ));
+        }
+
+        for entry in &res.diagnostics.base64_disallowed_functions {
+            out.push(make_resource_diagnostic(
+                RULE_BASE64_NESTED,
+                &format!("Fn::Base64 does not support nested function '{}'", entry.value),
+                m,
+                name,
+                &entry.path,
+                None,
+            ));
+        }
+
+        scan_properties_for_dynref_format(&mut out, m, name, res);
+        scan_properties_for_sm_at_arn(&mut out, m, name, res, &ctx.cached_data.secretsmanager_arn_fields);
+    }
+
+    out
+}
+
+fn scan_properties_for_dynref_format(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    resource_id: &str,
+    res: &ResolvedResource,
+) {
+    for (prop, val) in &res.properties {
+        let path = format!("Properties.{}", prop);
+        scan_resolved_for_dynref_format(out, m, resource_id, val, &path);
+    }
+}
+
+fn scan_resolved_for_dynref_format(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    resource_id: &str,
+    val: &ResolvedValue,
+    path: &str,
+) {
+    match val {
+        ResolvedValue::Concrete { value: v } => {
+            scan_value_for_dynref_format(out, m, resource_id, &v.0, path);
+        }
+        ResolvedValue::Dynamic { reason } => {
+            // Dynamic values contain the original string in the reason field
+            if let Some(ref_str) = reason.strip_prefix("dynamic reference: ") {
+                check_dynref_format_string(out, m, resource_id, ref_str, path);
+            }
+        }
+        ResolvedValue::List { items } => {
+            for (i, item) in items.iter().enumerate() {
+                let child_path = format!("{}.{}", path, i);
+                scan_resolved_for_dynref_format(out, m, resource_id, item, &child_path);
+            }
+        }
+        ResolvedValue::Map { entries } => {
+            for entry in entries {
+                let child_path = format!("{}.{}", path, entry.key);
+                scan_resolved_for_dynref_format(out, m, resource_id, &entry.value, &child_path);
+            }
+        }
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            scan_resolved_for_dynref_format(out, m, resource_id, if_true, path);
+            scan_resolved_for_dynref_format(out, m, resource_id, if_false, path);
+        }
+        ResolvedValue::Enum { variants } => {
+            for v in variants {
+                scan_resolved_for_dynref_format(out, m, resource_id, v, path);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn check_dynref_format_string(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    resource_id: &str,
+    s: &str,
+    path: &str,
+) {
+    for cap in DYNREF_EXTRACT_RE.captures_iter(s) {
+        let full_match = cap.get(0).unwrap().as_str();
+        let ref_type = &cap[1];
+        let valid = match ref_type {
+            "ssm" | "ssm-secure" => SSM_FORMAT_RE.is_match(full_match),
+            "secretsmanager" => SM_FORMAT_RE.is_match(full_match),
+            _ => true,
+        };
+        if !valid {
+            out.push(make_resource_diagnostic(
+                RULE_DYNREF_FORMAT,
+                &format!(
+                    "Dynamic reference '{}' does not match the required format for '{}'",
+                    full_match, ref_type
+                ),
+                m,
+                resource_id,
+                path,
+                Some("Check the dynamic reference syntax"),
+            ));
+        }
+    }
+}
+
+fn scan_value_for_dynref_format(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    resource_id: &str,
+    val: &serde_json::Value,
+    path: &str,
+) {
+    match val {
+        serde_json::Value::String(s) => {
+            for cap in DYNREF_EXTRACT_RE.captures_iter(s) {
+                let full_match = cap.get(0).unwrap().as_str();
+                let ref_type = &cap[1];
+                let valid = match ref_type {
+                    "ssm" | "ssm-secure" => SSM_FORMAT_RE.is_match(full_match),
+                    "secretsmanager" => SM_FORMAT_RE.is_match(full_match),
+                    _ => true,
+                };
+                if !valid {
+                    out.push(make_resource_diagnostic(
+                        RULE_DYNREF_FORMAT,
+                        &format!(
+                            "Dynamic reference '{}' does not match the required format for '{}'",
+                            full_match, ref_type
+                        ),
+                        m,
+                        resource_id,
+                        path,
+                        Some("Check the dynamic reference syntax"),
+                    ));
+                }
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for (i, item) in arr.iter().enumerate() {
+                let child_path = format!("{}.{}", path, i);
+                scan_value_for_dynref_format(out, m, resource_id, item, &child_path);
+            }
+        }
+        serde_json::Value::Object(obj) => {
+            for (key, v) in obj {
+                let child_path = format!("{}.{}", path, key);
+                scan_value_for_dynref_format(out, m, resource_id, v, &child_path);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn scan_properties_for_sm_at_arn(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    resource_id: &str,
+    res: &ResolvedResource,
+    arn_fields: &HashSet<String>,
+) {
+    for (prop, val) in &res.properties {
+        let path = format!("Properties.{}", prop);
+        scan_resolved_for_sm_at_arn(out, m, resource_id, prop, val, &path, arn_fields);
+    }
+}
+
+fn scan_resolved_for_sm_at_arn(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    resource_id: &str,
+    field_name: &str,
+    val: &ResolvedValue,
+    path: &str,
+    arn_fields: &HashSet<String>,
+) {
+    if arn_fields.contains(field_name) {
+        let has_sm_ref = match val {
+            ResolvedValue::Concrete { value: v } => v.as_str().is_some_and(|s| s.contains("{{resolve:secretsmanager:")),
+            ResolvedValue::Dynamic { reason } => reason.contains("{{resolve:secretsmanager:"),
+            _ => false,
+        };
+        if has_sm_ref {
+            out.push(make_resource_diagnostic(
+                RULE_SECRETSMANAGER_AT_ARN,
+                &format!(
+                    "Dynamic reference to Secrets Manager resolves to the secret value, not the ARN — field '{}' expects an ARN",
+                    field_name
+                ),
+                m,
+                resource_id,
+                path,
+                Some("Use the secret ARN directly instead of a dynamic reference"),
+            ));
+            return;
+        }
+    }
+
+    match val {
+        ResolvedValue::Map { entries } => {
+            for entry in entries {
+                let child_path = format!("{}.{}", path, entry.key);
+                scan_resolved_for_sm_at_arn(out, m, resource_id, &entry.key, &entry.value, &child_path, arn_fields);
+            }
+        }
+        ResolvedValue::List { items } => {
+            for (i, item) in items.iter().enumerate() {
+                let child_path = format!("{}.{}", path, i);
+                scan_resolved_for_sm_at_arn(out, m, resource_id, field_name, item, &child_path, arn_fields);
+            }
+        }
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            scan_resolved_for_sm_at_arn(out, m, resource_id, field_name, if_true, path, arn_fields);
+            scan_resolved_for_sm_at_arn(out, m, resource_id, field_name, if_false, path, arn_fields);
+        }
+        _ => {}
+    }
+}
+
+fn eval_raw_pseudo_params(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+
+    for (name, res) in &m.resources {
+        for (prop, val) in &res.properties {
+            if let ResolvedValue::Concrete { value: v } = val
+                && let Some(s) = v.as_str()
+                && !s.contains("{{resolve:")
+            {
+                for pseudo in PSEUDO_PARAMETERS {
+                    if s == *pseudo {
+                        let path = format!("Properties.{}", prop);
+                        out.push(make_resource_diagnostic(
+                            RULE_RAW_PSEUDO_PARAM,
+                            &format!(
+                                "String value '{}' is the pseudo-parameter '{}' used as a literal — use Ref to resolve it instead",
+                                s, pseudo
+                            ),
+                            m,
+                            name,
+                            &path,
+                            Some(&format!("Use {{Ref: {}}} instead of the literal string", pseudo)),
+                        ));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    out
 }

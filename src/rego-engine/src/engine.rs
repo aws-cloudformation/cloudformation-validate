@@ -66,6 +66,7 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
         ("data/codepipeline_action_artifact_counts", &*embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES),
         ("data/deprecated_resource_types", &*embedded::DEPRECATED_RESOURCE_TYPES_BYTES),
         ("data/retention_period_requirements", &*embedded::RETENTION_PERIOD_REQUIREMENTS_BYTES),
+        ("data/secretsmanager_arn_fields", &*embedded::SECRETSMANAGER_ARN_FIELDS_BYTES),
         ("data/sensitive_ports", &*embedded::SENSITIVE_PORTS_BYTES),
     ]
 });

@@ -86,6 +86,55 @@ CFNLINT_SHORT_RE = re.compile(
     r'shortdesc\s*=\s*\(?\s*((?:"[^"]*"\s*)+)\)?', re.DOTALL
 )
 
+# Rules whose IDs collide with cfn-lint by ID number but are INTENTIONALLY
+# classified as structural (Schema or Engine origin) in our registry rather
+# than CfnLint. The project policy is:
+#
+#   "If an intrinsic or condition is structurally invalid — wrong arguments,
+#    wrong shape, undefined reference, etc. — and it is guaranteed to cause
+#    a CloudFormation deployment failure, it is a STRUCTURAL rule, not a
+#    cfn-lint-sourced rule, even when cfn-lint happens to share the ID."
+#
+# These rules keep cfn-lint's ID for cross-tool comparison (a user grepping
+# for E8003 finds the same concern in both tools) but the origin reflects
+# that the failure mode is a deployment-blocker, not a semantic warning.
+# The audit short-circuits the "ID match → CfnLint origin" rule for these.
+#
+# The dict value is the human-readable rationale shown in the report — it
+# also serves as the single source of truth so the report and the
+# classification logic cannot drift.
+STRUCTURAL_OVERRIDES = {
+    # Boolean-condition shape rules — wrong arity rejects the template.
+    "E8001": "Conditions section structure must be valid",
+    "E8002": "Reference to undefined Condition rejects template at deploy",
+    "E8003": "Fn::Equals must take exactly 2 operands",
+    "E8004": "Fn::And must take 2-10 operands",
+    "E8005": "Fn::Not must take exactly 1 operand",
+    "E8006": "Fn::Or must take 2-10 operands",
+    "E8007": "Condition function value shape required by CFN",
+    # Intrinsic-shape and existence rules — invalid input crashes the deploy.
+    "E1017": "Fn::Select requires exactly two operands and a list source",
+    "E1028": "ID collision only — cfn-lint E1028 checks Fn::If operand shape; ours checks condition reference resolution",
+    "E1029": "Substitution variable requires Fn::Sub — cfn-lint states the deployment fails",
+    "E1030": "Fn::Length: transform-missing AND parameter shape (matches cfn-lint E1030)",
+    "E1031": "Fn::ToJsonString: transform-missing AND parameter shape (matches cfn-lint E1031)",
+    "E1032": "Fn::ForEach requires AWS::LanguageExtensions transform (matches cfn-lint E1032 transform_pre expansion)",
+    "E1033": "Fn::GetStackOutput parameter shape AND AWS::LanguageExtensions transform requirement",
+    "E1050": "Dynamic reference structure must match per-flavor format",
+    # E1101 number collides with cfn-lint's generic JSON-schema meta-rule;
+    # ours implements a structural intrinsic-nesting check that is unrelated.
+    "E1101": "ID collision only — different rule from cfn-lint E1101",
+}
+
+# Subset of STRUCTURAL_OVERRIDES whose ID collides with cfn-lint but whose
+# cfn-lint counterpart never emits user-visible findings. Our rule has no
+# matching cfn-lint counterpart for cross-tool comparison, so it must be
+# treated as engine-extra even though the ID exists in cfn-lint's source.
+STRUCTURAL_OVERRIDES_PURE_COLLISION = frozenset({
+    "E1101",  # cfn-lint E1101 is an internal meta-rule, never directly emitted
+    "E1028",  # cfn-lint E1028 checks Fn::If operand shape; ours checks condition existence
+})
+
 RuleOrigins = namedtuple("RuleOrigins", [
     "registry",         # list of (id, severity, category, reg_origin, description)
     "cfnlint_ids",      # {id: (shortdesc, filename)} from cfn-lint source
@@ -162,7 +211,20 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         prefix = rid[0]
         num = rid[1:]
 
-        if rid in cfnlint_ids:
+        if rid in STRUCTURAL_OVERRIDES:
+            # Project policy: a structurally invalid intrinsic or condition
+            # that guarantees a deployment failure is classified as Schema
+            # (or Engine, when our implementation diverges from cfn-lint's
+            # rule semantics entirely). The ID collision with cfn-lint is
+            # preserved for cross-tool searchability only.
+            if reg_origin in ("Schema", "Engine"):
+                true_origins[rid] = reg_origin
+            else:
+                true_origins[rid] = "Schema"
+                origin_issues.append((rid, reg_origin, "Schema",
+                    "structural-failure rule (deployment will fail) must use Schema or Engine origin per project policy"))
+
+        elif rid in cfnlint_ids:
             # Exact ID match → this rule comes from cfn-lint
             true_origins[rid] = "CfnLint"
             if reg_origin != "CfnLint":
@@ -219,8 +281,24 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     #    SAT solving, format checks on resolved values) and produces findings
     #    cfn-lint misses. These rules participate in parity matching for
     #    findings cfn-lint DOES emit, but unmatched extras are not false positives.
+    #
+    # STRUCTURAL_OVERRIDES rules whose ID is also defined in cfn-lint are NOT
+    # engine-extra — cfn-lint emits findings under the same ID for the same
+    # concern, so the comparison still pairs them. The override changes the
+    # *origin* tag (to reflect deployment-blocker semantics) but not the
+    # cross-tool finding compatibility. STRUCTURAL_OVERRIDES_PURE_COLLISION
+    # holds the exception: rules where the cfn-lint counterpart is internal
+    # only and never emits user-visible findings, so our rule is genuinely
+    # engine-extra despite the shared ID.
     engine_extra = set()
     for rid, true_o in true_origins.items():
+        cfnlint_emits_same_id = (
+            rid in cfnlint_ids
+            and rid in STRUCTURAL_OVERRIDES
+            and rid not in STRUCTURAL_OVERRIDES_PURE_COLLISION
+        )
+        if cfnlint_emits_same_id:
+            continue
         if true_o in ("Engine", "Engine(collision)"):
             engine_extra.add(rid)
         elif true_o == "Schema" and rid not in engine_to_cfnlint:
@@ -233,8 +311,10 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # These are identified by category of deeper analysis our engine performs:
     #
     # Condition analysis — our SAT solver finds unreachable Fn::If branches
-    # and conditional resource references that cfn-lint doesn't analyze:
-    ENGINE_STRICTER_CONDITION = {"W1028", "W8001"}
+    # that cfn-lint doesn't analyze. (W8001 was removed: its transitive-usage
+    # logic was aligned with cfn-lint's conditions/Used.py, so it is no longer
+    # stricter than cfn-lint.)
+    ENGINE_STRICTER_CONDITION = {"W1028"}
     #
     # Cross-resource / resolved-value checks — our engine resolves Ref/GetAtt
     # chains, parameter defaults, and Fn::Sub to concrete values, then runs
@@ -342,10 +422,8 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     _cross_id_mappings = {
         "E3035": "F3016",   # DeletionPolicy enum values → our schema DeletionPolicy check
         "E3036": "F0018",   # UpdateReplacePolicy enum values → our schema UpdateReplacePolicy check
-        "E3015": "F8002",   # Resource condition must exist → our condition-ref check
+        "E3015": "E8002",   # Resource condition must exist → our condition-ref check
         "E1019": "F1018",   # Sub variable resolution → our Sub variable check
-        "E8003": "F0014",   # Fn::Equals structure (count) → our Fn::Equals element count check
-        "E8004": "F0014",   # Fn::And structure (count) → our Fn::And element count check
         "E1028": "F0013",   # Fn::If structure (count) → our Fn::If element count check
         "E3006": "E9001",   # Resource type must exist → our E9001 unknown resource type check
         "E1022": "F1020",   # GetAtt resource must exist (incl. GetAtt embedded in Fn::Join) → our Ref/GetAtt target check
@@ -358,6 +436,23 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # engine emits under more specific rule IDs. The alias must be keyed by the
     # cfn-lint ID (E3001) so _alias_keys can find engine IDs when matching.
     rule_aliases.setdefault("E3001", {"E3001"}).update({"F0006", "E5001", "F6004"})
+
+    # Condition boolean rules: cfn-lint reports an undefined Condition reference
+    # nested inside Fn::And/Or/Not under the enclosing rule's ID (E8004/E8005/
+    # E8006, "'X' is not one of [...]"), whereas our condition_shape check
+    # pinpoints it as E8007 ("Condition 'X' is not defined"). Same finding, more
+    # precise ID — so a cfn-lint E8004/E8005/E8006 can match our E8007.
+    for enclosing in ("E8004", "E8005", "E8006"):
+        rule_aliases.setdefault(enclosing, {enclosing}).add("E8007")
+
+    # cfn-lint E1017 (Select) groups the index-type and negative-index checks
+    # under one ID; our engine emits the index-type case as W1102 and the
+    # negative-index case as F1050 in addition to the structural E1017.
+    rule_aliases.setdefault("E1017", {"E1017"}).update({"W1102", "F1050"})
+
+    # cfn-lint E1011 (FindInMap) operand-intrinsic checks surface in our engine
+    # as the intrinsic-nesting rule E1101.
+    rule_aliases.setdefault("E1011", {"E1011"}).add("E1101")
 
     # E1001 sub-checks: cfn-lint's E1001 (BaseJsonSchema) is a parent rule that
     # validates the template against a JSON schema. It delegates to child rules
@@ -596,6 +691,20 @@ def build_report(origins: RuleOrigins) -> str:
     w("True origin is computed by checking cfn-lint source, not the registry's")
     w("`origin:` field. Mismatches indicate the registry needs updating.")
     w("")
+    w("**Project policy — structural-failure rules are not cfn-lint-sourced.**")
+    w("A rule that detects structurally invalid input — wrong intrinsic arity,")
+    w("wrong shape, undefined reference — is classified as `Schema` (or")
+    w("`Engine`) because the failure mode is a guaranteed deployment block,")
+    w("not a semantic warning. The cfn-lint ID is preserved for cross-tool")
+    w("searchability. The rules below are intentionally classified this way:")
+    w("")
+    w("| ID | Description | Why structural |")
+    w("|----|-------------|---------------|")
+    registry_descriptions = {r[0]: r[4] for r in our}
+    for rid, reason in sorted(STRUCTURAL_OVERRIDES.items()):
+        desc = registry_descriptions.get(rid, "(unregistered)")
+        w(f"| `{rid}` | {desc} | {reason} |")
+    w("")
     if origins.origin_issues:
         w(f"**{len(origins.origin_issues)} issue(s) found.**")
         w("")
@@ -722,7 +831,7 @@ def build_report(origins: RuleOrigins) -> str:
             r = reg_map.get(rid)
             if not r:
                 continue
-            reason = "condition analysis" if rid in {"W1028", "W8001"} \
+            reason = "condition analysis" if rid in {"W1028"} \
                 else "resolved-value check" if rid in {"E1040","E1150","E1151","E1152","E1154","W1030","W3010","E2533"} \
                 else "best-practice on conditional resources" if rid[0] == "I" \
                 else "deeper dependency/usage analysis" if rid in {"W2001","W9002","W3005","W3011","W7001"} \
@@ -751,10 +860,9 @@ def build_report(origins: RuleOrigins) -> str:
         # flags, producing an equivalent diagnostic under a different ID.
         "E1001": ("F0002/F0005", "Base template JSON schema (top-level structure)"),
         "E1003": ("F0011", "description max length 1024"),
-        "E1011": ("F1012/F1101", "FindInMap structural validation (template-model parser)"),
-        "E1017": ("F1050/F1101", "Select structural validation (template-model parser)"),
+        "E1011": ("E1101/F1012/F1101", "FindInMap operand intrinsics via nesting (E1101) + map/arity structure (F1012/F1101)"),
         "E1019": ("F1018", "Sub variable resolution"),
-        "E1021": ("F1101", "Base64 structural validation (template-model parser)"),
+        "E1021": ("F1101", "Base64 structural validation (template-model parser); narrow cfn-lint subset → E9021"),
         "E1022": ("F1101", "Join structural validation (template-model parser)"),
         "E1028": ("F0013", "Fn::If must have 3 elements"),
         "E1700": ("F8600", "Rules section config"),
@@ -762,7 +870,7 @@ def build_report(origins: RuleOrigins) -> str:
         "E1702": ("F8606", "Rule RuleCondition validation"),
         "E2010": ("F0003", "Parameter limit 200"),
         "E3006": ("E9001", "Resource type must be recognized"),
-        "E3015": ("F8002", "Condition reference on resource"),
+        "E3015": ("E8002", "Condition reference on resource"),
         # E3008: prefixItems array validation — handled by schema-validator
         # through compiled JSON Schema (prefixItems is a standard JSON Schema keyword).
         "E3008": ("schema-patch", "Array prefixItems validation (compiled schema)"),
@@ -776,16 +884,13 @@ def build_report(origins: RuleOrigins) -> str:
         "E6010": ("F0004", "Output limit 200"),
         "E6102": ("F6005/F6101", "Output Export validation"),
         "E7010": ("F0008", "Mappings limit 200"),
-        "E8004": ("F0014", "Fn::And structure"),
-        "E8005": ("F0014", "Fn::Not structure"),
-        "E8006": ("F0014", "Fn::Or structure"),
-        "E8007": ("F8002", "Condition reference validation"),
+        "E8007": ("E8002", "Condition reference validation"),
         # Info approaching-limits rules — covered by I-prefix equivalents:
         "I1002": ("I2010/I6010", "approaching template size (via parameter/output limit warns)"),
         "I3010": ("I2010", "resource limit approach"),
         # Intrinsic resolved-value rules — our engine does resolution during
         # SemanticModel build; resolved-value errors surface via schema rules:
-        "W1019": ("F1018/F1029", "Fn::Sub parameter usage"),
+        "W1019": ("F1018/W1056", "Fn::Sub parameter usage"),
         "W1031": ("F3012+W9003", "Fn::Sub resolved values (via resolver)"),
         "W1032": ("F3012+W9003", "Fn::Join resolved values"),
         "W1033": ("F3012+W9003", "Fn::Split resolved values"),
@@ -797,7 +902,11 @@ def build_report(origins: RuleOrigins) -> str:
         "W6001": ("out-of-scope", "Output ImportValue usage (cfn-lint checks cross-stack references)"),
         # Intrinsic function structural validation — template-model validates
         # these during parsing and emits F1101 (structural error) or W1102
-        # (type error) instead of the cfn-lint rule IDs:
+        # (type error) instead of the cfn-lint rule IDs. The engine-only
+        # narrow checks (E9018 split-dynamic-ref, E9021 base64-nested-allowlist)
+        # cover specific subsets of cfn-lint's broader BaseFn validation:
+        "E1018": ("E1058+F1101/W1102", "Split validation (E1058 dynref delimiter + F1101 structure)"),
+        "E1021": ("E1059+F1101/W1102", "Base64 validation (E1059 nested fn allowlist + nesting.rs)"),
         "E1024": ("F1101/W1102", "Cidr validation (template-model parser)"),
         # W1051: Secrets Manager cross-account ARN detection requires runtime
         # context (account ID) that is not available during template validation.

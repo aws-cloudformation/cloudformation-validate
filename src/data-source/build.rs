@@ -57,6 +57,7 @@ const HANDWRITTEN_JSON: &[(&str, &str)] = &[
     ("codepipeline_action_artifact_counts", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),
     ("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"),
     ("retention_period_requirements", "RETENTION_PERIOD_REQUIREMENTS"),
+    ("secretsmanager_arn_fields", "SECRETSMANAGER_ARN_FIELDS"),
     ("sensitive_ports", "SENSITIVE_PORTS"),
 ];
 

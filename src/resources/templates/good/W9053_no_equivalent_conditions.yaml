@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: W9053 - Non-equivalent conditions (no diagnostic expected)
+Parameters:
+  Env:
+    Type: String
+    AllowedValues:
+      - prod
+      - dev
+      - staging
+Conditions:
+  IsProd:
+    !Equals [!Ref Env, prod]
+  IsDev:
+    !Equals [!Ref Env, dev]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+  DevBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsDev

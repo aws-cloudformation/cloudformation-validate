@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  A:
+    Type: String
+  B:
+    Type: String
+  C:
+    Type: String
+  D:
+    Type: String
+  E:
+    Type: String
+  F:
+    Type: String
+  G:
+    Type: String
+  H:
+    Type: String
+  I:
+    Type: String
+  J:
+    Type: String
+  K:
+    Type: String
+Conditions:
+  TooMany:
+    Fn::And:
+      - Fn::Equals: [!Ref A, "1"]
+      - Fn::Equals: [!Ref B, "2"]
+      - Fn::Equals: [!Ref C, "3"]
+      - Fn::Equals: [!Ref D, "4"]
+      - Fn::Equals: [!Ref E, "5"]
+      - Fn::Equals: [!Ref F, "6"]
+      - Fn::Equals: [!Ref G, "7"]
+      - Fn::Equals: [!Ref H, "8"]
+      - Fn::Equals: [!Ref I, "9"]
+      - Fn::Equals: [!Ref J, "10"]
+      - Fn::Equals: [!Ref K, "11"]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket

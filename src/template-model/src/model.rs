@@ -6,6 +6,9 @@ use crate::resolved_value::*;
 use crate::resolver::*;
 use crate::sam;
 use diagnostics::{PhaseMetric, phase_metric};
+
+const RULE_FN_IF_UNDEFINED_CONDITION: &str = "E1028";
+const RULE_SAT_BUDGET_EXHAUSTED: &str = "I9052";
 use log::{debug, info, warn};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -46,6 +49,9 @@ pub struct ResourceDiagnostics {
     pub foreach_expansions: Vec<ForEachExpansion>,
     pub unsubstituted_variables: Vec<PathValuePair>,
     pub invalid_refs: Vec<PathValuePair>,
+    pub split_dynamic_ref_delimiters: Vec<String>,
+    pub unused_sub_keys: Vec<PathValuePair>,
+    pub base64_disallowed_functions: Vec<PathValuePair>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -228,7 +234,12 @@ impl SemanticModel {
         let total_start = web_time::Instant::now();
 
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
-        let ir = crate::parser::parse(bytes)?;
+        let mut ir = crate::parser::parse(bytes)?;
+        let foreach_diagnostics = crate::transform_expansion::expand_language_extensions(&mut ir);
+        ir.diagnostics.extend(foreach_diagnostics);
+        let lang_ext_shape_diagnostics =
+            crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms);
+        ir.diagnostics.extend(lang_ext_shape_diagnostics);
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
         let (mappings, mapping_diagnostics) = extract_mappings(&ir);
         let mut conditions = ConditionModel::from_ir(&ir, &parameters, &config.pseudo_parameters, &mappings);
@@ -252,6 +263,7 @@ impl SemanticModel {
             resource_ids.iter().cloned().collect(),
             &config.parameters,
             &config.pseudo_parameters,
+            &ir.transforms,
         );
         let mut resources = HashMap::new();
         if ir.resources != NULL_REF
@@ -374,13 +386,23 @@ impl SemanticModel {
         diagnostics.extend(parameter_diagnostics);
 
         diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena));
+
+        let defined_condition_names: std::collections::HashSet<String> =
+            conditions.conditions.keys().cloned().collect();
+        diagnostics.extend(crate::condition_shape::validate_condition_shapes(
+            &ir.arena,
+            ir.conditions,
+            &defined_condition_names,
+            &ir.transforms,
+        ));
 
         for idx in 0..ir.arena.len() {
             if let Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) = ir.arena.node(idx as NodeRef)
                 && !conditions.conditions.contains_key(cond_name)
             {
                 diagnostics.push(crate::make_parse_diagnostic(
-                    "F1104",
+                    RULE_FN_IF_UNDEFINED_CONDITION,
                     format!("Fn::If references undefined condition '{}'", cond_name),
                     ir.arena.span(idx as NodeRef),
                 ));
@@ -408,6 +430,15 @@ impl SemanticModel {
                 ir.span_index.get(&format!("Conditions/{}", cond_name)).copied().unwrap_or(UNKNOWN_SPAN),
             ));
         }
+        diagnostics.extend(conditions.detect_condition_cycles(&ir.span_index));
+        diagnostics.extend(conditions.detect_equivalent_conditions(&ir.span_index));
+        for query in &conditions.budget_exhausted_queries() {
+            diagnostics.push(crate::make_parse_diagnostic(
+                RULE_SAT_BUDGET_EXHAUSTED,
+                format!("Condition satisfiability analysis budget exhausted during: {}", query),
+                UNKNOWN_SPAN,
+            ));
+        }
         let model_build = phase_metric(total_start);
 
         if !diagnostics.is_empty() {
@@ -431,6 +462,19 @@ impl SemanticModel {
         let parsed_rules = parse_rules(&rules, &ir.arena, ir.rules);
         let rule_diagnostics = crate::rules::validate_rules(&rules, &ir.arena, ir.rules);
         diagnostics.extend(rule_diagnostics);
+
+        // Lift Rules-section booleans into the ConditionModel so downstream
+        // condition-aware rules detect Rule↔Condition contradictions.
+        let rule_implications: Vec<(String, NodeRef, Vec<NodeRef>)> = parsed_rules
+            .iter()
+            .map(|r| {
+                let assertion_nodes: Vec<NodeRef> = r.assertions.iter().map(|a| a.assert_node).collect();
+                (r.name.clone(), r.condition_node, assertion_nodes)
+            })
+            .collect();
+        if !rule_implications.is_empty() {
+            conditions.register_rule_implications(&ir.arena, &rule_implications);
+        }
         let sam_globals = sam::extract_sam_globals(&ir.arena, ir.globals);
         if !sam_globals.is_empty() {
             sam::apply_sam_globals(&mut resources, &sam_globals);
@@ -904,7 +948,172 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
                 .map(|(a, b, c)| ConditionalNullEntry { path: a, condition: b, null_in_true_branch: c })
                 .collect(),
             condition_refs,
+            split_dynamic_ref_delimiters: scan_split_dynamic_refs(arena, node_ref),
+            unused_sub_keys: scan_unused_sub_keys(arena, node_ref),
+            base64_disallowed_functions: scan_base64_disallowed(arena, node_ref),
         },
+    }
+}
+
+fn scan_split_dynamic_refs(arena: &Arena, resource_ref: NodeRef) -> Vec<String> {
+    let mut results = Vec::new();
+    let Some(entries) = arena.as_map(resource_ref) else { return results };
+    let Some((_, props_ref)) = entries.iter().find(|(k, _)| k == KEY_PROPERTIES) else { return results };
+    scan_node_for_split_dynref(arena, *props_ref, KEY_PROPERTIES, &mut results);
+    results
+}
+
+fn scan_node_for_split_dynref(arena: &Arena, node_ref: NodeRef, path: &str, results: &mut Vec<String>) {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Split(delim_ref, _)) => {
+            if let Some(s) = arena.as_str(*delim_ref) {
+                if s.contains("{{resolve:") {
+                    results.push(path.to_string());
+                }
+            }
+        }
+        Node::Intrinsic(intrinsic) => {
+            for child in intrinsic_child_refs(intrinsic) {
+                scan_node_for_split_dynref(arena, child, path, results);
+            }
+        }
+        Node::Map(entries) => {
+            for (key, val_ref) in entries {
+                let child_path = format!("{}.{}", path, key);
+                scan_node_for_split_dynref(arena, *val_ref, &child_path, results);
+            }
+        }
+        Node::List(items) => {
+            for (i, item_ref) in items.iter().enumerate() {
+                let child_path = format!("{}.{}", path, i);
+                scan_node_for_split_dynref(arena, *item_ref, &child_path, results);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn scan_unused_sub_keys(arena: &Arena, resource_ref: NodeRef) -> Vec<PathValuePair> {
+    let mut results = Vec::new();
+    let Some(entries) = arena.as_map(resource_ref) else { return results };
+    let Some((_, props_ref)) = entries.iter().find(|(k, _)| k == KEY_PROPERTIES) else { return results };
+    scan_node_for_unused_sub(arena, *props_ref, KEY_PROPERTIES, &mut results);
+    results
+}
+
+fn scan_node_for_unused_sub(arena: &Arena, node_ref: NodeRef, path: &str, results: &mut Vec<PathValuePair>) {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Sub(template, Some(subs))) => {
+            for (key, _) in subs {
+                let placeholder = format!("${{{}}}", key);
+                if !template.contains(&placeholder) {
+                    results.push(PathValuePair { path: path.to_string(), value: key.clone() });
+                }
+            }
+            for (_, val_ref) in subs {
+                scan_node_for_unused_sub(arena, *val_ref, path, results);
+            }
+        }
+        Node::Intrinsic(intrinsic) => {
+            for child in intrinsic_child_refs(intrinsic) {
+                scan_node_for_unused_sub(arena, child, path, results);
+            }
+        }
+        Node::Map(entries) => {
+            for (key, val_ref) in entries {
+                let child_path = format!("{}.{}", path, key);
+                scan_node_for_unused_sub(arena, *val_ref, &child_path, results);
+            }
+        }
+        Node::List(items) => {
+            for (i, item_ref) in items.iter().enumerate() {
+                let child_path = format!("{}.{}", path, i);
+                scan_node_for_unused_sub(arena, *item_ref, &child_path, results);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn scan_base64_disallowed(arena: &Arena, resource_ref: NodeRef) -> Vec<PathValuePair> {
+    let mut results = Vec::new();
+    let Some(entries) = arena.as_map(resource_ref) else { return results };
+    let Some((_, props_ref)) = entries.iter().find(|(k, _)| k == KEY_PROPERTIES) else { return results };
+    scan_node_for_base64(arena, *props_ref, KEY_PROPERTIES, &mut results);
+    results
+}
+
+fn scan_node_for_base64(arena: &Arena, node_ref: NodeRef, path: &str, results: &mut Vec<PathValuePair>) {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Base64(inner_ref)) => {
+            if let Node::Intrinsic(inner) = arena.node(*inner_ref) {
+                let fn_name = cfn_function_name(inner);
+                if !is_base64_allowed_function(fn_name) {
+                    results.push(PathValuePair { path: path.to_string(), value: fn_name.to_string() });
+                }
+            }
+            scan_node_for_base64(arena, *inner_ref, path, results);
+        }
+        Node::Intrinsic(intrinsic) => {
+            for child in intrinsic_child_refs(intrinsic) {
+                scan_node_for_base64(arena, child, path, results);
+            }
+        }
+        Node::Map(entries) => {
+            for (key, val_ref) in entries {
+                let child_path = format!("{}.{}", path, key);
+                scan_node_for_base64(arena, *val_ref, &child_path, results);
+            }
+        }
+        Node::List(items) => {
+            for (i, item_ref) in items.iter().enumerate() {
+                let child_path = format!("{}.{}", path, i);
+                scan_node_for_base64(arena, *item_ref, &child_path, results);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn is_base64_allowed_function(fn_name: &str) -> bool {
+    matches!(
+        fn_name,
+        FN_REF
+            | FN_BASE64
+            | FN_FIND_IN_MAP
+            | FN_GET_ATT
+            | FN_GET_AZS
+            | FN_IF
+            | FN_IMPORT_VALUE
+            | FN_JOIN
+            | FN_SELECT
+            | FN_SPLIT
+            | FN_SUB
+            | FN_TO_JSON_STRING
+            | FN_LENGTH
+            | FN_CIDR
+            | FN_TRANSFORM
+    )
+}
+
+fn intrinsic_child_refs(intrinsic: &IntrinsicFn) -> Vec<NodeRef> {
+    match intrinsic {
+        IntrinsicFn::Ref(_) | IntrinsicFn::GetAtt(_, _) | IntrinsicFn::ValueOf(_, _)
+        | IntrinsicFn::ValueOfAll(_, _) | IntrinsicFn::RefAll(_) => vec![],
+        IntrinsicFn::Sub(_, subs) => subs.as_ref().map(|s| s.iter().map(|(_, r)| *r).collect()).unwrap_or_default(),
+        IntrinsicFn::Join(a, b) | IntrinsicFn::Split(a, b) | IntrinsicFn::Select(a, b)
+        | IntrinsicFn::Equals(a, b) | IntrinsicFn::Contains(a, b)
+        | IntrinsicFn::EachMemberEquals(a, b) | IntrinsicFn::EachMemberIn(a, b) => vec![*a, *b],
+        IntrinsicFn::If(_, a, b) => vec![*a, *b],
+        IntrinsicFn::IfExpr(c, a, b) | IntrinsicFn::FindInMap(a, b, c, None)
+        | IntrinsicFn::Cidr(a, b, c) => vec![*a, *b, *c],
+        IntrinsicFn::FindInMap(a, b, c, Some(d)) => vec![*a, *b, *c, *d],
+        IntrinsicFn::Base64(a) | IntrinsicFn::GetAZs(a) | IntrinsicFn::ImportValue(a)
+        | IntrinsicFn::Not(a) | IntrinsicFn::ToJsonString(a) | IntrinsicFn::Length(a)
+        | IntrinsicFn::GetStackOutput(a) => vec![*a],
+        IntrinsicFn::Transform(_, pairs) => pairs.iter().map(|(_, r)| *r).collect(),
+        IntrinsicFn::And(v) | IntrinsicFn::Or(v) => v.clone(),
+        IntrinsicFn::ForEach(_, _, a, b) => vec![*a, *b],
     }
 }
 

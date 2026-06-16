@@ -248,6 +248,7 @@ pub const FN_REF_ALL: &str = "Fn::RefAll";
 pub const FN_CONTAINS: &str = "Fn::Contains";
 pub const FN_EACH_MEMBER_EQUALS: &str = "Fn::EachMemberEquals";
 pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
+pub const FN_GET_STACK_OUTPUT: &str = "Fn::GetStackOutput";
 
 /// Keys that identify a well-formed boolean condition expression when used
 /// as the sole key of a single-key mapping. Inputs to `Fn::And`, `Fn::Or`,
@@ -261,24 +262,26 @@ pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
 pub const BOOLEAN_FN_KEYS: &[&str] =
     &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT, FN_CONTAINS, FN_EACH_MEMBER_EQUALS, FN_EACH_MEMBER_IN];
 
-/// Intrinsic functions whose output can stand in for a string-typed
-/// argument to `Fn::Equals`. An `Fn::Equals` argument that is a single-key
-/// mapping must use one of these keys to be considered well-formed.
-pub const EQUALS_ARG_FN_KEYS: &[&str] = &[
-    FN_REF,
-    FN_FIND_IN_MAP,
-    FN_SUB,
-    FN_JOIN,
-    FN_SELECT,
-    FN_SPLIT,
-    FN_LENGTH,
-    FN_TO_JSON_STRING,
-    FN_IF,
-    FN_BASE64,
-    FN_GET_ATT,
-    FN_GET_AZS,
-    FN_IMPORT_VALUE,
-];
+/// Intrinsic functions whose output may stand in for a string-typed operand
+/// of `Fn::Equals`. This is the single canonical list of allowed `Fn::Equals`
+/// operand intrinsics — it matches cfn-lint's `equals.json` function schema
+/// exactly, so our `E8003` operand diagnostic fires on the same inputs and
+/// with the same scope as cfn-lint. The intrinsic-nesting check (`E1101`)
+/// defers to this list for `Fn::Equals` rather than maintaining a second copy.
+/// Notably excludes `Fn::If`, `Fn::GetAtt`, `Fn::Base64`, `Fn::GetAZs`, and
+/// `Fn::ImportValue`, which CloudFormation does not accept as `Fn::Equals`
+/// operands.
+pub const EQUALS_ARG_FN_KEYS: &[&str] =
+    &[FN_REF, FN_FIND_IN_MAP, FN_SUB, FN_JOIN, FN_SELECT, FN_SPLIT, FN_LENGTH, FN_TO_JSON_STRING];
+
+/// CloudFormation grammar bounds for boolean intrinsics. `Fn::And` and
+/// `Fn::Or` accept between 2 and 10 child expressions; `Fn::Not` accepts
+/// exactly 1; `Fn::Equals` accepts exactly 2.
+pub const BOOLEAN_FN_MIN_ARITY: usize = 2;
+pub const BOOLEAN_FN_MAX_ARITY: usize = 10;
+pub const NOT_ARITY: usize = 1;
+pub const EQUALS_ARITY: usize = 2;
+pub const IF_ARITY: usize = 3;
 
 // Edge kind values used in the serialized reference graph.
 // These are distinct from FN_* names (e.g. EDGE_KIND_GET_ATT = "GetAtt" vs FN_GET_ATT = "Fn::GetAtt").

@@ -233,7 +233,8 @@ fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, out: &mut Vec
         | IntrinsicFn::ImportValue(c)
         | IntrinsicFn::Not(c)
         | IntrinsicFn::ToJsonString(c)
-        | IntrinsicFn::Length(c) => {
+        | IntrinsicFn::Length(c)
+        | IntrinsicFn::GetStackOutput(c) => {
             children.push(*c);
         }
         IntrinsicFn::And(nodes) | IntrinsicFn::Or(nodes) => {

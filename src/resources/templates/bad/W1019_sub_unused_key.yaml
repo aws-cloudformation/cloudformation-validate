@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: W1019 - Fn::Sub parameter map key not referenced in template string
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub:
+          - "my-bucket-${AWS::StackName}"
+          - UnusedKey: "some-value"
+            AnotherUnused: "not-referenced"

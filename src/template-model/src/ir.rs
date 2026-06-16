@@ -82,6 +82,17 @@ impl Arena {
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
+
+    /// Replace the node at `r` in place. Used by the LanguageExtensions
+    /// transform-expansion pass to swap a parent map's contents after
+    /// expanding `Fn::ForEach::*` entries inline.
+    pub(crate) fn set_node(&mut self, r: NodeRef, node: Node) {
+        if (r as usize) < self.nodes.len() {
+            self.nodes[r as usize].node = node;
+        } else {
+            log::warn!("set_node: NodeRef {} out of bounds (arena size {})", r, self.nodes.len());
+        }
+    }
 }
 
 impl Default for Arena {
@@ -138,6 +149,7 @@ pub enum IntrinsicFn {
     Contains(NodeRef, NodeRef),
     EachMemberEquals(NodeRef, NodeRef),
     EachMemberIn(NodeRef, NodeRef),
+    GetStackOutput(NodeRef),
 }
 
 pub type GlobalIndex = HashMap<String, NodeRef>;
@@ -172,6 +184,7 @@ pub fn cfn_function_name(intrinsic: &IntrinsicFn) -> &'static str {
         IntrinsicFn::Contains(_, _) => FN_CONTAINS,
         IntrinsicFn::EachMemberEquals(_, _) => FN_EACH_MEMBER_EQUALS,
         IntrinsicFn::EachMemberIn(_, _) => FN_EACH_MEMBER_IN,
+        IntrinsicFn::GetStackOutput(_) => FN_GET_STACK_OUTPUT,
     }
 }
 pub type SourceSpanIndex = HashMap<String, SourceSpan>;

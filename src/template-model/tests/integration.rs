@@ -26,7 +26,7 @@ fn model_rego_input_valid_json() {
 
 #[test]
 fn fixture_both_intrinsic_forms() {
-    let model = model_from_fixture("good/both_forms.yaml");
+    let model = model_from_fixture("bad/W9053_equivalent_both_forms.yaml");
 
     assert_eq!(model.resources.len(), 13);
 
@@ -284,10 +284,10 @@ fn parser_minimal_template_no_properties() {
 }
 
 #[test]
-fn parser_fn_if_undefined_condition_produces_f1104() {
+fn parser_fn_if_undefined_condition_produces_e1028() {
     let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::If":["NonExistent",1,2]}}}}}"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
-    assert!(model.diagnostics.iter().any(|d| d.rule_id == "F1104" && d.message.contains("NonExistent")));
+    assert!(model.diagnostics.iter().any(|d| d.rule_id == "E1028" && d.message.contains("NonExistent")));
 }
 
 #[test]
@@ -517,6 +517,9 @@ fn verify_diagnostic_json_contract() {
             "forEachExpansions",
             "unsubstitutedVariables",
             "invalidRefs",
+            "splitDynamicRefDelimiters",
+            "unusedSubKeys",
+            "base64DisallowedFunctions",
         ] {
             assert!(r.contains_key(*key), "Resource missing key: {}", key);
         }

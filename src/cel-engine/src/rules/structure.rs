@@ -314,13 +314,29 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 && !defined_conditions.contains(cond.as_str())
             {
                 out.push(make_resource_diagnostic(
-                    "F8002",
+                    "E8002",
                     &format!("Condition '{}' referenced by resource '{}' is not defined", cond, rname),
                     m,
                     rname,
                     "",
                     None,
                 ));
+            }
+        }
+        if let Some(outputs_obj) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
+            for (oname, out_val) in outputs_obj {
+                if let Some(cond) = out_val.get("condition").and_then(|c| c.as_str())
+                    && !defined_conditions.contains(cond)
+                {
+                    out.push(make_resource_diagnostic(
+                        "E8002",
+                        &format!("Condition '{}' referenced by output '{}' is not defined", cond, oname),
+                        m,
+                        "",
+                        "",
+                        None,
+                    ));
+                }
             }
         }
     }
@@ -632,7 +648,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 conds,
                 resources,
                 input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()),
-                &mut HashSet::new(),
             ) {
                 out.push(make_resource_diagnostic(
                     "W8001",
@@ -970,11 +985,7 @@ fn condition_is_referenced(
     conds: &serde_json::Map<String, serde_json::Value>,
     resources: Option<&serde_json::Map<String, serde_json::Value>>,
     outputs: Option<&serde_json::Map<String, serde_json::Value>>,
-    visited: &mut HashSet<String>,
 ) -> bool {
-    if !visited.insert(cname.to_string()) {
-        return false;
-    }
     // Direct usage by resource condition or condition_refs
     if let Some(res_map) = resources {
         for (_, res) in res_map {
@@ -1001,14 +1012,16 @@ fn condition_is_referenced(
             }
         }
     }
-    // Transitive: another condition depends on this one via !Condition
+    // Transitive: a condition referenced by ANY other condition's body (via
+    // `Condition: <name>`) is used. Matches cfn-lint's W8001, which collects
+    // every such in-Conditions-section reference regardless of whether the
+    // referencing condition is itself used.
     for (other, cond_val) in conds {
         if other == cname {
             continue;
         }
         if let Some(deps) = cond_val.get("deps").and_then(|d| d.as_array())
             && deps.iter().any(|d| d.as_str() == Some(cname))
-            && condition_is_referenced(other, conds, resources, outputs, visited)
         {
             return true;
         }

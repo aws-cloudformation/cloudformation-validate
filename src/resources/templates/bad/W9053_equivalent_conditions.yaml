@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: W9053 - Equivalent conditions detected
+Parameters:
+  Env:
+    Type: String
+    AllowedValues:
+      - prod
+      - dev
+Conditions:
+  IsProd:
+    !Equals [!Ref Env, prod]
+  IsProduction:
+    !Equals [!Ref Env, prod]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProd

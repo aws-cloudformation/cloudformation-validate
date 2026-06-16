@@ -466,7 +466,7 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_sub_needed() {
         let ids = validate_file("bad/sub_needed.yaml");
-        assert!(has_rule(&ids, "F1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
+        assert!(has_rule(&ids, "E1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
     }
 
     #[test]
@@ -560,13 +560,13 @@ mod rule_category_tests {
     #[test]
     fn conditions_undefined_condition() {
         let ids = validate_file("bad/undefined_condition.yaml");
-        assert!(has_rule(&ids, "F8002"), "Expected condition error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8002"), "Expected condition error, got: {:?}", ids);
     }
 
     #[test]
     fn conditions_equals_wrong_arity() {
         let ids = validate_file("bad/equals_wrong_arity.yaml");
-        assert!(has_rule(&ids, "F0014") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8003") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
     }
 
     #[test]
@@ -604,10 +604,11 @@ mod rule_category_tests {
     }
 
     #[test]
-    fn good_both_forms_no_errors() {
-        let ids = validate_file("good/both_forms.yaml");
+    fn both_forms_triggers_w9053() {
+        let ids = validate_file("bad/W9053_equivalent_both_forms.yaml");
         let errors: Vec<_> = ids.iter().filter(|id| id.starts_with("E") || id.starts_with("F")).collect();
-        assert!(errors.is_empty(), "No errors expected for good/both_forms.yaml, got: {:?}", errors);
+        assert!(errors.is_empty(), "No E/F errors expected for W9053_equivalent_both_forms.yaml, got: {:?}", errors);
+        assert!(ids.contains(&"W9053".to_string()), "Expected W9053 for equivalent conditions, got: {:?}", ids);
     }
 
     #[test]

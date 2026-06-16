@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: W1054 - Pseudo-parameter used as a raw literal string instead of via Ref
+# Each property value below is EXACTLY a pseudo-parameter name. CloudFormation
+# does not substitute a bare literal like "AWS::Region" — only Ref does — so the
+# author almost certainly meant {Ref: AWS::Region}. W1054 fires on exact equality
+# (matching cfn-lint's RawPseudoParameter), not on substrings.
+Resources:
+  MyTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: "AWS::Region"
+  MyParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: "AWS::AccountId"

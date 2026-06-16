@@ -6,9 +6,24 @@ use std::mem;
 use std::str::from_utf8;
 use yaml_rust2::parser::{Event, MarkedEventReceiver, Parser, Tag};
 use yaml_rust2::scanner::Marker;
+
+const RULE_DUPLICATE_KEY: &str = "F0000";
+const RULE_FN_IF_SHAPE: &str = "F0013";
+const RULE_FN_EQUALS_SHAPE: &str = "E8003";
+const RULE_FN_AND_ARITY: &str = "E8004";
+const RULE_FN_NOT_ARITY: &str = "E8005";
+const RULE_FN_OR_ARITY: &str = "E8006";
+const RULE_FN_SELECT_SHAPE: &str = "E1017";
+const RULE_INTRINSIC_PARSE_ERROR: &str = "F1101";
 use yaml_rust2::yaml::{Hash, Yaml};
 
 /// Converts YAML shorthand tags (!Ref, !Sub, etc.) into map-form intrinsics.
+struct LoadOutput {
+    docs: Vec<Yaml>,
+    span_map: HashMap<String, (u32, u32)>,
+    duplicate_keys: Vec<(String, u32, u32)>,
+}
+
 struct CfnYamlLoader {
     docs: Vec<Yaml>,
     doc_stack: Vec<(Yaml, usize)>,
@@ -22,6 +37,14 @@ struct CfnYamlLoader {
     path_stack: Vec<String>,
     array_idx_stack: Vec<usize>,
     span_map: HashMap<String, (u32, u32)>,
+    /// Duplicate keys detected during loading. yaml_rust2's `Hash::insert`
+    /// silently overwrites earlier entries; we record the path + the position
+    /// of the offending duplicate so the parser can surface a diagnostic.
+    duplicate_keys: Vec<(String, u32, u32)>,
+    /// Stack of pending key positions, parallel to `key_stack`. Each entry is
+    /// the (line, column) of the most-recently scanned key in that mapping
+    /// frame, so we can attach an accurate span to a duplicate-key diagnostic.
+    key_position_stack: Vec<(u32, u32)>,
 }
 
 impl CfnYamlLoader {
@@ -35,14 +58,20 @@ impl CfnYamlLoader {
             path_stack: Vec::new(),
             array_idx_stack: Vec::new(),
             span_map: HashMap::new(),
+            duplicate_keys: Vec::new(),
+            key_position_stack: Vec::new(),
         }
     }
 
-    fn load(text: &str) -> Result<(Vec<Yaml>, HashMap<String, (u32, u32)>), String> {
+    fn load(text: &str) -> Result<LoadOutput, String> {
         let mut loader = Self::new();
         let mut parser = Parser::new_from_str(text);
         parser.load(&mut loader, true).map_err(|e| format!("{}", e))?;
-        Ok((loader.docs, loader.span_map))
+        Ok(LoadOutput {
+            docs: loader.docs,
+            span_map: loader.span_map,
+            duplicate_keys: loader.duplicate_keys,
+        })
     }
 
     fn current_path(&self) -> String {
@@ -56,7 +85,8 @@ impl CfnYamlLoader {
             match name.as_str() {
                 "Ref" | "GetAtt" | "Sub" | "Join" | "Select" | "If" | "FindInMap" | "Split" | "Base64" | "Cidr"
                 | "GetAZs" | "ImportValue" | "Transform" | "And" | "Or" | "Not" | "Equals" | "Condition"
-                | "ToJsonString" | "Length" | "ForEach" => Some(name.clone()),
+                | "ToJsonString" | "Length" | "ForEach" | "GetStackOutput" | "Contains"
+                | "EachMemberEquals" | "EachMemberIn" | "RefAll" | "ValueOf" | "ValueOfAll" => Some(name.clone()),
                 _ => None,
             }
         } else {
@@ -87,6 +117,13 @@ impl CfnYamlLoader {
             "ToJsonString" => FN_TO_JSON_STRING,
             "Length" => FN_LENGTH,
             "ForEach" => FN_FOR_EACH,
+            "GetStackOutput" => FN_GET_STACK_OUTPUT,
+            "Contains" => FN_CONTAINS,
+            "EachMemberEquals" => FN_EACH_MEMBER_EQUALS,
+            "EachMemberIn" => FN_EACH_MEMBER_IN,
+            "RefAll" => FN_REF_ALL,
+            "ValueOf" => FN_VALUE_OF,
+            "ValueOfAll" => FN_VALUE_OF_ALL,
             _ => return value,
         };
         let mut hash = Hash::new();
@@ -94,7 +131,7 @@ impl CfnYamlLoader {
         Yaml::Hash(hash)
     }
 
-    fn insert_new_node(&mut self, node: (Yaml, usize), _mark: Marker) {
+    fn insert_new_node(&mut self, node: (Yaml, usize), mark: Marker) {
         let (mut node_val, aid) = node;
         if let Some((_, depth)) = self.pending_tags.last()
             && self.doc_stack.len() == *depth
@@ -122,6 +159,16 @@ impl CfnYamlLoader {
                     *cur_key = node_val;
                 } else {
                     let key = mem::replace(cur_key, Yaml::BadValue);
+                    if h.contains_key(&key)
+                        && let Yaml::String(ref key_str) = key
+                    {
+                        let (line, col) = self
+                            .key_position_stack
+                            .last()
+                            .copied()
+                            .unwrap_or((mark.line() as u32 + 1, mark.col() as u32 + 1));
+                        self.duplicate_keys.push((key_str.clone(), line, col));
+                    }
                     h.insert(key, node_val);
                 }
             }
@@ -157,9 +204,11 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 }
                 self.doc_stack.push((Yaml::Hash(Hash::new()), aid));
                 self.key_stack.push(Yaml::BadValue);
+                self.key_position_stack.push((0, 0));
             }
             Event::MappingEnd => {
                 self.key_stack.pop();
+                self.key_position_stack.pop();
                 if !self.path_stack.is_empty() {
                     let parent_is_array =
                         self.doc_stack.last().map(|(y, _)| matches!(y, Yaml::Array(_))).unwrap_or(false);
@@ -189,7 +238,15 @@ impl MarkedEventReceiver for CfnYamlLoader {
                             self.path_stack.push(v.clone());
                             let path = self.current_path();
                             // mark.line() and mark.col() are 0-based
-                            self.span_map.insert(path, (mark.line() as u32 + 1, mark.col() as u32 + 1));
+                            let line = mark.line() as u32 + 1;
+                            let col = mark.col() as u32 + 1;
+                            self.span_map.insert(path, (line, col));
+                            // Remember this key's position so a later
+                            // duplicate detected for this mapping frame can
+                            // report it accurately.
+                            if let Some(slot) = self.key_position_stack.last_mut() {
+                                *slot = (line, col);
+                            }
                         }
                     } else if matches!(parent.0, Yaml::Array(_))
                         && let Some(idx) = self.array_idx_stack.last_mut()
@@ -220,7 +277,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         column: None,
     })?;
 
-    let (docs, raw_spans) = CfnYamlLoader::load(text).map_err(|e| ParseError {
+    let LoadOutput { docs, span_map: raw_spans, duplicate_keys } = CfnYamlLoader::load(text).map_err(|e| ParseError {
         message: format!("YAML parse error: {}", e),
         line: None,
         column: None,
@@ -286,6 +343,19 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     );
     if !builder.diagnostics.is_empty() {
         warn!("{} parse diagnostics from YAML (malformed intrinsics)", builder.diagnostics.len());
+    }
+
+    for (key, line, col) in &duplicate_keys {
+        builder.diagnostics.push(crate::make_parse_diagnostic(
+            RULE_DUPLICATE_KEY,
+            format!("Duplicate key '{}'", key),
+            SourceSpan {
+                start_line: *line,
+                start_column: *col,
+                end_line: *line,
+                end_column: *col + key.len() as u32,
+            },
+        ));
     }
 
     Ok(TemplateIR {
@@ -370,7 +440,7 @@ fn equals_argument_error_yaml(val: &Yaml) -> Option<String> {
     if matches!(val, Yaml::Null | Yaml::BadValue) {
         return Some("null is not of type 'string'".to_string());
     }
-    if matches!(val, Yaml::String(_) | Yaml::Integer(_) | Yaml::Real(_)) {
+    if matches!(val, Yaml::String(_) | Yaml::Integer(_) | Yaml::Real(_) | Yaml::Boolean(_)) {
         return None;
     }
     if let Some(hash) = val.as_hash()
@@ -438,18 +508,22 @@ impl YamlBuilder {
     }
 
     fn intrinsic_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F1101", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
+        self.diagnostics.push(crate::make_parse_diagnostic(RULE_INTRINSIC_PARSE_ERROR, format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
-    /// Emit a structural diagnostic for Fn::Equals, Fn::And, Fn::Or, Fn::Not.
-    /// CloudFormation rejects templates with these defects at deploy time.
     fn condition_fn_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0014", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
+        let rule_id = match fn_name {
+            FN_EQUALS => RULE_FN_EQUALS_SHAPE,
+            FN_AND => RULE_FN_AND_ARITY,
+            FN_NOT => RULE_FN_NOT_ARITY,
+            FN_OR => RULE_FN_OR_ARITY,
+            _ => RULE_FN_EQUALS_SHAPE,
+        };
+        self.diagnostics.push(crate::make_parse_diagnostic(rule_id, format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
-    /// Emit a structural diagnostic for Fn::If.
     fn fn_if_structural_error(&mut self, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0013", format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
+        self.diagnostics.push(crate::make_parse_diagnostic(RULE_FN_IF_SHAPE, format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
     }
 
     fn try_intrinsic(&mut self, key: &str, val: &Yaml, path: &str) -> Option<NodeRef> {
@@ -567,7 +641,7 @@ impl YamlBuilder {
                 };
                 if a.len() != 2 {
                     // Wrong element count — fall through to plain map so downstream
-                    // rules (E1021) can report with proper resource context.
+                    // rules (E1059) can report with proper resource context.
                     return None;
                 }
                 if !matches!(&a[0], Yaml::String(_) | Yaml::Hash(_)) {
@@ -587,13 +661,20 @@ impl YamlBuilder {
                         // Value is an intrinsic — cannot validate statically.
                         return None;
                     }
-                    // Non-array value (e.g. string) — fall through to plain map so
-                    // downstream rules (E1017) can report with proper resource context.
+                    self.diagnostics.push(crate::make_parse_diagnostic(
+                        RULE_FN_SELECT_SHAPE,
+                        format!("Fn::Select: {} is not of type 'array'", describe_yaml_value(val)),
+                        UNKNOWN_SPAN,
+                    ));
                     return None;
                 };
                 if a.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1017) can report with proper resource context.
+                    let bound = if a.len() < 2 { "minimum" } else { "maximum" };
+                    self.diagnostics.push(crate::make_parse_diagnostic(
+                        RULE_FN_SELECT_SHAPE,
+                        format!("Fn::Select: expected {} item count: 2, found: {}", bound, a.len()),
+                        UNKNOWN_SPAN,
+                    ));
                     return None;
                 }
                 if !matches!(&a[0], Yaml::Integer(_) | Yaml::Hash(_)) {
@@ -741,14 +822,6 @@ impl YamlBuilder {
                     self.condition_fn_error(FN_AND, &format!("{} is not of type 'array'", describe_yaml_value(val)));
                     return None;
                 };
-                if a.len() < 2 {
-                    self.condition_fn_error(FN_AND, &format!("expected minimum item count: 2, found: {}", a.len()));
-                    return None;
-                }
-                if a.len() > 10 {
-                    self.condition_fn_error(FN_AND, &format!("expected maximum item count: 10, found: {}", a.len()));
-                    return None;
-                }
                 for (idx, elem) in a.iter().enumerate() {
                     if let Some(reason) = condition_element_error_yaml(elem) {
                         self.condition_fn_error(FN_AND, &format!("element {}: {}", idx, reason));
@@ -766,14 +839,6 @@ impl YamlBuilder {
                     self.condition_fn_error(FN_OR, &format!("{} is not of type 'array'", describe_yaml_value(val)));
                     return None;
                 };
-                if a.len() < 2 {
-                    self.condition_fn_error(FN_OR, &format!("expected minimum item count: 2, found: {}", a.len()));
-                    return None;
-                }
-                if a.len() > 10 {
-                    self.condition_fn_error(FN_OR, &format!("expected maximum item count: 10, found: {}", a.len()));
-                    return None;
-                }
                 for (idx, elem) in a.iter().enumerate() {
                     if let Some(reason) = condition_element_error_yaml(elem) {
                         self.condition_fn_error(FN_OR, &format!("element {}: {}", idx, reason));
@@ -791,9 +856,12 @@ impl YamlBuilder {
                     self.condition_fn_error(FN_NOT, &format!("{} is not of type 'array'", describe_yaml_value(val)));
                     return None;
                 };
+                if a.is_empty() {
+                    self.condition_fn_error(FN_NOT, "must have exactly 1 element, got 0");
+                    return None;
+                }
                 if a.len() != 1 {
                     self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", a.len()));
-                    return None;
                 }
                 if let Some(reason) = condition_element_error_yaml(&a[0]) {
                     self.condition_fn_error(FN_NOT, &format!("element 0: {}", reason));
@@ -961,6 +1029,31 @@ impl YamlBuilder {
                 };
                 IntrinsicFn::Ref(format!("Condition:{}", s))
             }
+            FN_GET_STACK_OUTPUT => {
+                // Accept both the AWS spec object form `{StackName, OutputName, Region?, RoleArn?}`
+                // and the legacy `[StackName, OutputName]` array form. Both normalize into a
+                // single-NodeRef payload so downstream rules can validate the shape uniformly.
+                if let Some(a) = val.as_vec() {
+                    if a.len() != 2 {
+                        self.intrinsic_error(
+                            FN_GET_STACK_OUTPUT,
+                            &format!("Fn::GetStackOutput value must be a 2-element array, got {}", a.len()),
+                        );
+                        return None;
+                    }
+                    let c = self.build_yaml(val, &format!("{}/Fn::GetStackOutput", path));
+                    IntrinsicFn::GetStackOutput(c)
+                } else if val.as_hash().is_some() {
+                    let c = self.build_yaml(val, &format!("{}/Fn::GetStackOutput", path));
+                    IntrinsicFn::GetStackOutput(c)
+                } else {
+                    self.intrinsic_error(
+                        FN_GET_STACK_OUTPUT,
+                        "Fn::GetStackOutput value must be an object with StackName and OutputName, or a 2-element array",
+                    );
+                    return None;
+                }
+            }
             _ => return None,
         };
         Some(self.arena.alloc(SpannedNode { node: Node::Intrinsic(i), span: UNKNOWN_SPAN, path: path.into() }))
@@ -1089,22 +1182,22 @@ mod tests {
     /// a type error — `Fn::Contains` is a boolean-producing Rules-section
     /// intrinsic, not a non-boolean expression.
     #[test]
-    fn fn_not_accepts_fn_contains_argument_no_f0014() {
+    fn fn_not_accepts_fn_contains_argument_no_e8005() {
         let input = "Parameters:\n  BootstrapVersion:\n    Type: String\nResources:\n  B:\n    Type: AWS::S3::Bucket\nRules:\n  CheckBootstrapVersion:\n    Assertions:\n      - Assert:\n          Fn::Not:\n            - Fn::Contains:\n                - [\"1\", \"2\", \"3\", \"4\", \"5\"]\n                - Ref: BootstrapVersion\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
-        assert!(f0014.is_empty(), "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}", f0014);
+        let e8005: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "E8005").collect();
+        assert!(e8005.is_empty(), "Expected no E8005 for Fn::Not(Fn::Contains), got: {:?}", e8005);
     }
 
     #[test]
-    fn fn_not_with_string_argument_still_produces_f0014() {
+    fn fn_not_with_string_argument_still_produces_e8005() {
         let input = "Resources:\n  B:\n    Type: AWS::S3::Bucket\nConditions:\n  Bad:\n    Fn::Not:\n      - definitely-not-boolean\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics.iter().any(|d| d.rule_id == "F0014"
+            ir.diagnostics.iter().any(|d| d.rule_id == "E8005"
                 && d.message.contains("Fn::Not")
                 && d.message.contains("is not of type 'boolean'")),
-            "Expected F0014 for Fn::Not with string arg, got: {:?}",
+            "Expected E8005 for Fn::Not with string arg, got: {:?}",
             ir.diagnostics
         );
     }

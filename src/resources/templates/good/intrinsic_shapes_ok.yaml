@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Good template - all intrinsic shapes are valid
+Resources:
+  # Valid Split with normal delimiter — Select[0] = "abc" (valid S3 bucket name)
+  SplitExample:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Select
+        - 0
+        - !Split
+          - "-"
+          - "abc-def-ghi"
+
+  # Valid Base64 with allowed nested function
+  Base64Example:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+            return "hello"
+      Environment:
+        Variables:
+          Encoded:
+            Fn::Base64:
+              Fn::Sub: "Hello ${AWS::Region}"
+
+  # Valid Sub with all keys referenced
+  SubExample:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub:
+          - "my-bucket-${Env}-${Region}"
+          - Env: "prod"
+            Region: "us-east-1"
+
+  # Valid dynamic references
+  DynRefExample:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: "{{resolve:ssm:/my/param:1}}"
+      Tags:
+        - Key: Secret
+          Value: "{{resolve:secretsmanager:my-secret:SecretString:key}}"
+
+  # Valid use of pseudo-parameter via Ref (not raw string)
+  RefExample:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "bucket-${AWS::Region}"
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole

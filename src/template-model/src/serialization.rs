@@ -217,6 +217,19 @@ fn build_resources(
                         .iter()
                         .map(|s| PathTarget { path: s.path.clone(), target: s.value.clone() })
                         .collect(),
+                    split_dynamic_ref_delimiters: res.diagnostics.split_dynamic_ref_delimiters.clone(),
+                    unused_sub_keys: res
+                        .diagnostics
+                        .unused_sub_keys
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
+                    base64_disallowed_functions: res
+                        .diagnostics
+                        .base64_disallowed_functions
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
                 },
             )
         })
@@ -226,6 +239,17 @@ fn build_resources(
 fn build_conditions(conditions: &crate::conditions::ConditionModel) -> HashMap<String, DiagnosticCondition> {
     let mut out = HashMap::new();
     for name in conditions.names() {
+        // Synthetic conditions (Rules-section assertions registered as
+        // `__rule_*`, resolver inline conditions as `__inline_*`, and malformed
+        // `__malformed_*` placeholders) are internal SAT bookkeeping, not
+        // user-authored condition names. They must not surface in the
+        // serialized condition map, or rules that iterate it — W8001 (unused
+        // conditions) in particular — would flag bookkeeping names cfn-lint
+        // never sees. The implication/mutex/exclusion fields carry the synthetic
+        // names separately for cross-condition reasoning.
+        if name.starts_with("__") {
+            continue;
+        }
         let (expression, deps) = if let Some(expr) = conditions.get(name) {
             let mut d = Vec::new();
             crate::conditions::collect_condition_deps(expr, &mut d);

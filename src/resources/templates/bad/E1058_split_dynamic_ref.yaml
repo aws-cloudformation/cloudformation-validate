@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: E1058 - Fn::Split delimiter must not be a dynamic reference
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Select
+        - 0
+        - !Split
+          - "{{resolve:ssm:/my/delimiter}}"
+          - "a-b-c"

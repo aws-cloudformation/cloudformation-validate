@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env:
+    Type: String
+Conditions:
+  OnlyOne:
+    Fn::And:
+      - !Condition IsProd
+  IsProd:
+    Fn::Equals:
+      - !Ref Env
+      - prod
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket

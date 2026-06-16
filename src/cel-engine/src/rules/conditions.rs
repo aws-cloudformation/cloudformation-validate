@@ -153,9 +153,10 @@ fn find_unreachable_branches(
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             if !model.conditions.is_satisfiable(&true_assumptions) {
+                let explanation = build_unreachable_explanation(cond, true, assumptions);
                 out.push(make_resource_diagnostic(
                     "W1028",
-                    &format!("['Fn::If', 1] is not reachable. When setting condition '{}' to True", cond),
+                    &format!("['Fn::If', 1] is not reachable. {}", explanation),
                     model,
                     resource_id,
                     &format!("{}.Fn::If.1", path),
@@ -220,15 +221,10 @@ fn build_unreachable_explanation(condition: &str, target_value: bool, assumption
     let existing: Vec<String> = assumptions
         .iter()
         .filter(|(name, _)| name != condition)
-        .map(|(name, val)| format!("condition '{}' is {}", name, if *val { "True" } else { "False" }))
+        .map(|(name, val)| format!("'{}' is {}", name, if *val { "True" } else { "False" }))
         .collect();
     if existing.is_empty() {
-        format!(
-            "When setting condition '{}' to {} from current status {}",
-            condition,
-            setting,
-            if target_value { "False" } else { "True" }
-        )
+        format!("When setting condition '{}' to {}", condition, setting)
     } else {
         format!(
             "When setting condition '{}' to {}. Where existing status for {}",
@@ -246,26 +242,33 @@ mod tests {
     #[test]
     fn explanation_no_existing_assumptions() {
         let result = build_unreachable_explanation("IsProduction", false, &[]);
-        assert!(result.contains("IsProduction"));
-        assert!(result.contains("False"));
+        assert_eq!(result, "When setting condition 'IsProduction' to False");
     }
 
     #[test]
     fn explanation_with_existing_assumptions() {
         let assumptions = vec![("IsProduction".to_string(), true)];
         let result = build_unreachable_explanation("IsStaging", false, &assumptions);
-        assert!(result.contains("IsStaging"));
-        assert!(result.contains("False"));
-        assert!(result.contains("IsProduction"));
-        assert!(result.contains("True"));
+        assert_eq!(
+            result,
+            "When setting condition 'IsStaging' to False. Where existing status for 'IsProduction' is True"
+        );
     }
 
     #[test]
     fn explanation_filters_self_from_existing() {
         let assumptions = vec![("SameCond".to_string(), true)];
         let result = build_unreachable_explanation("SameCond", false, &assumptions);
-        // Should not mention SameCond in the "existing status" part
-        assert!(result.contains("SameCond"));
-        assert!(result.contains("False"));
+        assert_eq!(result, "When setting condition 'SameCond' to False");
+    }
+
+    #[test]
+    fn explanation_multiple_existing_assumptions() {
+        let assumptions = vec![("CondA".to_string(), true), ("CondB".to_string(), false)];
+        let result = build_unreachable_explanation("CondC", true, &assumptions);
+        assert_eq!(
+            result,
+            "When setting condition 'CondC' to True. Where existing status for 'CondA' is True and 'CondB' is False"
+        );
     }
 }

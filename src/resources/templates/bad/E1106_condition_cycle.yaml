@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# Conditions reference each other cyclically — should trigger E1106
+Conditions:
+  CondA:
+    Fn::And:
+      - !Condition CondB
+      - !Equals ["a", "a"]
+  CondB:
+    Fn::And:
+      - !Condition CondA
+      - !Equals ["b", "b"]
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Condition: CondA

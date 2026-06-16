@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Rules section implies constraint that downstream rules can detect.
+  ProdRule asserts that when Env=prod, InstanceType must be m5.large.
+  This template references a conditional resource with a mutually exclusive condition.
+Parameters:
+  Env:
+    Type: String
+    AllowedValues:
+      - prod
+      - dev
+  InstanceType:
+    Type: String
+    AllowedValues:
+      - t3.micro
+      - m5.large
+Rules:
+  ProdRule:
+    RuleCondition:
+      !Equals [!Ref Env, prod]
+    Assertions:
+      - Assert:
+          !Equals [!Ref InstanceType, m5.large]
+        AssertDescription: Prod must use m5.large
+Conditions:
+  IsProd:
+    !Equals [!Ref Env, prod]
+  IsDev:
+    !Equals [!Ref Env, dev]
+Resources:
+  ProdBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+  DevBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsDev
+    Properties:
+      BucketName: !GetAtt ProdBucket.Arn

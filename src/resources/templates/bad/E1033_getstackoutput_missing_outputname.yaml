@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: E1033 - Fn::GetStackOutput requires StackName and OutputName keys
+Transform: AWS::LanguageExtensions
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # Fn::GetStackOutput object missing required OutputName → E1033
+      BucketName:
+        Fn::GetStackOutput:
+          StackName: producer-stack

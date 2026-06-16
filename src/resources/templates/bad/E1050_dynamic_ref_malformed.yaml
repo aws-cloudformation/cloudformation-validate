@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: E1050 - Dynamic reference structure must match per-flavor format
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # SSM with invalid param name (contains spaces)
+      BucketName: "{{resolve:ssm:my param with spaces}}"
+  MyQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      # SecretsManager missing SecretString
+      QueueName: "{{resolve:secretsmanager:my-secret:InvalidField}}"

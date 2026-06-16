@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# Missing AWS::LanguageExtensions transform — should trigger E1033
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !GetStackOutput
+        - other-stack
+        - BucketName

@@ -82,50 +82,15 @@ _condition_used(cname) if {
     c == cname
 }
 
-# Transitive: condition is used if another condition depends on it and that condition is directly used
+# A condition referenced by ANY other condition's body (via `Condition: <name>`)
+# is considered used. This matches cfn-lint's W8001 (conditions/Used.py), which
+# collects every such in-Conditions-section reference regardless of whether the
+# referencing condition is itself used.
 _condition_used(cname) if {
     some other in object.keys(input.conditions)
     other != cname
     some dep in object.get(input.conditions[other], "deps", [])
     dep == cname
-    _condition_directly_used(other)
-}
-
-# Two-level transitive: A → B → C where C is directly used
-_condition_used(cname) if {
-    some mid in object.keys(input.conditions)
-    mid != cname
-    some dep1 in object.get(input.conditions[mid], "deps", [])
-    dep1 == cname
-    some other in object.keys(input.conditions)
-    other != mid
-    other != cname
-    some dep2 in object.get(input.conditions[other], "deps", [])
-    dep2 == mid
-    _condition_directly_used(other)
-}
-
-# Direct usage checks (non-recursive)
-_condition_directly_used(cname) if {
-    some _, res in input.resources
-    res.condition == cname
-}
-
-_condition_directly_used(cname) if {
-    some _, out in input.outputs
-    out.condition == cname
-}
-
-_condition_directly_used(cname) if {
-    some _, res in input.resources
-    some c in res.conditionRefs
-    c == cname
-}
-
-_condition_directly_used(cname) if {
-    some _, out in input.outputs
-    some c in object.get(out, "conditionRefs", [])
-    c == cname
 }
 
 # W7001: Unused mappings (not referenced by any Fn::FindInMap)

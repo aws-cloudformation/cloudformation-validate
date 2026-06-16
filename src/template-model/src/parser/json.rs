@@ -5,6 +5,15 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::str::from_utf8;
 
+const RULE_DUPLICATE_KEY: &str = "F0000";
+const RULE_FN_IF_SHAPE: &str = "F0013";
+const RULE_FN_EQUALS_SHAPE: &str = "E8003";
+const RULE_FN_AND_ARITY: &str = "E8004";
+const RULE_FN_NOT_ARITY: &str = "E8005";
+const RULE_FN_OR_ARITY: &str = "E8006";
+const RULE_FN_SELECT_SHAPE: &str = "E1017";
+const RULE_INVALID_INTRINSIC_USAGE: &str = "W1102";
+
 fn build_line_offsets(bytes: &[u8]) -> Vec<usize> {
     let mut offsets = vec![0usize]; // line 1 starts at byte 0
     for (i, &b) in bytes.iter().enumerate() {
@@ -69,7 +78,7 @@ fn equals_argument_error(val: &serde_json::Value) -> Option<String> {
     if val.is_null() {
         return Some("null is not of type 'string'".to_string());
     }
-    if val.is_string() || val.is_number() {
+    if val.is_string() || val.is_number() || val.is_boolean() {
         return None;
     }
     if let Some(obj) = val.as_object()
@@ -154,19 +163,22 @@ impl JsonBuilder {
     }
 
     fn intrinsic_type_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("W1102", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
+        self.diagnostics.push(crate::make_parse_diagnostic(RULE_INVALID_INTRINSIC_USAGE, format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
-    /// Emit a structural diagnostic for Fn::Equals, Fn::And, Fn::Or, Fn::Not.
-    /// CloudFormation rejects templates with these defects at deploy time
     fn condition_fn_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0014", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
+        let rule_id = match fn_name {
+            FN_EQUALS => RULE_FN_EQUALS_SHAPE,
+            FN_AND => RULE_FN_AND_ARITY,
+            FN_NOT => RULE_FN_NOT_ARITY,
+            FN_OR => RULE_FN_OR_ARITY,
+            _ => RULE_FN_EQUALS_SHAPE,
+        };
+        self.diagnostics.push(crate::make_parse_diagnostic(rule_id, format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
-    /// Emit a structural diagnostic for Fn::If. CloudFormation rejects
-    /// malformed Fn::If at deploy time; classified as Fatal.
     fn fn_if_structural_error(&mut self, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0013", format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
+        self.diagnostics.push(crate::make_parse_diagnostic(RULE_FN_IF_SHAPE, format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
     }
 
     fn try_build_intrinsic(&mut self, key: &str, val: &serde_json::Value, path: &str) -> Option<NodeRef> {
@@ -317,7 +329,7 @@ impl JsonBuilder {
                 };
                 if arr.len() != 2 {
                     // Wrong element count — fall through to plain map so downstream
-                    // rules (E1021) can report with proper resource context.
+                    // rules (E1059) can report with proper resource context.
                     return None;
                 }
                 if !arr[0].is_string() && !arr[0].is_object() {
@@ -339,14 +351,21 @@ impl JsonBuilder {
                             // Value is an intrinsic — cannot validate statically.
                             return None;
                         }
-                        // Non-array value — fall through to plain map so downstream
-                        // rules (E1017) can report with proper resource context.
+                        self.diagnostics.push(crate::make_parse_diagnostic(
+                            RULE_FN_SELECT_SHAPE,
+                            format!("Fn::Select: {} is not of type 'array'", describe_json_value(val)),
+                            UNKNOWN_SPAN,
+                        ));
                         return None;
                     }
                 };
                 if arr.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1017) can report with proper resource context.
+                    let bound = if arr.len() < 2 { "minimum" } else { "maximum" };
+                    self.diagnostics.push(crate::make_parse_diagnostic(
+                        RULE_FN_SELECT_SHAPE,
+                        format!("Fn::Select: expected {} item count: 2, found: {}", bound, arr.len()),
+                        UNKNOWN_SPAN,
+                    ));
                     return None;
                 }
                 if !arr[0].is_number() && !arr[0].is_object() {
@@ -559,14 +578,6 @@ impl JsonBuilder {
                         return None;
                     }
                 };
-                if arr.len() < 2 {
-                    self.condition_fn_error(FN_AND, &format!("expected minimum item count: 2, found: {}", arr.len()));
-                    return None;
-                }
-                if arr.len() > 10 {
-                    self.condition_fn_error(FN_AND, &format!("expected maximum item count: 10, found: {}", arr.len()));
-                    return None;
-                }
                 for (idx, elem) in arr.iter().enumerate() {
                     if let Some(reason) = condition_element_error(elem) {
                         self.condition_fn_error(FN_AND, &format!("element {}: {}", idx, reason));
@@ -591,14 +602,6 @@ impl JsonBuilder {
                         return None;
                     }
                 };
-                if arr.len() < 2 {
-                    self.condition_fn_error(FN_OR, &format!("expected minimum item count: 2, found: {}", arr.len()));
-                    return None;
-                }
-                if arr.len() > 10 {
-                    self.condition_fn_error(FN_OR, &format!("expected maximum item count: 10, found: {}", arr.len()));
-                    return None;
-                }
                 for (idx, elem) in arr.iter().enumerate() {
                     if let Some(reason) = condition_element_error(elem) {
                         self.condition_fn_error(FN_OR, &format!("element {}: {}", idx, reason));
@@ -626,9 +629,12 @@ impl JsonBuilder {
                         return None;
                     }
                 };
+                if arr.is_empty() {
+                    self.condition_fn_error(FN_NOT, "must have exactly 1 element, got 0");
+                    return None;
+                }
                 if arr.len() != 1 {
                     self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", arr.len()));
-                    return None;
                 }
                 if let Some(reason) = condition_element_error(&arr[0]) {
                     self.condition_fn_error(FN_NOT, &format!("element 0: {}", reason));
@@ -878,6 +884,41 @@ impl JsonBuilder {
                     path: path.to_string(),
                 }))
             }
+            FN_GET_STACK_OUTPUT => {
+                // AWS spec form: object with required `StackName` and `OutputName`,
+                // optional `Region` and `RoleArn`. We also accept the legacy
+                // `[StackName, OutputName]` array form so existing templates and
+                // older docs keep working; both forms are normalized into a
+                // single-NodeRef payload that downstream rules can walk.
+                if let Some(arr) = val.as_array() {
+                    if arr.len() != 2 {
+                        self.intrinsic_error(
+                            FN_GET_STACK_OUTPUT,
+                            &format!("Fn::GetStackOutput value must be a 2-element array, got {}", arr.len()),
+                        );
+                        return None;
+                    }
+                    let child = self.build_value(val, &format!("{}/Fn::GetStackOutput", path));
+                    Some(self.arena.alloc(SpannedNode {
+                        node: Node::Intrinsic(IntrinsicFn::GetStackOutput(child)),
+                        span: UNKNOWN_SPAN,
+                        path: path.to_string(),
+                    }))
+                } else if val.is_object() {
+                    let child = self.build_value(val, &format!("{}/Fn::GetStackOutput", path));
+                    Some(self.arena.alloc(SpannedNode {
+                        node: Node::Intrinsic(IntrinsicFn::GetStackOutput(child)),
+                        span: UNKNOWN_SPAN,
+                        path: path.to_string(),
+                    }))
+                } else {
+                    self.intrinsic_error(
+                        FN_GET_STACK_OUTPUT,
+                        "Fn::GetStackOutput value must be an object with StackName and OutputName, or a 2-element array",
+                    );
+                    None
+                }
+            }
             _ => None,
         }
     }
@@ -1031,7 +1072,7 @@ fn detect_duplicate_keys(bytes: &[u8]) -> Vec<diagnostics::Diagnostic> {
                             Entry::Occupied(occupied) => {
                                 let (sl, sc) = offset_to_line_col(&line_offsets, start);
                                 diagnostics.push(crate::make_parse_diagnostic(
-                                    "F0000",
+                                    RULE_DUPLICATE_KEY,
                                     format!("Duplicate key '{}'", occupied.key()),
                                     SourceSpan {
                                         start_line: sl,
@@ -1252,7 +1293,7 @@ mod tests {
     /// template's `Rules` block. Both intrinsics return boolean per the
     /// CloudFormation spec, so the parser must accept the nesting.
     #[test]
-    fn fn_not_accepts_fn_contains_argument_no_f0014() {
+    fn fn_not_accepts_fn_contains_argument_no_e8005() {
         let input = r#"{
             "Parameters": {
                 "BootstrapVersion": {"Type": "String"}
@@ -1276,12 +1317,12 @@ mod tests {
             }
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
-        assert!(f0014.is_empty(), "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}", f0014);
+        let e8005: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "E8005").collect();
+        assert!(e8005.is_empty(), "Expected no E8005 for Fn::Not(Fn::Contains), got: {:?}", e8005);
     }
 
     #[test]
-    fn fn_and_accepts_rules_section_boolean_intrinsics_no_f0014() {
+    fn fn_and_accepts_rules_section_boolean_intrinsics_no_e8004() {
         let input = r#"{
             "Resources": {"B": {"Type": "AWS::S3::Bucket"}},
             "Rules": {
@@ -1299,14 +1340,14 @@ mod tests {
             }
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
-        assert!(f0014.is_empty(), "Expected no F0014 for Fn::And of rule-section booleans, got: {:?}", f0014);
+        let e8004: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "E8004").collect();
+        assert!(e8004.is_empty(), "Expected no E8004 for Fn::And of rule-section booleans, got: {:?}", e8004);
     }
 
-    /// Genuinely-invalid input still produces F0014 — bare strings and
+    /// Genuinely-invalid input still produces E8004 — bare strings and
     /// non-boolean-producing intrinsics like Fn::Sub remain rejected.
     #[test]
-    fn fn_not_with_string_argument_still_produces_f0014() {
+    fn fn_not_with_string_argument_still_produces_e8005() {
         let input = r#"{
             "Resources": {"B": {"Type": "AWS::S3::Bucket"}},
             "Conditions": {
@@ -1315,16 +1356,16 @@ mod tests {
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics.iter().any(|d| d.rule_id == "F0014"
+            ir.diagnostics.iter().any(|d| d.rule_id == "E8005"
                 && d.message.contains("Fn::Not")
                 && d.message.contains("is not of type 'boolean'")),
-            "Expected F0014 for Fn::Not with string arg, got: {:?}",
+            "Expected E8005 for Fn::Not with string arg, got: {:?}",
             ir.diagnostics
         );
     }
 
     #[test]
-    fn fn_not_with_non_boolean_intrinsic_still_produces_f0014() {
+    fn fn_not_with_non_boolean_intrinsic_still_produces_e8005() {
         let input = r#"{
             "Resources": {"B": {"Type": "AWS::S3::Bucket"}},
             "Conditions": {
@@ -1333,8 +1374,8 @@ mod tests {
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics.iter().any(|d| d.rule_id == "F0014" && d.message.contains("Fn::Not")),
-            "Expected F0014 for Fn::Not wrapping Fn::Sub, got: {:?}",
+            ir.diagnostics.iter().any(|d| d.rule_id == "E8005" && d.message.contains("Fn::Not")),
+            "Expected E8005 for Fn::Not wrapping Fn::Sub, got: {:?}",
             ir.diagnostics
         );
     }

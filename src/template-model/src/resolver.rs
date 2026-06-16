@@ -109,6 +109,7 @@ pub(crate) struct Resolver<'a> {
     resolution_source_map: HashMap<(String, String), String>, // (resource_id, property_path) → source description
     parameter_overrides: &'a HashMap<String, String>,
     pseudo_parameter_overrides: &'a crate::model::PseudoParameterOverrides,
+    transforms: &'a [String],
 
     pub(crate) current_resource: Option<String>,
     condition_stack: Vec<(String, bool)>, // (condition_name, is_true_branch)
@@ -126,6 +127,7 @@ impl<'a> Resolver<'a> {
         resource_ids: HashSet<String>,
         parameter_overrides: &'a HashMap<String, String>,
         pseudo_parameter_overrides: &'a crate::model::PseudoParameterOverrides,
+        transforms: &'a [String],
     ) -> Self {
         Self {
             arena,
@@ -147,6 +149,7 @@ impl<'a> Resolver<'a> {
             resolution_source_map: HashMap::new(),
             parameter_overrides,
             pseudo_parameter_overrides,
+            transforms,
 
             current_resource: None,
             condition_stack: Vec::new(),
@@ -494,8 +497,22 @@ impl<'a> Resolver<'a> {
                     _ => ResolvedValue::Dynamic { reason: "Base64 with unresolvable argument".into() },
                 }
             }
-            IntrinsicFn::ImportValue(_) => {
+            IntrinsicFn::ImportValue(arg_ref) => {
+                // Walk the argument to register edges from nested intrinsics
+                self.resolve_node(*arg_ref);
                 ResolvedValue::TypedDynamic { reason: "cross-stack import".into(), param_type: "String".into() }
+            }
+            IntrinsicFn::GetStackOutput(arg_ref) => {
+                // Walk the argument list to register edges
+                self.resolve_node(*arg_ref);
+                if !self.transforms.contains(&TRANSFORM_LANGUAGE_EXTENSIONS.to_string()) {
+                    self.diagnostics.push(crate::make_parse_diagnostic(
+                        "E1033",
+                        "Fn::GetStackOutput requires the AWS::LanguageExtensions transform".to_string(),
+                        *span,
+                    ));
+                }
+                ResolvedValue::TypedDynamic { reason: "cross-stack output".into(), param_type: "String".into() }
             }
             IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
             IntrinsicFn::GetAZs(region_ref) => {
@@ -664,7 +681,10 @@ impl<'a> Resolver<'a> {
                     _ => ResolvedValue::Dynamic { reason: "condition expression".into() },
                 }
             }
-            IntrinsicFn::RefAll(_) => ResolvedValue::Dynamic { reason: "rules-only function".into() },
+            IntrinsicFn::RefAll(name) => {
+                self.record_edge(name, RefKind::Ref, span);
+                ResolvedValue::Dynamic { reason: "rules-only function".into() }
+            }
             IntrinsicFn::ValueOf(param_name, _attr) | IntrinsicFn::ValueOfAll(param_name, _attr) => {
                 // The first argument is a parameter (or parameter group) name —
                 // record a Ref edge so the parameter is counted as referenced.
@@ -1094,6 +1114,10 @@ impl<'a> Resolver<'a> {
                 let start = i + 2;
                 if let Some(end) = s[start..].find('}') {
                     let var = s[start..start + end].trim();
+                    if var.starts_with("stageVariables.") {
+                        i = start + end + 1;
+                        continue;
+                    }
                     if !var.is_empty()
                         && (self.resource_ids.contains(var)
                             || self.parameters.contains_key(var)
@@ -1150,7 +1174,7 @@ impl<'a> Resolver<'a> {
         span: &SourceSpan,
     ) -> ResolvedValue {
         if template.contains("${!") {
-            self.diagnostics.push(crate::make_parse_diagnostic("F1029", "Fn::Sub template contains '${!' which suggests nested intrinsic syntax — use the second argument map instead".to_string(), *span));
+            self.diagnostics.push(crate::make_parse_diagnostic("W1056", "Fn::Sub template contains '${!' which suggests nested intrinsic syntax — use the second argument map instead".to_string(), *span));
         }
 
         let mut vars: Vec<String> = Vec::new();
@@ -1374,18 +1398,7 @@ fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
 }
 
 fn availability_zones_for_region(region: &str) -> Option<Vec<String>> {
-    let suffixes: &[&str] = match region {
-        "us-east-1" => &["a", "b", "c", "d", "e", "f"],
-        "us-east-2" => &["a", "b", "c"],
-        "us-west-1" => &["a", "b"],
-        "us-west-2" => &["a", "b", "c", "d"],
-        "eu-west-1" | "eu-west-2" | "eu-west-3" | "eu-central-1" => &["a", "b", "c"],
-        "ap-southeast-1" | "ap-southeast-2" | "ap-south-1" | "sa-east-1" => &["a", "b", "c"],
-        "ap-northeast-1" | "ap-northeast-2" => &["a", "b", "c", "d"],
-        "ca-central-1" => &["a", "b", "d"],
-        _ => return None,
-    };
-    Some(suffixes.iter().map(|s| format!("{}{}", region, s)).collect())
+    crate::aws_regions::availability_zones_for_region(region)
 }
 
 fn calculate_cidr_blocks(ip_block: &str, count: u64, cidr_bits: u64) -> Option<Vec<String>> {
@@ -2031,6 +2044,7 @@ fn intrinsic_name(intrinsic: &IntrinsicFn) -> &'static str {
         IntrinsicFn::Contains(_, _) => "Contains",
         IntrinsicFn::EachMemberEquals(_, _) => "EachMemberEquals",
         IntrinsicFn::EachMemberIn(_, _) => "EachMemberIn",
+        IntrinsicFn::GetStackOutput(_) => "GetStackOutput",
     }
 }
 
@@ -2049,7 +2063,7 @@ mod tests {
         let no_param_overrides = HashMap::new();
         let no_pseudo_overrides = crate::model::PseudoParameterOverrides::default();
         let mut resolver =
-            Resolver::new(&ir.arena, &params, &mappings, resource_ids, &no_param_overrides, &no_pseudo_overrides);
+            Resolver::new(&ir.arena, &params, &mappings, resource_ids, &no_param_overrides, &no_pseudo_overrides, &[]);
         let res_map = ir.arena.as_map(ir.resources).unwrap();
         let props = ir.arena.map_get(res_map[0].1, "Properties").unwrap();
         let v_ref = ir.arena.map_get(props, "V").unwrap();
@@ -2074,7 +2088,7 @@ mod tests {
             &mappings,
             ["R".to_string()].into_iter().collect(),
             &no_param_overrides,
-            &no_pseudo_overrides,
+            &no_pseudo_overrides, &[],
         );
         let res_map = ir.arena.as_map(ir.resources).unwrap();
         let props = ir.arena.map_get(res_map[0].1, "Properties").unwrap();
@@ -2102,7 +2116,7 @@ mod tests {
             &mappings,
             ["R".to_string()].into_iter().collect(),
             &no_param_overrides,
-            &no_pseudo_overrides,
+            &no_pseudo_overrides, &[],
         );
         let res_map = ir.arena.as_map(ir.resources).unwrap();
         let props = ir.arena.map_get(res_map[0].1, "Properties").unwrap();
@@ -2125,7 +2139,7 @@ mod tests {
             &mappings,
             ["R".to_string()].into_iter().collect(),
             &no_param_overrides,
-            &no_pseudo_overrides,
+            &no_pseudo_overrides, &[],
         );
         let res_map = ir.arena.as_map(ir.resources).unwrap();
         let props = ir.arena.map_get(res_map[0].1, "Properties").unwrap();
@@ -2151,7 +2165,7 @@ mod tests {
             &mappings,
             ["R".to_string()].into_iter().collect(),
             &param_overrides,
-            &no_pseudo_overrides,
+            &no_pseudo_overrides, &[],
         );
         let res_map = ir.arena.as_map(ir.resources).unwrap();
         let props = ir.arena.map_get(res_map[0].1, "Properties").unwrap();
@@ -2179,6 +2193,7 @@ mod tests {
             ["R".to_string()].into_iter().collect(),
             &no_param_overrides,
             &pseudo_overrides,
+            &[],
         );
         let res_map = ir.arena.as_map(ir.resources).unwrap();
         let props = ir.arena.map_get(res_map[0].1, "Properties").unwrap();
@@ -2886,6 +2901,62 @@ mod tests {
         match model.resolve("R", "Properties.V") {
             Some(ResolvedValue::Dynamic { .. }) => {}
             other => panic!("Expected Dynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn getstackoutput_without_langext_emits_e1033() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::GetStackOutput":["stack","output"]}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let e1033: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E1033").collect();
+        assert_eq!(e1033.len(), 1, "expected E1033, got {:?}", e1033);
+        assert!(e1033[0].message.contains("AWS::LanguageExtensions"));
+    }
+
+    #[test]
+    fn getstackoutput_with_langext_no_transform_e1033() {
+        let input = r#"{"Transform":"AWS::LanguageExtensions","Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::GetStackOutput":["stack","output"]}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let e1033: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E1033").collect();
+        assert!(e1033.is_empty(), "expected no E1033 with LanguageExtensions and valid shape, got {:?}", e1033);
+    }
+
+    #[test]
+    fn import_value_walks_nested_sub_registers_edge() {
+        let input = r#"{
+            "Parameters":{"StackPrefix":{"Type":"String","Default":"mystack"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::ImportValue":{"Fn::Sub":"${StackPrefix}-export"}}}}}
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges = &model.graph.edges;
+        let has_ref_edge = edges.iter().any(|e| e.source_resource == "R" && e.target == "StackPrefix");
+        assert!(has_ref_edge, "ImportValue should walk nested Sub and register Ref edge to StackPrefix");
+    }
+
+    #[test]
+    fn ref_all_records_ref_edge() {
+        let input = r#"{
+            "Parameters":{"MyGroup":{"Type":"String","Default":"group1"}},
+            "Rules":{"MyRule":{"Assertions":[{"Assert":{"Fn::Contains":[{"Fn::RefAll":"MyGroup"},{"Ref":"MyGroup"}]},"AssertDescription":"test"}]}}
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges = &model.graph.edges;
+        let has_refall_edge = edges.iter().any(|e| e.target == "MyGroup"
+            && e.source_resource.contains("__rule__"));
+        assert!(has_refall_edge, "Fn::RefAll should register a Ref edge to the parameter group");
+    }
+
+    #[test]
+    fn getazs_eu_south_1_produces_concrete_not_dynamic() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::GetAZs":"eu-south-1"}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::Concrete { value: v }) => {
+                let arr = v.as_array().unwrap();
+                assert_eq!(arr.len(), 3);
+                assert_eq!(arr[0].as_str().unwrap(), "eu-south-1a");
+            }
+            other => panic!("Expected Concrete AZ array for eu-south-1, got {:?}", other),
         }
     }
 }

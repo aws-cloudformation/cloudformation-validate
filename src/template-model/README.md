@@ -17,7 +17,7 @@ All engines ([rego-engine](../rego-engine/README.md), [cel-engine](../cel-engine
    Resources, Outputs, Rules, Metadata, Transforms, Globals).
 2. **Resolve** — Walks each resource and output, resolving all intrinsic functions into `ResolvedValue` variants.
 3. **Validate** — Builds a reference graph, detects cycles, validates intrinsic function nesting, and emits parse-time
-   diagnostics (`F3004` cycles, `F1104` undefined conditions, `F1105` invalid nesting, `W8003` tautological conditions).
+   diagnostics (`F3004` cycles, `E1028` undefined conditions, `E1101` invalid nesting, `W8003` tautological conditions).
 
 ## Intrinsic Function Support
 

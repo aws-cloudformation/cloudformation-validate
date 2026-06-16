@@ -44,7 +44,6 @@ fn e2e_all_good_fixtures_no_errors() {
         "good/ecs_fargate_valid.yaml",
         "good/cloudfront_valid.yaml",
         "good/iam_valid.yaml",
-        "good/both_forms.yaml",
         "good/complex_conditions.yaml",
         "good/deletion_policies.yaml",
         "good/mappings_valid.yaml",
@@ -504,7 +503,7 @@ fn e2e_invalid_mapping_structure() {
 #[test]
 fn e2e_undefined_condition() {
     let report = validate_fixture("bad/undefined_condition.yaml");
-    assert!(has_rule(&report, "F8002"), "Undefined condition should trigger F8002, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "E8002"), "Undefined condition should trigger E8002, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -569,7 +568,7 @@ fn e2e_if_wrong_arity() {
 fn e2e_equals_wrong_arity() {
     let report = validate_fixture("bad/equals_wrong_arity.yaml");
     assert!(
-        has_rule(&report, "F0014"),
+        has_rule(&report, "E8003"),
         "Fn::Equals with 3 elements should trigger parse error, got: {:?}",
         report.diagnostics
     );
@@ -623,9 +622,9 @@ fn e2e_w1020_prefix_sub_no_trigger() {
 }
 
 #[test]
-fn e2e_e1029_nested_intrinsic_syntax() {
+fn e2e_w1056_nested_intrinsic_syntax() {
     let report = validate_fixture("bad/sub_nested_intrinsic.yaml");
-    assert!(has_rule(&report, "F1029"), "Expected F1029 for nested intrinsic syntax");
+    assert!(has_rule(&report, "W1056"), "Expected W1056 for nested intrinsic syntax");
 }
 
 #[test]

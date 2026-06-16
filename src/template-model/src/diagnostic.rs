@@ -144,6 +144,9 @@ pub struct DiagnosticResource {
     pub for_each_expansions: Vec<DiagnosticForEachExpansion>,
     pub unsubstituted_variables: Vec<PathVariable>,
     pub invalid_refs: Vec<PathTarget>,
+    pub split_dynamic_ref_delimiters: Vec<String>,
+    pub unused_sub_keys: Vec<PathVariable>,
+    pub base64_disallowed_functions: Vec<PathVariable>,
 }
 
 #[derive(Debug, Clone, Serialize)]

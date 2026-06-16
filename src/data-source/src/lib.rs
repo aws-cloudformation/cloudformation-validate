@@ -184,6 +184,7 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
     "codepipeline_action_artifact_counts",
     "deprecated_resource_types",
     "retention_period_requirements",
+    "secretsmanager_arn_fields",
     "sensitive_ports",
 ];
 

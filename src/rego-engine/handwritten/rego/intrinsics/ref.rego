@@ -2,10 +2,7 @@ package intrinsics
 
 import rego.v1
 
-pseudo_params := {
-    "AWS::AccountId", "AWS::NotificationARNs", "AWS::NoValue",
-    "AWS::Partition", "AWS::Region", "AWS::StackId", "AWS::StackName", "AWS::URLSuffix"
-}
+# `pseudo_parameters` is defined in pseudo_params.rego (shared across this package).
 
 # Ref target must exist
 violation contains make_diag_full("F1010", "FATAL", name, "",
@@ -18,7 +15,7 @@ violation contains make_diag_full("F1010", "FATAL", name, "",
     target := edge.target
     not target in object.keys(input.resources)
     not target in object.keys(input.parameters)
-    not target in pseudo_params
+    not target in pseudo_parameters
     not target in object.get(input, "samImplicitResources", [])
 }
 
@@ -40,12 +37,12 @@ _all_valid_targets := sort(array.concat(
         sort([k | some k in object.keys(input.resources)]),
         sort([k | some k in object.keys(input.parameters)])
     ),
-    sort([k | some k in pseudo_params])
+    sort([k | some k in pseudo_parameters])
 ))
 
 _valid_ref_targets(name) := targets if {
     res_keys := sort([k | some k in object.keys(input.resources); k != name])
-    targets := array.concat(res_keys, sort([p | some p in pseudo_params]))
+    targets := array.concat(res_keys, sort([p | some p in pseudo_parameters]))
 }
 
 # Ref format mismatch — Ref to resource whose type doesn't match destination format

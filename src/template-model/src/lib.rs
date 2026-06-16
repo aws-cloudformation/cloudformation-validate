@@ -8,6 +8,9 @@ pub mod diagnostic;
 pub(crate) mod graph;
 pub mod ir;
 pub mod model;
+pub mod aws_regions;
+pub(crate) mod condition_shape;
+pub(crate) mod intrinsic_arg_shapes;
 pub(crate) mod nesting;
 pub(crate) mod parser;
 pub mod resolved_value;
@@ -15,6 +18,8 @@ pub mod resolver;
 pub(crate) mod rules;
 pub(crate) mod sam;
 pub(crate) mod serialization;
+pub(crate) mod transform_expansion;
+pub(crate) mod lang_ext_shapes;
 
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{

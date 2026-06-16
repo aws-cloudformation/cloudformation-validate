@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: E1030 - Fn::Length parameter must be an array (LanguageExtensions parameter shape)
+Transform: AWS::LanguageExtensions
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # Fn::Length argument must be an array; "not-a-list" is a string → E1030
+      BucketName: !Sub
+        - "bucket-${count}"
+        - count: !Length "not-a-list"

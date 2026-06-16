@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: E1029/F1029 - Substitution variable outside Fn::Sub
+Parameters:
+  Env:
+    Type: String
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # ${Env} references a parameter but is NOT inside Fn::Sub
+      BucketName: "my-bucket-${Env}-test"
