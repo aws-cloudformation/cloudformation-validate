@@ -3,7 +3,7 @@ use crate::severity::Severity;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
-
+use std::sync::LazyLock;
 /// Static definition of a validation rule in the registry.
 #[derive(Debug, Clone)]
 pub struct RuleDefinition {
@@ -97,9 +97,17 @@ pub struct RuleMetadataEntry {
     pub origin: RuleOrigin,
 }
 
+/// Index keyed by rule ID over [`RULE_REGISTRY`] for O(1) lookups. The
+/// schema validator routes every fatal/error/warn/info diagnostic through
+/// [`lookup_rule`] via the shared `RegisteredDiagnostic` builder, so a per-
+/// diagnostic linear scan over so many rules turned construction from O(N) into
+/// O(N × R). The registry is `&'static`, so the index borrows directly.
+static RULE_REGISTRY_BY_ID: LazyLock<HashMap<&'static str, &'static RuleDefinition>> =
+    LazyLock::new(|| RULE_REGISTRY.iter().map(|r| (r.id, r)).collect());
+
 /// Find a rule definition by its ID, or `None` if not registered.
 pub fn lookup_rule(id: &str) -> Option<&'static RuleDefinition> {
-    RULE_REGISTRY.iter().find(|r| r.id == id)
+    RULE_REGISTRY_BY_ID.get(id).copied()
 }
 
 /// Build a map of rule ID → metadata for all registered rules.
@@ -1792,6 +1800,22 @@ mod tests {
     #[test]
     fn lookup_rule_returns_none_for_unregistered_id() {
         assert!(lookup_rule("Z9999").is_none(), "unregistered rule ID Z9999 should return None");
+    }
+
+    #[test]
+    fn lookup_rule_index_covers_every_registered_rule() {
+        for rule in RULE_REGISTRY {
+            let looked_up =
+                lookup_rule(rule.id).unwrap_or_else(|| panic!("registered rule {} is missing from the index", rule.id));
+            assert_eq!(looked_up.id, rule.id);
+            assert_eq!(looked_up.category, rule.category, "category mismatch for rule {}", rule.id);
+            assert_eq!(looked_up.origin, rule.origin, "origin mismatch for rule {}", rule.id);
+        }
+        assert_eq!(
+            RULE_REGISTRY_BY_ID.len(),
+            RULE_REGISTRY.len(),
+            "the lookup index must contain exactly one entry per registered rule"
+        );
     }
 
     #[test]

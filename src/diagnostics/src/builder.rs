@@ -1,6 +1,6 @@
 use crate::diagnostic::{Diagnostic, RelatedResource, ResourceRef};
 use crate::phase::Phase;
-use crate::span::{SourceSpan, UNKNOWN_SPAN};
+use crate::span::{SourceSpan, span_to_option};
 use rules::lookup_rule;
 use std::collections::HashMap;
 
@@ -47,9 +47,13 @@ impl RegisteredDiagnostic {
     }
 
     /// Attaches the offending resource: its logical ID and, when known, its
-    /// CloudFormation type.
+    /// CloudFormation type. An empty ID is dropped so callers can pass through
+    /// an ID that may be blank — mirrors [`property_path`](Self::property_path).
     pub fn resource(mut self, resource_id: impl Into<String>, resource_type: Option<String>) -> Self {
-        self.resource = Some(ResourceRef { id: Some(resource_id.into()), resource_type });
+        let id = resource_id.into();
+        if !id.is_empty() {
+            self.resource = Some(ResourceRef { id: Some(id), resource_type });
+        }
         self
     }
 
@@ -63,9 +67,10 @@ impl RegisteredDiagnostic {
         self
     }
 
-    /// Sets the source span. [`UNKNOWN_SPAN`] is treated as "no location".
+    /// Sets the source span. [`UNKNOWN_SPAN`](crate::span::UNKNOWN_SPAN) is
+    /// treated as "no location".
     pub fn location(mut self, span: SourceSpan) -> Self {
-        self.location = if span == UNKNOWN_SPAN { None } else { Some(span) };
+        self.location = span_to_option(span);
         self
     }
 
@@ -123,6 +128,7 @@ impl RegisteredDiagnostic {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::span::UNKNOWN_SPAN;
     use rules::Severity;
 
     #[test]

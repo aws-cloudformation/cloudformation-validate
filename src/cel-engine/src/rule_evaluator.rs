@@ -1,7 +1,5 @@
-//! Evaluates generated rules — JSON descriptors with structured expressions
-//! evaluated natively in Rust for performance.
-
 use diagnostics::{Diagnostic, RegisteredDiagnostic};
+use rules::lookup_rule;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -17,8 +15,6 @@ struct RuleFile {
 #[derive(serde::Deserialize, Clone)]
 struct RuleDescriptor {
     rule_id: String,
-    #[serde(default)]
-    category: Option<String>,
     resource_type: String,
     expression: String,
     message: String,
@@ -72,7 +68,7 @@ impl GeneratedRuleRegistry {
                 continue;
             }
             let rules: Vec<&RuleDescriptor> =
-                rules.iter().filter(|r| !r.category.as_deref().is_some_and(|c| excluded_cats.contains(c))).collect();
+                rules.iter().filter(|r| !is_excluded(&r.rule_id, excluded_cats)).collect();
             if rules.is_empty() {
                 continue;
             }
@@ -84,7 +80,7 @@ impl GeneratedRuleRegistry {
         }
 
         for rule in &self.global_rules {
-            if rule.category.as_deref().is_some_and(|c| excluded_cats.contains(c)) {
+            if is_excluded(&rule.rule_id, excluded_cats) {
                 continue;
             }
             for (rid, res) in &model.resources {
@@ -94,6 +90,10 @@ impl GeneratedRuleRegistry {
 
         out
     }
+}
+
+fn is_excluded(rule_id: &str, excluded_cats: &HashSet<&str>) -> bool {
+    lookup_rule(rule_id).is_some_and(|r| excluded_cats.contains(r.category.as_str()))
 }
 
 fn make_diag(

@@ -25,4 +25,4 @@ pub use helpers::{
 pub use json_value::JsonValue;
 pub use metrics::{PhaseMetric, phase_metric};
 pub use phase::Phase;
-pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN};
+pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};

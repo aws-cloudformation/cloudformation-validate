@@ -1,7 +1,7 @@
 use diagnostics::{
     DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext,
-    apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span,
+    apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
 };
 use rules::{FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, section_for_rule_id};
 use serde::{Deserialize, Serialize};
@@ -13,10 +13,6 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 use template_model::{ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel};
 use web_time::Instant;
-
-fn span_to_option(span: SourceSpan) -> Option<SourceSpan> {
-    if span == UNKNOWN_SPAN { None } else { Some(span) }
-}
 
 #[derive(Debug)]
 pub enum ValidationError {
@@ -388,11 +384,6 @@ pub(crate) fn parse_diagnostic(
 ) -> Result<Diagnostic, String> {
     let rule_id =
         val.get("rule_id").and_then(|v| v.as_str()).ok_or("Diagnostic missing required field 'rule_id'")?.to_string();
-    let severity_str = val
-        .get("severity")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| format!("Diagnostic '{}' missing required field 'severity'", rule_id))?;
-    let severity = severity_str.parse::<Severity>()?;
     let message = val
         .get("message")
         .and_then(|v| v.as_str())
@@ -453,11 +444,15 @@ pub(crate) fn parse_diagnostic(
         .map(|m| m.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect());
 
     if is_custom_or_guard {
-        // Custom and Guard rules are deliberately absent from the rule registry.
-        // Their severity, category, and origin come straight from the parsed rule
-        // output — never the registry — so the diagnostic is assembled directly
-        // here rather than through the registry-driven builder.
-        let severity = if is_fatal_rule(&rule_id) { Severity::Fatal } else { severity };
+        // Custom and Guard rules are absent from the registry, so severity,
+        // category, and origin must come from the engine output instead of the
+        // registry-driven builder.
+        let severity_str = val
+            .get("severity")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| format!("Custom/Guard diagnostic '{}' missing required field 'severity'", rule_id))?;
+        let parsed_severity = severity_str.parse::<Severity>()?;
+        let severity = if is_fatal_rule(&rule_id) { Severity::Fatal } else { parsed_severity };
         let category = val.get("category").and_then(|v| v.as_str()).map(|c| c.to_string());
         let source = *source_override.expect("custom/guard branch is only reached with a source override");
         return Ok(Diagnostic {
@@ -480,9 +475,9 @@ pub(crate) fn parse_diagnostic(
         });
     }
 
-    // Built-in rules: severity, category, origin, and description are sourced from
-    // the rule registry through the shared builder. The engine's JSON output
-    // supplies only the contextual fields (location, resource, related findings).
+    // The registry is the single source of truth for built-in severity,
+    // category, origin, and description. Any `severity` field present in the
+    // engine output is intentionally ignored, so it is not required here.
     let mut diagnostic = RegisteredDiagnostic::new(rule_id, message)
         .location(span)
         .suggested_fix(suggested_fix)
@@ -820,14 +815,12 @@ pub fn make_resource_diagnostic(
     } else {
         model.resource_span(resource_id, prop_path)
     };
-    let mut builder = RegisteredDiagnostic::new(rule_id, message)
+    RegisteredDiagnostic::new(rule_id, message)
         .property_path(prop_path)
         .location(span)
-        .suggested_fix(suggested_fix);
-    if !resource_id.is_empty() {
-        builder = builder.resource(resource_id, model.resources.get(resource_id).map(|r| r.resource_type.clone()));
-    }
-    builder.build()
+        .suggested_fix(suggested_fix)
+        .resource(resource_id, model.resources.get(resource_id).map(|r| r.resource_type.clone()))
+        .build()
 }
 
 #[cfg(test)]
@@ -899,10 +892,35 @@ Resources:
     }
 
     #[test]
-    fn parse_diagnostic_missing_severity_returns_error() {
+    fn parse_diagnostic_missing_severity_for_builtin_is_accepted() {
         let model = minimal_model();
         let val = serde_json::json!({"rule_id": "E3012", "message": "x"});
-        parse_diagnostic(&val, &model, None).unwrap_err();
+        let diag = parse_diagnostic(&val, &model, None).expect("built-in diagnostic must not require severity in JSON");
+        assert_eq!(diag.severity, Severity::Error, "registry-derived severity must win for built-in rules");
+    }
+
+    #[test]
+    fn parse_diagnostic_missing_severity_for_custom_returns_error() {
+        let model = minimal_model();
+        let val = serde_json::json!({"rule_id": "XCUSTOM", "message": "x"});
+        parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom))
+            .expect_err("custom/guard diagnostics without severity must error");
+    }
+
+    #[test]
+    fn parse_diagnostic_builtin_ignores_json_severity() {
+        let model = minimal_model();
+        let val = serde_json::json!({
+            "rule_id": "E3012",
+            "severity": Severity::Warn.as_str(),
+            "message": "x"
+        });
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
+        assert_eq!(
+            diag.severity,
+            Severity::Error,
+            "the registry's Error severity for E3012 must override any JSON severity"
+        );
     }
 
     #[test]
@@ -913,14 +931,16 @@ Resources:
     }
 
     #[test]
-    fn parse_diagnostic_fatal_prefix_overrides_severity() {
+    fn parse_diagnostic_fatal_prefix_overrides_custom_severity() {
+        // F-prefix rule IDs are coerced to Fatal at the engine boundary so a
+        // custom rule that mis-reports its severity gets corrected here.
         let model = minimal_model();
         let val = serde_json::json!({
-            "rule_id": "F3012",
+            "rule_id": "FCUSTOM",
             "severity": Severity::Error.as_str(),
             "message": "type mismatch"
         });
-        let diag = parse_diagnostic(&val, &model, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom)).unwrap();
         assert_eq!(diag.severity, Severity::Fatal);
     }
 
