@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::LazyLock;
+
 /// Static definition of a validation rule in the registry.
 #[derive(Debug, Clone)]
 pub struct RuleDefinition {
