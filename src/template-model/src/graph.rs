@@ -1,5 +1,6 @@
 use crate::ir::*;
 use crate::resolver::{RefKind, ResolverEdge};
+use diagnostics::{Phase, RegisteredDiagnostic};
 use log::{info, warn};
 use std::collections::{BTreeSet, HashMap, VecDeque};
 
@@ -127,27 +128,17 @@ impl ReferenceGraph {
                 let source = &cycle[i];
                 let target = &cycle[(i + 1) % cycle.len()];
                 let span = span_index.get(&format!("Resources/{}", source)).copied().unwrap_or(UNKNOWN_SPAN);
-                out.push(diagnostics::Diagnostic {
-                    rule_id: "F3004".into(),
-                    severity: rules_crate::Severity::Fatal,
-                    message: format!(
-                        "Circular Dependencies for resource {}. Circular dependency with [{}]",
-                        source, target
-                    ),
-                    resource: Some(diagnostics::ResourceRef { id: Some(source.clone()), resource_type: None }),
-                    property_path: Some(format!("Resources/{}", source)),
-                    suggested_fix: None,
-                    documentation_url: None,
-                    category: Some(rules_crate::Category::Structure.as_str().into()),
-                    phase: Some(diagnostics::Phase::Lint),
-                    source: diagnostics::source_for_rule("F3004"),
-                    location: if span == UNKNOWN_SPAN { None } else { Some(span) },
-                    related_resources: None,
-                    condition_scenario: None,
-                    rule_description: None,
-                    section: None,
-                    context: None,
-                });
+                out.push(
+                    RegisteredDiagnostic::new(
+                        "F3004",
+                        format!("Circular Dependencies for resource {}. Circular dependency with [{}]", source, target),
+                    )
+                    .resource(source.clone(), None)
+                    .property_path(format!("Resources/{}", source))
+                    .location(span)
+                    .phase(Phase::Lint)
+                    .build(),
+                );
             }
         }
         out

@@ -1,8 +1,5 @@
-//! Evaluates generated rules — JSON descriptors with structured expressions
-//! evaluated natively in Rust for performance.
-
-use diagnostics::Diagnostic;
-use rules::Severity;
+use diagnostics::{Diagnostic, RegisteredDiagnostic};
+use rules::lookup_rule;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -18,9 +15,6 @@ struct RuleFile {
 #[derive(serde::Deserialize, Clone)]
 struct RuleDescriptor {
     rule_id: String,
-    severity: Severity,
-    #[serde(default)]
-    category: Option<String>,
     resource_type: String,
     expression: String,
     message: String,
@@ -74,7 +68,7 @@ impl GeneratedRuleRegistry {
                 continue;
             }
             let rules: Vec<&RuleDescriptor> =
-                rules.iter().filter(|r| !r.category.as_deref().is_some_and(|c| excluded_cats.contains(c))).collect();
+                rules.iter().filter(|r| !is_excluded(&r.rule_id, excluded_cats)).collect();
             if rules.is_empty() {
                 continue;
             }
@@ -86,7 +80,7 @@ impl GeneratedRuleRegistry {
         }
 
         for rule in &self.global_rules {
-            if rule.category.as_deref().is_some_and(|c| excluded_cats.contains(c)) {
+            if is_excluded(&rule.rule_id, excluded_cats) {
                 continue;
             }
             for (rid, res) in &model.resources {
@@ -98,6 +92,10 @@ impl GeneratedRuleRegistry {
     }
 }
 
+fn is_excluded(rule_id: &str, excluded_cats: &HashSet<&str>) -> bool {
+    lookup_rule(rule_id).is_some_and(|r| excluded_cats.contains(r.category.as_str()))
+}
+
 fn make_diag(
     rule: &RuleDescriptor,
     model: &Arc<SemanticModel>,
@@ -107,29 +105,15 @@ fn make_diag(
 ) -> Diagnostic {
     let prop_path = rule.prop_path.as_deref().unwrap_or("");
     let span = model.resource_span(rid, prop_path);
-    Diagnostic {
-        rule_id: rule.rule_id.clone(),
-        severity: rule.severity,
-        message: rule.message.clone(),
-        resource: Some(diagnostics::ResourceRef { id: Some(rid.to_string()), resource_type: Some(rtype.to_string()) }),
-        property_path: rule.prop_path.clone(),
-        suggested_fix: rule.suggested_fix.clone(),
-        documentation_url: None,
-        category: rule.category.clone(),
-        location: Some(diagnostics::SourceSpan {
-            start_line: span.start_line,
-            start_column: span.start_column,
-            end_line: span.end_line,
-            end_column: span.end_column,
-        }),
-        related_resources: None,
-        condition_scenario: conds,
-        rule_description: None,
-        phase: None,
-        section: None,
-        context: None,
-        source: diagnostics::source_for_rule(&rule.rule_id),
+    let mut builder = RegisteredDiagnostic::new(rule.rule_id.clone(), rule.message.clone())
+        .resource(rid, Some(rtype.to_string()))
+        .location(span)
+        .suggested_fix(rule.suggested_fix.clone())
+        .condition_scenario(conds);
+    if let Some(prop) = &rule.prop_path {
+        builder = builder.property_path(prop.clone());
     }
+    builder.build()
 }
 
 fn satisfiable(m: &SemanticModel, conds: &HashMap<String, bool>) -> bool {

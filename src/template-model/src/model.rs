@@ -381,7 +381,6 @@ impl SemanticModel {
             {
                 diagnostics.push(crate::make_parse_diagnostic(
                     "F1104",
-                    rules_crate::Severity::Fatal,
                     format!("Fn::If references undefined condition '{}'", cond_name),
                     ir.arena.span(idx as NodeRef),
                 ));
@@ -405,7 +404,6 @@ impl SemanticModel {
             let result_str = if always_val { "True" } else { "False" };
             diagnostics.push(crate::make_parse_diagnostic(
                 "W8003",
-                rules_crate::Severity::Warn,
                 format!("Fn::Equals in condition '{}' will always return {}", cond_name, result_str),
                 ir.span_index.get(&format!("Conditions/{}", cond_name)).copied().unwrap_or(UNKNOWN_SPAN),
             ));
@@ -921,7 +919,6 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
         if !VALID_OUTPUT_KEYS.contains(&key.as_str()) {
             resolver.diagnostics.push(crate::make_parse_diagnostic(
                 "E6001",
-                rules_crate::Severity::Error,
                 format!(
                     "Output '{}' has invalid property '{}'. Valid properties: Value, Description, Condition, Export",
                     display_name, key

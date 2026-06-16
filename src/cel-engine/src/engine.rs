@@ -220,6 +220,9 @@ fn execute_custom_rule(rule: &CustomRule, cel_ctx: &Context<'static>) -> Result<
     }
 }
 
+// Custom and Guard rules are not in the rule registry, so their severity,
+// category, and origin come from the parsed rule rather than the registry-driven
+// `RegisteredDiagnostic` builder used for built-in rules.
 fn emit_custom_diagnostic(
     out: &mut Vec<Diagnostic>,
     rule: &CustomRule,

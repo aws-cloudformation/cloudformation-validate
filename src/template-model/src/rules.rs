@@ -8,6 +8,7 @@
 use crate::consts::*;
 use crate::ir::cfn_function_name;
 use crate::ir::*;
+use diagnostics::{Phase, RegisteredDiagnostic};
 
 const VALID_RULE_KEYS: &[&str] = &[KEY_RULE_CONDITION, KEY_ASSERTIONS];
 const VALID_ASSERTION_KEYS: &[&str] = &[KEY_ASSERT, KEY_ASSERT_DESCRIPTION];
@@ -44,7 +45,7 @@ fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<diag
         return;
     };
     let Some(rules_obj) = rules.as_object() else {
-        out.push(rule_diag("F8600", rules_crate::Severity::Fatal, "Rules section must be an object".into()));
+        out.push(rule_diag("F8600", "Rules section must be an object".into()));
         return;
     };
 
@@ -55,7 +56,7 @@ fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<diag
 
 fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &mut Vec<diagnostics::Diagnostic>) {
     let Some(rule_obj) = rule_value.as_object() else {
-        out.push(rule_diag("F8601", rules_crate::Severity::Fatal, format!("Rule '{}' must be an object", rule_name)));
+        out.push(rule_diag("F8601", format!("Rule '{}' must be an object", rule_name)));
         return;
     };
 
@@ -63,36 +64,23 @@ fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &m
         if !VALID_RULE_KEYS.contains(&key.as_str()) {
             out.push(rule_diag(
                 "W8602",
-                rules_crate::Severity::Warn,
                 format!("Rule '{}' has unknown property '{}' — expected one of {:?}", rule_name, key, VALID_RULE_KEYS),
             ));
         }
     }
 
     let Some(assertions_val) = rule_obj.get(KEY_ASSERTIONS) else {
-        out.push(rule_diag(
-            "F8603",
-            rules_crate::Severity::Fatal,
-            format!("Rule '{}' is missing required '{}' property", rule_name, KEY_ASSERTIONS),
-        ));
+        out.push(rule_diag("F8603", format!("Rule '{}' is missing required '{}' property", rule_name, KEY_ASSERTIONS)));
         return;
     };
 
     let Some(assertions_arr) = assertions_val.as_array() else {
-        out.push(rule_diag(
-            "F8604",
-            rules_crate::Severity::Fatal,
-            format!("Rule '{}' {} must be an array", rule_name, KEY_ASSERTIONS),
-        ));
+        out.push(rule_diag("F8604", format!("Rule '{}' {} must be an array", rule_name, KEY_ASSERTIONS)));
         return;
     };
 
     if assertions_arr.is_empty() {
-        out.push(rule_diag(
-            "F8605",
-            rules_crate::Severity::Fatal,
-            format!("Rule '{}' {} must not be empty", rule_name, KEY_ASSERTIONS),
-        ));
+        out.push(rule_diag("F8605", format!("Rule '{}' {} must not be empty", rule_name, KEY_ASSERTIONS)));
         return;
     }
 
@@ -105,7 +93,6 @@ fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &m
     {
         out.push(rule_diag(
             "F8606",
-            rules_crate::Severity::Fatal,
             format!(
                 "Rule '{}' {} must be a condition function (object), not {}",
                 rule_name,
@@ -123,11 +110,7 @@ fn validate_single_assertion(
     out: &mut Vec<diagnostics::Diagnostic>,
 ) {
     let Some(assertion_obj) = assertion.as_object() else {
-        out.push(rule_diag(
-            "F8607",
-            rules_crate::Severity::Fatal,
-            format!("Rule '{}' {}[{}] must be an object", rule_name, KEY_ASSERTIONS, idx),
-        ));
+        out.push(rule_diag("F8607", format!("Rule '{}' {}[{}] must be an object", rule_name, KEY_ASSERTIONS, idx)));
         return;
     };
 
@@ -135,7 +118,6 @@ fn validate_single_assertion(
         if !VALID_ASSERTION_KEYS.contains(&key.as_str()) {
             out.push(rule_diag(
                 "W8608",
-                rules_crate::Severity::Warn,
                 format!(
                     "Rule '{}' {}[{}] has unknown property '{}' — expected one of {:?}",
                     rule_name, KEY_ASSERTIONS, idx, key, VALID_ASSERTION_KEYS
@@ -147,7 +129,6 @@ fn validate_single_assertion(
     let Some(assert_val) = assertion_obj.get(KEY_ASSERT) else {
         out.push(rule_diag(
             "F8609",
-            rules_crate::Severity::Fatal,
             format!("Rule '{}' {}[{}] is missing required '{}' property", rule_name, KEY_ASSERTIONS, idx, KEY_ASSERT),
         ));
         return;
@@ -156,7 +137,6 @@ fn validate_single_assertion(
     if !assert_val.is_object() {
         out.push(rule_diag(
             "F8610",
-            rules_crate::Severity::Fatal,
             format!(
                 "Rule '{}' {}[{}] {} must be a condition function (object), not {}",
                 rule_name,
@@ -186,7 +166,6 @@ fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec
             if !ALLOWED_RULE_FUNCTIONS.contains(&fn_name) {
                 out.push(rule_diag(
                     "F8611",
-                    rules_crate::Severity::Fatal,
                     format!(
                         "'{}' is not supported in the Rules section — allowed: {:?}",
                         fn_name, ALLOWED_RULE_FUNCTIONS
@@ -284,25 +263,8 @@ fn json_type_name(val: &serde_json::Value) -> &'static str {
     }
 }
 
-fn rule_diag(rule_id: &str, severity: rules_crate::Severity, message: String) -> diagnostics::Diagnostic {
-    diagnostics::Diagnostic {
-        rule_id: rule_id.into(),
-        severity,
-        message,
-        resource: None,
-        property_path: None,
-        suggested_fix: None,
-        documentation_url: None,
-        category: Some(rules_crate::Category::Structure.as_str().into()),
-        phase: Some(diagnostics::Phase::Parse),
-        source: diagnostics::source_for_rule(rule_id),
-        location: None,
-        related_resources: None,
-        condition_scenario: None,
-        rule_description: None,
-        section: None,
-        context: None,
-    }
+fn rule_diag(rule_id: &str, message: String) -> diagnostics::Diagnostic {
+    RegisteredDiagnostic::new(rule_id, message).phase(Phase::Parse).build()
 }
 
 #[cfg(test)]

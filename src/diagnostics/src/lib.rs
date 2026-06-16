@@ -1,6 +1,7 @@
 #[cfg(feature = "uniffi-bindings")]
 uniffi::setup_scaffolding!();
 
+pub mod builder;
 pub mod detail_level;
 pub mod diagnostic;
 pub mod filter;
@@ -10,6 +11,7 @@ pub mod metrics;
 pub mod phase;
 pub mod span;
 
+pub use builder::RegisteredDiagnostic;
 pub use detail_level::DetailLevel;
 pub use diagnostic::{
     DetailedDiagnostic, DetailedReport, Diagnostic, PerformanceMetrics, RelatedResource, ReportMetadata, ReportStatus,
@@ -23,4 +25,4 @@ pub use helpers::{
 pub use json_value::JsonValue;
 pub use metrics::{PhaseMetric, phase_metric};
 pub use phase::Phase;
-pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN};
+pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};

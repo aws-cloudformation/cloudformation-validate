@@ -1150,12 +1150,7 @@ impl<'a> Resolver<'a> {
         span: &SourceSpan,
     ) -> ResolvedValue {
         if template.contains("${!") {
-            self.diagnostics.push(crate::make_parse_diagnostic(
-                "F1029",
-                rules_crate::Severity::Fatal,
-                "Fn::Sub template contains '${!' which suggests nested intrinsic syntax — use the second argument map instead".to_string(),
-                *span,
-            ));
+            self.diagnostics.push(crate::make_parse_diagnostic("F1029", "Fn::Sub template contains '${!' which suggests nested intrinsic syntax — use the second argument map instead".to_string(), *span));
         }
 
         let mut vars: Vec<String> = Vec::new();
@@ -1678,7 +1673,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                 Some(p) => format!("Parameters.{}.{}", param_name, p),
                 None => format!("Parameters.{}", param_name),
             };
-            let mut d = crate::make_parse_diagnostic("E2001", rules_crate::Severity::Error, msg, span);
+            let mut d = crate::make_parse_diagnostic("E2001", msg, span);
             d.property_path = Some(path);
             d
         };
@@ -1954,7 +1949,6 @@ pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<diagnostics::Diagn
         let Some(level1) = ir.arena.as_map(*map_ref) else {
             diagnostics.push(crate::make_parse_diagnostic(
                 "F0017",
-                rules_crate::Severity::Fatal,
                 format!("Mapping '{}' must be a map, not a scalar value", map_name),
                 ir.arena.span(*map_ref),
             ));
@@ -1965,7 +1959,6 @@ pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<diagnostics::Diagn
             let Some(level2) = ir.arena.as_map(*k1_ref) else {
                 diagnostics.push(crate::make_parse_diagnostic(
                     "F0017",
-                    rules_crate::Severity::Fatal,
                     format!("Mapping '{}' second level key '{}' must be a map", map_name, k1),
                     ir.arena.span(*k1_ref),
                 ));

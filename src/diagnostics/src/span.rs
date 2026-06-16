@@ -14,7 +14,10 @@ pub struct SourceSpan {
 pub const UNKNOWN_SPAN: SourceSpan =
     SourceSpan { start_line: u32::MAX, start_column: u32::MAX, end_line: u32::MAX, end_column: u32::MAX };
 
-/// Resolves a section path to its source span. Implemented by `SemanticModel`.
+pub fn span_to_option(span: SourceSpan) -> Option<SourceSpan> {
+    if span == UNKNOWN_SPAN { None } else { Some(span) }
+}
+
 pub trait SpanProvider {
     fn source_location(&self, path: &str) -> Option<SourceSpan>;
 }

@@ -438,33 +438,18 @@ impl YamlBuilder {
     }
 
     fn intrinsic_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
-            "F1101",
-            rules_crate::Severity::Fatal,
-            format!("{}: {}", fn_name, message),
-            UNKNOWN_SPAN,
-        ));
+        self.diagnostics.push(crate::make_parse_diagnostic("F1101", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
     /// Emit a structural diagnostic for Fn::Equals, Fn::And, Fn::Or, Fn::Not.
     /// CloudFormation rejects templates with these defects at deploy time.
     fn condition_fn_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
-            "F0014",
-            rules_crate::Severity::Fatal,
-            format!("{}: {}", fn_name, message),
-            UNKNOWN_SPAN,
-        ));
+        self.diagnostics.push(crate::make_parse_diagnostic("F0014", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
     /// Emit a structural diagnostic for Fn::If.
     fn fn_if_structural_error(&mut self, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
-            "F0013",
-            rules_crate::Severity::Fatal,
-            format!("{}: {}", FN_IF, message),
-            UNKNOWN_SPAN,
-        ));
+        self.diagnostics.push(crate::make_parse_diagnostic("F0013", format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
     }
 
     fn try_intrinsic(&mut self, key: &str, val: &Yaml, path: &str) -> Option<NodeRef> {
@@ -550,7 +535,6 @@ impl YamlBuilder {
                             None => {
                                 self.diagnostics.push(crate::make_parse_diagnostic(
                                     "F0010",
-                                    rules_crate::Severity::Fatal,
                                     "Fn::Sub second argument must be a map with string keys".to_string(),
                                     UNKNOWN_SPAN,
                                 ));
@@ -589,7 +573,6 @@ impl YamlBuilder {
                 if !matches!(&a[0], Yaml::String(_) | Yaml::Hash(_)) {
                     self.diagnostics.push(crate::make_parse_diagnostic(
                         "W1102",
-                        rules_crate::Severity::Warn,
                         "Fn::Join: delimiter (first argument) must be a string or an intrinsic function".to_string(),
                         UNKNOWN_SPAN,
                     ));
@@ -616,7 +599,6 @@ impl YamlBuilder {
                 if !matches!(&a[0], Yaml::Integer(_) | Yaml::Hash(_)) {
                     self.diagnostics.push(crate::make_parse_diagnostic(
                         "W1102",
-                        rules_crate::Severity::Warn,
                         "Fn::Select: index (first argument) must be an integer or an intrinsic function".to_string(),
                         UNKNOWN_SPAN,
                     ));
@@ -688,7 +670,6 @@ impl YamlBuilder {
                 if !matches!(&a[0], Yaml::String(_) | Yaml::Hash(_)) {
                     self.diagnostics.push(crate::make_parse_diagnostic(
                         "W1102",
-                        rules_crate::Severity::Warn,
                         "Fn::Split: delimiter (first argument) must be a string or an intrinsic function".to_string(),
                         UNKNOWN_SPAN,
                     ));
