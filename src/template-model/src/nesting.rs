@@ -31,7 +31,6 @@ pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<d
                     let parent_name = cfn_function_name(intrinsic);
                     out.push(crate::make_parse_diagnostic(
                         "F1105",
-                        rules_crate::Severity::Fatal,
                         format!("'{}' is not allowed inside '{}'", child_name, parent_name),
                         arena.span(child_ref),
                     ));

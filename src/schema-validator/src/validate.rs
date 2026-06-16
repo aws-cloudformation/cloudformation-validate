@@ -1,7 +1,6 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
-use diagnostics::Diagnostic;
-use rules::Severity;
+use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, resolve_section_span};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -29,7 +28,6 @@ pub fn validate_all_resources(
             for rid in model.resources_of_type(rtype) {
                 out.push(build_diagnostic(
                     "E9001",
-                    Severity::Error,
                     &format!("Resource type '{}' is not available in region '{}'", rtype, region),
                     model,
                     rid,
@@ -56,7 +54,7 @@ pub fn validate_all_resources(
 
 pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {
     for d in diagnostics.iter_mut() {
-        if d.phase != Some(diagnostics::Phase::Schema) {
+        if d.phase != Some(Phase::Schema) {
             continue;
         }
         let Some(ref res_ref) = d.resource else {
@@ -294,7 +292,6 @@ fn validate_resource(
         if res.properties.contains_key(top) {
             out.push(build_diagnostic(
                 "E3040",
-                Severity::Error,
                 &format!("Read only property '{}' should not be specified", top),
                 m,
                 rid,
@@ -309,7 +306,6 @@ fn validate_resource(
         if res.properties.contains_key(top) {
             out.push(build_diagnostic(
                 "W9009",
-                Severity::Warn,
                 &format!("Property '{}' is deprecated", top),
                 m,
                 rid,
@@ -324,7 +320,6 @@ fn validate_resource(
         if res.properties.contains_key(top) {
             out.push(build_diagnostic(
                 "I9001",
-                Severity::Info,
                 &format!("Property '{}' is create-only; updating it will cause resource replacement", top),
                 m,
                 rid,
@@ -344,7 +339,6 @@ fn validate_resource(
                 let output_name = edge.source_resource.strip_prefix("__output__").unwrap_or(&edge.source_resource);
                 out.push(build_diagnostic(
                     "W3041",
-                    Severity::Warn,
                     &format!("Write-only property '{}' of '{}' is referenced in output '{}'", top, rid, output_name),
                     m,
                     rid,
@@ -492,7 +486,6 @@ fn validate_object_keys_inner(
         if !actual_keys.contains(req) {
             out.push(build_diagnostic(
                 "F3003",
-                Severity::Fatal,
                 &format!("'{}' is a required property", req),
                 m,
                 rid,
@@ -524,7 +517,7 @@ fn validate_object_keys_inner(
                 }
                 None => format!("Additional properties are not allowed ('{}' was unexpected)", key),
             };
-            out.push(build_diagnostic("F3002", Severity::Fatal, &msg, m, rid, &format!("{}.{}", base_path, key), None));
+            out.push(build_diagnostic("F3002", &msg, m, rid, &format!("{}.{}", base_path, key), None));
         }
     }
 
@@ -534,7 +527,6 @@ fn validate_object_keys_inner(
                 if actual_keys.contains(dep) {
                     out.push(build_diagnostic(
                         "F3020",
-                        Severity::Fatal,
                         &format!("'{}' should not be included with '{}'", dep, trigger),
                         m,
                         rid,
@@ -552,7 +544,6 @@ fn validate_object_keys_inner(
                 if !actual_keys.contains(dep) {
                     out.push(build_diagnostic(
                         "F3021",
-                        Severity::Fatal,
                         &format!("'{}' is a dependency of '{}'", dep, trigger),
                         m,
                         rid,
@@ -568,7 +559,6 @@ fn validate_object_keys_inner(
         let names = req_or.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
         out.push(build_diagnostic(
             "F3058",
-            Severity::Fatal,
             &format!("One of [{}] is a required property", names),
             m,
             rid,
@@ -583,7 +573,6 @@ fn validate_object_keys_inner(
             let names = req_xor.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
             out.push(build_diagnostic(
                 "F3014",
-                Severity::Fatal,
                 &format!("Exactly one of [{}] must be specified", names),
                 m,
                 rid,
@@ -606,7 +595,6 @@ fn validate_object_keys_inner(
         if !any_valid {
             out.push(build_diagnostic(
                 "F3017",
-                Severity::Fatal,
                 &format!("Value is not valid under any of the given schemas for {}", rtype),
                 m,
                 rid,
@@ -628,7 +616,6 @@ fn validate_object_keys_inner(
         if valid_count == 0 {
             out.push(build_diagnostic(
                 "F3018",
-                Severity::Fatal,
                 "Value is not valid under any of the given schemas",
                 m,
                 rid,
@@ -638,7 +625,6 @@ fn validate_object_keys_inner(
         } else if valid_count > 1 {
             out.push(build_diagnostic(
                 "F3018",
-                Severity::Fatal,
                 "Value is valid under more than one of the given schemas",
                 m,
                 rid,
@@ -741,7 +727,6 @@ fn validate_sub(
         if !actual_keys.contains(req) {
             out.push(build_diagnostic(
                 "F3003",
-                Severity::Fatal,
                 &format!("'{}' is a required property", req),
                 m,
                 rid,
@@ -756,7 +741,6 @@ fn validate_sub(
                 if !actual_keys.contains(dep) {
                     out.push(build_diagnostic(
                         "F3021",
-                        Severity::Fatal,
                         &format!("'{}' is a dependency of '{}'", dep, trigger),
                         m,
                         rid,
@@ -773,7 +757,6 @@ fn validate_sub(
                 if actual_keys.contains(dep) {
                     out.push(build_diagnostic(
                         "F3020",
-                        Severity::Fatal,
                         &format!("'{}' should not be included with '{}'", dep, trigger),
                         m,
                         rid,
@@ -832,7 +815,6 @@ fn validate_prop(
                     CoerceResult::Coerced(_, ref description) => {
                         out.push(build_diagnostic_conditional(
                             "W9003",
-                            Severity::Warn,
                             &format!(
                                 "{}{} is not of type '{}' — automatically coerced ({})",
                                 format_value(val),
@@ -850,7 +832,6 @@ fn validate_prop(
                     _ => {
                         out.push(build_diagnostic_conditional(
                             "F3012",
-                            Severity::Fatal,
                             &format!("{}{} is not of type '{}'", format_value(val), res_suffix, expected),
                             m,
                             rid,
@@ -885,7 +866,6 @@ fn validate_prop(
                 };
                 out.push(build_diagnostic_conditional(
                     "F3030",
-                    Severity::Fatal,
                     &format!("{}{} is not one of {}", format_value(val), res_suffix, enum_desc),
                     m,
                     rid,
@@ -905,7 +885,6 @@ fn validate_prop(
             if val != cv {
                 out.push(build_diagnostic_conditional(
                     "F3030",
-                    Severity::Fatal,
                     &format!("{} was expected", cv),
                     m,
                     rid,
@@ -942,7 +921,6 @@ fn validate_prop(
                 if !re.is_match(&s) {
                     out.push(build_diagnostic_conditional(
                         "F3031",
-                        Severity::Fatal,
                         &format!("{} does not match pattern '{}'", format_value(val), pat),
                         m,
                         rid,
@@ -971,7 +949,6 @@ fn validate_prop(
         {
             out.push(build_diagnostic_conditional(
                 "F3034",
-                Severity::Fatal,
                 &format!("{} is greater than the maximum of {}", n, max),
                 m,
                 rid,
@@ -985,7 +962,6 @@ fn validate_prop(
         {
             out.push(build_diagnostic_conditional(
                 "F3034",
-                Severity::Fatal,
                 &format!("{} is less than the minimum of {}", n, min),
                 m,
                 rid,
@@ -999,7 +975,6 @@ fn validate_prop(
         {
             out.push(build_diagnostic_conditional(
                 "F3034",
-                Severity::Fatal,
                 &format!("{} is >= exclusive maximum {}", n, emax),
                 m,
                 rid,
@@ -1013,7 +988,6 @@ fn validate_prop(
         {
             out.push(build_diagnostic_conditional(
                 "F3034",
-                Severity::Fatal,
                 &format!("{} is <= exclusive minimum {}", n, emin),
                 m,
                 rid,
@@ -1045,7 +1019,6 @@ fn validate_prop(
             {
                 out.push(build_diagnostic_conditional(
                     "F3033",
-                    Severity::Fatal,
                     &format!("length {} exceeds maximum {}", len, max),
                     m,
                     rid,
@@ -1059,7 +1032,6 @@ fn validate_prop(
             {
                 out.push(build_diagnostic_conditional(
                     "F3033",
-                    Severity::Fatal,
                     &format!("length {} is below minimum {}", len, min),
                     m,
                     rid,
@@ -1082,7 +1054,6 @@ fn validate_prop(
             {
                 out.push(build_diagnostic_conditional(
                     "F3032",
-                    Severity::Fatal,
                     &format!("expected maximum item count: {}, found: {}", max, len),
                     m,
                     rid,
@@ -1096,7 +1067,6 @@ fn validate_prop(
             {
                 out.push(build_diagnostic_conditional(
                     "F3032",
-                    Severity::Fatal,
                     &format!("expected minimum item count: {}, found: {}", min, len),
                     m,
                     rid,
@@ -1119,7 +1089,6 @@ fn validate_prop(
                     if seen.contains(item) {
                         out.push(build_diagnostic_conditional(
                             "F3037",
-                            Severity::Fatal,
                             "Array items are not unique",
                             m,
                             rid,
@@ -1281,7 +1250,6 @@ fn validate_array_item_constraints(
                     if keys.iter().any(|k| k == dep) {
                         out.push(build_diagnostic(
                             "F3020",
-                            Severity::Fatal,
                             &format!("'{}' should not be included with '{}'", dep, trigger),
                             m,
                             rid,
@@ -1298,7 +1266,6 @@ fn validate_array_item_constraints(
                     if !keys.iter().any(|k| k == dep) {
                         out.push(build_diagnostic(
                             "F3021",
-                            Severity::Fatal,
                             &format!("'{}' is a dependency of '{}'", dep, trigger),
                             m,
                             rid,
@@ -1384,7 +1351,6 @@ fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, ri
         if val.is_null() {
             out.push(build_diagnostic_conditional(
                 "F3003",
-                Severity::Fatal,
                 &format!("'{}' is a required property", req),
                 m,
                 rid,
@@ -1555,7 +1521,6 @@ fn validate_reference_type(
                 };
                 out.push(build_diagnostic(
                     "F3012",
-                    Severity::Fatal,
                     &format!(
                         "{} ({}) returns '{}', but property expects '{}'",
                         ref_desc,
@@ -1573,13 +1538,9 @@ fn validate_reference_type(
             if let Some(ref fmt) = schema.format {
                 let compatible = store.ref_types().format_compatible_types(fmt);
                 if !compatible.is_empty() && !compatible.iter().any(|t| t == target_rtype) {
-                    let (rule_id, severity) = match rules::format_rule_for_format(fmt) {
-                        Some(id) => (id, Severity::Error),
-                        None => ("E1103", Severity::Error),
-                    };
+                    let rule_id = rules::format_rule_for_format(fmt).unwrap_or("E1103");
                     out.push(build_diagnostic(
                         rule_id,
-                        severity,
                         &format!("Ref to '{}' ({}) may not produce a valid '{}' value", target, target_rtype, fmt),
                         m,
                         rid,
@@ -1596,7 +1557,6 @@ fn validate_reference_type(
                 // Parameters are coerced at deploy time — warn rather than error
                 out.push(build_diagnostic(
                     "W9003",
-                    Severity::Warn,
                     &format!("Parameter type '{}' may not be compatible with expected type '{}'", param_type, expected),
                     m,
                     rid,
@@ -1672,13 +1632,9 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
                 continue;
             }
             if !re.is_match(&s) {
-                let (rule_id, severity) = match rules::format_rule_for_format(format) {
-                    Some(id) => (id, Severity::Error),
-                    None => ("E1103", Severity::Error),
-                };
+                let rule_id = rules::format_rule_for_format(format).unwrap_or("E1103");
                 out.push(build_diagnostic_conditional(
                     rule_id,
-                    severity,
                     &format!("{} does not match format '{}'", format_value(val), format),
                     m,
                     rid,
@@ -1695,46 +1651,38 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
     let lifecycle = store.lifecycle();
     for (rid, res) in &model.resources {
         if let Some(entry) = lifecycle.resource_lifecycle(&res.resource_type) {
-            let (rule_id, severity, msg) = match (entry.status.as_str(), entry.date.as_deref()) {
+            let (rule_id, msg) = match (entry.status.as_str(), entry.date.as_deref()) {
                 ("shutdown", Some(d)) => (
                     "E3710",
-                    Severity::Error,
                     format!("Resource type '{}' is from a service that was shut down on {}", res.resource_type, d),
                 ),
                 ("shutdown", None) => (
                     "E3710",
-                    Severity::Error,
                     format!("Resource type '{}' is from a service that has been shut down", res.resource_type),
                 ),
                 ("sunset", Some(d)) => (
                     "W3696",
-                    Severity::Warn,
                     format!(
                         "Resource type '{}' is from a service that will be shut down on {}. Plan to migrate to an alternative",
                         res.resource_type, d
                     ),
                 ),
-                ("sunset", None) => (
-                    "W3696",
-                    Severity::Warn,
-                    format!("Resource type '{}' is from a service that is sunsetting", res.resource_type),
-                ),
+                ("sunset", None) => {
+                    ("W3696", format!("Resource type '{}' is from a service that is sunsetting", res.resource_type))
+                }
                 ("maintenance", Some(d)) => (
                     "W3697",
-                    Severity::Warn,
                     format!(
                         "Resource type '{}' is from a service in maintenance mode since {}. Consider migrating to an alternative",
                         res.resource_type, d
                     ),
                 ),
-                ("maintenance", None) => (
-                    "W3697",
-                    Severity::Warn,
-                    format!("Resource type '{}' is from a service in maintenance mode", res.resource_type),
-                ),
+                ("maintenance", None) => {
+                    ("W3697", format!("Resource type '{}' is from a service in maintenance mode", res.resource_type))
+                }
                 _ => continue,
             };
-            out.push(build_diagnostic(rule_id, severity, &msg, model, rid, "", None));
+            out.push(build_diagnostic(rule_id, &msg, model, rid, "", None));
         }
 
         if res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function" {
@@ -1745,7 +1693,6 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
                 if lifecycle.is_runtime_eol(runtime) {
                     out.push(build_diagnostic(
                         "E2533",
-                        Severity::Error,
                         &format!("Runtime '{}' has reached end-of-life", runtime),
                         model,
                         rid,
@@ -1755,7 +1702,6 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
                 } else if lifecycle.is_runtime_create_blocked(runtime) {
                     out.push(build_diagnostic(
                         "E2531",
-                        Severity::Error,
                         &format!("Runtime '{}' is blocked for new function creation", runtime),
                         model,
                         rid,
@@ -1765,7 +1711,6 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
                 } else if lifecycle.is_runtime_deprecated(runtime) {
                     out.push(build_diagnostic(
                         "W2531",
-                        Severity::Warn,
                         &format!("Runtime '{}' is deprecated", runtime),
                         model,
                         rid,
@@ -1905,7 +1850,6 @@ fn validate_extension_if_then_else(
                 }
                 out.push(build_diagnostic(
                     "F3003",
-                    Severity::Fatal,
                     &format!("'{}' is a required property (from extension)", prop_name),
                     model,
                     rid,
@@ -1925,7 +1869,6 @@ fn validate_extension_if_then_else(
                 // or cause `good/` fixtures to fail the no-errors contract.
                 out.push(build_diagnostic(
                     "I9002",
-                    Severity::Info,
                     &format!("'{}' is ignored in this configuration (from extension)", prop_name),
                     model,
                     rid,
@@ -1959,7 +1902,6 @@ fn validate_extension_if_then_else(
                     let allowed: Vec<String> = enum_vals.iter().filter_map(|v| v.as_str().map(String::from)).collect();
                     out.push(build_diagnostic(
                         "E9006",
-                        Severity::Error,
                         &format!("'{}' is not one of {:?}", cfn_coerce_to_string(val).unwrap_or_default(), allowed),
                         model,
                         rid,
@@ -2218,7 +2160,6 @@ fn check_gather_property_constraints(
             {
                 out.push(build_diagnostic(
                     "E3030",
-                    Severity::Fatal,
                     &format!(
                         "Cross-resource constraint: {}.{} is {} but must be {} (from referenced resource)",
                         slot_name,
@@ -2238,7 +2179,6 @@ fn check_gather_property_constraints(
             {
                 out.push(build_diagnostic(
                     "F3034",
-                    Severity::Fatal,
                     &format!(
                         "Cross-resource constraint: {}.{} is {} but must be >= {} (from referenced resource)",
                         slot_name, prop_name, actual_num, min_val
@@ -2255,7 +2195,6 @@ fn check_gather_property_constraints(
             {
                 out.push(build_diagnostic(
                     "F3034",
-                    Severity::Fatal,
                     &format!(
                         "Cross-resource constraint: {}.{} is {} but must be <= {} (from referenced resource)",
                         slot_name, prop_name, actual_num, max_val
@@ -2302,19 +2241,17 @@ fn describe_resolution(m: &Arc<SemanticModel>, rid: &str, prop_path: &str) -> Op
 
 fn build_diagnostic(
     rule_id: &str,
-    severity: Severity,
     msg: &str,
     m: &Arc<SemanticModel>,
     rid: &str,
     prop: &str,
     fix: Option<&str>,
 ) -> Diagnostic {
-    build_diagnostic_conditional(rule_id, severity, msg, m, rid, prop, fix, None)
+    build_diagnostic_conditional(rule_id, msg, m, rid, prop, fix, None)
 }
 
 fn build_diagnostic_conditional(
     rule_id: &str,
-    severity: Severity,
     msg: &str,
     m: &Arc<SemanticModel>,
     rid: &str,
@@ -2322,38 +2259,15 @@ fn build_diagnostic_conditional(
     fix: Option<&str>,
     conds: Option<HashMap<String, bool>>,
 ) -> Diagnostic {
-    let span = if rid.is_empty() {
-        diagnostics::resolve_section_span(rule_id, m.as_ref())
-    } else {
-        m.resource_span(rid, prop)
-    };
-    let property_path = if prop.is_empty() { None } else { Some(prop.into()) };
-    Diagnostic {
-        rule_id: rule_id.into(),
-        severity,
-        message: msg.into(),
-        resource: Some(diagnostics::ResourceRef {
-            id: Some(rid.into()),
-            resource_type: m.resources.get(rid).map(|r| r.resource_type.clone()),
-        }),
-        property_path,
-        suggested_fix: fix.map(|s| s.into()),
-        documentation_url: None,
-        category: Some(rules::Category::Schema.as_str().into()),
-        location: Some(diagnostics::SourceSpan {
-            start_line: span.start_line,
-            start_column: span.start_column,
-            end_line: span.end_line,
-            end_column: span.end_column,
-        }),
-        related_resources: None,
-        condition_scenario: conds,
-        rule_description: None,
-        phase: Some(diagnostics::Phase::Schema),
-        section: None,
-        context: None,
-        source: diagnostics::source_for_rule(rule_id),
-    }
+    let span = if rid.is_empty() { resolve_section_span(rule_id, m.as_ref()) } else { m.resource_span(rid, prop) };
+    RegisteredDiagnostic::new(rule_id, msg)
+        .resource(rid, m.resources.get(rid).map(|r| r.resource_type.clone()))
+        .property_path(prop)
+        .location(span)
+        .suggested_fix(fix)
+        .condition_scenario(conds)
+        .phase(Phase::Schema)
+        .build()
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 #[cfg(feature = "uniffi-bindings")]
 uniffi::setup_scaffolding!();
 
+pub mod builder;
 pub mod detail_level;
 pub mod diagnostic;
 pub mod filter;
@@ -10,6 +11,7 @@ pub mod metrics;
 pub mod phase;
 pub mod span;
 
+pub use builder::RegisteredDiagnostic;
 pub use detail_level::DetailLevel;
 pub use diagnostic::{
     DetailedDiagnostic, DetailedReport, Diagnostic, PerformanceMetrics, RelatedResource, ReportMetadata, ReportStatus,

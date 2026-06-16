@@ -2,7 +2,7 @@ use crate::consts::*;
 use crate::ir::*;
 use crate::model::ResolvedResource;
 use crate::resolver::ResolvedValue;
-use diagnostics::SAM_TRANSFORM_ERROR_RULE_ID;
+use diagnostics::{RegisteredDiagnostic, SAM_TRANSFORM_ERROR_RULE_ID};
 use std::collections::{HashMap, HashSet};
 
 pub fn extract_sam_globals(arena: &Arena, globals_ref: NodeRef) -> HashMap<String, HashMap<String, serde_json::Value>> {
@@ -468,26 +468,11 @@ fn make_transform_error(
     message: String,
     span: SourceSpan,
 ) -> diagnostics::Diagnostic {
-    let definition = rules_crate::lookup_rule(SAM_TRANSFORM_ERROR_RULE_ID)
-        .unwrap_or_else(|| panic!("rule '{}' is not registered", SAM_TRANSFORM_ERROR_RULE_ID));
-    diagnostics::Diagnostic {
-        rule_id: SAM_TRANSFORM_ERROR_RULE_ID.into(),
-        severity: definition.severity(),
-        message,
-        resource: Some(diagnostics::ResourceRef { id: Some(resource_id.into()), resource_type: None }),
-        property_path: if property_path.is_empty() { None } else { Some(property_path) },
-        suggested_fix: None,
-        documentation_url: None,
-        category: Some(definition.category.as_str().into()),
-        location: if span == UNKNOWN_SPAN { None } else { Some(span) },
-        related_resources: None,
-        condition_scenario: None,
-        rule_description: None,
-        phase: None,
-        section: None,
-        source: definition.origin,
-        context: None,
-    }
+    RegisteredDiagnostic::new(SAM_TRANSFORM_ERROR_RULE_ID, message)
+        .resource(resource_id, None)
+        .property_path(property_path)
+        .location(span)
+        .build()
 }
 
 #[cfg(test)]

@@ -1,12 +1,9 @@
 use diagnostics::{
-    DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RelatedResource, ReportMetadata, ReportStatus,
-    ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext, apply_filters,
-    is_sam_transform_error_message, phase_metric, resolve_section_span,
+    DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
+    ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext,
+    apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span,
 };
-use rules::{
-    FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, category_for_rule_id, is_fatal_rule,
-    section_for_rule_id,
-};
+use rules::{FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, section_for_rule_id};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -288,29 +285,12 @@ pub fn validate_bytes_with_path(
     ) {
         Ok(r) => r,
         Err(e) => {
-            let location = match (e.line, e.column) {
-                (Some(l), Some(c)) => Some(SourceSpan { start_line: l, start_column: c, end_line: l, end_column: c }),
-                _ => None,
+            let span = match (e.line, e.column) {
+                (Some(l), Some(c)) => SourceSpan { start_line: l, start_column: c, end_line: l, end_column: c },
+                _ => UNKNOWN_SPAN,
             };
-            let def = rules::lookup_rule("F1101").expect("F1101 must be in RULE_REGISTRY");
-            let diag = Diagnostic {
-                rule_id: "F1101".into(),
-                severity: def.severity(),
-                message: e.message,
-                resource: None,
-                property_path: None,
-                suggested_fix: None,
-                documentation_url: None,
-                category: Some(def.category.as_str().into()),
-                location,
-                related_resources: None,
-                condition_scenario: None,
-                rule_description: Some(def.description.into()),
-                phase: Some(Phase::Parse),
-                section: Some("Template".into()),
-                context: None,
-                source: def.origin,
-            };
+            let mut diag = RegisteredDiagnostic::new("F1101", e.message).location(span).phase(Phase::Parse).build();
+            diag.section = Some("Template".into());
             let diags = vec![diag];
             let report = ValidationReport {
                 file_path,
@@ -404,7 +384,6 @@ fn panic_message(payload: &(dyn Any + Send)) -> String {
 pub(crate) fn parse_diagnostic(
     val: &serde_json::Value,
     model: &SemanticModel,
-    registry_metadata: &HashMap<String, RuleMetadataEntry>,
     source_override: Option<&RuleOrigin>,
 ) -> Result<Diagnostic, String> {
     let rule_id =
@@ -419,7 +398,6 @@ pub(crate) fn parse_diagnostic(
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("Diagnostic '{}' missing required field 'message'", rule_id))?
         .to_string();
-    let severity = if is_fatal_rule(&rule_id) { Severity::Fatal } else { severity };
     let resource_id = val.get("resource_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
     let resource = resource_id.as_ref().map(|rid| ResourceRef {
         id: Some(rid.clone()),
@@ -445,18 +423,6 @@ pub(crate) fn parse_diagnostic(
     };
 
     let is_custom_or_guard = source_override.is_some_and(|o| matches!(o, RuleOrigin::Custom | RuleOrigin::Guard));
-
-    let category: Option<String> = if is_custom_or_guard {
-        // Custom/guard rules never consult the registry — use only what the rule provides
-        val.get("category").and_then(|v| v.as_str()).map(|c| c.to_string())
-    } else if let Some(entry) = registry_metadata.get(&rule_id) {
-        entry.category.clone()
-    } else {
-        val.get("category")
-            .and_then(|v| v.as_str())
-            .map(|c| c.to_string())
-            .or_else(|| Some(category_for_rule_id(&rule_id).as_str().into()))
-    };
 
     let suggested_fix = val.get("suggested_fix").and_then(|v| v.as_str()).map(|s| s.to_string());
     let documentation_url = val.get("documentation_url").and_then(|v| v.as_str()).map(|s| s.to_string());
@@ -486,39 +452,52 @@ pub(crate) fn parse_diagnostic(
         .and_then(|v| v.as_object())
         .map(|m| m.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect());
 
-    let source = if let Some(origin) = source_override {
-        *origin
-    } else {
-        registry_metadata
-            .get(&rule_id)
-            .map(|entry| entry.origin)
-            .unwrap_or_else(|| diagnostics::source_for_rule(&rule_id))
-    };
+    if is_custom_or_guard {
+        // Custom and Guard rules are deliberately absent from the rule registry.
+        // Their severity, category, and origin come straight from the parsed rule
+        // output — never the registry — so the diagnostic is assembled directly
+        // here rather than through the registry-driven builder.
+        let severity = if is_fatal_rule(&rule_id) { Severity::Fatal } else { severity };
+        let category = val.get("category").and_then(|v| v.as_str()).map(|c| c.to_string());
+        let source = *source_override.expect("custom/guard branch is only reached with a source override");
+        return Ok(Diagnostic {
+            rule_id,
+            severity,
+            message,
+            resource,
+            property_path,
+            suggested_fix,
+            documentation_url,
+            category,
+            location: span_to_option(span),
+            related_resources,
+            condition_scenario,
+            rule_description: None,
+            phase: None,
+            section: None,
+            context: None,
+            source,
+        });
+    }
 
-    Ok(Diagnostic {
-        rule_id,
-        severity,
-        message,
-        resource,
-        property_path,
-        suggested_fix,
-        documentation_url,
-        category,
-        location: span_to_option(span),
-        related_resources,
-        condition_scenario,
-        rule_description: None,
-        phase: None,
-        section: None,
-        context: None,
-        source,
-    })
+    // Built-in rules: severity, category, origin, and description are sourced from
+    // the rule registry through the shared builder. The engine's JSON output
+    // supplies only the contextual fields (location, resource, related findings).
+    let mut diagnostic = RegisteredDiagnostic::new(rule_id, message)
+        .location(span)
+        .suggested_fix(suggested_fix)
+        .condition_scenario(condition_scenario)
+        .related_resources(related_resources)
+        .build();
+    diagnostic.resource = resource;
+    diagnostic.property_path = property_path;
+    diagnostic.documentation_url = documentation_url;
+    Ok(diagnostic)
 }
 
 pub fn extract_diagnostics(
     json_str: &str,
     model: &SemanticModel,
-    registry_metadata: &HashMap<String, RuleMetadataEntry>,
     out: &mut Vec<Diagnostic>,
     source_override: Option<&RuleOrigin>,
 ) -> Result<(), String> {
@@ -526,7 +505,7 @@ pub fn extract_diagnostics(
         serde_json::from_str(json_str).map_err(|e| format!("Failed to parse diagnostic JSON: {}", e))?;
     let items = json_val.as_array().ok_or("Diagnostic output must be a JSON array")?;
     for item in items {
-        out.push(parse_diagnostic(item, model, registry_metadata, source_override)?);
+        out.push(parse_diagnostic(item, model, source_override)?);
     }
     Ok(())
 }
@@ -836,48 +815,26 @@ pub fn make_resource_diagnostic(
     prop_path: &str,
     suggested_fix: Option<&str>,
 ) -> Diagnostic {
-    let def = rules::lookup_rule(rule_id).unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id));
-    let severity = def.severity();
-    let category = def.category;
     let span = if resource_id.is_empty() {
         resolve_section_span(rule_id, model)
     } else {
         model.resource_span(resource_id, prop_path)
     };
-    let resource = if resource_id.is_empty() {
-        None
-    } else {
-        Some(ResourceRef {
-            id: Some(resource_id.into()),
-            resource_type: model.resources.get(resource_id).map(|r| r.resource_type.clone()),
-        })
-    };
-    let property_path = if prop_path.is_empty() { None } else { Some(prop_path.into()) };
-    Diagnostic {
-        rule_id: rule_id.into(),
-        severity,
-        message: message.into(),
-        resource,
-        property_path,
-        suggested_fix: suggested_fix.map(|s| s.into()),
-        documentation_url: None,
-        category: Some(category.as_str().into()),
-        location: span_to_option(span),
-        related_resources: None,
-        condition_scenario: None,
-        rule_description: None,
-        phase: None,
-        section: None,
-        context: None,
-        source: def.origin,
+    let mut builder = RegisteredDiagnostic::new(rule_id, message)
+        .property_path(prop_path)
+        .location(span)
+        .suggested_fix(suggested_fix);
+    if !resource_id.is_empty() {
+        builder = builder.resource(resource_id, model.resources.get(resource_id).map(|r| r.resource_type.clone()));
     }
+    builder.build()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use diagnostics::Phase;
-    use rules::Category;
+    use rules::{Category, lookup_rule};
 
     fn minimal_model() -> SemanticModel {
         let yaml = br#"
@@ -919,7 +876,6 @@ Resources:
     #[test]
     fn parse_diagnostic_minimal_valid() {
         let model = minimal_model();
-        let meta = meta_map();
         let val: serde_json::Value = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
@@ -927,7 +883,7 @@ Resources:
             "resource_id": "Bucket",
             "resource_path": "Properties.BucketName"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).expect("should parse");
+        let diag = parse_diagnostic(&val, &model, None).expect("should parse");
         assert_eq!(diag.rule_id, "E3012");
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "Type mismatch");
@@ -938,57 +894,51 @@ Resources:
     #[test]
     fn parse_diagnostic_missing_rule_id_returns_error() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({"severity": Severity::Error.as_str(), "message": "x"});
-        parse_diagnostic(&val, &model, &meta, None).unwrap_err();
+        parse_diagnostic(&val, &model, None).unwrap_err();
     }
 
     #[test]
     fn parse_diagnostic_missing_severity_returns_error() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({"rule_id": "E3012", "message": "x"});
-        parse_diagnostic(&val, &model, &meta, None).unwrap_err();
+        parse_diagnostic(&val, &model, None).unwrap_err();
     }
 
     #[test]
     fn parse_diagnostic_missing_message_returns_error() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({"rule_id": "E3012", "severity": Severity::Error.as_str()});
-        parse_diagnostic(&val, &model, &meta, None).unwrap_err();
+        parse_diagnostic(&val, &model, None).unwrap_err();
     }
 
     #[test]
     fn parse_diagnostic_fatal_prefix_overrides_severity() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "F3012",
             "severity": Severity::Error.as_str(),
             "message": "type mismatch"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.severity, Severity::Fatal);
     }
 
     #[test]
     fn parse_diagnostic_warning_severity() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "W3045",
             "severity": Severity::Warn.as_str(),
             "message": "warn"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.severity, Severity::Warn);
     }
 
     #[test]
     fn parse_diagnostic_with_suggested_fix_and_doc_url() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
@@ -996,7 +946,7 @@ Resources:
             "suggested_fix": "fix it",
             "documentation_url": "https://example.com"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.suggested_fix.as_deref(), Some("fix it"));
         assert_eq!(diag.documentation_url.as_deref(), Some("https://example.com"));
     }
@@ -1004,21 +954,19 @@ Resources:
     #[test]
     fn parse_diagnostic_empty_resource_id_treated_as_none() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
             "message": "x",
             "resource_id": ""
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert!(diag.resource.is_none(), "diagnostic without resource_id should have no resource");
     }
 
     #[test]
     fn parse_diagnostic_with_explicit_start_line_column() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
@@ -1026,58 +974,45 @@ Resources:
             "start_line": 42,
             "start_column": 7
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.location.as_ref().unwrap().start_line, 42);
         assert_eq!(diag.location.as_ref().unwrap().start_column, 7);
     }
 
     #[test]
-    fn parse_diagnostic_category_from_meta_overrides_json() {
-        let model = minimal_model();
-        let meta = meta_map();
-        let val = serde_json::json!({
-            "rule_id": "E3012",
-            "severity": Severity::Error.as_str(),
-            "message": "x",
-            "category": "custom-cat"
-        });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
-        let expected_cat = &meta.get("E3012").unwrap().category;
-        assert_eq!(diag.category.as_deref(), Some(expected_cat.as_deref().unwrap()));
-    }
-
-    #[test]
     fn parse_diagnostic_unknown_rule_uses_json_category() {
         let model = minimal_model();
-        let meta = HashMap::new();
         let val = serde_json::json!({
             "rule_id": "XUNKNOWN",
             "severity": Severity::Error.as_str(),
             "message": "x",
             "category": "my-category"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, Some(&RuleOrigin::Custom)).unwrap();
+        let diag = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom)).unwrap();
         assert_eq!(diag.category.as_deref(), Some("my-category"));
     }
 
     #[test]
-    fn parse_diagnostic_general_category_in_json_used_when_not_in_meta() {
+    fn parse_diagnostic_builtin_rule_ignores_json_category_and_uses_registry() {
         let model = minimal_model();
-        let meta = HashMap::new();
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
             "message": "x",
             "category": "general"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
-        assert_eq!(diag.category.as_deref(), Some("general"));
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
+        let expected = lookup_rule("E3012").unwrap().category.as_str();
+        assert_eq!(
+            diag.category.as_deref(),
+            Some(expected),
+            "a built-in rule takes its category from the registry, ignoring any category in the engine JSON"
+        );
     }
 
     #[test]
     fn parse_diagnostic_with_related_locations() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
@@ -1091,7 +1026,7 @@ Resources:
                 "message": "related"
             }]
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.related_resources.as_ref().unwrap().len(), 1);
         assert_eq!(diag.related_resources.as_ref().unwrap()[0].message, "related");
     }
@@ -1099,14 +1034,13 @@ Resources:
     #[test]
     fn parse_diagnostic_with_condition_scenario() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
             "message": "x",
             "condition_scenario": {"IsProd": true}
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         let scenario = diag.condition_scenario.unwrap();
         assert_eq!(scenario.get("IsProd"), Some(&true));
     }
@@ -1114,13 +1048,12 @@ Resources:
     #[test]
     fn extract_diagnostics_valid_array() {
         let model = minimal_model();
-        let meta = meta_map();
         let json = serde_json::json!([
             {"rule_id": "E3012", "severity": Severity::Error.as_str(), "message": "a"},
             {"rule_id": "W3045", "severity": Severity::Warn.as_str(), "message": "b"}
         ]);
         let mut out = Vec::new();
-        extract_diagnostics(&json.to_string(), &model, &meta, &mut out, None).unwrap();
+        extract_diagnostics(&json.to_string(), &model, &mut out, None).unwrap();
         assert_eq!(out.len(), 2);
         assert_eq!(out[0].rule_id, "E3012");
         assert_eq!(out[1].rule_id, "W3045");
@@ -1129,32 +1062,29 @@ Resources:
     #[test]
     fn extract_diagnostics_invalid_json_is_error() {
         let model = minimal_model();
-        let meta = meta_map();
         let mut out = Vec::new();
-        let result = extract_diagnostics("not json", &model, &meta, &mut out, None);
+        let result = extract_diagnostics("not json", &model, &mut out, None);
         result.unwrap_err();
     }
 
     #[test]
     fn extract_diagnostics_non_array_json_is_error() {
         let model = minimal_model();
-        let meta = meta_map();
         let mut out = Vec::new();
-        let result = extract_diagnostics(r#"{"key": "value"}"#, &model, &meta, &mut out, None);
+        let result = extract_diagnostics(r#"{"key": "value"}"#, &model, &mut out, None);
         result.unwrap_err();
     }
 
     #[test]
     fn extract_diagnostics_fails_on_missing_required_fields() {
         let model = minimal_model();
-        let meta = meta_map();
         let json = serde_json::json!([
             {"rule_id": "E3012", "severity": Severity::Error.as_str(), "message": "ok"},
             {"bad": "item"},
             {"rule_id": "W3045", "severity": Severity::Warn.as_str(), "message": "ok2"}
         ]);
         let mut out = Vec::new();
-        let result = extract_diagnostics(&json.to_string(), &model, &meta, &mut out, None);
+        let result = extract_diagnostics(&json.to_string(), &model, &mut out, None);
         result.unwrap_err();
         assert_eq!(out.len(), 1, "first valid item should have been added before failure");
     }
@@ -1704,40 +1634,38 @@ Resources:
     #[test]
     fn parse_diagnostic_debug_severity() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "D9999",
             "severity": Severity::Debug.as_str(),
             "message": "dbg"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, Some(&RuleOrigin::Engine)).unwrap();
+        let diag = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom)).unwrap();
         assert_eq!(diag.severity, Severity::Debug);
     }
 
     #[test]
     fn parse_diagnostic_no_resource_no_location_resolves_via_section_span() {
         let model = minimal_model();
-        let meta = meta_map();
         let val = serde_json::json!({
             "rule_id": "F0001",
             "severity": Severity::Fatal.as_str(),
             "message": "no resources"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
         assert_eq!(diag.rule_id, "F0001");
     }
 
     #[test]
-    fn parse_diagnostic_no_meta_no_category_falls_back_to_helper() {
+    fn parse_diagnostic_builtin_rule_category_comes_from_registry() {
         let model = minimal_model();
-        let meta = HashMap::new();
         let val = serde_json::json!({
             "rule_id": "E3012",
             "severity": Severity::Error.as_str(),
             "message": "x"
         });
-        let diag = parse_diagnostic(&val, &model, &meta, None).unwrap();
-        assert_eq!(diag.category, Some(rules::category_for_rule_id("E3012").as_str().into()));
+        let diag = parse_diagnostic(&val, &model, None).unwrap();
+        let expected = lookup_rule("E3012").unwrap().category.as_str();
+        assert_eq!(diag.category.as_deref(), Some(expected));
     }
 
     #[test]

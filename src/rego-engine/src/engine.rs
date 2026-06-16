@@ -263,7 +263,7 @@ impl RegoEngine {
                  serialized to JSON: {e}"
             ))
         })?;
-        extract_diagnostics(&json_str, model, &self.registry_metadata, out, origin).map_err(ValidationError::from)
+        extract_diagnostics(&json_str, model, out, origin).map_err(ValidationError::from)
     }
 }
 
@@ -309,8 +309,7 @@ impl ValidationEngine for RegoEngine {
                              serialized to JSON: {e}"
                         ))
                     })?;
-                    extract_diagnostics(&json_str, model, &self.registry_metadata, &mut diagnostics, None)
-                        .map_err(ValidationError::from)?;
+                    extract_diagnostics(&json_str, model, &mut diagnostics, None).map_err(ValidationError::from)?;
                 }
                 Err(e) => {
                     warn!("Aggregated eval failed ({}), falling back to individual packages", e);

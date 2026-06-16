@@ -150,43 +150,23 @@ impl JsonBuilder {
     }
 
     fn intrinsic_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
-            "F1101",
-            rules_crate::Severity::Fatal,
-            format!("{}: {}", fn_name, message),
-            UNKNOWN_SPAN,
-        ));
+        self.diagnostics.push(crate::make_parse_diagnostic("F1101", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
     fn intrinsic_type_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
-            "W1102",
-            rules_crate::Severity::Warn,
-            format!("{}: {}", fn_name, message),
-            UNKNOWN_SPAN,
-        ));
+        self.diagnostics.push(crate::make_parse_diagnostic("W1102", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
     /// Emit a structural diagnostic for Fn::Equals, Fn::And, Fn::Or, Fn::Not.
     /// CloudFormation rejects templates with these defects at deploy time
     fn condition_fn_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
-            "F0014",
-            rules_crate::Severity::Fatal,
-            format!("{}: {}", fn_name, message),
-            UNKNOWN_SPAN,
-        ));
+        self.diagnostics.push(crate::make_parse_diagnostic("F0014", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
     }
 
     /// Emit a structural diagnostic for Fn::If. CloudFormation rejects
     /// malformed Fn::If at deploy time; classified as Fatal.
     fn fn_if_structural_error(&mut self, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
-            "F0013",
-            rules_crate::Severity::Fatal,
-            format!("{}: {}", FN_IF, message),
-            UNKNOWN_SPAN,
-        ));
+        self.diagnostics.push(crate::make_parse_diagnostic("F0013", format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
     }
 
     fn try_build_intrinsic(&mut self, key: &str, val: &serde_json::Value, path: &str) -> Option<NodeRef> {
@@ -297,7 +277,6 @@ impl JsonBuilder {
                             } else {
                                 self.diagnostics.push(crate::make_parse_diagnostic(
                                     "F0010",
-                                    rules_crate::Severity::Fatal,
                                     "Fn::Sub second argument must be a map with string keys".to_string(),
                                     UNKNOWN_SPAN,
                                 ));
@@ -1053,7 +1032,6 @@ fn detect_duplicate_keys(bytes: &[u8]) -> Vec<diagnostics::Diagnostic> {
                                 let (sl, sc) = offset_to_line_col(&line_offsets, start);
                                 diagnostics.push(crate::make_parse_diagnostic(
                                     "F0000",
-                                    rules_crate::Severity::Fatal,
                                     format!("Duplicate key '{}'", occupied.key()),
                                     SourceSpan {
                                         start_line: sl,

@@ -1519,7 +1519,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "Resource type sunset or shutdown",
         origin: RuleOrigin::Engine,
     },
-    // ── cfn-lint rules: intrinsic function validation ────────────────────
     RuleDefinition {
         id: "E1002",
         category: Category::Structure,
@@ -1580,7 +1579,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "Validate dynamic references to SSM are in a valid location",
         origin: RuleOrigin::CfnLint,
     },
-    // ── cfn-lint rules: resource-specific validation ─────────────────────
     RuleDefinition {
         id: "E3011",
         category: Category::Resource,
@@ -1689,7 +1687,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "Validate OpenSearch domain cluster instance type",
         origin: RuleOrigin::CfnLint,
     },
-    // ── cfn-lint rules: info / warn ─────────────────────────────────────
     RuleDefinition {
         id: "I2003",
         category: Category::Structure,

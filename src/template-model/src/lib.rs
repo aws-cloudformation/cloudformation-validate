@@ -25,28 +25,8 @@ pub use consts::{
 pub use ir::*;
 pub use model::{ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
 
-pub(crate) fn make_parse_diagnostic(
-    rule_id: &str,
-    severity: rules_crate::Severity,
-    message: String,
-    span: diagnostics::SourceSpan,
-) -> diagnostics::Diagnostic {
-    diagnostics::Diagnostic {
-        rule_id: rule_id.into(),
-        severity,
-        message,
-        resource: None,
-        property_path: None,
-        suggested_fix: None,
-        documentation_url: None,
-        category: Some(rules_crate::Category::Structure.as_str().into()),
-        phase: Some(diagnostics::Phase::Parse),
-        source: diagnostics::source_for_rule(rule_id),
-        location: if span == diagnostics::UNKNOWN_SPAN { None } else { Some(span) },
-        related_resources: None,
-        condition_scenario: None,
-        rule_description: None,
-        section: None,
-        context: None,
-    }
+use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, SourceSpan};
+
+pub(crate) fn make_parse_diagnostic(rule_id: &str, message: String, span: SourceSpan) -> Diagnostic {
+    RegisteredDiagnostic::new(rule_id, message).location(span).phase(Phase::Parse).build()
 }
