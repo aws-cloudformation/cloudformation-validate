@@ -1,6 +1,7 @@
 # bindings-wasm
 
-WASM bindings for [`cloudformation-validate`](https://github.com/aws-cloudformation/cloudformation-validate). Compiles the full validation pipeline —
+WASM bindings for [`cloudformation-validate`](https://github.com/aws-cloudformation/cloudformation-validate). Compiles
+the full validation pipeline —
 template parser, schema validator, Rego engine, and CEL engine — into a single `.wasm` module for Node.js.
 
 All WASM objects must be explicitly freed via `.free()` to release memory.
