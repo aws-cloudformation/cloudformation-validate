@@ -26,6 +26,23 @@ violation contains make_diag("E1032", "ERROR", name,
     _has_intrinsic_in_properties(res, "Fn::ForEach")
 }
 
+# E1032: Section-level Fn::ForEach::<Identifier> keys in Resources or Outputs
+# are processed only when the AWS::LanguageExtensions transform is declared.
+# Without it CloudFormation rejects the deployment.
+violation contains make_diag("E1032", "ERROR", name,
+    "Fn::ForEach requires the AWS::LanguageExtensions transform") if {
+    not _has_language_extensions
+    some name, _ in input.resources
+    startswith(name, "Fn::ForEach::")
+}
+
+violation contains make_diag("E1032", "ERROR", name,
+    "Fn::ForEach requires the AWS::LanguageExtensions transform") if {
+    not _has_language_extensions
+    some name, _ in input.outputs
+    startswith(name, "Fn::ForEach::")
+}
+
 _has_language_extensions if {
     some t in input.template.transforms
     t == "AWS::LanguageExtensions"

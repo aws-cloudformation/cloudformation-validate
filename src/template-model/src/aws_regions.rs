@@ -17,23 +17,18 @@
 /// have gaps (us-west-1 has two AZs, ca-central-1 skips "c").
 pub fn availability_zone_suffixes(region: &str) -> Option<&'static [&'static str]> {
     match region {
-        // US Commercial
         "us-east-1" => Some(&["a", "b", "c", "d", "e", "f"]),
         "us-east-2" => Some(&["a", "b", "c"]),
         "us-west-1" => Some(&["a", "b"]),
         "us-west-2" => Some(&["a", "b", "c", "d"]),
 
-        // Canada
         "ca-central-1" => Some(&["a", "b", "d"]),
         "ca-west-1" => Some(&["a", "b", "d"]),
 
-        // South America
         "sa-east-1" => Some(&["a", "b", "c"]),
 
-        // Mexico
         "mx-central-1" => Some(&["a", "b", "c"]),
 
-        // Europe
         "eu-central-1" => Some(&["a", "b", "c"]),
         "eu-central-2" => Some(&["a", "b", "c"]),
         "eu-west-1" => Some(&["a", "b", "c"]),
@@ -43,28 +38,22 @@ pub fn availability_zone_suffixes(region: &str) -> Option<&'static [&'static str
         "eu-south-1" => Some(&["a", "b", "c"]),
         "eu-south-2" => Some(&["a", "b", "c"]),
 
-        // Africa
         "af-south-1" => Some(&["a", "b", "c"]),
 
-        // Middle East
         "me-south-1" => Some(&["a", "b", "c"]),
         "me-central-1" => Some(&["a", "b", "c"]),
 
-        // Israel
         "il-central-1" => Some(&["a", "b", "c"]),
 
-        // Asia Pacific — North
         "ap-east-1" => Some(&["a", "b", "c"]),
         "ap-east-2" => Some(&["a", "b", "c"]),
         "ap-northeast-1" => Some(&["a", "b", "c", "d"]),
         "ap-northeast-2" => Some(&["a", "b", "c", "d"]),
         "ap-northeast-3" => Some(&["a", "b", "c"]),
 
-        // Asia Pacific — South
         "ap-south-1" => Some(&["a", "b", "c"]),
         "ap-south-2" => Some(&["a", "b", "c"]),
 
-        // Asia Pacific — Southeast
         "ap-southeast-1" => Some(&["a", "b", "c"]),
         "ap-southeast-2" => Some(&["a", "b", "c"]),
         "ap-southeast-3" => Some(&["a", "b", "c"]),
@@ -73,11 +62,10 @@ pub fn availability_zone_suffixes(region: &str) -> Option<&'static [&'static str
         "ap-southeast-6" => Some(&["a", "b", "c"]),
         "ap-southeast-7" => Some(&["a", "b", "c"]),
 
-        // GovCloud
         "us-gov-east-1" => Some(&["a", "b", "c"]),
         "us-gov-west-1" => Some(&["a", "b", "c"]),
 
-        // China — separate AWS partition, but GA
+        // China is a separate AWS partition; included because its regions are GA.
         "cn-north-1" => Some(&["a", "b", "c"]),
         "cn-northwest-1" => Some(&["a", "b", "c"]),
 
@@ -153,32 +141,21 @@ mod tests {
     #[test]
     fn all_ga_regions_covered() {
         let ga_regions = [
-            // US
             "us-east-1", "us-east-2", "us-west-1", "us-west-2",
-            // Canada
             "ca-central-1", "ca-west-1",
-            // South America
             "sa-east-1",
-            // Mexico
             "mx-central-1",
-            // Europe
             "eu-central-1", "eu-central-2", "eu-west-1", "eu-west-2", "eu-west-3",
             "eu-north-1", "eu-south-1", "eu-south-2",
-            // Africa
             "af-south-1",
-            // Middle East
             "me-south-1", "me-central-1",
-            // Israel
             "il-central-1",
-            // Asia Pacific
             "ap-east-1", "ap-east-2",
             "ap-northeast-1", "ap-northeast-2", "ap-northeast-3",
             "ap-south-1", "ap-south-2",
             "ap-southeast-1", "ap-southeast-2", "ap-southeast-3",
             "ap-southeast-4", "ap-southeast-5", "ap-southeast-6", "ap-southeast-7",
-            // GovCloud
             "us-gov-east-1", "us-gov-west-1",
-            // China
             "cn-north-1", "cn-northwest-1",
         ];
         for r in ga_regions {

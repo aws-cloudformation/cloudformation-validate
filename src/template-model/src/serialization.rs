@@ -244,8 +244,9 @@ fn build_conditions(conditions: &crate::conditions::ConditionModel) -> HashMap<S
         // `__malformed_*` placeholders) are internal SAT bookkeeping, not
         // user-authored condition names. They must not surface in the
         // serialized condition map, or rules that iterate it — W8001 (unused
-        // conditions) in particular — would flag bookkeeping names cfn-lint
-        // never sees. The implication/mutex/exclusion fields carry the synthetic
+        // conditions) in particular — would flag synthetic bookkeeping names
+        // as if they were user-defined and unreferenced.
+        // The implication/mutex/exclusion fields carry the synthetic
         // names separately for cross-condition reasoning.
         if name.starts_with("__") {
             continue;

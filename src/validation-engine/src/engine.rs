@@ -707,7 +707,7 @@ pub(crate) fn build_context(
         "I9001" => {
             lifecycle = Some("create-only".into());
         }
-        "W3041" => {
+        "W9054" => {
             lifecycle = Some("write-only".into());
         }
         "W2503" | "W2502" => {
@@ -1645,9 +1645,9 @@ Resources:
     }
 
     #[test]
-    fn build_context_w3041_sets_write_only_lifecycle() {
+    fn build_context_w9054_sets_write_only_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("W3041", Some("Bucket"), "", &model).expect("W3041 should return context");
+        let ctx = build_context("W9054", Some("Bucket"), "", &model).expect("W9054 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("write-only"));
     }
 

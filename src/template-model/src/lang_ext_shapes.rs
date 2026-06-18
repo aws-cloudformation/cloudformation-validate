@@ -1,9 +1,8 @@
 //! Parameter-shape validation for `AWS::LanguageExtensions` intrinsics.
 //!
-//! cfn-lint's `Fn::Length` (E1030), `Fn::ToJsonString` (E1031), and
-//! `Fn::GetStackOutput` (E1033) rules call into a JSON-schema-driven
-//! `BaseFn` validator that checks each intrinsic's argument matches the
-//! published per-function shape:
+//! `Fn::Length` (E1030), `Fn::ToJsonString` (E1031), and
+//! `Fn::GetStackOutput` (E1033) each have a published per-function shape
+//! that CloudFormation enforces at deploy time:
 //!
 //! * `Fn::Length` argument must be an array, or a `Ref`/`Fn::FindInMap`/
 //!   `Fn::Split`/`Fn::If`/`Fn::GetAZs` that resolves to one.
@@ -15,12 +14,10 @@
 //!   each a string-producing scalar or an allowed string-returning
 //!   intrinsic.
 //!
-//! This module emits those diagnostics with the same rule IDs cfn-lint uses
-//! so cross-tool comparisons match. The transform-missing case is handled
-//! separately by the resolver and emits the same `E1033` ID (cfn-lint also
-//! reports the missing-transform `Fn::GetStackOutput` under `E1033`) — this
-//! pass only runs against post-transform templates, so the two never
-//! double-report.
+//! This module emits diagnostics under the canonical rule IDs for those
+//! shape failures. The transform-missing case is handled separately by
+//! the resolver and emits the same `E1033` ID — this pass only runs against
+//! post-transform templates, so the two never double-report.
 
 use crate::consts::*;
 use crate::ir::*;

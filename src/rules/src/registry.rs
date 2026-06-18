@@ -162,6 +162,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
+        id: "W1100",
+        category: Category::BestPractice,
+        description: "YAML merge key '<<' is not supported by CloudFormation",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "F0001",
         category: Category::Structure,
         description: "Resources section must exist and be non-empty",
@@ -368,7 +374,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E1058",
         category: Category::Intrinsic,
-        description: "Fn::Split first argument must not be a dynamic reference",
+        description: "Fn::Split delimiter must not be a dynamic reference",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
@@ -392,13 +398,13 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E1033",
         category: Category::Intrinsic,
-        description: "Fn::GetStackOutput parameter shape and AWS::LanguageExtensions transform requirement",
+        description: "Fn::GetStackOutput requires AWS::LanguageExtensions and StackName/OutputName keys",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1050",
         category: Category::Intrinsic,
-        description: "Dynamic reference structure must match the per-flavor format",
+        description: "Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
@@ -416,7 +422,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E1106",
         category: Category::Structure,
-        description: "Cycle detected in condition reference graph",
+        description: "Cycle detected between condition definitions in the Conditions section",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
@@ -1614,7 +1620,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "W3041",
+        id: "W9054",
         category: Category::BestPractice,
         description: "Write-only property referenced in output",
         origin: RuleOrigin::Engine,
@@ -1668,9 +1674,45 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E1011",
+        category: Category::Intrinsic,
+        description: "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
         id: "E1017",
         category: Category::Intrinsic,
         description: "Fn::Select requires exactly two operands and a list source",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1018",
+        category: Category::Intrinsic,
+        description: "Fn::Split source must be a string or a string-producing intrinsic",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1019",
+        category: Category::Intrinsic,
+        description: "Fn::Sub variable map values must be strings or string-producing intrinsics",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1021",
+        category: Category::Intrinsic,
+        description: "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1022",
+        category: Category::Intrinsic,
+        description: "Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1024",
+        category: Category::Intrinsic,
+        description: "Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {

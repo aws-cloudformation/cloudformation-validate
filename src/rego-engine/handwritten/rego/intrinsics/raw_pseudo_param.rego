@@ -5,8 +5,9 @@ import rego.v1
 # A property value that is *exactly* a pseudo-parameter name (e.g. the whole
 # string is `"AWS::Region"`) is NOT substituted by CloudFormation — only
 # `{Ref: AWS::Region}` resolves. This typically indicates a forgotten Fn::Sub
-# wrapper or a missing Ref, so we surface it as a warning. Matching cfn-lint's
-# RawPseudoParameter (W1054), the comparison is exact equality, not substring.
+# wrapper or a missing Ref, so we surface it as a warning. The comparison is
+# exact equality, not substring, so a property containing the pseudo-parameter
+# name as part of a larger literal does not trigger.
 violation contains make_diag_full("W1054", "WARN", name,
     sprintf("Properties.%s", [prop]),
     sprintf("String value '%s' is the pseudo-parameter '%s' used as a literal — use Ref to resolve it instead", [val, pseudo]),

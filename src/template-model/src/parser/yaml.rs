@@ -8,6 +8,7 @@ use yaml_rust2::parser::{Event, MarkedEventReceiver, Parser, Tag};
 use yaml_rust2::scanner::Marker;
 
 const RULE_DUPLICATE_KEY: &str = "F0000";
+const RULE_YAML_MERGE: &str = "W1100";
 const RULE_FN_IF_SHAPE: &str = "F0013";
 const RULE_FN_EQUALS_SHAPE: &str = "E8003";
 const RULE_FN_AND_ARITY: &str = "E8004";
@@ -22,6 +23,7 @@ struct LoadOutput {
     docs: Vec<Yaml>,
     span_map: HashMap<String, (u32, u32)>,
     duplicate_keys: Vec<(String, u32, u32)>,
+    merge_keys: Vec<(u32, u32)>,
 }
 
 struct CfnYamlLoader {
@@ -41,6 +43,12 @@ struct CfnYamlLoader {
     /// silently overwrites earlier entries; we record the path + the position
     /// of the offending duplicate so the parser can surface a diagnostic.
     duplicate_keys: Vec<(String, u32, u32)>,
+    /// YAML merge-key (`<<:`) usages detected during loading. CloudFormation
+    /// itself does not support YAML 1.1 merge semantics — `aws cloudformation
+    /// package` pre-processes them out before submission, but a template
+    /// containing them cannot be deployed directly. The parser collects every
+    /// occurrence so a diagnostic can be surfaced (W1100).
+    merge_keys: Vec<(u32, u32)>,
     /// Stack of pending key positions, parallel to `key_stack`. Each entry is
     /// the (line, column) of the most-recently scanned key in that mapping
     /// frame, so we can attach an accurate span to a duplicate-key diagnostic.
@@ -59,6 +67,7 @@ impl CfnYamlLoader {
             array_idx_stack: Vec::new(),
             span_map: HashMap::new(),
             duplicate_keys: Vec::new(),
+            merge_keys: Vec::new(),
             key_position_stack: Vec::new(),
         }
     }
@@ -71,6 +80,7 @@ impl CfnYamlLoader {
             docs: loader.docs,
             span_map: loader.span_map,
             duplicate_keys: loader.duplicate_keys,
+            merge_keys: loader.merge_keys,
         })
     }
 
@@ -241,6 +251,12 @@ impl MarkedEventReceiver for CfnYamlLoader {
                             let line = mark.line() as u32 + 1;
                             let col = mark.col() as u32 + 1;
                             self.span_map.insert(path, (line, col));
+                            // The YAML 1.1 merge-key indicator. CloudFormation
+                            // does not support merge keys, so flag every
+                            // occurrence — the deployment would fail.
+                            if v == "<<" {
+                                self.merge_keys.push((line, col));
+                            }
                             // Remember this key's position so a later
                             // duplicate detected for this mapping frame can
                             // report it accurately.
@@ -277,7 +293,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         column: None,
     })?;
 
-    let LoadOutput { docs, span_map: raw_spans, duplicate_keys } = CfnYamlLoader::load(text).map_err(|e| ParseError {
+    let LoadOutput { docs, span_map: raw_spans, duplicate_keys, merge_keys } = CfnYamlLoader::load(text).map_err(|e| ParseError {
         message: format!("YAML parse error: {}", e),
         line: None,
         column: None,
@@ -354,6 +370,19 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
                 start_column: *col,
                 end_line: *line,
                 end_column: *col + key.len() as u32,
+            },
+        ));
+    }
+
+    for (line, col) in &merge_keys {
+        builder.diagnostics.push(crate::make_parse_diagnostic(
+            RULE_YAML_MERGE,
+            "YAML merge key '<<' is not supported by CloudFormation — use 'aws cloudformation package' to pre-process".into(),
+            SourceSpan {
+                start_line: *line,
+                start_column: *col,
+                end_line: *line,
+                end_column: *col + 2,
             },
         ));
     }

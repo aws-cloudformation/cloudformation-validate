@@ -45,7 +45,7 @@ SEV_MAP = {"F": "Fatal", "E": "Error", "W": "Warn", "I": "Info", "D": "Debug"}
 
 ALLOWED_CATS = {
     "Fatal": {"Structure", "Schema", "Intrinsic",
-              "Parameter", "Reference", "Parse"},
+              "Parameter", "Reference"},
     "Warn":  {"Security", "Deprecation", "BestPractice"},
     "Info":  {"BestPractice", "Deprecation", "Structure",
               "Intrinsic", "Security"},
@@ -113,7 +113,13 @@ STRUCTURAL_OVERRIDES = {
     "E8006": "Fn::Or must take 2-10 operands",
     "E8007": "Condition function value shape required by CFN",
     # Intrinsic-shape and existence rules — invalid input crashes the deploy.
+    "E1011": "Fn::FindInMap operand types — wrong type (e.g. list as map key) is rejected at deploy",
     "E1017": "Fn::Select requires exactly two operands and a list source",
+    "E1018": "Fn::Split source must be a string-producing intrinsic",
+    "E1019": "Fn::Sub variable map values must be string-producing",
+    "E1021": "Fn::Base64 argument must be a string-producing intrinsic",
+    "E1022": "Fn::Join requires a string delimiter and a list of string-producing operands",
+    "E1024": "Fn::Cidr requires a CIDR-format ipBlock and integer count/cidrBits",
     "E1028": "ID collision only — cfn-lint E1028 checks Fn::If operand shape; ours checks condition reference resolution",
     "E1029": "Substitution variable requires Fn::Sub — cfn-lint states the deployment fails",
     "E1030": "Fn::Length: transform-missing AND parameter shape (matches cfn-lint E1030)",
@@ -268,6 +274,34 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # rule_aliases set is computed below.
     cfnlint_to_engine["E0001"] = "E0001"
 
+    # Rename mappings: cfn-lint uses these IDs for specific checks; our engine
+    # emits under a different ID because the ID was either collision-prone or
+    # used generically for multiple checks.
+    cfnlint_to_engine["E1010"] = "E9004"  # cfn-lint E1010 GetAtt; engine split E9004+E9003
+    cfnlint_to_engine["E3690"] = "E9006"  # cfn-lint E3690 DB Cluster; engine generic extension-enum
+
+    # cfn-lint rules whose checks overlap with our Fatal rules under different
+    # IDs. The numeric suffixes differ so the auto-mapping can't detect them.
+    # Each mapping was verified by running cfn-validate on the affected templates
+    # and confirming our Fatal rule fires on the same resource for the same issue.
+    # Cases where cfn-lint checks MORE than our Fatal rule (e.g. non-string type
+    # validation) remain as legitimate FNs — the alias only matches what we emit.
+    _cross_id_mappings = {
+        "E3035": "F3016",   # DeletionPolicy enum values → our schema DeletionPolicy check
+        "E3036": "F0018",   # UpdateReplacePolicy enum values → our schema UpdateReplacePolicy check
+        "E3015": "E8002",   # Resource condition must exist → our condition-ref check
+        "E1019": "F1018",   # Sub variable resolution → our Sub variable check
+        "E1028": "F0013",   # Fn::If structure (count) → our Fn::If element count check
+        "E3006": "E9001",   # Resource type must exist → our E9001 unknown resource type check
+        "E1022": "F1020",   # GetAtt resource must exist (incl. GetAtt embedded in Fn::Join) → our Ref/GetAtt target check
+    }
+    for e_id, f_id in _cross_id_mappings.items():
+        cfnlint_to_engine[e_id] = f_id
+
+    # Freeze the reverse mapping AFTER all cfnlint_to_engine mutations are applied.
+    # engine_to_cfnlint must reflect every mapping the comparison layer will use,
+    # otherwise engine_extra membership drifts (e.g. cross-id Fatals incorrectly
+    # treated as engine-only when they actually pair with a cfn-lint rule).
     engine_to_cfnlint = {v: k for k, v in cfnlint_to_engine.items()}
 
     # ── Engine-extra set ─────────────────────────────────────────────────
@@ -349,7 +383,6 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     ENGINE_STRICTER_STRUCTURAL = {
         "W1001",   # Conditional reference (engine fires more broadly than cfn-lint)
         "W2001",   # Unused parameter (engine tracks Fn::Sub variable usage)
-        "W9002",   # Hardcoded ARN (resolved through Fn::Sub)
         "W3005",   # Obsolete DependsOn (engine resolves implicit deps)
         "W3011",   # Both UpdateReplacePolicy and DeletionPolicy needed
         "W7001",   # Unused mapping (engine tracks FindInMap usage)
@@ -361,6 +394,7 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # processes differently:
     ENGINE_STRICTER_SCHEMA = {
         "F0001",   # Resources section structural check (empty/missing Resources)
+        "F0013",   # Fn::If element count — engine catches arity violations cfn-lint reports under different paths
         "F3003",   # Required property missing (cfn-lint may use specific conditional rules, e.g. E3639/E3676)
         "F3012",   # Type mismatch (post-SAM-transform property-level)
         "F3034",   # Numeric range (cross-resource: FIFO queue → EventSourceMapping)
@@ -403,33 +437,24 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     if "F1010" in rule_aliases:
         rule_aliases["F1010"].update({"E9004", "E9003"})
 
-    # Rename aliases: cfn-lint uses these IDs for specific checks; our engine
-    # emits under a different ID because the ID was either collision-prone or
-    # used generically for multiple checks.
-    cfnlint_to_engine["E1010"] = "E9004"  # cfn-lint E1010 GetAtt; engine split E9004+E9003
-    cfnlint_to_engine["E3690"] = "E9006"  # cfn-lint E3690 DB Cluster; engine generic extension-enum
-    # Add reverse-lookup alias keyed by engine ID so compare_cfnlint matches
-    # both directions via _alias_keys:
+    # Rename aliases: the corresponding cfnlint_to_engine mutations were
+    # applied earlier so engine_to_cfnlint reflects them. Here we add the
+    # reverse-lookup aliases (engine ID → cfn-lint ID) that compare_cfnlint
+    # uses via _alias_keys.
     rule_aliases.setdefault("E9006", set()).add("E3690")
     rule_aliases.setdefault("E9003", set()).add("E1015")
 
-    # cfn-lint rules whose checks overlap with our Fatal rules under different
-    # IDs. The numeric suffixes differ so the auto-mapping can't detect them.
-    # Each mapping was verified by running cfn-validate on the affected templates
-    # and confirming our Fatal rule fires on the same resource for the same issue.
-    # Cases where cfn-lint checks MORE than our Fatal rule (e.g. non-string type
-    # validation) remain as legitimate FNs — the alias only matches what we emit.
-    _cross_id_mappings = {
-        "E3035": "F3016",   # DeletionPolicy enum values → our schema DeletionPolicy check
-        "E3036": "F0018",   # UpdateReplacePolicy enum values → our schema UpdateReplacePolicy check
-        "E3015": "E8002",   # Resource condition must exist → our condition-ref check
-        "E1019": "F1018",   # Sub variable resolution → our Sub variable check
-        "E1028": "F0013",   # Fn::If structure (count) → our Fn::If element count check
-        "E3006": "E9001",   # Resource type must exist → our E9001 unknown resource type check
-        "E1022": "F1020",   # GetAtt resource must exist (incl. GetAtt embedded in Fn::Join) → our Ref/GetAtt target check
+    # Add rule_aliases entries for every cross-id mapping that was applied
+    # earlier (these were already mutated into cfnlint_to_engine before the
+    # freeze; the auto-loop above already populated rule_aliases[f_id] from
+    # cfnlint_to_engine.items(), but compare_cfnlint also looks up the
+    # cfn-lint ID directly so we explicitly seed rule_aliases[e_id] here).
+    _cross_id_mapping_for_aliases = {
+        "E3035": "F3016", "E3036": "F0018", "E3015": "E8002",
+        "E1019": "F1018", "E1028": "F0013", "E3006": "E9001",
+        "E1022": "F1020",
     }
-    for e_id, f_id in _cross_id_mappings.items():
-        cfnlint_to_engine[e_id] = f_id
+    for e_id, f_id in _cross_id_mapping_for_aliases.items():
         rule_aliases.setdefault(f_id, {f_id}).add(e_id)
 
     # E3001 sub-checks: cfn-lint groups multiple checks under E3001 that our
@@ -617,7 +642,33 @@ def _check_dual_use(registry_map, cel_emissions):
 
     Only checks CEL (Rust) because messages are human-readable strings.
     Rego messages are often property paths, not suitable for similarity.
+
+    Rules in LEGITIMATE_COMPOUND_RULES are known to cover multiple related
+    sub-checks under one rule ID — the registry description is the umbrella,
+    and each emission has its own specific message. Inspection has confirmed
+    that splitting these into separate rule IDs would not improve clarity.
     """
+    # Compound rules whose registry description is intentionally an umbrella
+    # that covers several sub-checks. Each entry has been individually
+    # inspected; the cluster differences are sub-cases of one logical concern,
+    # not unrelated rules sharing an ID.
+    LEGITIMATE_COMPOUND_RULES = {
+        "E1005",  # Transform configuration: shape + Name property
+        "E1150",  # Security group format: parser check + schema-extension check
+        "E3005",  # DependsOn: target-not-exists + condition-false
+        "E3013",  # CloudFront Aliases: wildcard position + domain validity
+        "E3023",  # Route53 RecordSet: per record-type validators (A, CNAME, TXT, CAA)
+        "E3027",  # ScheduleExpression: rate() and cron() formats
+        "E3029",  # Route53 alias: TTL incompat + record-type compat
+        "E3701",  # CodePipeline artifacts: input ref + output uniqueness
+        "F0050",  # Mapping: 3-level shape + size limit
+        "F1020",  # Ref/GetAtt target: Ref-target + GetAtt-target
+        "F2015",  # Parameter Default: pattern + length + value range
+        "W1020",  # Sub simplification: no-vars + single-var
+        "W1030",  # Resolved Ref values: per-target-type format checks
+        "W2501",  # Password properties: dynamic-ref + hardcoded + NoEcho
+    }
+
     by_rule = defaultdict(list)
     for rid, msg, path, line in cel_emissions:
         if msg:
@@ -626,6 +677,8 @@ def _check_dual_use(registry_map, cel_emissions):
     issues = []
     for rid, entries in sorted(by_rule.items()):
         if len(entries) < 2:
+            continue
+        if rid in LEGITIMATE_COMPOUND_RULES:
             continue
         clusters = []
         for msg, path, line in entries:
@@ -860,10 +913,6 @@ def build_report(origins: RuleOrigins) -> str:
         # flags, producing an equivalent diagnostic under a different ID.
         "E1001": ("F0002/F0005", "Base template JSON schema (top-level structure)"),
         "E1003": ("F0011", "description max length 1024"),
-        "E1011": ("E1101/F1012/F1101", "FindInMap operand intrinsics via nesting (E1101) + map/arity structure (F1012/F1101)"),
-        "E1019": ("F1018", "Sub variable resolution"),
-        "E1021": ("F1101", "Base64 structural validation (template-model parser); narrow cfn-lint subset → E9021"),
-        "E1022": ("F1101", "Join structural validation (template-model parser)"),
         "E1028": ("F0013", "Fn::If must have 3 elements"),
         "E1700": ("F8600", "Rules section config"),
         "E1701": ("F8603", "Rule Assertions required"),
@@ -894,20 +943,18 @@ def build_report(origins: RuleOrigins) -> str:
         "W1031": ("F3012+W9003", "Fn::Sub resolved values (via resolver)"),
         "W1032": ("F3012+W9003", "Fn::Join resolved values"),
         "W1033": ("F3012+W9003", "Fn::Split resolved values"),
+        "W1034": ("F3012+W9003", "Fn::FindInMap resolved values"),
         "W1035": ("F3012+W9003", "Fn::Select resolved values"),
+        "W1036": ("F3012+W9003", "Fn::GetAZs resolved values"),
         "W1040": ("F3012+W9003", "Fn::ToJsonString resolved values"),
         "W2030": ("F2015", "Parameter Default enum check"),
         "W2031": ("F3031", "Parameter AllowedPattern check"),
         "W3034": ("E3034/F3034", "Parameter value numeric range"),
         "W6001": ("out-of-scope", "Output ImportValue usage (cfn-lint checks cross-stack references)"),
-        # Intrinsic function structural validation — template-model validates
-        # these during parsing and emits F1101 (structural error) or W1102
-        # (type error) instead of the cfn-lint rule IDs. The engine-only
-        # narrow checks (E9018 split-dynamic-ref, E9021 base64-nested-allowlist)
-        # cover specific subsets of cfn-lint's broader BaseFn validation:
-        "E1018": ("E1058+F1101/W1102", "Split validation (E1058 dynref delimiter + F1101 structure)"),
-        "E1021": ("E1059+F1101/W1102", "Base64 validation (E1059 nested fn allowlist + nesting.rs)"),
-        "E1024": ("F1101/W1102", "Cidr validation (template-model parser)"),
+        # E1018, E1019, E1021, E1022, E1024 are now implemented natively in
+        # template-model/src/intrinsic_arg_shapes.rs. The narrow engine-only
+        # subsets (E1058 Fn::Split delimiter dynref, E1059 Fn::Base64 nested
+        # allowlist) live alongside.
         # W1051: Secrets Manager cross-account ARN detection requires runtime
         # context (account ID) that is not available during template validation.
         # cfn-lint checks for non-ARN secret references but this engine validates
@@ -922,7 +969,6 @@ def build_report(origins: RuleOrigins) -> str:
         "E1160": ("schema-format", "Lambda function ARN format (schema format field)"),
         "E1161": ("schema-format", "S3 bucket name format (schema format field)"),
         "E1162": ("schema-format", "KMS key ID format (schema format field)"),
-        "E1163": ("schema-format", "Lambda function name format (schema format field)"),
         "E1164": ("schema-format", "KMS alias name format (schema format field)"),
         # Covered via schema-validator extensions (extensions.json if/then patches):
         "E3046": ("schema-ext", "ECS awslogs config — via extensions"),
@@ -979,18 +1025,33 @@ def build_report(origins: RuleOrigins) -> str:
         "E3043": ("out-of-scope", "Nested stack parameters (runtime-only)"),
         "W4001": ("out-of-scope", "Metadata Interface parameters"),
         "W4005": ("out-of-scope", "cfn-lint metadata config"),
-        "W1100": ("out-of-scope", "YAML merge directives"),
     }
 
     missing = []
     covered = []
     stale_coverage = []
+    stale_coverage_keys = []
     rule_id_pattern = re.compile(r'^[FEWID]\d{4}$')
+    # "out-of-scope" entries describe things the engine intentionally never
+    # implements (CLI config, metadata directives, YAML merge). cfn-lint may
+    # have removed or never had a matching ID — exclude from the cfn-lint
+    # presence check so deliberately-noop coverage isn't flagged stale.
+    out_of_scope_keys = {
+        cid for cid, (mech, _note) in LOGICAL_COVERAGE.items()
+        if mech == "out-of-scope"
+    }
     for cid, (our_mechanism, note) in LOGICAL_COVERAGE.items():
         for part in re.split(r'[/+]', our_mechanism):
             part = part.strip()
             if rule_id_pattern.match(part) and part not in our_ids:
                 stale_coverage.append((cid, part, our_mechanism, note))
+        # Key-side staleness: a LOGICAL_COVERAGE entry whose cfn-lint key
+        # does not exist in cfn-lint anymore (rule deleted upstream) is a
+        # bookkeeping error — there is nothing left to cover.
+        if (rule_id_pattern.match(cid)
+                and cid not in cfnlint
+                and cid not in out_of_scope_keys):
+            stale_coverage_keys.append((cid, our_mechanism, note))
 
     for cid in sorted(cfnlint):
         if cid in our_ids:
@@ -1013,6 +1074,19 @@ def build_report(origins: RuleOrigins) -> str:
         w("|-------------|-----------------|----------------|------|")
         for cid, missing_id, mechanism, note in sorted(stale_coverage):
             w(f"| `{cid}` | `{missing_id}` | `{mechanism}` | {note} |")
+        w("")
+
+    if stale_coverage_keys:
+        w(f"### Stale LOGICAL_COVERAGE keys ({len(stale_coverage_keys)})")
+        w("")
+        w("These cfn-lint IDs no longer exist in cfn-lint — the coverage entry")
+        w("describes a rule that has been removed or renamed upstream and should")
+        w("be deleted.")
+        w("")
+        w("| cfn-lint ID | Mechanism | Note |")
+        w("|-------------|-----------|------|")
+        for cid, mechanism, note in sorted(stale_coverage_keys):
+            w(f"| `{cid}` | `{mechanism}` | {note} |")
         w("")
 
     w(f"### Not implemented ({len(missing)})")

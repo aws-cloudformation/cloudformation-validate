@@ -220,6 +220,21 @@ pub const KEY_ASSERTIONS: &str = "Assertions";
 pub const KEY_ASSERT: &str = "Assert";
 pub const KEY_ASSERT_DESCRIPTION: &str = "AssertDescription";
 
+// Dynamic-reference flavors recognised in `{{resolve:<flavor>:...}}` strings.
+// These are the only values CloudFormation accepts for the flavor segment;
+// anything else is rejected at deploy time.
+pub const DYNREF_FLAVOR_SSM: &str = "ssm";
+pub const DYNREF_FLAVOR_SSM_SECURE: &str = "ssm-secure";
+pub const DYNREF_FLAVOR_SECRETSMANAGER: &str = "secretsmanager";
+
+// Prefix used by the resolver when wrapping an unresolvable dynamic reference
+// in a `ResolvedValue::Dynamic { reason }` so downstream consumers can recover
+// the original `{{resolve:...}}` substring. Producer: `template-model::resolver`.
+// Consumer: `cel-engine::rules::intrinsics::scan_resolved_for_dynref_format`.
+// Both sides must reference this constant — drift causes silent format-check
+// breakage.
+pub const DYNAMIC_REFERENCE_REASON_PREFIX: &str = "dynamic reference: ";
+
 pub const FN_REF: &str = "Ref";
 pub const FN_GET_ATT: &str = "Fn::GetAtt";
 pub const FN_SUB: &str = "Fn::Sub";
@@ -264,10 +279,9 @@ pub const BOOLEAN_FN_KEYS: &[&str] =
 
 /// Intrinsic functions whose output may stand in for a string-typed operand
 /// of `Fn::Equals`. This is the single canonical list of allowed `Fn::Equals`
-/// operand intrinsics — it matches cfn-lint's `equals.json` function schema
-/// exactly, so our `E8003` operand diagnostic fires on the same inputs and
-/// with the same scope as cfn-lint. The intrinsic-nesting check (`E1101`)
-/// defers to this list for `Fn::Equals` rather than maintaining a second copy.
+/// operand intrinsics — CloudFormation rejects any others. The `E8003`
+/// operand diagnostic and the intrinsic-nesting check (`E1101`) both defer
+/// to this list rather than maintaining a second copy.
 /// Notably excludes `Fn::If`, `Fn::GetAtt`, `Fn::Base64`, `Fn::GetAZs`, and
 /// `Fn::ImportValue`, which CloudFormation does not accept as `Fn::Equals`
 /// operands.

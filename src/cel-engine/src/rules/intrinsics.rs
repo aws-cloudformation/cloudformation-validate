@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::aws_regions::availability_zone_suffixes;
 use template_model::consts::{
+    DYNAMIC_REFERENCE_REASON_PREFIX, DYNREF_FLAVOR_SECRETSMANAGER, DYNREF_FLAVOR_SSM, DYNREF_FLAVOR_SSM_SECURE,
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITIONS, FIELD_DEPENDS_ON, FIELD_KIND,
     FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_FOR_EACH, FN_GET_AZS, FN_IMPORT_VALUE, FN_LENGTH, FN_TO_JSON_STRING,
@@ -549,6 +550,34 @@ fn eval_intrinsic_params(ctx: &EvalContext) -> Vec<Diagnostic> {
         for (name, res) in resources {
             check_language_extension_intrinsics(&mut out, m, name, res);
         }
+        // Section-level Fn::ForEach::<Identifier> keys (in Resources or
+        // Outputs) are processed by CloudFormation only when the
+        // AWS::LanguageExtensions transform is present. Without it the deploy
+        // fails because CloudFormation does not recognise the macro form.
+        for name in m.resources.keys() {
+            if name.starts_with("Fn::ForEach::") {
+                out.push(make_resource_diagnostic(
+                    "E1032",
+                    "Fn::ForEach requires the AWS::LanguageExtensions transform",
+                    m,
+                    name,
+                    "",
+                    None,
+                ));
+            }
+        }
+        for out_name in m.outputs.keys() {
+            if out_name.starts_with("Fn::ForEach::") {
+                out.push(make_resource_diagnostic(
+                    "E1032",
+                    "Fn::ForEach requires the AWS::LanguageExtensions transform",
+                    m,
+                    out_name,
+                    "",
+                    None,
+                ));
+            }
+        }
     }
 
     out
@@ -997,8 +1026,7 @@ fn scan_resolved_for_dynref_format(
             scan_value_for_dynref_format(out, m, resource_id, &v.0, path);
         }
         ResolvedValue::Dynamic { reason } => {
-            // Dynamic values contain the original string in the reason field
-            if let Some(ref_str) = reason.strip_prefix("dynamic reference: ") {
+            if let Some(ref_str) = reason.strip_prefix(DYNAMIC_REFERENCE_REASON_PREFIX) {
                 check_dynref_format_string(out, m, resource_id, ref_str, path);
             }
         }
@@ -1035,11 +1063,13 @@ fn check_dynref_format_string(
     path: &str,
 ) {
     for cap in DYNREF_EXTRACT_RE.captures_iter(s) {
-        let full_match = cap.get(0).unwrap().as_str();
+        let Some(full_match) = cap.get(0).map(|m| m.as_str()) else {
+            continue;
+        };
         let ref_type = &cap[1];
         let valid = match ref_type {
-            "ssm" | "ssm-secure" => SSM_FORMAT_RE.is_match(full_match),
-            "secretsmanager" => SM_FORMAT_RE.is_match(full_match),
+            DYNREF_FLAVOR_SSM | DYNREF_FLAVOR_SSM_SECURE => SSM_FORMAT_RE.is_match(full_match),
+            DYNREF_FLAVOR_SECRETSMANAGER => SM_FORMAT_RE.is_match(full_match),
             _ => true,
         };
         if !valid {
@@ -1067,28 +1097,7 @@ fn scan_value_for_dynref_format(
 ) {
     match val {
         serde_json::Value::String(s) => {
-            for cap in DYNREF_EXTRACT_RE.captures_iter(s) {
-                let full_match = cap.get(0).unwrap().as_str();
-                let ref_type = &cap[1];
-                let valid = match ref_type {
-                    "ssm" | "ssm-secure" => SSM_FORMAT_RE.is_match(full_match),
-                    "secretsmanager" => SM_FORMAT_RE.is_match(full_match),
-                    _ => true,
-                };
-                if !valid {
-                    out.push(make_resource_diagnostic(
-                        RULE_DYNREF_FORMAT,
-                        &format!(
-                            "Dynamic reference '{}' does not match the required format for '{}'",
-                            full_match, ref_type
-                        ),
-                        m,
-                        resource_id,
-                        path,
-                        Some("Check the dynamic reference syntax"),
-                    ));
-                }
-            }
+            check_dynref_format_string(out, m, resource_id, s, path);
         }
         serde_json::Value::Array(arr) => {
             for (i, item) in arr.iter().enumerate() {

@@ -4,7 +4,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -113,16 +113,131 @@
       }
     ]
   },
+  "bad/E1029_sub_needed_custom_excludes.yaml": {
+    "filePath": "bad/E1029_sub_needed_custom_excludes.yaml",
+    "status": "OK",
+    "engineVersion": "1.1.0",
+    "metadata": {
+      "rulesEvaluated": 296,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W2001",
+        "severity": "WARN",
+        "message": "Parameter 'Stage' is not referenced anywhere in the template",
+        "source": "CFN_LINT",
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 1,
+        "endLine": 4,
+        "endColumn": 11,
+        "ruleDescription": "Check if Parameters are Used",
+        "phase": "LINT",
+        "section": "Parameters"
+      },
+      {
+        "ruleId": "E1029",
+        "severity": "ERROR",
+        "message": "Found an embedded parameter \"${Stage}\" outside of an \"Fn::Sub\" at Properties.RoleName",
+        "source": "SCHEMA",
+        "resourceId": "TestRole",
+        "resourceType": "AWS::IAM::Role",
+        "propertyPath": "Properties.RoleName",
+        "suggestedFix": "Wrap the string with Fn::Sub",
+        "category": "Intrinsic Function",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 11,
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TestRole",
+        "resourceType": "AWS::IAM::Role",
+        "propertyPath": "Properties.RoleName",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TestRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "TestRole",
+        "resourceType": "AWS::IAM::Role",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 11,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/E1030_length_bad_argument.yaml": {
     "filePath": "bad/E1030_length_bad_argument.yaml",
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 2,
         "warnings": 0,
         "informational": 2,
         "debug": 0
@@ -155,6 +270,15 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1019",
+        "severity": "ERROR",
+        "message": "Fn::Sub variable 'count' must resolve to a string \u2014 provide a string literal or a string-producing intrinsic (Fn::Base64, Fn::FindInMap, Fn::GetAtt, Fn::GetAZs, Fn::If, Fn::ImportValue, Fn::Join, Fn::Select, Fn::Split, Fn::Sub, Ref, Fn::Transform)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Sub variable map values must be strings or string-producing intrinsics",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E1030",
         "severity": "ERROR",
@@ -210,7 +334,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -322,7 +446,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -365,7 +489,7 @@
         "message": "Fn::GetStackOutput is missing required key 'OutputName'",
         "source": "SCHEMA",
         "category": "Intrinsic Function",
-        "ruleDescription": "Fn::GetStackOutput parameter shape and AWS::LanguageExtensions transform requirement",
+        "ruleDescription": "Fn::GetStackOutput requires AWS::LanguageExtensions and StackName/OutputName keys",
         "phase": "PARSE"
       },
       {
@@ -414,7 +538,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -457,7 +581,7 @@
         "message": "Fn::GetStackOutput requires the AWS::LanguageExtensions transform",
         "source": "SCHEMA",
         "category": "Intrinsic Function",
-        "ruleDescription": "Fn::GetStackOutput parameter shape and AWS::LanguageExtensions transform requirement",
+        "ruleDescription": "Fn::GetStackOutput requires AWS::LanguageExtensions and StackName/OutputName keys",
         "phase": "PARSE"
       },
       {
@@ -506,7 +630,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -557,7 +681,7 @@
         "startColumn": 3,
         "endLine": 5,
         "endColumn": 11,
-        "ruleDescription": "Dynamic reference structure must match the per-flavor format",
+        "ruleDescription": "Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -614,7 +738,7 @@
         "startColumn": 3,
         "endLine": 10,
         "endColumn": 10,
-        "ruleDescription": "Dynamic reference structure must match the per-flavor format",
+        "ruleDescription": "Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -714,7 +838,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -764,7 +888,7 @@
         "startColumn": 3,
         "endLine": 5,
         "endColumn": 11,
-        "ruleDescription": "Fn::Split first argument must not be a dynamic reference",
+        "ruleDescription": "Fn::Split delimiter must not be a dynamic reference",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -814,11 +938,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 2,
         "warnings": 0,
         "informational": 2,
         "debug": 0
@@ -851,6 +975,15 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1021",
+        "severity": "ERROR",
+        "message": "Fn::Base64 argument must be a string or a string-producing intrinsic (Fn::Base64, Fn::Cidr, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Length, Fn::Select, Fn::Sub, Fn::ToJsonString, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E1059",
         "severity": "ERROR",
@@ -911,7 +1044,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -958,7 +1091,7 @@
         "startColumn": 3,
         "endLine": 5,
         "endColumn": 8,
-        "ruleDescription": "Cycle detected in condition reference graph",
+        "ruleDescription": "Cycle detected between condition definitions in the Conditions section",
         "phase": "PARSE"
       },
       {
@@ -1012,7 +1145,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1209,7 +1342,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -1473,7 +1606,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1572,7 +1705,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1657,7 +1790,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1742,7 +1875,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1827,7 +1960,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1912,7 +2045,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1997,7 +2130,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -2089,7 +2222,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -2205,7 +2338,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -2449,7 +2582,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -2565,7 +2698,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -3242,7 +3375,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -3342,7 +3475,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -3489,7 +3622,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -3578,7 +3711,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -3745,7 +3878,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -3844,7 +3977,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -3944,7 +4077,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -4089,7 +4222,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -4234,7 +4367,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -4923,7 +5056,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -5098,7 +5231,7 @@
         "startColumn": 3,
         "endLine": 6,
         "endColumn": 18,
-        "ruleDescription": "Cycle detected in condition reference graph",
+        "ruleDescription": "Cycle detected between condition definitions in the Conditions section",
         "phase": "PARSE"
       },
       {
@@ -5122,7 +5255,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -5569,7 +5702,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -5829,7 +5962,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -5968,7 +6101,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -6164,7 +6297,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 4,
@@ -7106,7 +7239,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -7187,7 +7320,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -7268,7 +7401,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7477,7 +7610,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -7535,7 +7668,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -7919,7 +8052,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -8303,11 +8436,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
-        "errors": 0,
+        "errors": 1,
         "warnings": 2,
         "informational": 0,
         "debug": 0
@@ -8340,6 +8473,15 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1022",
+        "severity": "ERROR",
+        "message": "Fn::Join list element must be a string or a string-producing intrinsic (Fn::Base64, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Select, Fn::Sub, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "F1020",
         "severity": "FATAL",
@@ -8479,7 +8621,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 5,
@@ -9369,7 +9511,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -9465,7 +9607,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -9592,7 +9734,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -9698,7 +9840,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -9852,7 +9994,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -10042,7 +10184,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -10174,7 +10316,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -10270,7 +10412,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -10402,7 +10544,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -10482,7 +10624,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -10604,7 +10746,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -10835,7 +10977,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -11058,7 +11200,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -11221,7 +11363,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -11392,7 +11534,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -11477,7 +11619,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -11689,7 +11831,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -11994,7 +12136,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -12074,7 +12216,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -12223,11 +12365,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
-        "errors": 0,
+        "errors": 2,
         "warnings": 2,
         "informational": 0,
         "debug": 0
@@ -12260,6 +12402,17 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1032",
+        "severity": "ERROR",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "source": "SCHEMA",
+        "resourceId": "Fn::ForEach::BucketOutputs",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::ForEach requires AWS::LanguageExtensions transform",
+        "phase": "LINT",
+        "section": "Resources"
+      },
       {
         "ruleId": "W2001",
         "severity": "WARN",
@@ -12303,6 +12456,22 @@
         "ruleDescription": "Logical IDs must be alphanumeric",
         "phase": "SCHEMA",
         "section": "Resources"
+      },
+      {
+        "ruleId": "E1032",
+        "severity": "ERROR",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "source": "SCHEMA",
+        "resourceId": "Fn::ForEach::Buckets",
+        "resourceType": "",
+        "category": "Intrinsic Function",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 25,
+        "ruleDescription": "Fn::ForEach requires AWS::LanguageExtensions transform",
+        "phase": "LINT",
+        "section": "Resources"
       }
     ]
   },
@@ -12311,7 +12480,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -12456,7 +12625,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -12744,7 +12913,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -13127,11 +13296,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
-        "errors": 2,
+        "errors": 4,
         "warnings": 0,
         "informational": 2,
         "debug": 0
@@ -13164,6 +13333,24 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1011",
+        "severity": "ERROR",
+        "message": "Fn::FindInMap SecondLevelKey (third element) must be a string, integer, or one of Ref, Fn::FindInMap",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1021",
+        "severity": "ERROR",
+        "message": "Fn::Base64 argument must be a string or a string-producing intrinsic (Fn::Base64, Fn::Cidr, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Length, Fn::Select, Fn::Sub, Fn::ToJsonString, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E1101",
         "severity": "ERROR",
@@ -13271,7 +13458,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -13771,16 +13958,16 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
-        "errors": 4,
+        "errors": 5,
         "warnings": 0,
         "informational": 4,
         "debug": 0
       },
-      "suppressed": 0,
+      "suppressed": 1,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -13808,6 +13995,15 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1021",
+        "severity": "ERROR",
+        "message": "Fn::Base64 argument must be a string or a string-producing intrinsic (Fn::Base64, Fn::Cidr, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Length, Fn::Select, Fn::Sub, Fn::ToJsonString, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E1152",
         "severity": "ERROR",
@@ -13975,7 +14171,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 5,
@@ -14583,7 +14779,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 2,
@@ -15121,7 +15317,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 28,
@@ -16800,7 +16996,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -17045,7 +17241,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -17198,7 +17394,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -17260,7 +17456,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -17379,7 +17575,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -17475,7 +17671,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -17619,7 +17815,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -17713,7 +17909,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -17798,7 +17994,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -17892,7 +18088,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -18093,7 +18289,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -18226,7 +18422,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -18376,7 +18572,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -18488,7 +18684,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -18723,7 +18919,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -18891,7 +19087,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19040,7 +19236,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -19112,7 +19308,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19268,7 +19464,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19329,7 +19525,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19390,7 +19586,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19451,7 +19647,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19512,7 +19708,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -19555,7 +19751,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -19671,7 +19867,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -19734,7 +19930,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -19895,7 +20091,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -20150,7 +20346,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -20248,7 +20444,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -20421,7 +20617,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -20504,7 +20700,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -20686,7 +20882,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 4,
@@ -20800,7 +20996,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -21267,7 +21463,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 10,
@@ -21611,7 +21807,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -21803,7 +21999,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -21921,7 +22117,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 1,
@@ -22463,7 +22659,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -22853,7 +23049,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -23365,7 +23561,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -23896,7 +24092,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 2,
@@ -24801,7 +24997,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -24989,7 +25185,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -25299,7 +25495,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 3,
@@ -25635,7 +25831,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -25747,7 +25943,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -25790,7 +25986,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -25876,7 +26072,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -26105,7 +26301,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -26283,7 +26479,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -26395,7 +26591,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -26489,7 +26685,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -26583,7 +26779,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -27181,7 +27377,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 5,
@@ -27462,7 +27658,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -27527,7 +27723,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -27804,7 +28000,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -27884,7 +28080,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 6,
@@ -28252,7 +28448,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -28592,7 +28788,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -28830,7 +29026,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -29573,7 +29769,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -29709,7 +29905,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -29752,7 +29948,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -29874,7 +30070,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -30132,7 +30328,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -30272,7 +30468,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 3,
@@ -30432,7 +30628,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -31166,7 +31362,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -31306,7 +31502,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -31414,7 +31610,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -31507,7 +31703,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 7,
@@ -32800,7 +32996,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 9,
@@ -33222,7 +33418,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -33334,7 +33530,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -33552,7 +33748,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -33659,7 +33855,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -34096,7 +34292,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -34164,7 +34360,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -34633,7 +34829,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -35578,7 +35774,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -35734,7 +35930,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -35814,7 +36010,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 37,
@@ -36779,7 +36975,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -36969,7 +37165,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -37136,7 +37332,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -37242,7 +37438,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -37413,7 +37609,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -37597,7 +37793,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -37980,7 +38176,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -38137,7 +38333,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -38469,7 +38665,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -38583,7 +38779,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -38945,7 +39141,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -39087,7 +39283,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -39195,7 +39391,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -39233,27 +39429,6 @@
     },
     "diagnostics": [
       {
-        "ruleId": "W3041",
-        "severity": "WARN",
-        "message": "Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'",
-        "source": "ENGINE",
-        "resourceId": "CertAuth",
-        "resourceType": "AWS::ACMPCA::CertificateAuthorityActivation",
-        "propertyPath": "Properties.Certificate",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 11,
-        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ACMPCA.html",
-        "ruleDescription": "Write-only property referenced in output",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "write-only"
-        }
-      },
-      {
         "ruleId": "W9002",
         "severity": "WARN",
         "message": "Property 'CertificateAuthorityArn' has a hardcoded ARN \u2014 use Ref, GetAtt, or a parameter instead",
@@ -39285,6 +39460,27 @@
         "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "W9054",
+        "severity": "WARN",
+        "message": "Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'",
+        "source": "ENGINE",
+        "resourceId": "CertAuth",
+        "resourceType": "AWS::ACMPCA::CertificateAuthorityActivation",
+        "propertyPath": "Properties.Certificate",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 3,
+        "endLine": 5,
+        "endColumn": 11,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ACMPCA.html",
+        "ruleDescription": "Write-only property referenced in output",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "write-only"
+        }
       },
       {
         "ruleId": "I3042",
@@ -39330,7 +39526,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -39448,7 +39644,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -39558,7 +39754,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -39658,7 +39854,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -39758,7 +39954,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -39841,7 +40037,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -40317,7 +40513,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -40510,7 +40706,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -40768,7 +40964,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -40868,7 +41064,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -40996,7 +41192,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -41198,7 +41394,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -41312,7 +41508,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -41422,7 +41618,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -41580,7 +41776,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -41891,7 +42087,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -42538,7 +42734,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -42611,7 +42807,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -42684,7 +42880,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -42742,7 +42938,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -42818,7 +43014,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -42898,7 +43094,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -42958,7 +43154,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -43050,7 +43246,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -43128,7 +43324,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -43231,7 +43427,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -43388,7 +43584,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -43528,7 +43724,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -43608,7 +43804,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -43758,7 +43954,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -43820,7 +44016,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -43902,7 +44098,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -44013,7 +44209,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -44257,7 +44453,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -44440,7 +44636,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -44483,7 +44679,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -45017,7 +45213,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -45075,7 +45271,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -45133,7 +45329,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -45232,7 +45428,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -45290,7 +45486,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -45348,7 +45544,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -45406,7 +45602,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -45500,7 +45696,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 8,
@@ -46054,7 +46250,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 5,
@@ -46453,7 +46649,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -46701,7 +46897,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -46949,7 +47145,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -47021,7 +47217,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -47204,7 +47400,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -47318,7 +47514,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -47432,7 +47628,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -47536,7 +47732,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -47742,7 +47938,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -47930,7 +48126,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -48036,7 +48232,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -48079,7 +48275,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -48239,7 +48435,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -48359,11 +48555,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 3,
-        "errors": 4,
+        "errors": 6,
         "warnings": 2,
         "informational": 15,
         "debug": 0
@@ -48396,6 +48592,24 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1019",
+        "severity": "ERROR",
+        "message": "Fn::Sub variable 'number' must resolve to a string \u2014 provide a string literal or a string-producing intrinsic (Fn::Base64, Fn::FindInMap, Fn::GetAtt, Fn::GetAZs, Fn::If, Fn::ImportValue, Fn::Join, Fn::Select, Fn::Split, Fn::Sub, Ref, Fn::Transform)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Sub variable map values must be strings or string-producing intrinsics",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1021",
+        "severity": "ERROR",
+        "message": "Fn::Base64 argument must be a string or a string-producing intrinsic (Fn::Base64, Fn::Cidr, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Length, Fn::Select, Fn::Sub, Fn::ToJsonString, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E1152",
         "severity": "ERROR",
@@ -48878,7 +49092,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 3,
@@ -49246,127 +49460,12 @@
       }
     ]
   },
-  "good/functions/sub_needed_custom_excludes.yaml": {
-    "filePath": "good/functions/sub_needed_custom_excludes.yaml",
-    "status": "OK",
-    "engineVersion": "1.1.0",
-    "metadata": {
-      "rulesEvaluated": 289,
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 1,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "performance": {
-      "schemaInit": {
-        "durationMs": 0.0
-      },
-      "engineInit": {
-        "durationMs": 0.0
-      },
-      "modelBuild": {
-        "durationMs": 0.0
-      },
-      "schemaValidate": {
-        "durationMs": 0.0
-      },
-      "ruleEvaluation": {
-        "durationMs": 0.0
-      },
-      "diagnosticFinalize": {
-        "durationMs": 0.0
-      },
-      "validateTotal": {
-        "durationMs": 0.0
-      }
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'Stage' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 1,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT",
-        "section": "Parameters"
-      },
-      {
-        "ruleId": "E1029",
-        "severity": "ERROR",
-        "message": "Found an embedded parameter \"${Stage}\" outside of an \"Fn::Sub\" at Properties.RoleName",
-        "source": "SCHEMA",
-        "resourceId": "TestRole",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties.RoleName",
-        "suggestedFix": "Wrap the string with Fn::Sub",
-        "category": "Intrinsic Function",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 11,
-        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "resourceId": "TestRole",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TestRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "TestRole",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 11,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      }
-    ]
-  },
   "good/functions/sub_needed_transform.yaml": {
     "filePath": "good/functions/sub_needed_transform.yaml",
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -49409,7 +49508,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -49573,16 +49672,16 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
-        "errors": 0,
+        "errors": 2,
         "warnings": 5,
         "informational": 18,
         "debug": 0
       },
-      "suppressed": 0,
+      "suppressed": 5,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -49610,6 +49709,24 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1011",
+        "severity": "ERROR",
+        "message": "Fn::FindInMap SecondLevelKey (third element) must be a string, integer, or one of Ref, Fn::FindInMap",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1011",
+        "severity": "ERROR",
+        "message": "Fn::FindInMap TopLevelKey (second element) must be a string, integer, or one of Ref, Fn::FindInMap",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -50039,16 +50156,16 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 4,
         "warnings": 2,
         "informational": 17,
         "debug": 0
       },
-      "suppressed": 0,
+      "suppressed": 10,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -50076,6 +50193,33 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1011",
+        "severity": "ERROR",
+        "message": "Fn::FindInMap MapName (first element) must be a string, integer, or one of Ref, Fn::FindInMap",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1011",
+        "severity": "ERROR",
+        "message": "Fn::FindInMap SecondLevelKey (third element) must be a string, integer, or one of Ref, Fn::FindInMap",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1011",
+        "severity": "ERROR",
+        "message": "Fn::FindInMap TopLevelKey (second element) must be a string, integer, or one of Ref, Fn::FindInMap",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E7001",
         "severity": "ERROR",
@@ -50437,7 +50581,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -50858,7 +51002,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -50976,7 +51120,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -51055,7 +51199,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -51270,7 +51414,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -51402,7 +51546,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -51533,7 +51677,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -51605,7 +51749,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -51762,7 +51906,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -51838,7 +51982,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -51900,7 +52044,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -51962,7 +52106,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -52361,7 +52505,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -52549,7 +52693,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -52725,7 +52869,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -52807,7 +52951,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -52897,7 +53041,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 3,
@@ -53179,11 +53323,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
-        "errors": 3,
+        "errors": 4,
         "warnings": 2,
         "informational": 4,
         "debug": 0
@@ -53216,6 +53360,15 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1021",
+        "severity": "ERROR",
+        "message": "Fn::Base64 argument must be a string or a string-producing intrinsic (Fn::Base64, Fn::Cidr, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Length, Fn::Select, Fn::Sub, Fn::ToJsonString, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "W2001",
         "severity": "WARN",
@@ -53395,7 +53548,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -53457,11 +53610,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
-        "errors": 3,
+        "errors": 4,
         "warnings": 1,
         "informational": 4,
         "debug": 0
@@ -53494,6 +53647,15 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1021",
+        "severity": "ERROR",
+        "message": "Fn::Base64 argument must be a string or a string-producing intrinsic (Fn::Base64, Fn::Cidr, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Length, Fn::Select, Fn::Sub, Fn::ToJsonString, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E2531",
         "severity": "ERROR",
@@ -53659,7 +53821,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -54095,7 +54257,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -54544,7 +54706,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -54875,7 +55037,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -54918,7 +55080,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -54980,7 +55142,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -55066,7 +55228,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -55479,7 +55641,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -55561,7 +55723,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -55739,7 +55901,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 10,
       "counts": {
         "fatal": 0,
@@ -56675,7 +56837,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -56819,7 +56981,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -56884,7 +57046,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -56966,7 +57128,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -57225,7 +57387,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -57287,7 +57449,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -57537,7 +57699,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -57661,7 +57823,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -58058,7 +58220,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -58162,7 +58324,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -58359,7 +58521,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -58402,7 +58564,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -58608,7 +58770,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -58743,7 +58905,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -59009,7 +59171,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -59293,7 +59455,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -59472,7 +59634,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -59958,7 +60120,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60020,7 +60182,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -60103,7 +60265,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -60165,7 +60327,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -60731,7 +60893,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -60852,7 +61014,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -61001,7 +61163,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -61077,7 +61239,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -61205,7 +61367,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -61333,7 +61495,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -61398,7 +61560,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -61498,7 +61660,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -61581,7 +61743,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -62057,7 +62219,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62210,7 +62372,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62293,7 +62455,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62376,7 +62538,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62487,7 +62649,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62570,7 +62732,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -62650,7 +62812,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -62730,7 +62892,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -62810,7 +62972,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62872,7 +63034,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62934,7 +63096,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -62996,7 +63158,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -63336,7 +63498,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -63398,7 +63560,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -63460,7 +63622,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -63554,7 +63716,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -63616,7 +63778,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -63696,7 +63858,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -63776,7 +63938,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -63874,7 +64036,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -63954,7 +64116,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -64269,7 +64431,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -64451,7 +64613,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 2,
@@ -64670,7 +64832,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 4,
@@ -64920,7 +65082,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -65122,7 +65284,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -65248,7 +65410,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 5,
@@ -65720,7 +65882,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -65821,7 +65983,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 1,
@@ -67038,7 +67200,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -67138,7 +67300,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -67378,7 +67540,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 1,
@@ -67674,7 +67836,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -68115,11 +68277,11 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 6,
-        "errors": 3,
+        "errors": 5,
         "warnings": 0,
         "informational": 20,
         "debug": 0
@@ -68152,6 +68314,24 @@
       }
     },
     "diagnostics": [
+      {
+        "ruleId": "E1019",
+        "severity": "ERROR",
+        "message": "Fn::Sub variable 'InstanceCount' must resolve to a string \u2014 provide a string literal or a string-producing intrinsic (Fn::Base64, Fn::FindInMap, Fn::GetAtt, Fn::GetAZs, Fn::If, Fn::ImportValue, Fn::Join, Fn::Select, Fn::Split, Fn::Sub, Ref, Fn::Transform)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Sub variable map values must be strings or string-producing intrinsics",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1022",
+        "severity": "ERROR",
+        "message": "Fn::Join list element must be a string or a string-producing intrinsic (Fn::Base64, Fn::FindInMap, Fn::GetAtt, Fn::GetStackOutput, Fn::If, Fn::ImportValue, Fn::Join, Fn::Select, Fn::Sub, Fn::Transform, Ref)",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "I1022",
         "severity": "INFO",
@@ -68669,7 +68849,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -68741,7 +68921,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 4,
@@ -69073,7 +69253,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -69992,7 +70172,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -70106,7 +70286,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 0,
@@ -70871,7 +71051,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 3,
@@ -71692,7 +71872,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 4,
@@ -72540,7 +72720,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -72869,7 +73049,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -73499,7 +73679,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -73611,7 +73791,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -73723,7 +73903,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -74054,7 +74234,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 2,
@@ -74461,7 +74641,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -74523,7 +74703,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -74585,7 +74765,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -74715,7 +74895,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -74955,7 +75135,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -75195,7 +75375,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -75366,7 +75546,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -76219,7 +76399,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 79,
       "counts": {
         "fatal": 0,
@@ -80465,7 +80645,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -80950,7 +81130,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -81234,7 +81414,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -81713,7 +81893,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 28,
       "counts": {
         "fatal": 0,
@@ -84521,7 +84701,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -85006,7 +85186,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -86075,7 +86255,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -86359,7 +86539,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 24,
       "counts": {
         "fatal": 1,
@@ -87865,7 +88045,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 0,
@@ -90054,7 +90234,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 46,
       "counts": {
         "fatal": 0,
@@ -93326,7 +93506,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 0,
@@ -95397,7 +95577,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -95590,7 +95770,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -95961,7 +96141,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 0,
@@ -98164,7 +98344,7 @@
     "status": "OK",
     "engineVersion": "1.1.0",
     "metadata": {
-      "rulesEvaluated": 289,
+      "rulesEvaluated": 296,
       "resourcesScanned": 77,
       "counts": {
         "fatal": 0,

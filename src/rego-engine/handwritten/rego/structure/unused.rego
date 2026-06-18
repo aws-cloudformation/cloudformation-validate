@@ -83,9 +83,10 @@ _condition_used(cname) if {
 }
 
 # A condition referenced by ANY other condition's body (via `Condition: <name>`)
-# is considered used. This matches cfn-lint's W8001 (conditions/Used.py), which
-# collects every such in-Conditions-section reference regardless of whether the
-# referencing condition is itself used.
+# is considered used, regardless of whether the referencing condition is itself
+# used. This counts every in-Conditions-section reference, not just references
+# from used conditions, so a chain of definitions never causes W8001 to fire
+# on intermediate links.
 _condition_used(cname) if {
     some other in object.keys(input.conditions)
     other != cname

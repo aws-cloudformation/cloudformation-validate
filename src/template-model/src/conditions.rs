@@ -730,8 +730,8 @@ impl ConditionModel {
             // conditions are NOT provably equivalent — they may be malformed in
             // different ways — so excluding them prevents flagging differently-
             // broken conditions as equivalent (the W9053 false-equivalence
-            // cascade). cfn-lint has no equivalence rule, so being conservative
-            // here never costs cross-tool parity.
+            // cascade). Equivalence is an engine-only rule, so being
+            // conservative here is the only safe behaviour.
             if expr_has_opaque_value(expr) {
                 continue;
             }

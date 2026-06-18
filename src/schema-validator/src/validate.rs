@@ -210,7 +210,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
                         .insert("replacement_strategy".into(), serde_json::json!(rs).into());
                 }
             }
-            "W3041" => {
+            "W9054" => {
                 ensure_ctx!(d).lifecycle = Some("write-only".into());
             }
             _ => {}
@@ -338,7 +338,7 @@ fn validate_resource(
             {
                 let output_name = edge.source_resource.strip_prefix("__output__").unwrap_or(&edge.source_resource);
                 out.push(build_diagnostic(
-                    "W3041",
+                    "W9054",
                     &format!("Write-only property '{}' of '{}' is referenced in output '{}'", top, rid, output_name),
                     m,
                     rid,

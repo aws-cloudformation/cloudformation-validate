@@ -189,7 +189,7 @@ impl<'a> Resolver<'a> {
             Node::Float(f) => ResolvedValue::Concrete { value: serde_json::json!(*f).into() },
             Node::String(s) => {
                 if s.starts_with("{{resolve:") {
-                    ResolvedValue::Dynamic { reason: format!("dynamic reference: {}", s) }
+                    ResolvedValue::Dynamic { reason: format!("{}{}", DYNAMIC_REFERENCE_REASON_PREFIX, s) }
                 } else {
                     self.detect_unsubstituted_variables(s);
                     ResolvedValue::Concrete { value: serde_json::Value::String(s.clone()).into() }

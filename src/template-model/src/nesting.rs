@@ -48,10 +48,9 @@ fn restricted_children(
     match intrinsic {
         // `Fn::Equals` operand validation is owned by the parser /
         // `condition_shape` E8003 check (which uses the canonical
-        // `EQUALS_ARG_FN_KEYS` list matching cfn-lint's `equals.json`), so the
-        // nesting check deliberately does not re-validate Equals operands —
-        // doing so would double-report the same disallowed operand under two
-        // rule IDs.
+        // `EQUALS_ARG_FN_KEYS` list), so the nesting check deliberately does
+        // not re-validate Equals operands — doing so would double-report the
+        // same disallowed operand under two rule IDs.
         IntrinsicFn::And(items) => {
             let allow = condition_allow(in_rules);
             items.iter().map(|r| (*r, allow)).collect()

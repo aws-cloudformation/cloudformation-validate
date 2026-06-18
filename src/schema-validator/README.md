@@ -47,7 +47,7 @@ truth surfaced by `--list-rules`):
 | `F3037` | Array items not unique                                     |
 | `E3030` | Check if properties have a valid value                     |
 | `E3040` | Read only property should not be specified                 |
-| `W3041` | Write-only property referenced in output                   |
+| `W9054` | Write-only property referenced in output                   |
 | `E1103` | Validate the format of a value                             |
 | `I9001` | Create-only property updated triggers resource replacement |
 | `I9002` | Property is ignored in this configuration (from extension) |

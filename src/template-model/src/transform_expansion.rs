@@ -12,7 +12,6 @@
 //! (`{Ref: {Fn::Sub: "Param${Identifier}"}}` looks like a malformed `Ref`,
 //! and parameters used only via the macro look unreferenced).
 //!
-//! Mirrors the logic in cfn-lint's `_language_extensions.py::_Transform`.
 //! Scope today is intentionally narrow:
 //!
 //! * The collection (second `Fn::ForEach` argument) must be a literal list of

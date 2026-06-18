@@ -1013,9 +1013,10 @@ fn condition_is_referenced(
         }
     }
     // Transitive: a condition referenced by ANY other condition's body (via
-    // `Condition: <name>`) is used. Matches cfn-lint's W8001, which collects
-    // every such in-Conditions-section reference regardless of whether the
-    // referencing condition is itself used.
+    // `Condition: <name>`) is considered used, regardless of whether the
+    // referencing condition is itself used. This counts every in-Conditions-
+    // section reference, not just references from used conditions, so a
+    // chain of definitions never causes W8001 to fire on intermediate links.
     for (other, cond_val) in conds {
         if other == cname {
             continue;
