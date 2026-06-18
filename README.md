@@ -87,19 +87,19 @@ use schema_validator::SchemaValidator;
 use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
 
 let schema_validator = SchemaValidator::new();
-let engine = RegoEngine::new(EngineConfig::default())?;
+let engine = RegoEngine::new(EngineConfig::default ()) ?;
 
-let bytes = std::fs::read("template.yaml")?;
+let bytes = std::fs::read("template.yaml") ?;
 let report = validate_bytes_with_path(
-    &engine,
-    &schema_validator,
-    &bytes,
-    ValidateConfig::default(),
-    "template.yaml".to_string(),
-)?;
+& engine,
+& schema_validator,
+& bytes,
+ValidateConfig::default (),
+"template.yaml".to_string(),
+) ?;
 
-for d in &report.diagnostics {
-    println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
+for d in & report.diagnostics {
+println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
 }
 ```
 
@@ -108,7 +108,7 @@ See [validation-engine/API.md](src/validation-engine/API.md) for the full embedd
 ### Node.js
 
 ```typescript
-import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
+import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 const report = engine.validateStandard(new TemplateFile("template.yaml"));
@@ -131,7 +131,7 @@ for (d in report.diagnostics) {
 }
 ```
 
-## Custom rules
+## Rules
 
 Bring your own rules in any of three formats — all loadable from the CLI and the library:
 
@@ -139,37 +139,26 @@ Bring your own rules in any of three formats — all loadable from the CLI and t
 - **Rego** (`.rego`) — complex cross-resource logic, evaluated by the Rego engine.
 - **Guard DSL** (`.guard`) — declarative compliance rules, translated automatically and usable with either engine.
 
-See [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, and examples.
-
-## Severity levels
-
-| Severity | Prefix | Source           | Meaning                                                          |
-|----------|--------|------------------|------------------------------------------------------------------|
-| FATAL    | F      | schema validator | Structural schema violation — CloudFormation will reject it      |
-| ERROR    | E      | engine rules     | Semantic error — likely deployment failure or incorrect behavior |
-| WARN     | W      | engine rules     | Security concern, deprecation, or risky pattern                  |
-| INFO     | I      | engine rules     | Best-practice suggestion                                         |
-| DEBUG    | D      | engine rules     | Internal diagnostic detail                                       |
-
-Severity is derived from the first character of a rule ID.
+See [RULES](src/rules/README.md) and [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, and
+examples.
 
 ## Repository layout
 
 This is a Cargo workspace. The main crates:
 
-| Crate                                                      | Role                                                                            |
-|------------------------------------------------------------|---------------------------------------------------------------------------------|
-| [cfn-validate](src/cfn-validate/README.md)                 | `cfn-validate` CLI and `cfn-benchmark` binary                                   |
-| [validation-engine](src/validation-engine/README.md)       | `ValidationEngine` trait, orchestration pipeline, Step Functions validation     |
-| [template-model](src/template-model/README.md)             | Template parser, intrinsic resolver, condition SAT solver, reference graph      |
-| [rules](src/rules/README.md)                               | Rule registry, severity model, categories, and diagnostic filtering             |
-| [diagnostics](src/diagnostics/README.md)                   | Shared types: `Diagnostic`, `SourceSpan`, `ValidationReport`, metrics           |
-| [schema-validator](src/schema-validator/README.md)         | JSON Schema validation against compiled CloudFormation provider schemas         |
-| [rego-engine](src/rego-engine/README.md)                   | Rego-based rule evaluation with custom builtins                                 |
-| [cel-engine](src/cel-engine/README.md)                     | Native Rust rules plus a CEL interpreter for custom rules                       |
-| [guard-translator](src/guard-translator/README.md)         | Parses Guard DSL into an engine-agnostic intermediate representation            |
-| [bindings-wasm](src/bindings-wasm/README.md)               | WASM bindings for Node.js                                                        |
-| [bindings-jvm](src/bindings-jvm/README.md)                 | JVM bindings (Kotlin/Java) via UniFFI                                            |
+| Crate                                                | Role                                                                        |
+|------------------------------------------------------|-----------------------------------------------------------------------------|
+| [cfn-validate](src/cfn-validate/README.md)           | `cfn-validate` CLI and `cfn-benchmark` binary                               |
+| [validation-engine](src/validation-engine/README.md) | `ValidationEngine` trait, orchestration pipeline, Step Functions validation |
+| [template-model](src/template-model/README.md)       | Template parser, intrinsic resolver, condition SAT solver, reference graph  |
+| [rules](src/rules/README.md)                         | Rule registry, severity model, categories, and diagnostic filtering         |
+| [diagnostics](src/diagnostics/README.md)             | Shared types: `Diagnostic`, `SourceSpan`, `ValidationReport`, metrics       |
+| [schema-validator](src/schema-validator/README.md)   | JSON Schema validation against compiled CloudFormation provider schemas     |
+| [rego-engine](src/rego-engine/README.md)             | Rego-based rule evaluation with custom builtins                             |
+| [cel-engine](src/cel-engine/README.md)               | Native Rust rules plus a CEL interpreter for custom rules                   |
+| [guard-translator](src/guard-translator/README.md)   | Parses Guard DSL into an engine-agnostic intermediate representation        |
+| [bindings-wasm](src/bindings-wasm/README.md)         | WASM bindings for Node.js                                                   |
+| [bindings-jvm](src/bindings-jvm/README.md)           | JVM bindings (Kotlin/Java) via UniFFI                                       |
 
 ## Security
 

@@ -124,7 +124,7 @@ pub struct EngineConfig {
     pub guard_rules: Vec<ExternalRuleSource>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ValidateConfig {
     pub filters: FilterConfig,
     pub detail_level: DetailLevel,
@@ -133,23 +133,9 @@ pub struct ValidateConfig {
     pub pseudo_parameter_overrides: PseudoParameterOverrides,
     /// When true, Warn-severity diagnostics are upgraded to Error.
     pub strict: bool,
-    /// When true (default), emit all diagnostics including `RuleOrigin::Engine`.
-    /// When false, `RuleOrigin::Engine` diagnostics are suppressed.
-    pub include_engine_rules: bool,
-}
-
-impl Default for ValidateConfig {
-    fn default() -> Self {
-        Self {
-            filters: FilterConfig::default(),
-            detail_level: DetailLevel::default(),
-            severity_level: Severity::default(),
-            parameter_overrides: HashMap::new(),
-            pseudo_parameter_overrides: PseudoParameterOverrides::default(),
-            strict: false,
-            include_engine_rules: true,
-        }
-    }
+    /// When true, all built-in rules (schema validation, step functions, engine rules) are
+    /// skipped. Only user-provided custom rules and guard rules are evaluated.
+    pub disable_builtin_rules: bool,
 }
 
 pub trait ValidationEngine {
@@ -188,7 +174,11 @@ pub(crate) fn validate(
         engine.engine_name()
     );
 
-    let schema_result = schema_validator.validate(&model, config.pseudo_parameter_overrides.region());
+    let schema_result = if config.disable_builtin_rules {
+        schema_validator::SchemaValidationResult { diagnostics: Vec::new(), metric: phase_metric(Instant::now()) }
+    } else {
+        schema_validator.validate(&model, config.pseudo_parameter_overrides.region())
+    };
     let mut all_diagnostics = schema_result.diagnostics;
 
     let t_eval = Instant::now();
@@ -197,9 +187,10 @@ pub(crate) fn validate(
     let eval_metric = phase_metric(t_eval);
 
     let t_post = Instant::now();
-    all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
-
-    all_diagnostics.extend(model.diagnostics.iter().cloned());
+    if !config.disable_builtin_rules {
+        all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
+        all_diagnostics.extend(model.diagnostics.iter().cloned());
+    }
 
     gate_sam_transform_errors(&mut all_diagnostics);
 
@@ -221,7 +212,7 @@ pub(crate) fn validate(
         }
     }
 
-    let (total_before, suppressed) = finalize_diagnostics(&mut all_diagnostics, &config, registry_metadata);
+    let (total_before, suppressed) = finalize_diagnostics(&mut all_diagnostics, &config);
 
     if suppressed > 0 {
         log::info!("Filtered {} -> {} diagnostics ({} suppressed)", total_before, all_diagnostics.len(), suppressed);
@@ -544,17 +535,11 @@ pub(crate) fn build_report(
     }
 }
 
-pub(crate) fn finalize_diagnostics(
-    diagnostics: &mut Vec<Diagnostic>,
-    config: &ValidateConfig,
-    registry_metadata: &HashMap<String, RuleMetadataEntry>,
-) -> (u32, u32) {
+pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &ValidateConfig) -> (u32, u32) {
     let total_before = diagnostics.len() as u32;
 
-    if !config.include_engine_rules {
-        diagnostics.retain(|d| {
-            registry_metadata.get(&d.rule_id).map(|entry| !matches!(entry.origin, RuleOrigin::Engine)).unwrap_or(true)
-        });
+    if config.disable_builtin_rules {
+        diagnostics.retain(|d| matches!(d.source, RuleOrigin::Custom | RuleOrigin::Guard));
     }
 
     if config.strict {
@@ -1327,7 +1312,7 @@ Resources:
             make_diag("E3012", Severity::Error, 5, 1),
             make_diag("F3012", Severity::Fatal, 5, 1),
         ];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 3);
         assert_eq!(diags[0].rule_id, "F3012");
         assert_eq!(diags[1].rule_id, "E3012");
@@ -1339,7 +1324,7 @@ Resources:
         let config = ValidateConfig::default();
         let d = make_diag("E3012", Severity::Error, 5, 1);
         let mut diags = vec![d.clone(), d];
-        let (total_before, suppressed) = finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        let (total_before, suppressed) = finalize_diagnostics(&mut diags, &config);
         assert_eq!(total_before, 2);
         assert_eq!(suppressed, 1);
         assert_eq!(diags.len(), 1);
@@ -1349,7 +1334,7 @@ Resources:
     fn finalize_keeps_f_and_e_as_separate_diagnostics() {
         let config = ValidateConfig::default();
         let mut diags = vec![make_diag("F3012", Severity::Fatal, 5, 1), make_diag("E3012", Severity::Error, 5, 1)];
-        let (_, suppressed) = finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        let (_, suppressed) = finalize_diagnostics(&mut diags, &config);
         assert_eq!(suppressed, 0);
         assert_eq!(diags.len(), 2);
         assert_eq!(diags[0].rule_id, "F3012");
@@ -1365,7 +1350,7 @@ Resources:
             make_diag("W3045", Severity::Warn, 3, 1),
             Diagnostic { severity: Severity::Info, message: "info".into(), location: None, ..default_diag() },
         ];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert!(
             diags.iter().all(|d| d.severity >= Severity::Error),
             "all diagnostics should be Error or above after filtering"
@@ -1381,7 +1366,7 @@ Resources:
         d1.message = "message A".into();
         d2.message = "message B".into();
         let mut diags = vec![d1, d2];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 2);
     }
 
@@ -1403,7 +1388,7 @@ Resources:
         sib.message = "param pAppAmi".into();
         a2.message = "param pWebServerAMI".into();
         let mut diags = vec![a1, sib, a2];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 2, "W2506 pWebServerAMI must dedup across sibling");
         let msgs: Vec<&str> = diags.iter().map(|d| d.message.as_str()).collect();
         assert!(msgs.contains(&"param pAppAmi"));
@@ -1418,7 +1403,7 @@ Resources:
             make_diag("E3012", Severity::Error, 2, 1),
             make_diag("F3012", Severity::Fatal, 3, 1),
         ];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags[0].severity, Severity::Error, "Warn should be upgraded to Error");
         assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
         assert_eq!(diags[2].severity, Severity::Fatal, "Fatal should stay Fatal");
@@ -1428,55 +1413,35 @@ Resources:
     fn finalize_non_strict_preserves_warning_severity() {
         let config = ValidateConfig { strict: false, ..Default::default() };
         let mut diags = vec![make_diag("W3045", Severity::Warn, 1, 1), make_diag("E3012", Severity::Error, 2, 1)];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags[0].severity, Severity::Warn, "Warn should be preserved");
         assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
     }
 
     #[test]
-    fn finalize_exclude_engine_rules_drops_engine_origin_only() {
-        let mut meta = HashMap::new();
-        meta.insert(
-            "E9001".into(),
-            RuleMetadataEntry {
-                category: Some("custom".into()),
-                description: "engine rule".into(),
-                severity: Severity::Error,
-                origin: RuleOrigin::Engine,
-            },
-        );
-        meta.insert(
-            "E3012".into(),
-            RuleMetadataEntry {
-                category: Some("schema".into()),
-                description: "Schema validation rule".into(),
-                severity: Severity::Error,
-                origin: RuleOrigin::CfnLint,
-            },
-        );
-        let config = ValidateConfig { include_engine_rules: false, ..Default::default() };
-        let mut diags = vec![make_diag("E9001", Severity::Error, 1, 1), make_diag("E3012", Severity::Error, 2, 1)];
-        finalize_diagnostics(&mut diags, &config, &meta);
-        assert_eq!(diags.len(), 1);
-        assert_eq!(diags[0].rule_id, "E3012");
+    fn finalize_disable_builtin_rules_keeps_only_custom_and_guard() {
+        let config = ValidateConfig { disable_builtin_rules: true, ..Default::default() };
+        let mut diags = vec![
+            make_diag("E9001", Severity::Error, 1, 1),
+            Diagnostic { source: RuleOrigin::Custom, ..make_diag("CUSTOM001", Severity::Warn, 2, 1) },
+            Diagnostic { source: RuleOrigin::Guard, ..make_diag("GUARD001", Severity::Warn, 3, 1) },
+            make_diag("E3012", Severity::Error, 4, 1),
+        ];
+        finalize_diagnostics(&mut diags, &config);
+        assert_eq!(diags.len(), 2);
+        assert_eq!(diags[0].rule_id, "CUSTOM001");
+        assert_eq!(diags[1].rule_id, "GUARD001");
     }
 
     #[test]
-    fn finalize_include_engine_rules_keeps_all() {
-        let mut meta = HashMap::new();
-        meta.insert(
-            "E9001".into(),
-            RuleMetadataEntry {
-                category: Some("custom".into()),
-                description: "engine rule".into(),
-                severity: Severity::Error,
-                origin: RuleOrigin::Engine,
-            },
-        );
+    fn finalize_default_config_keeps_all_origins() {
         let config = ValidateConfig::default();
-        let mut diags = vec![make_diag("E9001", Severity::Error, 1, 1)];
-        finalize_diagnostics(&mut diags, &config, &meta);
-        assert_eq!(diags.len(), 1);
+        let mut diags = vec![
+            make_diag("E9001", Severity::Error, 1, 1),
+            Diagnostic { source: RuleOrigin::Custom, ..make_diag("CUSTOM001", Severity::Warn, 2, 1) },
+        ];
+        finalize_diagnostics(&mut diags, &config);
+        assert_eq!(diags.len(), 2);
     }
 
     #[test]
@@ -1783,7 +1748,7 @@ Resources:
             make_diag("W3045", Severity::Warn, 3, 1),
             Diagnostic { severity: Severity::Info, message: "info".into(), location: None, ..default_diag() },
         ];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert!(
             diags.iter().all(|d| d.severity >= Severity::Warn),
             "all diagnostics should be Warn or above after filtering"
@@ -1799,7 +1764,7 @@ Resources:
         d1.property_path = Some("Properties.A".into());
         d2.property_path = Some("Properties.B".into());
         let mut diags = vec![d1, d2];
-        finalize_diagnostics(&mut diags, &config, &HashMap::new());
+        finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 2);
     }
 

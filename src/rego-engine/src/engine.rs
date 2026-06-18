@@ -292,36 +292,39 @@ impl ValidationEngine for RegoEngine {
         rego.set_input(input_value);
 
         let mut diagnostics = Vec::new();
-        let excluded_cats = config.filters.excluded_categories();
 
-        let needed_core: Vec<&str> = CORE_PACKAGES
-            .iter()
-            .filter(|(cat, _)| !excluded_cats.contains(cat.as_str()))
-            .map(|(_, pkg)| *pkg)
-            .collect();
+        if !config.disable_builtin_rules {
+            let excluded_cats = config.filters.excluded_categories();
 
-        if needed_core.len() == CORE_PACKAGES.len() {
-            match rego.eval_rule("data.all_violations.violation".to_string()) {
-                Ok(val) => {
-                    let json_str = val.to_json_str().map_err(|e| {
-                        ValidationError::Engine(format!(
-                            "Aggregated rule evaluation produced a result that could not be \
+            let needed_core: Vec<&str> = CORE_PACKAGES
+                .iter()
+                .filter(|(cat, _)| !excluded_cats.contains(cat.as_str()))
+                .map(|(_, pkg)| *pkg)
+                .collect();
+
+            if needed_core.len() == CORE_PACKAGES.len() {
+                match rego.eval_rule("data.all_violations.violation".to_string()) {
+                    Ok(val) => {
+                        let json_str = val.to_json_str().map_err(|e| {
+                            ValidationError::Engine(format!(
+                                "Aggregated rule evaluation produced a result that could not be \
                              serialized to JSON: {e}"
-                        ))
-                    })?;
-                    extract_diagnostics(&json_str, model, &mut diagnostics, None).map_err(ValidationError::from)?;
-                }
-                Err(e) => {
-                    warn!("Aggregated eval failed ({}), falling back to individual packages", e);
-                    for pkg in &needed_core {
-                        self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
+                            ))
+                        })?;
+                        extract_diagnostics(&json_str, model, &mut diagnostics, None).map_err(ValidationError::from)?;
+                    }
+                    Err(e) => {
+                        warn!("Aggregated eval failed ({}), falling back to individual packages", e);
+                        for pkg in &needed_core {
+                            self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
+                        }
                     }
                 }
-            }
-        } else {
-            debug!("Skipping excluded categories: {:?}", excluded_cats);
-            for pkg in &needed_core {
-                self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
+            } else {
+                debug!("Skipping excluded categories: {:?}", excluded_cats);
+                for pkg in &needed_core {
+                    self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
+                }
             }
         }
 

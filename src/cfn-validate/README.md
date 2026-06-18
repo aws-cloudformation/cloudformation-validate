@@ -5,7 +5,8 @@ and `cfn-benchmark` (a performance harness) — plus a small support library use
 
 The CLI wires the workspace together: it parses a template with [template-model](../template-model/README.md), selects
 an engine ([rego-engine](../rego-engine/README.md) or [cel-engine](../cel-engine/README.md)), runs the
-[validation-engine](../validation-engine/README.md) pipeline (including [schema-validator](../schema-validator/README.md)),
+[validation-engine](../validation-engine/README.md) pipeline (
+including [schema-validator](../schema-validator/README.md)),
 and renders the resulting report as JSON.
 
 > To embed validation in your own Rust program, depend on `validation-engine`, an engine crate, and `schema-validator`
@@ -49,17 +50,17 @@ cfn-validate <TEMPLATE|DIR> [OPTIONS]
 
 **Output options:**
 
-| Option                                       | Description                      |
-|----------------------------------------------|----------------------------------|
-| `--format standard\|detailed`                | Detail level (default: detailed) |
+| Option                                    | Description                      |
+|-------------------------------------------|----------------------------------|
+| `--format standard\|detailed`             | Detail level (default: detailed) |
 | `--level fatal\|error\|warn\|info\|debug` | Minimum severity (default: info) |
 
 **Engine options:**
 
-| Option                       | Description                                          |
-|------------------------------|------------------------------------------------------|
-| `--engine rego\|cel`         | Validation engine (default: rego)                    |
-| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable)        |
+| Option                       | Description                                               |
+|------------------------------|-----------------------------------------------------------|
+| `--engine rego\|cel`         | Validation engine (default: rego)                         |
+| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable)             |
 | `--guard-rule-source <PATH>` | Load Guard (`.guard`) rule file or directory (repeatable) |
 
 **Parameter options:**
@@ -75,13 +76,12 @@ Supported pseudo-parameters: `AWS::AccountId`, `AWS::NotificationARNs`, `AWS::Pa
 
 **Other options:**
 
-| Option              | Description                                              |
-|---------------------|---------------------------------------------------------|
-| `--strict`          | Upgrade Warning-severity diagnostics to Error           |
-| `--no-strict`       | Explicitly disable strict mode (the default)            |
-| `--no-engine-rules` | Suppress engine-native (`RuleOrigin::Engine`) diagnostics |
-| `--list-rules`      | List all available rules and exit                       |
-| `--help`, `-h`      | Print usage and exit                                    |
+| Option              | Description                                               |
+|---------------------|-----------------------------------------------------------|
+| `--strict`          | Upgrade Warning-severity diagnostics to Error             |
+| `--disable-builtin-rules` | Disable all built-in rules; only evaluate custom and guard rules |
+| `--list-rules`      | List all available rules and exit                         |
+| `--help`, `-h`      | Print usage and exit                                      |
 
 **Exit codes:**
 

@@ -157,14 +157,15 @@ impl ValidationEngine for CelEngine {
         let excluded_cats = config.filters.excluded_categories();
         let region = config.pseudo_parameter_overrides.region.clone();
 
-        let ctx = EvalContext { model, input: &input_json, region: &region, cached_data: &self.cached_data };
-
-        let mut diagnostics = self.native_rules.evaluate(&ctx, &excluded_cats);
-
-        {
+        let mut diagnostics = if config.disable_builtin_rules {
+            Vec::new()
+        } else {
+            let ctx = EvalContext { model, input: &input_json, region: &region, cached_data: &self.cached_data };
+            let mut diags = self.native_rules.evaluate(&ctx, &excluded_cats);
             let gen_diags = self.generated_rules.evaluate(model, &input_json, &excluded_cats);
-            diagnostics.extend(gen_diags);
-        }
+            diags.extend(gen_diags);
+            diags
+        };
 
         for rule in &self.custom_rules {
             if rule.category.as_deref().is_some_and(|c| excluded_cats.contains(c)) {

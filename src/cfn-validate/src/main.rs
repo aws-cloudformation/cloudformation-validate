@@ -108,9 +108,8 @@ fn main() {
                     });
                 }
             }
-            "--no-strict" => validate_config.strict = false,
             "--strict" => validate_config.strict = true,
-            "--no-engine-rules" => validate_config.include_engine_rules = false,
+            "--disable-builtin-rules" => validate_config.disable_builtin_rules = true,
             "--engine" => {
                 i += 1;
                 if let Some(val) = args.get(i) {
@@ -325,7 +324,6 @@ fn print_help() {
     eprintln!("  --parameter Key=Value         Override a template parameter value (repeatable)");
     eprintln!("  --pseudo-parameter Key=Value  Override a pseudo-parameter value (repeatable)");
     eprintln!("  --strict                      Upgrade Warn-severity diagnostics to Error");
-    eprintln!("  --no-strict                   Disable strict mode (the default)");
-    eprintln!("  --no-engine-rules             Suppress engine-native (RuleOrigin::Engine) diagnostics");
+    eprintln!("  --disable-builtin-rules       Disable all built-in rules; only evaluate custom and guard rules");
     eprintln!("  --list-rules                  List all available rules and exit");
 }

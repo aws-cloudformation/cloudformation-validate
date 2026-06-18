@@ -53,15 +53,15 @@ Guard rules are translated to this format automatically at engine initialization
 
 ### CEL Context Variables
 
-| Variable     | Type   | Scope        | Content                                                     |
-|--------------|--------|--------------|-------------------------------------------------------------|
-| `resources`  | map    | Global       | All resolved resources keyed by logical ID                  |
-| `parameters` | map    | Global       | All parameters with metadata                                |
-| `conditions` | map    | Global       | All conditions                                              |
-| `outputs`    | map    | Global       | All outputs                                                 |
-| `mappings`   | map    | Global       | All mappings                                                |
-| `template`   | map    | Global       | Template metadata (transforms, format version, description) |
-| `name`                | string | Per-resource | Current resource's logical ID                               |
-| `resource`            | map    | Per-resource | Current resource's full resolved data                       |
-| `properties`          | map    | Per-resource | Current resource's resolved properties                      |
+| Variable              | Type   | Scope        | Content                                                      |
+|-----------------------|--------|--------------|--------------------------------------------------------------|
+| `resources`           | map    | Global       | All resolved resources keyed by logical ID                   |
+| `parameters`          | map    | Global       | All parameters with metadata                                 |
+| `conditions`          | map    | Global       | All conditions                                               |
+| `outputs`             | map    | Global       | All outputs                                                  |
+| `mappings`            | map    | Global       | All mappings                                                 |
+| `template`            | map    | Global       | Template metadata (transforms, format version, description)  |
+| `name`                | string | Per-resource | Current resource's logical ID                                |
+| `resource`            | map    | Per-resource | Current resource's full resolved data                        |
+| `properties`          | map    | Per-resource | Current resource's resolved properties                       |
 | `resolved_properties` | map    | Per-resource | Properties with intrinsic functions fully resolved to values |
