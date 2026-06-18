@@ -2912,7 +2912,7 @@ THE SOFTWARE.
 ******************************
 
 bytes
-1.11.1 <https://github.com/tokio-rs/bytes>
+1.12.0 <https://github.com/tokio-rs/bytes>
 Copyright (c) 2018 Carl Lerche
 
 Permission is hereby granted, free of charge, to any
@@ -2943,7 +2943,7 @@ DEALINGS IN THE SOFTWARE.
 ******************************
 
 camino
-1.2.2 <https://github.com/camino-rs/camino>
+1.2.3 <https://github.com/camino-rs/camino>
                               Apache License
                         Version 2.0, January 2004
                      http://www.apache.org/licenses/
@@ -6677,7 +6677,7 @@ limitations under the License.
 ******************************
 
 getrandom
-0.4.2 <https://github.com/rust-random/getrandom>
+0.4.3 <https://github.com/rust-random/getrandom>
                               Apache License
                         Version 2.0, January 2004
                      https://www.apache.org/licenses/
@@ -15611,7 +15611,7 @@ limitations under the License.
 ******************************
 
 smawk
-0.3.2 <https://github.com/mgeisler/smawk>
+0.3.3 <https://github.com/mgeisler/smawk>
 MIT License
 
 Copyright (c) 2017 Martin Geisler
@@ -15901,7 +15901,7 @@ SOFTWARE.
 ******************************
 
 syn
-2.0.117 <https://github.com/dtolnay/syn>
+2.0.118 <https://github.com/dtolnay/syn>
 Apache License
 Version 2.0, January 2004
 http://www.apache.org/licenses/
@@ -17513,7 +17513,7 @@ authorization of the copyright holder.
 ******************************
 
 uniffi
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 
@@ -17892,7 +17892,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ******************************
 
 uniffi_bindgen
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 
@@ -18271,7 +18271,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ******************************
 
 uniffi_core
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 
@@ -18650,7 +18650,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ******************************
 
 uniffi_internal_macros
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 
@@ -19029,7 +19029,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ******************************
 
 uniffi_macros
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 
@@ -19408,7 +19408,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ******************************
 
 uniffi_meta
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 
@@ -19787,7 +19787,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ******************************
 
 uniffi_pipeline
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 
@@ -20166,7 +20166,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ******************************
 
 uniffi_udl
-0.31.1 <https://github.com/mozilla/uniffi-rs>
+0.31.2 <https://github.com/mozilla/uniffi-rs>
 Mozilla Public License Version 2.0
 ==================================
 

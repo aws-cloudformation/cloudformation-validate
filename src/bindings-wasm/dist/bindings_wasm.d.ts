@@ -385,7 +385,7 @@ export interface ValidateConfig {
     parameterOverrides?: Record<string, string> | undefined;
     pseudoParameterOverrides?: PseudoParameterOverrides | undefined;
     strict?: boolean | undefined;
-    includeEngineRules?: boolean | undefined;
+    disableBuiltinRules?: boolean | undefined;
 }
 
 export interface ViolationContext {
