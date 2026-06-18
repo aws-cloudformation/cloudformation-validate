@@ -49,7 +49,7 @@ pub struct ValidateConfig {
     #[serde(default)]
     pub strict: Option<bool>,
     #[serde(default)]
-    pub include_engine_rules: Option<bool>,
+    pub disable_builtin_rules: Option<bool>,
 }
 
 fn build_core_config(opts: ValidateConfig, detail_level: DetailLevel) -> validation_engine::ValidateConfig {
@@ -61,7 +61,7 @@ fn build_core_config(opts: ValidateConfig, detail_level: DetailLevel) -> validat
         parameter_overrides: opts.parameter_overrides.unwrap_or_default(),
         pseudo_parameter_overrides: opts.pseudo_parameter_overrides.unwrap_or_default(),
         strict: opts.strict.unwrap_or(defaults.strict),
-        include_engine_rules: opts.include_engine_rules.unwrap_or(defaults.include_engine_rules),
+        disable_builtin_rules: opts.disable_builtin_rules.unwrap_or(defaults.disable_builtin_rules),
     }
 }
 

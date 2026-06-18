@@ -284,7 +284,7 @@ jobs:
       - name: Publish to NPM
         working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/dist
         run: |
-          npm publish --access public \
+          npm publish --access public --provenance \
             $([[ "${{ inputs.tag }}" == *-beta ]] && echo "--tag beta")
 
       - name: Verify provenance and integrity

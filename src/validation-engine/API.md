@@ -77,8 +77,7 @@ let config = ValidateConfig {
         ..Default::default()
     },
     strict: false,                                       // true: upgrade Warning to Error (default: false)
-    include_engine_rules: true,                          // true (default): emit all diagnostics.
-                                                         // false: suppress RuleOrigin::Engine diagnostics.
+    disable_builtin_rules: false,                        // true: skip all built-in rules, only evaluate custom/guard rules.
 };
 ```
 
@@ -151,6 +150,6 @@ For engines that produce JSON diagnostics:
 | `ValidationEngine` | Trait that engines implement — provides `evaluate_rules` and rule metadata  |
 | `EngineType`       | `Rego` (default) or `Cel` — selects which validation engine evaluates rules |
 | `EngineConfig`     | Engine construction config: `custom_rules` and `guard_rules` as `ExternalRuleSource` |
-| `ValidateConfig`   | Per-call config: filters, detail level, severity level, parameter overrides, strict, include_engine_rules |
+| `ValidateConfig`   | Per-call config: filters, detail level, severity level, parameter overrides, strict, disable_builtin_rules |
 | `ExternalRuleSource` | `{ name: String, content: String }` — a pre-read rule file's identifier and raw content |
 | `ValidationError`  | `Parse(ParseError)` or `Engine(String)`                                     |

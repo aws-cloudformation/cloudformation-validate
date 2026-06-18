@@ -4,9 +4,6 @@ Parses CloudFormation JSON/YAML templates into a rich semantic model. Resolves a
 reference graph with cycle detection, and models conditions with a SAT solver. Has zero knowledge of CloudFormation
 resource schemas — it is purely a modeling library.
 
-All engines ([rego-engine](../rego-engine/README.md), [cel-engine](../cel-engine/README.md),
-[schema-validator](../schema-validator/README.md)) consume the `SemanticModel` produced by this crate.
-
 ## How It Works
 
 ```

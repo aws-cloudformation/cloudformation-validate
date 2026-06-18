@@ -37,7 +37,7 @@ pub struct ValidateConfig {
     #[uniffi(default)]
     pub strict: Option<bool>,
     #[uniffi(default)]
-    pub include_engine_rules: Option<bool>,
+    pub disable_builtin_rules: Option<bool>,
 }
 
 impl ValidateConfig {
@@ -50,7 +50,7 @@ impl ValidateConfig {
             parameter_overrides: self.parameter_overrides.clone(),
             pseudo_parameter_overrides: self.pseudo_parameter_overrides.clone(),
             strict: self.strict.unwrap_or(defaults.strict),
-            include_engine_rules: self.include_engine_rules.unwrap_or(defaults.include_engine_rules),
+            disable_builtin_rules: self.disable_builtin_rules.unwrap_or(defaults.disable_builtin_rules),
         }
     }
 }
