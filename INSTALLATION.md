@@ -9,21 +9,21 @@ environment drift.
 
 ## Required tools
 
-| Tool                            | Version | Required for                                              | Notes                                                           |
-|---------------------------------|---------|-----------------------------------------------------------|-----------------------------------------------------------------|
-| Rust (`cargo`, `rustc`)         | 1.96.0  | everything                                                | Pinned by `src/rust-toolchain.toml`; rustup installs it for you |
-| `rustfmt`                       | bundled | `cargo fmt` lint                                          | Declared as a component in the toolchain file                   |
-| `wasm32-unknown-unknown` target | bundled | WASM binding                                              | Added automatically by the toolchain file                       |
-| `wasm-pack`                     | 0.14.0  | WASM binding build/test                                   | `cargo install`                                                 |
-| `cargo-about`                   | 0.9.0   | third-party license generation (Build Artifacts workflow) | `cargo install`                                                 |
-| `cargo-audit`                   | 0.22.2  | dependency vulnerability audit                            | `cargo install`                                                 |
-| Node.js + npm                   | 22.x    | WASM binding build/test                                   | `npm` ships with Node                                           |
-| JDK                             | 21+     | JVM binding build/test                                    | Corretto in CI; provides `java` and `jar`                       |
-| Kotlin (`kotlinc`)              | 2.3.10  | JVM binding build                                         |                                                                 |
-| `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                 |
-| Gradle                          | 8.14    | JVM binding tests                                         | Must be on `PATH` — the JVM test runner invokes `gradle`        |
-| Python                          | 3.10+   | license generation + `scripts/` helpers                   | No third-party packages required                                |
-| `git`, `curl`, `openssl`        | —       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                            |
+| Tool                            | Version    | Required for                                   | Notes                                                              |
+|---------------------------------|------------|------------------------------------------------|--------------------------------------------------------------------|
+| Rust (`cargo`, `rustc`)         | 1.93.1     | everything                                     | Pinned by `src/rust-toolchain.toml`; rustup installs it for you    |
+| `rustfmt`                       | bundled    | `cargo fmt` lint                               | Declared as a component in the toolchain file                      |
+| `wasm32-unknown-unknown` target | bundled    | WASM binding                                   | Added automatically by the toolchain file                         |
+| `wasm-pack`                     | 0.14.0     | WASM binding build/test                        | `cargo install`                                                    |
+| `cargo-about`                   | 0.9.0      | third-party license generation (Build Artifacts workflow) | `cargo install`                                         |
+| `cargo-audit`                   | 0.22.2     | dependency vulnerability audit                 | `cargo install`                                                    |
+| Node.js + npm                   | 22.x       | WASM binding build/test                        | `npm` ships with Node                                              |
+| JDK                             | 21+        | JVM binding build/test                         | Corretto in CI; provides `java` and `jar`                         |
+| Kotlin (`kotlinc`)              | 2.3.10     | JVM binding build                              |                                                                    |
+| `ktlint`                        | 1.8.0      | JVM binding formatting                         |                                                                    |
+| Gradle                          | 8.14       | JVM binding tests                              | Must be on `PATH` — the JVM test runner invokes `gradle`           |
+| Python                          | 3.10+      | license generation + `scripts/` helpers        | No third-party packages required                                  |
+| `git`, `curl`, `openssl`        | —          | source control, fetching JVM deps, verifying releases | Usually preinstalled                                        |
 
 JNA (`5.18.1`) and Gson (`2.14.0`) — the JVM binding's runtime dependencies — are downloaded automatically from Maven
 Central by `bindings-jvm/build.sh`; you do not install them yourself. The `uniffi-bindgen` tool used to generate the
