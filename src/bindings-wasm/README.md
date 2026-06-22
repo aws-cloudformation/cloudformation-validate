@@ -12,7 +12,7 @@ All WASM objects must be explicitly freed via `.free()` to release memory.
 diagnostics for the same template and config.
 
 ```typescript
-import {RegoEngine, CelEngine, TemplateFile} from "@aws/cloudformation-validate";
+import { RegoEngine, CelEngine, TemplateFile } from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 const report = engine.validateStandard(new TemplateFile("template.yaml"));

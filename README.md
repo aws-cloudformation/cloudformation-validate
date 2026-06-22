@@ -108,7 +108,7 @@ See [validation-engine/API.md](src/validation-engine/API.md) for the full embedd
 ### Node.js
 
 ```typescript
-import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
+import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 const report = engine.validateStandard(new TemplateFile("template.yaml"));
