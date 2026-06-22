@@ -91,15 +91,15 @@ let engine = RegoEngine::new(EngineConfig::default ()) ?;
 
 let bytes = std::fs::read("template.yaml") ?;
 let report = validate_bytes_with_path(
-& engine,
-& schema_validator,
-& bytes,
-ValidateConfig::default (),
-"template.yaml".to_string(),
+    & engine,
+    & schema_validator,
+    & bytes,
+    ValidateConfig::default (),
+    "template.yaml".to_string(),
 ) ?;
 
 for d in & report.diagnostics {
-println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
+    println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
 }
 ```
 
@@ -168,4 +168,4 @@ If you discover a potential security issue, please do **not** open a public GitH
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attributions and
-[src/THIRD-PARTY-LICENSES.txt](src/THIRD-PARTY-LICENSES.txt) for third-party license details.
+[THIRD-PARTY-LICENSES.txt](src/THIRD-PARTY-LICENSES.txt) for third-party license details.

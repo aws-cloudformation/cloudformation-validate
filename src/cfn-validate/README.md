@@ -1,7 +1,6 @@
 # cfn-validate
 
-The command-line front end for the validation engine. This crate builds two binaries — `cfn-validate` (the validator)
-and `cfn-benchmark` (a performance harness) — plus a small support library used by the binaries.
+The command-line front end for the validation engine.
 
 The CLI wires the workspace together: it parses a template with [template-model](../template-model/README.md), selects
 an engine ([rego-engine](../rego-engine/README.md) or [cel-engine](../cel-engine/README.md)), runs the
@@ -88,21 +87,3 @@ Supported pseudo-parameters: `AWS::AccountId`, `AWS::NotificationARNs`, `AWS::Pa
 - `0` — no errors or fatal diagnostics
 - `1` — errors or fatal diagnostics found
 - `2` — usage error (bad arguments, file not found, engine init failure)
-
-## `cfn-benchmark`
-
-A performance harness that measures validation throughput against a template or directory. Useful for detecting
-regressions in parsing, resolution, rule evaluation, and schema validation.
-
-```
-cargo run -p cfn-validate --bin cfn-benchmark -- <TEMPLATE|DIR> --engine rego|cel
-```
-
-## Library API
-
-The crate's library target (`cfn_validate`) exposes the two helpers the binaries share:
-
-| Function                              | Description                                                            |
-|---------------------------------------|------------------------------------------------------------------------|
-| `collect_files(path) -> Vec<PathBuf>` | Recursively collects `.yaml`/`.yml`/`.json` files from a path, sorted. |
-| `parse_range(s) -> Option<IdRange>`   | Parses a rule ID range string like `E3000-E3099` into an `IdRange`.    |
