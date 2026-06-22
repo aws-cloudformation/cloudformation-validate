@@ -192,21 +192,3 @@ data class StandardDiagnostic(
     val conditionScenario: Map<String, Boolean>?,  // condition truth assignment that triggers this
 )
 ```
-
-### Severity levels
-
-| Level   | Prefix | Meaning                                                               |
-|---------|--------|-----------------------------------------------------------------------|
-| `FATAL` | F      | Structural schema violation — CloudFormation will reject the template |
-| `ERROR` | E      | Semantic error — likely deployment failure or incorrect behavior      |
-| `WARN`  | W      | Security risk, deprecation, or risky pattern                          |
-| `INFO`  | I      | Best practice suggestion                                              |
-| `DEBUG` | D      | Internal diagnostic detail                                            |
-
-## `version()`
-
-Returns the engine version string.
-
-```kotlin
-val v = version() // e.g. "1.0.0"
-```

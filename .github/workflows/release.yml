@@ -287,13 +287,23 @@ jobs:
           npm publish --access public --provenance \
             $([[ "${{ inputs.tag }}" == *-beta ]] && echo "--tag beta")
 
-      - name: Verify provenance and integrity
+  verify-publish:
+    needs: [ get-configs, publish-npm ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ needs.get-configs.outputs.node-version }}
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Verify published package
         run: |
           set -euo pipefail
           tmp="$(mktemp -d)"
           cd "$tmp"
           npm init -y >/dev/null
-          npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts --no-save
+          npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts
           npm audit signatures
 
           predicate=$(npm view "@aws/cloudformation-validate@${{ inputs.tag }}" dist.attestations.provenance.predicateType 2>/dev/null || true)

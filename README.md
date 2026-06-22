@@ -91,15 +91,15 @@ let engine = RegoEngine::new(EngineConfig::default ()) ?;
 
 let bytes = std::fs::read("template.yaml") ?;
 let report = validate_bytes_with_path(
-& engine,
-& schema_validator,
-& bytes,
-ValidateConfig::default (),
-"template.yaml".to_string(),
+    & engine,
+    & schema_validator,
+    & bytes,
+    ValidateConfig::default (),
+    "template.yaml".to_string(),
 ) ?;
 
 for d in & report.diagnostics {
-println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
+    println!("[{}] {} — {}", d.severity, d.rule_id, d.message);
 }
 ```
 
@@ -108,7 +108,7 @@ See [validation-engine/API.md](src/validation-engine/API.md) for the full embedd
 ### Node.js
 
 ```typescript
-import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
+import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 const report = engine.validateStandard(new TemplateFile("template.yaml"));
@@ -168,4 +168,4 @@ If you discover a potential security issue, please do **not** open a public GitH
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attributions and
-[src/THIRD-PARTY-LICENSES.txt](src/THIRD-PARTY-LICENSES.txt) for third-party license details.
+[THIRD-PARTY-LICENSES.txt](src/THIRD-PARTY-LICENSES.txt) for third-party license details.
