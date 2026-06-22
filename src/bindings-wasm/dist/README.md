@@ -12,7 +12,7 @@ All WASM objects must be explicitly freed via `.free()` to release memory.
 diagnostics for the same template and config.
 
 ```typescript
-import {RegoEngine, CelEngine, TemplateFile} from "@aws/cloudformation-validate";
+import { RegoEngine, CelEngine, TemplateFile } from "@aws/cloudformation-validate";
 
 const engine = new RegoEngine();
 const report = engine.validateStandard(new TemplateFile("template.yaml"));
@@ -195,24 +195,4 @@ interface StandardDiagnostic {
     relatedResources?: RelatedResource[];
     conditionScenario?: Record<string, boolean>;  // condition truth assignment that triggers this diagnostic
 }
-```
-
-### Severity levels
-
-| Level   | Prefix | Meaning                                                               |
-|---------|--------|-----------------------------------------------------------------------|
-| `FATAL` | F      | Structural schema violation — CloudFormation will reject the template |
-| `ERROR` | E      | Semantic error — likely deployment failure or incorrect behavior      |
-| `WARN`  | W      | Security risk, deprecation, or risky pattern                          |
-| `INFO`  | I      | Best practice suggestion                                              |
-| `DEBUG` | D      | Internal diagnostic detail                                            |
-
-## `version()`
-
-Returns the engine version string.
-
-```typescript
-import {version} from "@aws/cloudformation-validate";
-
-console.log(version()); // e.g. "1.0.0"
 ```
