@@ -25,7 +25,7 @@ class SmokeTest {
         private val EXPECTED_TEMPLATES: List<String>
         private val COMBINED_GOLDEN: Map<String, Any?>
 
-        private val GOLDEN_DIRS = listOf("good", "bad", "integration", "issues", "lsp", "quickstart", "public")
+        private val GOLDEN_DIRS = listOf("bad", "cdk", "good", "integration", "issues", "lsp", "public", "quickstart")
 
         init {
             val goldenFile = File(expectedDir, "all_templates.json")

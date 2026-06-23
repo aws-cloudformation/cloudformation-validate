@@ -34,15 +34,15 @@ pub struct RuleInfo {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RuleOrigin {
-    /// Derived from the CloudFormation resource provider schema.
+    /// Derived from the CloudFormation resource provider schema
     Schema,
-    /// Ported from cfn-lint (open-source linter).
+    /// Ported from cfn-lint
     CfnLint,
-    /// Implemented in this validation engine.
+    /// Implemented in this validation engine
     Engine,
-    /// User-supplied custom rule.
+    /// User supplied custom rule
     Custom,
-    /// CloudFormation Guard rule.
+    /// User supplied CloudFormation Guard rule
     Guard,
 }
 
@@ -518,7 +518,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E9003",
         category: Category::Intrinsic,
         description: "GetAtt return type may not match usage context",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "F1018",
@@ -536,7 +536,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E9004",
         category: Category::Intrinsic,
         description: "GetAtt attribute must exist on target resource type",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "F1029",
@@ -773,10 +773,10 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
-        id: "E9001",
-        category: Category::Resource,
+        id: "F3006",
+        category: Category::Schema,
         description: "Resource type must be recognized",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E3039",
@@ -899,10 +899,10 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "E3071",
+        id: "E3677",
         category: Category::Resource,
         description: "Lambda ZipFile requires nodejs or python runtime",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "E3501",
@@ -1064,7 +1064,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E9006",
         category: Category::Schema,
         description: "Property value not valid for conditional extension enum",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "E3698",

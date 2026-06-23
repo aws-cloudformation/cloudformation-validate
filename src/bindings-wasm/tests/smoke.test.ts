@@ -20,7 +20,7 @@ const COMBINED_GOLDEN: Record<string, unknown> = JSON.parse(
   fs.readFileSync(path.join(EXPECTED_DIR, "all_templates.json"), "utf-8")
 );
 
-const GOLDEN_DIRS = ["good", "bad", "integration", "issues", "lsp", "quickstart", "public"];
+const GOLDEN_DIRS = ['bad', 'cdk', 'good', 'integration', 'issues', 'lsp', 'public', 'quickstart'];
 
 function discoverAllTemplates(): string[] {
   const templates: string[] = [];

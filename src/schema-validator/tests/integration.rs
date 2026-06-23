@@ -434,10 +434,10 @@ fn region_availability_e3037() {
     });
     store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
     let diags = schema_validator::validate::validate_all_resources(&store, &model, "us-east-1");
-    let e3037 = diags.iter().filter(|d| d.rule_id == "E9001").count();
+    let f3006 = diags.iter().filter(|d| d.rule_id == "F3006").count();
     assert!(
-        e3037 > 0,
-        "expected E9001 for resource type not in region, got: {:?}",
+        f3006 > 0,
+        "expected F3006 for resource type not in region, got: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
