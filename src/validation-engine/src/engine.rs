@@ -658,7 +658,7 @@ pub(crate) fn build_context(
         "E9002" => {
             actual_value = resolve_val("Properties.SecurityGroupIngress").map(Into::into);
         }
-        "E9001" => {
+        "F3006" => {
             if let Some(res) = model.resources.get(rid) {
                 extra.insert("resource_type".into(), serde_json::json!(res.resource_type).into());
             }
@@ -1422,7 +1422,7 @@ Resources:
     fn finalize_disable_builtin_rules_keeps_only_custom_and_guard() {
         let config = ValidateConfig { disable_builtin_rules: true, ..Default::default() };
         let mut diags = vec![
-            make_diag("E9001", Severity::Error, 1, 1),
+            make_diag("F3006", Severity::Fatal, 1, 1),
             Diagnostic { source: RuleOrigin::Custom, ..make_diag("CUSTOM001", Severity::Warn, 2, 1) },
             Diagnostic { source: RuleOrigin::Guard, ..make_diag("GUARD001", Severity::Warn, 3, 1) },
             make_diag("E3012", Severity::Error, 4, 1),
@@ -1437,7 +1437,7 @@ Resources:
     fn finalize_default_config_keeps_all_origins() {
         let config = ValidateConfig::default();
         let mut diags = vec![
-            make_diag("E9001", Severity::Error, 1, 1),
+            make_diag("F3006", Severity::Fatal, 1, 1),
             Diagnostic { source: RuleOrigin::Custom, ..make_diag("CUSTOM001", Severity::Warn, 2, 1) },
         ];
         finalize_diagnostics(&mut diags, &config);
@@ -1662,9 +1662,9 @@ Resources:
     }
 
     #[test]
-    fn build_context_e3037_adds_resource_type() {
+    fn build_context_f3006_adds_resource_type() {
         let model = minimal_model();
-        let ctx = build_context("E9001", Some("Bucket"), "", &model).expect("E9001 should return context");
+        let ctx = build_context("F3006", Some("Bucket"), "", &model).expect("F3006 should return context");
         let extra = ctx.extra.unwrap();
         assert_eq!(extra.get("resource_type").and_then(|v| v.as_str()), Some("AWS::S3::Bucket"));
     }

@@ -2,8 +2,8 @@ package resources
 
 import rego.v1
 
-# E9001: Resource Type must be known
-violation contains make_diag("E9001", "ERROR", name,
+# F3006: Resource Type must be known
+violation contains make_diag("F3006", "FATAL", name,
     sprintf("Unknown resource type '%s'", [rtype])) if {
     some name, res in input.resources
     rtype := res.resourceType

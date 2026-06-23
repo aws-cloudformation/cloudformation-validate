@@ -225,7 +225,7 @@ fn e2e_bad_security_issues() {
 #[test]
 fn e2e_bad_unknown_properties() {
     let report = validate_fixture("bad/unknown_properties.yaml");
-    assert!(has_rule(&report, "E9001"), "Expected E9001 for unknown type, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "F3006"), "Expected F3006 for unknown type, got: {:?}", report.diagnostics);
     assert!(has_rule(&report, "F3002"), "Expected F3002 for unknown property, got: {:?}", report.diagnostics);
 }
 
@@ -649,13 +649,13 @@ fn e2e_aurora_valid() {
 #[test]
 fn e2e_lambda_zipfile_runtime() {
     let report = validate_fixture("bad/lambda_zipfile_java.yaml");
-    assert!(has_rule(&report, "E3071"), "Expected E3071 for ZipFile with java runtime");
+    assert!(has_rule(&report, "E3677"), "Expected E3677 for ZipFile with java runtime");
 }
 
 #[test]
 fn e2e_lambda_zipfile_valid() {
     let report = validate_fixture("good/lambda_zipfile.yaml");
-    assert!(!has_rule(&report, "E3071"), "Valid Lambda ZipFile should not trigger E3071");
+    assert!(!has_rule(&report, "E3677"), "Valid Lambda ZipFile should not trigger E3677");
 }
 
 #[test]

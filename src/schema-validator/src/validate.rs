@@ -27,7 +27,7 @@ pub fn validate_all_resources(
         if store.has_region_data() && !store.is_available_in_region(rtype, region) {
             for rid in model.resources_of_type(rtype) {
                 out.push(build_diagnostic(
-                    "E9001",
+                    "F3006",
                     &format!("Resource type '{}' is not available in region '{}'", rtype, region),
                     model,
                     rid,

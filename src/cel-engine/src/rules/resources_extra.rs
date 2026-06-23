@@ -121,7 +121,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 && !res.resource_type.starts_with("AWS::CloudFormation::")
             {
                 out.push(make_resource_diagnostic(
-                    "E9001",
+                    "F3006",
                     &format!("Unknown resource type '{}'", res.resource_type),
                     m,
                     name,
@@ -586,7 +586,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && !rt.starts_with("python")
         {
             out.push(make_resource_diagnostic(
-                "E3071",
+                "E3677",
                 &format!("Runtime '{}' is not supported with Code.ZipFile — use nodejs or python", rt),
                 m,
                 name,
