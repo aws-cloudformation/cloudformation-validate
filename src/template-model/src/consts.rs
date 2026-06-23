@@ -107,6 +107,16 @@ pub const CDK_METADATA_TYPE: &str = "AWS::CDK::Metadata";
 pub const OUTPUT_PSEUDO_RESOURCE_PREFIX: &str = "__output__";
 pub const OUTPUTS_PSEUDO_RESOURCE: &str = "__outputs__";
 
+/// Sentinel value used by the satisfiability search to represent "any value
+/// other than the literals the parameter is compared against". Added to the
+/// candidate-value set of a parameter (or pseudo-parameter) without an explicit
+/// `AllowedValues` list or override, so the SAT solver treats the symbol as a
+/// free variable that can also disagree with every literal it is compared to.
+/// Without this sentinel a parameter compared against a single literal would be
+/// pinned to that literal and the SAT solver would mark the negative branch
+/// unreachable.
+pub const PARAM_UNKNOWN_SENTINEL: &str = "__unknown__";
+
 pub const RULE_PSEUDO_RESOURCE_PREFIX: &str = "__rule__";
 
 pub const MAX_TEMPLATE_SIZE_BYTES: usize = 10 * 1024 * 1024;

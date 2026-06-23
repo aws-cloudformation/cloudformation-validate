@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Counter-example for the E9001 fix: a resource whose Type is not in the
+  schema-derived set and is not in cfn-lint's per-region maps must still
+  fire E9001.
+
+Resources:
+  Mystery:
+    Type: AWS::Mystery::DoesNotExist
+    Properties:
+      Name: should-not-validate

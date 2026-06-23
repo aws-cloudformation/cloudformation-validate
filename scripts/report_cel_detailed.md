@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-14 15:04:48  
+> Generated: 2026-06-23 15:01:53  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,50 +22,50 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1026 |
+| True Positives | 1027 |
 | False Positives (engine bugs) | 0 |
-| Engine Extra (correct, cfn-lint gap) | 2090 |
-| False Negatives (engine misses) | 153 |
+| Engine Extra (correct, cfn-lint gap) | 2043 |
+| False Negatives (engine misses) | 152 |
 | Precision | 100.00% |
-| Recall | 87.02% |
-| F1 | 93.06% |
-| Unique rules detected | 139 |
+| Recall | 87.11% |
+| F1 | 93.11% |
+| Unique rules detected | 138 |
 | Perfect templates | 110/160 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 240 | 0 | 78 | 48 | 100.00% | 83.33% |
+| Fatal | 241 | 0 | 81 | 47 | 100.00% | 83.68% |
 | Error | 189 | 0 | 71 | 80 | 100.00% | 70.26% |
-| Warning | 370 | 0 | 388 | 19 | 100.00% | 95.12% |
+| Warning | 370 | 0 | 338 | 19 | 100.00% | 95.12% |
 | Info | 227 | 0 | 1553 | 6 | 100.00% | 97.42% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 14643.8538 ms |
-| Throughput | 153.31 validations/sec |
-| Templates | 449 ok, 8 failed |
+| Total wall time | 13032.9842 ms |
+| Throughput | 173.79 validations/sec |
+| Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 41.6221 ms |
-| Engine init (max) | 41.8815 ms |
-| Schema init (p99) | 61.7008 ms |
-| Schema init (max) | 62.3170 ms |
+| Engine init (p99) | 41.9527 ms |
+| Engine init (max) | 42.2204 ms |
+| Schema init (p99) | 61.4140 ms |
+| Schema init (max) | 62.0723 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0024 | 0.2129 | 0.0452 | 0.7191 | 0.9262 | 1.7759 | 2.7782 |
-| Schema Validate | 0.0000 | 2.7145 | 0.4595 | 7.4472 | 11.4469 | 25.3471 | 55.9643 |
-| Rule Evaluation | 2.2916 | 2.9163 | 2.5930 | 3.6411 | 4.2055 | 7.2029 | 16.8264 |
-| Diagnostic Finalize | 0.0006 | 0.0342 | 0.0065 | 0.1025 | 0.1520 | 0.3483 | 0.6385 |
-| Engine Internal | 2.2998 | 5.9816 | 3.1907 | 12.3903 | 17.2564 | 32.5365 | 64.5937 |
-| Wall Clock | 2.3000 | 5.9821 | 3.1909 | 12.3953 | 17.2576 | 32.5377 | 64.5945 |
+| Model Build | 0.0018 | 0.1944 | 0.0430 | 0.6195 | 0.8606 | 1.5207 | 3.0223 |
+| Schema Validate | 0.0000 | 2.3024 | 0.4091 | 6.3467 | 9.4579 | 23.6729 | 49.8956 |
+| Rule Evaluation | 2.2752 | 2.7242 | 2.4375 | 3.1038 | 3.5447 | 4.8576 | 51.1801 |
+| Diagnostic Finalize | 0.0004 | 0.0294 | 0.0048 | 0.0953 | 0.1285 | 0.3181 | 0.6171 |
+| Engine Internal | 2.2977 | 5.3055 | 3.0627 | 10.0835 | 14.3158 | 34.7079 | 57.0523 |
+| Wall Clock | 2.2980 | 5.3059 | 3.0631 | 10.0840 | 14.3166 | 34.7089 | 57.0529 |
 
-## False Negatives — 153 missed findings across 53 rules
+## False Negatives — 152 missed findings across 53 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -352,13 +352,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1005** → `Transform` L2 in `bad_templates_base_null`
   > None is not of type 'string', 'array', 'object'
 
-### F3003 — 2 missed — Required Resource properties are missing
-
-- **F3003** (cfn-lint: E3003) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1` L46-48 in `bad_core_conditions`
-  > 'DeviceName' is a required property
-- **F3003** (cfn-lint: E3003) `AMIIDLookup` → `Properties` L101 in `good_core_conditions`
-  > 'Role' is a required property
-
 ### F3012 — 2 missed — Check resource properties values
 
 - **F3012** (cfn-lint: E3012) `IamRole2` → `Properties.Ref` L26 in `integration_ref-no-value`
@@ -464,6 +457,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3019** `Project2` → `Properties.Name` L188 in `bad_resources_primary_identifiers`
   > Primary identifiers {'Name': 'myProjectName'} should have unique values across the resources {'Project2', 'Project1'}
 
+### F3003 — 1 missed — Required Resource properties are missing
+
+- **F3003** (cfn-lint: E3003) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1` L46-48 in `bad_core_conditions`
+  > 'DeviceName' is a required property
+
 ### E9004 — 1 missed — GetAtt validation of parameters
 
 - **E9004** (cfn-lint: E1010) `LambdaFunctionTestNotDefinedFromParent` → `Properties.Environment.Variables.Fn::GetAtt` L23 in `good_custom_is-not-defined`
@@ -538,7 +536,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-## Engine Extra — 2090 correct findings across 58 rules
+## Engine Extra — 2043 correct findings across 57 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -3869,91 +3867,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9003** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L801 in `quickstart_vpc-management`
   > '22' is not of type 'integer' — automatically coerced (string → integer)
 
-### W1028 — 41 findings — Check Fn::If has a path that cannot be reached
-
-- **W1028** `myInstance4` (AWS::EC2::Instance) → `Properties.InstanceType.Fn::If.Fn::If.2` L63 in `bad_core_conditions`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False from current status True
-- **W1028** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Fn::If.Fn::If.2` L149 in `bad_generic`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId.Fn::If.2` L48 in `bad_properties_rt_association`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPublic' to False from current status True
-- **W1028** `RootRole5` (AWS::IAM::Role) → `Properties.RoleName.Fn::If.2` L97 in `bad_resources_primary_identifiers`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `RootRole6` (AWS::IAM::Role) → `Properties.RoleName.Fn::If.2` L119 in `bad_resources_primary_identifiers`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `Bucket1` (AWS::S3::Bucket) → `Properties.Fn::If.Fn::If.2` L141 in `bad_resources_primary_identifiers`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `Bucket2` (AWS::S3::Bucket) → `Properties.BucketName.Fn::If.2` L148 in `bad_resources_primary_identifiers`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `MyCNAMERecordSetConditions` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.Fn::If.2` L83 in `bad_route53`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimaryRegion' to False from current status True
-- **W1028** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.Locations.Fn::If.2` L40 in `good_conditions`
-  > ['Fn::If', 2] is not reachable. When setting condition 'PrimaryRegion' to False. Where existing status for condition 'EnableGeoBlockingAlias' is True
-- **W1028** `AMIIDLookup` (AWS::Lambda::Function) → `Properties.Role.Fn::If.2` L100 in `good_core_conditions`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False from current status True
-- **W1028** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId.Fn::If.2` L46 in `good_properties_rt_association`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPublic' to False from current status True
-- **W1028** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Stages.2.Actions.0.Fn::If.2` L6 in `good_resources_codepipeline`
-  > ['Fn::If', 2] is not reachable. When setting condition 'myCondition' to False from current status True
-- **W1028** `Bucket1` (AWS::S3::Bucket) → `Properties.Fn::If.Fn::If.2` L75 in `good_resources_primary_identifiers`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `IamRole1` (AWS::IAM::Role) → `Properties.Tags.0.Fn::If.2` L8 in `integration_ref-no-value`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `IamRole3` (AWS::IAM::Role) → `Properties.Tags.Fn::If.2` L28 in `integration_ref-no-value`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior.Fn::If.2` L41 in `integration_ref-no-value`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True
-- **W1028** `DHCPOptions` (AWS::EC2::DHCPOptions) → `Properties.DomainName.Fn::If.2` L481 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NVirginiaRegionCondition' to False from current status True
-- **W1028** `PrivateSubnet1ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L947 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet1ARoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L947 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnetsCondition' is True
-- **W1028** `PrivateSubnet2ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1010 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet2ARoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L1010 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnetsCondition' is True
-- **W1028** `PrivateSubnet3ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1073 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet3ARoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L1073 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnets&3AZCondition' is True
-- **W1028** `PrivateSubnet4ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1136 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet4ARoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L1136 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnets&4AZCondition' is True
-- **W1028** `PrivateSubnet1BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1199 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet1BRoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L1199 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnetsCondition' is True
-- **W1028** `PrivateSubnet2BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1321 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet2BRoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L1321 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnetsCondition' is True
-- **W1028** `PrivateSubnet3BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1443 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet3BRoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L1443 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnets&3AZCondition' is True
-- **W1028** `PrivateSubnet4BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1565 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `PrivateSubnet4BRoute` (AWS::EC2::Route) → `Properties.NatGatewayId.Fn::If.2` L1565 in `quickstart_vpc`
-  > ['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnets&4AZCondition' is True
-- **W1028** `NAT1EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1745 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `NAT2EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1764 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `NAT3EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1783 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `NAT4EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1802 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `NATInstance1` (AWS::EC2::Instance) → `Properties.KeyName.Fn::If.1` L1885 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `NATInstance2` (AWS::EC2::Instance) → `Properties.KeyName.Fn::If.1` L1937 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `NATInstance3` (AWS::EC2::Instance) → `Properties.KeyName.Fn::If.1` L1989 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-- **W1028** `NATInstance4` (AWS::EC2::Instance) → `Properties.KeyName.Fn::If.1` L2041 in `quickstart_vpc`
-  > ['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True
-
 ### E1152 — 37 findings — Validate AMI id format
 
 - **E1152** `myInstance1` (AWS::EC2::Instance) → `Properties.ImageId` L28 in `bad_core_conditions`
@@ -4098,10 +4011,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `quickstart_test`
   > Action 'logs:PutRetentionPolicy' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
 
-### F3012 — 27 findings — Check resource properties values
+### F3012 — 28 findings — Check resource properties values
 
 - **F3012** `myInstance4` (AWS::EC2::Instance) → `Properties.InstanceType` L63 in `bad_core_conditions`
   > {"Fn::If":"t3.2xlarge"} is not of type 'string'
+- **F3012** `myInstance4` (AWS::EC2::Instance) → `Properties.InstanceType` L63 in `bad_core_conditions`
+  > {"Fn::If":"t3.xlarge"} is not of type 'string'
 - **F3012** `myInstance1` (AWS::EC2::Instance) → `Properties.AvailabilityZone` L15 in `bad_functions_select`
   > {"Fn::Select":[0,"Value1","value2"]} is not of type 'string'
 - **F3012** `myInstance3` (AWS::EC2::Instance) → `Properties.AvailabilityZone` L32 in `bad_functions_select`
@@ -4462,33 +4377,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2508** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L801 in `quickstart_vpc-management`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 
-### W2503 — 12 findings
-
-- **W2503** `PrivateSubnet1ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L947 in `quickstart_vpc`
-  > Resource 'PrivateSubnet1ARoute' (condition 'PrivateSubnetsCondition') references 'NATInstance1' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive — this reference will al
-- **W2503** `PrivateSubnet2ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1010 in `quickstart_vpc`
-  > Resource 'PrivateSubnet2ARoute' (condition 'PrivateSubnetsCondition') references 'NATInstance2' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive — this reference will al
-- **W2503** `PrivateSubnet3ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1073 in `quickstart_vpc`
-  > Resource 'PrivateSubnet3ARoute' (condition 'PrivateSubnets&3AZCondition') references 'NATInstance3' (condition 'NATInstance&3AZCondition'), but these conditions are mutually exclusive — this reference
-- **W2503** `PrivateSubnet4ARoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1136 in `quickstart_vpc`
-  > Resource 'PrivateSubnet4ARoute' (condition 'PrivateSubnets&4AZCondition') references 'NATInstance4' (condition 'NATInstance&4AZCondition'), but these conditions are mutually exclusive — this reference
-- **W2503** `PrivateSubnet1BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1199 in `quickstart_vpc`
-  > Resource 'PrivateSubnet1BRoute' (condition 'AdditionalPrivateSubnetsCondition') references 'NATInstance1' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive — this referen
-- **W2503** `PrivateSubnet2BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1321 in `quickstart_vpc`
-  > Resource 'PrivateSubnet2BRoute' (condition 'AdditionalPrivateSubnetsCondition') references 'NATInstance2' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive — this referen
-- **W2503** `PrivateSubnet3BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1443 in `quickstart_vpc`
-  > Resource 'PrivateSubnet3BRoute' (condition 'AdditionalPrivateSubnets&3AZCondition') references 'NATInstance3' (condition 'NATInstance&3AZCondition'), but these conditions are mutually exclusive — this
-- **W2503** `PrivateSubnet4BRoute` (AWS::EC2::Route) → `Properties.InstanceId.Fn::If.1` L1565 in `quickstart_vpc`
-  > Resource 'PrivateSubnet4BRoute' (condition 'AdditionalPrivateSubnets&4AZCondition') references 'NATInstance4' (condition 'NATInstance&4AZCondition'), but these conditions are mutually exclusive — this
-- **W2503** `NAT1EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1745 in `quickstart_vpc`
-  > Resource 'NAT1EIP' (condition 'PrivateSubnetsCondition') references 'NATInstance1' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive — this reference will always fail
-- **W2503** `NAT2EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1764 in `quickstart_vpc`
-  > Resource 'NAT2EIP' (condition 'PrivateSubnetsCondition') references 'NATInstance2' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive — this reference will always fail
-- **W2503** `NAT3EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1783 in `quickstart_vpc`
-  > Resource 'NAT3EIP' (condition 'PrivateSubnets&3AZCondition') references 'NATInstance3' (condition 'NATInstance&3AZCondition'), but these conditions are mutually exclusive — this reference will always 
-- **W2503** `NAT4EIP` (AWS::EC2::EIP) → `Properties.InstanceId.Fn::If.1` L1802 in `quickstart_vpc`
-  > Resource 'NAT4EIP' (condition 'PrivateSubnets&4AZCondition') references 'NATInstance4' (condition 'NATInstance&4AZCondition'), but these conditions are mutually exclusive — this reference will always 
-
 ### E1151 — 10 findings — Validate VPC id format
 
 - **E1151** `mySubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L22 in `bad_core_conditions`
@@ -4615,6 +4503,21 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2502** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `DependsOn` L917 in `quickstart_vpc-management`
   > Resource 'rDeepSecurityInfrastructureTemplate' has DependsOn 'rRouteMgmtProdDMZ' which is conditional (condition 'cCreatePeeringProduction'), but 'rDeepSecurityInfrastructureTemplate' does not have a 
 
+### F3003 — 6 findings — Required Resource properties are missing
+
+- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L8 in `bad_transform_no_properties`
+  > 'StageName' is a required property
+- **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value`
+  > 'AssumeRolePolicyDocument' is a required property
+- **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value`
+  > 'DistributionConfig' is a required property
+- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value`
+  > 'TargetOriginId' is a required property
+- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value`
+  > 'ViewerProtocolPolicy' is a required property
+- **F3003** `rArchiveLogsBucket` (AWS::S3::Bucket) → `Properties` L44 in `quickstart_nist_logging`
+  > 'OwnershipControls' is a required property
+
 ### W7001 — 6 findings — Check if Mappings are Used
 
 - **W7001** L9 in `bad_core_conditions`
@@ -4695,17 +4598,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W3002** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L915 in `quickstart_vpc-management`
   > This code may only work with 'package' cli command
 
-### F3003 — 4 findings — Required Resource properties are missing
-
-- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L8 in `bad_transform_no_properties`
-  > 'StageName' is a required property
-- **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value`
-  > 'AssumeRolePolicyDocument' is a required property
-- **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value`
-  > 'DistributionConfig' is a required property
-- **F3003** `rArchiveLogsBucket` (AWS::S3::Bucket) → `Properties` L44 in `quickstart_nist_logging`
-  > 'OwnershipControls' is a required property
-
 ### F3002 — 4 findings — Resource properties are invalid
 
 - **F3002** `EC2Instance` (AWS::EC2::Instance) → `Properties.Tags.1.BadKey` L54 in `bad_conditions`
@@ -4738,6 +4630,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
 - **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline`
   > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+
+### W1028 — 3 findings — Check Fn::If has a path that cannot be reached
+
+- **W1028** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Fn::If.Fn::If.2` L149 in `bad_generic`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId.Fn::If.2` L48 in `bad_properties_rt_association`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPublic' to False from current status True
+- **W1028** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId.Fn::If.2` L46 in `good_properties_rt_association`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPublic' to False from current status True
 
 ### W1020 — 3 findings — Sub isn't needed if it doesn't have a variable defined
 
@@ -4916,7 +4817,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `bad_core_conditions` — 6 mismatches (17 TP, 0 FP, 30 EE, 6 FN)
 
 - FN: `F3014` ×2, `F0013` ×2, `F3003`, `W3698`
-- EE: `I9001` ×8, `I9040` ×7, `E1152` ×7, `F0013` ×2, `W7001`, `W8001`, `E1151`, `E1154`, `F3012`, `W1028`
+- EE: `I9001` ×8, `I9040` ×7, `E1152` ×7, `F0013` ×2, `F3012` ×2, `W7001`, `W8001`, `E1151`, `E1154`
 
 ### `bad_functions_sub_needed` — 6 mismatches (6 TP, 0 FP, 13 EE, 6 FN)
 
@@ -4943,10 +4844,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F0018` ×6
 - EE: `I9040` ×4, `W9008` ×3, `I9001`
 
-### `bad_route53` — 6 mismatches (28 TP, 0 FP, 21 EE, 6 FN)
+### `bad_route53` — 6 mismatches (28 TP, 0 FP, 20 EE, 6 FN)
 
 - FN: `E3023` ×5, `W1054`
-- EE: `I9001` ×19, `W1028`, `I9002`
+- EE: `I9001` ×19, `I9002`
 
 ### `bad_functions_foreach_no_transform` — 5 mismatches (1 TP, 0 FP, 2 EE, 5 FN)
 
@@ -4973,11 +4874,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021` ×4
 - EE: `E1152` ×2, `I9001` ×2, `I9040` ×2
 
-### `good_core_conditions` — 4 mismatches (6 TP, 0 FP, 22 EE, 4 FN)
-
-- FN: `F3014` ×2, `W3698`, `F3003`
-- EE: `I9001` ×8, `I9040` ×7, `W9010` ×4, `W7001`, `W8001`, `W1028`
-
 ### `good_transform_applications_location` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
 - FN: `I3011` ×4
@@ -4998,10 +4894,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F2015` ×3
 - EE: `F2012` ×3, `W2001` ×2, `F0001`
 
-### `bad_resources_primary_identifiers` — 3 mismatches (8 TP, 0 FP, 29 EE, 3 FN)
+### `bad_resources_primary_identifiers` — 3 mismatches (8 TP, 0 FP, 25 EE, 3 FN)
 
 - FN: `E3019` ×2, `E3001`
-- EE: `I9001` ×15, `I9040` ×10, `W1028` ×4
+- EE: `I9001` ×15, `I9040` ×10
+
+### `good_core_conditions` — 3 mismatches (7 TP, 0 FP, 21 EE, 3 FN)
+
+- FN: `F3014` ×2, `W3698`
+- EE: `I9001` ×8, `I9040` ×7, `W9010` ×4, `W7001`, `W8001`
 
 ### `good_parameters_used_transform_language_extension` — 3 mismatches (1 TP, 0 FP, 4 EE, 3 FN)
 
@@ -5056,10 +4957,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3045`, `W3045`
 - EE: `W2001`, `W7001`, `F0006`
 
-### `integration_ref-no-value` — 2 mismatches (7 TP, 0 FP, 9 EE, 2 FN)
+### `integration_ref-no-value` — 2 mismatches (7 TP, 0 FP, 8 EE, 2 FN)
 
 - FN: `F3012` ×2
-- EE: `W1028` ×3, `I9040` ×3, `F3003` ×2, `W9009`
+- EE: `F3003` ×4, `I9040` ×3, `W9009`
 
 ### `bad_conditions_equals` — 1 mismatches (17 TP, 0 FP, 0 EE, 1 FN)
 
@@ -5164,11 +5065,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 67 | 43.79% | E0001, E2001, E2529, E5001, E6001, E7001, E8001, E9004, F0000, F0002, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F6101 |
-| Resource property validation | 34 | 22.22% | E3001, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3671, E3673 |
-| Intrinsic function validation | 27 | 17.65% | E1001, E1005, E1011, E1016, E1017, E1021, E1032 |
-| Warning-level checks | 19 | 12.42% | W1001, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3698, W8001 |
-| Informational checks | 6 | 3.92% | I3011, I3510 |
+| Other | 66 | 43.42% | E0001, E2001, E2529, E5001, E6001, E7001, E8001, E9004, F0000, F0002, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F6101 |
+| Resource property validation | 34 | 22.37% | E3001, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3671, E3673 |
+| Intrinsic function validation | 27 | 17.76% | E1001, E1005, E1011, E1016, E1017, E1021, E1032 |
+| Warning-level checks | 19 | 12.50% | W1001, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3698, W8001 |
+| Informational checks | 6 | 3.95% | I3011, I3510 |
 
 ### False Positive Root Causes
 

@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Regression test for W1028 false-positive on
+  Fn::Equals[Ref AWS::Partition, "aws"]. CDK synthesizes this exact pattern
+  in aws-eks/lib/kubectl-provider.ts (HasEcrPublic condition) so the EKS
+  Lambda role only attaches the public-ECR managed policy in the commercial
+  partition. Without an explicit partition override AWS::Partition is a
+  free variable in the SAT solver, so both Fn::If branches must be
+  reachable and W1028 must not fire.
+
+Conditions:
+  ClusterHasEcrPublic:
+    Fn::Equals:
+      - !Ref AWS::Partition
+      - aws
+
+Resources:
+  KubectlHandlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly
+        - Fn::If:
+            - ClusterHasEcrPublic
+            - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonElasticContainerRegistryPublicReadOnly
+            - !Ref AWS::NoValue

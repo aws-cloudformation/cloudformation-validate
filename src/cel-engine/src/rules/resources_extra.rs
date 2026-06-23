@@ -1735,14 +1735,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     Some("Add DefaultCacheBehavior to the Fn::If branch"),
                 ));
             } else if val.is_object() {
+                let path = "Properties.DistributionConfig.DefaultCacheBehavior.Fn::If.2";
                 if val.get("TargetOriginId").is_none() {
                     out.push(make_resource_diagnostic(
                         "E3003",
                         "'TargetOriginId' is a required property",
                         m,
                         name,
-                        "Properties.DistributionConfig.DefaultCacheBehavior",
-                        None,
+                        path,
+                        Some("Add TargetOriginId to the DefaultCacheBehavior"),
                     ));
                 }
                 if val.get("ViewerProtocolPolicy").is_none() {
@@ -1751,8 +1752,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         "'ViewerProtocolPolicy' is a required property",
                         m,
                         name,
-                        "Properties.DistributionConfig.DefaultCacheBehavior",
-                        None,
+                        path,
+                        Some("Add ViewerProtocolPolicy to the DefaultCacheBehavior"),
                     ));
                 }
             }
