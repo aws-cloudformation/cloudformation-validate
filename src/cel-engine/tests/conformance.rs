@@ -458,9 +458,10 @@ mod rule_category_tests {
     fn intrinsics_bad_select() {
         let ids = validate_file("bad/functions_select.yaml");
         // Parser no longer emits F1101 for malformed Select — it falls through
-        // to a plain map node. W1102 fires for non-integer index in valid 2-element Select.
-        let has_select_warning = ids.iter().any(|id| id == "W1102");
-        assert!(has_select_warning, "Expected W1102 Select type warning, got: {:?}", ids);
+        // to a plain map node. E1017 fires for non-integer index, source-type
+        // mismatches, and negative index in Fn::Select.
+        let has_select_warning = ids.iter().any(|id| id == "E1017");
+        assert!(has_select_warning, "Expected E1017 Select diagnostic, got: {:?}", ids);
     }
 
     #[test]

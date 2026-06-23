@@ -1358,7 +1358,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         && idx < 0
                     {
                         out.push(make_resource_diagnostic(
-                            "F1050",
+                            "E1017",
                             "Fn::Select index must be a non-negative integer",
                             m,
                             name,

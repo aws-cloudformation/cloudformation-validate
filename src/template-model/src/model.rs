@@ -386,7 +386,7 @@ impl SemanticModel {
         diagnostics.extend(parameter_diagnostics);
 
         diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
-        diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena));
+        diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
 
         let defined_condition_names: std::collections::HashSet<String> =
             conditions.conditions.keys().cloned().collect();
@@ -888,6 +888,16 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     }
     if let Some(ref meta_resolved) = resolved_metadata {
         collect_condition_refs_from_resolved(meta_resolved, &mut condition_refs);
+    }
+    // Resource-level attributes (DeletionPolicy / UpdateReplacePolicy) can carry
+    // `Fn::If: [<Cond>, ...]`. Walk the resolved values so the condition is
+    // tracked as used and W8001 does not fire on a condition that drives the
+    // resource's lifecycle behaviour.
+    if let Some(ref dp) = deletion_policy {
+        collect_condition_refs_from_resolved(dp, &mut condition_refs);
+    }
+    if let Some(ref urp) = update_replace_policy {
+        collect_condition_refs_from_resolved(urp, &mut condition_refs);
     }
     if let Some(mut extra) = resolver.extra_condition_refs.remove(name) {
         condition_refs.append(&mut extra);

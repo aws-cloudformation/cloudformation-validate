@@ -369,7 +369,11 @@ impl JsonBuilder {
                     return None;
                 }
                 if !arr[0].is_number() && !arr[0].is_object() {
-                    self.intrinsic_type_error(FN_SELECT, "Fn::Select index (first element) must be an integer");
+                    self.diagnostics.push(crate::make_parse_diagnostic(
+                        "E1017",
+                        "Fn::Select: index (first element) must be an integer or an intrinsic function".to_string(),
+                        UNKNOWN_SPAN,
+                    ));
                 }
                 let idx = self.build_value(&arr[0], &format!("{}/Fn::Select/0", path));
                 let list = self.build_value(&arr[1], &format!("{}/Fn::Select/1", path));

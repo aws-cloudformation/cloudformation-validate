@@ -135,12 +135,16 @@ const CIDR_OP_FNS: &[&str] =
 
 /// Intrinsics whose return value is a string and may therefore appear as the
 /// map name or as a top-level / second-level key in `Fn::FindInMap`.
-/// The intrinsic-nesting check (`E1101`) is the canonical gate for which
-/// intrinsics are allowed inside FindInMap operands; this list mirrors its
-/// allow-set so the operand-type check stays consistent.
+/// CloudFormation accepts `Ref` and `Fn::FindInMap` by default; the
+/// `AWS::LanguageExtensions` transform broadens the set to include several
+/// other string-producing intrinsics. The intrinsic-nesting check (`E1101`)
+/// uses the same allow-sets so the two checks stay consistent.
 const FIND_IN_MAP_OP_FNS: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
+const FIND_IN_MAP_OP_FNS_EXT: &[&str] =
+    &[FN_REF, FN_FIND_IN_MAP, FN_JOIN, FN_SUB, FN_IF, FN_SELECT, FN_LENGTH, FN_TO_JSON_STRING];
 
-pub fn validate_intrinsic_arg_shapes(arena: &Arena) -> Vec<Diagnostic> {
+pub fn validate_intrinsic_arg_shapes(arena: &Arena, transforms: &[String]) -> Vec<Diagnostic> {
+    let has_lang_ext = transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     let mut out = Vec::new();
     for idx in 0..arena.len() {
         let node_ref = idx as NodeRef;
@@ -159,7 +163,7 @@ pub fn validate_intrinsic_arg_shapes(arena: &Arena) -> Vec<Diagnostic> {
                 check_cidr_args(arena, *ip, *count, *bits, spanned.span, &mut out)
             }
             IntrinsicFn::FindInMap(map_name, k1, k2, _) => {
-                check_find_in_map_args(arena, *map_name, *k1, *k2, spanned.span, &mut out)
+                check_find_in_map_args(arena, *map_name, *k1, *k2, has_lang_ext, spanned.span, &mut out)
             }
             _ => {}
         }
@@ -174,6 +178,16 @@ fn is_string_or_string_intrinsic(arena: &Arena, node_ref: NodeRef, allowed: &[&s
     match arena.node(node_ref) {
         Node::String(_) => true,
         Node::Intrinsic(intrinsic) => allowed.contains(&cfn_function_name(intrinsic)),
+        // A single-key map whose key is one of the allowed `Fn::*` names is
+        // an intrinsic that the parser was unable to fold (typical when the
+        // intrinsic's payload is itself an intrinsic — e.g.
+        // `Fn::Sub: {Fn::Transform: ...}` or a syntactically unusual form
+        // that the IR-level fold rejects). Conservatively trust the key name
+        // rather than emit a shape false positive on the parent intrinsic.
+        Node::Map(entries) if entries.len() == 1 => {
+            let (key, _) = &entries[0];
+            (key == "Ref" || key.starts_with("Fn::")) && allowed.contains(&key.as_str())
+        }
         _ => false,
     }
 }
@@ -185,6 +199,10 @@ fn check_select_source(arena: &Arena, source_ref: NodeRef, span: SourceSpan, out
     let valid = match arena.node(source_ref) {
         Node::List(_) => true,
         Node::Intrinsic(intrinsic) => SELECT_SOURCE_FNS.contains(&cfn_function_name(intrinsic)),
+        Node::Map(entries) if entries.len() == 1 => {
+            let (key, _) = &entries[0];
+            (key == "Ref" || key.starts_with("Fn::")) && SELECT_SOURCE_FNS.contains(&key.as_str())
+        }
         _ => false,
     };
     if !valid {
@@ -206,6 +224,10 @@ fn check_import_value_arg(arena: &Arena, arg_ref: NodeRef, span: SourceSpan, out
     let valid = match arena.node(arg_ref) {
         Node::String(_) | Node::Int(_) | Node::Float(_) | Node::Bool(_) => true,
         Node::Intrinsic(intrinsic) => IMPORT_VALUE_ARG_FNS.contains(&cfn_function_name(intrinsic)),
+        Node::Map(entries) if entries.len() == 1 => {
+            let (key, _) = &entries[0];
+            (key == "Ref" || key.starts_with("Fn::")) && IMPORT_VALUE_ARG_FNS.contains(&key.as_str())
+        }
         _ => false,
     };
     if !valid {
@@ -246,11 +268,27 @@ fn check_sub_vars(
         return;
     };
     for (name, value_ref) in entries {
-        if !is_string_or_string_intrinsic(arena, *value_ref, SUB_VAR_VALUE_FNS) {
+        if !arena.is_valid(*value_ref) {
+            continue;
+        }
+        // CloudFormation coerces scalar literals (numbers, booleans) to
+        // strings when substituting them into a Sub template, so a
+        // `number: 1` or `flag: true` pair is valid even though the
+        // value is not literally a string.
+        let valid = match arena.node(*value_ref) {
+            Node::String(_) | Node::Int(_) | Node::Float(_) | Node::Bool(_) => true,
+            Node::Intrinsic(intrinsic) => SUB_VAR_VALUE_FNS.contains(&cfn_function_name(intrinsic)),
+            Node::Map(map_entries) if map_entries.len() == 1 => {
+                let (key, _) = &map_entries[0];
+                (key == "Ref" || key.starts_with("Fn::")) && SUB_VAR_VALUE_FNS.contains(&key.as_str())
+            }
+            _ => false,
+        };
+        if !valid {
             out.push(crate::make_parse_diagnostic(
                 RULE_SUB_SHAPE,
                 format!(
-                    "Fn::Sub variable '{}' must resolve to a string — provide a string literal or a string-producing intrinsic ({})",
+                    "Fn::Sub variable '{}' must resolve to a string — provide a string literal, scalar (number/boolean), or a string-producing intrinsic ({})",
                     name,
                     SUB_VAR_VALUE_FNS.join(", ")
                 ),
@@ -321,6 +359,21 @@ fn check_join_args(
                 ));
             }
         }
+        Node::Map(entries) if entries.len() == 1 => {
+            let (key, _) = &entries[0];
+            let recognised = (key == "Ref" || key.starts_with("Fn::"))
+                && JOIN_LIST_FNS.contains(&key.as_str());
+            if !recognised {
+                out.push(crate::make_parse_diagnostic(
+                    RULE_JOIN_SHAPE,
+                    format!(
+                        "Fn::Join list (second element) must be an array or a list-producing intrinsic ({})",
+                        JOIN_LIST_FNS.join(", ")
+                    ),
+                    span,
+                ));
+            }
+        }
         _ => {
             out.push(crate::make_parse_diagnostic(
                 RULE_JOIN_SHAPE,
@@ -361,6 +414,10 @@ fn check_cidr_args(
         let valid = match arena.node(node_ref) {
             Node::Int(_) | Node::String(_) => true,
             Node::Intrinsic(intrinsic) => CIDR_OP_FNS.contains(&cfn_function_name(intrinsic)),
+            Node::Map(entries) if entries.len() == 1 => {
+                let (key, _) = &entries[0];
+                (key == "Ref" || key.starts_with("Fn::")) && CIDR_OP_FNS.contains(&key.as_str())
+            }
             _ => false,
         };
         if !valid {
@@ -382,9 +439,11 @@ fn check_find_in_map_args(
     map_name_ref: NodeRef,
     k1_ref: NodeRef,
     k2_ref: NodeRef,
+    has_lang_ext: bool,
     span: SourceSpan,
     out: &mut Vec<Diagnostic>,
 ) {
+    let allowed: &[&str] = if has_lang_ext { FIND_IN_MAP_OP_FNS_EXT } else { FIND_IN_MAP_OP_FNS };
     for (label, node_ref) in [
         ("MapName (first element)", map_name_ref),
         ("TopLevelKey (second element)", k1_ref),
@@ -396,10 +455,17 @@ fn check_find_in_map_args(
         // Map keys are stringified by CloudFormation, so integer and float
         // literals are accepted in addition to string and the allowed
         // string-producing intrinsics. Lists, maps, booleans, and disallowed
-        // intrinsics are rejected.
+        // intrinsics are rejected. Single-key maps whose key is an allowed
+        // intrinsic name are accepted as unfolded intrinsics — the parser
+        // can leave intrinsics in raw map form when their payload is itself
+        // an unusual intrinsic shape.
         let valid = match arena.node(node_ref) {
             Node::String(_) | Node::Int(_) | Node::Float(_) => true,
-            Node::Intrinsic(intrinsic) => FIND_IN_MAP_OP_FNS.contains(&cfn_function_name(intrinsic)),
+            Node::Intrinsic(intrinsic) => allowed.contains(&cfn_function_name(intrinsic)),
+            Node::Map(entries) if entries.len() == 1 => {
+                let (key, _) = &entries[0];
+                (key == "Ref" || key.starts_with("Fn::")) && allowed.contains(&key.as_str())
+            }
             _ => false,
         };
         if !valid {
@@ -408,7 +474,7 @@ fn check_find_in_map_args(
                 format!(
                     "Fn::FindInMap {} must be a string, integer, or one of {}",
                     label,
-                    FIND_IN_MAP_OP_FNS.join(", ")
+                    allowed.join(", ")
                 ),
                 span,
             ));
@@ -423,7 +489,7 @@ mod tests {
 
     fn parse_and_validate(src: &str) -> Vec<Diagnostic> {
         let ir = parser::parse(src.as_bytes()).expect("parse");
-        validate_intrinsic_arg_shapes(&ir.arena)
+        validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms)
     }
 
     #[test]

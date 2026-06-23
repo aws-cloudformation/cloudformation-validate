@@ -678,12 +678,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "F1050",
-        category: Category::Intrinsic,
-        description: "Select index must be non-negative",
-        origin: RuleOrigin::Schema,
-    },
-    RuleDefinition {
         id: "E1028",
         category: Category::Intrinsic,
         description: "Fn::If condition must exist in Conditions section",

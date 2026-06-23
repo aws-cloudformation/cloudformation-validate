@@ -363,6 +363,12 @@ impl<'a> Resolver<'a> {
                                         | ResolvedValue::Conditional { condition: _, if_true: _, if_false: _ }
                                 )
                             }) {
+                                // Conditional/enum items collapse into a flat
+                                // Enum or Dynamic inside `join_with_enum_list`,
+                                // which discards the condition reference. Record
+                                // the conditions on the resource first so W8001
+                                // (unused conditions) does not see them as dead.
+                                self.collect_extra_condition_refs(&values);
                                 return join_with_enum_list(ds, items);
                             }
                             // Partial join: substitute concrete items, placeholder for others

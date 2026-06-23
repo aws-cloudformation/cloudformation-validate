@@ -708,7 +708,7 @@ impl YamlBuilder {
                 }
                 if !matches!(&a[0], Yaml::Integer(_) | Yaml::Hash(_)) {
                     self.diagnostics.push(crate::make_parse_diagnostic(
-                        "W1102",
+                        "E1017",
                         "Fn::Select: index (first argument) must be an integer or an intrinsic function".to_string(),
                         UNKNOWN_SPAN,
                     ));

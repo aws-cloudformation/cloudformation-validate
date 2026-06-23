@@ -399,6 +399,20 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "F3012",   # Type mismatch (post-SAM-transform property-level)
         "F3034",   # Numeric range (cross-resource: FIFO queue → EventSourceMapping)
         "F6101",   # Output value type (GetAtt return type in outputs)
+        # Per-function operand-shape rules in template-model/src/intrinsic_arg_shapes.rs
+        # enforce CloudFormation's compiled per-function schemas. cfn-lint emits
+        # the same IDs but on a narrower set of triggers; our broader operand
+        # validation produces additional findings on the same bad templates.
+        "E1011",   # Fn::FindInMap operand types (extra triggers via intrinsic-shape pass)
+        "E1016",   # Fn::ImportValue argument shape (engine catches non-string and nested-ImportValue)
+        "E1017",   # Fn::Select arity / list-source / index type (broader than cfn-lint's variant)
+        "E1018",   # Fn::Split source must be a string-producing intrinsic
+        "E1019",   # Fn::Sub variable map shape
+        "E1021",   # Fn::Base64 argument must be string-producing
+        "E1022",   # Fn::Join delimiter and list-element shapes
+        "E1024",   # Fn::Cidr scalar operand types
+        "E1032",   # Fn::ForEach detection at section level (Resources/Outputs)
+        "E8003",   # Fn::Equals operand-type checks (null/Ref folded into E8003)
     }
 
     engine_extra |= ENGINE_STRICTER_CONDITION
@@ -470,14 +484,20 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     for enclosing in ("E8004", "E8005", "E8006"):
         rule_aliases.setdefault(enclosing, {enclosing}).add("E8007")
 
-    # cfn-lint E1017 (Select) groups the index-type and negative-index checks
-    # under one ID; our engine emits the index-type case as W1102 and the
-    # negative-index case as F1050 in addition to the structural E1017.
-    rule_aliases.setdefault("E1017", {"E1017"}).update({"W1102", "F1050"})
+    # E1017 (Select) covers all sub-cases: arity, source-type, index-type,
+    # and negative index. The parser/cel-engine emit them all under E1017
+    # directly so no aliasing is needed.
 
     # cfn-lint E1011 (FindInMap) operand-intrinsic checks surface in our engine
     # as the intrinsic-nesting rule E1101.
     rule_aliases.setdefault("E1011", {"E1011"}).add("E1101")
+
+    # cfn-lint splits malformed `Fn::Equals` operands into per-case rule IDs:
+    # `E1001` when the value is null or not an array, `E1020` when an operand
+    # is a Ref to a non-string. Our engine reports all malformed-Equals cases
+    # uniformly under `E8003` (the structural shape ID). Alias the cfn-lint
+    # sub-cases to E8003 so cross-tool comparison pairs them correctly.
+    rule_aliases.setdefault("E1020", {"E1020"}).add("E8003")
 
     # E1001 sub-checks: cfn-lint's E1001 (BaseJsonSchema) is a parent rule that
     # validates the template against a JSON schema. It delegates to child rules
@@ -486,11 +506,12 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     #   - missing Resources (cfn-lint path []) -> F0001
     #   - bad AWSTemplateFormatVersion (cfn-lint path ['AWSTemplateFormatVersion']) -> F0002
     #   - invalid top-level section -> F0005
+    #   - null/non-array Fn::Equals value -> E8003 (structural shape)
     # F0002 carries the 'AWSTemplateFormatVersion' property path so it matches the
     # format-version E1001 by exact path, leaving F0001 (empty Resources, which
     # cfn-lint does not flag) correctly classified as engine-extra rather than
     # greedily consuming the format-version E1001.
-    rule_aliases.setdefault("E1001", {"E1001"}).update({"F0001", "F0002", "F0005"})
+    rule_aliases.setdefault("E1001", {"E1001"}).update({"F0001", "F0002", "F0005", "E8003"})
 
     # Message-based engine-extra predicate: diagnostics that are engine-extra
     # based on message content, not just rule ID. These cover cases where the

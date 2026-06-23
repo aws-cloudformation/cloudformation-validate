@@ -2,8 +2,9 @@ package intrinsics
 
 import rego.v1
 
-# E1050: Select index must be a non-negative integer
-violation contains make_diag("F1050", "FATAL", name,
+# Select index must be a non-negative integer — CloudFormation rejects
+# negative indices on deploy.
+violation contains make_diag("E1017", "ERROR", name,
     "Fn::Select index must be a non-negative integer") if {
     some name, res in input.resources
     some key, val in res.properties
