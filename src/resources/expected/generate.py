@@ -108,20 +108,26 @@ def main():
         cel_comparable = strip_engine_fields(cel_report)
 
         if json.dumps(rego_comparable, sort_keys=True) != json.dumps(cel_comparable, sort_keys=True):
-            parity_failures.append(template)
-            print(f"    !! PARITY FAILURE: rego and cel differ", file=sys.stderr)
-            rego_diags = [(d["ruleId"], d["severity"]) for d in rego_comparable.get("diagnostics", [])]
-            cel_diags = [(d["ruleId"], d["severity"]) for d in cel_comparable.get("diagnostics", [])]
-            print(f"    rego: {rego_diags}", file=sys.stderr)
-            print(f"    cel:  {cel_diags}", file=sys.stderr)
-            sys.exit(1)
+            rego_diags = rego_comparable.get("diagnostics", [])
+            cel_diags = cel_comparable.get("diagnostics", [])
+            rego_set = {(d["ruleId"], d["severity"], d["message"], d.get("resourceId", ""), d.get("propertyPath", "")) for d in rego_diags}
+            cel_set = {(d["ruleId"], d["severity"], d["message"], d.get("resourceId", ""), d.get("propertyPath", "")) for d in cel_diags}
+            only_rego = sorted(rego_set - cel_set)
+            only_cel = sorted(cel_set - rego_set)
+            parity_failures.append((template, only_rego, only_cel))
+            print(f"    !! PARITY FAILURE", file=sys.stderr)
+            continue
 
         all_data[template] = rego_report
 
     if parity_failures:
-        print(f"\nFATAL: {len(parity_failures)} template(s) have engine parity failures:", file=sys.stderr)
-        for t in parity_failures:
-            print(f"  - {t}", file=sys.stderr)
+        print(f"\nFATAL: {len(parity_failures)} template(s) have engine parity failures:\n", file=sys.stderr)
+        for template, only_rego, only_cel in parity_failures:
+            print(f"  {template}", file=sys.stderr)
+            for rule_id, severity, message, resource, path in only_rego:
+                print(f"    rego-only: [{severity}] {rule_id} | {resource} {path} | {message}", file=sys.stderr)
+            for rule_id, severity, message, resource, path in only_cel:
+                print(f"    cel-only:  [{severity}] {rule_id} | {resource} {path} | {message}", file=sys.stderr)
         sys.exit(1)
 
     OUTPUT_FILE.write_text(json.dumps(all_data, indent=2) + "\n")
