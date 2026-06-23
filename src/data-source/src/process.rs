@@ -1,7 +1,7 @@
 use crate::SyncStats;
 use log::{info, warn};
 use serde::Deserialize;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -274,11 +274,17 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
 
     fs::write(data_dir.join("schema_metadata.json"), generate_schema_metadata(&schemas, &raw_schemas))?;
     fs::write(data_dir.join("getatt_attributes.json"), generate_getatt_data(&schemas, &raw_schemas))?;
-    let mut all_types: Vec<String> = schemas.keys().cloned().collect();
-    all_types.sort();
+    // Union the schema-derived types with the per-region known types from
+    // cfn-lint. Some types CloudFormation accepts (e.g. AWS::CDK::Metadata) have
+    // no provider schema but appear in cfn-lint's per-region maps. The single
+    // `known_resource_types` set is the source of truth
+    let mut known_types: BTreeSet<String> = schemas.keys().cloned().collect();
+    let region_types = read_region_resource_types_union(&data_dir)?;
+    known_types.extend(region_types);
+    let known_types_sorted: Vec<String> = known_types.into_iter().collect();
     fs::write(
         data_dir.join("known_resource_types.json"),
-        serde_json::to_string_pretty(&serde_json::json!({"known_resource_types": all_types}))?,
+        serde_json::to_string_pretty(&serde_json::json!({"known_resource_types": known_types_sorted}))?,
     )?;
     fs::write(data_dir.join("primary_identifiers.json"), generate_primary_identifiers(&raw_schemas))?;
     fs::write(data_dir.join("resource_lifecycle.json"), generate_resource_lifecycle(&raw_schemas))?;
@@ -289,6 +295,39 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
 
     info!("Schema processing complete: {} files written", stats.files_written);
     Ok(stats)
+}
+
+/// Reads `data_dir/region_resource_types.json` (produced by the sync phase from
+/// cfn-lint's per-region provider files) and returns the union of every
+/// resource-type key across all regions.
+///
+/// The returned set is intentionally region-agnostic: callers (the
+/// `known_resource_types` writer in this module, and downstream the engine
+/// resource-type rule) only need to know whether a type is valid in *any*
+/// region.
+fn read_region_resource_types_union(data_dir: &Path) -> anyhow::Result<BTreeSet<String>> {
+    let region_file = data_dir.join("region_resource_types.json");
+    if !region_file.exists() {
+        warn!("{} not found — known_resource_types will not include cfn-lint per-region types", region_file.display());
+        return Ok(BTreeSet::new());
+    }
+    let content = fs::read_to_string(&region_file)?;
+    let parsed: serde_json::Value = serde_json::from_str(&content)?;
+    let regions = parsed
+        .get("region_resource_types")
+        .and_then(|v| v.as_object())
+        .ok_or_else(|| anyhow::anyhow!("{}: missing 'region_resource_types' object", region_file.display()))?;
+    let mut union: BTreeSet<String> = BTreeSet::new();
+    for type_map in regions.values() {
+        let Some(type_obj) = type_map.as_object() else {
+            continue;
+        };
+        for type_name in type_obj.keys() {
+            union.insert(type_name.clone());
+        }
+    }
+    info!("Collected {} unique resource types across regions for known_resource_types union", union.len());
+    Ok(union)
 }
 
 /// Generates per-resource-type metadata: property names, types, required fields,
@@ -820,5 +859,76 @@ mod tests {
                 fs::copy(entry.path(), &dest_path).unwrap();
             }
         }
+    }
+
+    fn unique_tempdir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("data_source_test_{}_{}", std::process::id(), name));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn region_resource_types_union_returns_empty_when_file_absent() {
+        let dir = unique_tempdir("region_types_missing");
+
+        let union = read_region_resource_types_union(&dir).expect("should succeed when file absent");
+
+        assert!(union.is_empty(), "expected empty set when region_resource_types.json is absent, got {:?}", union);
+    }
+
+    #[test]
+    fn region_resource_types_union_collects_types_across_regions() {
+        let dir = unique_tempdir("region_types_union");
+        let region_file = json!({
+            "region_resource_types": {
+                "us-east-1": {
+                    "AWS::S3::Bucket": true,
+                    "AWS::CDK::Metadata": true,
+                },
+                "cn-north-1": {
+                    "AWS::S3::Bucket": true,
+                    "AWS::CDK::Metadata": true,
+                    "AWS::Special::ChinaOnlyType": true,
+                },
+            }
+        });
+        fs::write(dir.join("region_resource_types.json"), serde_json::to_string(&region_file).unwrap()).unwrap();
+
+        let union = read_region_resource_types_union(&dir).expect("should parse valid file");
+
+        assert_eq!(
+            union,
+            ["AWS::CDK::Metadata", "AWS::S3::Bucket", "AWS::Special::ChinaOnlyType"]
+                .into_iter()
+                .map(String::from)
+                .collect::<BTreeSet<String>>(),
+            "union should contain every type from every region exactly once"
+        );
+    }
+
+    #[test]
+    fn region_resource_types_union_errors_when_top_level_key_missing() {
+        let dir = unique_tempdir("region_types_malformed");
+        fs::write(dir.join("region_resource_types.json"), r#"{"wrong_key": {}}"#).unwrap();
+
+        let result = read_region_resource_types_union(&dir);
+
+        let err_msg = result.expect_err("should fail when top-level key is missing").to_string();
+        assert!(
+            err_msg.contains("missing 'region_resource_types' object"),
+            "error must surface the missing top-level key, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn region_resource_types_union_errors_on_invalid_json() {
+        let dir = unique_tempdir("region_types_invalid_json");
+        fs::write(dir.join("region_resource_types.json"), "not json at all {{{").unwrap();
+
+        let result = read_region_resource_types_union(&dir);
+
+        assert!(result.is_err(), "should fail on malformed JSON instead of silently returning empty");
     }
 }

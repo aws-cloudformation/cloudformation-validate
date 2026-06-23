@@ -197,6 +197,31 @@ impl PseudoParameterOverrides {
             _ => None,
         }
     }
+
+    /// Returns the user-supplied override for `name` only when the caller
+    /// explicitly set the corresponding field. Auto-derived defaults — e.g. the
+    /// commercial-vs-cn-vs-gov partition implied by `region` — are *not*
+    /// returned here.
+    ///
+    /// The satisfiability solver uses this to decide whether a pseudo-parameter
+    /// is a constant (user pinned its value) or a free variable ranging over
+    /// the literals it is compared against plus a sentinel for "any other
+    /// value". `get` always returns a default and would force the solver to
+    /// treat every pseudo-parameter as a constant, producing false-positive
+    /// "unreachable branch" diagnostics for templates that branch on
+    /// `AWS::Partition`, `AWS::Region`, etc. — see `ConditionModel::eval_value_concrete`.
+    pub fn fixed_value(&self, name: &str) -> Option<String> {
+        match name {
+            PSEUDO_ACCOUNT_ID => self.account_id.clone(),
+            PSEUDO_NOTIFICATION_ARNS => self.notification_arns.clone(),
+            PSEUDO_PARTITION => self.partition.clone(),
+            PSEUDO_REGION => self.region.clone(),
+            PSEUDO_STACK_ID => self.stack_id.clone(),
+            PSEUDO_STACK_NAME => self.stack_name.clone(),
+            PSEUDO_URL_SUFFIX => self.url_suffix.clone(),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -1339,6 +1364,69 @@ Resources:
         let overrides = PseudoParameterOverrides { region: Some("cn-north-1".to_string()), ..Default::default() };
         assert_eq!(overrides.get("AWS::Partition").unwrap(), "aws-cn");
         assert_eq!(overrides.get("AWS::URLSuffix").unwrap(), "amazonaws.com.cn");
+    }
+
+    /// `fixed_value` underpins the SAT-solver decision "treat this pseudo-param
+    /// as a constant or a free variable". It must return `Some` only when the
+    /// caller pinned the corresponding field — never for region-derived
+    /// defaults — otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
+    /// falsely deterministic and `find_unreachable_branches` would emit
+    /// false-positive W1028 diagnostics.
+    #[test]
+    fn fixed_value_returns_none_for_unset_pseudo_parameters() {
+        let overrides = PseudoParameterOverrides::default();
+
+        for name in [
+            "AWS::AccountId",
+            "AWS::NotificationARNs",
+            "AWS::Partition",
+            "AWS::Region",
+            "AWS::StackId",
+            "AWS::StackName",
+            "AWS::URLSuffix",
+        ] {
+            assert_eq!(
+                overrides.fixed_value(name),
+                None,
+                "{name} must be a free variable when the user has not explicitly pinned it"
+            );
+        }
+    }
+
+    #[test]
+    fn fixed_value_returns_user_supplied_overrides() {
+        let overrides = PseudoParameterOverrides {
+            account_id: Some("999999999999".to_string()),
+            partition: Some("aws-cn".to_string()),
+            region: Some("cn-north-1".to_string()),
+            stack_name: Some("MyStack".to_string()),
+            ..Default::default()
+        };
+
+        assert_eq!(overrides.fixed_value("AWS::AccountId"), Some("999999999999".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::Partition"), Some("aws-cn".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::Region"), Some("cn-north-1".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::StackName"), Some("MyStack".to_string()));
+        assert_eq!(overrides.fixed_value("AWS::URLSuffix"), None, "URLSuffix not set; must remain a free variable");
+        assert_eq!(overrides.fixed_value("Unknown"), None);
+    }
+
+    /// Setting `region` alone must NOT cause `fixed_value("AWS::Partition")`
+    /// to return a value. The convenience defaulting that `get` performs (so
+    /// resource-property substitution sees a sensible partition string) is
+    /// deliberately separate from the SAT-solver pinning, because constraining
+    /// the region constrains where the stack deploys, not the partition the
+    /// template was written against.
+    #[test]
+    fn fixed_value_does_not_propagate_region_to_partition() {
+        let overrides = PseudoParameterOverrides { region: Some("cn-north-1".to_string()), ..Default::default() };
+
+        assert_eq!(overrides.fixed_value("AWS::Region"), Some("cn-north-1".to_string()));
+        assert_eq!(
+            overrides.fixed_value("AWS::Partition"),
+            None,
+            "region override must not propagate to partition — partition stays free unless the caller pins it"
+        );
     }
 
     #[test]

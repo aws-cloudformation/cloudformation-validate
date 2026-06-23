@@ -2,7 +2,7 @@
   "bad/E1150_network_interfaces_groupset_multi.yaml": {
     "filePath": "bad/E1150_network_interfaces_groupset_multi.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -199,7 +199,7 @@
   "bad/E3019_four_way_group.yaml": {
     "filePath": "bad/E3019_four_way_group.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -460,10 +460,75 @@
       }
     ]
   },
+  "bad/E9001_unknown_resource_type.yaml": {
+    "filePath": "bad/E9001_unknown_resource_type.yaml",
+    "status": "OK",
+    "engineVersion": "1.2.0",
+    "metadata": {
+      "rulesEvaluated": 273,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E9001",
+        "severity": "ERROR",
+        "message": "Unknown resource type 'AWS::Mystery::DoesNotExist'",
+        "source": "ENGINE",
+        "resourceId": "Mystery",
+        "resourceType": "AWS::Mystery::DoesNotExist",
+        "category": "Resource",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 10,
+        "ruleDescription": "Resource type must be recognized",
+        "phase": "LINT",
+        "section": "Resources",
+        "context": {
+          "extra": {
+            "resource_type": "AWS::Mystery::DoesNotExist"
+          }
+        }
+      }
+    ]
+  },
   "bad/F2002_ssm_parameter_type_invalid.yaml": {
     "filePath": "bad/F2002_ssm_parameter_type_invalid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -552,10 +617,110 @@
       }
     ]
   },
+  "bad/W1028_allowedvalues_excludes_literal.yaml": {
+    "filePath": "bad/W1028_allowedvalues_excludes_literal.yaml",
+    "status": "OK",
+    "engineVersion": "1.2.0",
+    "metadata": {
+      "rulesEvaluated": 273,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 1] is not reachable. When setting condition 'IsProd' to True",
+        "source": "CFN_LINT",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.BucketName.Fn::If.1",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 3,
+        "endLine": 25,
+        "endColumn": 9,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 3,
+        "endLine": 25,
+        "endColumn": 9,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'IsProd'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 3,
+        "endLine": 25,
+        "endColumn": 9,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/W3010_full_coverage.yaml": {
     "filePath": "bad/W3010_full_coverage.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 9,
@@ -1232,7 +1397,7 @@
   "bad/aurora_with_allocated_storage.yaml": {
     "filePath": "bad/aurora_with_allocated_storage.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -1399,7 +1564,7 @@
   "bad/cloudfront_bad_alias.yaml": {
     "filePath": "bad/cloudfront_bad_alias.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -1498,7 +1663,7 @@
   "bad/cloudfront_bad_origin.yaml": {
     "filePath": "bad/cloudfront_bad_origin.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -1598,7 +1763,7 @@
   "bad/codepipeline_bad_artifact_counts.yaml": {
     "filePath": "bad/codepipeline_bad_artifact_counts.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -1743,7 +1908,7 @@
   "bad/codepipeline_bad_artifacts.yaml": {
     "filePath": "bad/codepipeline_bad_artifacts.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -1888,7 +2053,7 @@
   "bad/conditions.yaml": {
     "filePath": "bad/conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -2530,7 +2695,7 @@
   "bad/conditions/and.yaml": {
     "filePath": "bad/conditions/and.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -2744,7 +2909,7 @@
   "bad/conditions/condition_functions.json": {
     "filePath": "bad/conditions/condition_functions.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -3169,7 +3334,7 @@
   "bad/conditions/equals.yaml": {
     "filePath": "bad/conditions/equals.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -3411,7 +3576,7 @@
   "bad/conditions/equals_not_useful.yaml": {
     "filePath": "bad/conditions/equals_not_useful.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -3550,7 +3715,7 @@
   "bad/conditions/properties_fn_if.json": {
     "filePath": "bad/conditions/properties_fn_if.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -3746,14 +3911,14 @@
   "bad/core/conditions.yaml": {
     "filePath": "bad/core/conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 4,
+        "fatal": 5,
         "errors": 20,
-        "warnings": 8,
+        "warnings": 7,
         "informational": 15,
         "debug": 0
       },
@@ -4438,6 +4603,33 @@
         }
       },
       {
+        "ruleId": "F3012",
+        "severity": "FATAL",
+        "message": "{\"Fn::If\":\"t3.xlarge\"} is not of type 'string'",
+        "source": "SCHEMA",
+        "resourceId": "myInstance4",
+        "resourceType": "AWS::EC2::Instance",
+        "propertyPath": "Properties.InstanceType",
+        "category": "Schema",
+        "startLine": 63,
+        "startColumn": 3,
+        "endLine": 63,
+        "endColumn": 14,
+        "conditionScenario": {
+          "isPrimary": false
+        },
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Property type mismatch",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "actualValue": {
+            "Fn::If": "t3.2xlarge"
+          },
+          "expectedConstraint": "string"
+        }
+      },
+      {
         "ruleId": "E1152",
         "severity": "ERROR",
         "message": "'ami-123456' does not match format 'AWS::EC2::Image.Id'",
@@ -4526,23 +4718,6 @@
         "context": {
           "actualValue": "ami-123456"
         }
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "myInstance4",
-        "resourceType": "AWS::EC2::Instance",
-        "propertyPath": "Properties.InstanceType.Fn::If.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 63,
-        "startColumn": 3,
-        "endLine": 63,
-        "endColumn": 14,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "I9001",
@@ -4702,7 +4877,7 @@
   "bad/core/conditions_list.yaml": {
     "filePath": "bad/core/conditions_list.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -4774,7 +4949,7 @@
   "bad/core/conditions_missing.yaml": {
     "filePath": "bad/core/conditions_missing.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -4860,7 +5035,7 @@
   "bad/core/config_configure_e3012.yaml": {
     "filePath": "bad/core/config_configure_e3012.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -4959,7 +5134,7 @@
   "bad/core/config_invalid_json.json": {
     "filePath": "bad/core/config_invalid_json.json",
     "status": "ERROR",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -5016,7 +5191,7 @@
   "bad/core/config_invalid_yaml.yaml": {
     "filePath": "bad/core/config_invalid_yaml.yaml",
     "status": "ERROR",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -5069,7 +5244,7 @@
   "bad/core/config_parameters.yaml": {
     "filePath": "bad/core/config_parameters.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -5127,7 +5302,7 @@
   "bad/core/directives.yaml": {
     "filePath": "bad/core/directives.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -5511,7 +5686,7 @@
   "bad/core/mandatory_checks.yaml": {
     "filePath": "bad/core/mandatory_checks.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -5895,7 +6070,7 @@
   "bad/core/parse_invalid_map.yaml": {
     "filePath": "bad/core/parse_invalid_map.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -6071,7 +6246,7 @@
   "bad/cross_resource_task10.yaml": {
     "filePath": "bad/cross_resource_task10.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 11,
@@ -6961,7 +7136,7 @@
   "bad/deprecated_type.yaml": {
     "filePath": "bad/deprecated_type.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -7057,7 +7232,7 @@
   "bad/duplicate.json": {
     "filePath": "bad/duplicate.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -7184,7 +7359,7 @@
   "bad/duplicate.yaml": {
     "filePath": "bad/duplicate.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -7264,7 +7439,7 @@
   "bad/duplicate_primary_id.yaml": {
     "filePath": "bad/duplicate_primary_id.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -7418,14 +7593,14 @@
   "bad/duplicate_primary_id_multi.yaml": {
     "filePath": "bad/duplicate_primary_id_multi.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
         "errors": 2,
-        "warnings": 2,
+        "warnings": 0,
         "informational": 4,
         "debug": 0
       },
@@ -7471,23 +7646,6 @@
         "endLine": 9,
         "endColumn": 10,
         "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsA' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "BucketA",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.BucketName.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 10,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -7548,23 +7706,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsA' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "BucketB",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.BucketName.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 3,
-        "endLine": 13,
-        "endColumn": 10,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
@@ -7608,7 +7749,7 @@
   "bad/dynamodb_attribute_mismatch.yaml": {
     "filePath": "bad/dynamodb_attribute_mismatch.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -7740,7 +7881,7 @@
   "bad/dynamodb_prod_no_kms.yaml": {
     "filePath": "bad/dynamodb_prod_no_kms.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -7836,7 +7977,7 @@
   "bad/dynamodb_provisioned_no_throughput.yaml": {
     "filePath": "bad/dynamodb_provisioned_no_throughput.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -7968,7 +8109,7 @@
   "bad/ecr_policy_no_statement.yaml": {
     "filePath": "bad/ecr_policy_no_statement.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -8048,7 +8189,7 @@
   "bad/ecs_awsvpc_port_mismatch.yaml": {
     "filePath": "bad/ecs_awsvpc_port_mismatch.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -8170,7 +8311,7 @@
   "bad/ecs_dynamic_port_no_traffic.yaml": {
     "filePath": "bad/ecs_dynamic_port_no_traffic.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -8401,7 +8542,7 @@
   "bad/ecs_fargate_mismatch.yaml": {
     "filePath": "bad/ecs_fargate_mismatch.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -8624,7 +8765,7 @@
   "bad/ecs_role_no_boundary.yaml": {
     "filePath": "bad/ecs_role_no_boundary.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -8787,7 +8928,7 @@
   "bad/elb_http_443.yaml": {
     "filePath": "bad/elb_http_443.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -8901,7 +9042,7 @@
   "bad/empty_file.yaml": {
     "filePath": "bad/empty_file.yaml",
     "status": "ERROR",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -8958,7 +9099,7 @@
   "bad/equals_wrong_arity.yaml": {
     "filePath": "bad/equals_wrong_arity.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -9043,7 +9184,7 @@
   "bad/fargate_bad_cpu_memory.yaml": {
     "filePath": "bad/fargate_bad_cpu_memory.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -9255,7 +9396,7 @@
   "bad/fargate_daemon.yaml": {
     "filePath": "bad/fargate_daemon.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -9560,7 +9701,7 @@
   "bad/findinmap_bad.yaml": {
     "filePath": "bad/findinmap_bad.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -9640,7 +9781,7 @@
   "bad/formatters.yaml": {
     "filePath": "bad/formatters.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -9789,7 +9930,7 @@
   "bad/functions/foreach_no_transform.yaml": {
     "filePath": "bad/functions/foreach_no_transform.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -9877,7 +10018,7 @@
   "bad/functions/import_value.yaml": {
     "filePath": "bad/functions/import_value.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -10004,7 +10145,7 @@
   "bad/functions/relationship_conditions.yaml": {
     "filePath": "bad/functions/relationship_conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -10292,7 +10433,7 @@
   "bad/functions/sub_needed.yaml": {
     "filePath": "bad/functions/sub_needed.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -10680,7 +10821,7 @@
   "bad/functions_base64.yaml": {
     "filePath": "bad/functions_base64.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -10824,7 +10965,7 @@
   "bad/functions_getaz.yaml": {
     "filePath": "bad/functions_getaz.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -11324,7 +11465,7 @@
   "bad/functions_join.yaml": {
     "filePath": "bad/functions_join.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -11528,7 +11669,7 @@
   "bad/functions_ref.yaml": {
     "filePath": "bad/functions_ref.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -12136,7 +12277,7 @@
   "bad/functions_select.yaml": {
     "filePath": "bad/functions_select.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -12647,7 +12788,7 @@
   "bad/generic.yaml": {
     "filePath": "bad/generic.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 19,
@@ -14326,7 +14467,7 @@
   "bad/hard_coded_arn_properties.yaml": {
     "filePath": "bad/hard_coded_arn_properties.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -14571,7 +14712,7 @@
   "bad/hardcoded_partition.yaml": {
     "filePath": "bad/hardcoded_partition.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -14724,7 +14865,7 @@
   "bad/iam_bad_statement.yaml": {
     "filePath": "bad/iam_bad_statement.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -14786,7 +14927,7 @@
   "bad/iam_ref_with_path.yaml": {
     "filePath": "bad/iam_ref_with_path.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -14905,7 +15046,7 @@
   "bad/iam_wildcard_all_types.yaml": {
     "filePath": "bad/iam_wildcard_all_types.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -15001,7 +15142,7 @@
   "bad/if_wrong_arity.yaml": {
     "filePath": "bad/if_wrong_arity.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -15145,7 +15286,7 @@
   "bad/invalid_deletion_policy.yaml": {
     "filePath": "bad/invalid_deletion_policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -15239,7 +15380,7 @@
   "bad/invalid_mapping_structure.yaml": {
     "filePath": "bad/invalid_mapping_structure.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -15324,7 +15465,7 @@
   "bad/invalid_update_replace_policy.yaml": {
     "filePath": "bad/invalid_update_replace_policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -15418,7 +15559,7 @@
   "bad/issues.yaml": {
     "filePath": "bad/issues.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -15562,7 +15703,7 @@
   "bad/json_parse.json": {
     "filePath": "bad/json_parse.json",
     "status": "ERROR",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -15619,7 +15760,7 @@
   "bad/lambda_no_snapstart.yaml": {
     "filePath": "bad/lambda_no_snapstart.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -15752,7 +15893,7 @@
   "bad/lambda_snapstart_bad_runtime.yaml": {
     "filePath": "bad/lambda_snapstart_bad_runtime.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -15902,7 +16043,7 @@
   "bad/lambda_snapstart_no_version.yaml": {
     "filePath": "bad/lambda_snapstart_no_version.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -16014,7 +16155,7 @@
   "bad/lambda_sqs_timeout.yaml": {
     "filePath": "bad/lambda_sqs_timeout.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -16249,7 +16390,7 @@
   "bad/lambda_zip_no_handler.yaml": {
     "filePath": "bad/lambda_zip_no_handler.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -16417,7 +16558,7 @@
   "bad/lambda_zipfile_java.yaml": {
     "filePath": "bad/lambda_zipfile_java.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -16566,7 +16707,7 @@
   "bad/mappings/name.yaml": {
     "filePath": "bad/mappings/name.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -16638,7 +16779,7 @@
   "bad/mappings/used.yaml": {
     "filePath": "bad/mappings/used.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -16794,7 +16935,7 @@
   "bad/module_with_tags.yaml": {
     "filePath": "bad/module_with_tags.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -16855,7 +16996,7 @@
   "bad/modules/bad_has_create_policy.yaml": {
     "filePath": "bad/modules/bad_has_create_policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -16916,7 +17057,7 @@
   "bad/modules/bad_has_tags.yaml": {
     "filePath": "bad/modules/bad_has_tags.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -16977,7 +17118,7 @@
   "bad/modules/bad_has_update_policy.yaml": {
     "filePath": "bad/modules/bad_has_update_policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -17038,7 +17179,7 @@
   "bad/modules/bad_uses_module_metadata.yaml": {
     "filePath": "bad/modules/bad_uses_module_metadata.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -17081,7 +17222,7 @@
   "bad/noecho.yaml": {
     "filePath": "bad/noecho.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -17197,7 +17338,7 @@
   "bad/not_cloudformation.yaml": {
     "filePath": "bad/not_cloudformation.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -17260,7 +17401,7 @@
   "bad/opensearch_instance_type.yaml": {
     "filePath": "bad/opensearch_instance_type.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -17421,7 +17562,7 @@
   "bad/override/complete.yaml": {
     "filePath": "bad/override/complete.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -17676,7 +17817,7 @@
   "bad/override/exclude.yaml": {
     "filePath": "bad/override/exclude.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -17774,7 +17915,7 @@
   "bad/override/include.yaml": {
     "filePath": "bad/override/include.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -17947,7 +18088,7 @@
   "bad/override/required.yaml": {
     "filePath": "bad/override/required.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -18030,7 +18171,7 @@
   "bad/param_constraints.yaml": {
     "filePath": "bad/param_constraints.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -18212,7 +18353,7 @@
   "bad/param_number_default.yaml": {
     "filePath": "bad/param_number_default.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -18326,7 +18467,7 @@
   "bad/parameters/configuration.yaml": {
     "filePath": "bad/parameters/configuration.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -18793,7 +18934,7 @@
   "bad/parameters/default.yaml": {
     "filePath": "bad/parameters/default.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -19137,7 +19278,7 @@
   "bad/pipeline_no_source_first_stage.yaml": {
     "filePath": "bad/pipeline_no_source_first_stage.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -19329,7 +19470,7 @@
   "bad/previous_gen_instance.yaml": {
     "filePath": "bad/previous_gen_instance.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -19447,7 +19588,7 @@
   "bad/previous_generation_instances.yaml": {
     "filePath": "bad/previous_generation_instances.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -19989,7 +20130,7 @@
   "bad/properties_ebs.yaml": {
     "filePath": "bad/properties_ebs.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -20379,7 +20520,7 @@
   "bad/properties_password.yaml": {
     "filePath": "bad/properties_password.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -20891,7 +21032,7 @@
   "bad/properties_rt_association.yaml": {
     "filePath": "bad/properties_rt_association.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -21424,7 +21565,7 @@
   "bad/properties_sg_ingress.yaml": {
     "filePath": "bad/properties_sg_ingress.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 9,
@@ -22329,7 +22470,7 @@
   "bad/rds_public.yaml": {
     "filePath": "bad/rds_public.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -22517,7 +22658,7 @@
   "bad/redshift_internet_accessible.yaml": {
     "filePath": "bad/redshift_internet_accessible.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -22827,7 +22968,7 @@
   "bad/refs.yaml": {
     "filePath": "bad/refs.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -23163,7 +23304,7 @@
   "bad/resource_policy_no_statement.yaml": {
     "filePath": "bad/resource_policy_no_statement.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -23275,7 +23416,7 @@
   "bad/resources/backup/test_backup_plan_lifecycle_rule.yml": {
     "filePath": "bad/resources/backup/test_backup_plan_lifecycle_rule.yml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -23318,7 +23459,7 @@
   "bad/resources/cloudformation/stack_nested.yaml": {
     "filePath": "bad/resources/cloudformation/stack_nested.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -23404,14 +23545,14 @@
   "bad/resources/cloudformation/stacks.yaml": {
     "filePath": "bad/resources/cloudformation/stacks.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 5,
+        "warnings": 2,
         "informational": 6,
         "debug": 0
       },
@@ -23511,57 +23652,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "Stack3",
-        "resourceType": "AWS::CloudFormation::Stack",
-        "propertyPath": "Properties.Parameters.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 3,
-        "endLine": 15,
-        "endColumn": 9,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'IsUsWest2' to True",
-        "source": "CFN_LINT",
-        "resourceId": "Stack3",
-        "resourceType": "AWS::CloudFormation::Stack",
-        "propertyPath": "Properties.Parameters.Fn::If.2.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 3,
-        "endLine": 15,
-        "endColumn": 9,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsWest2' to False. Where existing status for condition 'IsUsEast1' is False",
-        "source": "CFN_LINT",
-        "resourceId": "Stack3",
-        "resourceType": "AWS::CloudFormation::Stack",
-        "propertyPath": "Properties.Parameters.Fn::If.2.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 3,
-        "endLine": 15,
-        "endColumn": 9,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "W3002",
         "severity": "WARN",
         "message": "This code may only work with 'package' cli command",
@@ -23633,7 +23723,7 @@
   "bad/resources/codepipeline/stages_second_stage.yaml": {
     "filePath": "bad/resources/codepipeline/stages_second_stage.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -23811,7 +23901,7 @@
   "bad/resources/dynamodb/undefined_attribute_definition.yaml": {
     "filePath": "bad/resources/dynamodb/undefined_attribute_definition.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -23923,7 +24013,7 @@
   "bad/resources/dynamodb/unused_attribute_definition_1.yaml": {
     "filePath": "bad/resources/dynamodb/unused_attribute_definition_1.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -24017,7 +24107,7 @@
   "bad/resources/dynamodb/unused_attribute_definition_2.yaml": {
     "filePath": "bad/resources/dynamodb/unused_attribute_definition_2.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -24111,7 +24201,7 @@
   "bad/resources/elasticache/cache_cluster_failover.yaml": {
     "filePath": "bad/resources/elasticache/cache_cluster_failover.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -24709,7 +24799,7 @@
   "bad/resources/iam/iam_policy.yaml": {
     "filePath": "bad/resources/iam/iam_policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -24991,7 +25081,7 @@
   "bad/resources/iam/managed_policy_description.yaml": {
     "filePath": "bad/resources/iam/managed_policy_description.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -25056,7 +25146,7 @@
   "bad/resources/iam/ref_with_path.yaml": {
     "filePath": "bad/resources/iam/ref_with_path.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -25333,7 +25423,7 @@
   "bad/resources/iam/resource_policy.yaml": {
     "filePath": "bad/resources/iam/resource_policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -25413,7 +25503,7 @@
   "bad/resources/lambda/function_property_value_limits.yaml": {
     "filePath": "bad/resources/lambda/function_property_value_limits.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -25781,7 +25871,7 @@
   "bad/resources/lambda/required_properties.yaml": {
     "filePath": "bad/resources/lambda/required_properties.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -26121,7 +26211,7 @@
   "bad/resources/name.yaml": {
     "filePath": "bad/resources/name.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -26359,14 +26449,14 @@
   "bad/resources/primary_identifiers.yaml": {
     "filePath": "bad/resources/primary_identifiers.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
         "errors": 8,
-        "warnings": 4,
+        "warnings": 0,
         "informational": 25,
         "debug": 0
       },
@@ -26724,23 +26814,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "RootRole5",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties.RoleName.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 97,
-        "startColumn": 3,
-        "endLine": 97,
-        "endColumn": 12,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Path' is create-only; updating it will cause resource replacement",
@@ -26815,23 +26888,6 @@
         "endLine": 119,
         "endColumn": 12,
         "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "RootRole6",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties.RoleName.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 119,
-        "startColumn": 3,
-        "endLine": 119,
-        "endColumn": 12,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -26914,23 +26970,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "Bucket1",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.Fn::If.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 141,
-        "startColumn": 3,
-        "endLine": 141,
-        "endColumn": 10,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured",
@@ -26962,23 +27001,6 @@
         "endLine": 148,
         "endColumn": 10,
         "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "Bucket2",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.BucketName.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 148,
-        "startColumn": 3,
-        "endLine": 148,
-        "endColumn": 10,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -27102,14 +27124,14 @@
   "bad/resources/properties/atleastone.yaml": {
     "filePath": "bad/resources/properties/atleastone.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
         "errors": 2,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 0,
         "debug": 0
       },
@@ -27196,23 +27218,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'cPrimaryRegion' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "myPolicy2",
-        "resourceType": "AWS::IAM::Policy",
-        "propertyPath": "Properties.Fn::If.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 3,
-        "endLine": 15,
-        "endColumn": 12,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "F3017",
         "severity": "FATAL",
         "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy",
@@ -27238,7 +27243,7 @@
   "bad/resources/properties/custom.yaml": {
     "filePath": "bad/resources/properties/custom.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -27281,7 +27286,7 @@
   "bad/resources/properties/list_duplicates.yaml": {
     "filePath": "bad/resources/properties/list_duplicates.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -27403,14 +27408,14 @@
   "bad/resources/properties/primitive_types_map.yaml": {
     "filePath": "bad/resources/properties/primitive_types_map.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
         "errors": 0,
-        "warnings": 5,
+        "warnings": 4,
         "informational": 4,
         "debug": 0
       },
@@ -27572,23 +27577,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "ExampleLambda1",
-        "resourceType": "AWS::Lambda::Function",
-        "propertyPath": "Properties.Environment.Variables.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 23,
-        "startColumn": 3,
-        "endLine": 23,
-        "endColumn": 17,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "W2531",
         "severity": "WARN",
         "message": "Runtime 'nodejs18.x' is deprecated",
@@ -27661,7 +27649,7 @@
   "bad/resources/properties/string_size.yaml": {
     "filePath": "bad/resources/properties/string_size.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -27801,7 +27789,7 @@
   "bad/resources/properties/templated_code.yaml": {
     "filePath": "bad/resources/properties/templated_code.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -27961,7 +27949,7 @@
   "bad/resources/rds/instance_sizes.yaml": {
     "filePath": "bad/resources/rds/instance_sizes.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
@@ -28695,7 +28683,7 @@
   "bad/resources/s3/access-control-obsolete.yaml": {
     "filePath": "bad/resources/s3/access-control-obsolete.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -28835,7 +28823,7 @@
   "bad/resources/sns/topic_name.yaml": {
     "filePath": "bad/resources/sns/topic_name.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -28943,7 +28931,7 @@
   "bad/resources/uniqueNames.yaml": {
     "filePath": "bad/resources/uniqueNames.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -29036,7 +29024,7 @@
   "bad/resources_circular_dependency.yaml": {
     "filePath": "bad/resources_circular_dependency.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 11,
@@ -30329,7 +30317,7 @@
   "bad/resources_circular_dependency_2.yaml": {
     "filePath": "bad/resources_circular_dependency_2.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 9,
@@ -30751,7 +30739,7 @@
   "bad/resources_circular_dependency_dependson.yaml": {
     "filePath": "bad/resources_circular_dependency_dependson.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -30863,7 +30851,7 @@
   "bad/resources_cloudfront_invalid_aliases.yaml": {
     "filePath": "bad/resources_cloudfront_invalid_aliases.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -31081,7 +31069,7 @@
   "bad/resources_cognito_userpool_tag_is_list.yaml": {
     "filePath": "bad/resources_cognito_userpool_tag_is_list.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -31188,7 +31176,7 @@
   "bad/resources_deletionpolicy.yaml": {
     "filePath": "bad/resources_deletionpolicy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -31625,7 +31613,7 @@
   "bad/resources_iam_instanceprofile_roles.yaml": {
     "filePath": "bad/resources_iam_instanceprofile_roles.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -31693,7 +31681,7 @@
   "bad/resources_updatereplacepolicy.yaml": {
     "filePath": "bad/resources_updatereplacepolicy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -32162,14 +32150,14 @@
   "bad/route53.yaml": {
     "filePath": "bad/route53.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
         "errors": 28,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 20,
         "debug": 0
       },
@@ -32613,23 +32601,6 @@
         "context": {
           "lifecycle": "create-only"
         }
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'isPrimaryRegion' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "MyCNAMERecordSetConditions",
-        "resourceType": "AWS::Route53::RecordSet",
-        "propertyPath": "Properties.ResourceRecords.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 83,
-        "startColumn": 3,
-        "endLine": 83,
-        "endColumn": 29,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "I9001",
@@ -33107,7 +33078,7 @@
   "bad/s3_tiering_bad_days.yaml": {
     "filePath": "bad/s3_tiering_bad_days.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -33187,7 +33158,7 @@
   "bad/sagemaker_instance_types.yaml": {
     "filePath": "bad/sagemaker_instance_types.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -34152,7 +34123,7 @@
   "bad/schema_additional_props.yaml": {
     "filePath": "bad/schema_additional_props.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -34342,7 +34313,7 @@
   "bad/schema_composition.yaml": {
     "filePath": "bad/schema_composition.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -34509,7 +34480,7 @@
   "bad/schema_conditional_type.yaml": {
     "filePath": "bad/schema_conditional_type.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -34615,7 +34586,7 @@
   "bad/schema_enum_violation.yaml": {
     "filePath": "bad/schema_enum_violation.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -34786,7 +34757,7 @@
   "bad/schema_format_violation.yaml": {
     "filePath": "bad/schema_format_violation.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -34970,7 +34941,7 @@
   "bad/schema_lifecycle.yaml": {
     "filePath": "bad/schema_lifecycle.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -35353,7 +35324,7 @@
   "bad/schema_numeric_bounds.yaml": {
     "filePath": "bad/schema_numeric_bounds.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -35510,7 +35481,7 @@
   "bad/schema_property_constraints.yaml": {
     "filePath": "bad/schema_property_constraints.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -35842,7 +35813,7 @@
   "bad/schema_string_length.yaml": {
     "filePath": "bad/schema_string_length.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -35956,7 +35927,7 @@
   "bad/schema_structural.yaml": {
     "filePath": "bad/schema_structural.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -36318,7 +36289,7 @@
   "bad/schema_type_mismatch.yaml": {
     "filePath": "bad/schema_type_mismatch.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -36460,7 +36431,7 @@
   "bad/schema_unique_items.yaml": {
     "filePath": "bad/schema_unique_items.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -36568,7 +36539,7 @@
   "bad/schema_write_only.yaml": {
     "filePath": "bad/schema_write_only.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -36703,7 +36674,7 @@
   "bad/security_issues.yaml": {
     "filePath": "bad/security_issues.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -36821,7 +36792,7 @@
   "bad/sg_bad_port_range.yaml": {
     "filePath": "bad/sg_bad_port_range.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -36931,7 +36902,7 @@
   "bad/sg_open_egress.yaml": {
     "filePath": "bad/sg_open_egress.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -37031,7 +37002,7 @@
   "bad/simple_sub_param.yaml": {
     "filePath": "bad/simple_sub_param.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -37131,7 +37102,7 @@
   "bad/sns_cross_account.yaml": {
     "filePath": "bad/sns_cross_account.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -37214,7 +37185,7 @@
   "bad/some_logs_stream_lambda.yaml": {
     "filePath": "bad/some_logs_stream_lambda.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
@@ -37690,7 +37661,7 @@
   "bad/sqs_fifo_no_suffix.yaml": {
     "filePath": "bad/sqs_fifo_no_suffix.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -37883,7 +37854,7 @@
   "bad/sqs_fifo_standard_dlq.yaml": {
     "filePath": "bad/sqs_fifo_standard_dlq.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -38141,7 +38112,7 @@
   "bad/ssm_document_invalid.yaml": {
     "filePath": "bad/ssm_document_invalid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -38241,7 +38212,7 @@
   "bad/stepfunctions_bad_start_at.yaml": {
     "filePath": "bad/stepfunctions_bad_start_at.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -38369,7 +38340,7 @@
   "bad/stepfunctions_invalid_state.yaml": {
     "filePath": "bad/stepfunctions_invalid_state.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -38514,7 +38485,7 @@
   "bad/string.yaml": {
     "filePath": "bad/string.yaml",
     "status": "ERROR",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -38571,7 +38542,7 @@
   "bad/sub_needed.yaml": {
     "filePath": "bad/sub_needed.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -38685,7 +38656,7 @@
   "bad/sub_nested_intrinsic.yaml": {
     "filePath": "bad/sub_nested_intrinsic.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -38795,7 +38766,7 @@
   "bad/subnet_outside_vpc.yaml": {
     "filePath": "bad/subnet_outside_vpc.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -38953,7 +38924,7 @@
   "bad/subnet_overlap.yaml": {
     "filePath": "bad/subnet_overlap.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -39264,7 +39235,7 @@
   "bad/subnet_overlap_multi.yaml": {
     "filePath": "bad/subnet_overlap_multi.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -39858,7 +39829,7 @@
   "bad/template.yaml": {
     "filePath": "bad/template.yaml",
     "status": "ERROR",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -39911,7 +39882,7 @@
   "bad/templates/base.yaml": {
     "filePath": "bad/templates/base.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -39984,7 +39955,7 @@
   "bad/templates/base_date.yaml": {
     "filePath": "bad/templates/base_date.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -40057,7 +40028,7 @@
   "bad/templates/base_null.yaml": {
     "filePath": "bad/templates/base_null.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -40115,7 +40086,7 @@
   "bad/transform/auto_publish_alias.yaml": {
     "filePath": "bad/transform/auto_publish_alias.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -40191,7 +40162,7 @@
   "bad/transform/no_properties.yaml": {
     "filePath": "bad/transform/no_properties.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -40271,7 +40242,7 @@
   "bad/transform_serverless_auto_publish_alias.yaml": {
     "filePath": "bad/transform_serverless_auto_publish_alias.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -40331,7 +40302,7 @@
   "bad/transform_serverless_template.yaml": {
     "filePath": "bad/transform_serverless_template.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -40423,7 +40394,7 @@
   "bad/undefined_condition.yaml": {
     "filePath": "bad/undefined_condition.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -40501,7 +40472,7 @@
   "bad/unique_items.yaml": {
     "filePath": "bad/unique_items.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -40604,7 +40575,7 @@
   "bad/unknown_properties.yaml": {
     "filePath": "bad/unknown_properties.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -40758,10 +40729,154 @@
       }
     ]
   },
+  "good/E9001_aws_cdk_metadata.yaml": {
+    "filePath": "good/E9001_aws_cdk_metadata.yaml",
+    "status": "OK",
+    "engineVersion": "1.2.0",
+    "metadata": {
+      "rulesEvaluated": 273,
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 9,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 9,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/W1028_pseudo_param_branches_reachable.yaml": {
+    "filePath": "good/W1028_pseudo_param_branches_reachable.yaml",
+    "status": "OK",
+    "engineVersion": "1.2.0",
+    "metadata": {
+      "rulesEvaluated": 273,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'KubectlHandlerRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "KubectlHandlerRole",
+        "resourceType": "AWS::IAM::Role",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 3,
+        "endLine": 19,
+        "endColumn": 21,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "good/W3010_getazs_not_flagged.yaml": {
     "filePath": "good/W3010_getazs_not_flagged.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -40901,7 +41016,7 @@
   "good/aurora_dbinstance.yaml": {
     "filePath": "good/aurora_dbinstance.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -41051,7 +41166,7 @@
   "good/both_forms.yaml": {
     "filePath": "good/both_forms.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 13,
@@ -41199,7 +41314,7 @@
   "good/cdk_bootstrap_version_rule.json": {
     "filePath": "good/cdk_bootstrap_version_rule.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -41261,7 +41376,7 @@
   "good/cloudfront_valid.yaml": {
     "filePath": "good/cloudfront_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -41343,7 +41458,7 @@
   "good/codepipeline_artifact_counts.yaml": {
     "filePath": "good/codepipeline_artifact_counts.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -41454,7 +41569,7 @@
   "good/complex_conditions.yaml": {
     "filePath": "good/complex_conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -41698,14 +41813,14 @@
   "good/conditions.yaml": {
     "filePath": "good/conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
         "errors": 2,
-        "warnings": 3,
+        "warnings": 2,
         "informational": 2,
         "debug": 0
       },
@@ -41822,23 +41937,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'PrimaryRegion' to False. Where existing status for condition 'EnableGeoBlockingAlias' is True",
-        "source": "CFN_LINT",
-        "resourceId": "CloudFrontDistribution",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.Locations.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 40,
-        "startColumn": 3,
-        "endLine": 40,
-        "endColumn": 25,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "W9009",
         "severity": "WARN",
         "message": "Property 'DistributionConfig' is deprecated",
@@ -41881,7 +41979,7 @@
   "good/conditions/and.yaml": {
     "filePath": "good/conditions/and.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -41943,14 +42041,14 @@
   "good/core/conditions.yaml": {
     "filePath": "good/core/conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 0,
-        "warnings": 13,
+        "warnings": 12,
         "informational": 15,
         "debug": 0
       },
@@ -42434,23 +42532,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "AMIIDLookup",
-        "resourceType": "AWS::Lambda::Function",
-        "propertyPath": "Properties.Role.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 100,
-        "startColumn": 3,
-        "endLine": 100,
-        "endColumn": 14,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "W2531",
         "severity": "WARN",
         "message": "Runtime 'nodejs18.x' is deprecated",
@@ -42485,13 +42566,34 @@
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Role' is a required property",
+        "source": "SCHEMA",
+        "resourceId": "AMIIDLookup",
+        "resourceType": "AWS::Lambda::Function",
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'Role'",
+        "category": "Schema",
+        "startLine": 102,
+        "startColumn": 5,
+        "endLine": 102,
+        "endColumn": 15,
+        "conditionScenario": {
+          "isPrimary": false
+        },
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA",
+        "section": "Resources"
       }
     ]
   },
   "good/core/config_cfn_lint.json": {
     "filePath": "good/core/config_cfn_lint.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -42549,7 +42651,7 @@
   "good/core/config_cfn_lint.yaml": {
     "filePath": "good/core/config_cfn_lint.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -42607,7 +42709,7 @@
   "good/core/config_default_e3012.yaml": {
     "filePath": "good/core/config_default_e3012.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -42706,7 +42808,7 @@
   "good/core/config_only_i1002.yaml": {
     "filePath": "good/core/config_only_i1002.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -42764,7 +42866,7 @@
   "good/core/config_only_i1003.yaml": {
     "filePath": "good/core/config_only_i1003.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -42822,7 +42924,7 @@
   "good/core/config_parameters.yaml": {
     "filePath": "good/core/config_parameters.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -42880,7 +42982,7 @@
   "good/core/directives.yaml": {
     "filePath": "good/core/directives.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -42974,7 +43076,7 @@
   "good/custom/is-defined.yaml": {
     "filePath": "good/custom/is-defined.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -43528,7 +43630,7 @@
   "good/custom/is-not-defined.yaml": {
     "filePath": "good/custom/is-not-defined.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -43927,7 +44029,7 @@
   "good/custom/numeric-inequalities-large.yaml": {
     "filePath": "good/custom/numeric-inequalities-large.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -44175,7 +44277,7 @@
   "good/custom/numeric-inequalities-small.yaml": {
     "filePath": "good/custom/numeric-inequalities-small.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -44423,7 +44525,7 @@
   "good/decode/parsing.json": {
     "filePath": "good/decode/parsing.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -44495,7 +44597,7 @@
   "good/deletion_policies.yaml": {
     "filePath": "good/deletion_policies.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -44678,7 +44780,7 @@
   "good/dynamodb_provisioned.yaml": {
     "filePath": "good/dynamodb_provisioned.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -44792,7 +44894,7 @@
   "good/dynamodb_valid_attributes.yaml": {
     "filePath": "good/dynamodb_valid_attributes.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -44906,7 +45008,7 @@
   "good/ecs_awsvpc_valid.yaml": {
     "filePath": "good/ecs_awsvpc_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -45010,7 +45112,7 @@
   "good/ecs_fargate.yaml": {
     "filePath": "good/ecs_fargate.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -45216,7 +45318,7 @@
   "good/ecs_fargate_valid.yaml": {
     "filePath": "good/ecs_fargate_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -45404,7 +45506,7 @@
   "good/functions/foreach.yaml": {
     "filePath": "good/functions/foreach.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -45492,7 +45594,7 @@
   "good/functions/ref.yaml": {
     "filePath": "good/functions/ref.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -45535,7 +45637,7 @@
   "good/functions/relationship_conditions.yaml": {
     "filePath": "good/functions/relationship_conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -45695,7 +45797,7 @@
   "good/functions/relationship_conditions_sam.yaml": {
     "filePath": "good/functions/relationship_conditions_sam.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -45815,7 +45917,7 @@
   "good/functions/sub.yaml": {
     "filePath": "good/functions/sub.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -46334,7 +46436,7 @@
   "good/functions/sub_needed.yaml": {
     "filePath": "good/functions/sub_needed.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -46707,7 +46809,7 @@
   "good/functions/sub_needed_custom_excludes.yaml": {
     "filePath": "good/functions/sub_needed_custom_excludes.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -46823,7 +46925,7 @@
   "good/functions/sub_needed_transform.yaml": {
     "filePath": "good/functions/sub_needed_transform.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -46866,7 +46968,7 @@
   "good/functions_findinmap.yaml": {
     "filePath": "good/functions_findinmap.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -47030,7 +47132,7 @@
   "good/functions_findinmap_default_value.yaml": {
     "filePath": "good/functions_findinmap_default_value.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 9,
@@ -47496,7 +47598,7 @@
   "good/functions_findinmap_enhanced.yaml": {
     "filePath": "good/functions_findinmap_enhanced.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -47894,7 +47996,7 @@
   "good/generic.yaml": {
     "filePath": "good/generic.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 13,
@@ -48315,7 +48417,7 @@
   "good/iam_valid.yaml": {
     "filePath": "good/iam_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -48394,7 +48496,7 @@
   "good/lambda_snapstart.yaml": {
     "filePath": "good/lambda_snapstart.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -48526,7 +48628,7 @@
   "good/lambda_zipfile.yaml": {
     "filePath": "good/lambda_zipfile.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -48657,7 +48759,7 @@
   "good/mappings/name.yaml": {
     "filePath": "good/mappings/name.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -48729,7 +48831,7 @@
   "good/mappings/used.yaml": {
     "filePath": "good/mappings/used.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -48886,7 +48988,7 @@
   "good/mappings_valid.yaml": {
     "filePath": "good/mappings_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -48962,7 +49064,7 @@
   "good/minimal.yaml": {
     "filePath": "good/minimal.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -49024,7 +49126,7 @@
   "good/modules/minimal.yaml": {
     "filePath": "good/modules/minimal.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -49086,7 +49188,7 @@
   "good/no_value.yaml": {
     "filePath": "good/no_value.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -49494,7 +49596,7 @@
   "good/no_w3010_on_unlisted_type.yaml": {
     "filePath": "good/no_w3010_on_unlisted_type.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -49682,7 +49784,7 @@
   "good/override/complete.yaml": {
     "filePath": "good/override/complete.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -49858,7 +49960,7 @@
   "good/override/required.yaml": {
     "filePath": "good/override/required.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -49940,7 +50042,7 @@
   "good/param_constraints_valid.yaml": {
     "filePath": "good/param_constraints_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -50030,7 +50132,7 @@
   "good/parameters/default.yaml": {
     "filePath": "good/parameters/default.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -50312,7 +50414,7 @@
   "good/parameters/not_used_parameters.yaml": {
     "filePath": "good/parameters/not_used_parameters.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -50528,7 +50630,7 @@
   "good/parameters/used_transform_language_extension.json": {
     "filePath": "good/parameters/used_transform_language_extension.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -50642,7 +50744,7 @@
   "good/parameters/used_transform_removed.yaml": {
     "filePath": "good/parameters/used_transform_removed.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -50746,7 +50848,7 @@
   "good/parameters/used_transforms.yaml": {
     "filePath": "good/parameters/used_transforms.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -50948,7 +51050,7 @@
   "good/properties_ec2_vpc.yaml": {
     "filePath": "good/properties_ec2_vpc.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -51384,7 +51486,7 @@
   "good/properties_rt_association.yaml": {
     "filePath": "good/properties_rt_association.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -51833,7 +51935,7 @@
   "good/redshift_private.yaml": {
     "filePath": "good/redshift_private.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -52164,7 +52266,7 @@
   "good/resources/backup/test_backup_plan_lifecycle_rule.yml": {
     "filePath": "good/resources/backup/test_backup_plan_lifecycle_rule.yml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -52207,7 +52309,7 @@
   "good/resources/cloudformation/nested_stack_dynamic.yaml": {
     "filePath": "good/resources/cloudformation/nested_stack_dynamic.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -52269,7 +52371,7 @@
   "good/resources/cloudformation/stack_nested.yaml": {
     "filePath": "good/resources/cloudformation/stack_nested.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -52355,14 +52457,14 @@
   "good/resources/cloudformation/stacks.yaml": {
     "filePath": "good/resources/cloudformation/stacks.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 7,
+        "warnings": 5,
         "informational": 15,
         "debug": 0
       },
@@ -52648,45 +52750,11 @@
       {
         "ruleId": "W1028",
         "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "Stack3",
-        "resourceType": "AWS::CloudFormation::Stack",
-        "propertyPath": "Properties.Parameters.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 38,
-        "startColumn": 3,
-        "endLine": 38,
-        "endColumn": 9,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
         "message": "['Fn::If', 1] is not reachable. When setting condition 'IsUsEast1' to True",
         "source": "CFN_LINT",
         "resourceId": "Stack3",
         "resourceType": "AWS::CloudFormation::Stack",
         "propertyPath": "Properties.Parameters.Fn::If.2.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 38,
-        "startColumn": 3,
-        "endLine": 38,
-        "endColumn": 9,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "Stack3",
-        "resourceType": "AWS::CloudFormation::Stack",
-        "propertyPath": "Properties.Parameters.Fn::If.2.Fn::If.2",
         "category": "Best Practice",
         "startLine": 38,
         "startColumn": 3,
@@ -52768,7 +52836,7 @@
   "good/resources/cloudfront/aliases.yaml": {
     "filePath": "good/resources/cloudfront/aliases.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -52850,14 +52918,14 @@
   "good/resources/dynamodb/attributes.yaml": {
     "filePath": "good/resources/dynamodb/attributes.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 0,
         "informational": 6,
         "debug": 0
       },
@@ -52940,40 +53008,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "DDBTable2",
-        "resourceType": "AWS::DynamoDB::Table",
-        "propertyPath": "Properties.AttributeDefinitions.2.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 35,
-        "startColumn": 3,
-        "endLine": 35,
-        "endColumn": 12,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "DDBTable2",
-        "resourceType": "AWS::DynamoDB::Table",
-        "propertyPath": "Properties.GlobalSecondaryIndexes.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 35,
-        "startColumn": 3,
-        "endLine": 35,
-        "endColumn": 12,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I3011",
         "severity": "INFO",
         "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
@@ -53028,14 +53062,14 @@
   "good/resources/elasticache/cache_cluster_failover.yaml": {
     "filePath": "good/resources/elasticache/cache_cluster_failover.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 10,
       "counts": {
         "fatal": 0,
         "errors": 3,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 44,
         "debug": 0
       },
@@ -53571,23 +53605,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsTesting' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "FourthReplicationGroup",
-        "resourceType": "AWS::ElastiCache::ReplicationGroup",
-        "propertyPath": "Properties.NumNodeGroups.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 107,
-        "startColumn": 3,
-        "endLine": 107,
-        "endColumn": 25,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I3011",
         "severity": "INFO",
         "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
@@ -53964,7 +53981,7 @@
   "good/resources/iam/instance_profile.yaml": {
     "filePath": "good/resources/iam/instance_profile.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -54108,7 +54125,7 @@
   "good/resources/iam/managed_policy_description.yaml": {
     "filePath": "good/resources/iam/managed_policy_description.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -54173,7 +54190,7 @@
   "good/resources/iam/policy.yaml": {
     "filePath": "good/resources/iam/policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -54255,7 +54272,7 @@
   "good/resources/iam/ref_with_path.yaml": {
     "filePath": "good/resources/iam/ref_with_path.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -54514,7 +54531,7 @@
   "good/resources/iam/resource_policy.yaml": {
     "filePath": "good/resources/iam/resource_policy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -54576,7 +54593,7 @@
   "good/resources/lambda/required_properties.yaml": {
     "filePath": "good/resources/lambda/required_properties.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -54826,7 +54843,7 @@
   "good/resources/name.yaml": {
     "filePath": "good/resources/name.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -54950,14 +54967,14 @@
   "good/resources/primary_identifiers.yaml": {
     "filePath": "good/resources/primary_identifiers.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 17,
         "debug": 0
       },
@@ -55170,23 +55187,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "Bucket1",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.Fn::If.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 75,
-        "startColumn": 3,
-        "endLine": 75,
-        "endColumn": 10,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured",
@@ -55347,7 +55347,7 @@
   "good/resources/properties/allowed_pattern.yaml": {
     "filePath": "good/resources/properties/allowed_pattern.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -55451,13 +55451,13 @@
   "good/resources/properties/az_cdk.yaml": {
     "filePath": "good/resources/properties/az_cdk.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
-        "errors": 3,
+        "errors": 2,
         "warnings": 1,
         "informational": 3,
         "debug": 0
@@ -55490,27 +55490,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "E9001",
-        "severity": "ERROR",
-        "message": "Unknown resource type 'AWS::CDK::Metadata'",
-        "source": "ENGINE",
-        "resourceId": "CdkMetadata",
-        "resourceType": "AWS::CDK::Metadata",
-        "category": "Resource",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 14,
-        "ruleDescription": "Resource type must be recognized",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "resource_type": "AWS::CDK::Metadata"
-          }
-        }
-      },
       {
         "ruleId": "E1151",
         "severity": "ERROR",
@@ -55648,7 +55627,7 @@
   "good/resources/properties/custom.yaml": {
     "filePath": "good/resources/properties/custom.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -55691,7 +55670,7 @@
   "good/resources/properties/exclusive.yaml": {
     "filePath": "good/resources/properties/exclusive.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -55897,7 +55876,7 @@
   "good/resources/properties/hard_coded_arn_properties.yaml": {
     "filePath": "good/resources/properties/hard_coded_arn_properties.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -56032,13 +56011,13 @@
   "good/resources/properties/hard_coded_arn_properties_cdk.yaml": {
     "filePath": "good/resources/properties/hard_coded_arn_properties_cdk.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 0,
         "warnings": 2,
         "informational": 9,
         "debug": 0
@@ -56071,27 +56050,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "E9001",
-        "severity": "ERROR",
-        "message": "Unknown resource type 'AWS::CDK::Metadata'",
-        "source": "ENGINE",
-        "resourceId": "CdkMetadata",
-        "resourceType": "AWS::CDK::Metadata",
-        "category": "Resource",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 14,
-        "ruleDescription": "Resource type must be recognized",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "resource_type": "AWS::CDK::Metadata"
-          }
-        }
-      },
       {
         "ruleId": "W1020",
         "severity": "WARN",
@@ -56298,7 +56256,7 @@
   "good/resources/properties/hard_coded_arn_properties_sam.yaml": {
     "filePath": "good/resources/properties/hard_coded_arn_properties_sam.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -56582,7 +56540,7 @@
   "good/resources/properties/list_duplicates.yaml": {
     "filePath": "good/resources/properties/list_duplicates.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -56761,7 +56719,7 @@
   "good/resources/properties/password.yaml": {
     "filePath": "good/resources/properties/password.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -57247,7 +57205,7 @@
   "good/resources/properties/string_size.yaml": {
     "filePath": "good/resources/properties/string_size.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -57309,7 +57267,7 @@
   "good/resources/properties/templated_code.yaml": {
     "filePath": "good/resources/properties/templated_code.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -57392,7 +57350,7 @@
   "good/resources/properties/templated_code_sam.yaml": {
     "filePath": "good/resources/properties/templated_code_sam.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -57454,7 +57412,7 @@
   "good/resources/rds/instance_sizes.yaml": {
     "filePath": "good/resources/rds/instance_sizes.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -58020,7 +57978,7 @@
   "good/resources/s3/access-control-obsolete.yaml": {
     "filePath": "good/resources/s3/access-control-obsolete.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -58141,14 +58099,14 @@
   "good/resources_codepipeline.yaml": {
     "filePath": "good/resources_codepipeline.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 3,
+        "warnings": 2,
         "informational": 3,
         "debug": 0
       },
@@ -58180,23 +58138,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'myCondition' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "TestPipeline",
-        "resourceType": "AWS::CodePipeline::Pipeline",
-        "propertyPath": "Properties.Stages.2.Actions.0.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 15,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "W9002",
         "severity": "WARN",
@@ -58290,7 +58231,7 @@
   "good/resources_cognito_userpool_tag_is_string_map.yaml": {
     "filePath": "good/resources_cognito_userpool_tag_is_string_map.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -58366,7 +58307,7 @@
   "good/resources_deletionpolicy.yaml": {
     "filePath": "good/resources_deletionpolicy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -58494,7 +58435,7 @@
   "good/resources_updatereplacepolicy.yaml": {
     "filePath": "good/resources_updatereplacepolicy.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -58622,7 +58563,7 @@
   "good/schema_resource.yaml": {
     "filePath": "good/schema_resource.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -58687,7 +58628,7 @@
   "good/schema_valid_resources.yaml": {
     "filePath": "good/schema_valid_resources.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -58787,7 +58728,7 @@
   "good/simple_sub_prefix.yaml": {
     "filePath": "good/simple_sub_prefix.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -58870,7 +58811,7 @@
   "good/some_logs_stream_lambda.yaml": {
     "filePath": "good/some_logs_stream_lambda.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
@@ -59346,7 +59287,7 @@
   "good/sqs_fifo_valid.yaml": {
     "filePath": "good/sqs_fifo_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -59499,7 +59440,7 @@
   "good/ssm_document_valid.yaml": {
     "filePath": "good/ssm_document_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -59582,7 +59523,7 @@
   "good/ssm_parameter_name_type.yaml": {
     "filePath": "good/ssm_parameter_name_type.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -59665,7 +59606,7 @@
   "good/stepfunctions_valid.yaml": {
     "filePath": "good/stepfunctions_valid.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -59776,7 +59717,7 @@
   "good/sub_not_needed.yaml": {
     "filePath": "good/sub_not_needed.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -59859,7 +59800,7 @@
   "good/transform.yaml": {
     "filePath": "good/transform.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -59939,7 +59880,7 @@
   "good/transform/applications_location.yaml": {
     "filePath": "good/transform/applications_location.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -60019,7 +59960,7 @@
   "good/transform/auto_publish_alias.yaml": {
     "filePath": "good/transform/auto_publish_alias.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -60099,7 +60040,7 @@
   "good/transform/auto_publish_code_sha256.yaml": {
     "filePath": "good/transform/auto_publish_code_sha256.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -60161,7 +60102,7 @@
   "good/transform/function_use_s3_uri.yaml": {
     "filePath": "good/transform/function_use_s3_uri.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -60223,7 +60164,7 @@
   "good/transform/function_using_image.yaml": {
     "filePath": "good/transform/function_using_image.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -60285,7 +60226,7 @@
   "good/transform/language_extension.yaml": {
     "filePath": "good/transform/language_extension.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -60625,7 +60566,7 @@
   "good/transform/list_transform.yaml": {
     "filePath": "good/transform/list_transform.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -60687,7 +60628,7 @@
   "good/transform/list_transform_many.yaml": {
     "filePath": "good/transform/list_transform_many.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -60749,7 +60690,7 @@
   "good/transform/list_transform_not_sam.yaml": {
     "filePath": "good/transform/list_transform_not_sam.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -60843,7 +60784,7 @@
   "good/transform/step_function_local_definition.yaml": {
     "filePath": "good/transform/step_function_local_definition.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -60905,7 +60846,7 @@
   "good/transform_serverless_api.yaml": {
     "filePath": "good/transform_serverless_api.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -60985,7 +60926,7 @@
   "good/transform_serverless_auto_publish_alias.yaml": {
     "filePath": "good/transform_serverless_auto_publish_alias.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -61065,7 +61006,7 @@
   "good/transform_serverless_function.yaml": {
     "filePath": "good/transform_serverless_function.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -61163,7 +61104,7 @@
   "good/transform_serverless_globals.yaml": {
     "filePath": "good/transform_serverless_globals.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -61243,7 +61184,7 @@
   "good/vpc_subnets.yaml": {
     "filePath": "good/vpc_subnets.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -61558,7 +61499,7 @@
   "integration/availability-zones.yaml": {
     "filePath": "integration/availability-zones.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -61740,7 +61681,7 @@
   "integration/aws-dynamodb-table.yaml": {
     "filePath": "integration/aws-dynamodb-table.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -61959,7 +61900,7 @@
   "integration/aws-ec2-instance.yaml": {
     "filePath": "integration/aws-ec2-instance.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -62209,7 +62150,7 @@
   "integration/aws-ec2-launchtemplate.yaml": {
     "filePath": "integration/aws-ec2-launchtemplate.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -62411,7 +62352,7 @@
   "integration/aws-ec2-networkinterface.yaml": {
     "filePath": "integration/aws-ec2-networkinterface.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -62537,7 +62478,7 @@
   "integration/aws-ec2-subnet.yaml": {
     "filePath": "integration/aws-ec2-subnet.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -63009,7 +62950,7 @@
   "integration/aws-lambda-function.yaml": {
     "filePath": "integration/aws-lambda-function.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -63110,7 +63051,7 @@
   "integration/cfn-gather.yaml": {
     "filePath": "integration/cfn-gather.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 17,
@@ -64327,7 +64268,7 @@
   "integration/custom-resources.yaml": {
     "filePath": "integration/custom-resources.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -64427,7 +64368,7 @@
   "integration/deployment-file-template.yaml": {
     "filePath": "integration/deployment-file-template.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 3,
@@ -64667,7 +64608,7 @@
   "integration/dynamic-references.yaml": {
     "filePath": "integration/dynamic-references.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -64963,7 +64904,7 @@
   "integration/formats.yaml": {
     "filePath": "integration/formats.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -65404,7 +65345,7 @@
   "integration/getatt-types.yaml": {
     "filePath": "integration/getatt-types.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
@@ -65958,7 +65899,7 @@
   "integration/metdata.yaml": {
     "filePath": "integration/metdata.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 0,
@@ -66030,14 +65971,14 @@
   "integration/ref-no-value.yaml": {
     "filePath": "integration/ref-no-value.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 4,
-        "errors": 5,
-        "warnings": 4,
+        "errors": 7,
+        "warnings": 1,
         "informational": 3,
         "debug": 0
       },
@@ -66124,23 +66065,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "IamRole1",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties.Tags.0.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 11,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'IamRole2' of type 'AWS::IAM::Role' supports Tags but none are configured",
@@ -66192,23 +66116,6 @@
         "endLine": 28,
         "endColumn": 11,
         "ruleDescription": "Validate IAM trust policies",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "IamRole3",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties.Tags.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 3,
-        "endLine": 28,
-        "endColumn": 11,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -66303,19 +66210,38 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'IsUsEast1' to False from current status True",
+        "ruleId": "E3003",
+        "severity": "ERROR",
+        "message": "'TargetOriginId' is a required property",
         "source": "CFN_LINT",
         "resourceId": "CloudFront2",
         "resourceType": "AWS::CloudFront::Distribution",
         "propertyPath": "Properties.DistributionConfig.DefaultCacheBehavior.Fn::If.2",
-        "category": "Best Practice",
+        "suggestedFix": "Add TargetOriginId to the DefaultCacheBehavior",
+        "category": "Resource",
         "startLine": 41,
         "startColumn": 3,
         "endLine": 41,
         "endColumn": 14,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "ruleDescription": "Required Resource properties are missing",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E3003",
+        "severity": "ERROR",
+        "message": "'ViewerProtocolPolicy' is a required property",
+        "source": "CFN_LINT",
+        "resourceId": "CloudFront2",
+        "resourceType": "AWS::CloudFront::Distribution",
+        "propertyPath": "Properties.DistributionConfig.DefaultCacheBehavior.Fn::If.2",
+        "suggestedFix": "Add ViewerProtocolPolicy to the DefaultCacheBehavior",
+        "category": "Resource",
+        "startLine": 41,
+        "startColumn": 3,
+        "endLine": 41,
+        "endColumn": 14,
+        "ruleDescription": "Required Resource properties are missing",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -66362,7 +66288,7 @@
   "integration/ref-types.yaml": {
     "filePath": "integration/ref-types.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 13,
@@ -67281,7 +67207,7 @@
   "integration/resources-cloudformation-init.yaml": {
     "filePath": "integration/resources-cloudformation-init.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -67395,7 +67321,7 @@
   "issues/sam_w_conditions.yaml": {
     "filePath": "issues/sam_w_conditions.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 17,
@@ -68183,7 +68109,7 @@
   "lsp/comprehensive.json": {
     "filePath": "lsp/comprehensive.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 12,
@@ -69018,7 +68944,7 @@
   "lsp/comprehensive.yaml": {
     "filePath": "lsp/comprehensive.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 12,
@@ -69890,7 +69816,7 @@
   "lsp/condition-usage.json": {
     "filePath": "lsp/condition-usage.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 4,
@@ -70219,7 +70145,7 @@
   "lsp/condition-usage.yaml": {
     "filePath": "lsp/condition-usage.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
@@ -70819,7 +70745,7 @@
   "lsp/constants.json": {
     "filePath": "lsp/constants.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -70931,7 +70857,7 @@
   "lsp/constants.yaml": {
     "filePath": "lsp/constants.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -71043,7 +70969,7 @@
   "lsp/parameter_usage.json": {
     "filePath": "lsp/parameter_usage.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -71374,7 +71300,7 @@
   "lsp/parameter_usage.yaml": {
     "filePath": "lsp/parameter_usage.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 7,
@@ -71781,7 +71707,7 @@
   "lsp/simple.json": {
     "filePath": "lsp/simple.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -71843,7 +71769,7 @@
   "lsp/simple.yaml": {
     "filePath": "lsp/simple.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -71905,7 +71831,7 @@
   "lsp/test-template.yaml": {
     "filePath": "lsp/test-template.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -72035,7 +71961,7 @@
   "public/lambda-poller.json": {
     "filePath": "public/lambda-poller.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -72275,7 +72201,7 @@
   "public/lambda-poller.yaml": {
     "filePath": "public/lambda-poller.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -72515,7 +72441,7 @@
   "public/rds-cluster.yaml": {
     "filePath": "public/rds-cluster.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 1,
@@ -72686,7 +72612,7 @@
   "public/watchmaker.json": {
     "filePath": "public/watchmaker.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -73539,7 +73465,7 @@
   "quickstart/cis_benchmark.yaml": {
     "filePath": "quickstart/cis_benchmark.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 79,
@@ -77785,7 +77711,7 @@
   "quickstart/config-rules.json": {
     "filePath": "quickstart/config-rules.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 12,
@@ -78270,7 +78196,7 @@
   "quickstart/iam.json": {
     "filePath": "quickstart/iam.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 18,
@@ -78554,7 +78480,7 @@
   "quickstart/nat-instance.json": {
     "filePath": "quickstart/nat-instance.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -79033,7 +78959,7 @@
   "quickstart/nist_application.yaml": {
     "filePath": "quickstart/nist_application.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 28,
@@ -81841,7 +81767,7 @@
   "quickstart/nist_config_rules.yaml": {
     "filePath": "quickstart/nist_config_rules.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 12,
@@ -82326,7 +82252,7 @@
   "quickstart/nist_high_main.yaml": {
     "filePath": "quickstart/nist_high_main.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 6,
@@ -83395,7 +83321,7 @@
   "quickstart/nist_iam.yaml": {
     "filePath": "quickstart/nist_iam.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 18,
@@ -83679,7 +83605,7 @@
   "quickstart/nist_logging.yaml": {
     "filePath": "quickstart/nist_logging.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 24,
@@ -85185,7 +85111,7 @@
   "quickstart/nist_vpc_management.yaml": {
     "filePath": "quickstart/nist_vpc_management.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 33,
@@ -87374,7 +87300,7 @@
   "quickstart/nist_vpc_production.yaml": {
     "filePath": "quickstart/nist_vpc_production.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 46,
@@ -90646,7 +90572,7 @@
   "quickstart/openshift.yaml": {
     "filePath": "quickstart/openshift.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 19,
@@ -92717,7 +92643,7 @@
   "quickstart/openshift_master.yaml": {
     "filePath": "quickstart/openshift_master.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
@@ -92910,7 +92836,7 @@
   "quickstart/test.yaml": {
     "filePath": "quickstart/test.yaml",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
@@ -93290,7 +93216,7 @@
   "quickstart/vpc-management.json": {
     "filePath": "quickstart/vpc-management.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 33,
@@ -95493,14 +95419,14 @@
   "quickstart/vpc.json": {
     "filePath": "quickstart/vpc.json",
     "status": "OK",
-    "engineVersion": "1.1.0",
+    "engineVersion": "1.2.0",
     "metadata": {
       "rulesEvaluated": 273,
       "resourcesScanned": 77,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 83,
+        "warnings": 46,
         "informational": 166,
         "debug": 0
       },
@@ -95540,23 +95466,6 @@
         "category": "Best Practice",
         "ruleDescription": "Invalid intrinsic function usage",
         "phase": "PARSE"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NVirginiaRegionCondition' to False from current status True",
-        "source": "CFN_LINT",
-        "resourceId": "DHCPOptions",
-        "resourceType": "AWS::EC2::DHCPOptions",
-        "propertyPath": "Properties.DomainName.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 481,
-        "startColumn": 9,
-        "endLine": 481,
-        "endColumn": 21,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "I1022",
@@ -96530,77 +96439,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet1ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 947,
-        "startColumn": 9,
-        "endLine": 947,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnetsCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet1ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 947,
-        "startColumn": 9,
-        "endLine": 947,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet1ARoute' (condition 'PrivateSubnetsCondition') references 'NATInstance1' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet1ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 947,
-        "startColumn": 9,
-        "endLine": 947,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance1",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1885,
-              "startColumn": 9,
-              "endLine": 1885,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance1' (condition 'NATInstanceCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnetsCondition"
-          }
-        }
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
@@ -96713,77 +96551,6 @@
         "context": {
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'VPC'"
-        }
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet2ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1010,
-        "startColumn": 9,
-        "endLine": 1010,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnetsCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet2ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 1010,
-        "startColumn": 9,
-        "endLine": 1010,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet2ARoute' (condition 'PrivateSubnetsCondition') references 'NATInstance2' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet2ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1010,
-        "startColumn": 9,
-        "endLine": 1010,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance2",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1937,
-              "startColumn": 9,
-              "endLine": 1937,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance2' (condition 'NATInstanceCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnetsCondition"
-          }
         }
       },
       {
@@ -96902,77 +96669,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet3ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1073,
-        "startColumn": 9,
-        "endLine": 1073,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnets&3AZCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet3ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 1073,
-        "startColumn": 9,
-        "endLine": 1073,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet3ARoute' (condition 'PrivateSubnets&3AZCondition') references 'NATInstance3' (condition 'NATInstance&3AZCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet3ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1073,
-        "startColumn": 9,
-        "endLine": 1073,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance3",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1989,
-              "startColumn": 9,
-              "endLine": 1989,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance3' (condition 'NATInstance&3AZCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnets&3AZCondition"
-          }
-        }
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
@@ -97088,77 +96784,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet4ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1136,
-        "startColumn": 9,
-        "endLine": 1136,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'PrivateSubnets&4AZCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet4ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 1136,
-        "startColumn": 9,
-        "endLine": 1136,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet4ARoute' (condition 'PrivateSubnets&4AZCondition') references 'NATInstance4' (condition 'NATInstance&4AZCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet4ARoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1136,
-        "startColumn": 9,
-        "endLine": 1136,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance4",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 2041,
-              "startColumn": 9,
-              "endLine": 2041,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance4' (condition 'NATInstance&4AZCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnets&4AZCondition"
-          }
-        }
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
@@ -97271,77 +96896,6 @@
         "context": {
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'VPC'"
-        }
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet1BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1199,
-        "startColumn": 9,
-        "endLine": 1199,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnetsCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet1BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 1199,
-        "startColumn": 9,
-        "endLine": 1199,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet1BRoute' (condition 'AdditionalPrivateSubnetsCondition') references 'NATInstance1' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet1BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1199,
-        "startColumn": 9,
-        "endLine": 1199,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance1",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1885,
-              "startColumn": 9,
-              "endLine": 1885,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance1' (condition 'NATInstanceCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "AdditionalPrivateSubnetsCondition"
-          }
         }
       },
       {
@@ -97768,77 +97322,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet2BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1321,
-        "startColumn": 9,
-        "endLine": 1321,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnetsCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet2BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 1321,
-        "startColumn": 9,
-        "endLine": 1321,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet2BRoute' (condition 'AdditionalPrivateSubnetsCondition') references 'NATInstance2' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet2BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1321,
-        "startColumn": 9,
-        "endLine": 1321,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance2",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1937,
-              "startColumn": 9,
-              "endLine": 1937,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance2' (condition 'NATInstanceCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "AdditionalPrivateSubnetsCondition"
-          }
-        }
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
@@ -98262,77 +97745,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet3BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1443,
-        "startColumn": 9,
-        "endLine": 1443,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnets&3AZCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet3BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 1443,
-        "startColumn": 9,
-        "endLine": 1443,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet3BRoute' (condition 'AdditionalPrivateSubnets&3AZCondition') references 'NATInstance3' (condition 'NATInstance&3AZCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet3BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1443,
-        "startColumn": 9,
-        "endLine": 1443,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance3",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1989,
-              "startColumn": 9,
-              "endLine": 1989,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance3' (condition 'NATInstance&3AZCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "AdditionalPrivateSubnets&3AZCondition"
-          }
-        }
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
@@ -98753,77 +98165,6 @@
         "context": {
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'VPC'"
-        }
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet4BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1565,
-        "startColumn": 9,
-        "endLine": 1565,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 2] is not reachable. When setting condition 'NATGatewayCondition' to False. Where existing status for condition 'AdditionalPrivateSubnets&4AZCondition' is True",
-        "source": "CFN_LINT",
-        "resourceId": "PrivateSubnet4BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.NatGatewayId.Fn::If.2",
-        "category": "Best Practice",
-        "startLine": 1565,
-        "startColumn": 9,
-        "endLine": 1565,
-        "endColumn": 30,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'PrivateSubnet4BRoute' (condition 'AdditionalPrivateSubnets&4AZCondition') references 'NATInstance4' (condition 'NATInstance&4AZCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "PrivateSubnet4BRoute",
-        "resourceType": "AWS::EC2::Route",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1565,
-        "startColumn": 9,
-        "endLine": 1565,
-        "endColumn": 30,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance4",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 2041,
-              "startColumn": 9,
-              "endLine": 2041,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance4' (condition 'NATInstance&4AZCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "AdditionalPrivateSubnets&4AZCondition"
-          }
         }
       },
       {
@@ -99493,60 +98834,6 @@
         }
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NAT1EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1745,
-        "startColumn": 9,
-        "endLine": 1745,
-        "endColumn": 17,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'NAT1EIP' (condition 'PrivateSubnetsCondition') references 'NATInstance1' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "NAT1EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1745,
-        "startColumn": 9,
-        "endLine": 1745,
-        "endColumn": 17,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance1",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1885,
-              "startColumn": 9,
-              "endLine": 1885,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance1' (condition 'NATInstanceCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnetsCondition"
-          }
-        }
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'NAT1EIP' of type 'AWS::EC2::EIP' supports Tags but none are configured",
@@ -99563,60 +98850,6 @@
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NAT2EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1764,
-        "startColumn": 9,
-        "endLine": 1764,
-        "endColumn": 17,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'NAT2EIP' (condition 'PrivateSubnetsCondition') references 'NATInstance2' (condition 'NATInstanceCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "NAT2EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1764,
-        "startColumn": 9,
-        "endLine": 1764,
-        "endColumn": 17,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance2",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1937,
-              "startColumn": 9,
-              "endLine": 1937,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance2' (condition 'NATInstanceCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnetsCondition"
-          }
-        }
       },
       {
         "ruleId": "I9040",
@@ -99637,60 +98870,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NAT3EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1783,
-        "startColumn": 9,
-        "endLine": 1783,
-        "endColumn": 17,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'NAT3EIP' (condition 'PrivateSubnets&3AZCondition') references 'NATInstance3' (condition 'NATInstance&3AZCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "NAT3EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1783,
-        "startColumn": 9,
-        "endLine": 1783,
-        "endColumn": 17,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance3",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 1989,
-              "startColumn": 9,
-              "endLine": 1989,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance3' (condition 'NATInstance&3AZCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnets&3AZCondition"
-          }
-        }
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'NAT3EIP' of type 'AWS::EC2::EIP' supports Tags but none are configured",
@@ -99707,60 +98886,6 @@
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NAT4EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1802,
-        "startColumn": 9,
-        "endLine": 1802,
-        "endColumn": 17,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W2503",
-        "severity": "WARN",
-        "message": "Resource 'NAT4EIP' (condition 'PrivateSubnets&4AZCondition') references 'NATInstance4' (condition 'NATInstance&4AZCondition'), but these conditions are mutually exclusive \u2014 this reference will always fail",
-        "source": "ENGINE",
-        "resourceId": "NAT4EIP",
-        "resourceType": "AWS::EC2::EIP",
-        "propertyPath": "Properties.InstanceId.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1802,
-        "startColumn": 9,
-        "endLine": 1802,
-        "endColumn": 17,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NATInstance4",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 2041,
-              "startColumn": 9,
-              "endLine": 2041,
-              "endColumn": 22
-            },
-            "message": "Conditional resource 'NATInstance4' (condition 'NATInstance&4AZCondition')"
-          }
-        ],
-        "ruleDescription": "Resource references conditional resource with mutually exclusive condition",
-        "phase": "LINT",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "source_condition": "PrivateSubnets&4AZCondition"
-          }
-        }
       },
       {
         "ruleId": "I9040",
@@ -100023,23 +99148,6 @@
       {
         "ruleId": "W1028",
         "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NATInstance1",
-        "resourceType": "AWS::EC2::Instance",
-        "propertyPath": "Properties.KeyName.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1885,
-        "startColumn": 9,
-        "endLine": 1885,
-        "endColumn": 22,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
         "message": "['Fn::If', 2] is not reachable. When setting condition 'NATInstanceCondition' to False from current status True",
         "source": "CFN_LINT",
         "resourceId": "NATInstance1",
@@ -100176,23 +99284,6 @@
       {
         "ruleId": "W1028",
         "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NATInstance2",
-        "resourceType": "AWS::EC2::Instance",
-        "propertyPath": "Properties.KeyName.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1937,
-        "startColumn": 9,
-        "endLine": 1937,
-        "endColumn": 22,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
         "message": "['Fn::If', 2] is not reachable. When setting condition 'NATInstanceCondition' to False from current status True",
         "source": "CFN_LINT",
         "resourceId": "NATInstance2",
@@ -100325,23 +99416,6 @@
         "context": {
           "lifecycle": "create-only"
         }
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NATInstance3",
-        "resourceType": "AWS::EC2::Instance",
-        "propertyPath": "Properties.KeyName.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 1989,
-        "startColumn": 9,
-        "endLine": 1989,
-        "endColumn": 22,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "W1028",
@@ -100478,23 +99552,6 @@
         "context": {
           "lifecycle": "create-only"
         }
-      },
-      {
-        "ruleId": "W1028",
-        "severity": "WARN",
-        "message": "['Fn::If', 1] is not reachable. When setting condition 'NATInstanceCondition' to True",
-        "source": "CFN_LINT",
-        "resourceId": "NATInstance4",
-        "resourceType": "AWS::EC2::Instance",
-        "propertyPath": "Properties.KeyName.Fn::If.1",
-        "category": "Best Practice",
-        "startLine": 2041,
-        "startColumn": 9,
-        "endLine": 2041,
-        "endColumn": 22,
-        "ruleDescription": "Check Fn::If has a path that cannot be reached",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "W1028",
