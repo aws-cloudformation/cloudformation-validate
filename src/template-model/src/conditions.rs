@@ -1,5 +1,6 @@
 use crate::consts::{
-    CONDITION_REF_PREFIX, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS, MAX_TOTAL_SAT_ITERATIONS, PSEUDO_PREFIX,
+    CONDITION_REF_PREFIX, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS, MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL,
+    PSEUDO_PREFIX,
 };
 use crate::ir::*;
 use crate::model::PseudoParameterOverrides;
@@ -397,11 +398,25 @@ impl ConditionModel {
         false
     }
 
-    /// Builds the map of referenced parameters to their candidate values: a
-    /// parameter's declared `AllowedValues` when present, otherwise the literals
-    /// it is compared against plus a sentinel standing for "any other value".
-    /// Derived purely from the immutable condition set and parameter
-    /// definitions, so it is computed once and cached.
+    /// Builds, per parameter the conditions reference, the candidate values to
+    /// enumerate during satisfiability search. The set used for each parameter
+    /// is:
+    ///
+    /// - **User parameter with `AllowedValues`**: those values exactly.
+    /// - **User parameter without `AllowedValues`**: every literal it is
+    ///   compared against in any condition, plus a sentinel
+    ///   (`PARAM_UNKNOWN_SENTINEL`) standing for "any other value".
+    /// - **Pseudo-parameter pinned by an explicit override** (e.g. user passed
+    ///   `--region us-east-1`): the override value as the only candidate, so
+    ///   the solver treats the pseudo-parameter as a constant.
+    /// - **Pseudo-parameter without an explicit override**: literals plus the
+    ///   `__unknown__` sentinel, treating it as a free variable. Without this,
+    ///   `Fn::Equals[AWS::Partition, "aws"]` would always evaluate true (the
+    ///   default partition is "aws"), incorrectly marking the false branch
+    ///   unreachable on templates that deploy to non-commercial partitions.
+    ///
+    /// Derived purely from the immutable condition set, parameter definitions,
+    /// and pseudo-parameter overrides, so it is computed once and cached.
     fn collect_referenced_param_values(&self) -> HashMap<String, Vec<String>> {
         let mut compared_literals: HashMap<String, Vec<String>> = HashMap::new();
         for expr in self.conditions.values() {
@@ -409,15 +424,19 @@ impl ConditionModel {
         }
         let mut param_values: HashMap<String, Vec<String>> = HashMap::new();
         for (param_name, literals) in &compared_literals {
+            if let Some(fixed) = self.pseudo_overrides.fixed_value(param_name) {
+                param_values.insert(param_name.clone(), vec![fixed]);
+                continue;
+            }
             if let Some(allowed_values) = self.parameters.get(param_name).and_then(|p| p.allowed_values.clone()) {
                 param_values.insert(param_name.clone(), allowed_values);
-            } else {
-                let mut values = literals.clone();
-                values.push("__unknown__".to_string());
-                values.sort();
-                values.dedup();
-                param_values.insert(param_name.clone(), values);
+                continue;
             }
+            let mut values = literals.clone();
+            values.push(PARAM_UNKNOWN_SENTINEL.to_string());
+            values.sort();
+            values.dedup();
+            param_values.insert(param_name.clone(), values);
         }
         param_values
     }
@@ -603,7 +622,9 @@ impl ConditionModel {
         match expr {
             ValueExpr::Literal(s) => Some(s.clone()),
             ValueExpr::ParamRef(name) => param_assignment.get(name).cloned(),
-            ValueExpr::PseudoParam(name) => self.pseudo_overrides.get(name),
+            ValueExpr::PseudoParam(name) => {
+                param_assignment.get(name).cloned().or_else(|| self.pseudo_overrides.fixed_value(name))
+            }
             ValueExpr::MappingLookup { map_name, key1, key2 } => {
                 let k1 = self.eval_value_concrete(key1, param_assignment)?;
                 let k2 = self.eval_value_concrete(key2, param_assignment)?;
@@ -851,15 +872,17 @@ fn parse_value_expr(arena: &Arena, node_ref: NodeRef, parameters: &HashMap<Strin
     }
 }
 
+/// Walks a condition expression and collects, per parameter or pseudo-parameter
+/// it references, every literal it is compared against in an `Fn::Equals`.
+/// Pseudo-parameters (`AWS::Partition`, `AWS::Region`, …) are collected the same
+/// way as user parameters; the SAT solver treats both as named symbols whose
+/// candidate values are enumerated during satisfiability search.
 fn collect_equals_pairs(expr: &ConditionExpr, out: &mut HashMap<String, Vec<String>>) {
     match expr {
         ConditionExpr::Equals(a, b) => {
-            if let (ValueExpr::ParamRef(p), ValueExpr::Literal(v)) | (ValueExpr::Literal(v), ValueExpr::ParamRef(p)) =
-                (a, b)
-            {
-                out.entry(p.clone()).or_default().push(v.clone());
+            if let Some((symbol, literal)) = match_symbol_literal_pair(a, b) {
+                out.entry(symbol).or_default().push(literal);
             } else {
-                // ParamRef compared to non-literal — still register the param
                 collect_param_refs_from_value_into_pairs(a, out);
                 collect_param_refs_from_value_into_pairs(b, out);
             }
@@ -874,9 +897,24 @@ fn collect_equals_pairs(expr: &ConditionExpr, out: &mut HashMap<String, Vec<Stri
     }
 }
 
+/// Returns the `(symbol_name, compared_literal)` when `a` and `b` are an
+/// `Fn::Equals` pair of a parameter (or pseudo-parameter) and a literal in
+/// either order. Returns `None` otherwise.
+fn match_symbol_literal_pair(a: &ValueExpr, b: &ValueExpr) -> Option<(String, String)> {
+    match (a, b) {
+        (ValueExpr::ParamRef(p), ValueExpr::Literal(v)) | (ValueExpr::Literal(v), ValueExpr::ParamRef(p)) => {
+            Some((p.clone(), v.clone()))
+        }
+        (ValueExpr::PseudoParam(p), ValueExpr::Literal(v)) | (ValueExpr::Literal(v), ValueExpr::PseudoParam(p)) => {
+            Some((p.clone(), v.clone()))
+        }
+        _ => None,
+    }
+}
+
 fn collect_param_refs_from_value_into_pairs(expr: &ValueExpr, out: &mut HashMap<String, Vec<String>>) {
     match expr {
-        ValueExpr::ParamRef(p) => {
+        ValueExpr::ParamRef(p) | ValueExpr::PseudoParam(p) => {
             out.entry(p.clone()).or_default();
         }
         ValueExpr::MappingLookup { key1, key2, .. } => {
@@ -1417,7 +1455,7 @@ Resources:
     }
 
     #[test]
-    fn pseudo_param_resolves_in_sat_solver() {
+    fn pseudo_param_without_override_is_a_free_variable_in_sat_solver() {
         let input = r#"
 Parameters:
   Env:
@@ -1433,10 +1471,54 @@ Resources:
     Type: T
 "#;
         let model = build_condition_model(input);
-        // Default region is us-east-1, so IsUsEast1 should always be true
-        assert!(model.is_satisfiable(&[("IsUsEast1".into(), true)]));
-        // IsUsEast1=false should be unsatisfiable with default region
-        assert!(!model.is_satisfiable(&[("IsUsEast1".into(), false)]));
+        assert!(
+            model.is_satisfiable(&[("IsUsEast1".into(), true)]),
+            "IsUsEast1=true must be reachable: AWS::Region can equal 'us-east-1'"
+        );
+        assert!(
+            model.is_satisfiable(&[("IsUsEast1".into(), false)]),
+            "IsUsEast1=false must be reachable: AWS::Region can equal anything other than 'us-east-1' \
+             (the auto-derived default region must not pin the pseudo-parameter to a constant — that \
+             produced false-positive W1028 unreachable-branch diagnostics on partition/region branches)"
+        );
+        assert!(
+            model.is_satisfiable(&[("IsProd".into(), true)]),
+            "IsProd=true must be reachable: Env can equal 'Prod'"
+        );
+        assert!(
+            model.is_satisfiable(&[("IsProd".into(), false)]),
+            "IsProd=false must be reachable: Env can equal 'Dev'"
+        );
+    }
+
+    #[test]
+    fn pseudo_param_explicit_override_pins_value_in_sat_solver() {
+        let ir = parser::parse(
+            r#"
+Conditions:
+  IsAwsPartition:
+    Fn::Equals: [!Ref "AWS::Partition", aws]
+Resources:
+  R:
+    Type: T
+"#
+            .as_bytes(),
+        )
+        .unwrap();
+        let (params, _) = extract_parameters(&ir);
+        let (mappings, _) = extract_mappings(&ir);
+        let pseudo = PseudoParameterOverrides { partition: Some("aws-cn".to_string()), ..Default::default() };
+
+        let model = ConditionModel::from_ir(&ir, &params, &pseudo, &mappings);
+
+        assert!(
+            !model.is_satisfiable(&[("IsAwsPartition".into(), true)]),
+            "with partition pinned to aws-cn, IsAwsPartition=true must be unsatisfiable"
+        );
+        assert!(
+            model.is_satisfiable(&[("IsAwsPartition".into(), false)]),
+            "with partition pinned to aws-cn, IsAwsPartition=false must hold"
+        );
     }
 
     #[test]
@@ -1460,6 +1542,38 @@ Resources:
         // With eu-west-1, IsUsEast1=true should be unsatisfiable
         assert!(!model.is_satisfiable(&[("IsUsEast1".into(), true)]));
         assert!(model.is_satisfiable(&[("IsUsEast1".into(), false)]));
+    }
+
+    /// Regression test for a W1028 false positive: when an `Fn::Equals`
+    /// compares a pseudo-parameter to a literal and no override pins that
+    /// pseudo-parameter, both branches of an `Fn::If` keyed on that condition
+    /// must remain reachable. Before this was fixed, the SAT solver resolved
+    /// `AWS::Partition` to its auto-derived default (`"aws"`), making
+    /// `Fn::Equals[Ref AWS::Partition, "aws"]` deterministically true and the
+    /// `Fn::If` false branch (the `Ref AWS::NoValue` arm) appear unreachable.
+    /// At deploy time `AWS::Partition` ranges over `aws`, `aws-cn`,
+    /// `aws-us-gov`, etc. — so without an explicit pin it has to behave as a
+    /// free variable.
+    #[test]
+    fn pseudo_param_partition_false_branch_is_reachable_without_override() {
+        let input = r#"
+Conditions:
+  HasEcrPublic:
+    Fn::Equals: [!Ref "AWS::Partition", aws]
+Resources:
+  R:
+    Type: T
+"#;
+        let model = build_condition_model(input);
+
+        assert!(
+            model.is_satisfiable(&[("HasEcrPublic".into(), true)]),
+            "HasEcrPublic=true must be reachable: AWS::Partition can equal 'aws'"
+        );
+        assert!(
+            model.is_satisfiable(&[("HasEcrPublic".into(), false)]),
+            "HasEcrPublic=false must be reachable: AWS::Partition can equal 'aws-cn' or 'aws-us-gov'"
+        );
     }
 
     #[test]

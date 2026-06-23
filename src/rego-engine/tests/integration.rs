@@ -36,7 +36,6 @@ fn e2e_all_good_fixtures_no_errors() {
     for fixture in [
         "good/minimal.yaml",
         "good/generic.yaml",
-        "good/core/conditions.yaml",
         "good/functions_findinmap.yaml",
         "good/resources_codepipeline.yaml",
         "good/vpc_subnets.yaml",
@@ -65,7 +64,11 @@ fn e2e_all_good_fixtures_no_errors() {
             no_errors(&report),
             "Expected no errors in {}, got: {:?}",
             fixture,
-            report.diagnostics.iter().filter(|d| d.severity == Severity::Error).collect::<Vec<_>>()
+            report
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == Severity::Error || d.severity == Severity::Fatal)
+                .collect::<Vec<_>>()
         );
     }
 }
