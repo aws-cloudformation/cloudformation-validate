@@ -211,7 +211,7 @@ def _load_cfnlint_result_file(f, prefix, results):
 
 def load_cfnlint_results_from_files():
     results = {}
-    for subdir in ["integration", "public", "quickstart", "good", "bad", "issues"]:
+    for subdir in ["bad", "cdk", "good", "integration", "issues", "lsp", "public", "quickstart"]:
         d = CFN_LINT_RESULTS / subdir
         if not d.exists():
             continue

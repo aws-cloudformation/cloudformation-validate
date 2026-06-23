@@ -17,7 +17,7 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
-TEMPLATE_DIRS = ["good", "bad", "integration", "issues", "lsp", "quickstart", "public"]
+TEMPLATE_DIRS = ["bad", "cdk", "good", "integration", "issues", "lsp", "public", "quickstart"]
 
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
 RESOURCES_DIR = WORKSPACE_ROOT / "resources" / "templates"
