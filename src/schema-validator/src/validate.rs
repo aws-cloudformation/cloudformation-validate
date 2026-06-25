@@ -80,11 +80,25 @@ pub fn validate_all_resources(
             let Some(res) = model.resources.get(rid.as_str()) else {
                 continue;
             };
+            // A structurally invalid logical ID (non-alphanumeric) is itself a
+            // template error; cfn-lint reports that and skips all property-level
+            // validation for the resource. Mirror that so we don't surface
+            // property diagnostics (e.g. format checks) cfn-lint never emits.
+            if !is_valid_logical_id(rid) {
+                continue;
+            }
             validate_resource(&mut out, store, model, rid, res, schema, region);
             validate_extensions(&mut out, store, model, rid, res);
         }
     }
     out
+}
+
+/// CloudFormation logical IDs must be alphanumeric (`[A-Za-z0-9]+`). A resource
+/// whose ID violates this is rejected outright, so property-level schema checks
+/// against it would be noise.
+fn is_valid_logical_id(rid: &str) -> bool {
+    !rid.is_empty() && rid.bytes().all(|b| b.is_ascii_alphanumeric())
 }
 
 pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {
@@ -321,24 +335,6 @@ fn validate_resource(
 ) {
     let base = "Properties";
     let defs = &schema.definitions;
-
-    for ro in &schema.read_only_properties {
-        // Only flag top-level properties — nested read-only paths (e.g. "InstanceGroups.*.CurrentCount")
-        // should not trigger on the parent property itself.
-        if ro.contains('.') || ro.contains('*') {
-            continue;
-        }
-        if res.properties.contains_key(ro.as_str()) {
-            out.push(build_diagnostic(
-                "E3040",
-                &format!("Read only property '{}' should not be specified", ro),
-                m,
-                rid,
-                &format!("{}.{}", base, ro),
-                None,
-            ));
-        }
-    }
 
     for dp in &schema.deprecated_properties {
         let top = dp.split('.').next().unwrap_or(dp);
@@ -978,7 +974,12 @@ fn validate_prop(
     if let Some(ref pat) = schema.pattern
         && let Ok(re) = regex::Regex::new(pat)
     {
-        let from_param = m.is_from_parameter(rid, prop_path);
+        // A value computed by an intrinsic (Fn::Sub/Fn::Join building, say, an S3
+        // bucket name from AWS::Region) can't be pattern-checked the way a written
+        // literal can — cfn-lint delegates that to Warning-level intrinsic rules
+        // (W1031/W1032) rather than the Fatal pattern check. Skip both
+        // parameter-sourced and intrinsic-sourced values to match.
+        let from_param = m.is_from_parameter(rid, prop_path) || m.is_from_intrinsic(rid, prop_path);
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
@@ -1760,7 +1761,12 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
             out.push(build_diagnostic(rule_id, &msg, model, rid, "", None));
         }
 
-        if res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function" {
+        if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function")
+            // cfn-lint only validates a literal Runtime string against the
+            // deprecation list; a Runtime produced by an intrinsic (e.g.
+            // Fn::FindInMap) is handled by its intrinsic rules (W1034) instead.
+            && !model.is_from_intrinsic(rid, "Properties.Runtime")
+        {
             for (val, _) in &model.resolve_scenarios_json(rid, "Properties.Runtime") {
                 let Some(runtime) = val.as_str() else {
                     continue;
@@ -2263,38 +2269,12 @@ fn check_gather_property_constraints(
                     None,
                 ));
             }
-            if let Some(min_val) = pc.get("minimum").and_then(cfn_coerce_to_number)
-                && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                && actual_num < min_val
-            {
-                out.push(build_diagnostic(
-                    "F3034",
-                    &format!(
-                        "Cross-resource constraint: {}.{} is {} but must be >= {} (from referenced resource)",
-                        slot_name, prop_name, actual_num, min_val
-                    ),
-                    model,
-                    rid,
-                    "Properties",
-                    None,
-                ));
-            }
-            if let Some(max_val) = pc.get("maximum").and_then(cfn_coerce_to_number)
-                && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                && actual_num > max_val
-            {
-                out.push(build_diagnostic(
-                    "F3034",
-                    &format!(
-                        "Cross-resource constraint: {}.{} is {} but must be <= {} (from referenced resource)",
-                        slot_name, prop_name, actual_num, max_val
-                    ),
-                    model,
-                    rid,
-                    "Properties",
-                    None,
-                ));
-            }
+            // Numeric cross-resource bounds (e.g. SQS VisibilityTimeout vs Lambda
+            // Timeout, ESM BatchSize for FIFO queues) are reported by the dedicated
+            // rules E3505 and E3705, which match cfn-lint's IDs and locations.
+            // Emitting a generic F3034 here as well double-reported the same issue
+            // under an ID cfn-lint never uses, so the const equality check above is
+            // the only gather constraint surfaced directly.
         }
     }
 }

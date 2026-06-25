@@ -195313,27 +195313,6 @@
       {
         "condition": {
           "properties": {
-            "PackageType": {
-              "const": "Image"
-            }
-          },
-          "required": [
-            "PackageType"
-          ]
-        },
-        "then_schema": {
-          "dependent_excluded": {
-            "PackageType": [
-              "Handler",
-              "Runtime",
-              "Layers"
-            ]
-          }
-        }
-      },
-      {
-        "condition": {
-          "properties": {
             "Code": {
               "type": "object",
               "properties": {

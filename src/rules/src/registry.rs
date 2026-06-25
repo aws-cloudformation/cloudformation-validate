@@ -1487,12 +1487,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
-        id: "E3040",
-        category: Category::Schema,
-        description: "Read only property should not be specified",
-        origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
         id: "W3041",
         category: Category::BestPractice,
         description: "Write-only property referenced in output",

@@ -388,14 +388,12 @@ fn property_f3031_pattern_violation() {
 }
 
 #[test]
-fn property_f3040_read_only() {
+fn read_only_property_not_flagged() {
+    // E3040 (read-only property specified) was removed: cfn-lint defines the rule
+    // but never emits it on real templates, so firing it produced false positives.
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let f3040: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "E3040" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ReadOnlyProp"))
-        .collect();
-    assert!(!f3040.is_empty(), "expected E3040 for read-only Arn on ACMPCA Certificate");
-    assert!(f3040[0].message.contains("Read only"));
+    let e3040: Vec<_> = diags.iter().filter(|d| d.rule_id == "E3040").collect();
+    assert!(e3040.is_empty(), "E3040 was removed and must not be emitted, got: {:?}", e3040);
 }
 
 #[test]
