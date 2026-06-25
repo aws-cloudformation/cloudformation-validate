@@ -773,16 +773,24 @@ fn select_on_non_list_gives_correct_message() {
     }
 }
 
-// ── Condition value expression describes intrinsics ─────────────────────
+// ── Condition value expression treats intrinsics as opaque ──────────────
 
 #[test]
-fn condition_intrinsic_value_not_question_mark() {
+fn condition_intrinsic_value_is_opaque_not_literal() {
     let m = load("lsp/comprehensive.yaml");
     // HasMultipleAZs: !Not [!Equals [!Select [1, !Ref AvailabilityZones], ""]]
-    // The !Select should render as "Select(...)" not "?"
+    // The !Select result cannot be known statically, so it must be modeled as an
+    // opaque value (Other), NOT a descriptive literal like "Select(...)".
+    // Treating it as a literal made the always-true/false check (W8003) compare a
+    // description string against "" and fire a false positive — the SAT solver
+    // must instead see an unknown.
     let expr = m.conditions.get("HasMultipleAZs").unwrap();
     let formatted = format!("{:?}", expr);
-    assert!(!formatted.contains("Other"), "condition should describe intrinsic, not fall back to Other: {}", formatted);
+    assert!(
+        !formatted.contains("Select(") && !formatted.contains("Literal(\"Select"),
+        "intrinsic in a condition must not be modeled as a comparable literal: {}",
+        formatted
+    );
 }
 
 // ── Condition refs from Metadata blocks ─────────────────────────────────

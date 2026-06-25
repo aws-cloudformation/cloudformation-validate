@@ -591,7 +591,7 @@ mod rule_category_tests {
     #[test]
     fn generated_rules_unique_items() {
         let ids = validate_file("bad/unique_items.yaml");
-        assert!(has_rule(&ids, "W9007") || has_rule(&ids, "I3037"), "Expected unique items error, got: {:?}", ids);
+        assert!(has_rule(&ids, "W9007"), "Expected unique items error, got: {:?}", ids);
     }
 
     // ── Cross-category: good templates produce no errors ────────────────

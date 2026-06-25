@@ -220,9 +220,11 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         # GetAtt — cfn-lint's single E1010 is split by the engine into E9004
         # (attribute existence) + E9003 (return-type mismatch).
         "E1010": "E9004",
-        # Extension-enum family — cfn-lint emits a per-resource ID (E3690 etc.);
-        # the engine emits one generic E9006 for any conditional-extension enum.
+        # Extension-enum family — cfn-lint emits a per-resource ID (E3690 for
+        # DBCluster, E3691 for DBInstance); the engine emits one generic E9006
+        # for any conditional-extension enum.
         "E3690": "E9006",
+        "E3691": "E9006",
     }
     # Keep only mappings whose cfn-lint key exists in this checkout (identity
     # mappings such as E0001→E0001 are always kept).
@@ -248,8 +250,10 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
 
     # GetAtt: cfn-lint E1010 ↔ engine split E9004 (attribute) + E9003 (type).
     _link("E1010", "E9004", "E9003")
-    # Extension-enum family: cfn-lint E3690 ↔ engine generic E9006.
-    _link("E9006", "E3690")
+    # Extension-enum family: cfn-lint uses a per-resource ID — E3690 for
+    # DBCluster Engine/EngineVersion, E3691 for DBInstance — while the engine
+    # emits one generic E9006 for any conditional-extension enum violation.
+    _link("E9006", "E3690", "E3691")
     # Type coercion: cfn-lint strict E3012 ↔ engine Fatal F3012 or soft W9003.
     _link("F3012", "E3012", "W9003")
     # E3001 (Basic Resource Check) parents several engine structural rules.

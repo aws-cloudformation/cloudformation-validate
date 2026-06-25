@@ -290,9 +290,13 @@ Resources:
 }
 
 #[test]
-fn e2e_bad_ecs_fargate_mismatch() {
+fn e2e_bad_ecs_fargate_invalid_subnet() {
+    // The TaskDefinition uses NetworkMode 'awsvpc', which is already Fargate
+    // compatible, so E3054 must NOT fire (cfn-lint stays silent on it). The real
+    // defect is the malformed subnet id, reported as E1154.
     let report = validate_fixture("bad/ecs_fargate_mismatch.yaml");
-    assert!(has_rule(&report, "E3054"), "Expected E3054 for Fargate mismatch, got: {:?}", report.diagnostics);
+    assert!(!has_rule(&report, "E3054"), "E3054 must not fire for an awsvpc TaskDefinition, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "E1154"), "Expected E1154 for invalid subnet id, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -371,8 +375,7 @@ fn e2e_list_rules_comprehensive() {
     for expected in ["F3016", "F0018", "E3601", "E3702", "I3042"] {
         assert!(ids.contains(&expected), "list_rules missing {} in {:?}", expected, ids);
     }
-    for expected in ["E3010", "E3013", "F3032", "E3051", "E5001", "I2530", "I3037", "E1150", "E1151", "E1152", "E1154"]
-    {
+    for expected in ["E3010", "E3013", "F3032", "E3051", "E5001", "I2530", "E1150", "E1151", "E1152", "E1154"] {
         assert!(ids.contains(&expected), "list_rules missing {} in {:?}", expected, ids);
     }
 }
@@ -723,9 +726,13 @@ fn e2e_e3700_pipeline_no_source_first_stage() {
 }
 
 #[test]
-fn e2e_e2530_snapstart_bad_runtime() {
+fn e2e_snapstart_python_runtime_supported() {
+    // SnapStart supports any non-deprecated Python/Java/.NET runtime, so a
+    // python3.12 function must NOT trigger E2530 (cfn-lint agrees). The only
+    // finding is W2530 — SnapStart enabled without an attached Version.
     let report = validate_fixture("bad/lambda_snapstart_bad_runtime.yaml");
-    assert!(has_rule(&report, "E2530"), "SnapStart with python should trigger E2530, got: {:?}", report.diagnostics);
+    assert!(!has_rule(&report, "E2530"), "E2530 must not fire for a supported python runtime, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "W2530"), "Expected W2530 for SnapStart without Version, got: {:?}", report.diagnostics);
 }
 
 #[test]

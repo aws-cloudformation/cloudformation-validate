@@ -55,6 +55,10 @@ _id_scenarios(rid, id_props) := scenarios if {
     scenarios := {{"tuple": [val], "assumptions": object.union(base, s.conditions)} |
         some s in resolve_scenarios(rid, sprintf("Properties.%s", [prop]))
         s.value != null
+        # Drop scenarios whose Fn::If branch condition contradicts the resource's
+        # own Condition (e.g. a false-branch requiring IsProduction=false on a
+        # resource that only exists when IsProduction=true) — they never occur.
+        not _conflicting_maps(base, s.conditions)
         val := _to_str(s.value)
     }
 }

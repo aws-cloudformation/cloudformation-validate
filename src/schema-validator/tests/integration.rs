@@ -508,12 +508,16 @@ fn composition_f3017_any_of_no_match() {
 // ── Extension rules (cfnGather) ────────────────────────────────────
 
 #[test]
-fn extension_cfn_gather_cross_resource() {
+fn extension_cfn_gather_no_duplicate_numeric_constraint() {
+    // The cfnGather extension's numeric cross-resource bounds (ESM BatchSize vs
+    // FIFO-queue limit, SQS VisibilityTimeout vs Lambda Timeout) are reported by
+    // the dedicated engine rules E3705 / E3505, which match cfn-lint's IDs and
+    // locations. The schema-validator must NOT also emit a generic F3034 for
+    // them, which previously double-reported under an ID cfn-lint never uses.
     let diags = validate_fixture("integration/cfn-gather.yaml");
-    let cross_resource: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3034").collect();
     assert!(
-        !cross_resource.is_empty(),
-        "expected F3034 cross-resource diagnostic from cfn-gather template, got rules: {:?}",
+        !diags.iter().any(|d| d.rule_id == "F3034"),
+        "F3034 must not double-report a gather constraint, got: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
