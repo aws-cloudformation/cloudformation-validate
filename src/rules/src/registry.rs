@@ -1133,12 +1133,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
-        id: "I3037",
-        category: Category::BestPractice,
-        description: "Check if a list that allows duplicates has any duplicates",
-        origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
         id: "I3510",
         category: Category::Security,
         description: "Validate statement resources match the actions",

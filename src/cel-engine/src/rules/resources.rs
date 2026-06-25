@@ -3,7 +3,7 @@ use diagnostics::Diagnostic;
 use template_model::SemanticModel;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
-    KEY_PROPERTIES, KEY_UPDATE_POLICY,
+    KEY_UPDATE_POLICY,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
@@ -168,17 +168,28 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if is_zip_deployment(m, name) {
-            for prop in &["Handler", "Runtime"] {
-                if !m.resources.get(name.as_str()).map(|r| r.properties.contains_key(*prop)).unwrap_or(false) {
-                    out.push(make_resource_diagnostic(
-                        "W2533",
-                        &format!("Property '{}' is required for zip file deployment", prop),
-                        m,
-                        name,
-                        KEY_PROPERTIES,
-                        Some(&format!("Add the '{}' property", prop)),
-                    ));
-                }
+            // cfn-lint reports a single diagnostic listing every missing property,
+            // anchored at the Code property. Collect them and emit one finding to
+            // match that shape rather than one per property.
+            let missing: Vec<&str> = ["Handler", "Runtime"]
+                .into_iter()
+                .filter(|prop| {
+                    !m.resources.get(name.as_str()).map(|r| r.properties.contains_key(*prop)).unwrap_or(false)
+                })
+                .collect();
+            if !missing.is_empty() {
+                let formatted = missing.iter().map(|p| format!("'{}'", p)).collect::<Vec<_>>().join(", ");
+                out.push(make_resource_diagnostic(
+                    "W2533",
+                    &format!(
+                        "Properties [{}] missing for zip file deployment at Resources/{}/Properties",
+                        formatted, name
+                    ),
+                    m,
+                    name,
+                    "Properties.Code",
+                    Some("Add the missing properties for zip file deployment"),
+                ));
             }
         }
     }

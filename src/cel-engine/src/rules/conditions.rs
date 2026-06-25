@@ -149,7 +149,7 @@ fn find_unreachable_branches(
     assumptions: &[(String, bool)],
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: true_branch, if_false: false_branch } => {
+        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
@@ -186,22 +186,10 @@ fn find_unreachable_branches(
                 ));
             }
 
-            find_unreachable_branches(
-                out,
-                model,
-                resource_id,
-                true_branch,
-                &format!("{}.Fn::If.1", path),
-                &true_assumptions,
-            );
-            find_unreachable_branches(
-                out,
-                model,
-                resource_id,
-                false_branch,
-                &format!("{}.Fn::If.2", path),
-                &false_assumptions,
-            );
+            // cfn-lint only checks reachability of the immediate Fn::If branches
+            // and does not recurse into Fn::If nested inside a branch, so we stop
+            // here. Recursing produced findings (e.g. `Fn::If.2.Fn::If.1`) that
+            // cfn-lint never reports.
         }
         ResolvedValue::Map { entries } => {
             for e in entries {

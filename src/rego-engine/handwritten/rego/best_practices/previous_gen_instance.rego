@@ -24,6 +24,10 @@ violation contains make_diag_full("I3100", "INFO", name,
     "") if {
     some check in instance_type_checks
     some name in resources_of_type(check.type)
+    # cfn-lint only inspects literal string instance types; values from a
+    # parameter Ref or other intrinsic are left alone.
+    not is_from_parameter(name, check.path)
+    not is_from_intrinsic(name, check.path)
     val := resolve(name, check.path)
     is_string(val)
     regex.match(previous_gen_pattern, val)
@@ -43,6 +47,10 @@ violation contains make_diag_full("I3100", "INFO", name,
     "") if {
     some check in nested_instance_type_checks
     some name in resources_of_type(check.type)
+    # cfn-lint only inspects literal string instance types; values from a
+    # parameter Ref or other intrinsic are left alone.
+    not is_from_parameter(name, check.path)
+    not is_from_intrinsic(name, check.path)
     val := resolve(name, check.path)
     is_string(val)
     regex.match(previous_gen_pattern, val)

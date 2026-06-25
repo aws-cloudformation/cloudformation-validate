@@ -2,24 +2,6 @@ package intrinsics
 
 import rego.v1
 
-# W1030: Parameter default is empty string but property has minLength > 0
-violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,
-    sprintf("{'Ref': '%s'} is shorter than 1 when 'Ref' is resolved", [target]),
-    "Set a non-empty default or add AllowedValues",
-    "") if {
-    some name, res in input.resources
-    some edge in res.outgoingRefs
-    edge.kind == "Ref"
-    target := edge.target
-    target in object.keys(input.parameters)
-    param := input.parameters[target]
-    def := object.get(param, "default", null)
-    def != null
-    is_string(def)
-    def == ""
-    endswith(edge.sourcePath, "KeyName")
-}
-
 # W1030: Parameter default fails AMI ID format when used in ImageId property
 # Only fires when Default exists AND fails the AMI pattern
 violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,

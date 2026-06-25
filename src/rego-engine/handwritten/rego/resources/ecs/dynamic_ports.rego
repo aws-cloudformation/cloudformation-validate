@@ -2,12 +2,14 @@ package resources
 
 import rego.v1
 
-# E3049: ECS dynamic port requires traffic-port health check
-violation contains make_diag_related("E3049", "ERROR", svc_name,
-    "Properties.LoadBalancers",
+# E3049: ECS dynamic port requires traffic-port health check.
+# cfn-lint anchors this on the target group's HealthCheckPort (the property that
+# must be 'traffic-port'), with the service as a related location.
+violation contains make_diag_related("E3049", "ERROR", tg_name,
+    "Properties.HealthCheckPort",
     sprintf("Container '%s' has HostPort 0 but TargetGroup '%s' HealthCheckPort is '%s', must be 'traffic-port'",
         [container_name, tg_name, health_port]),
-    [{"resource": tg_name, "path": "Properties.HealthCheckPort", "message": "HealthCheckPort defined here"}]
+    [{"resource": svc_name, "path": "Properties.LoadBalancers", "message": "Dynamic host port defined here"}]
 ) if {
     some svc_name in resources_of_type("AWS::ECS::Service")
     taskdef_id := follow_ref(svc_name, "Properties.TaskDefinition")

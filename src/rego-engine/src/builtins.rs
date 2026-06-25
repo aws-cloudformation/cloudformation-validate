@@ -1483,7 +1483,7 @@ fn collect_unreachable_branches(
     results: &mut Vec<Value>,
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: true_branch, if_false: false_branch } => {
+        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
@@ -1536,22 +1536,10 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
-            collect_unreachable_branches(
-                model,
-                resource_id,
-                true_branch,
-                &format!("{}.{}.1", path, FN_IF),
-                &true_assumptions,
-                results,
-            );
-            collect_unreachable_branches(
-                model,
-                resource_id,
-                false_branch,
-                &format!("{}.{}.2", path, FN_IF),
-                &false_assumptions,
-                results,
-            );
+            // cfn-lint only checks reachability of the immediate Fn::If branches
+            // and does not recurse into Fn::If nested inside a branch, so we stop
+            // here. Recursing produced findings (e.g. `Fn::If.2.Fn::If.1`) that
+            // cfn-lint never reports.
         }
         ResolvedValue::Map { entries } => {
             for MapEntry { key, value: val } in entries {
