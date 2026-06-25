@@ -250,6 +250,29 @@ impl<'a> Resolver<'a> {
 
     fn resolve_intrinsic(&mut self, intrinsic: &IntrinsicFn, span: &SourceSpan) -> ResolvedValue {
         debug!("Resolve intrinsic {} at {}", intrinsic_name(intrinsic), self.current_path);
+        // Record that the value at this path is produced by a string-building
+        // intrinsic, even when it resolves to a concrete string. Rules that must
+        // distinguish an intrinsic-built value from a written literal (e.g. the
+        // `package`-command and pattern checks, which cfn-lint only applies to
+        // string literals) rely on `is_from_intrinsic` to see this. Ref/GetAtt
+        // already record reference edges, and Fn::If is tracked per branch, so
+        // only the value-producing structural intrinsics need an explicit marker.
+        if let Some(ref rid) = self.current_resource
+            && matches!(
+                intrinsic,
+                IntrinsicFn::Join(_, _)
+                    | IntrinsicFn::Sub(_, _)
+                    | IntrinsicFn::Select(_, _)
+                    | IntrinsicFn::Split(_, _)
+                    | IntrinsicFn::FindInMap(_, _, _, _)
+                    | IntrinsicFn::Base64(_)
+                    | IntrinsicFn::Cidr(_, _, _)
+            )
+        {
+            self.resolution_source_map
+                .entry((rid.clone(), self.current_path.clone()))
+                .or_insert_with(|| format!("Intrinsic/{}", intrinsic_name(intrinsic)));
+        }
         match intrinsic {
             IntrinsicFn::Ref(target) => self.resolve_ref(target, span),
             IntrinsicFn::GetAtt(resource, attr) => {
@@ -1149,10 +1172,6 @@ impl<'a> Resolver<'a> {
         subs: &Option<Vec<(String, NodeRef)>>,
         span: &SourceSpan,
     ) -> ResolvedValue {
-        if template.contains("${!") {
-            self.diagnostics.push(crate::make_parse_diagnostic("F1029", "Fn::Sub template contains '${!' which suggests nested intrinsic syntax — use the second argument map instead".to_string(), *span));
-        }
-
         let mut vars: Vec<String> = Vec::new();
         let mut i = 0;
         let bytes = template.as_bytes();
@@ -1199,13 +1218,14 @@ impl<'a> Resolver<'a> {
             }
             // Fn::Sub variables share Ref resolution, but an unresolved Sub
             // variable is not an invalid Ref, so resolve it without recording
-            // it as one.
+            // it as one. When the variable names a resource, `lookup_ref` has
+            // already recorded a `Ref` edge — CloudFormation (and cfn-lint) treat
+            // a bare `${Resource}` substitution as a `Ref`, so recording an extra
+            // `Sub` edge would double-count the dependency (surfacing a spurious
+            // second W3005 finding under a `Sub` label cfn-lint never emits).
             let resolved = self
                 .lookup_ref(var, span)
                 .unwrap_or_else(|| ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) });
-            if self.resource_ids.contains(var) {
-                self.record_edge(var, RefKind::Sub { var: var.clone() }, span);
-            }
             sub_map.insert(var.clone(), resolved);
         }
 
@@ -1229,7 +1249,13 @@ impl<'a> Resolver<'a> {
         if template.contains("arn:aws:")
             && let Some(ref rid) = self.current_resource
         {
-            self.hardcoded_partition_arns.entry(rid.clone()).or_default().push(self.current_path.clone());
+            // cfn-lint anchors this finding at the Fn::Sub node, so its reported
+            // path ends in `.Fn::Sub`. Match that to keep the diagnostic location
+            // aligned with cfn-lint.
+            self.hardcoded_partition_arns
+                .entry(rid.clone())
+                .or_default()
+                .push(format!("{}.Fn::Sub", self.current_path));
         }
 
         let all_concrete = sub_map.values().all(|v| matches!(v, ResolvedValue::Concrete { value: _ }));
@@ -1657,6 +1683,24 @@ fn to_json_string_resolved(val: &ResolvedValue) -> ResolvedValue {
     }
 }
 
+/// Whether a parameter-constraint node satisfies the expected JSON Schema type
+/// under CloudFormation's loose coercion. CloudFormation stringifies scalars, so
+/// `MaxLength: '12'` and `NoEcho: 'true'` are accepted just like their native
+/// forms — cfn-lint validates these fields with `strict_types=False` for the
+/// same reason. A native match always passes; a string that coerces to the
+/// expected type passes too.
+fn node_matches_param_type(node: &Node, expected: &str) -> bool {
+    match (expected, node) {
+        ("integer", Node::Int(_)) => true,
+        ("number", Node::Int(_) | Node::Float(_)) => true,
+        ("boolean", Node::Bool(_)) => true,
+        (_, Node::String(s)) => {
+            crate::coercion::cfn_type_compatible(&serde_json::Value::String(s.clone()), expected)
+        }
+        _ => false,
+    }
+}
+
 pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, Vec<diagnostics::Diagnostic>) {
     let mut params = HashMap::new();
     let mut diags = Vec::new();
@@ -1767,7 +1811,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                             Some("NoEcho"),
                             val_span,
                         ));
-                    } else if !matches!(node, Node::Bool(_)) {
+                    } else if !node_matches_param_type(node, "boolean") {
                         diags.push(e2001(
                             format!("Parameter '{}': NoEcho must be a boolean", name),
                             name,
@@ -1784,7 +1828,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                             Some(key),
                             val_span,
                         ));
-                    } else if !matches!(node, Node::Int(_) | Node::Float(_)) {
+                    } else if !node_matches_param_type(node, "number") {
                         diags.push(e2001(
                             format!("Parameter '{}': {} must be a number", name, key),
                             name,
@@ -1801,7 +1845,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                             Some(key),
                             val_span,
                         ));
-                    } else if !matches!(node, Node::Int(_)) {
+                    } else if !node_matches_param_type(node, "integer") {
                         diags.push(e2001(
                             format!("Parameter '{}': {} must be an integer", name, key),
                             name,

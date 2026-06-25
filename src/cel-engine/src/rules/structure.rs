@@ -10,7 +10,7 @@ use template_model::consts::{
     FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS, FIELD_UPDATE_REPLACE_POLICY, POLICY_DELETE, POLICY_RETAIN,
     POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
     SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
-    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_SERVERLESS,
+    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
 };
 use validation_engine::make_resource_diagnostic;
 
@@ -338,8 +338,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         ));
     }
 
+    let has_lang_ext = m.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     for name in m.resources.keys() {
-        if !ALPHANUM_RE.is_match(name) {
+        if !ALPHANUM_RE.is_match(name)
+            && !(has_lang_ext && name.starts_with("Fn::ForEach::"))
+        {
             out.push(make_resource_diagnostic(
                 "F0006",
                 &format!("Logical ID '{}' must be alphanumeric (A-Za-z0-9)", name),
@@ -506,7 +509,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object()) {
+    // A transform (SAM, language extensions, or a custom macro) can reference
+    // parameters in ways not visible before expansion, so an unreferenced
+    // parameter is not a reliable signal once any transform is present.
+    if m.transforms.is_empty()
+        && let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object())
+    {
         let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
         for pname in params.keys() {
             let mut referenced = false;
@@ -592,26 +600,23 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object()) {
-        let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    // A FindInMap with a non-literal map name (e.g. a nested FindInMap) makes it
+    // impossible to attribute usage to a specific mapping, so the unused-mapping
+    // check is disabled entirely — matching cfn-lint's W7001. Otherwise a mapping
+    // is "used" if its name appears as the literal first argument of any
+    // Fn::FindInMap anywhere in the template (resources, outputs, conditions,
+    // ForEach bodies), which `findInMapNames` collects template-wide.
+    let dynamic_map_name = input.get("hasDynamicFindinmapName").and_then(|v| v.as_bool()).unwrap_or(false);
+    if !dynamic_map_name
+        && let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object())
+    {
+        let used_names: HashSet<&str> = input
+            .get("findInMapNames")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
+            .unwrap_or_default();
         for mname in mappings.keys() {
-            let mut used = false;
-            if let Some(res_map) = resources {
-                for (_, res) in res_map {
-                    if let Some(refs) = res.get("findInMapRefs").and_then(|r| r.as_array()) {
-                        for r in refs {
-                            if r.as_str() == Some(mname.as_str()) {
-                                used = true;
-                                break;
-                            }
-                        }
-                    }
-                    if used {
-                        break;
-                    }
-                }
-            }
-            if !used {
+            if !used_names.contains(mname.as_str()) {
                 out.push(make_resource_diagnostic(
                     "W7001",
                     &format!("Mapping '{}' is not referenced by any Fn::FindInMap", mname),
@@ -626,14 +631,20 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if let Some(conds) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
         let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+        let fn_if_conditions: HashSet<&str> = input
+            .get("fnIfConditions")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
+            .unwrap_or_default();
         for cname in conds.keys() {
-            if !condition_is_referenced(
-                cname,
-                conds,
-                resources,
-                input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()),
-                &mut HashSet::new(),
-            ) {
+            if !fn_if_conditions.contains(cname.as_str())
+                && !condition_is_referenced(
+                    cname,
+                    conds,
+                    resources,
+                    input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()),
+                )
+            {
                 out.push(make_resource_diagnostic(
                     "W8001",
                     &format!("Condition '{}' is not used by any resource or Fn::If", cname),
@@ -970,11 +981,7 @@ fn condition_is_referenced(
     conds: &serde_json::Map<String, serde_json::Value>,
     resources: Option<&serde_json::Map<String, serde_json::Value>>,
     outputs: Option<&serde_json::Map<String, serde_json::Value>>,
-    visited: &mut HashSet<String>,
 ) -> bool {
-    if !visited.insert(cname.to_string()) {
-        return false;
-    }
     // Direct usage by resource condition or condition_refs
     if let Some(res_map) = resources {
         for (_, res) in res_map {
@@ -1001,14 +1008,15 @@ fn condition_is_referenced(
             }
         }
     }
-    // Transitive: another condition depends on this one via !Condition
+    // Referenced by another condition via Fn::And/Or/Not Condition entries. The
+    // reference alone marks this condition used, independent of whether the
+    // referencing condition is itself used.
     for (other, cond_val) in conds {
         if other == cname {
             continue;
         }
         if let Some(deps) = cond_val.get("deps").and_then(|d| d.as_array())
             && deps.iter().any(|d| d.as_str() == Some(cname))
-            && condition_is_referenced(other, conds, resources, outputs, visited)
         {
             return true;
         }

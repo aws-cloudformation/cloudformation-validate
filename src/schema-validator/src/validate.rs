@@ -9,6 +9,41 @@ use template_model::consts::{FN_IF, KEY_PROPERTIES};
 use template_model::model::ResolvedResource;
 use template_model::resolver::{RefKind, ResolvedValue};
 
+/// Properties that accept a string value when used with `aws cloudformation package`.
+/// The baseline skips type checks for these paths when the value is a string.
+const PACKAGING_PROPERTY_PATHS: &[(&str, &str)] = &[
+    ("AWS::Lambda::Function", "Properties.Code"),
+    ("AWS::Lambda::LayerVersion", "Properties.Content"),
+    ("AWS::ApiGateway::RestApi", "Properties.BodyS3Location"),
+    ("AWS::ElasticBeanstalk::ApplicationVersion", "Properties.SourceBundle"),
+    ("AWS::StepFunctions::StateMachine", "Properties.DefinitionS3Location"),
+    ("AWS::AppSync::GraphQLSchema", "Properties.DefinitionS3Location"),
+    ("AWS::AppSync::Resolver", "Properties.RequestMappingTemplateS3Location"),
+    ("AWS::AppSync::Resolver", "Properties.ResponseMappingTemplateS3Location"),
+    ("AWS::AppSync::FunctionConfiguration", "Properties.RequestMappingTemplateS3Location"),
+    ("AWS::AppSync::FunctionConfiguration", "Properties.ResponseMappingTemplateS3Location"),
+    ("AWS::CloudFormation::Stack", "Properties.TemplateURL"),
+    ("AWS::CodeCommit::Repository", "Properties.Code.S3"),
+];
+
+/// Property paths where the baseline skips type validation entirely because
+/// the property accepts free-form user-defined content.
+const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
+    ("AWS::Lambda::Function", "Properties.Environment.Variables"),
+    ("AWS::Lambda::Function", "Properties.Environment"),
+];
+
+/// Returns true if the value is an unresolved or malformed intrinsic function.
+/// These are JSON objects with a single key that starts with "Fn::" or is "Ref"/"Condition".
+fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
+    let Some(obj) = val.as_object() else { return false };
+    if obj.len() != 1 {
+        return false;
+    }
+    let key = obj.keys().next().unwrap();
+    key.starts_with("Fn::") || key == "Ref" || key == "Condition"
+}
+
 pub fn validate_all_resources(
     store: &CompiledSchemaStore,
     model: &Arc<SemanticModel>,
@@ -288,14 +323,18 @@ fn validate_resource(
     let defs = &schema.definitions;
 
     for ro in &schema.read_only_properties {
-        let top = ro.split('.').next().unwrap_or(ro);
-        if res.properties.contains_key(top) {
+        // Only flag top-level properties — nested read-only paths (e.g. "InstanceGroups.*.CurrentCount")
+        // should not trigger on the parent property itself.
+        if ro.contains('.') || ro.contains('*') {
+            continue;
+        }
+        if res.properties.contains_key(ro.as_str()) {
             out.push(build_diagnostic(
                 "E3040",
-                &format!("Read only property '{}' should not be specified", top),
+                &format!("Read only property '{}' should not be specified", ro),
                 m,
                 rid,
-                &format!("{}.{}", base, top),
+                &format!("{}.{}", base, ro),
                 None,
             ));
         }
@@ -404,7 +443,7 @@ fn validate_resource(
         let matches = condition_matches(&ite.condition, &actual_keys, m, rid, defs);
         let sub = if matches { &ite.then_schema } else { &ite.else_schema };
         if let Some(sub) = sub {
-            validate_sub(out, m, rid, &res.resource_type, &actual_keys, sub, defs, base);
+            validate_sub_dependencies(out, m, rid, &actual_keys, sub, base);
         }
     }
 }
@@ -735,6 +774,24 @@ fn validate_sub(
             ));
         }
     }
+    validate_sub_dependencies(out, m, rid, actual_keys, sub, base_path);
+}
+
+/// Validates the dependentRequired/dependentExcluded constraints of a subschema.
+///
+/// Split out from `validate_sub` so conditional (`if`/`then`) branches can still
+/// enforce property co-dependencies without raising the unconditional structural
+/// required check: a property that is required only when a sibling holds a
+/// particular value is a semantic dependency, which dedicated resource-specific
+/// rules own, not a Fatal structural violation.
+fn validate_sub_dependencies(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    actual_keys: &[String],
+    sub: &SubSchema,
+    base_path: &str,
+) {
     for (trigger, deps) in &sub.dependent_required {
         if actual_keys.contains(trigger) {
             for dep in deps {
@@ -795,7 +852,9 @@ fn validate_prop(
 
     let scenarios = m.resolve_scenarios_json(rid, prop_path);
 
-    if scenarios.is_empty() {
+    let is_type_exempt = TYPE_CHECK_EXEMPT_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
+
+    if scenarios.is_empty() && !is_type_exempt {
         validate_reference_type(out, store, m, rid, prop_path, schema);
     }
 
@@ -804,9 +863,29 @@ fn validate_prop(
     // Type check — coerce before rejecting since string↔number, string↔boolean,
     // bool→string, number→string are silently coerced at deploy time.
     // Successful coercion → Warn; failed coercion → Fatal.
-    if let Some(ref pt) = schema.prop_type {
+    if let Some(ref pt) = schema.prop_type && !is_type_exempt {
+        let is_packaging_path = PACKAGING_PROPERTY_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
+        // Skip type checks for array elements whose parent array or the element itself
+        // came from an intrinsic function — those are validated by function-specific rules.
+        let from_intrinsic = m.is_from_intrinsic(rid, prop_path)
+            || prop_path
+                .rsplit_once('.')
+                .and_then(|(parent, seg)| seg.parse::<usize>().ok().map(|_| parent))
+                .is_some_and(|parent| m.is_from_intrinsic(rid, parent));
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
+                continue;
+            }
+            // Skip unresolved/malformed intrinsics — already validated by structure rules
+            if is_unresolved_intrinsic(val) {
+                continue;
+            }
+            // Skip packaging properties when value is a string — valid with `package` command
+            if is_packaging_path && val.is_string() {
+                continue;
+            }
+            // Skip elements from intrinsic-resolved arrays
+            if from_intrinsic {
                 continue;
             }
             if !type_matches(val, pt) {
@@ -1432,6 +1511,17 @@ fn condition_matches(
     for (prop_name, prop_schema) in &cond.properties {
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("Properties.{}", prop_name);
+        // Check nested required sub-properties (e.g. Code requires ZipFile)
+        if !resolved.required.is_empty() {
+            for sub_req in &resolved.required {
+                let sub_path = format!("{}.{}", prop_path, sub_req);
+                let sub_scenarios = m.resolve_scenarios_json(rid, &sub_path);
+                let sub_exists = sub_scenarios.iter().any(|(v, c)| is_satisfiable(m, c) && !v.is_null());
+                if !sub_exists {
+                    return false;
+                }
+            }
+        }
         let scenarios = m.resolve_scenarios_json(rid, &prop_path);
         // When the value is dynamic (unresolvable) and the condition has a concrete
         // constraint (pattern/enum/const), we cannot confirm the match — return false
@@ -1534,21 +1624,6 @@ fn validate_reference_type(
                     None,
                 ));
             }
-
-            if let Some(ref fmt) = schema.format {
-                let compatible = store.ref_types().format_compatible_types(fmt);
-                if !compatible.is_empty() && !compatible.iter().any(|t| t == target_rtype) {
-                    let rule_id = rules::format_rule_for_format(fmt).unwrap_or("E1103");
-                    out.push(build_diagnostic(
-                        rule_id,
-                        &format!("Ref to '{}' ({}) may not produce a valid '{}' value", target, target_rtype, fmt),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                    ));
-                }
-            }
         }
         ResolvedValue::TypedDynamic { reason: _name, param_type } => {
             let source = cfn_param_type_to_schema_type(param_type);
@@ -1603,7 +1678,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
         "AWS::EC2::VPC.Id" => Some(r"^vpc-[a-f0-9]{8,17}$"),
         "AWS::EC2::Subnet.Id" => Some(r"^subnet-[a-f0-9]{8,17}$"),
         "AWS::EC2::SecurityGroup.Id" => Some(r"^sg-[a-f0-9]{8,17}$"),
-        "AWS::EC2::Image.Id" => Some(r"^ami-[a-f0-9]{8,17}$"),
+        "AWS::EC2::Image.Id" => Some(r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
         "AWS::IAM::Role.Arn" => Some(r"^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role/.+"),
         "AWS::Logs::LogGroup.Name" => Some(r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
         "AWS::EC2::SecurityGroup.Name" => Some(r"^[\s\S]+$"),
@@ -1948,7 +2023,8 @@ fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<Semant
 
     if let Some(props) = obj.get("properties").and_then(|v| v.as_object()) {
         for (prop_name, constraint) in props {
-            let scenarios = model.resolve_scenarios_json(rid, &format!("Properties.{}", prop_name));
+            let prop_path = format!("Properties.{}", prop_name);
+            let scenarios = model.resolve_scenarios_json(rid, &prop_path);
             if scenarios.is_empty() {
                 return false;
             }
@@ -1956,6 +2032,20 @@ fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<Semant
                 Some(o) => o,
                 None => continue,
             };
+            // Check nested required sub-properties within the constraint
+            if let Some(nested_required) = constraint_obj.get("required").and_then(|v| v.as_array()) {
+                for sub_req in nested_required {
+                    if let Some(sub_name) = sub_req.as_str() {
+                        let sub_path = format!("{}.{}", prop_path, sub_name);
+                        let sub_scenarios = model.resolve_scenarios_json(rid, &sub_path);
+                        let sub_exists =
+                            sub_scenarios.iter().any(|(v, c)| is_satisfiable(model, c) && !v.is_null());
+                        if !sub_exists {
+                            return false;
+                        }
+                    }
+                }
+            }
             let any_match = scenarios.iter().any(|(val, conds)| {
                 if !is_satisfiable(model, conds) {
                     return false;

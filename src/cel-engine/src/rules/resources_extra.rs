@@ -36,11 +36,6 @@ static AZ_RE: LazyLock<regex::Regex> =
 static W1030_AMI_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^ami-[0-9a-f]{8,17}$").expect("Invalid W1030_AMI_RE pattern"));
 
-static W1030_ARN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^(arn:(aws[A-Za-z\-]*?|\*):[^:]+:[^:]*(:(\d{12}|\*|aws)?:.+|)|\*)$")
-        .expect("Invalid W1030_ARN_RE pattern")
-});
-
 static W1030_VPC_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$").expect("Invalid W1030_VPC_RE pattern")
 });
@@ -726,7 +721,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && res.properties.contains_key("AccessControl")
             && !res.properties.contains_key("OwnershipControls")
             && let Some(serde_json::Value::String(ac)) = resolve_concrete(m, name, "Properties.AccessControl")
-            && ac != "Private"
+            // OwnershipControls is only required for ACLs that grant access to
+            // other accounts. The owner-scoped values need no OwnershipControl,
+            // matching cfn-lint's exempt enum.
+            && !matches!(ac.as_str(), "Private" | "BucketOwnerFullControl" | "BucketOwnerRead")
         {
             out.push(make_resource_diagnostic(
                 "E3045",
@@ -1282,40 +1280,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for (name, res) in &m.resources {
-        for p in &res.diagnostics.redundant_subs {
-            out.push(make_resource_diagnostic(
-                "W1020",
-                "Fn::Sub isn't needed because there are no variables",
-                m,
-                name,
-                p,
-                None,
-            ));
-        }
-    }
-
-    // Only fires when the variable is a parameter; GetAtt-shaped variables
-    // like ${X.Arn} and resource refs to GetAtt attrs are out of scope.
-    // Skip NoEcho parameters — simplifying to !Ref would expose the value.
-    for (name, res) in &m.resources {
-        for pair in &res.diagnostics.simple_subs {
-            let path = &pair.path;
-            let var = &pair.value;
-            let Some(param) = m.parameters.get(var.as_str()) else {
-                continue;
-            };
-            if param.no_echo {
-                continue;
+    let has_sam_for_w1020 = m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
+    if !has_sam_for_w1020 {
+        for (name, res) in &m.resources {
+            for p in &res.diagnostics.redundant_subs {
+                out.push(make_resource_diagnostic(
+                    "W1020",
+                    "Fn::Sub isn't needed because there are no variables",
+                    m,
+                    name,
+                    p,
+                    None,
+                ));
             }
-            out.push(make_resource_diagnostic(
-                "W1020",
-                &format!("Fn::Sub '${{{}}}' can be simplified to !Ref {}", var, var),
-                m,
-                name,
-                path,
-                None,
-            ));
         }
     }
 
@@ -1523,34 +1500,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 }
                             }
 
-                            // SecurityGroup.Id: String parameter used where security group ID expected
-                            if param.param_type == "String"
-                                && (sp.ends_with("GroupSet")
-                                    || sp.contains("GroupSet.")
-                                    || sp.ends_with("SecurityGroupIds")
-                                    || sp.contains("SecurityGroupIds."))
-                            {
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{{8}}|[a-fA-F0-9]{{17}})$' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                            }
-
-                            // Subnet.Id: String parameter used where subnet ID expected
-                            if param.param_type == "String" && sp.ends_with("SubnetId") {
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{{8}})|([0-9A-Fa-f]{{17}}))$' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{{1,512}}\\Z' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                            }
-
-                            // VPC.Id: String parameter used where VPC ID expected
-                            if param.param_type == "String" && sp.ends_with("VpcId") {
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-([a-fA-F0-9]{{8}}|[a-fA-F0-9]{{17}})$' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                            }
+                            // SecurityGroup.Id: not validated without concrete default
+                            // Subnet.Id: not validated without concrete default
+                            // VPC.Id: not validated without concrete default
 
                             // VPC.Id: parameter default fails VPC ID pattern
                             if sp.ends_with("VpcId")
@@ -1569,47 +1521,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    {
-        let mut checked: HashSet<String> = HashSet::new();
-        if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-            for (_name, res) in resources {
-                if let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) {
-                    for edge in edges {
-                        if edge.get(FIELD_KIND).and_then(|k| k.as_str()) != Some(EDGE_KIND_REF) {
-                            continue;
-                        }
-                        let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
-                        let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
-                        if !is_arn_prop(sp) {
-                            continue;
-                        }
-                        if checked.contains(target) {
-                            continue;
-                        }
-                        if let Some(param) = m.parameters.get(target) {
-                            if param.param_type != "String" {
-                                continue;
-                            }
-                            if let Some(ref def) = param.default
-                                && !W1030_ARN_RE.is_match(def)
-                            {
-                                checked.insert(target.to_string());
-                                let param_path = format!("Parameters.{}.Default", target);
-                                out.push(make_resource_diagnostic("W1030",
-                                        &format!("{{'Ref': '{}'}} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{{12}}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved", target),
-                                        m, "", &param_path, Some("Ensure the parameter default matches the expected ARN pattern")));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     let getatt_format: HashMap<(&str, &str), &str> = [
         (("AWS::EC2::SecurityGroup", "GroupId"), "AWS::EC2::SecurityGroup.Id"),
         (("AWS::EC2::SecurityGroup", "GroupName"), "AWS::EC2::SecurityGroup.Name"),
-        (("AWS::EC2::VPC", "DefaultSecurityGroup"), "AWS::EC2::VPC.DefaultSecurityGroup"),
+        (("AWS::EC2::VPC", "DefaultSecurityGroup"), "AWS::EC2::SecurityGroup.Id"),
         (("AWS::Logs::LogGroup", "Arn"), "AWS::Logs::LogGroup.Arn"),
     ]
     .into_iter()
@@ -1893,73 +1808,25 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .and_then(|v| v.as_object())
             .or_else(|| ctx.cached_data.iam_action_resource_patterns.as_object())
         {
-            let mut iam_patterns: HashMap<String, String> = HashMap::new();
+            let mut iam_patterns: HashMap<String, Vec<String>> = HashMap::new();
             for (k, v) in iam_obj {
-                if let Some(s) = v.as_str() {
-                    iam_patterns.insert(k.clone(), s.to_string());
+                if let Some(arr) = v.as_array() {
+                    let formats: Vec<String> = arr.iter().filter_map(|s| s.as_str().map(String::from)).collect();
+                    if !formats.is_empty() {
+                        iam_patterns.insert(k.clone(), formats);
+                    }
                 }
             }
             if !iam_patterns.is_empty() {
-                let policy_types = [
-                    ("AWS::IAM::Policy", "Properties.PolicyDocument"),
-                    ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
-                ];
-                for (rtype, doc_path) in &policy_types {
-                    for name in m.resources_of_type(rtype) {
-                        let doc_rv = m.resolve_deep(name, doc_path).or_else(|| m.resolve(name, doc_path).cloned());
-                        let Some(rv) = doc_rv else {
-                            continue;
-                        };
-                        let doc = resolved_to_json_best_effort(&rv);
-                        check_iam_action_resources(&mut out, m, name, &doc, doc_path, &iam_patterns);
-                    }
-                }
-                for name in m.resources_of_type("AWS::IAM::Role") {
-                    // Resolve each policy's PolicyDocument independently so that
-                    // non-concrete sibling fields (e.g., Sub-templated PolicyName)
-                    // don't cause the entire Policies array to fail resolve_concrete.
-                    let Some(res) = m.resources.get(name.as_str()) else {
+                for name in m.resources_of_type("AWS::IAM::Policy") {
+                    let doc_rv = m
+                        .resolve_deep(name, "Properties.PolicyDocument")
+                        .or_else(|| m.resolve(name, "Properties.PolicyDocument").cloned());
+                    let Some(rv) = doc_rv else {
                         continue;
                     };
-                    let policies_len = match res.properties.get("Policies") {
-                        Some(ResolvedValue::List { items }) => items.len(),
-                        Some(ResolvedValue::Concrete { value: v }) => v.as_array().map(|a| a.len()).unwrap_or(0),
-                        _ => 0,
-                    };
-                    for idx in 0..policies_len {
-                        let doc_path = format!("Properties.Policies.{}.PolicyDocument", idx);
-                        if let Some(doc) = resolve_concrete(m, name, &doc_path) {
-                            check_iam_action_resources(
-                                &mut out,
-                                m,
-                                name,
-                                &doc,
-                                &format!("Properties.Policies[{}].PolicyDocument", idx),
-                                &iam_patterns,
-                            );
-                            continue;
-                        }
-                        // Fallback: the PolicyDocument may be partially unresolved but still
-                        // usable as raw JSON — extract via the ResolvedValue tree so we don't
-                        // miss statements like those with Sub'd PolicyName sibling fields.
-                        if let Some(ResolvedValue::List { items }) = res.properties.get("Policies")
-                            && let Some(ResolvedValue::Map { entries }) = items.get(idx)
-                        {
-                            for entry in entries {
-                                if entry.key == "PolicyDocument" {
-                                    let json = resolved_to_json_best_effort(&entry.value);
-                                    check_iam_action_resources(
-                                        &mut out,
-                                        m,
-                                        name,
-                                        &json,
-                                        &format!("Properties.Policies[{}].PolicyDocument", idx),
-                                        &iam_patterns,
-                                    );
-                                }
-                            }
-                        }
-                    }
+                    let doc = resolved_to_json_best_effort(&rv);
+                    check_iam_action_resources(&mut out, m, name, &doc, &iam_patterns);
                 }
             }
         }
@@ -3299,6 +3166,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for name in m.resources_of_type(rtype) {
                 for prop in *props {
                     let path = format!("Properties.{}", prop);
+                    // cfn-lint only inspects string literals here; a value wrapped
+                    // in an intrinsic (Fn::Join/Fn::Sub building an S3 URL) is left
+                    // alone, so skip intrinsic-sourced values to match it.
+                    if m.is_from_intrinsic(name, &path) {
+                        continue;
+                    }
                     if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path) {
                         if val.starts_with("s3://") || val.starts_with("https://") {
                             continue;
@@ -3726,7 +3599,6 @@ fn walk_w3010(
     path: String,
 ) {
     if idx == segments.len() {
-        // Scalar leaf: path resolves to a string AZ.
         if m.is_from_intrinsic(name, &path) {
             return;
         }
@@ -3746,7 +3618,6 @@ fn walk_w3010(
     }
     let seg = segments[idx];
     if seg == "*" {
-        // Leaf list: enumerate items of the current path.
         if m.is_from_intrinsic(name, &path) {
             return;
         }
@@ -3772,7 +3643,6 @@ fn walk_w3010(
             }
         }
     } else if seg == "{}" {
-        // Intermediate list wildcard: recurse into each index.
         let Some(len) = resolve_array_len_any(m, name, &path) else {
             return;
         };
@@ -3876,13 +3746,46 @@ fn resolved_to_json_best_effort(rv: &ResolvedValue) -> serde_json::Value {
     }
 }
 
-fn arn_matches_pattern(arn: &str, pattern: &str) -> bool {
-    let arn_parts: Vec<&str> = arn.split(':').collect();
-    let pat_parts: Vec<&str> = pattern.split(':').collect();
-    if arn_parts.len() < 6 || pat_parts.len() < 6 {
+fn arn_matches_format(resource_arn: &str, format_arn: &str) -> bool {
+    let r_parts: Vec<&str> = resource_arn.splitn(6, ':').collect();
+    let f_parts: Vec<&str> = format_arn.splitn(6, ':').collect();
+    if r_parts.len() < 6 || f_parts.len() < 6 {
         return false;
     }
-    arn_parts.iter().zip(pat_parts.iter()).all(|(a, p)| *p == "*" || *p == *a)
+    for i in 0..5 {
+        if r_parts[i] == "*" {
+            continue;
+        }
+        if matches!(f_parts[i], "${Partition}" | "${Region}" | "${Account}") {
+            continue;
+        }
+        if r_parts[i] != f_parts[i] {
+            return false;
+        }
+    }
+    if r_parts[5] == "*" {
+        return true;
+    }
+    let delimiter = if f_parts[5].contains(':') {
+        ':'
+    } else if f_parts[5].contains('/') {
+        '/'
+    } else {
+        return true;
+    };
+    for (r_seg, f_seg) in r_parts[5].split(delimiter).zip(f_parts[5].split(delimiter)) {
+        if r_seg == f_seg {
+            continue;
+        }
+        if r_seg == "*" || r_seg.starts_with('*') || f_seg.is_empty() || f_seg == ".*" {
+            return true;
+        }
+        if r_seg.starts_with(f_seg) && r_seg.contains('*') {
+            return true;
+        }
+        return false;
+    }
+    true
 }
 
 fn check_iam_action_resources(
@@ -3890,33 +3793,65 @@ fn check_iam_action_resources(
     m: &Arc<SemanticModel>,
     name: &str,
     doc: &serde_json::Value,
-    path: &str,
-    patterns: &HashMap<String, String>,
+    patterns: &HashMap<String, Vec<String>>,
 ) {
     let stmts = match doc.get("Statement").and_then(|s| s.as_array()) {
         Some(s) => s,
         None => return,
     };
-    for stmt in stmts {
-        let resources: Vec<&str> = match stmt.get("Resource") {
-            Some(serde_json::Value::String(s)) => vec![s.as_str()],
-            Some(serde_json::Value::Array(arr)) => {
-                if arr.iter().any(|v| !v.is_string()) {
-                    continue;
+    for (stmt_idx, stmt) in stmts.iter().enumerate() {
+        if !stmt.is_object() {
+            continue;
+        }
+        let mut using_functions = false;
+        let mut all_resources: Vec<&str> = Vec::new();
+        let mut skip_statement = false;
+
+        for key in &["Resource", "NotResource"] {
+            let field = match stmt.get(*key) {
+                Some(v) => v,
+                None => continue,
+            };
+            let items: Vec<&serde_json::Value> = match field {
+                serde_json::Value::Array(arr) => arr.iter().collect(),
+                other => vec![other],
+            };
+            for val in items {
+                match val {
+                    serde_json::Value::String(s) => {
+                        if s.contains("{{resolve:") {
+                            skip_statement = true;
+                            break;
+                        }
+                        if s == "*" {
+                            skip_statement = true;
+                            break;
+                        }
+                        all_resources.push(s.as_str());
+                    }
+                    serde_json::Value::Object(obj) => {
+                        if let Some(ref_target) = obj.get("Ref").and_then(|v| v.as_str()) {
+                            if m.parameters.contains_key(ref_target) {
+                                skip_statement = true;
+                                break;
+                            }
+                        }
+                        using_functions = true;
+                    }
+                    serde_json::Value::Null => {
+                        using_functions = true;
+                    }
+                    _ => {}
                 }
-                arr.iter().filter_map(|v| v.as_str()).collect()
             }
-            _ => continue,
-        };
-        if resources.is_empty() {
+            if skip_statement {
+                break;
+            }
+        }
+        if skip_statement {
             continue;
         }
-        if resources.contains(&"*") {
-            continue;
-        }
-        if resources.iter().any(|r| r.contains("${") || r.contains("{{resolve:")) {
-            continue;
-        }
+
         let actions: Vec<&str> = match stmt.get("Action") {
             Some(serde_json::Value::String(s)) => vec![s.as_str()],
             Some(serde_json::Value::Array(arr)) => arr.iter().filter_map(|v| v.as_str()).collect(),
@@ -3927,18 +3862,30 @@ fn check_iam_action_resources(
                 continue;
             }
             let key = action.to_lowercase();
-            if let Some(expected) = patterns.get(&key)
-                && !resources.iter().any(|r| arn_matches_pattern(r, expected))
-            {
+            let Some(candidate_formats) = patterns.get(&key) else {
+                continue;
+            };
+            if using_functions {
+                continue;
+            }
+            let matched = candidate_formats.iter().any(|fmt| {
+                all_resources.iter().any(|r| arn_matches_format(r, fmt))
+            });
+            if !matched {
+                let formats_display = candidate_formats
+                    .iter()
+                    .map(|s| format!("'{}'", s))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 out.push(make_resource_diagnostic(
                     "I3510",
                     &format!(
-                        "Action '{}' requires a resource matching '{}' but none of the resources match",
-                        action, expected
+                        "action '{}' requires a resource of [{}]",
+                        action, formats_display
                     ),
                     m,
                     name,
-                    path,
+                    &format!("Properties.PolicyDocument.Statement.{}.Resource", stmt_idx),
                     None,
                 ));
             }
@@ -4021,10 +3968,6 @@ fn check_iam_statements(
             }
         }
     }
-}
-
-fn is_arn_prop(path: &str) -> bool {
-    path.ends_with("TopicArn") || path.ends_with("Arn") || path.contains("Resource.") || path.ends_with("Resource")
 }
 
 fn check_dynamic_ref_spaces(
@@ -4170,22 +4113,32 @@ mod tests {
 
     #[test]
     fn arn_matches_exact() {
-        assert!(arn_matches_pattern("arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket"));
+        assert!(arn_matches_format("arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket"));
     }
 
     #[test]
-    fn arn_matches_wildcard() {
-        assert!(arn_matches_pattern("arn:aws:s3:::my-bucket", "arn:aws:s3:*:*:*"));
+    fn arn_matches_resource_wildcard() {
+        assert!(arn_matches_format("arn:*:s3:::my-bucket", "arn:${Partition}:s3:::my-bucket"));
+    }
+
+    #[test]
+    fn arn_matches_placeholder_partition() {
+        assert!(arn_matches_format("arn:aws:iam::123456:user/test", "arn:${Partition}:iam::${Account}:user/.*"));
+    }
+
+    #[test]
+    fn arn_matches_resource_star_sixth() {
+        assert!(arn_matches_format("arn:aws:s3:::*", "arn:${Partition}:s3:::.*"));
     }
 
     #[test]
     fn arn_no_match_different_service() {
-        assert!(!arn_matches_pattern("arn:aws:ec2:::instance", "arn:aws:s3:::*"));
+        assert!(!arn_matches_format("arn:aws:ec2:::instance", "arn:${Partition}:s3:::.*"));
     }
 
     #[test]
     fn arn_too_few_parts() {
-        assert!(!arn_matches_pattern("arn:aws", "arn:aws:s3:::*"));
-        assert!(!arn_matches_pattern("arn:aws:s3:::*", "short"));
+        assert!(!arn_matches_format("arn:aws", "arn:aws:s3:::*"));
+        assert!(!arn_matches_format("arn:aws:s3:::*", "short"));
     }
 }

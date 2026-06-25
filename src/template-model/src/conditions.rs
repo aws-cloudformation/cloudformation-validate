@@ -358,20 +358,21 @@ impl ConditionModel {
             if val {
                 let mut violated = false;
                 for group in &self.mutex_groups {
-                    let true_count = group
-                        .conditions
-                        .iter()
-                        .filter(|c| {
-                            name_to_idx
-                                .get(c.as_str())
-                                .map(|&i| {
-                                    // Only count conditions we've already assigned in relevant set
-                                    relevant[..=rel_idx].contains(&i) && assignment[i]
-                                })
-                                .unwrap_or(false)
-                        })
-                        .count();
-                    if true_count > 1 {
+                    // A parameter can equal at most one value, so the conditions
+                    // that are simultaneously true may reference at most one
+                    // distinct value. Conditions that test the same value are
+                    // equivalent and may all hold together.
+                    let mut true_values: HashSet<&str> = HashSet::new();
+                    for (position, condition_name) in group.conditions.iter().enumerate() {
+                        let condition_holds = name_to_idx
+                            .get(condition_name.as_str())
+                            .map(|&i| relevant[..=rel_idx].contains(&i) && assignment[i])
+                            .unwrap_or(false);
+                        if condition_holds {
+                            true_values.insert(group.values[position].as_str());
+                        }
+                    }
+                    if true_values.len() > 1 {
                         violated = true;
                         break;
                     }
@@ -849,24 +850,22 @@ fn parse_value_expr(arena: &Arena, node_ref: NodeRef, parameters: &HashMap<Strin
             }
         }
         Node::Intrinsic(intrinsic) => {
-            // Describe the intrinsic so conditions display something meaningful
-            let desc = match intrinsic {
-                IntrinsicFn::Select(_, _) => "Select(...)".to_string(),
+            // FindInMap can resolve to a concrete value, so it gets a dedicated
+            // variant the SAT solver understands. Every other intrinsic produces
+            // a value that cannot be known statically — it must be treated as an
+            // opaque unknown (`Other`), never a comparable literal. Treating, say,
+            // `Fn::Sub(...)` as the literal string "Sub(...)" would make
+            // `Fn::Equals[!Sub ..., "x"]` look like a literal-vs-literal compare and
+            // spuriously fire the always-true/false check (W8003).
+            match intrinsic {
                 IntrinsicFn::FindInMap(m, k1, k2, _) => {
                     let map_name = arena.as_str(*m).unwrap_or("?").to_string();
                     let key1 = parse_value_expr(arena, *k1, parameters);
                     let key2 = parse_value_expr(arena, *k2, parameters);
-                    return ValueExpr::MappingLookup { map_name, key1: Box::new(key1), key2: Box::new(key2) };
+                    ValueExpr::MappingLookup { map_name, key1: Box::new(key1), key2: Box::new(key2) }
                 }
-                IntrinsicFn::Join(_, _) => "Join(...)".to_string(),
-                IntrinsicFn::Sub(t, _) => format!("Sub({})", t),
-                IntrinsicFn::GetAtt(r, a) => format!("GetAtt({}, {})", r, a),
-                IntrinsicFn::If(c, _, _) => format!("If({})", c),
-                IntrinsicFn::Split(_, _) => "Split(...)".to_string(),
-                IntrinsicFn::Base64(_) => "Base64(...)".to_string(),
-                _ => "Intrinsic(...)".to_string(),
-            };
-            ValueExpr::Literal(desc)
+                _ => ValueExpr::Other,
+            }
         }
         _ => ValueExpr::Other,
     }

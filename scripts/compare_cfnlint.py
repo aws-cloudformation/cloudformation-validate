@@ -476,7 +476,12 @@ def fmt_diag(d, template):
 
 def run_single():
     """Run comparison for the current ENGINE_NAME globals."""
-    cfnlint_all = {**load_cfnlint_results_from_files(), **load_cfnlint_inline_results()}
+    # Snapshot result files are generated with `-e -c I` (the full informational +
+    # experimental rule set) and are the authoritative baseline. The inline
+    # scenarios in test_good_templates.py are recorded without those flags, so they
+    # omit informational rules; let the snapshot files win for any template present
+    # in both, and use inline only to cover templates that have no snapshot file.
+    cfnlint_all = {**load_cfnlint_inline_results(), **load_cfnlint_results_from_files()}
     engine_all = load_engine_results()
     agg_perf = load_aggregate_perf()
 

@@ -22,6 +22,9 @@ violation contains make_diag_full("E3045", "ERROR", name,
     some name in resources_of_type("AWS::S3::Bucket")
     ac := resolve(name, "Properties.AccessControl")
     ac != null
-    ac != "Private"
+    # OwnershipControls is only required for ACLs that grant access to other
+    # accounts. The owner-scoped values need no OwnershipControl, matching
+    # cfn-lint's exempt enum.
+    not ac in {"Private", "BucketOwnerFullControl", "BucketOwnerRead"}
     not has_property(name, "OwnershipControls")
 }

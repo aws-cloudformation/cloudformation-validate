@@ -69,7 +69,7 @@ fn equals_argument_error(val: &serde_json::Value) -> Option<String> {
     if val.is_null() {
         return Some("null is not of type 'string'".to_string());
     }
-    if val.is_string() || val.is_number() {
+    if val.is_string() || val.is_number() || val.is_boolean() {
         return None;
     }
     if let Some(obj) = val.as_object()

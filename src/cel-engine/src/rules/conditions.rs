@@ -152,7 +152,14 @@ fn find_unreachable_branches(
         ResolvedValue::Conditional { condition: cond, if_true: true_branch, if_false: false_branch } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
-            if !model.conditions.is_satisfiable(&true_assumptions) {
+            // Flag the branch only when the surrounding assumptions make this
+            // condition value unreachable — not when the condition can never take
+            // the value on its own. A condition that is constant (a literal
+            // tautology, or a parameter pinned to a single value) is the concern
+            // of equality rules, not of branch reachability.
+            if !model.conditions.is_satisfiable(&true_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
+            {
                 out.push(make_resource_diagnostic(
                     "W1028",
                     &format!("['Fn::If', 1] is not reachable. When setting condition '{}' to True", cond),
@@ -165,7 +172,9 @@ fn find_unreachable_branches(
 
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions) {
+            if !model.conditions.is_satisfiable(&false_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
+            {
                 let explanation = build_unreachable_explanation(cond, false, assumptions);
                 out.push(make_resource_diagnostic(
                     "W1028",

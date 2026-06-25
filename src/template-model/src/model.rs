@@ -133,6 +133,13 @@ pub struct SemanticModel {
     pub sam_implicit_resources: HashSet<String>,
     pub globals_param_refs: Vec<String>,
     pub is_cdk: bool,
+    pub fn_if_conditions: Vec<String>,
+    /// Mapping names referenced by an `Fn::FindInMap` with a literal map name,
+    /// collected template-wide (resources, outputs, conditions, ForEach bodies).
+    pub find_in_map_names: HashSet<String>,
+    /// True when any `Fn::FindInMap` uses a non-literal map name, which disables
+    /// the unused-mapping check (W7001) to match cfn-lint.
+    pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
@@ -362,6 +369,24 @@ impl SemanticModel {
             conditions.register_inline(name, expr);
         }
 
+        // Collect every mapping name referenced by an Fn::FindInMap anywhere in
+        // the template (resources, outputs, conditions, ForEach bodies). A literal
+        // first argument names a specific mapping; a non-literal one (e.g. a nested
+        // Fn::FindInMap or Ref) means the referenced mapping can't be determined
+        // statically, which disables the unused-mapping check — matching cfn-lint.
+        let mut find_in_map_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut has_dynamic_findinmap_name = false;
+        for idx in 0..ir.arena.len() {
+            if let Node::Intrinsic(IntrinsicFn::FindInMap(map_name_ref, _, _, _)) = ir.arena.node(idx as NodeRef) {
+                match ir.arena.as_str(*map_name_ref) {
+                    Some(name) => {
+                        find_in_map_names.insert(name.to_string());
+                    }
+                    None => has_dynamic_findinmap_name = true,
+                }
+            }
+        }
+
         let resolution_sources = resolver.resolution_sources();
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
@@ -400,17 +425,37 @@ impl SemanticModel {
 
         diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
 
+        let mut fn_if_conditions: Vec<String> = Vec::new();
         for idx in 0..ir.arena.len() {
-            if let Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) = ir.arena.node(idx as NodeRef)
-                && !conditions.conditions.contains_key(cond_name)
-            {
-                diagnostics.push(crate::make_parse_diagnostic(
-                    "F1104",
-                    format!("Fn::If references undefined condition '{}'", cond_name),
-                    ir.arena.span(idx as NodeRef),
-                ));
+            match ir.arena.node(idx as NodeRef) {
+                Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) => {
+                    fn_if_conditions.push(cond_name.clone());
+                    if !conditions.conditions.contains_key(cond_name) {
+                        diagnostics.push(crate::make_parse_diagnostic(
+                            "F1104",
+                            format!("Fn::If references undefined condition '{}'", cond_name),
+                            ir.arena.span(idx as NodeRef),
+                        ));
+                    }
+                }
+                // A structurally malformed Fn::If (wrong arity, wrong type) is
+                // rejected by the parser and left as a plain `Fn::If` map node
+                // rather than an `IntrinsicFn::If`. Its condition is still
+                // referenced, so collect the name here too — otherwise the
+                // unused-condition check (W8001) would wrongly flag it, while
+                // cfn-lint treats the reference as real.
+                Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
+                    if let Some(first) = ir.arena.as_list(entries[0].1).and_then(|items| items.first())
+                        && let Some(cond_name) = ir.arena.as_str(*first)
+                    {
+                        fn_if_conditions.push(cond_name.to_string());
+                    }
+                }
+                _ => {}
             }
         }
+        fn_if_conditions.sort();
+        fn_if_conditions.dedup();
         let mut output_empty_joins: Vec<String> = Vec::new();
         for (key, joins) in &resolver.empty_joins {
             if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
@@ -502,6 +547,9 @@ impl SemanticModel {
                 sam_implicit_resources,
                 globals_param_refs,
                 is_cdk,
+                fn_if_conditions,
+                find_in_map_names,
+                has_dynamic_findinmap_name,
                 resolution_sources,
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
@@ -581,11 +629,17 @@ impl SemanticModel {
     }
 
     fn path_from_intrinsic(&self, resource_id: &str, path: &str) -> bool {
+        let edges = self.graph.outgoing(resource_id);
         let mut p = path.to_string();
         loop {
             if let Some(src) = self.resolution_sources.get(&(resource_id.to_string(), p.clone()))
                 && src.starts_with("Intrinsic/")
             {
+                return true;
+            }
+            // A reference edge (Ref, GetAtt, Sub) anchored at this path means the
+            // value is produced by an intrinsic rather than written as a literal.
+            if edges.iter().any(|e| e.source_path == p) {
                 return true;
             }
             match p.rfind('.') {
@@ -869,6 +923,12 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     }
     if let Some(ref meta_resolved) = resolved_metadata {
         collect_condition_refs_from_resolved(meta_resolved, &mut condition_refs);
+    }
+    if let Some(ref dp) = deletion_policy {
+        collect_condition_refs_from_resolved(dp, &mut condition_refs);
+    }
+    if let Some(ref urp) = update_replace_policy {
+        collect_condition_refs_from_resolved(urp, &mut condition_refs);
     }
     if let Some(mut extra) = resolver.extra_condition_refs.remove(name) {
         condition_refs.append(&mut extra);

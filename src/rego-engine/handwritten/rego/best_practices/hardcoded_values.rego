@@ -23,30 +23,24 @@ violation contains make_diag("W9013", "WARN", name,
     regex.match(`arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:`, val)
 }
 
-# I3042: Hardcoded partition in ARN (plain string properties)
-violation contains make_diag("I3042", "INFO", name,
-    "Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability") if {
-    some name, res in input.resources
-    some key in object.keys(res.properties)
-    val := res.properties[key]
-    is_string(val)
-    startswith(val, "arn:aws:")
-    not is_dynamic(name, sprintf("Properties.%s", [key]))
-}
-
-# I3042: Hardcoded partition in Fn::Sub template
+# I3042: Hardcoded partition in Fn::Sub template (only fires inside Fn::Sub, skips SAM)
 violation contains make_diag_at("I3042", "INFO", name,
-    sprintf("Properties.%s", [path]),
+    path,
     sprintf("ARN in Resource %s contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters", [name])) if {
+    not has_transform("AWS::Serverless-2016-10-31")
     some name, res in input.resources
     some path in res.hardcodedPartitionArns
 }
 
-# W3011: Both UpdateReplacePolicy and DeletionPolicy needed to protect resource
+# W3011: Both UpdateReplacePolicy and DeletionPolicy needed to protect resource.
+# A lone policy set to "Delete" is the default behavior, so its counterpart adds
+# no protection — cfn-lint treats that as valid and stays silent. Only warn when
+# the single present policy asks for something other than Delete.
 violation contains make_diag("W3011", "WARN", name,
     "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion") if {
     some name, res in input.resources
     res.deletionPolicy != null
+    res.deletionPolicy != "Delete"
     res.updateReplacePolicy == null
 }
 
@@ -54,5 +48,6 @@ violation contains make_diag("W3011", "WARN", name,
     "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion") if {
     some name, res in input.resources
     res.updateReplacePolicy != null
+    res.updateReplacePolicy != "Delete"
     res.deletionPolicy == null
 }

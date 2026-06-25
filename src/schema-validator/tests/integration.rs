@@ -215,17 +215,26 @@ fn format_validation_with_refs() {
 
 // ── Integration: ref type checking ──────────────────────────────────
 
+// A reference whose target resource produces the wrong destination ARN format
+// is a semantic, cross-resource concern owned by the rule engine, not the schema
+// validator. The schema validator only proves structural type incompatibility,
+// which a string-typed reference name does not violate — so it must not raise an
+// ARN-format violation here.
 #[test]
-fn ref_type_mismatch_detected() {
+fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
     let diags = validate_fixture("integration/ref-types.yaml");
-    let type_or_format: Vec<_> = diags
+    let format_violations: Vec<_> = diags
         .iter()
         .filter(|d| {
-            (d.rule_id == "F3012" || d.rule_id == "E1151")
+            matches!(d.rule_id.as_str(), "E1150" | "E1151" | "E1152" | "E1154")
                 && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Subnet2")
         })
         .collect();
-    assert!(!type_or_format.is_empty(), "expected type/format diagnostic for Subnet2 VpcId ref to IAM Role");
+    assert!(
+        format_violations.is_empty(),
+        "schema validator must not emit an ARN-format violation for a reference-valued property; got {:?}",
+        format_violations.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
 }
 
 // ── Integration: getatt type checking ───────────────────────────────

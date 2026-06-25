@@ -115,7 +115,7 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
     info!("=== Generate phase ===");
 
     info!("Step 1: Processing schemas (patches, extensions, metadata)");
-    process::process_schemas(upstream_dir, generated_dir)?.fail_on_errors("Process")?;
+    process::process_schemas(upstream_dir, generated_dir, handwritten_dir)?.fail_on_errors("Process")?;
 
     info!("Step 2: Generating CEL rules");
     codegen_cel::generate(generated_dir, handwritten_dir)?;

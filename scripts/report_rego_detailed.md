@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-23 17:39:36  
+> Generated: 2026-06-25 11:35:51  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,50 +22,50 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1661 |
-| False Positives (engine bugs) | 960 |
-| Engine Extra (correct, cfn-lint gap) | 5222 |
-| False Negatives (engine misses) | 235 |
-| Precision | 63.37% |
-| Recall | 87.61% |
-| F1 | 73.54% |
-| Unique rules detected | 203 |
-| Perfect templates | 141/387 |
+| True Positives | 1666 |
+| False Positives (engine bugs) | 93 |
+| Engine Extra (correct, cfn-lint gap) | 5221 |
+| False Negatives (engine misses) | 246 |
+| Precision | 94.71% |
+| Recall | 87.13% |
+| F1 | 90.77% |
+| Unique rules detected | 201 |
+| Perfect templates | 278/387 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 336 | 68 | 55 | 78 | 83.17% | 81.16% |
-| Error | 294 | 120 | 3 | 119 | 71.01% | 71.19% |
-| Warning | 695 | 103 | 344 | 32 | 87.09% | 95.60% |
-| Info | 336 | 669 | 4820 | 6 | 33.43% | 98.25% |
+| Fatal | 336 | 26 | 59 | 78 | 92.82% | 81.16% |
+| Error | 292 | 24 | 3 | 121 | 92.41% | 70.70% |
+| Warning | 688 | 34 | 339 | 39 | 95.29% | 94.64% |
+| Info | 350 | 9 | 4820 | 8 | 97.49% | 97.77% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 19055.6655 ms |
-| Throughput | 118.86 validations/sec |
+| Total wall time | 18166.1984 ms |
+| Throughput | 124.68 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 64.0091 ms |
-| Engine init (max) | 64.2694 ms |
-| Schema init (p99) | 71.9549 ms |
-| Schema init (max) | 73.2350 ms |
+| Engine init (p99) | 64.7131 ms |
+| Engine init (max) | 65.0036 ms |
+| Schema init (p99) | 56.6614 ms |
+| Schema init (max) | 57.2587 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0017 | 0.1926 | 0.0438 | 0.6134 | 0.8127 | 1.5233 | 2.5854 |
-| Schema Validate | 0.0000 | 2.2805 | 0.4266 | 6.0837 | 9.4172 | 22.9332 | 51.9118 |
-| Rule Evaluation | 0.9762 | 5.3517 | 2.3534 | 13.2837 | 18.7071 | 31.4132 | 105.4220 |
-| Diagnostic Finalize | 0.0004 | 0.0300 | 0.0048 | 0.0919 | 0.1414 | 0.3289 | 0.5933 |
-| Engine Internal | 0.9803 | 7.9030 | 3.0190 | 20.0812 | 30.6052 | 54.6133 | 111.3661 |
-| Wall Clock | 0.9804 | 7.9033 | 3.0193 | 20.0817 | 30.6055 | 54.6137 | 111.3670 |
+| Model Build | 0.0016 | 0.1906 | 0.0429 | 0.5768 | 0.8110 | 1.4830 | 2.5999 |
+| Schema Validate | 0.0000 | 2.3812 | 0.5456 | 6.2876 | 9.8844 | 22.6645 | 51.7360 |
+| Rule Evaluation | 0.9377 | 4.9373 | 2.1797 | 11.7780 | 17.0489 | 29.0384 | 96.7023 |
+| Diagnostic Finalize | 0.0003 | 0.0265 | 0.0039 | 0.0913 | 0.1197 | 0.2995 | 0.5607 |
+| Engine Internal | 0.9467 | 7.5770 | 2.9178 | 19.3121 | 28.7209 | 51.7563 | 104.9978 |
+| Wall Clock | 0.9468 | 7.5773 | 2.9180 | 19.3127 | 28.7210 | 51.7568 | 104.9980 |
 
-## False Negatives — 235 missed findings across 71 rules
+## False Negatives — 246 missed findings across 73 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -230,6 +230,21 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1017** `myInstance3` → `Properties.AvailabilityZone.Fn::Select` L36 in `bad_functions_select`
   > 'foo' is not of type 'array'
 
+### I3011 — 6 missed — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
+
+- **I3011** `AppName` → `Resources.AppName` L18 in `good_transform`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `AppName` → `Resources.AppName` L18 in `good_transform`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+
 ### E3530 — 6 missed — Validate IAM trust polices
 
 - **E3530** `TestRole` → `Properties.AssumeRolePolicyDocument.Statement.0.Principal.AWS.0` L17 in `good_functions_sub_needed_custom_excludes`
@@ -305,6 +320,19 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L66 in `lsp_parameter_usage`
   > {'Fn::Sub': 'Bucket-${AWS::Region}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
 
+### W1030 — 5 missed — Validate the values that come from a Ref function
+
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.0.Ref` L82 in `quickstart_nat-instance`
+  > {'Ref': 'pSecurityGroupSSHFromVpc'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.1.Ref` L84 in `quickstart_nat-instance`
+  > {'Ref': 'pSecurityGroupVpcNat'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** → `Parameters.pSecurityAlarmTopic.Default` L198 in `quickstart_nist_application`
+  > {'Ref': 'pSecurityAlarmTopic'} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved at 'Resources/rPostProcInstanceRole/Properties/Policies
+
 ### F1018 — 5 missed — Sub validation of parameters
 
 - **F1018** (cfn-lint: E1019) `MyEC2Instance` → `Properties.UserData.Fn::Sub` L46 in `bad_functions_ref`
@@ -354,17 +382,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'obj' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 - **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L34 in `lsp_constants`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
-
-### I3011 — 4 missed — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
-
-- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
 
 ### W8001 — 4 missed — Check if Conditions are Used
 
@@ -442,6 +459,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > Additional properties are not allowed ('NotType' was unexpected)
 - **E2001** → `Parameters.NullParamType` L35 in `bad_parameters_configuration`
   > 'Type' is a required property
+
+### W1028 — 3 missed — Check Fn::If has a path that cannot be reached
+
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Listeners.0.Fn::If.2` L161-164 in `bad_generic`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Tags.0.Fn::If.2` L178-180 in `bad_generic`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** → `Outputs.ConditionalOutput.Value.Fn::If.2` L1014-1016 in `lsp_comprehensive`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
 
 ### E3048 — 3 missed — Validate ECS Fargate tasks have required properties and values
 
@@ -589,6 +615,13 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3639** `DataTable` → `Properties` L72 in `cdk_DemoStack.template`
   > 'ProvisionedThroughput' is a required property
 
+### E9004 — 2 missed — GetAtt validation of parameters
+
+- **E9004** (cfn-lint: E1010) `LambdaFunctionTestNotDefinedFromParent` → `Properties.Environment.Variables.Fn::GetAtt` L23 in `good_custom_is-not-defined`
+  > {'Fn::GetAtt': ['LambdaExecutionRole', 'Arn']} is not of type 'object'
+- **E9004** (cfn-lint: E1010) `SsmParameter` → `Properties.Value.Fn::GetAtt` L18 in `integration_getatt-types`
+  > {'Fn::GetAtt': ['CapacityReservation', 'InstanceCount']} is not of type 'string'
+
 ### E1016 — 2 missed — ImportValue validation of parameters
 
 - **E1016** `subnet` → `Properties.CidrBlock.Fn::ImportValue` L10 in `bad_functions_import_value`
@@ -603,19 +636,19 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F1029** (cfn-lint: E1029) `TestBadStateMachine2` → `Properties.DefinitionString.Fn::Join.1.5` L67 in `bad_functions_sub_needed`
   > Found an embedded parameter "${definition_substitution_1}" outside of an "Fn::Sub" at Resources/TestBadStateMachine2/Properties/DefinitionString/Fn::Join/1/5
 
-### I3510 — 2 missed — Validate statement resources match the actions
-
-- **I3510** `myPolicy` → `Properties.PolicyDocument.Statement.1.Resource` L21 in `bad_functions_sub_needed`
-  > action 'iam:GetLoginProfile' requires a resource of ['arn:${Partition}:iam::${Account}:user/.*']
-- **I3510** `myPolicy` → `Properties.PolicyDocument.Statement.0.Resource` L25 in `bad_functions_sub_needed`
-  > action 'iam:UploadSSHPublicKey' requires a resource of ['arn:${Partition}:iam::${Account}:user/.*']
-
 ### F3006 — 2 missed — Validate the CloudFormation resource type
 
 - **F3006** (cfn-lint: E3006) `MyFunction` → `Resources.MyFunction.Type` L3 in `lsp_test-template`
   > Resource type 'AWS::Serverless::Function' does not exist in 'us-east-1'
 - **F3006** (cfn-lint: E3006) `MyApi` → `Resources.MyApi.Type` L7 in `lsp_test-template`
   > Resource type 'AWS::Serverless::Api' does not exist in 'us-east-1'
+
+### I2530 — 2 missed — Validate that SnapStart is configured for >= Java11 runtimes
+
+- **I2530** `VmdEventsLambda` → `Properties.SnapStart.ApplyOn` L168 in `issues_sam_w_conditions`
+  > 'java11' runtime should consider using 'SnapStart'
+- **I2530** `DmdEventsLambda` → `Properties.SnapStart.ApplyOn` L293 in `issues_sam_w_conditions`
+  > 'java11' runtime should consider using 'SnapStart'
 
 ### E3505 — 2 missed — Validate SQS 'VisibilityTimeout' is greater than a function's 'Timeout'
 
@@ -662,20 +695,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3701** `Pipeline` → `Properties.Stages.0.Actions.0.InputArtifacts.0.Name` L18 in `bad_pipeline_no_source_first_stage`
   > 'SourceOutput' is not previously defined as an 'OutputArtifact'
 
-### W1028 — 1 missed — Check Fn::If has a path that cannot be reached
-
-- **W1028** → `Outputs.ConditionalOutput.Value.Fn::If.2` L1014-1016 in `lsp_comprehensive`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-
-### E9004 — 1 missed — GetAtt validation of parameters
-
-- **E9004** (cfn-lint: E1010) `LambdaFunctionTestNotDefinedFromParent` → `Properties.Environment.Variables.Fn::GetAtt` L23 in `good_custom_is-not-defined`
-  > {'Fn::GetAtt': ['LambdaExecutionRole', 'Arn']} is not of type 'object'
-
 ### W2001 — 1 missed — Check if Parameters are Used
 
 - **W2001** → `Parameters.NullParamNoEcho` L55 in `bad_parameters_configuration`
   > Parameter NullParamNoEcho not used.
+
+### E1152 — 1 missed — Validate AMI id format
+
+- **E1152** `myInstance` → `Properties.ImageId` L11 in `bad_functions_sub_needed`
+  > '${AMIId}' is not a 'AWS::EC2::Image.Id' with pattern '^ami-([0-9a-z]{8}|[0-9a-z]{17})$'
 
 ### W1001 — 1 missed — Ref/GetAtt to resource that is available when conditions are applied
 
@@ -752,1763 +780,9 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3691** `Database` → `Properties.EngineVersion` L647 in `lsp_comprehensive`
   > '8.0' is not one of ['5.5.62', '5.6.51', '5.7.33', '5.7.34', '5.7.36', '5.7.37', '5.7.38', '5.7.39', '5.7.40', '5.7.41', '5.7.42', '5.7.43', '5.7.44', '5.7.44-rds.20240408', '5.7.44-rds.20240529', '5.
 
-## False Positives — 960 extra findings across 49 rules
+## False Positives — 93 extra findings across 36 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
-
-### I1022 — 484 extra — Use Sub instead of Join
-
-- **I1022** → `Outputs/WebConsoleUrl/Value.Fn::Join` in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RabbitMqBrokerE7F26F68` (AWS::AmazonMQ::Broker) → `Properties.Users.0.Password.Fn::Join` L20 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RabbitMqBrokerE7F26F68` (AWS::AmazonMQ::Broker) → `Properties.Users.0.Username.Fn::Join` L20 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionServiceRole095C1C28` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L78 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1oneventServiceRole606F1C54` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L227 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1oneventServiceRoleDefaultPolicyF0A9B06D` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L261 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1iscompleteServiceRole046BF68A` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L342 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonEv7CD3D355` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L435 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonEvA054414A` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L469 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonEvA054414A` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L469 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkisCo31EA91F4` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L613 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkisCo1DFB897B` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L647 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkisCo1DFB897B` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L647 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonTi96D937B8` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L781 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonTi243BAA69` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L815 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonTi243BAA69` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L815 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2Fwaiterstatema34D41C85` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L969 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2Fwaiterstatema34D41C85` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L969 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2Fwaiterstatema2520C928` (AWS::StepFunctions::StateMachine) → `Properties.DefinitionString.Fn::Join` L1034 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/itemsApiEndpoint8392E274/Value.Fn::Join` in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `getOneItemFunctionServiceRoleCFD54796` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L30 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `getAllItemsFunctionServiceRoleCC084440` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L158 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `createItemFunctionServiceRole1BBF2178` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L286 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `updateItemFunctionServiceRole40035396` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L414 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `deleteItemFunctionServiceRole5C201FCC` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L542 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiCloudWatchRoleB5C7B431` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L679 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsGETApiPermissionApiLambdaCrudDynamoDBExampleitemsApiC8514132GETitems2A648972` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L794 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsGETApiPermissionTestApiLambdaCrudDynamoDBExampleitemsApiC8514132GETitemsF4364FB2` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L838 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsGET59B0F78A` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L878 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsPOSTApiPermissionApiLambdaCrudDynamoDBExampleitemsApiC8514132POSTitems7DA2B753` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L921 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsPOSTApiPermissionTestApiLambdaCrudDynamoDBExampleitemsApiC8514132POSTitemsAE25CBB6` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L965 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsPOSTDD3E83D0` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L1005 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidGETApiPermissionApiLambdaCrudDynamoDBExampleitemsApiC8514132GETitemsid6D54AF22` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1108 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidGETApiPermissionTestApiLambdaCrudDynamoDBExampleitemsApiC8514132GETitemsidCA08693A` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1152 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidGET38A333A8` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L1192 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidPATCHApiPermissionApiLambdaCrudDynamoDBExampleitemsApiC8514132PATCHitemsidEE9531C0` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1235 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidPATCHApiPermissionTestApiLambdaCrudDynamoDBExampleitemsApiC8514132PATCHitemsid513A5711` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1279 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidPATCH0548CB6A` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L1319 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidDELETEApiPermissionApiLambdaCrudDynamoDBExampleitemsApiC8514132DELETEitemsid056EB521` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1362 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidDELETEApiPermissionTestApiLambdaCrudDynamoDBExampleitemsApiC8514132DELETEitemsid4C18D4E2` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1406 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemsApiitemsidDELETE21550005` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L1446 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/apigwasynclambdaapigwEndpointE0083C18/Value.Fn::Join` in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `apigwasynclambdafnServiceRole607675A2` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L41 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `apigwasynclambdaapigwCloudWatchRoleC01BF930` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L171 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `apigwasynclambdaapigwjobPOSTApiPermissionApiGatewayAsyncLambdaStackapigwasynclambdaapigw016C0147POSTjob195929C9` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L299 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `apigwasynclambdaapigwjobPOSTApiPermissionTestApiGatewayAsyncLambdaStackapigwasynclambdaapigw016C0147POSTjob01D110CD` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L335 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `apigwasynclambdaapigwjobPOST79D1CAC1` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L367 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `apigwasynclambdaapigwjobjobIdGETED10CC0C` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L445 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/apiUrl/Value.Fn::Join` in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/restapigatewayEndpoint4F6651D0/Value.Fn::Join` in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `operationallambdaServiceRole14B56EA5` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `operationallambdaLogRetention43961A26` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L73 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L99 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.Fn::Join` L133 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `authenticationlambdaServiceRole9798A92B` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L206 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `authenticationlambdaLogRetention32E73801` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L276 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `authenticationlambdagatewaylambdaauthstackoperationalAuthorizerD36E749EPermissionsCD2687F2` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L302 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `restapigatewayDeploymentStagedevB80C9CD7` (AWS::ApiGateway::Stage) → `Properties.AccessLogSetting.DestinationArn.Fn::Join` L445 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `restapigatewayhealthGETApiPermissiongatewaylambdaauthstackrestapigatewayAEDD1643GEThealth051F210D` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L500 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `restapigatewayhealthGETApiPermissionTestgatewaylambdaauthstackrestapigatewayAEDD1643GEThealthAF95E556` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L536 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `restapigatewayhealthGET9A80151C` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L568 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/myapiEndpoint3628AFE3/Value.Fn::Join` in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF` (AWS::CloudFormation::Stack) → `Properties.TemplateURL.Fn::Join` L3 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdafunction1ServiceRoleA9EAFFE5` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L35 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdafunction1ServiceRoleA9EAFFE5` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.1.Fn::Join` L35 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdafunction1LogRetention64612A02` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L180 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L209 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdafunction2ServiceRole380A1BE9` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L300 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdafunction2ServiceRole380A1BE9` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.1.Fn::Join` L300 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdafunction2LogRetentionC381F2CD` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L445 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `mystatemachineRoleDefaultPolicyEC6D0D79` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L505 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `mystatemachineRoleDefaultPolicyEC6D0D79` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L505 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `mystatemachine15ECA539` (AWS::StepFunctions::StateMachine) → `Properties.DefinitionString.Fn::Join` L590 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `myapiCloudWatchRole095452E5` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L666 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `myapiANYA805D87B` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L803 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `myapiANYA805D87B` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L803 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/websocketapiendpoint/Value.Fn::Join` in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `connectlambdaServiceRole04DCF570` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L41 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `disconnectlambdaServiceRole2779F08C` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L168 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `messagelambdaServiceRole544EC18A` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L295 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `messagelambdaServiceRoleDefaultPolicy76F57A7D` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L329 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `connectlambdaintegration` (AWS::ApiGatewayV2::Integration) → `Properties.IntegrationUri.Fn::Join` L501 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `disconnectlambdaintegration` (AWS::ApiGatewayV2::Integration) → `Properties.IntegrationUri.Fn::Join` L534 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `messagelambdaintegration` (AWS::ApiGatewayV2::Integration) → `Properties.IntegrationUri.Fn::Join` L567 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `connectroute` (AWS::ApiGatewayV2::Route) → `Properties.Target.Fn::Join` L600 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `disconnectroute` (AWS::ApiGatewayV2::Route) → `Properties.Target.Fn::Join` L624 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `messageroute` (AWS::ApiGatewayV2::Route) → `Properties.Target.Fn::Join` L648 in `cdk_api-websocket-lambda-dynamodb--chat-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CarApiDefectsDataSourceServiceRoleDefaultPolicy8BFE0912` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L215 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ItemsDataSource` (AWS::AppSync::DataSource) → `Properties.HttpConfig.Endpoint.Fn::Join` L86 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `echoFunctionServiceRole1EBD6DF0` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L153 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Construct1StandardFunctionServiceRole716388BA` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_aspects--SampleStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Construct1FunctionWithReservedCEsServiceRole21C8F977` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L59 in `cdk_aspects--SampleStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Construct2StandardFunctionServiceRole450FEF35` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L116 in `cdk_aspects--SampleStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Construct2FunctionWithReservedCEsServiceRoleB80261C4` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L173 in `cdk_aspects--SampleStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `IncomingDataBucketPolicyCA22042A` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L29 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/SFTPServerEndpoint/Value.Fn::Join` in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies.0.PolicyDocument.Statement.0.Resource.Fn::Join` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.LogGroupName.Fn::Join` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/SFTPServerEndpoint/Value.Fn::Join` in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies.0.PolicyDocument.Statement.0.Resource.Fn::Join` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.LogGroupName.Fn::Join` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `testBucketPolicy47484917` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L37 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Role1ABCC5F0` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L87 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0` (AWS::IAM::Role) → `Properties.Policies.0.PolicyDocument.Statement.0.Resource.0.Fn::Join` L463 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BatchServiceRole57930367` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L584 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BatchInstanceRole8DB66C4C` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L618 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BatchJobRole37A83758` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L813 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `JobSubmitterFunctionServiceRole55AD6E92` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L970 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `JobSubmitterFunctionFAE645C8` (AWS::Lambda::Function) → `Properties.Code.ZipFile.Fn::Join` L1032 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `JobSubmitterFunctionLogGroupF7938D09` (AWS::Logs::LogGroup) → `Properties.LogGroupName.Fn::Join` L1081 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WebsiteBucketPolicyE10E3262` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L37 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WebsiteBucketPolicyE10E3262` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L37 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WebsiteBucketPolicyE10E3262` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.2.Resource.Fn::Join` L37 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L203 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.0.Fn::Join` L237 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L237 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L237 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SiteDistribution3FF9535D` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.Origins.0.S3OriginConfig.OriginAccessIdentity.Fn::Join` L426 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/PublicAlbEndpoint/Value.Fn::Join` in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `repoCodepipelineBuildDeployStackBuildDeployPipeline2B279CCCmainEventRule3F24D1E0` (AWS::Events::Rule) → `Properties.Targets.0.Arn.Fn::Join` L21 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildImageRoleDefaultPolicy8FF7A310` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.0.Fn::Join` L283 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildImageRoleDefaultPolicy8FF7A310` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L283 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildImageRoleDefaultPolicy8FF7A310` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.2.Resource.Fn::Join` L283 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildImageRoleDefaultPolicy8FF7A310` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.5.Resource.1.Fn::Join` L283 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildTestRoleDefaultPolicyA34B30B3` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.0.Fn::Join` L645 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildTestRoleDefaultPolicyA34B30B3` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L645 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildTestRoleDefaultPolicyA34B30B3` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.2.Resource.Fn::Join` L645 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildTestRoleDefaultPolicyA34B30B3` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.3.Resource.1.Fn::Join` L645 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildLambdaServiceRole8FB6C033` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L854 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildLambdaTriggerB4D1B83F` (Custom::AWS) → `Properties.Create.Fn::Join` L957 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildLambdaTriggerB4D1B83F` (Custom::AWS) → `Properties.Update.Fn::Join` L957 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AWS679f53fac002430cb0da5b7982bd2287ServiceRoleC1EA0FF2` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1030 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CodeDeployGroupServiceRole50553EBF` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1905 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineArtifactsBucketEncryptionKey8AB5ABF8` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.0.Principal.AWS.Fn::Join` L2033 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineArtifactsBucketPolicyC49383E9` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L2119 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineRoleDefaultPolicyECF964D2` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L2189 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineSourceAppCodeCommitCodePipelineActionRoleDefaultPolicy773D6739` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L2494 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineEventsRoleDefaultPolicy849508FE` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L2602 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRoleDefaultPolicy5E7BE922` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L2789 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRoleDefaultPolicy5E7BE922` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.Fn::Join` L2789 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRoleDefaultPolicy5E7BE922` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.2.Resource.Fn::Join` L2789 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRoleDefaultPolicy5E7BE922` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.5.Resource.1.Fn::Join` L2789 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/helloWorldLambdaRestApiEndpointC5601FAC/Value.Fn::Join` in `cdk_cognito-api-lambda--CognitoProtectedApi.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `helloWorldFunctionServiceRole8475DBF0` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_cognito-api-lambda--CognitoProtectedApi.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `helloWorldLambdaRestApiCloudWatchRole22367FBD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L74 in `cdk_cognito-api-lambda--CognitoProtectedApi.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `helloWorldLambdaRestApiHELLOGETApiPermissionCognitoProtectedApihelloWorldLambdaRestApi9E9DB39DGETHELLO61B4977B` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L182 in `cdk_cognito-api-lambda--CognitoProtectedApi.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `helloWorldLambdaRestApiHELLOGETApiPermissionTestCognitoProtectedApihelloWorldLambdaRestApi9E9DB39DGETHELLOD4AD0AEF` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L226 in `cdk_cognito-api-lambda--CognitoProtectedApi.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `helloWorldLambdaRestApiHELLOGET6E88F46C` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L266 in `cdk_cognito-api-lambda--CognitoProtectedApi.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DemoResourceProviderframeworkonEventServiceRoleDB88154F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_custom-resource--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DemoResourceProviderframeworkonEventServiceRoleDefaultPolicyA9A2047B` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L37 in `cdk_custom-resource--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SingletonLambdaf7d4f7304ee111e89c2dfa7ae01bbebcServiceRoleFE9ABB04` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L154 in `cdk_custom-resource--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DemoResourceMyProviderframeworkonEventServiceRole1437DF1C` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_custom-resource-provider--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DemoResourceMyProviderframeworkonEventServiceRoleDefaultPolicy258762CA` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L37 in `cdk_custom-resource-provider--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DemoResourceMyProviderframeworkonEventLogRetention309A0FF0` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L137 in `cdk_custom-resource-provider--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SingletonLambdaf7d4f7304ee111e89c2dfa7ae01bbebcServiceRoleFE9ABB04` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L180 in `cdk_custom-resource-provider--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L237 in `cdk_custom-resource-provider--CustomResourceDemoStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ddbstreamtopic7821AF6E` (AWS::SNS::Topic) → `Properties.KmsMasterKeyId.Fn::Join` L3 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemL2TableLambdaFunctionServiceRole41583A05` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L107 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemL3TableLambdaFunctionServiceRoleBA21B37D` (AWS::IAM::Role) → `Properties.Policies.0.PolicyDocument.Statement.0.Resource.Fn::Join` L276 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `itemL3TableSqsDlqQueuePolicyD287DD28` (AWS::SQS::QueuePolicy) → `Properties.PolicyDocument.Statement.0.Principal.AWS.Fn::Join` L545 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/sshCommand/Value.Fn::Join` in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/ssmCommand/Value.Fn::Join` in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2assetBucketPolicy31C0B372` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L273 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2serverEc2Role6775A3D4` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L403 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2serverEc2Role6775A3D4` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.1.Fn::Join` L403 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2serverEc2RoleDefaultPolicy34EE5F1D` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L464 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2Instance1F00751C57ee729c1274d778` (AWS::EC2::Instance) → `Properties.UserData.Fn::Base64.Fn::Join` L562 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F` (AWS::Lambda::Function) → `Properties.Description.Fn::Join` L745 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleBA21DBC1` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L786 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleDefaultPolicy96C3E726` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.0.Fn::Join` L820 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleDefaultPolicy96C3E726` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L820 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C512MiBServiceRoleDefaultPolicy96C3E726` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L820 in `cdk_ec2-instance--EC2Example.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `instanceInstanceSecurityGroup725C795D` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.Description.Fn::Join` L153 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.0.Fn::Join` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkonEventServiceRoleC0D29A73` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L451 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkonEventServiceRoleDefaultPolicy254E2AF6` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L485 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkonEventServiceRoleDefaultPolicy254E2AF6` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L485 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkisCompleteServiceRole0E0A4C51` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L629 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkisCompleteServiceRoleDefaultPolicy5E52B832` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L663 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkisCompleteServiceRoleDefaultPolicy5E52B832` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L663 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkonTimeoutServiceRole904320AB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L797 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkonTimeoutServiceRoleDefaultPolicyEDFD873D` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L831 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderframeworkonTimeoutServiceRoleDefaultPolicyEDFD873D` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L831 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderwaiterstatemachineRoleDefaultPolicy5AAF9088` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.2.Fn::Join` L985 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderwaiterstatemachineRoleDefaultPolicy5AAF9088` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.3.Fn::Join` L985 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EICEndpointProviderwaiterstatemachine1A139B58` (AWS::StepFunctions::StateMachine) → `Properties.DefinitionString.Fn::Join` L1050 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `MyFleetLaunchConfig5D7F9801` (AWS::AutoScaling::LaunchConfiguration) → `Properties.UserData.Fn::Base64.Fn::Join` L588 in `cdk_ecs-cluster--MyFirstEcsCluster.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Ec2ClusterDefaultAutoScalingGroupLaunchConfig7B2FED3A` (AWS::AutoScaling::LaunchConfiguration) → `Properties.UserData.Fn::Base64.Fn::Join` L594 in `cdk_ecs-ecs-service-with-logging--Willkommen.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Ec2ClusterDefaultAutoScalingGroupDrainECSHookFunctionServiceRole23116FA3` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L671 in `cdk_ecs-ecs-service-with-logging--Willkommen.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Ec2ClusterDefaultAutoScalingGroupDrainECSHookFunctionServiceRoleDefaultPolicy638C9E33` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.Fn::Join` L711 in `cdk_ecs-ecs-service-with-logging--Willkommen.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `awsvpcecsdemoclusterDefaultAutoScalingGroupLaunchConfig067B11BF` (AWS::AutoScaling::LaunchConfiguration) → `Properties.UserData.Fn::Base64.Fn::Join` L594 in `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `awsvpcecsdemoclusterDefaultAutoScalingGroupDrainECSHookFunctionServiceRoleBC3C9F69` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L671 in `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `awsvpcecsdemoclusterDefaultAutoScalingGroupDrainECSHookFunctionServiceRoleDefaultPolicy44190D0C` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.Fn::Join` L711 in `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EcsClusterDefaultAutoScalingGroupLaunchConfigB7E376C1` (AWS::AutoScaling::LaunchConfiguration) → `Properties.UserData.Fn::Base64.Fn::Join` L594 in `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EcsClusterDefaultAutoScalingGroupDrainECSHookFunctionServiceRole94543EDA` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L671 in `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EcsClusterDefaultAutoScalingGroupDrainECSHookFunctionServiceRoleDefaultPolicyA45BF396` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.Fn::Join` L711 in `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/FargateServiceServiceURL47701F45/Value.Fn::Join` in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `sampleappServiceTaskCountTargetE827DC30` (AWS::ApplicationAutoScaling::ScalableTarget) → `Properties.ResourceId.Fn::Join` L749 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `sampleappServiceTaskCountTargetE827DC30` (AWS::ApplicationAutoScaling::ScalableTarget) → `Properties.RoleARN.Fn::Join` L749 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SingletonServiceRoleDDD815CD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L27 in `cdk_eventbridge-lambda--EventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/ProxyAPIEndpointD44F61E1/Value.Fn::Join` in `cdk_http-proxy-apigateway--HttpProxy.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/ProxyEndPointGETawsA04CB53D/Value.Fn::Join` in `cdk_http-proxy-apigateway--HttpProxy.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ProxyAPICloudWatchRoleB8A087D1` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L17 in `cdk_http-proxy-apigateway--HttpProxy.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.ParentImage.Fn::Join` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2InstanceProfileForImageBuilderA043DE9F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L103 in `cdk_imagebuilder--ImagebuilderStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2InstanceProfileForImageBuilderA043DE9F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.1.Fn::Join` L103 in `cdk_imagebuilder--ImagebuilderStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2InstanceProfileForImageBuilderA043DE9F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.2.Fn::Join` L103 in `cdk_imagebuilder--ImagebuilderStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResourceInspectorRole00253606` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L50 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2EnableDelegatedAdminAccountResourceInspector2EnableResourceInspectorRole00253606` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.1.Fn::Join` L50 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2EnableDelegatedAdminAccountResource99675B1A` (Custom::Inspector2EnableDelegatedAdminAccount) → `Properties.Create.Fn::Join` L115 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2EnableDelegatedAdminAccountResource99675B1A` (Custom::Inspector2EnableDelegatedAdminAccount) → `Properties.Delete.Fn::Join` L115 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AWS679f53fac002430cb0da5b7982bd2287LogRetentionCE72797A` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L240 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L266 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EnableInspector2ResourceInspectorRole75753456` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L4 in `cdk_inspector2--Inspector2EnableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EnableInspector2ResourceInspectorRole75753456` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.1.Fn::Join` L4 in `cdk_inspector2--Inspector2EnableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2InitialScanHandlerServiceRoleA1739B7A` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L114 in `cdk_inspector2--Inspector2MonitoringStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2InitialScanHandlerLogRetention7F6E4B31` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L177 in `cdk_inspector2--Inspector2MonitoringStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L203 in `cdk_inspector2--Inspector2MonitoringStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2FindingHandlerServiceRoleCEDAFBC1` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L294 in `cdk_inspector2--Inspector2MonitoringStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `Inspector2FindingHandlerLogRetention5E8C8CA7` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L357 in `cdk_inspector2--Inspector2MonitoringStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/DashboardOutput/Value.Fn::Join` in `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleLambdaServiceRoleB1A8618F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleLambdaLogRetentionE3451573` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L67 in `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleLambdaDashboard39118496` (AWS::CloudWatch::Dashboard) → `Properties.DashboardBody.Fn::Join` L92 in `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L156 in `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SingletonServiceRoleDDD815CD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_lambda-cron--LambdaCronExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LambdaFunctionServiceRoleC555A460` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L26 in `cdk_lambda-layer--LambdaLayerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken.Fn::Join` L66 in `cdk_lambda-manage-s3-event-notification--AStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken.Fn::Join` L58 in `cdk_lambda-manage-s3-event-notification--BStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `S3EventNotificationsLambdaServiceRoleD45D5063` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L12 in `cdk_lambda-manage-s3-event-notification--SharedStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/WidgetswidgetsapiEndpoint5B785C68/Value.Fn::Join` in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetsWidgetHandlerServiceRole8C2B589C` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L11 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetsWidgetHandlerServiceRoleDefaultPolicyA8E097C8` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L45 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiCloudWatchRole8C2A5801` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L147 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiGETApiPermissionMyWidgetServiceStackWidgetswidgetsapi6BAE39EFGETFA317FE0` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L240 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiGETApiPermissionTestMyWidgetServiceStackWidgetswidgetsapi6BAE39EFGETD6697AB5` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L284 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiGET2086C825` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L324 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidPOSTApiPermissionMyWidgetServiceStackWidgetswidgetsapi6BAE39EFPOSTid9DF97A7A` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L391 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidPOSTApiPermissionTestMyWidgetServiceStackWidgetswidgetsapi6BAE39EFPOSTidF1C29E62` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L435 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidPOST60B9DB49` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L475 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidGETApiPermissionMyWidgetServiceStackWidgetswidgetsapi6BAE39EFGETid8E6C9CDF` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L518 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidGETApiPermissionTestMyWidgetServiceStackWidgetswidgetsapi6BAE39EFGETid5E1031AB` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L562 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidGETABE1C648` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L602 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidDELETEApiPermissionMyWidgetServiceStackWidgetswidgetsapi6BAE39EFDELETEid2BAC56B6` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L645 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidDELETEApiPermissionTestMyWidgetServiceStackWidgetswidgetsapi6BAE39EFDELETEid4096AFEF` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L689 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WidgetswidgetsapiidDELETEE81619C6` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L729 in `cdk_my-widget-service--MyWidgetServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/theBigFanAPIEndpointFC762F6E/Value.Fn::Join` in `cdk_pat-the-big-fan--TheBigFanStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SQSCreatedStatusSubscribeLambdaHandlerServiceRole36576A8A` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L160 in `cdk_pat-the-big-fan--TheBigFanStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SQSAnyOtherStatusSubscribeLambdaHandlerServiceRole395E81EB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L306 in `cdk_pat-the-big-fan--TheBigFanStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `theBigFanAPICloudWatchRoleD603B41E` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L461 in `cdk_pat-the-big-fan--TheBigFanStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `theBigFanAPISendEventPOSTBC493093` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L572 in `cdk_pat-the-big-fan--TheBigFanStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/HTTPAPIUrl/Value.Fn::Join` in `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DynamoLambdaHandlerServiceRole4C867B01` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L26 in `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `HttpAPIDefaultRouteTheCloudwatchDashboardStackHttpAPIDefaultRoute851EEAB4Permission3852997E` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L182 in `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `HttpAPIDefaultRouteF9949FE6` (AWS::ApiGatewayV2::Route) → `Properties.Target.Fn::Join` L241 in `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CloudWatchDashBoard043C60B6` (AWS::CloudWatch::Dashboard) → `Properties.DashboardBody.Fn::Join` L898 in `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/theDestinedLambdaAPIEndpointA1D03662/Value.Fn::Join` in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `destinedLambdaServiceRole87608B6F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L21 in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SuccessLambdaHandlerServiceRole77BD70C4` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L207 in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `FailureLambdaHandlerServiceRole7E0414CB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L364 in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `theDestinedLambdaAPICloudWatchRoleCDF408DA` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L522 in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `theDestinedLambdaAPISendEventGETC3F11CCE` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L633 in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/DynamoStreamerAPIEndpointA76F4941/Value.Fn::Join` in `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `dynamoStreamSubscriberLambdaHandlerServiceRole70DB8A47` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L32 in `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DynamoStreamerAPICloudWatchRoleEF2543E3` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L192 in `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DynamoStreamerAPIInsertItemPOSTCDE209E1` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L303 in `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/Endpoint8024A810/Value.Fn::Join` in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `atmProducerLambdaServiceRoleEF3D6079` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `atmConsumer1LambdaServiceRole70132707` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L121 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `atmConsumer2LambdaServiceRole130B888D` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L270 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `atmConsumer3LambdaServiceRoleCF9BAEA7` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L420 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointCloudWatchRoleC3C64E0F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L579 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointproxyANYApiPermissionTheEventbridgeAtmStackEndpoint54DB5714ANYproxyC2C9F151` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L680 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointproxyANYApiPermissionTestTheEventbridgeAtmStackEndpoint54DB5714ANYproxy14296A4D` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L724 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointproxyANYC09721C5` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L764 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointANYApiPermissionTheEventbridgeAtmStackEndpoint54DB5714ANY2B0F1701` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L807 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointANYApiPermissionTestTheEventbridgeAtmStackEndpoint54DB5714ANYFFED7414` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L851 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointANY485C938B` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L891 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/CircuitBreakerGatewayEndpoint85026A5E/Value.Fn::Join` in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WebserviceIntegrationLambdaHandlerServiceRole851361F8` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L67 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WebserviceIntegrationLambdaHandlerServiceRoleDefaultPolicy86CA93C2` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L101 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ErrorLambdaHandlerServiceRole5D9F8D61` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L226 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ErrorLambdaHandlerServiceRoleDefaultPolicy9B079F8F` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L260 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayCloudWatchRole934DF897` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L443 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayproxyANYApiPermissionTheEventbridgeCircuitBreakerStackCircuitBreakerGateway4CD07824ANYproxy584EF780` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L544 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayproxyANYApiPermissionTestTheEventbridgeCircuitBreakerStackCircuitBreakerGateway4CD07824ANYproxyE09D3DF2` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L588 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayproxyANY759880DB` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L628 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayANYApiPermissionTheEventbridgeCircuitBreakerStackCircuitBreakerGateway4CD07824ANY2D2F06E0` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L671 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayANYApiPermissionTestTheEventbridgeCircuitBreakerStackCircuitBreakerGateway4CD07824ANY33532EB9` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L715 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayANYE076316B` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L755 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L127 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `FargateTaskDefinitionTaskRoleDefaultPolicy798E9D9D` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L688 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `FargateTaskDefinition8E3B365E` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions.0.Image.Fn::Join` L742 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `FargateTaskDefinitionExecutionRoleDefaultPolicy1632DA52` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L849 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `extractLambdaHandlerServiceRole8A50F829` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L914 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `extractLambdaHandlerD06B8F09` (AWS::Lambda::Function) → `Properties.Environment.Variables.SUBNETS.Fn::Join` L1013 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `TransformLambdaHandlerServiceRole710C039E` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1118 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LoadLambdaHandlerServiceRole83E61748` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1294 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ObserveLambdaHandlerServiceRole040C69BA` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1503 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/HTTPAPIUrl/Value.Fn::Join` in `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UnreliableLambdaHandlerServiceRole955A5CFD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L29 in `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayDefaultRouteTheLambdaCircuitBreakerStackCircuitBreakerGatewayDefaultRoute883D7748Permission8BF71621` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L185 in `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CircuitBreakerGatewayDefaultRouteCB8326BD` (AWS::ApiGatewayV2::Route) → `Properties.Target.Fn::Join` L244 in `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/SagaPatternSingleTableEndpoint3B912404/Value.Fn::Join` in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `reserveFlightLambdaHandlerServiceRole985C586D` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L37 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `confirmFlightLambdaHandlerServiceRole45F91B6E` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L183 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `cancelFlightLambdaHandlerServiceRole7F2439CB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L329 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `reserveHotelLambdaHandlerServiceRole452F23B7` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L475 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `confirmHotelLambdaHandlerServiceRoleD5F8F90E` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L621 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `cancelHotelLambdaHandlerServiceRole4815D152` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L767 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `takePaymentLambdaHandlerServiceRole56CA2808` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L913 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `refundPaymentLambdaHandlerServiceRole62F72F0D` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1059 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BookingSagaRole82982544` (AWS::IAM::Role) → `Properties.AssumeRolePolicyDocument.Statement.0.Principal.Service.Fn::Join` L1205 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BookingSagaFA991213` (AWS::StepFunctions::StateMachine) → `Properties.DefinitionString.Fn::Join` L1335 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `sagaLambdaHandlerServiceRole7EB685BD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1425 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SagaPatternSingleTableCloudWatchRole130684F0` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L1561 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SagaPatternSingleTableproxyANYApiPermissionTheSagaStepfunctionSingleTableStackSagaPatternSingleTable3D97C406ANYproxyCC0ED567` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1662 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SagaPatternSingleTableproxyANYApiPermissionTestTheSagaStepfunctionSingleTableStackSagaPatternSingleTable3D97C406ANYproxyFFAFB063` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1706 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SagaPatternSingleTableproxyANY8778A55C` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L1746 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SagaPatternSingleTableANYApiPermissionTheSagaStepfunctionSingleTableStackSagaPatternSingleTable3D97C406ANYF602862D` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1789 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SagaPatternSingleTableANYApiPermissionTestTheSagaStepfunctionSingleTableStackSagaPatternSingleTable3D97C406ANY8FD1CF02` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L1833 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SagaPatternSingleTableANYFE1A7CB0` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L1873 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/Endpoint8024A810/Value.Fn::Join` in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SQSPublishLambdaHandlerServiceRole4F9A1044` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L38 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SQSSubscribeLambdaHandlerServiceRoleB6261F09` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L172 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointCloudWatchRoleC3C64E0F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L364 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointproxyANYApiPermissionTheScalableWebhookStackEndpoint462DCEBFANYproxy6224F0D7` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L465 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointproxyANYApiPermissionTestTheScalableWebhookStackEndpoint462DCEBFANYproxy171AE875` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L509 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointproxyANYC09721C5` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L549 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointANYApiPermissionTheScalableWebhookStackEndpoint462DCEBFANYA4DEC70E` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L592 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointANYApiPermissionTestTheScalableWebhookStackEndpoint462DCEBFANY6F14FF34` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L636 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointANY485C938B` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L676 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `scheduledLambdaServiceRoleB98DFEFD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L29 in `cdk_pat-the-scheduled-lambda--TheScheduledLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiApiLogsRole90293F72` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LoyaltyLambdaHandlerServiceRole62E814E8` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L467 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/HTTPAPIUrl/Value.Fn::Join` in `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DynamoLambdaHandlerServiceRole4C867B01` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L29 in `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointDefaultRouteTheSimpleWebserviceStackEndpointDefaultRouteC99962AAPermission4BC0F1E3` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L185 in `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EndpointDefaultRouteB7B22F2B` (AWS::ApiGatewayV2::Route) → `Properties.Target.Fn::Join` L244 in `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/HTTPAPIUrl/Value.Fn::Join` in `cdk_pat-the-state-machine--TheStateMachineStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `pineappleCheckLambdaHandlerServiceRoleFC4E3211` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_pat-the-state-machine--TheStateMachineStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StateMachineRoleB840431D` (AWS::IAM::Role) → `Properties.AssumeRolePolicyDocument.Statement.0.Principal.Service.Fn::Join` L96 in `cdk_pat-the-state-machine--TheStateMachineStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StateMachine2E01A3A5` (AWS::StepFunctions::StateMachine) → `Properties.DefinitionString.Fn::Join` L166 in `cdk_pat-the-state-machine--TheStateMachineStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DefaultRoute` (AWS::ApiGatewayV2::Route) → `Properties.Target.Fn::Join` L291 in `cdk_pat-the-state-machine--TheStateMachineStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/WafGatewayAPIEndpoint49319801/Value.Fn::Join` in `cdk_pat-the-waf-apigateway--APIGatewayStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `HelloWorldHandlerServiceRole56E6BFBA` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WafGatewayAPICloudWatchRoleEE79D232` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L110 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WafGatewayAPIhelloworldGETApiPermissionAPIGatewayStackWafGatewayAPI0F5D6A0EGEThelloworldC704FF2F` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L225 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WafGatewayAPIhelloworldGETApiPermissionTestAPIGatewayStackWafGatewayAPI0F5D6A0EGEThelloworld3D2EE2D0` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L269 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `WafGatewayAPIhelloworldGET802399FF` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L309 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DynamoLambdaHandlerServiceRole4C867B01` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L29 in `cdk_pat-the-xray-tracer--TheXrayDynamoFlow.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `httpLambdaHandlerServiceRole01D49A7D` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_pat-the-xray-tracer--TheXrayHttpFlow.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `sqsLambdaHandlerServiceRole2F57B7B5` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L12 in `cdk_pat-the-xray-tracer--TheXraySQSFlow.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `sqsSubscribeLambdaHandlerServiceRole8F070FD3` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L207 in `cdk_pat-the-xray-tracer--TheXraySQSFlow.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `snsLambdaHandlerServiceRole7F428B88` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L12 in `cdk_pat-the-xray-tracer--TheXraySnsFlow.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `snsSubscriptionLambdaHandlerServiceRole215E543C` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L200 in `cdk_pat-the-xray-tracer--TheXraySnsFlow.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/xrayTracerAPIEndpointA106537B/Value.Fn::Join` in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `xrayTracerAPICloudWatchRoleCCB113F4` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L21 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `xrayTracerAPIGET7490A366` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L116 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `xrayTracerAPIproxyGET4E348609` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L230 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/ApiGatewayWithCorsEndpoint559B76CB/Value.Fn::Join` in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiCorsLambdaServiceRole0DB39061` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiGatewayWithCorsCloudWatchRole9C3700F0` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L74 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiGatewayWithCorsexampleGETApiPermissionApiCorsLambdaStackApiGatewayWithCorsBD29564EGETexample83B6C89A` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L226 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiGatewayWithCorsexampleGETApiPermissionTestApiCorsLambdaStackApiGatewayWithCorsBD29564EGETexample07A026FD` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L270 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiGatewayWithCorsexampleGETCC962CB3` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L310 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/SampleAPIEventBridgeMultiConsumerEndpoint93C2DFF8/Value.Fn::Join` in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `eventProducerLambdaServiceRoleD019EB99` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `eventConsumer1LambdaServiceRoleC8CCBFC5` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L90 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `eventConsumer2LambdaServiceRole6B878884` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L200 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `s3attrCCE68BF6` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L338 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleAPIEventBridgeMultiConsumerCloudWatchRoleE43B891E` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L492 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleAPIEventBridgeMultiConsumeritemsPOSTApiPermissionApiEventBridgeLambdaStackSampleAPIEventBridgeMultiConsumerF10899BCPOSTitemsA86E071B` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L600 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleAPIEventBridgeMultiConsumeritemsPOSTApiPermissionTestApiEventBridgeLambdaStackSampleAPIEventBridgeMultiConsumerF10899BCPOSTitems910D1EE7` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L644 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SampleAPIEventBridgeMultiConsumeritemsPOSTD2DFDA56` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L684 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/ApiGWEndpointBE5359D4/Value.Fn::Join` in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RestAPIRoleA3B4EFA3` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L11 in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiGWCloudWatchRole51A9A431` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L54 in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ApiGWexamplePOST6CAE6201` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L185 in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SQSTriggerLambdaServiceRole0C427DE8` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L257 in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `logsbucketE18563D9` (AWS::S3::Bucket) → `Properties.BucketName.Fn::Join` L3 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `logsbucketPolicy6C60198C` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L38 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F` (AWS::Lambda::Function) → `Properties.Description.Fn::Join` L140 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `queryoutputbucket3DDDB997` (AWS::S3::Bucket) → `Properties.BucketName.Fn::Join` L181 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `queryoutputbucketPolicy2BC02580` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L212 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L339 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.0.Fn::Join` L379 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L379 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L379 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `logscrawler` (AWS::Glue::Crawler) → `Properties.Targets.S3Targets.0.Path.Fn::Join` L567 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `logscrawler` (AWS::Glue::Crawler) → `Properties.Targets.S3Targets.1.Path.Fn::Join` L567 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `logauditingworkgroup` (AWS::Athena::WorkGroup) → `Properties.WorkGroupConfiguration.ResultConfiguration.OutputLocation.Fn::Join` L615 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RDSSecret3683CA93` (AWS::SecretsManager::Secret) → `Properties.Description.Fn::Join` L49 in `cdk_py-docker-app-with-asg-alb--RDSStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RDSE0E96D00` (AWS::RDS::DBInstance) → `Properties.MasterUserPassword.Fn::Join` L91 in `cdk_py-docker-app-with-asg-alb--RDSStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RDSE0E96D00` (AWS::RDS::DBInstance) → `Properties.MasterUsername.Fn::Join` L91 in `cdk_py-docker-app-with-asg-alb--RDSStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `producerlambdafunctionServiceRole5400FE21` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L29 in `cdk_py-dynamodb-lambda--dynamodb-lambda.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `consumerlambdafunctionServiceRole116B0746` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L136 in `cdk_py-dynamodb-lambda--dynamodb-lambda.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `VpcFromCDKS3EndpointF02E5219` (AWS::EC2::VPCEndpoint) → `Properties.ServiceName.Fn::Join` L463 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ScheduleRuleDA5BD877` (AWS::Events::Rule) → `Properties.Targets.0.Input.Fn::Join` L788 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AWSb4cf1abd4e4f4bc699441af7ccd9ec37ServiceRole9FFE9C50` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L847 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AWSBackupPlanSelectionRole2A44F724` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L974 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `AWSBackupPlanSelectionAF95B30F` (AWS::Backup::BackupSelection) → `Properties.BackupSelection.Resources.0.Fn::Join` L1008 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0` (AWS::IAM::Role) → `Properties.Policies.0.PolicyDocument.Statement.0.Resource.0.Fn::Join` L488 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EcrStackNestedStackEcrStackNestedStackResource706AA777` (AWS::CloudFormation::Stack) → `Properties.TemplateURL.Fn::Join` L598 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EcsStackNestedStackEcsStackNestedStackResource48283A58` (AWS::CloudFormation::Stack) → `Properties.TemplateURL.Fn::Join` L630 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DeployFrontendImageCustomResource1B2D2B9F` (Custom::CDKECRDeployment) → `Properties.DestImage.Fn::Join` L25 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DeployFrontendImageCustomResource1B2D2B9F` (Custom::CDKECRDeployment) → `Properties.SrcImage.Fn::Join` L25 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKECRDeploymentbd07c930edb94112a20f03f096f53666512MiBServiceRole8C8B0491` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L68 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DeployBackendImageCustomResourceF19A1E49` (Custom::CDKECRDeployment) → `Properties.DestImage.Fn::Join` L174 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `DeployBackendImageCustomResourceF19A1E49` (Custom::CDKECRDeployment) → `Properties.SrcImage.Fn::Join` L174 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/LoadBalancerURL/Value.Fn::Join` in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ECSServiceLogGroupD961AA4E` (AWS::Logs::LogGroup) → `Properties.LogGroupName.Fn::Join` L38 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ECSTaskIamRole84EB0A02` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L60 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `ECSTaskIamRoleDefaultPolicyCB2CF7F1` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L94 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `TaskexecutionRole978012CD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L170 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `TaskexecutionRole978012CD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.1.Fn::Join` L170 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `emrservicerole3BE5EDAF` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L217 in `cdk_py-emr--emr-cluster.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `emrjobflowrole15D4DAE5` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L266 in `cdk_py-emr--emr-cluster.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `emrcluster` (AWS::EMR::Cluster) → `Properties.LogUri.Fn::Join` L314 in `cdk_py-emr--emr-cluster.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CertHandlerLogRetentionC3A70FEF` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L98 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L124 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `IoTCertProviderframeworkonEventServiceRole80DDBEA7` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L215 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `IoTCertProviderframeworkonEventServiceRoleDefaultPolicy8ECC6825` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L249 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CfnPolicy` (AWS::IoT::Policy) → `Properties.PolicyDocument.Statement.0.Resource.0.Fn::Join` L351 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CfnPolicy` (AWS::IoT::Policy) → `Properties.PolicyDocument.Statement.1.Resource.0.Fn::Join` L351 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CdkThing001PolicyPrincipalAttachment` (AWS::IoT::PolicyPrincipalAttachment) → `Properties.Principal.Fn::Join` L413 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CdkThing001ThingPrincipalAttachment` (AWS::IoT::ThingPrincipalAttachment) → `Properties.Principal.Fn::Join` L444 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SingletonServiceRoleDDD815CD` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_py-lambda-cron--LambdaCronExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdaContainerFunctionServiceRole5E36DB3C` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_py-lambda-from-container--LambdaContainerFunctionStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `lambdafunctionServiceRole85538ADB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L28 in `cdk_py-lambda-layer--LambdaLayerExample.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `submitLambdaServiceRole576DCA8F` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_py-stepfunctions--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `statusLambdaServiceRoleD1132168` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L65 in `cdk_py-stepfunctions--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StateMachineRoleDefaultPolicyDF1E6607` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L147 in `cdk_py-stepfunctions--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StateMachineRoleDefaultPolicyDF1E6607` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L147 in `cdk_py-stepfunctions--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StateMachine2E01A3A5` (AWS::StepFunctions::StateMachine) → `Properties.DefinitionString.Fn::Join` L218 in `cdk_py-stepfunctions--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/UrlShortenerApiEndpoint23405F0E/Value.Fn::Join` in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerFunctionServiceRole2FBF9CDA` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L29 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerApiCloudWatchRole28577D98` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L164 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerApiproxyANYApiPermissionurlshortappUrlShortenerApiB1BAB0CDANYproxy8ED41C08` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L273 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerApiproxyANYApiPermissionTesturlshortappUrlShortenerApiB1BAB0CDANYproxy1B61094D` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L309 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerApiproxyANY05B511A9` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L341 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerApiANYApiPermissionurlshortappUrlShortenerApiB1BAB0CDANYB5D53F00` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L380 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerApiANYApiPermissionTesturlshortappUrlShortenerApiB1BAB0CDANYD47A7EFF` (AWS::Lambda::Permission) → `Properties.SourceArn.Fn::Join` L416 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `UrlShortenerApiANY5994BD69` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L448 in `cdk_py-url-shortener--urlshort-app.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `generatorPingTaskExecutionRoleDefaultPolicyA8FF7B68` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L91 in `cdk_py-url-shortener--urlshort-load-test.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/DNSFirewallLink/Value.Fn::Join` in `cdk_r53-resolver--R53ResolverStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/InboundEndpointLink/Value.Fn::Join` in `cdk_r53-resolver--R53ResolverStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/OutboundEndpointLink/Value.Fn::Join` in `cdk_r53-resolver--R53ResolverStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/VPCLink/Value.Fn::Join` in `cdk_r53-resolver--R53ResolverStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0` (AWS::IAM::Role) → `Properties.Policies.0.PolicyDocument.Statement.0.Resource.0.Fn::Join` L178 in `cdk_r53-resolver--R53ResolverStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `sgoutboundendpointEC0509A3` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.Description.Fn::Join` L331 in `cdk_r53-resolver--R53ResolverStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `sgoutboundendpointEC0509A3` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.Description.Fn::Join` L331 in `cdk_r53-resolver--R53ResolverStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/UploadImageToS3/Value.Fn::Join` in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RekFunctionServiceRole3947AEF4` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L151 in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RekFunctionServiceRoleDefaultPolicyD393AA84` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.3.Resource.1.Fn::Join` L185 in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `RekFunctionLogRetention7F1C9E70` (Custom::LogRetention) → `Properties.LogGroupName.Fn::Join` L323 in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L348 in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L436 in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/objectLambdaAccessPointUrl/Value.Fn::Join` in `cdk_s3-object-lambda--S3ObjectLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `examplebucketPolicyE09B485E` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L29 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `retrieveTransformedObjectLambdaServiceRole27FF342E` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L81 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `exampleBucketAP` (AWS::S3::AccessPoint) → `Properties.Policy.Statement.0.Resource.Fn::Join` L189 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `s3ObjectLambdaAP` (AWS::S3ObjectLambda::AccessPoint) → `Properties.ObjectLambdaConfiguration.SupportingAccessPoint.Fn::Join` L235 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0` (AWS::IAM::Role) → `Properties.Policies.0.PolicyDocument.Statement.0.Resource.0.Fn::Join` L223 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `EC2SSMRole1C0EBD7B` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L325 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/StaticSiteBasicStaticSiteUrl5634901C/Value.Fn::Join` in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StaticSiteBasicWebsiteBucketPolicy8E799A1F` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::Join` L32 in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StaticSiteBasicWebsiteBucketPolicy8E799A1F` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L32 in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F` (AWS::Lambda::Function) → `Properties.Description.Fn::Join` L203 in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L244 in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.0.Fn::Join` L278 in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L278 in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L278 in `cdk_static-site-basic--MyStaticSite.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** → `Outputs/StepFuncApiEndpointF9A6BDFA/Value.Fn::Join` in `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StepFuncApiordersGET0318ABB9` (AWS::ApiGateway::Method) → `Properties.Integration.RequestTemplates.application/json.Fn::Join` L230 in `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `StepFuncApiordersGET0318ABB9` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join` L230 in `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CheckLambdaServiceRole74B86E23` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L3 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `SubmitLambdaServiceRole98C85C39` (AWS::IAM::Role) → `Properties.ManagedPolicyArns.0.Fn::Join` L60 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CronStateMachineRoleDefaultPolicy427EC0FE` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.0.Resource.1.Fn::Join` L137 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CronStateMachineRoleDefaultPolicy427EC0FE` (AWS::IAM::Policy) → `Properties.PolicyDocument.Statement.1.Resource.1.Fn::Join` L137 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-- **I1022** `CronStateMachine7E50955B` (AWS::StepFunctions::StateMachine) → `Properties.DefinitionString.Fn::Join` L208 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template`
-  > Prefer using Fn::Sub over Fn::Join with an empty delimiter
-
-### I3510 — 107 extra — Validate statement resources match the actions
-
-- **I3510** `SampleBadIAMPolicy1` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L40 in `bad_hard_coded_arn_properties`
-  > Action 'sns:Publish' requires a resource matching 'arn:*:sns:*:*:.*' but none of the resources match
-- **I3510** `SampleBadIAMPolicy2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L53 in `bad_hard_coded_arn_properties`
-  > Action 'sns:Publish' requires a resource matching 'arn:*:sns:*:*:.*' but none of the resources match
-- **I3510** `SampleBadIAMPolicy3` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L68 in `bad_hard_coded_arn_properties`
-  > Action 'sns:Publish' requires a resource matching 'arn:*:sns:*:*:.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:AbortMultipartUpload' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:GetBucketAcl' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:GetObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:GetObjectAcl' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:GetObjectVersion' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:ListBucket' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:PutObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:PutObjectTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `myRoleToWriteToS3` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L97 in `bad_resources_circular_dependency`
-  > Action 's3:PutObjectVersionTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L133 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template`
-  > Action 'logs:DeleteLogGroup' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
-  > Action 'logs:CreateLogGroup' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
-  > Action 'logs:CreateLogStream' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
-  > Action 'logs:DescribeLogStreams' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
-  > Action 'logs:PutLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
-  > Action 'logs:CreateLogGroup' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
-  > Action 'logs:CreateLogStream' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
-  > Action 'logs:DescribeLogStreams' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
-  > Action 'logs:PutLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:DeleteRule' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:DescribeRule' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:DisableRule' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:EnableRule' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:ListTargetsByRule' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:PutRule' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:PutTargets' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 'events:RemoveTargets' requires a resource matching 'arn:*:events:*:*:rule/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetBucketLocation' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetBucketNotification' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetBucketTagging' requires a resource matching 'arn:*:s3:::.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetBucketVersioning' requires a resource matching 'arn:*:s3:::.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetInventoryConfiguration' requires a resource matching 'arn:*:s3:::.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetObjectAcl' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetObjectTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetObjectVersion' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetObjectVersionAcl' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:GetObjectVersionTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:ListBucket' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:ListBucketVersions' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:PutBucketNotification' requires a resource matching 'arn:*:s3:::.*' but none of the resources match
-- **I3510** `RoleDefaultPolicy5FFB7DAB` (AWS::IAM::Policy) → `Properties.PolicyDocument` L121 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > Action 's3:PutInventoryConfiguration' requires a resource matching 'arn:*:s3:::.*' but none of the resources match
-- **I3510** `BuildDeployPipelineDeployEcsFargateDeployCodePipelineActionRoleDefaultPolicy5E7BE922` (AWS::IAM::Policy) → `Properties.PolicyDocument` L2789 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template`
-  > Action 'codedeploy:GetDeploymentConfig' requires a resource matching 'arn:*:codedeploy:*:*:deploymentconfig:.*' but none of the resources match
-- **I3510** `itemL3TableLambdaFunctionServiceRoleBA21B37D` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L276 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Action 'logs:CreateLogGroup' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `itemL3TableLambdaFunctionServiceRoleBA21B37D` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L276 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Action 'logs:CreateLogStream' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `itemL3TableLambdaFunctionServiceRoleBA21B37D` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L276 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Action 'logs:PutLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `EC2serverEc2RoleDefaultPolicy34EE5F1D` (AWS::IAM::Policy) → `Properties.PolicyDocument` L464 in `cdk_ec2-instance--EC2Example.template`
-  > Action 'cloudformation:DescribeStackResource' requires a resource matching 'arn:*:cloudformation:*:*:stack/.*' but none of the resources match
-- **I3510** `EC2serverEc2RoleDefaultPolicy34EE5F1D` (AWS::IAM::Policy) → `Properties.PolicyDocument` L464 in `cdk_ec2-instance--EC2Example.template`
-  > Action 'cloudformation:SignalResource' requires a resource matching 'arn:*:cloudformation:*:*:stack/.*' but none of the resources match
-- **I3510** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Action 'ec2:CreateInstanceConnectEndpoint' requires a resource matching 'arn:*:ec2:*:*:instance-connect-endpoint/.*' but none of the resources match
-- **I3510** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Action 'ec2:CreateNetworkInterface' requires a resource matching 'arn:*:ec2:*:*:network-interface/.*' but none of the resources match
-- **I3510** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Action 'ec2:CreateTags' requires a resource matching 'arn:*:ec2:*:*:capacity-block/.*' but none of the resources match
-- **I3510** `EICEndpointRoleDefaultPolicy9C78FE54` (AWS::IAM::Policy) → `Properties.PolicyDocument` L309 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Action 'ec2:DeleteInstanceConnectEndpoint' requires a resource matching 'arn:*:ec2:*:*:instance-connect-endpoint/.*' but none of the resources match
-- **I3510** `FargateTaskDefinitionExecutionRoleDefaultPolicy1632DA52` (AWS::IAM::Policy) → `Properties.PolicyDocument` L849 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Action 'ecr:BatchCheckLayerAvailability' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `FargateTaskDefinitionExecutionRoleDefaultPolicy1632DA52` (AWS::IAM::Policy) → `Properties.PolicyDocument` L849 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Action 'ecr:BatchGetImage' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `FargateTaskDefinitionExecutionRoleDefaultPolicy1632DA52` (AWS::IAM::Policy) → `Properties.PolicyDocument` L849 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template`
-  > Action 'ecr:GetDownloadUrlForLayer' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:AbortMultipartUpload' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:DeleteObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:GetBucketLocation' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:GetObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:GetObjectTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:ListBucket' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:ListBucketMultipartUploads' requires a resource matching 'arn:*:s3:::.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:ListMultipartUploadParts' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:PutObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:PutObjectTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:AbortMultipartUpload' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:DeleteObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:GetBucketLocation' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:GetObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:GetObjectTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:ListBucket' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:ListBucketMultipartUploads' requires a resource matching 'arn:*:s3:::.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:ListMultipartUploadParts' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:PutObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
-  > Action 's3:PutObjectTagging' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `ECSTaskIamRoleDefaultPolicyCB2CF7F1` (AWS::IAM::Policy) → `Properties.PolicyDocument` L94 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Action 'ecr:BatchCheckLayerAvailability' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `ECSTaskIamRoleDefaultPolicyCB2CF7F1` (AWS::IAM::Policy) → `Properties.PolicyDocument` L94 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Action 'ecr:BatchGetImage' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `ECSTaskIamRoleDefaultPolicyCB2CF7F1` (AWS::IAM::Policy) → `Properties.PolicyDocument` L94 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > Action 'ecr:GetDownloadUrlForLayer' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `emrservicerole3BE5EDAF` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L217 in `cdk_py-emr--emr-cluster.template`
-  > Action 's3:GetObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `CdkThing001LambdaRoleDefaultPolicy59ADB8C2` (AWS::IAM::Policy) → `Properties.PolicyDocument` L32 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Action 'secretsmanager:CreateSecret' requires a resource matching 'arn:*:secretsmanager:*:*:secret:.*' but none of the resources match
-- **I3510** `CdkThing001LambdaRoleDefaultPolicy59ADB8C2` (AWS::IAM::Policy) → `Properties.PolicyDocument` L32 in `cdk_py-iotcore--CdkIotThingStack.template`
-  > Action 'secretsmanager:DeleteSecret' requires a resource matching 'arn:*:secretsmanager:*:*:secret:.*' but none of the resources match
-- **I3510** `generatorPingTaskExecutionRoleDefaultPolicyA8FF7B68` (AWS::IAM::Policy) → `Properties.PolicyDocument` L91 in `cdk_py-url-shortener--urlshort-load-test.template`
-  > Action 'ecr:BatchCheckLayerAvailability' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `generatorPingTaskExecutionRoleDefaultPolicyA8FF7B68` (AWS::IAM::Policy) → `Properties.PolicyDocument` L91 in `cdk_py-url-shortener--urlshort-load-test.template`
-  > Action 'ecr:BatchGetImage' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `generatorPingTaskExecutionRoleDefaultPolicyA8FF7B68` (AWS::IAM::Policy) → `Properties.PolicyDocument` L91 in `cdk_py-url-shortener--urlshort-load-test.template`
-  > Action 'ecr:GetDownloadUrlForLayer' requires a resource matching 'arn:*:ecr:*:*:repository/.*' but none of the resources match
-- **I3510** `myPolicy2` (AWS::IAM::Policy) → `Properties.PolicyDocument` L29 in `good_functions_sub_needed`
-  > Action 'redshift:JoinGroup' requires a resource matching 'arn:*:redshift:*:*:dbgroup:.*' but none of the resources match
-- **I3510** `Policy` (AWS::IAM::Policy) → `Properties.PolicyDocument` L4 in `good_iam_valid`
-  > Action 's3:GetObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `good_no_value`
-  > Action 'logs:CreateLogGroup' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `good_no_value`
-  > Action 'logs:CreateLogStream' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `good_no_value`
-  > Action 'logs:DescribeLogStreams' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `good_no_value`
-  > Action 'logs:GetLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `good_no_value`
-  > Action 'logs:PutLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `good_no_value`
-  > Action 'logs:PutRetentionPolicy' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `TenantInfoReadPolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L152 in `issues_sam_w_conditions`
-  > Action 'secretsmanager:DescribeSecret' requires a resource matching 'arn:*:secretsmanager:*:*:secret:.*' but none of the resources match
-- **I3510** `TenantInfoReadPolicy` (AWS::IAM::ManagedPolicy) → `Properties.PolicyDocument` L152 in `issues_sam_w_conditions`
-  > Action 'secretsmanager:GetSecretValue' requires a resource matching 'arn:*:secretsmanager:*:*:secret:.*' but none of the resources match
-- **I3510** `rPostProcInstanceRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L960 in `quickstart_nist_application`
-  > Action 'sns:Publish' requires a resource matching 'arn:*:sns:*:*:.*' but none of the resources match
-- **I3510** `LambdaExecutionRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L814 in `quickstart_openshift`
-  > Action 'logs:CreateLogGroup' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `LambdaExecutionRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L814 in `quickstart_openshift`
-  > Action 'logs:CreateLogStream' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `LambdaExecutionRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L814 in `quickstart_openshift`
-  > Action 'logs:PutLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `SetupRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L1657 in `quickstart_openshift`
-  > Action 's3:GetObject' requires a resource matching 'arn:*:s3:*:*:accesspoint/.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `quickstart_test`
-  > Action 'logs:CreateLogGroup' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `quickstart_test`
-  > Action 'logs:CreateLogStream' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `quickstart_test`
-  > Action 'logs:DescribeLogStreams' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `quickstart_test`
-  > Action 'logs:GetLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `quickstart_test`
-  > Action 'logs:PutLogEvents' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-- **I3510** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Policies[0].PolicyDocument` L94 in `quickstart_test`
-  > Action 'logs:PutRetentionPolicy' requires a resource matching 'arn:*:logs:*:*:log-group:.*' but none of the resources match
-
-### E1152 — 54 extra — Validate AMI id format
-
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L13 in `bad_conditions_properties_fn_if`
-  > Value 'ami-1234567' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L13 in `bad_conditions_properties_fn_if`
-  > Value 'ami-123abcd' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L13 in `bad_conditions_properties_fn_if`
-  > Value 'ami-abcdefg' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance1` (AWS::EC2::Instance) → `Properties.ImageId` L28 in `bad_core_conditions`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance2` (AWS::EC2::Instance) → `Properties.ImageId` L33 in `bad_core_conditions`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance3` (AWS::EC2::Instance) → `Properties.ImageId` L50 in `bad_core_conditions`
-  > Value 'ami-1234567' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance3` (AWS::EC2::Instance) → `Properties.ImageId` L50 in `bad_core_conditions`
-  > Value 'ami-123abcd' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance3` (AWS::EC2::Instance) → `Properties.ImageId` L50 in `bad_core_conditions`
-  > Value 'ami-abcdefg' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance4` (AWS::EC2::Instance) → `Properties.ImageId` L63 in `bad_core_conditions`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance4` (AWS::EC2::Instance) → `Properties.ImageId` L63 in `bad_core_conditions`
-  > Value 'ami-abcdef' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_functions_join`
-  > Value 'ami-1234' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance2` (AWS::EC2::Instance) → `Properties.ImageId` L17 in `bad_functions_join`
-  > Value 'ami-1234' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_functions_select`
-  > Value 'String' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance1` (AWS::EC2::Instance) → `Properties.ImageId` L15 in `bad_functions_select`
-  > Value 'String' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance2` (AWS::EC2::Instance) → `Properties.ImageId` L24 in `bad_functions_select`
-  > Value 'String' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance3` (AWS::EC2::Instance) → `Properties.ImageId` L32 in `bad_functions_select`
-  > Value 'String' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L5 in `bad_previous_generation_instances`
-  > Value 'ami-abc' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L77 in `bad_properties_sg_ingress`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstanceSub` (AWS::EC2::Instance) → `Properties.ImageId` L214 in `bad_resources_circular_dependency`
-  > Value 'String' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `my.Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_resources_name`
-  > 'ami-123456' does not match format 'AWS::EC2::Image.Id'
-- **E1152** `my.Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_resources_name`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `my_Instance` (AWS::EC2::Instance) → `Properties.ImageId` L8 in `bad_resources_name`
-  > 'ami-123456' does not match format 'AWS::EC2::Image.Id'
-- **E1152** `my_Instance` (AWS::EC2::Instance) → `Properties.ImageId` L8 in `bad_resources_name`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `ASGLaunchConfigC00AF12B` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L551 in `cdk_application-load-balancer--LoadBalancerStack.template`
-  > Value '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `BatchLaunchTemplateBD674258` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateData.ImageId` L678 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Value '/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `ASGLaunchConfigC00AF12B` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L551 in `cdk_classic-load-balancer--LoadBalancerStack.template`
-  > Value '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `EC2Instance1F00751C57ee729c1274d778` (AWS::EC2::Instance) → `Properties.ImageId` L562 in `cdk_ec2-instance--EC2Example.template`
-  > Value '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `instanceB7CCE687` (AWS::EC2::Instance) → `Properties.ImageId` L243 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > Value '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `MyFleetLaunchConfig5D7F9801` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L588 in `cdk_ecs-cluster--MyFirstEcsCluster.template`
-  > Value '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `Ec2ClusterDefaultAutoScalingGroupLaunchConfig7B2FED3A` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L594 in `cdk_ecs-ecs-service-with-logging--Willkommen.template`
-  > Value '/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `awsvpcecsdemoclusterDefaultAutoScalingGroupLaunchConfig067B11BF` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L594 in `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template`
-  > Value '/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `EcsClusterDefaultAutoScalingGroupLaunchConfigB7E376C1` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L594 in `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template`
-  > Value '/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `appasgLaunchConfig9EFFB3A3` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L91 in `cdk_py-docker-app-with-asg-alb--ASGStack.template`
-  > Value '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `BastionHost30F9ED05` (AWS::EC2::Instance) → `Properties.ImageId` L602 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > Value '/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `WebInstanceF774E10D` (AWS::EC2::Instance) → `Properties.ImageId` L731 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > Value '/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-gp2' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `ASGLaunchConfigC00AF12B` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L397 in `cdk_resource-overrides--resource-overrides.template`
-  > Value '/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-gp2' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `SSMTestInstanceA55C9969` (AWS::EC2::Instance) → `Properties.ImageId` L401 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template`
-  > Value '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `good_conditions`
-  > 'ami-abcdefgh' does not match format 'AWS::EC2::Image.Id'
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `good_conditions`
-  > Value 'ami-abcdefgh' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L20 in `good_functions_sub`
-  > Value 'String' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `LaunchConfiguration` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L55 in `good_functions_sub`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `LaunchConfiguration` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L18 in `good_parameters_not_used_parameters`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `LaunchConfiguration` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L21 in `good_parameters_used_transforms`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `good_resources_name`
-  > Value 'ami-123456' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L9 in `integration_aws-ec2-instance`
-  > 'ami-abcdefgh' does not match format 'AWS::EC2::Image.Id'
-- **E1152** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L9 in `integration_aws-ec2-instance`
-  > Value 'ami-abcdefgh' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `LaunchTemplate` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateData.ImageId` L3 in `integration_aws-ec2-launchtemplate`
-  > 'ami-abcdefgh' does not match format 'AWS::EC2::Image.Id'
-- **E1152** `LaunchTemplate` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateData.ImageId` L3 in `integration_aws-ec2-launchtemplate`
-  > Value 'ami-abcdefgh' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `rNatInstance` (AWS::EC2::Instance) → `Properties.ImageId` L93 in `quickstart_nat-instance`
-  > Value '' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `rAutoScalingConfigApp` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L219 in `quickstart_nist_application`
-  > Value 'none' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `rAutoScalingConfigWeb` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L417 in `quickstart_nist_application`
-  > Value 'none' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `rPostProcInstance` (AWS::EC2::Instance) → `Properties.ImageId` L794 in `quickstart_nist_application`
-  > Value 'none' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.ImageId` L479 in `quickstart_nist_vpc_management`
-  > Value '' does not match AMI ID format (ami-xxxxxxxxx)
-- **E1152** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.ImageId` L635 in `quickstart_vpc-management`
-  > Value '' does not match AMI ID format (ami-xxxxxxxxx)
-
-### I3042 — 46 extra — ARNs should use correctly placed Pseudo Parameters
-
-- **I3042** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_codepipeline_bad_artifact_counts`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_codepipeline_bad_artifacts`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `BadEnvLambda` (AWS::Lambda::Function) → `Properties.Properties.Role` L40 in `bad_cross_resource_task10`
-  > ARN in Resource BadEnvLambda contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-- **I3042** `BadImageLambda` (AWS::Lambda::Function) → `Properties.Properties.Role` L53 in `bad_cross_resource_task10`
-  > ARN in Resource BadImageLambda contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-- **I3042** `Listener` (AWS::ElasticLoadBalancingV2::Listener) L4 in `bad_elb_http_443`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) L36 in `bad_functions_sub_needed`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) L57 in `bad_functions_sub_needed`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Topic` (AWS::SNS::Topic) L8 in `bad_hardcoded_partition`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Func` (AWS::Lambda::Function) L4 in `bad_lambda_no_snapstart`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `SnapStartFunc` (AWS::Lambda::Function) L4 in `bad_lambda_snapstart_bad_runtime`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Func` (AWS::Lambda::Function) L4 in `bad_lambda_snapstart_no_version`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Func` (AWS::Lambda::Function) L8 in `bad_lambda_sqs_timeout`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Func` (AWS::Lambda::Function) L4 in `bad_lambda_zip_no_handler`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `LambdaFn` (AWS::Lambda::Function) L4 in `bad_lambda_zipfile_java`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_pipeline_no_source_first_stage`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `CustomResource` (AWS::CloudFormation::CustomResource) L56 in `bad_properties_rt_association`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `myKms` (AWS::KMS::Key) → `Properties.Properties.KeyPolicy.Statement.3.Principal.AWS` L154 in `bad_resources_circular_dependency`
-  > ARN in Resource myKms contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-- **I3042** `EolLambda` (AWS::Lambda::Function) L24 in `bad_schema_lifecycle`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `DeprecatedLambda` (AWS::Lambda::Function) L35 in `bad_schema_lifecycle`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `ReadOnlyProp` (AWS::ACMPCA::Certificate) L9 in `bad_schema_property_constraints`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Lambda` (AWS::Lambda::Function) L4 in `bad_schema_string_length`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) L5 in `bad_schema_write_only`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `SM` (AWS::StepFunctions::StateMachine) L4 in `bad_stepfunctions_bad_start_at`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `StateMachine` (AWS::StepFunctions::StateMachine) L4 in `bad_stepfunctions_invalid_state`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `ddbstreamtopic7821AF6E` (AWS::SNS::Topic) L3 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `sampleappServiceTaskCountTargetE827DC30` (AWS::ApplicationAutoScaling::ScalableTarget) L749 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) L47 in `cdk_imagebuilder--ImagebuilderStack.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) L66 in `cdk_lambda-manage-s3-event-notification--AStack.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) L58 in `cdk_lambda-manage-s3-event-notification--BStack.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `DataSyncS3Location0` (AWS::DataSync::LocationS3) L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `DataSyncS3Location1` (AWS::DataSync::LocationS3) L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) L490 in `cdk_py-url-shortener--urlshort-app.template`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `good_codepipeline_artifact_counts`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) L138 in `good_functions_sub_needed`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `LambdaFunction` (AWS::Lambda::Function) L161 in `good_generic`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `SnapStartFunc` (AWS::Lambda::Function) L4 in `good_lambda_snapstart`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `LambdaFn` (AWS::Lambda::Function) → `Properties.Properties.Role` L4 in `good_lambda_zipfile`
-  > ARN in Resource LambdaFn contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-- **I3042** `rDBPassword` (Custom::Secret) L83 in `good_no_value`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `CustomResource` (AWS::CloudFormation::CustomResource) L62 in `good_properties_rt_association`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `TestPipeline` (AWS::CodePipeline::Pipeline) L6 in `good_resources_codepipeline`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `SM` (AWS::StepFunctions::StateMachine) L4 in `good_stepfunctions_valid`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `SkillFunction` (AWS::Lambda::Function) L8 in `good_transform_list_transform_not_sam`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `FifoProcessor` (AWS::Lambda::Function) → `Properties.Properties.Role` L92 in `integration_cfn-gather`
-  > ARN in Resource FifoProcessor contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-- **I3042** `LambdaRole` (AWS::IAM::Role) → `Properties.Properties.Policies.0.PolicyDocument.Statement.0.Resource` L341 in `lsp_comprehensive`
-  > ARN in Resource LambdaRole contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-- **I3042** `GetRSA` (Custom::GenerateKeys) L774 in `quickstart_openshift`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-- **I3042** `rDBPassword` (Custom::Secret) L83 in `quickstart_test`
-  > Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability
-
-### F3012 — 29 extra — Check resource properties values
-
-- **F3012** `myInstance4` (AWS::EC2::Instance) → `Properties.InstanceType` L63 in `bad_core_conditions`
-  > {"Fn::If":"t3.2xlarge"} is not of type 'string'
-- **F3012** `myInstance4` (AWS::EC2::Instance) → `Properties.InstanceType` L63 in `bad_core_conditions`
-  > {"Fn::If":"t3.xlarge"} is not of type 'string'
-- **F3012** `myInstance1` (AWS::EC2::Instance) → `Properties.AvailabilityZone` L15 in `bad_functions_select`
-  > {"Fn::Select":[0,"Value1","value2"]} is not of type 'string'
-- **F3012** `myInstance3` (AWS::EC2::Instance) → `Properties.AvailabilityZone` L32 in `bad_functions_select`
-  > {"Fn::Select":"foo"} is not of type 'string'
-- **F3012** `lambdaMap1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0` L194 in `bad_generic`
-  > 'us-east-1a' is not of type 'object'
-- **F3012** `lambdaMap1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1` L194 in `bad_generic`
-  > 'us-east-1b' is not of type 'object'
-- **F3012** `lambdaMap1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2` L194 in `bad_generic`
-  > 'us-east-1c' is not of type 'object'
-- **F3012** `lambdaMap1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.3` L194 in `bad_generic`
-  > 'us-east-1d' is not of type 'object'
-- **F3012** `lambdaMap1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.4` L194 in `bad_generic`
-  > 'us-east-1e' is not of type 'object'
-- **F3012** `lambdaMap1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.5` L194 in `bad_generic`
-  > 'us-east-1f' is not of type 'object'
-- **F3012** `lambdaMap2` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0` L202 in `bad_generic`
-  > [{"CidrIp":"0.0.0.0/0","IpProtocol":"tcp","ToPort":80,"FromPort":80}] is not of type 'object'
-- **F3012** `R` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `bad_if_wrong_arity`
-  > {"Fn::If":["IsProd","prod-bucket"]} is not of type 'string'
-- **F3012** `myInstanceSub` (AWS::EC2::Instance) → `Properties.UserData` L214 in `bad_resources_circular_dependency`
-  > {"Fn::Sub":{"Test":"bad configuration"}} is not of type 'string'
-- **F3012** `LambdaFunctionTestDefinedArray` (AWS::Lambda::Function) → `Properties.Code` L23 in `good_custom_is-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestDefinedEmpty` (AWS::Lambda::Function) → `Properties.Code` L35 in `good_custom_is-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestDefinedGetAttr` (AWS::Lambda::Function) → `Properties.Code` L45 in `good_custom_is-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestDefinedObject` (AWS::Lambda::Function) → `Properties.Code` L55 in `good_custom_is-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestDefinedRef` (AWS::Lambda::Function) → `Properties.Code` L66 in `good_custom_is-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestDefinedValue` (AWS::Lambda::Function) → `Properties.Code` L76 in `good_custom_is-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestNotDefinedFromParent` (AWS::Lambda::Function) → `Properties.Code` L20 in `good_custom_is-not-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestNotDefinedFromParent` (AWS::Lambda::Function) → `Properties.Environment.Variables` L20 in `good_custom_is-not-defined`
-  > GetAtt LambdaExecutionRole.Arn (AWS::IAM::Role) returns 'string', but property expects 'object'
-- **F3012** `LambdaFunctionTestNotDefinedFromProperties` (AWS::Lambda::Function) → `Properties.Code` L29 in `good_custom_is-not-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestNotDefinedRefAWSNoValue` (AWS::Lambda::Function) → `Properties.Code` L36 in `good_custom_is-not-defined`
-  > './' is not of type 'object'
-- **F3012** `LambdaFunctionTestNotDefinedWithSiblings` (AWS::Lambda::Function) → `Properties.Code` L46 in `good_custom_is-not-defined`
-  > './' is not of type 'object'
-- **F3012** `TimeoutInNumericsFunction` (AWS::Lambda::Function) → `Properties.Code` L22 in `good_custom_numeric-inequalities-large`
-  > './' is not of type 'object'
-- **F3012** `TimeoutInStringFunction` (AWS::Lambda::Function) → `Properties.Code` L30 in `good_custom_numeric-inequalities-large`
-  > './' is not of type 'object'
-- **F3012** `TimeoutInNumericsFunction` (AWS::Lambda::Function) → `Properties.Code` L22 in `good_custom_numeric-inequalities-small`
-  > './' is not of type 'object'
-- **F3012** `TimeoutInStringFunction` (AWS::Lambda::Function) → `Properties.Code` L30 in `good_custom_numeric-inequalities-small`
-  > './' is not of type 'object'
-- **F3012** `Function` (AWS::Lambda::Function) → `Properties.Code` L3 in `integration_aws-lambda-function`
-  > 's3://bucket/code.zip' is not of type 'object'
-
-### W1030 — 24 extra — Validate the values that come from a Ref function
-
-- **W1030** `PublicSubnetRouteTableAssociation1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L23 in `bad_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\.\-_\/#A-Za-z0-9]{1,512}\Z' when 'Ref' is resolved
-- **W1030** `PublicSubnetRouteTableAssociation1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L23 in `bad_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** `PrivateSubnetRouteTableAssociation1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L31 in `bad_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\.\-_\/#A-Za-z0-9]{1,512}\Z' when 'Ref' is resolved
-- **W1030** `PrivateSubnetRouteTableAssociation1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L31 in `bad_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** `AuxiliaryPublicSubnetRouteTableAssociation1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L39 in `bad_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\.\-_\/#A-Za-z0-9]{1,512}\Z' when 'Ref' is resolved
-- **W1030** `AuxiliaryPublicSubnetRouteTableAssociation1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L39 in `bad_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** `myInstance` (AWS::EC2::Instance) → `Properties.SecurityGroupIds.0` L77 in `bad_properties_sg_ingress`
-  > {'Ref': 'mySecurityGroup'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `myLaunchTemplate` (AWS::EC2::LaunchTemplate) → `Properties.LaunchTemplateData.SecurityGroupIds.0` L83 in `bad_properties_sg_ingress`
-  > {'Ref': 'mySecurity2Group'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `ECSSecurityGroupA14DBE7D` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L216 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > {'Ref': 'referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `PublicLBSG963B1ACE` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L530 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > {'Ref': 'referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > {'Ref': 'referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `AppSubnetPublicRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L28 in `good_properties_rt_association`
-  > {'Ref': 'AppSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\.\-_\/#A-Za-z0-9]{1,512}\Z' when 'Ref' is resolved
-- **W1030** `AppSubnetPublicRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L28 in `good_properties_rt_association`
-  > {'Ref': 'AppSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** `AppSubnetPrivateRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L37 in `good_properties_rt_association`
-  > {'Ref': 'AppSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\.\-_\/#A-Za-z0-9]{1,512}\Z' when 'Ref' is resolved
-- **W1030** `AppSubnetPrivateRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L37 in `good_properties_rt_association`
-  > {'Ref': 'AppSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** `PublicSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L54 in `good_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\.\-_\/#A-Za-z0-9]{1,512}\Z' when 'Ref' is resolved
-- **W1030** `PublicSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L54 in `good_properties_rt_association`
-  > {'Ref': 'PublicSubnet01'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** `rNatInstance` (AWS::EC2::Instance) → `Properties.KeyName` L93 in `quickstart_nat-instance`
-  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
-- **W1030** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.KeyName` L479 in `quickstart_nist_vpc_management`
-  > {'Ref': 'pEC2KeyPairBastion'} is shorter than 1 when 'Ref' is resolved
-- **W1030** `rPeeringConnectionProduction` (AWS::EC2::VPCPeeringConnection) → `Properties.PeerVpcId` L586 in `quickstart_nist_vpc_management`
-  > {'Ref': 'pProductionVPC'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** → `Parameters.QSS3BucketName.Default` in `quickstart_openshift`
-  > {'Ref': 'QSS3BucketName'} does not match '^(arn:(aws[A-Za-z\-]*?|\*):[^:]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$' when 'Ref' is resolved
-- **W1030** → `Parameters.QSS3KeyPrefix.Default` in `quickstart_openshift`
-  > {'Ref': 'QSS3KeyPrefix'} does not match '^(arn:(aws[A-Za-z\-]*?|\*):[^:]+:[^:]*(:(?:\d{12}|\*|aws)?:.+|)|\*)$' when 'Ref' is resolved
-- **W1030** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.KeyName` L635 in `quickstart_vpc-management`
-  > {'Ref': 'pEC2KeyPairBastion'} is shorter than 1 when 'Ref' is resolved
-- **W1030** `rPeeringConnectionProduction` (AWS::EC2::VPCPeeringConnection) → `Properties.PeerVpcId` L839 in `quickstart_vpc-management`
-  > {'Ref': 'pProductionVPC'} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-
-### W8001 — 22 extra — Check if Conditions are Used
-
-- **W8001** L4 in `bad_conditions_and`
-  > Condition 'TestAndToLittle' is not used by any resource or Fn::If
-- **W8001** L4 in `bad_conditions_and`
-  > Condition 'TestAndToMany' is not used by any resource or Fn::If
-- **W8001** L8 in `bad_conditions_condition_functions`
-  > Condition 'TestNotNull' is not used by any resource or Fn::If
-- **W8001** L13 in `bad_core_conditions`
-  > Condition 'isProductionOrStaging' is not used by any resource or Fn::If
-- **W8001** L7 in `bad_core_conditions_missing`
-  > Condition 'isProduction' is not used by any resource or Fn::If
-- **W8001** L3 in `bad_if_wrong_arity`
-  > Condition 'IsProd' is not used by any resource or Fn::If
-- **W8001** L7 in `good_both_forms`
-  > Condition 'IsProdShort' is not used by any resource or Fn::If
-- **W8001** L13 in `good_core_conditions`
-  > Condition 'isProductionOrStaging' is not used by any resource or Fn::If
-- **W8001** L3 in `good_resources_deletionpolicy`
-  > Condition 'IsUsEast1' is not used by any resource or Fn::If
-- **W8001** L3 in `good_resources_updatereplacepolicy`
-  > Condition 'IsUsEast1' is not used by any resource or Fn::If
-- **W8001** L6 in `good_transform_language_extension`
-  > Condition 'IsUsEast1' is not used by any resource or Fn::If
-- **W8001** L92 in `lsp_comprehensive`
-  > Condition 'IsNotProduction' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'SupportsNvme' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'UseAdminGroups' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'UseAdminUsers' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'UseCfnUrl' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'UseComputerName' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'UseEnvironment' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'UseOuPath' is not used by any resource or Fn::If
-- **W8001** L3 in `public_watchmaker`
-  > Condition 'UseWamConfig' is not used by any resource or Fn::If
-- **W8001** L3 in `quickstart_nist_application`
-  > Condition 'IsGovCloud' is not used by any resource or Fn::If
-- **W8001** L3 in `quickstart_nist_logging`
-  > Condition 'IsGovCloud' is not used by any resource or Fn::If
-
-### E9004 — 18 extra — GetAtt validation of parameters
-
-- **E9004** `NewVolume` (AWS::EC2::Volume) → `Properties.AvailabilityZone` L77 in `bad_conditions`
-  > 'AvailabilityZone' is not one of ["InstanceId", "PrivateDnsName", "PrivateIp", "PublicDnsName", "PublicIp", "State", "VpcId"]
-- **E9004** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId.Fn::FindInMap.2` L7 in `bad_functions_base64`
-  > 'AvailabilityZone' is not one of ["InstanceId", "PrivateDnsName", "PrivateIp", "PublicDnsName", "PublicIp", "State", "VpcId"]
-- **E9004** `mySubnet3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L29 in `bad_functions_getaz`
-  > 'AvailbilityZone' is not one of ["BlockPublicAccessStates", "Ipv6CidrBlocks", "NetworkAclAssociationId", "SubnetId"]
-- **E9004** `Resource2` (AWS::SNS::Topic) → `Properties.DisplayName` L8 in `bad_resources_circular_dependency_2`
-  > 'TopicName' is not one of ["TopicArn"]
-- **E9004** `Resource5` (AWS::SNS::Topic) → `Properties.DisplayName` L23 in `bad_resources_circular_dependency_2`
-  > 'TopicName' is not one of ["TopicArn"]
-- **E9004** `Resource7` (AWS::SNS::Topic) → `Properties.DisplayName` L33 in `bad_resources_circular_dependency_2`
-  > 'TopicName' is not one of ["TopicArn"]
-- **E9004** `Resource8` (AWS::SNS::Topic) → `Properties.DisplayName` L38 in `bad_resources_circular_dependency_2`
-  > 'TopicName' is not one of ["TopicArn"]
-- **E9004** `demobackupplan32CA9462` (AWS::Backup::BackupPlan) → `Properties.BackupPlan.BackupPlanRule.0.TargetBackupVault` L224 in `cdk_backup-s3--AwsBackupS3Stack.template`
-  > 'BackupVaultName' is not one of ["BackupVaultArn"]
-- **E9004** `instanceInstanceSecurityGroup725C795D` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.CidrIp` L153 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > 'CidrBlock' is not one of ["CidrBlockAssociations", "DefaultNetworkAcl", "DefaultSecurityGroup", "Ipv6CidrBlocks", "VpcId"]
-- **E9004** `instanceInstanceSecurityGroup725C795D` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.Description.Fn::Join.1.1` L153 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template`
-  > 'CidrBlock' is not one of ["CidrBlockAssociations", "DefaultNetworkAcl", "DefaultSecurityGroup", "Ipv6CidrBlocks", "VpcId"]
-- **E9004** `ApiGWexamplePOST6CAE6201` (AWS::ApiGateway::Method) → `Properties.Integration.Uri.Fn::Join.1.7` L185 in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template`
-  > 'QueueName' is not one of ["Arn", "QueueUrl"]
-- **E9004** `AWSBackupPlanD181A800` (AWS::Backup::BackupPlan) → `Properties.BackupPlan.BackupPlanRule.0.TargetBackupVault` L947 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template`
-  > 'BackupVaultName' is not one of ["BackupVaultArn"]
-- **E9004** `EcsStackNestedStackEcsStackNestedStackResource48283A58` (AWS::CloudFormation::Stack) → `Properties.Parameters.referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFCidrBlock` L630 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template`
-  > 'CidrBlock' is not one of ["CidrBlockAssociations", "DefaultNetworkAcl", "DefaultSecurityGroup", "Ipv6CidrBlocks", "VpcId"]
-- **E9004** `sgoutboundendpointEC0509A3` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.CidrIp` L331 in `cdk_r53-resolver--R53ResolverStack.template`
-  > 'CidrBlock' is not one of ["CidrBlockAssociations", "DefaultNetworkAcl", "DefaultSecurityGroup", "Ipv6CidrBlocks", "VpcId"]
-- **E9004** `sgoutboundendpointEC0509A3` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.Description.Fn::Join.1.1` L331 in `cdk_r53-resolver--R53ResolverStack.template`
-  > 'CidrBlock' is not one of ["CidrBlockAssociations", "DefaultNetworkAcl", "DefaultSecurityGroup", "Ipv6CidrBlocks", "VpcId"]
-- **E9004** `sgoutboundendpointEC0509A3` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.CidrIp` L331 in `cdk_r53-resolver--R53ResolverStack.template`
-  > 'CidrBlock' is not one of ["CidrBlockAssociations", "DefaultNetworkAcl", "DefaultSecurityGroup", "Ipv6CidrBlocks", "VpcId"]
-- **E9004** `sgoutboundendpointEC0509A3` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.Description.Fn::Join.1.1` L331 in `cdk_r53-resolver--R53ResolverStack.template`
-  > 'CidrBlock' is not one of ["CidrBlockAssociations", "DefaultNetworkAcl", "DefaultSecurityGroup", "Ipv6CidrBlocks", "VpcId"]
-- **E9004** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.2.GroupSet.0` L26 in `integration_formats`
-  > 'GroupName' is not one of ["GroupId", "Id"]
-
-### F3003 — 14 extra — Required Resource properties are missing
-
-- **F3003** `BadListener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties` L20 in `bad_cross_resource_task10`
-  > 'Certificates' is a required property
-- **F3003** `BadImageLambda` (AWS::Lambda::Function) → `Properties` L55 in `bad_cross_resource_task10`
-  > 'Runtime' is a required property
-- **F3003** `BadRestApi` (AWS::ApiGateway::RestApi) → `Properties` L65 in `bad_cross_resource_task10`
-  > 'Name' is a required property
-- **F3003** `BadValkey` (AWS::ElastiCache::ReplicationGroup) → `Properties` L70 in `bad_cross_resource_task10`
-  > 'TransitEncryptionEnabled' is a required property
-- **F3003** `DDBTable` (AWS::DynamoDB::Table) → `Properties` L6 in `bad_dynamodb_provisioned_no_throughput`
-  > 'ProvisionedThroughput' is a required property
-- **F3003** `Func` (AWS::Lambda::Function) → `Properties` L6 in `bad_lambda_zip_no_handler`
-  > 'Runtime' is a required property
-- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L8 in `bad_transform_no_properties`
-  > 'StageName' is a required property
-- **F3003** `DataTable` (AWS::DynamoDB::Table) → `Properties` L72 in `cdk_DemoStack.template`
-  > 'ProvisionedThroughput' is a required property
-- **F3003** `lambdaContainerFunction5815FD88` (AWS::Lambda::Function) → `Properties` L39 in `cdk_py-lambda-from-container--LambdaContainerFunctionStack.template`
-  > 'Runtime' is a required property
-- **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value`
-  > 'AssumeRolePolicyDocument' is a required property
-- **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value`
-  > 'DistributionConfig' is a required property
-- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value`
-  > 'TargetOriginId' is a required property
-- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value`
-  > 'ViewerProtocolPolicy' is a required property
-- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L9 in `lsp_test-template`
-  > 'StageName' is a required property
-
-### W2001 — 14 extra — Check if Parameters are Used
-
-- **W2001** L4 in `bad_core_conditions_list`
-  > Parameter 'myEnvironment' is not referenced anywhere in the template
-- **W2001** L4 in `bad_functions_foreach_no_transform`
-  > Parameter 'Environment' is not referenced anywhere in the template
-- **W2001** L4 in `bad_parameters_default`
-  > Parameter 'myMinLength' is not referenced anywhere in the template
-- **W2001** L4 in `bad_parameters_default`
-  > Parameter 'myMinValue' is not referenced anywhere in the template
-- **W2001** L4 in `good_functions_foreach`
-  > Parameter 'Environment' is not referenced anywhere in the template
-- **W2001** L4 in `good_parameters_not_used_parameters`
-  > Parameter 'Version' is not referenced anywhere in the template
-- **W2001** L4 in `good_parameters_used_transform_language_extension`
-  > Parameter 'ParamA' is not referenced anywhere in the template
-- **W2001** L4 in `good_parameters_used_transform_language_extension`
-  > Parameter 'ParamB' is not referenced anywhere in the template
-- **W2001** L4 in `good_parameters_used_transform_language_extension`
-  > Parameter 'ParamC' is not referenced anywhere in the template
-- **W2001** L4 in `good_parameters_used_transform_language_extension`
-  > Parameter 'ParamD' is not referenced anywhere in the template
-- **W2001** L5 in `good_parameters_used_transform_removed`
-  > Parameter 'AppStack' is not referenced anywhere in the template
-- **W2001** L5 in `good_parameters_used_transform_removed`
-  > Parameter 'CognitoStackName' is not referenced anywhere in the template
-- **W2001** L5 in `good_parameters_used_transform_removed`
-  > Parameter 'ECSStack' is not referenced anywhere in the template
-- **W2001** L5 in `issues_sam_w_conditions`
-  > Parameter 'Zone' is not referenced anywhere in the template
-
-### I3011 — 12 extra — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
-
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `bad_resources_cognito_userpool_tag_is_list`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `bad_resources_cognito_userpool_tag_is_list`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `good_resources_cognito_userpool_tag_is_string_map`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `MyCognitoUserPool` (AWS::Cognito::UserPool) L4 in `good_resources_cognito_userpool_tag_is_string_map`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsQueue` (AWS::SQS::Queue) L204 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsQueue` (AWS::SQS::Queue) L204 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsDeadLetterQueue` (AWS::SQS::Queue) L215 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `VmdEventsDeadLetterQueue` (AWS::SQS::Queue) L215 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsQueue` (AWS::SQS::Queue) L329 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsQueue` (AWS::SQS::Queue) L329 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsDeadLetterQueue` (AWS::SQS::Queue) L340 in `issues_sam_w_conditions`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `DmdEventsDeadLetterQueue` (AWS::SQS::Queue) L340 in `issues_sam_w_conditions`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-
-### I3013 — 12 extra — Check resources with auto expiring content have explicit retention period
-
-- **I3013** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L4 in `bad_aurora_with_allocated_storage`
-  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `DBInstance` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L10 in `bad_previous_generation_instances`
-  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `MyTaskDefinitionAppContainerLogGroupA24DD1B6` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L1049 in `cdk_ecs-ecs-service-with-logging--Willkommen.template`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `FargateServiceTaskDefwebLogGroup71FAF541` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L665 in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `sampleappTaskDefwebLogGroup34BE8C79` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L606 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `MyTaskDefinitionAppContainerLogGroupA24DD1B6` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L535 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `FrontendTaskDefinitionFrontendContainerLogGroup994ED50C` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L326 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `BackendTaskDefinitionBackendContainerLogGroup5E30F6E8` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L390 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `BadEngineInstance` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L116 in `integration_cfn-gather`
-  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `TestLogGroup` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L51 in `integration_getatt-types`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `LogGroup` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L66 in `integration_ref-types`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `WatchmakerInstanceLogGroup` (AWS::Logs::LogGroup) → `Properties.RetentionInDays` L1687 in `public_watchmaker`
-  > 'RetentionInDays' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-
-### W1028 — 10 extra — Check Fn::If has a path that cannot be reached
-
-- **W1028** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Fn::If.Fn::If.2` L149 in `bad_generic`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId.Fn::If.2` L48 in `bad_properties_rt_association`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPublic' to False from current status True
-- **W1028** `WithIf` (Custom::IntrinsicTest) → `Properties.Long.Fn::If.1` L60 in `good_both_forms`
-  > ['Fn::If', 1] is not reachable. When setting condition 'IsProd' to True
-- **W1028** `WithIf` (Custom::IntrinsicTest) → `Properties.Short.Fn::If.1` L60 in `good_both_forms`
-  > ['Fn::If', 1] is not reachable. When setting condition 'IsProd' to True
-- **W1028** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId.Fn::If.2` L46 in `good_properties_rt_association`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPublic' to False from current status True
-- **W1028** `ConditionalOutput` → `Value.Fn::If.2` in `lsp_comprehensive`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.VPCZoneIdentifier.0.Fn::If.2` L235 in `lsp_comprehensive`
-  > ['Fn::If', 2] is not reachable. When setting condition 'HasMultipleAZs' to False from current status True
-- **W1028** `LogicalConditionalOutput` → `Value.Fn::If.2.Fn::If.1` in `lsp_condition-usage`
-  > ['Fn::If', 1] is not reachable. When setting condition '__inline_cond_187' to True
-- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` L53 in `lsp_condition-usage`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicPolicy.Fn::If.2` L53 in `lsp_condition-usage`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-
-### E1151 — 10 extra — Validate VPC id format
-
-- **E1151** `mySubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L22 in `bad_core_conditions`
-  > Value 'vpc-123456' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `mySubnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L11 in `bad_functions_getaz`
-  > Value 'vpc-123456' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `mySubnet2` (AWS::EC2::Subnet) → `Properties.VpcId` L20 in `bad_functions_getaz`
-  > Value 'vpc-123456' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `mySubnet3` (AWS::EC2::Subnet) → `Properties.VpcId` L29 in `bad_functions_getaz`
-  > Value 'vpc-123456' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `mySubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L16 in `bad_mappings_used`
-  > Value 'vpc-123456' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `mySubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L19 in `good_mappings_used`
-  > Value 'vpc-123456' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `mySubnet21` (AWS::EC2::Subnet) → `Properties.VpcId` L55 in `good_properties_ec2_vpc`
-  > Value 'vpc-1234567' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `mySubnet22` (AWS::EC2::Subnet) → `Properties.VpcId` L63 in `good_properties_ec2_vpc`
-  > Value 'vpc-1234567' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L85 in `good_transform_language_extension`
-  > Value '/network/vpc/primary/id' does not match VPC ID format (vpc-xxxxxxxxx)
-- **E1151** `Subnet2` (AWS::EC2::Subnet) → `Properties.VpcId` L42 in `integration_ref-types`
-  > Ref to 'FargateTaskRole' (AWS::IAM::Role) may not produce a valid 'AWS::EC2::VPC.Id' value
 
 ### E2001 — 10 extra — Parameters have appropriate properties
 
@@ -2533,66 +807,20 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E2001** → `Parameters.RedhatSubscriptionPassword.NoEcho` in `quickstart_openshift_master`
   > Parameter 'RedhatSubscriptionPassword': NoEcho must be a boolean
 
-### W3010 — 9 extra — Availability zone properties should not be hardcoded
+### F3003 — 6 extra — Required Resource properties are missing
 
-- **W3010** `Subnet1` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L26 in `integration_deployment-file-template`
-  > Avoid hardcoding availability zones 'us-east-1a'
-- **W3010** `rManagementDMZSubnetA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L431 in `quickstart_nist_vpc_management`
-  > Avoid hardcoding availability zones 'us-east-1b'
-- **W3010** `rManagementDMZSubnetB` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L443 in `quickstart_nist_vpc_management`
-  > Avoid hardcoding availability zones 'us-west-1c'
-- **W3010** `rManagementPrivateSubnetA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L455 in `quickstart_nist_vpc_management`
-  > Avoid hardcoding availability zones 'us-east-1b'
-- **W3010** `rManagementPrivateSubnetB` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L467 in `quickstart_nist_vpc_management`
-  > Avoid hardcoding availability zones 'us-west-1c'
-- **W3010** `rManagementDMZSubnetA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L465 in `quickstart_vpc-management`
-  > Avoid hardcoding availability zones 'us-east-1b'
-- **W3010** `rManagementDMZSubnetB` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L483 in `quickstart_vpc-management`
-  > Avoid hardcoding availability zones 'us-west-1c'
-- **W3010** `rManagementPrivateSubnetA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L501 in `quickstart_vpc-management`
-  > Avoid hardcoding availability zones 'us-east-1b'
-- **W3010** `rManagementPrivateSubnetB` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L519 in `quickstart_vpc-management`
-  > Avoid hardcoding availability zones 'us-west-1c'
-
-### F0014 — 9 extra — Check Fn::And structure for validity
-
-- **F0014** in `bad_conditions_condition_functions`
-  > Fn::Not: must have exactly 1 element, got 0
-- **F0014** in `bad_conditions_condition_functions`
-  > Fn::Not: null is not of type 'array'
-- **F0014** in `good_conditions_and`
-  > Fn::And: element 0: [{'Ref': 'Users'}, ''] is not of type 'boolean'
-- **F0014** in `good_conditions_and`
-  > Fn::And: element 1: [{'Ref': 'Users'}, 'another'] is not of type 'boolean'
-- **F0014** in `good_no_value`
-  > Fn::Equals: argument 1: true is not of type 'string'
-- **F0014** in `issues_sam_w_conditions`
-  > Fn::Equals: argument 0: true is not of type 'string'
-- **F0014** in `lsp_condition-usage`
-  > Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
-- **F0014** in `lsp_condition-usage`
-  > Fn::Equals: argument 1: true is not of type 'string'
-- **F0014** in `quickstart_test`
-  > Fn::Equals: argument 1: true is not of type 'string'
-
-### E3040 — 8 extra
-
-- **E3040** `Cluster` (AWS::SageMaker::Cluster) → `Properties.InstanceGroups` L43 in `bad_sagemaker_instance_types`
-  > Read only property 'InstanceGroups' should not be specified
-- **E3040** `Cluster` (AWS::SageMaker::Cluster) → `Properties.RestrictedInstanceGroups` L43 in `bad_sagemaker_instance_types`
-  > Read only property 'RestrictedInstanceGroups' should not be specified
-- **E3040** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.Arn` L9 in `bad_schema_property_constraints`
-  > Read only property 'Arn' should not be specified
-- **E3040** `DeprecatedProp` (AWS::Athena::WorkGroup) → `Properties.WorkGroupConfigurationUpdates` L20 in `bad_schema_property_constraints`
-  > Read only property 'WorkGroupConfigurationUpdates' should not be specified
-- **E3040** `OpenMPComputeEnvironment` (AWS::Batch::ComputeEnvironment) → `Properties.ComputeResources` L745 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template`
-  > Read only property 'ComputeResources' should not be specified
-- **E3040** `logauditingworkgroup` (AWS::Athena::WorkGroup) → `Properties.WorkGroupConfiguration` L615 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template`
-  > Read only property 'WorkGroupConfiguration' should not be specified
-- **E3040** `BlockListRuleGroup55F6B55D` (AWS::Route53Resolver::FirewallRuleGroup) → `Properties.FirewallRules` L292 in `cdk_r53-resolver--R53ResolverStack.template`
-  > Read only property 'FirewallRules' should not be specified
-- **E3040** `DNSRuleGroup` (AWS::Route53Resolver::FirewallRuleGroup) → `Properties.FirewallRules` L529 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
-  > Read only property 'FirewallRules' should not be specified
+- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L8 in `bad_transform_no_properties`
+  > 'StageName' is a required property
+- **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value`
+  > 'AssumeRolePolicyDocument' is a required property
+- **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value`
+  > 'DistributionConfig' is a required property
+- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value`
+  > 'TargetOriginId' is a required property
+- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value`
+  > 'ViewerProtocolPolicy' is a required property
+- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L9 in `lsp_test-template`
+  > 'StageName' is a required property
 
 ### W7001 — 6 extra — Check if Mappings are Used
 
@@ -2609,19 +837,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W7001** L196 in `public_watchmaker`
   > Mapping 'InstanceTypeMap' is not referenced by any Fn::FindInMap
 
-### E1150 — 5 extra — Validate security group format
-
-- **E1150** `Instance` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.GroupSet` L7 in `bad_E1150_network_interfaces_groupset_multi`
-  > 'sg-BADBAD1' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$'
-- **E1150** `Instance` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.GroupSet` L7 in `bad_E1150_network_interfaces_groupset_multi`
-  > 'sg-BADBAD2' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$'
-- **E1150** `Instance` (AWS::EC2::Instance) → `Properties.SecurityGroupIds` L4 in `bad_schema_format_violation`
-  > Value 'sg-bad' does not match Security Group ID format (sg-xxxxxxxxx)
-- **E1150** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.1.GroupSet.2` L26 in `integration_formats`
-  > Ref to 'Vpc' (AWS::EC2::VPC) may not produce a valid 'AWS::EC2::SecurityGroup.Id' value
-- **E1150** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.GroupSet` L26 in `integration_formats`
-  > 'sg-dne' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$'
-
 ### F0013 — 5 extra — Check Fn::If structure for validity
 
 - **F0013** in `bad_conditions_condition_functions`
@@ -2634,6 +849,19 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > Fn::If: {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'
 - **F0013** in `bad_if_wrong_arity`
   > Fn::If: must have exactly 3 elements, got 2
+
+### F0014 — 5 extra — Check Fn::And structure for validity
+
+- **F0014** in `bad_conditions_condition_functions`
+  > Fn::Not: must have exactly 1 element, got 0
+- **F0014** in `bad_conditions_condition_functions`
+  > Fn::Not: null is not of type 'array'
+- **F0014** in `good_conditions_and`
+  > Fn::And: element 0: [{'Ref': 'Users'}, ''] is not of type 'boolean'
+- **F0014** in `good_conditions_and`
+  > Fn::And: element 1: [{'Ref': 'Users'}, 'another'] is not of type 'boolean'
+- **F0014** in `lsp_condition-usage`
+  > Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
 
 ### W3002 — 5 extra — Warn when properties are configured to only work with the package command
 
@@ -2648,6 +876,28 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W3002** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L915 in `quickstart_vpc-management`
   > This code may only work with 'package' cli command
 
+### W1028 — 4 extra — Check Fn::If has a path that cannot be reached
+
+- **W1028** `ConditionalOutput` → `Value.Fn::If.2` in `lsp_comprehensive`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `LogicalConditionalOutput` → `Value.Fn::If.2.Fn::If.1` in `lsp_condition-usage`
+  > ['Fn::If', 1] is not reachable. When setting condition '__inline_cond_187' to True
+- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` L53 in `lsp_condition-usage`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicPolicy.Fn::If.2` L53 in `lsp_condition-usage`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+
+### W2001 — 4 extra — Check if Parameters are Used
+
+- **W2001** L4 in `bad_core_conditions_list`
+  > Parameter 'myEnvironment' is not referenced anywhere in the template
+- **W2001** L4 in `bad_functions_foreach_no_transform`
+  > Parameter 'Environment' is not referenced anywhere in the template
+- **W2001** L4 in `bad_parameters_default`
+  > Parameter 'myMinLength' is not referenced anywhere in the template
+- **W2001** L4 in `bad_parameters_default`
+  > Parameter 'myMinValue' is not referenced anywhere in the template
+
 ### W1001 — 4 extra — Ref/GetAtt to resource that is available when conditions are applied
 
 - **W1001** `lambdaArn` → `Outputs/lambdaArn/Value` in `bad_functions_relationship_conditions`
@@ -2659,14 +909,14 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W1001** `NestedConditionResource` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::If.2` L146 in `lsp_condition-usage`
   > Reference to 'DevelopmentBucket' which is conditional on 'IsDevelopment' - target may not exist
 
-### E1154 — 3 extra — Validate VPC subnet id format
+### W1030 — 3 extra — Validate the values that come from a Ref function
 
-- **E1154** `myInstance1` (AWS::EC2::Instance) → `Properties.SubnetId` L28 in `bad_core_conditions`
-  > Value 'abc-123456' does not match Subnet ID format (subnet-xxxxxxxxx)
-- **E1154** `Instance` (AWS::EC2::Instance) → `Properties.SubnetId` L4 in `bad_schema_format_violation`
-  > Value 'subnet-bad' does not match Subnet ID format (subnet-xxxxxxxxx)
-- **E1154** `rNatInstanceEni` (AWS::EC2::NetworkInterface) → `Properties.SubnetId` L75 in `quickstart_nat-instance`
-  > Value '' does not match Subnet ID format (subnet-xxxxxxxxx)
+- **W1030** `rNatInstance` (AWS::EC2::Instance) → `Properties.KeyName` L93 in `quickstart_nat-instance`
+  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
+- **W1030** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.KeyName` L479 in `quickstart_nist_vpc_management`
+  > {'Ref': 'pEC2KeyPairBastion'} is shorter than 1 when 'Ref' is resolved
+- **W1030** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.KeyName` L635 in `quickstart_vpc-management`
+  > {'Ref': 'pEC2KeyPairBastion'} is shorter than 1 when 'Ref' is resolved
 
 ### I3100 — 3 extra — Checks for legacy instance type generations
 
@@ -2718,12 +968,12 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W8003** L22 in `lsp_parameter_usage`
   > Fn::Equals in condition 'IsDevEnv' will always return False
 
-### W1020 — 2 extra — Sub isn't needed if it doesn't have a variable defined
+### E1152 — 2 extra — Validate AMI id format
 
-- **W1020** `myInstance` (AWS::EC2::Instance) → `Properties.AdditionalInfo` L9 in `bad_functions_sub_needed`
-  > Fn::Sub '${AMIId}' can be simplified to !Ref AMIId
-- **W1020** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_simple_sub_param`
-  > Fn::Sub '${Env}' can be simplified to !Ref Env
+- **E1152** `my.Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_resources_name`
+  > 'ami-123456' does not match format 'AWS::EC2::Image.Id'
+- **E1152** `my_Instance` (AWS::EC2::Instance) → `Properties.ImageId` L8 in `bad_resources_name`
+  > 'ami-123456' does not match format 'AWS::EC2::Image.Id'
 
 ### W3011 — 2 extra — Check resources with UpdateReplacePolicy/DeletionPolicy have both
 
@@ -2753,6 +1003,21 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **I2003** in `quickstart_openshift_master`
   > Parameter 'OpenShiftAdminPassword' AllowedPattern '(?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*
 
+### W8001 — 1 extra — Check if Conditions are Used
+
+- **W8001** L3 in `bad_if_wrong_arity`
+  > Condition 'IsProd' is not used by any resource or Fn::If
+
+### F3012 — 1 extra — Check resource properties values
+
+- **F3012** `lambdaMap2` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0` L202 in `bad_generic`
+  > [{"CidrIp":"0.0.0.0/0","IpProtocol":"tcp","ToPort":80,"FromPort":80}] is not of type 'object'
+
+### I3042 — 1 extra — ARNs should use correctly placed Pseudo Parameters
+
+- **I3042** `myKms` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.3.Principal.AWS` L154 in `bad_resources_circular_dependency`
+  > ARN in Resource myKms contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
+
 ### F3020 — 1 extra — Validate that when a property is specified another property should be excluded
 
 - **F3020** `BadImageLambda` (AWS::Lambda::Function) → `Properties.Handler` L53 in `bad_cross_resource_task10`
@@ -2773,10 +1038,10 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E3054** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L4 in `bad_ecs_fargate_mismatch`
   > [""] does not contain items matching 'FARGATE'
 
-### F1029 — 1 extra — Sub is required if a variable is used in a string
+### E9004 — 1 extra — GetAtt validation of parameters
 
-- **F1029** in `bad_sub_nested_intrinsic`
-  > Fn::Sub template contains '${!' which suggests nested intrinsic syntax — use the second argument map instead
+- **E9004** `mySubnet3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L29 in `bad_functions_getaz`
+  > 'AvailbilityZone' is not one of ["AssignIpv6AddressOnCreation", "AvailabilityZone", "AvailabilityZoneId", "BlockPublicAccessStates", "BlockPublicAccessStates.InternetGatewayBlockMode", "CidrBlock", "E
 
 ### E2530 — 1 extra
 
@@ -2803,27 +1068,17 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W2531** `CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E` (AWS::Lambda::Function) → `Properties.Runtime` L560 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template`
   > Runtime 'nodejs20.x' is deprecated
 
-### F0006 — 1 extra
+### E3040 — 1 extra
 
-- **F0006** `Fn::ForEach::Buckets` L12 in `good_functions_foreach`
-  > Logical ID 'Fn::ForEach::Buckets' must be alphanumeric (A-Za-z0-9)
-
-### E1040 — 1 extra — Check if GetAtt matches destination format
-
-- **E1040** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.1.GroupSet.2` L26 in `integration_formats`
-  > {'Fn::GetAtt': ['Vpc', 'DefaultSecurityGroup']} does not match destination format of 'AWS::EC2::SecurityGroup.Id'
-
-### E9003 — 1 extra
-
-- **E9003** `SsmParameter` (AWS::SSM::Parameter) → `Properties.Value` L15 in `integration_getatt-types`
-  > {'Fn::GetAtt': ['CapacityReservation', 'InstanceCount']} is not of type 'string'
+- **E3040** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.Arn` L9 in `bad_schema_property_constraints`
+  > Read only property 'Arn' should not be specified
 
 ### E9006 — 1 extra — Validate DB Cluster Engine and Engine Version
 
 - **E9006** `Database` (AWS::RDS::DBInstance) → `Properties.EngineVersion` L266 in `lsp_comprehensive`
   > '8.0' is not one of ["5.5.62", "5.6.51", "5.7.33", "5.7.34", "5.7.36", "5.7.37", "5.7.38", "5.7.39", "5.7.40", "5.7.41", "5.7.42", "5.7.43", "5.7.44", "5.7.44-rds.20240408", "5.7.44-rds.20240529", "5.
 
-## Engine Extra — 5222 correct findings across 36 rules
+## Engine Extra — 5221 correct findings across 36 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -12469,7 +10724,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9040** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `Properties.Tags` L915 in `quickstart_vpc-management`
   > Resource 'rDeepSecurityInfrastructureTemplate' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 
-### W9003 — 186 findings
+### W9003 — 181 findings
 
 - **W9003** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L4 in `bad_aurora_with_allocated_storage`
   > 100 is not of type 'string' — automatically coerced (number → string)
@@ -12537,8 +10792,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > '100' is not of type 'integer' — automatically coerced (string → integer)
 - **W9003** `TimeoutInStringFunction` (AWS::Lambda::Function) → `Properties.Timeout` L30 in `good_custom_numeric-inequalities-small`
   > '9' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `rDBServerInstance` (AWS::RDS::DBInstance) → `Properties.Port` L124 in `good_no_value`
-  > 1433.0 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeviceIndex` L26 in `integration_formats`
   > 0 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.1.DeviceIndex` L26 in `integration_formats`
@@ -12547,8 +10800,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 2 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.IpProtocol` L174 in `lsp_comprehensive`
   > -1 is not of type 'string' — automatically coerced (number → string)
-- **W9003** `AutoScalingGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.DesiredCapacity` L235 in `lsp_comprehensive`
-  > 2.0 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `Database` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L266 in `lsp_comprehensive`
   > 20 (from Fn::If on condition 'IsProduction') is not of type 'string' — automatically coerced (number → string)
 - **W9003** `UnauthorizedAttemptsCloudWatchFilter` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1646 in `quickstart_cis_benchmark`
@@ -12703,10 +10954,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > '80' is not of type 'integer' — automatically coerced (string → integer)
 - **W9003** `OpenShiftMasterASLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.InstanceMonitoring` L1085 in `quickstart_openshift`
   > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `OpenShiftNodeASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.DesiredCapacity` L1349 in `quickstart_openshift`
-  > 3.0 is not of type 'string' — automatically coerced (number → string)
-- **W9003** `OpenShiftNodeASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MaxSize` L1349 in `quickstart_openshift`
-  > 3.0 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `OpenShiftNodeASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.PropagateAtLaunch` L1349 in `quickstart_openshift`
   > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
 - **W9003** `OpenShiftNodeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.FromPort` L1395 in `quickstart_openshift`
@@ -12731,8 +10978,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > '22' is not of type 'integer' — automatically coerced (string → integer)
 - **W9003** `OpenShiftSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.ToPort` L1637 in `quickstart_openshift`
   > '22' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `rDBServerInstance` (AWS::RDS::DBInstance) → `Properties.Port` L124 in `quickstart_test`
-  > 1433.0 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `VPC` (AWS::EC2::VPC) → `Properties.EnableDnsHostnames` L506 in `quickstart_vpc`
   > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
 - **W9003** `VPC` (AWS::EC2::VPC) → `Properties.EnableDnsSupport` L506 in `quickstart_vpc`
@@ -13167,6 +11412,23 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9009** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L41 in `integration_ref-no-value`
   > Property 'DistributionConfig' is deprecated
 
+### F3003 — 7 findings — Required Resource properties are missing
+
+- **F3003** `BadListener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties` L20 in `bad_cross_resource_task10`
+  > 'Certificates' is a required property (from extension)
+- **F3003** `BadValkey` (AWS::ElastiCache::ReplicationGroup) → `Properties` L70 in `bad_cross_resource_task10`
+  > 'TransitEncryptionEnabled' is a required property (from extension)
+- **F3003** `DDBTable` (AWS::DynamoDB::Table) → `Properties` L6 in `bad_dynamodb_provisioned_no_throughput`
+  > 'ProvisionedThroughput' is a required property (from extension)
+- **F3003** `Bucket` (AWS::S3::Bucket) → `Properties` L6 in `bad_schema_enum_violation`
+  > 'OwnershipControls' is a required property (from extension)
+- **F3003** `DataBucket` (AWS::S3::Bucket) → `Properties` L40 in `cdk_DemoStack.template`
+  > 'OwnershipControls' is a required property (from extension)
+- **F3003** `DataTable` (AWS::DynamoDB::Table) → `Properties` L72 in `cdk_DemoStack.template`
+  > 'ProvisionedThroughput' is a required property (from extension)
+- **F3003** `rArchiveLogsBucket` (AWS::S3::Bucket) → `Properties` L44 in `quickstart_nist_logging`
+  > 'OwnershipControls' is a required property (from extension)
+
 ### W9007 — 7 findings
 
 - **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L4 in `bad_unique_items`
@@ -13239,15 +11501,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Additional properties are not allowed ('BucketName1' was unexpected. Did you mean 'BucketName'?)
 - **F3002** `myBucketPass` (AWS::S3::Bucket) → `Properties.BucketName1` L6 in `bad_core_mandatory_checks`
   > Additional properties are not allowed ('BucketName1' was unexpected. Did you mean 'BucketName'?)
-
-### F3003 — 3 findings — Required Resource properties are missing
-
-- **F3003** `Bucket` (AWS::S3::Bucket) → `Properties` L6 in `bad_schema_enum_violation`
-  > 'OwnershipControls' is a required property
-- **F3003** `DataBucket` (AWS::S3::Bucket) → `Properties` L40 in `cdk_DemoStack.template`
-  > 'OwnershipControls' is a required property
-- **F3003** `rArchiveLogsBucket` (AWS::S3::Bucket) → `Properties` L44 in `quickstart_nist_logging`
-  > 'OwnershipControls' is a required property
 
 ### F1105 — 3 findings
 
@@ -13379,187 +11632,24 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F8611** in `lsp_comprehensive`
   > 'Fn::FindInMap' is not supported in the Rules section — allowed: ["Ref", "Fn::ValueOf", "Fn::ValueOfAll", "Fn::RefAll", "Fn::Contains", "Fn::EachMemberEquals", "Fn::EachMemberIn", "Fn::Equals", "Fn::A
 
-## Per-Template Breakdown — 246 templates with mismatches
+## Per-Template Breakdown — 109 templates with mismatches
 
-### `cdk_backup-s3--AwsBackupS3Stack.template` — 26 mismatches (0 TP, 26 FP, 5 EE, 0 FN)
+### `bad_generic` — 12 mismatches (29 TP, 1 FP, 36 EE, 11 FN)
 
-- FP: `I3510` ×23, `I1022` ×2, `E9004`
-- EE: `I9001` ×4, `I9040`
-
-### `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template` — 25 mismatches (4 TP, 25 FP, 109 EE, 0 FN)
-
-- FP: `I1022` ×24, `I3510`
-- EE: `I9001` ×76, `I9040` ×33
-
-### `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template` — 24 mismatches (8 TP, 24 FP, 29 EE, 0 FN)
-
-- FP: `I1022` ×17, `I3510` ×4, `E9004` ×2, `E1152`
-- EE: `I9001` ×18, `I9040` ×11
-
-### `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template` — 22 mismatches (10 TP, 22 FP, 85 EE, 0 FN)
-
-- FP: `I1022` ×22
-- EE: `I9001` ×71, `I9040` ×14
-
-### `bad_core_conditions` — 21 mismatches (17 TP, 15 FP, 15 EE, 6 FN)
-
-- FN: `F3014` ×2, `F0013` ×2, `F3003`, `W3698`
-- FP: `E1152` ×7, `F0013` ×2, `F3012` ×2, `W7001`, `W8001`, `E1151`, `E1154`
-- EE: `I9001` ×8, `I9040` ×7
-
-### `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template` — 21 mismatches (23 TP, 21 FP, 27 EE, 0 FN)
-
-- FP: `I1022` ×19, `F6101` ×2
-- EE: `I9040` ×18, `I9001` ×9
-
-### `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template` — 20 mismatches (0 TP, 20 FP, 8 EE, 0 FN)
-
-- FP: `I3510` ×20
-- EE: `I9001` ×6, `I9040` ×2
-
-### `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template` — 19 mismatches (20 TP, 19 FP, 52 EE, 0 FN)
-
-- FP: `I1022` ×19
-- EE: `I9001` ×28, `I9040` ×24
-
-### `bad_resources_circular_dependency` — 18 mismatches (24 TP, 12 FP, 32 EE, 6 FN)
-
-- FN: `E3048` ×3, `W3037` ×2, `F1018`
-- FP: `I3510` ×9, `I3042`, `F3012`, `E1152`
-- EE: `I9001` ×18, `I9040` ×9, `W9003` ×5
-
-### `bad_generic` — 17 mismatches (31 TP, 8 FP, 36 EE, 9 FN)
-
-- FN: `W1036` ×6, `E3673`, `E1011`, `F6101`
-- FP: `F3012` ×7, `W1028`
+- FN: `W1036` ×6, `W1028` ×2, `E3673`, `E1011`, `F6101`
+- FP: `F3012`
 - EE: `I9001` ×15, `I9040` ×13, `W9003` ×5, `W9010` ×3
 
-### `cdk_my-widget-service--MyWidgetServiceStack.template` — 16 mismatches (2 TP, 16 FP, 56 EE, 0 FN)
-
-- FP: `I1022` ×16
-- EE: `I9001` ×50, `I9040` ×6
-
-### `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template` — 15 mismatches (16 TP, 15 FP, 33 EE, 0 FN)
-
-- FP: `I1022` ×15
-- EE: `I9001` ×17, `I9040` ×16
-
-### `cdk_ec2-instance--EC2Example.template` — 15 mismatches (4 TP, 15 FP, 36 EE, 0 FN)
-
-- FP: `I1022` ×12, `I3510` ×2, `E1152`
-- EE: `I9001` ×28, `I9040` ×7, `W2508`
-
-### `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template` — 14 mismatches (5 TP, 14 FP, 30 EE, 0 FN)
-
-- FP: `I1022` ×13, `I3510`
-- EE: `I9001` ×22, `I9040` ×8
-
-### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template` — 14 mismatches (0 TP, 14 FP, 57 EE, 0 FN)
-
-- FP: `I1022` ×6, `I3510` ×3, `W1030` ×3, `I3013` ×2
-- EE: `I9001` ×42, `I9040` ×15
-
-### `good_both_forms` — 14 mismatches (1 TP, 3 FP, 2 EE, 11 FN)
-
-- FN: `F3003` ×11
-- FP: `W1028` ×2, `W8001`
-- EE: `I9001` ×2
-
-### `bad_properties_rt_association` — 13 mismatches (2 TP, 8 FP, 13 EE, 5 FN)
-
-- FN: `E3022` ×5
-- FP: `W1030` ×6, `W1028`, `I3042`
-- EE: `I9001` ×13
-
-### `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template` — 13 mismatches (4 TP, 13 FP, 23 EE, 0 FN)
-
-- FP: `I1022` ×12, `E3040`
-- EE: `I9001` ×21, `I9040` ×2
-
-### `bad_conditions_condition_functions` — 12 mismatches (27 TP, 5 FP, 1 EE, 7 FN)
+### `bad_conditions_condition_functions` — 11 mismatches (27 TP, 4 FP, 1 EE, 7 FN)
 
 - FN: `E1001` ×3, `E8005` ×2, `E8001` ×2
-- FP: `F0013` ×2, `F0014` ×2, `W8001`
+- FP: `F0013` ×2, `F0014` ×2
 - EE: `I9040`
 
-### `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template` — 12 mismatches (10 TP, 12 FP, 54 EE, 0 FN)
+### `good_both_forms` — 11 mismatches (1 TP, 0 FP, 2 EE, 11 FN)
 
-- FP: `I1022` ×12
-- EE: `I9001` ×40, `I9040` ×14
-
-### `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template` — 12 mismatches (6 TP, 12 FP, 41 EE, 0 FN)
-
-- FP: `I1022` ×12
-- EE: `I9001` ×32, `I9040` ×9
-
-### `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template` — 12 mismatches (18 TP, 12 FP, 81 EE, 0 FN)
-
-- FP: `I1022` ×9, `I3510` ×3
-- EE: `I9001` ×59, `I9040` ×22
-
-### `cdk_r53-resolver--R53ResolverStack.template` — 12 mismatches (1 TP, 12 FP, 32 EE, 0 FN)
-
-- FP: `I1022` ×7, `E9004` ×4, `E3040`
-- EE: `I9001` ×23, `I9040` ×9
-
-### `issues_sam_w_conditions` — 12 mismatches (0 TP, 12 FP, 27 EE, 0 FN)
-
-- FP: `I3011` ×8, `I3510` ×2, `F0014`, `W2001`
-- EE: `I9001` ×21, `I9040` ×6
-
-### `public_watchmaker` — 12 mismatches (32 TP, 12 FP, 5 EE, 0 FN)
-
-- FP: `W8001` ×8, `E2001` ×2, `W7001`, `I3013`
-- EE: `I9001` ×4, `I9040`
-
-### `quickstart_openshift` — 12 mismatches (20 TP, 12 FP, 80 EE, 0 FN)
-
-- FP: `E2001` ×4, `I3510` ×4, `W1030` ×2, `I2003`, `I3042`
-- EE: `I9001` ×38, `W9003` ×23, `I9040` ×10, `W2508` ×7, `W9010`, `W9013`
-
-### `bad_functions_select` — 11 mismatches (4 TP, 6 FP, 13 EE, 5 FN)
-
-- FN: `E1017` ×5
-- FP: `E1152` ×4, `F3012` ×2
-- EE: `I9001` ×8, `I9040` ×4, `W1102`
-
-### `cdk_api-websocket-lambda-dynamodb--chat-app.template` — 11 mismatches (3 TP, 11 FP, 21 EE, 0 FN)
-
-- FP: `I1022` ×11
-- EE: `I9001` ×11, `I9040` ×10
-
-### `bad_conditions` — 10 mismatches (12 TP, 1 FP, 14 EE, 9 FN)
-
-- FN: `E8001` ×4, `E3024` ×2, `E1001`, `F0013`, `E3001`
-- FP: `E9004`
-- EE: `I9001` ×4, `F1104` ×2, `F1060` ×2, `F3002` ×2, `I9040` ×2, `W9010`, `W9009`
-
-### `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template` — 10 mismatches (9 TP, 10 FP, 39 EE, 0 FN)
-
-- FP: `I1022` ×10
-- EE: `I9001` ×29, `I9040` ×10
-
-### `cdk_py-iotcore--CdkIotThingStack.template` — 10 mismatches (7 TP, 10 FP, 21 EE, 0 FN)
-
-- FP: `I1022` ×8, `I3510` ×2
-- EE: `I9001` ×10, `I9040` ×10, `W9009`
-
-### `cdk_py-url-shortener--urlshort-app.template` — 10 mismatches (2 TP, 10 FP, 41 EE, 0 FN)
-
-- FP: `I1022` ×9, `I3042`
-- EE: `I9001` ×32, `I9040` ×7, `W9002`, `W9013`
-
-### `lsp_comprehensive` — 10 mismatches (9 TP, 6 FP, 30 EE, 4 FN)
-
-- FN: `E1701`, `E3691`, `F6101`, `W1028`
-- FP: `W1028` ×2, `W8001`, `W8003`, `E9006`, `I3042`
-- EE: `I9001` ×19, `I9040` ×4, `W9003` ×3, `F8610` ×2, `F8611`, `W2508`
-
-### `lsp_condition-usage` — 10 mismatches (6 TP, 8 FP, 18 EE, 2 FN)
-
-- FN: `W8001`, `E3016`
-- FP: `W1028` ×3, `W1001` ×3, `F0014` ×2
-- EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`
+- FN: `F3003` ×11
+- EE: `I9001` ×2
 
 ### `lsp_parameter_usage` — 10 mismatches (3 TP, 3 FP, 14 EE, 7 FN)
 
@@ -13567,130 +11657,55 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F3031` ×2, `W8003`
 - EE: `I9001` ×7, `I9040` ×7
 
-### `quickstart_nist_vpc_management` — 10 mismatches (36 TP, 10 FP, 64 EE, 0 FN)
+### `bad_conditions` — 9 mismatches (12 TP, 0 FP, 14 EE, 9 FN)
 
-- FP: `W3010` ×4, `W3002` ×2, `W1030` ×2, `E1152`, `I3100`
-- EE: `I9001` ×56, `I9040` ×5, `W2508` ×2, `W2502`
+- FN: `E8001` ×4, `E3024` ×2, `E1001`, `F0013`, `E3001`
+- EE: `I9001` ×4, `F1104` ×2, `F1060` ×2, `F3002` ×2, `I9040` ×2, `W9010`, `W9009`
 
-### `quickstart_vpc-management` — 10 mismatches (22 TP, 10 FP, 79 EE, 0 FN)
+### `bad_core_conditions` — 9 mismatches (17 TP, 3 FP, 15 EE, 6 FN)
 
-- FP: `W3010` ×4, `W3002` ×2, `W1030` ×2, `E1152`, `I3100`
-- EE: `I9001` ×56, `W9003` ×15, `I9040` ×5, `W2508` ×2, `W2502`
+- FN: `F3014` ×2, `F0013` ×2, `F3003`, `W3698`
+- FP: `F0013` ×2, `W7001`
+- EE: `I9001` ×8, `I9040` ×7
 
-### `bad_functions_sub_needed` — 9 mismatches (6 TP, 3 FP, 10 EE, 6 FN)
+### `lsp_condition-usage` — 9 mismatches (6 TP, 7 FP, 18 EE, 2 FN)
 
-- FN: `I3510` ×2, `E3510` ×2, `F1029` ×2
-- FP: `I3042` ×2, `W1020`
-- EE: `I9040` ×4, `I9001` ×2, `W9002` ×2, `W9013` ×2
-
-### `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template` — 9 mismatches (2 TP, 9 FP, 57 EE, 0 FN)
-
-- FP: `I1022` ×7, `E1152`, `E3040`
-- EE: `I9001` ×43, `I9040` ×14
-
-### `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template` — 9 mismatches (6 TP, 9 FP, 41 EE, 0 FN)
-
-- FP: `I1022` ×9
-- EE: `I9001` ×25, `I9040` ×16
-
-### `bad_cross_resource_task10` — 8 mismatches (11 TP, 8 FP, 27 EE, 0 FN)
-
-- FP: `F3003` ×4, `I3042` ×2, `F3020`, `E3048`
-- EE: `I9001` ×14, `I9040` ×9, `W9003` ×2, `W9013` ×2
-
-### `bad_properties_sg_ingress` — 8 mismatches (15 TP, 3 FP, 27 EE, 5 FN)
-
-- FN: `F3014` ×4, `F3031`
-- FP: `W1030` ×2, `E1152`
-- EE: `I9001` ×17, `W9003` ×7, `I9040` ×3
-
-### `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template` — 8 mismatches (1 TP, 8 FP, 11 EE, 0 FN)
-
-- FP: `I1022` ×8
-- EE: `I9001` ×5, `I9040` ×5, `W9009`
-
-### `cdk_ddb-stream-lambda-sns--DdbStreamStack.template` — 8 mismatches (5 TP, 8 FP, 18 EE, 0 FN)
-
-- FP: `I1022` ×4, `I3510` ×3, `I3042`
-- EE: `I9040` ×11, `I9001` ×6, `W9013`
-
-### `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template` — 8 mismatches (2 TP, 8 FP, 67 EE, 0 FN)
-
-- FP: `I1022` ×5, `E1152` ×2, `E9004`
-- EE: `I9001` ×60, `I9040` ×5, `W9003` ×2
-
-### `cdk_static-site-basic--MyStaticSite.template` — 8 mismatches (2 TP, 8 FP, 7 EE, 0 FN)
-
-- FP: `I1022` ×8
-- EE: `I9040` ×4, `I9001` ×3
-
-### `good_no_value` — 8 mismatches (4 TP, 8 FP, 9 EE, 0 FN)
-
-- FP: `I3510` ×6, `F0014`, `I3042`
-- EE: `I9001` ×5, `W9007`, `W9013`, `I9040`, `W9003`
-
-### `good_properties_rt_association` — 8 mismatches (0 TP, 8 FP, 11 EE, 0 FN)
-
-- FP: `W1030` ×6, `W1028`, `I3042`
-- EE: `I9001` ×11
-
-### `quickstart_test` — 8 mismatches (2 TP, 8 FP, 9 EE, 0 FN)
-
-- FP: `I3510` ×6, `F0014`, `I3042`
-- EE: `I9001` ×5, `W9007`, `W9013`, `I9040`, `W9003`
+- FN: `W8001`, `E3016`
+- FP: `W1028` ×3, `W1001` ×3, `F0014`
+- EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`
 
 ### `bad_functions_foreach_no_transform` — 7 mismatches (1 TP, 2 FP, 0 EE, 5 FN)
 
 - FN: `E1032` ×3, `E0002`, `E6001`
 - FP: `W2001`, `W7001`
 
+### `bad_resources_circular_dependency` — 7 mismatches (24 TP, 1 FP, 32 EE, 6 FN)
+
+- FN: `E3048` ×3, `W3037` ×2, `F1018`
+- FP: `I3042`
+- EE: `I9001` ×18, `I9040` ×9, `W9003` ×5
+
 ### `bad_schema_composition` — 7 mismatches (4 TP, 0 FP, 3 EE, 7 FN)
 
 - FN: `F3003` ×7
 - EE: `I9040` ×2, `I9001`
-
-### `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template` — 7 mismatches (2 TP, 7 FP, 33 EE, 0 FN)
-
-- FP: `I1022` ×7
-- EE: `I9001` ×24, `I9040` ×9
-
-### `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template` — 7 mismatches (0 TP, 7 FP, 52 EE, 0 FN)
-
-- FP: `I3510` ×4, `I1022` ×3
-- EE: `I9001` ×42, `I9040` ×9, `W2508`
-
-### `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template` — 7 mismatches (0 TP, 7 FP, 52 EE, 0 FN)
-
-- FP: `I3510` ×4, `I1022` ×3
-- EE: `I9001` ×42, `I9040` ×9, `W2508`
-
-### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template` — 7 mismatches (1 TP, 5 FP, 42 EE, 2 FN)
-
-- FN: `W1034` ×2
-- FP: `I1022` ×3, `W2531`, `E9004`
-- EE: `I9001` ×38, `I9040` ×4
 
 ### `good_functions_sub_needed_custom_excludes` — 7 mismatches (2 TP, 0 FP, 2 EE, 7 FN)
 
 - FN: `E3530` ×6, `F3031`
 - EE: `I9001`, `I9040`
 
-### `good_parameters_used_transform_language_extension` — 7 mismatches (1 TP, 4 FP, 0 EE, 3 FN)
+### `lsp_comprehensive` — 7 mismatches (9 TP, 3 FP, 29 EE, 4 FN)
 
-- FN: `W8001` ×3
-- FP: `W2001` ×4
+- FN: `E1701`, `E3691`, `F6101`, `W1028`
+- FP: `W1028`, `W8003`, `E9006`
+- EE: `I9001` ×19, `I9040` ×4, `F8610` ×2, `W9003` ×2, `F8611`, `W2508`
 
-### `bad_functions_getaz` — 6 mismatches (6 TP, 4 FP, 12 EE, 2 FN)
+### `quickstart_nat-instance` — 7 mismatches (5 TP, 3 FP, 9 EE, 4 FN)
 
-- FN: `E1017` ×2
-- FP: `E1151` ×3, `E9004`
-- EE: `I9001` ×9, `I9040` ×3
-
-### `bad_functions_join` — 6 mismatches (2 TP, 2 FP, 4 EE, 4 FN)
-
-- FN: `E1021` ×4
-- FP: `E1152` ×2
-- EE: `I9001` ×2, `I9040` ×2
+- FN: `W1030` ×4
+- FP: `I3037`, `W1030`, `I3100`
+- EE: `I9001` ×8, `I9040`
 
 ### `bad_parameters_configuration` — 6 mismatches (33 TP, 0 FP, 1 EE, 6 FN)
 
@@ -13712,67 +11727,21 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3023` ×5, `W1054`
 - EE: `I9001` ×19, `I9002`
 
-### `cdk_cognito-api-lambda--CognitoProtectedApi.template` — 6 mismatches (2 TP, 6 FP, 23 EE, 0 FN)
-
-- FP: `I1022` ×6
-- EE: `I9001` ×18, `I9040` ×5
-
-### `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template` — 6 mismatches (2 TP, 6 FP, 5 EE, 0 FN)
-
-- FP: `I1022` ×6
-- EE: `I9040` ×5
-
-### `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template` — 6 mismatches (7 TP, 6 FP, 47 EE, 0 FN)
-
-- FP: `I1022` ×6
-- EE: `I9001` ×33, `I9040` ×14
-
-### `cdk_pat-the-waf-apigateway--APIGatewayStack.template` — 6 mismatches (3 TP, 6 FP, 22 EE, 0 FN)
-
-- FP: `I1022` ×6
-- EE: `I9001` ×17, `I9040` ×5
-
-### `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template` — 6 mismatches (2 TP, 6 FP, 25 EE, 0 FN)
-
-- FP: `I1022` ×6
-- EE: `I9001` ×20, `I9040` ×5
-
-### `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template` — 6 mismatches (2 TP, 6 FP, 21 EE, 0 FN)
-
-- FP: `I1022` ×5, `E9004`
-- EE: `I9001` ×13, `I9040` ×8
-
-### `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template` — 6 mismatches (4 TP, 6 FP, 13 EE, 0 FN)
-
-- FP: `I1022` ×6
-- EE: `I9040` ×8, `I9001` ×5
-
-### `cdk_s3-object-lambda--S3ObjectLambdaStack.template` — 6 mismatches (3 TP, 6 FP, 12 EE, 0 FN)
-
-- FP: `I1022` ×5, `E3045`
-- EE: `I9001` ×8, `I9040` ×4
-
-### `good_custom_is-defined` — 6 mismatches (14 TP, 6 FP, 8 EE, 0 FN)
-
-- FP: `F3012` ×6
-- EE: `I9040` ×7, `I9001`
-
-### `good_custom_is-not-defined` — 6 mismatches (8 TP, 5 FP, 6 EE, 1 FN)
-
-- FN: `E9004`
-- FP: `F3012` ×5
-- EE: `I9040` ×5, `I9001`
-
 ### `integration_ref-no-value` — 6 mismatches (7 TP, 4 FP, 4 EE, 2 FN)
 
 - FN: `F3012` ×2
 - FP: `F3003` ×4
 - EE: `I9040` ×3, `W9009`
 
-### `quickstart_nist_application` — 6 mismatches (47 TP, 6 FP, 99 EE, 0 FN)
+### `bad_functions_select` — 5 mismatches (4 TP, 0 FP, 13 EE, 5 FN)
 
-- FP: `E1152` ×3, `W8001`, `I3510`, `W3011`
-- EE: `W9003` ×53, `I9001` ×36, `I9040` ×10
+- FN: `E1017` ×5
+- EE: `I9001` ×8, `I9040` ×4, `W1102`
+
+### `bad_functions_sub_needed` — 5 mismatches (7 TP, 0 FP, 10 EE, 5 FN)
+
+- FN: `E3510` ×2, `F1029` ×2, `E1152`
+- EE: `I9040` ×4, `I9001` ×2, `W9002` ×2, `W9013` ×2
 
 ### `bad_parameters_default` — 5 mismatches (18 TP, 2 FP, 4 EE, 3 FN)
 
@@ -13780,87 +11749,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `W2001` ×2
 - EE: `F2012` ×3, `F0001`
 
-### `cdk_DemoStack.template` — 5 mismatches (8 TP, 3 FP, 13 EE, 2 FN)
+### `bad_properties_rt_association` — 5 mismatches (2 TP, 0 FP, 13 EE, 5 FN)
 
-- FN: `E3639`, `E3505`
-- FP: `F3003`, `F3034`, `E3505`
-- EE: `I9040` ×7, `I9001` ×3, `F3003`, `E9002`, `W2508`
+- FN: `E3022` ×5
+- EE: `I9001` ×13
 
-### `cdk_custom-resource-provider--CustomResourceDemoStack.template` — 5 mismatches (4 TP, 5 FP, 7 EE, 0 FN)
+### `bad_properties_sg_ingress` — 5 mismatches (15 TP, 0 FP, 27 EE, 5 FN)
 
-- FP: `I1022` ×5
-- EE: `I9040` ×6, `I9001`
-
-### `cdk_ecs-ecs-service-with-logging--Willkommen.template` — 5 mismatches (3 TP, 5 FP, 67 EE, 0 FN)
-
-- FP: `I1022` ×3, `E1152`, `I3013`
-- EE: `I9001` ×61, `I9040` ×6
-
-### `cdk_imagebuilder--ImagebuilderStack.template` — 5 mismatches (0 TP, 5 FP, 31 EE, 0 FN)
-
-- FP: `I1022` ×4, `I3042`
-- EE: `I9001` ×22, `I9040` ×9
-
-### `cdk_inspector2--Inspector2MonitoringStack.template` — 5 mismatches (5 TP, 5 FP, 16 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9040` ×8, `I9001` ×8
-
-### `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template` — 5 mismatches (3 TP, 5 FP, 6 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9040` ×5, `I9001`
-
-### `cdk_pat-the-big-fan--TheBigFanStack.template` — 5 mismatches (11 TP, 5 FP, 38 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9001` ×25, `I9040` ×13
-
-### `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template` — 5 mismatches (3 TP, 5 FP, 24 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9040` ×15, `I9001` ×9
-
-### `cdk_pat-the-state-machine--TheStateMachineStack.template` — 5 mismatches (4 TP, 5 FP, 13 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9040` ×7, `I9001` ×6
-
-### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template` — 5 mismatches (1 TP, 5 FP, 6 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9040` ×4, `I9001` ×2
-
-### `cdk_py-stepfunctions--aws-stepfunctions-integ.template` — 5 mismatches (5 TP, 5 FP, 6 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9040` ×6
-
-### `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template` — 5 mismatches (5 TP, 5 FP, 8 EE, 0 FN)
-
-- FP: `I1022` ×5
-- EE: `I9040` ×8
-
-### `good_core_conditions` — 5 mismatches (7 TP, 2 FP, 19 EE, 3 FN)
-
-- FN: `F3014` ×2, `W3698`
-- FP: `W7001`, `W8001`
-- EE: `I9001` ×8, `I9040` ×7, `W9010` ×4
-
-### `good_functions_foreach` — 5 mismatches (0 TP, 3 FP, 0 EE, 2 FN)
-
-- FN: `E3045`, `W3045`
-- FP: `W2001`, `W7001`, `F0006`
+- FN: `F3014` ×4, `F3031`
+- EE: `I9001` ×17, `W9003` ×7, `I9040` ×3
 
 ### `lsp_constants` — 5 mismatches (1 TP, 0 FP, 3 EE, 5 FN)
 
 - FN: `F1018` ×2, `F1020` ×2, `E3024`
 - EE: `I9001` ×2, `I9040`
 
-### `quickstart_nat-instance` — 5 mismatches (9 TP, 5 FP, 9 EE, 0 FN)
+### `quickstart_openshift` — 5 mismatches (20 TP, 5 FP, 78 EE, 0 FN)
 
-- FP: `E1154`, `I3037`, `E1152`, `W1030`, `I3100`
-- EE: `I9001` ×8, `I9040`
+- FP: `E2001` ×4, `I2003`
+- EE: `I9001` ×38, `W9003` ×21, `I9040` ×10, `W2508` ×7, `W9010`, `W9013`
 
 ### `quickstart_openshift_master` — 5 mismatches (4 TP, 5 FP, 2 EE, 0 FN)
 
@@ -13873,142 +11780,65 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `W2001`
 - EE: `F0001`
 
-### `bad_if_wrong_arity` — 4 mismatches (1 TP, 3 FP, 2 EE, 1 FN)
+### `bad_functions_join` — 4 mismatches (2 TP, 0 FP, 4 EE, 4 FN)
 
-- FN: `F0013`
-- FP: `F0013`, `W8001`, `F3012`
-- EE: `I9001`, `I9040`
-
-### `bad_lambda_sqs_timeout` — 4 mismatches (3 TP, 3 FP, 5 EE, 1 FN)
-
-- FN: `E3505`
-- FP: `I3042`, `F3034`, `E3505`
-- EE: `I9040` ×3, `W9013`, `I9001`
-
-### `bad_resources_circular_dependency_2` — 4 mismatches (9 TP, 4 FP, 9 EE, 0 FN)
-
-- FP: `E9004` ×4
-- EE: `I9040` ×9
-
-### `bad_resources_name` — 4 mismatches (2 TP, 4 FP, 4 EE, 0 FN)
-
-- FP: `E1152` ×4
+- FN: `E1021` ×4
 - EE: `I9001` ×2, `I9040` ×2
 
-### `bad_schema_property_constraints` — 4 mismatches (1 TP, 3 FP, 11 EE, 1 FN)
+### `cdk_DemoStack.template` — 4 mismatches (8 TP, 2 FP, 14 EE, 2 FN)
 
-- FN: `E1161`
-- FP: `E3040` ×2, `I3042`
-- EE: `I9001` ×6, `I9040` ×2, `W9002`, `W9013`, `W9009`
+- FN: `E3639`, `E3505`
+- FP: `F3034`, `E3505`
+- EE: `I9040` ×7, `I9001` ×3, `F3003` ×2, `E9002`, `W2508`
 
-### `cdk_aspects--SampleStack.template` — 4 mismatches (8 TP, 4 FP, 8 EE, 0 FN)
+### `good_core_conditions` — 4 mismatches (7 TP, 1 FP, 19 EE, 3 FN)
 
-- FP: `I1022` ×4
-- EE: `I9040` ×8
-
-### `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template` — 4 mismatches (3 TP, 4 FP, 67 EE, 0 FN)
-
-- FP: `I1022` ×3, `E1152`
-- EE: `I9001` ×62, `I9040` ×5
-
-### `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template` — 4 mismatches (3 TP, 4 FP, 64 EE, 0 FN)
-
-- FP: `I1022` ×3, `E1152`
-- EE: `I9001` ×60, `I9040` ×4
-
-### `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template` — 4 mismatches (1 TP, 4 FP, 71 EE, 0 FN)
-
-- FP: `I1022` ×2, `I3013`, `I3042`
-- EE: `I9001` ×61, `I9040` ×9, `W9013`
-
-### `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template` — 4 mismatches (3 TP, 4 FP, 25 EE, 0 FN)
-
-- FP: `I1022` ×4
-- EE: `I9001` ×17, `I9040` ×8
-
-### `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template` — 4 mismatches (3 TP, 4 FP, 14 EE, 0 FN)
-
-- FP: `I1022` ×4
-- EE: `I9001` ×9, `I9040` ×5
-
-### `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template` — 4 mismatches (3 TP, 4 FP, 14 EE, 0 FN)
-
-- FP: `I1022` ×4
-- EE: `I9001` ×9, `I9040` ×5
-
-### `cdk_pat-the-xray-tracer--TheXrayTracerStack.template` — 4 mismatches (0 TP, 4 FP, 23 EE, 0 FN)
-
-- FP: `I1022` ×4
-- EE: `I9001` ×18, `I9040` ×5
-
-### `cdk_py-docker-app-with-asg-alb--RDSStack.template` — 4 mismatches (2 TP, 3 FP, 12 EE, 1 FN)
-
-- FN: `W3691`
-- FP: `I1022` ×3
-- EE: `I9001` ×6, `I9040` ×4, `W9007`, `W9008`
-
-### `cdk_py-emr--emr-cluster.template` — 4 mismatches (2 TP, 4 FP, 30 EE, 0 FN)
-
-- FP: `I1022` ×3, `I3510`
-- EE: `I9001` ×27, `I9040` ×3
-
-### `cdk_py-url-shortener--urlshort-load-test.template` — 4 mismatches (0 TP, 4 FP, 17 EE, 0 FN)
-
-- FP: `I3510` ×3, `I1022`
-- EE: `I9001` ×11, `I9040` ×6
+- FN: `F3014` ×2, `W3698`
+- FP: `W7001`
+- EE: `I9001` ×8, `I9040` ×7, `W9010` ×4
 
 ### `good_transform_applications_location` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
 - FN: `I3011` ×4
 - EE: `I9040` ×2
 
-### `integration_formats` — 4 mismatches (2 TP, 4 FP, 15 EE, 0 FN)
+### `quickstart_nist_vpc_management` — 4 mismatches (36 TP, 4 FP, 64 EE, 0 FN)
 
-- FP: `E1150` ×2, `E1040`, `E9004`
-- EE: `I9001` ×7, `I9040` ×4, `W9003` ×3, `W9010`
+- FP: `W3002` ×2, `W1030`, `I3100`
+- EE: `I9001` ×56, `I9040` ×5, `W2508` ×2, `W2502`
 
-### `bad_aurora_with_allocated_storage` — 3 mismatches (2 TP, 1 FP, 4 EE, 2 FN)
+### `quickstart_vpc-management` — 4 mismatches (22 TP, 4 FP, 79 EE, 0 FN)
 
-- FN: `E3682`, `E3707`
-- FP: `I3013`
-- EE: `W9003`, `W9008`, `I9001`, `I9040`
-
-### `bad_conditions_and` — 3 mismatches (12 TP, 2 FP, 1 EE, 1 FN)
-
-- FN: `E1001`
-- FP: `W8001` ×2
-- EE: `F0001`
-
-### `bad_conditions_properties_fn_if` — 3 mismatches (3 TP, 3 FP, 1 EE, 0 FN)
-
-- FP: `E1152` ×3
-- EE: `I9040`
+- FP: `W3002` ×2, `W1030`, `I3100`
+- EE: `I9001` ×56, `W9003` ×15, `I9040` ×5, `W2508` ×2, `W2502`
 
 ### `bad_duplicate` — 3 mismatches (0 TP, 0 FP, 2 EE, 3 FN)
 
 - FN: `F0000` ×3
 - EE: `I9040` ×2
 
-### `bad_functions_base64` — 3 mismatches (1 TP, 1 FP, 4 EE, 2 FN)
+### `bad_functions_getaz` — 3 mismatches (6 TP, 1 FP, 12 EE, 2 FN)
 
-- FN: `E1011`, `E1021`
+- FN: `E1017` ×2
 - FP: `E9004`
-- EE: `F1105`, `F1012`, `I9001`, `I9040`
+- EE: `I9001` ×9, `I9040` ×3
 
 ### `bad_functions_import_value` — 3 mismatches (1 TP, 0 FP, 4 EE, 3 FN)
 
 - FN: `E1016` ×2, `F0014`
 - EE: `I9001` ×2, `F1105`, `I9040`
 
-### `bad_hard_coded_arn_properties` — 3 mismatches (4 TP, 3 FP, 4 EE, 0 FN)
+### `bad_if_wrong_arity` — 3 mismatches (1 TP, 2 FP, 2 EE, 1 FN)
 
-- FP: `I3510` ×3
-- EE: `I9040` ×2, `I9001` ×2
+- FN: `F0013`
+- FP: `F0013`, `W8001`
+- EE: `I9001`, `I9040`
 
-### `bad_lambda_zip_no_handler` — 3 mismatches (1 TP, 3 FP, 3 EE, 0 FN)
+### `bad_lambda_sqs_timeout` — 3 mismatches (3 TP, 2 FP, 5 EE, 1 FN)
 
-- FP: `I3042`, `F3003`, `W2533`
-- EE: `W9013`, `I9001`, `I9040`
+- FN: `E3505`
+- FP: `F3034`, `E3505`
+- EE: `I9040` ×3, `W9013`, `I9001`
 
 ### `bad_resources_primary_identifiers` — 3 mismatches (8 TP, 0 FP, 25 EE, 3 FN)
 
@@ -14020,69 +11850,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3003` ×3
 - EE: `W2508`, `I9001`, `I9040`
 
-### `bad_sub_nested_intrinsic` — 3 mismatches (0 TP, 1 FP, 3 EE, 2 FN)
-
-- FN: `W1031` ×2
-- FP: `F1029`
-- EE: `I9040` ×2, `I9001`
-
 ### `bad_templates_base_null` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
 
 - FN: `E1001` ×2, `E1005`
 - EE: `F0001`
 
-### `cdk_custom-resource--CustomResourceDemoStack.template` — 3 mismatches (3 TP, 3 FP, 5 EE, 0 FN)
+### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template` — 3 mismatches (1 TP, 1 FP, 42 EE, 2 FN)
 
-- FP: `I1022` ×3
-- EE: `I9040` ×4, `I9001`
+- FN: `W1034` ×2
+- FP: `W2531`
+- EE: `I9001` ×38, `I9040` ×4
 
-### `cdk_http-proxy-apigateway--HttpProxy.template` — 3 mismatches (0 TP, 3 FP, 15 EE, 0 FN)
+### `good_functions_foreach` — 3 mismatches (0 TP, 1 FP, 0 EE, 2 FN)
 
-- FP: `I1022` ×3
-- EE: `I9001` ×12, `I9040` ×3
+- FN: `E3045`, `W3045`
+- FP: `W7001`
 
-### `cdk_resource-overrides--resource-overrides.template` — 3 mismatches (6 TP, 1 FP, 28 EE, 2 FN)
+### `good_parameters_used_transform_language_extension` — 3 mismatches (1 TP, 0 FP, 0 EE, 3 FN)
 
-- FN: `E3016`, `E3001`
-- FP: `E1152`
-- EE: `I9001` ×27, `I9040`
-
-### `cdk_ssm-document-association--SsmDocumentAssociationStack.template` — 3 mismatches (1 TP, 3 FP, 21 EE, 0 FN)
-
-- FP: `I1022` ×2, `E1152`
-- EE: `I9001` ×17, `I9040` ×4
-
-### `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template` — 3 mismatches (1 TP, 3 FP, 17 EE, 0 FN)
-
-- FP: `I1022` ×3
-- EE: `I9001` ×11, `I9040` ×6
-
-### `good_functions_sub` — 3 mismatches (11 TP, 2 FP, 11 EE, 1 FN)
-
-- FN: `E1021`
-- FP: `E1152` ×2
-- EE: `I9001` ×6, `I9040` ×5
-
-### `good_parameters_not_used_parameters` — 3 mismatches (3 TP, 2 FP, 4 EE, 1 FN)
-
-- FN: `E1021`
-- FP: `W2001`, `E1152`
-- EE: `I9001` ×3, `I9040`
-
-### `good_parameters_used_transform_removed` — 3 mismatches (0 TP, 3 FP, 1 EE, 0 FN)
-
-- FP: `W2001` ×3
-- EE: `I9040`
-
-### `integration_cfn-gather` — 3 mismatches (24 TP, 3 FP, 36 EE, 0 FN)
-
-- FP: `I3042`, `F3034`, `I3013`
-- EE: `I9001` ×20, `I9040` ×14, `W9013`, `W9008`
-
-### `integration_getatt-types` — 3 mismatches (9 TP, 3 FP, 17 EE, 0 FN)
-
-- FP: `E9003`, `I3013`, `F6101`
-- EE: `I9001` ×10, `I9040` ×7
+- FN: `W8001` ×3
 
 ### `lsp_test-template` — 3 mismatches (2 TP, 1 FP, 2 EE, 2 FN)
 
@@ -14090,20 +11876,19 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F3003`
 - EE: `I9040` ×2
 
-### `bad_E1150_network_interfaces_groupset_multi` — 2 mismatches (2 TP, 2 FP, 4 EE, 0 FN)
+### `public_watchmaker` — 3 mismatches (32 TP, 3 FP, 5 EE, 0 FN)
 
-- FP: `E1150` ×2
-- EE: `I9001` ×2, `W9010`, `I9040`
+- FP: `E2001` ×2, `W7001`
+- EE: `I9001` ×4, `I9040`
+
+### `bad_aurora_with_allocated_storage` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
+
+- FN: `E3682`, `E3707`
+- EE: `W9003`, `W9008`, `I9001`, `I9040`
 
 ### `bad_conditions_equals` — 2 mismatches (16 TP, 0 FP, 1 EE, 2 FN)
 
 - FN: `F1020`, `E1001`
-- EE: `F0001`
-
-### `bad_core_conditions_missing` — 2 mismatches (1 TP, 1 FP, 1 EE, 1 FN)
-
-- FN: `F0014`
-- FP: `W8001`
 - EE: `F0001`
 
 ### `bad_core_mandatory_checks` — 2 mismatches (5 TP, 0 FP, 5 EE, 2 FN)
@@ -14111,16 +11896,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3001` ×2
 - EE: `I9040` ×4, `F3002`
 
+### `bad_cross_resource_task10` — 2 mismatches (11 TP, 2 FP, 29 EE, 0 FN)
+
+- FP: `F3020`, `E3048`
+- EE: `I9001` ×14, `I9040` ×9, `W9003` ×2, `F3003` ×2, `W9013` ×2
+
 ### `bad_duplicate_primary_id_multi` — 2 mismatches (0 TP, 2 FP, 4 EE, 0 FN)
 
 - FP: `E3019` ×2
 - EE: `I9001` ×2, `I9040` ×2
-
-### `bad_dynamodb_provisioned_no_throughput` — 2 mismatches (2 TP, 1 FP, 2 EE, 1 FN)
-
-- FN: `E3639`
-- FP: `F3003`
-- EE: `I9001`, `I9040`
 
 ### `bad_ecs_dynamic_port_no_traffic` — 2 mismatches (1 TP, 1 FP, 7 EE, 1 FN)
 
@@ -14133,72 +11917,46 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1011`, `E3024`
 - EE: `F1012`, `I9001`
 
+### `bad_functions_base64` — 2 mismatches (1 TP, 0 FP, 4 EE, 2 FN)
+
+- FN: `E1011`, `E1021`
+- EE: `F1105`, `F1012`, `I9001`, `I9040`
+
 ### `bad_functions_relationship_conditions` — 2 mismatches (7 TP, 1 FP, 6 EE, 1 FN)
 
 - FN: `W1001`
 - FP: `W1001`
 - EE: `I9040` ×4, `I9001` ×2
 
-### `bad_lambda_snapstart_bad_runtime` — 2 mismatches (1 TP, 2 FP, 3 EE, 0 FN)
-
-- FP: `E2530`, `I3042`
-- EE: `W9013`, `I9001`, `I9040`
-
-### `bad_mappings_used` — 2 mismatches (2 TP, 1 FP, 3 EE, 1 FN)
-
-- FN: `W1034`
-- FP: `E1151`
-- EE: `I9001` ×2, `I9040`
-
 ### `bad_modules_bad_has_update_policy` — 2 mismatches (1 TP, 0 FP, 0 EE, 2 FN)
 
 - FN: `E3016`, `E5001`
-
-### `bad_pipeline_no_source_first_stage` — 2 mismatches (3 TP, 1 FP, 4 EE, 1 FN)
-
-- FN: `E3701`
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9001`, `I9040`
-
-### `bad_previous_generation_instances` — 2 mismatches (16 TP, 2 FP, 10 EE, 0 FN)
-
-- FP: `E1152`, `I3013`
-- EE: `I9040` ×6, `I9001` ×3, `W9008`
 
 ### `bad_properties_ebs` — 2 mismatches (6 TP, 0 FP, 12 EE, 2 FN)
 
 - FN: `E3671` ×2
 - EE: `I9001` ×7, `W9010` ×2, `I9040` ×2, `W9003`
 
-### `bad_resources_cognito_userpool_tag_is_list` — 2 mismatches (1 TP, 2 FP, 0 EE, 0 FN)
+### `bad_resources_name` — 2 mismatches (2 TP, 2 FP, 4 EE, 0 FN)
 
-- FP: `I3011` ×2
+- FP: `E1152` ×2
+- EE: `I9001` ×2, `I9040` ×2
 
-### `bad_sagemaker_instance_types` — 2 mismatches (42 TP, 2 FP, 7 EE, 0 FN)
+### `bad_schema_property_constraints` — 2 mismatches (1 TP, 1 FP, 11 EE, 1 FN)
 
-- FP: `E3040` ×2
-- EE: `I9040` ×5, `I9001` ×2
-
-### `bad_schema_format_violation` — 2 mismatches (1 TP, 2 FP, 4 EE, 0 FN)
-
-- FP: `E1150`, `E1154`
-- EE: `I9001` ×2, `W9010`, `I9040`
-
-### `bad_schema_lifecycle` — 2 mismatches (7 TP, 2 FP, 10 EE, 0 FN)
-
-- FP: `I3042` ×2
-- EE: `I9001` ×5, `I9040` ×3, `W9013` ×2
-
-### `bad_schema_write_only` — 2 mismatches (0 TP, 1 FP, 4 EE, 1 FN)
-
-- FN: `F6101`
-- FP: `I3042`
-- EE: `W3041`, `W9002`, `W9013`, `I9001`
+- FN: `E1161`
+- FP: `E3040`
+- EE: `I9001` ×6, `I9040` ×2, `W9002`, `W9013`, `W9009`
 
 ### `bad_sub_needed` — 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
 
 - FN: `E1161`, `F3031`
 - EE: `I9001`, `I9040`
+
+### `bad_sub_nested_intrinsic` — 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
+
+- FN: `W1031` ×2
+- EE: `I9040` ×2, `I9001`
 
 ### `bad_templates_base` — 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
 
@@ -14211,160 +11969,66 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F3003`
 - EE: `I9040`
 
-### `cdk_application-load-balancer--LoadBalancerStack.template` — 2 mismatches (5 TP, 1 FP, 68 EE, 1 FN)
+### `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template` — 2 mismatches (23 TP, 2 FP, 27 EE, 0 FN)
 
-- FN: `E3712`
-- FP: `E1152`
-- EE: `I9001` ×65, `I9040` ×3
+- FP: `F6101` ×2
+- EE: `I9040` ×18, `I9001` ×9
 
-### `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template` — 2 mismatches (1 TP, 2 FP, 16 EE, 0 FN)
+### `cdk_resource-overrides--resource-overrides.template` — 2 mismatches (6 TP, 0 FP, 28 EE, 2 FN)
 
-- FP: `I1022` ×2
-- EE: `I9001` ×11, `I9040` ×5
-
-### `cdk_ecs-cluster--MyFirstEcsCluster.template` — 2 mismatches (1 TP, 2 FP, 49 EE, 0 FN)
-
-- FP: `E1152`, `I1022`
-- EE: `I9001` ×47, `I9040` ×2
-
-### `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template` — 2 mismatches (1 TP, 2 FP, 78 EE, 0 FN)
-
-- FP: `I1022`, `I3013`
-- EE: `I9001` ×68, `I9040` ×10
-
-### `cdk_inspector2--Inspector2EnableStack.template` — 2 mismatches (1 TP, 2 FP, 2 EE, 0 FN)
-
-- FP: `I1022` ×2
-- EE: `I9040` ×2
-
-### `cdk_lambda-manage-s3-event-notification--AStack.template` — 2 mismatches (1 TP, 2 FP, 3 EE, 0 FN)
-
-- FP: `I1022`, `I3042`
-- EE: `I9040`, `W9013`, `I9001`
-
-### `cdk_lambda-manage-s3-event-notification--BStack.template` — 2 mismatches (0 TP, 2 FP, 3 EE, 0 FN)
-
-- FP: `I1022`, `I3042`
-- EE: `I9040`, `W9013`, `I9001`
-
-### `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template` — 2 mismatches (3 TP, 2 FP, 35 EE, 0 FN)
-
-- FP: `I1022` ×2
-- EE: `I9001` ×28, `I9040` ×7
-
-### `cdk_pat-the-xray-tracer--TheXraySQSFlow.template` — 2 mismatches (8 TP, 2 FP, 14 EE, 0 FN)
-
-- FP: `I1022` ×2
-- EE: `I9001` ×8, `I9040` ×6
-
-### `cdk_pat-the-xray-tracer--TheXraySnsFlow.template` — 2 mismatches (5 TP, 2 FP, 19 EE, 0 FN)
-
-- FP: `I1022` ×2
-- EE: `I9001` ×14, `I9040` ×5
-
-### `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template` — 2 mismatches (0 TP, 2 FP, 9 EE, 0 FN)
-
-- FP: `I3042` ×2
-- EE: `I9001` ×4, `I9040` ×3, `W9002` ×2
-
-### `cdk_py-dynamodb-lambda--dynamodb-lambda.template` — 2 mismatches (4 TP, 2 FP, 14 EE, 0 FN)
-
-- FP: `I1022` ×2
-- EE: `I9001` ×8, `I9040` ×6
-
-### `cdk_py-lambda-from-container--LambdaContainerFunctionStack.template` — 2 mismatches (1 TP, 2 FP, 4 EE, 0 FN)
-
-- FP: `I1022`, `F3003`
-- EE: `I9040` ×2, `I9001` ×2
+- FN: `E3016`, `E3001`
+- EE: `I9001` ×27, `I9040`
 
 ### `good_aurora_dbinstance` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
 
 - FN: `E3707`, `E3719`
 - EE: `W9008`, `I9001`, `I9002`, `I9040`
 
-### `good_conditions` — 2 mismatches (0 TP, 2 FP, 4 EE, 0 FN)
-
-- FP: `E1152` ×2
-- EE: `W9010`, `I9001`, `W9009`, `I9040`
-
 ### `good_conditions_and` — 2 mismatches (0 TP, 2 FP, 0 EE, 0 FN)
 
 - FP: `F0014` ×2
-
-### `good_custom_numeric-inequalities-large` — 2 mismatches (4 TP, 2 FP, 5 EE, 0 FN)
-
-- FP: `F3012` ×2
-- EE: `I9040` ×3, `I9001`, `W9003`
-
-### `good_custom_numeric-inequalities-small` — 2 mismatches (4 TP, 2 FP, 5 EE, 0 FN)
-
-- FP: `F3012` ×2
-- EE: `I9040` ×3, `I9001`, `W9003`
 
 ### `good_functions_findinmap` — 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
 
 - FN: `E7001` ×2
 - EE: `I9001` ×3, `I9040` ×3
 
-### `good_functions_sub_needed` — 2 mismatches (7 TP, 2 FP, 9 EE, 0 FN)
+### `good_transform` — 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
 
-- FP: `I3510`, `I3042`
-- EE: `I9001` ×4, `I9040` ×3, `W9002`, `W9013`
+- FN: `I3011` ×2
+- EE: `I9040` ×2
 
-### `good_mappings_used` — 2 mismatches (1 TP, 2 FP, 3 EE, 0 FN)
+### `integration_getatt-types` — 2 mismatches (8 TP, 1 FP, 17 EE, 1 FN)
 
-- FP: `W7001`, `E1151`
-- EE: `I9001` ×2, `I9040`
+- FN: `E9004`
+- FP: `F6101`
+- EE: `I9001` ×10, `I9040` ×7
 
-### `good_parameters_used_transforms` — 2 mismatches (3 TP, 1 FP, 4 EE, 1 FN)
+### `issues_sam_w_conditions` — 2 mismatches (8 TP, 0 FP, 27 EE, 2 FN)
 
-- FN: `E1021`
-- FP: `E1152`
-- EE: `I9001` ×3, `I9040`
+- FN: `I2530` ×2
+- EE: `I9001` ×21, `I9040` ×6
 
-### `good_properties_ec2_vpc` — 2 mismatches (2 TP, 2 FP, 16 EE, 0 FN)
+### `quickstart_nist_application` — 2 mismatches (46 TP, 1 FP, 99 EE, 1 FN)
 
-- FP: `E1151` ×2
-- EE: `I9001` ×9, `I9040` ×7
-
-### `good_resources_cognito_userpool_tag_is_string_map` — 2 mismatches (0 TP, 2 FP, 0 EE, 0 FN)
-
-- FP: `I3011` ×2
-
-### `good_transform_language_extension` — 2 mismatches (3 TP, 2 FP, 11 EE, 0 FN)
-
-- FP: `W8001`, `E1151`
-- EE: `I9040` ×5, `I9001` ×5, `W9008`
-
-### `integration_aws-ec2-instance` — 2 mismatches (4 TP, 2 FP, 4 EE, 0 FN)
-
-- FP: `E1152` ×2
-- EE: `I9001` ×3, `I9040`
-
-### `integration_aws-ec2-launchtemplate` — 2 mismatches (5 TP, 2 FP, 1 EE, 0 FN)
-
-- FP: `E1152` ×2
-- EE: `I9001`
-
-### `integration_ref-types` — 2 mismatches (2 TP, 2 FP, 40 EE, 0 FN)
-
-- FP: `E1151`, `I3013`
-- EE: `I9001` ×28, `I9040` ×12
+- FN: `W1030`
+- FP: `W3011`
+- EE: `W9003` ×53, `I9001` ×36, `I9040` ×10
 
 ### `bad_F2002_ssm_parameter_type_invalid` — 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `F1020`
 - EE: `I9001`, `I9040`
 
-### `bad_codepipeline_bad_artifact_counts` — 1 mismatches (2 TP, 1 FP, 3 EE, 0 FN)
+### `bad_conditions_and` — 1 mismatches (12 TP, 0 FP, 1 EE, 1 FN)
 
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9040`
+- FN: `E1001`
+- EE: `F0001`
 
-### `bad_codepipeline_bad_artifacts` — 1 mismatches (2 TP, 1 FP, 3 EE, 0 FN)
+### `bad_core_conditions_missing` — 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
 
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9040`
+- FN: `F0014`
+- EE: `F0001`
 
 ### `bad_core_directives` — 1 mismatches (4 TP, 0 FP, 6 EE, 1 FN)
 
@@ -14381,25 +12045,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `W3011`
 - EE: `I9001`
 
+### `bad_dynamodb_provisioned_no_throughput` — 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
+
+- FN: `E3639`
+- EE: `I9001`, `I9040`, `F3003`
+
 ### `bad_ecs_fargate_mismatch` — 1 mismatches (1 TP, 1 FP, 7 EE, 0 FN)
 
 - FP: `E3054`
 - EE: `I9001` ×5, `I9040` ×2
 
-### `bad_elb_http_443` — 1 mismatches (0 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9001`
-
 ### `bad_functions_ref` — 1 mismatches (11 TP, 0 FP, 19 EE, 1 FN)
 
 - FN: `F1018`
 - EE: `I9001` ×10, `I9040` ×4, `W9003` ×3, `W9010` ×2
-
-### `bad_hardcoded_partition` — 1 mismatches (0 TP, 1 FP, 5 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `I9001` ×2, `I9040` ×2, `W9013`
 
 ### `bad_iam_bad_statement` — 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
 
@@ -14411,25 +12070,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E7001`
 - EE: `F0017`, `I9040`
 
-### `bad_lambda_no_snapstart` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
+### `bad_lambda_snapstart_bad_runtime` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
 
-- FP: `I3042`
+- FP: `E2530`
 - EE: `W9013`, `I9001`, `I9040`
 
-### `bad_lambda_snapstart_no_version` — 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
+### `bad_lambda_zip_no_handler` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
 
-- FP: `I3042`
-- EE: `W9013`, `I9040`
-
-### `bad_lambda_zipfile_java` — 1 mismatches (2 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
+- FP: `W2533`
 - EE: `W9013`, `I9001`, `I9040`
 
 ### `bad_mappings_name` — 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
 
 - FN: `E7001`
 - EE: `F0001`
+
+### `bad_mappings_used` — 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
+
+- FN: `W1034`
+- EE: `I9001` ×2, `I9040`
 
 ### `bad_modules_bad_has_create_policy` — 1 mismatches (1 TP, 0 FP, 0 EE, 1 FN)
 
@@ -14449,15 +12108,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F2015`
 - EE: `F0016` ×2, `F0015`, `F2012`
 
+### `bad_pipeline_no_source_first_stage` — 1 mismatches (3 TP, 0 FP, 4 EE, 1 FN)
+
+- FN: `E3701`
+- EE: `W9002`, `W9013`, `I9001`, `I9040`
+
 ### `bad_refs` — 1 mismatches (5 TP, 0 FP, 10 EE, 1 FN)
 
 - FN: `F1018`
 - EE: `I9001` ×6, `W9010` ×2, `I9040` ×2
-
-### `bad_schema_string_length` — 1 mismatches (0 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9013`, `I9001`, `I9040`
 
 ### `bad_schema_structural` — 1 mismatches (6 TP, 0 FP, 10 EE, 1 FN)
 
@@ -14468,180 +12127,70 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FP: `I3037`
 
-### `bad_simple_sub_param` — 1 mismatches (0 TP, 1 FP, 2 EE, 0 FN)
+### `bad_schema_write_only` — 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
 
-- FP: `W1020`
-- EE: `I9001`, `I9040`
+- FN: `F6101`
+- EE: `W3041`, `W9002`, `W9013`, `I9001`
 
 ### `bad_some_logs_stream_lambda` — 1 mismatches (12 TP, 0 FP, 12 EE, 1 FN)
 
 - FN: `E2529`
 - EE: `I9040` ×8, `I9001` ×4
 
-### `bad_stepfunctions_bad_start_at` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9040`
-
-### `bad_stepfunctions_invalid_state` — 1 mismatches (2 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9040`
-
 ### `bad_unique_items` — 1 mismatches (1 TP, 1 FP, 1 EE, 0 FN)
 
 - FP: `I3037`
 - EE: `W9007`
 
-### `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template` — 1 mismatches (0 TP, 1 FP, 20 EE, 0 FN)
+### `cdk_application-load-balancer--LoadBalancerStack.template` — 1 mismatches (5 TP, 0 FP, 68 EE, 1 FN)
 
-- FP: `I1022`
-- EE: `I9001` ×15, `I9040` ×5
+- FN: `E3712`
+- EE: `I9001` ×65, `I9040` ×3
 
-### `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template` — 1 mismatches (0 TP, 1 FP, 3 EE, 0 FN)
+### `cdk_py-docker-app-with-asg-alb--RDSStack.template` — 1 mismatches (2 TP, 0 FP, 12 EE, 1 FN)
 
-- FP: `I1022`
+- FN: `W3691`
+- EE: `I9001` ×6, `I9040` ×4, `W9007`, `W9008`
+
+### `cdk_s3-object-lambda--S3ObjectLambdaStack.template` — 1 mismatches (3 TP, 1 FP, 12 EE, 0 FN)
+
+- FP: `E3045`
+- EE: `I9001` ×8, `I9040` ×4
+
+### `good_custom_is-not-defined` — 1 mismatches (8 TP, 0 FP, 6 EE, 1 FN)
+
+- FN: `E9004`
+- EE: `I9040` ×5, `I9001`
+
+### `good_functions_sub` — 1 mismatches (11 TP, 0 FP, 11 EE, 1 FN)
+
+- FN: `E1021`
+- EE: `I9001` ×6, `I9040` ×5
+
+### `good_mappings_used` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
+
+- FP: `W7001`
 - EE: `I9001` ×2, `I9040`
 
-### `cdk_classic-load-balancer--LoadBalancerStack.template` — 1 mismatches (2 TP, 1 FP, 60 EE, 0 FN)
+### `good_parameters_not_used_parameters` — 1 mismatches (3 TP, 0 FP, 4 EE, 1 FN)
 
-- FP: `E1152`
-- EE: `I9001` ×58, `I9040` ×2
+- FN: `E1021`
+- EE: `I9001` ×3, `I9040`
 
-### `cdk_ecs-fargate-service-with-logging--Willkommen.template` — 1 mismatches (0 TP, 1 FP, 56 EE, 0 FN)
+### `good_parameters_used_transforms` — 1 mismatches (3 TP, 0 FP, 4 EE, 1 FN)
 
-- FP: `I3013`
-- EE: `I9001` ×49, `I9040` ×7
+- FN: `E1021`
+- EE: `I9001` ×3, `I9040`
 
-### `cdk_eventbridge-lambda--EventBridgeLambdaStack.template` — 1 mismatches (2 TP, 1 FP, 11 EE, 0 FN)
+### `integration_cfn-gather` — 1 mismatches (24 TP, 1 FP, 36 EE, 0 FN)
 
-- FP: `I1022`
-- EE: `I9001` ×7, `I9040` ×4
-
-### `cdk_lambda-cron--LambdaCronExample.template` — 1 mismatches (2 TP, 1 FP, 7 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9001` ×4, `I9040` ×3
-
-### `cdk_lambda-layer--LambdaLayerStack.template` — 1 mismatches (1 TP, 1 FP, 5 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9001` ×3, `I9040` ×2
-
-### `cdk_lambda-manage-s3-event-notification--SharedStack.template` — 1 mismatches (2 TP, 1 FP, 4 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9040` ×3, `I9001`
-
-### `cdk_pat-the-scheduled-lambda--TheScheduledLambdaStack.template` — 1 mismatches (3 TP, 1 FP, 8 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9040` ×4, `I9001` ×4
-
-### `cdk_pat-the-xray-tracer--TheXrayDynamoFlow.template` — 1 mismatches (3 TP, 1 FP, 10 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9001` ×7, `I9040` ×3
-
-### `cdk_pat-the-xray-tracer--TheXrayHttpFlow.template` — 1 mismatches (3 TP, 1 FP, 9 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9001` ×7, `I9040` ×2
-
-### `cdk_py-docker-app-with-asg-alb--ASGStack.template` — 1 mismatches (1 TP, 1 FP, 36 EE, 0 FN)
-
-- FP: `E1152`
-- EE: `I9001` ×31, `I9040` ×4, `W9007`
-
-### `cdk_py-lambda-cron--LambdaCronExample.template` — 1 mismatches (1 TP, 1 FP, 7 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9001` ×4, `I9040` ×3
-
-### `cdk_py-lambda-layer--LambdaLayerExample.template` — 1 mismatches (2 TP, 1 FP, 5 EE, 0 FN)
-
-- FP: `I1022`
-- EE: `I9001` ×3, `I9040` ×2
-
-### `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template` — 1 mismatches (0 TP, 1 FP, 54 EE, 0 FN)
-
-- FP: `E3040`
-- EE: `I9001` ×48, `I9040` ×6
-
-### `good_codepipeline_artifact_counts` — 1 mismatches (0 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9040`
-
-### `good_generic` — 1 mismatches (0 TP, 1 FP, 19 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `I9001` ×8, `I9040` ×8, `W9010` ×2, `W9013`
-
-### `good_iam_valid` — 1 mismatches (0 TP, 1 FP, 1 EE, 0 FN)
-
-- FP: `I3510`
-- EE: `I9040`
-
-### `good_lambda_snapstart` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9013`, `I9001`, `I9040`
-
-### `good_lambda_zipfile` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9013`, `I9001`, `I9040`
-
-### `good_resources_codepipeline` — 1 mismatches (0 TP, 1 FP, 4 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9001`, `I9040`
-
-### `good_resources_deletionpolicy` — 1 mismatches (2 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `W8001`
-- EE: `W9008`, `I9040`
-
-### `good_resources_name` — 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `E1152`
-- EE: `I9001`, `I9040`
-
-### `good_resources_updatereplacepolicy` — 1 mismatches (2 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `W8001`
-- EE: `W9008`, `I9040`
-
-### `good_stepfunctions_valid` — 1 mismatches (0 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9002`, `W9013`, `I9040`
-
-### `good_transform_list_transform_not_sam` — 1 mismatches (0 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `I3042`
-- EE: `W9013`, `I9040`
-
-### `integration_aws-lambda-function` — 1 mismatches (0 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `F3012`
-- EE: `I9040` ×2
-
-### `integration_deployment-file-template` — 1 mismatches (0 TP, 1 FP, 9 EE, 0 FN)
-
-- FP: `W3010`
-- EE: `I9001` ×6, `I9040` ×3
+- FP: `F3034`
+- EE: `I9001` ×20, `I9040` ×14, `W9013`, `W9008`
 
 ### `quickstart_cis_benchmark` — 1 mismatches (69 TP, 1 FP, 148 EE, 0 FN)
 
 - FP: `W3005`
 - EE: `I9001` ×104, `I9040` ×38, `W9003` ×6
-
-### `quickstart_nist_logging` — 1 mismatches (42 TP, 1 FP, 34 EE, 0 FN)
-
-- FP: `W8001`
-- EE: `I9001` ×19, `I9040` ×14, `F3003`
 
 ### `quickstart_nist_vpc_production` — 1 mismatches (62 TP, 1 FP, 96 EE, 0 FN)
 
@@ -14669,19 +12218,18 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 104 | 44.26% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E8001, E8005, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
-| Resource property validation | 54 | 22.98% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3049, E3505, E3510, E3530, E3639, E3671, E3673, E3682, E3691, E3701, E3707, E3712, E3719 |
-| Intrinsic function validation | 39 | 16.60% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1161, E1701 |
-| Warning-level checks | 32 | 13.62% | W1001, W1028, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Informational checks | 6 | 2.55% | I3011, I3510 |
+| Other | 105 | 42.68% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E8001, E8005, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
+| Resource property validation | 54 | 21.95% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3049, E3505, E3510, E3530, E3639, E3671, E3673, E3682, E3691, E3701, E3707, E3712, E3719 |
+| Intrinsic function validation | 40 | 16.26% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
+| Warning-level checks | 39 | 15.85% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Informational checks | 8 | 3.25% | I2530, I3011 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Stricter than cfn-lint (informational) | 496 | 51.67% | I1022, I3011 |
-| Extra informational findings | 173 | 18.02% | I2003, I3013, I3037, I3042, I3100, I3510 |
-| Stricter than cfn-lint (warnings) | 103 | 10.73% | W1001, W1020, W1028, W1030, W2001, W2531, W2533, W3002, W3005, W3010, W3011, W7001, W8001, W8003 |
-| Other | 99 | 10.31% | E2001, E2530, E9003, E9004, E9006, F0006, F0013, F0014, F1029, F3003, F3012, F3020, F3031, F3034, F6101 |
-| Over-reporting property/intrinsic errors | 89 | 9.27% | E1040, E1150, E1151, E1152, E1154, E3019, E3040, E3045, E3048, E3049, E3054, E3505 |
+| Other | 39 | 41.94% | E2001, E2530, E9004, E9006, F0013, F0014, F3003, F3012, F3020, F3031, F3034, F6101 |
+| Stricter than cfn-lint (warnings) | 34 | 36.56% | W1001, W1028, W1030, W2001, W2531, W2533, W3002, W3005, W3011, W7001, W8001, W8003 |
+| Over-reporting property/intrinsic errors | 11 | 11.83% | E1152, E3019, E3040, E3045, E3048, E3049, E3054, E3505 |
+| Extra informational findings | 9 | 9.68% | I2003, I3037, I3042, I3100 |
 

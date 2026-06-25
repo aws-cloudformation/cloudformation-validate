@@ -56,7 +56,11 @@ impl CfnYamlLoader {
             match name.as_str() {
                 "Ref" | "GetAtt" | "Sub" | "Join" | "Select" | "If" | "FindInMap" | "Split" | "Base64" | "Cidr"
                 | "GetAZs" | "ImportValue" | "Transform" | "And" | "Or" | "Not" | "Equals" | "Condition"
-                | "ToJsonString" | "Length" | "ForEach" => Some(name.clone()),
+                | "ToJsonString" | "Length" | "ForEach"
+                // Rules-section boolean-producing intrinsics, in short-tag form.
+                | "Contains" | "EachMemberEquals" | "EachMemberIn" | "ValueOf" | "ValueOfAll" | "RefAll" => {
+                    Some(name.clone())
+                }
                 _ => None,
             }
         } else {
@@ -87,6 +91,12 @@ impl CfnYamlLoader {
             "ToJsonString" => FN_TO_JSON_STRING,
             "Length" => FN_LENGTH,
             "ForEach" => FN_FOR_EACH,
+            "Contains" => FN_CONTAINS,
+            "EachMemberEquals" => FN_EACH_MEMBER_EQUALS,
+            "EachMemberIn" => FN_EACH_MEMBER_IN,
+            "ValueOf" => FN_VALUE_OF,
+            "ValueOfAll" => FN_VALUE_OF_ALL,
+            "RefAll" => FN_REF_ALL,
             _ => return value,
         };
         let mut hash = Hash::new();
@@ -370,7 +380,7 @@ fn equals_argument_error_yaml(val: &Yaml) -> Option<String> {
     if matches!(val, Yaml::Null | Yaml::BadValue) {
         return Some("null is not of type 'string'".to_string());
     }
-    if matches!(val, Yaml::String(_) | Yaml::Integer(_) | Yaml::Real(_)) {
+    if matches!(val, Yaml::String(_) | Yaml::Integer(_) | Yaml::Real(_) | Yaml::Boolean(_)) {
         return None;
     }
     if let Some(hash) = val.as_hash()

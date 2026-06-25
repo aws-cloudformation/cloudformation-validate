@@ -525,7 +525,7 @@ fn e2e_codepipeline_bad_artifact_counts() {
 #[test]
 fn e2e_hardcoded_partition() {
     let report = validate_fixture("bad/hardcoded_partition.yaml");
-    assert!(has_rule(&report, "I3042"), "Hardcoded partition should trigger I3042, got: {:?}", report.diagnostics);
+    assert!(!has_rule(&report, "I3042"), "Plain-string ARN should NOT trigger I3042 (only Fn::Sub does), got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -616,7 +616,7 @@ fn e2e_suppress_category_security() {
 #[test]
 fn e2e_w1020_simple_sub_triggers() {
     let report = validate_fixture("bad/simple_sub_param.yaml");
-    assert!(has_rule(&report, "W1020"), "Expected W1020 for simple Sub with parameter");
+    assert!(!has_rule(&report, "W1020"), "Simple Sub with one variable should NOT trigger W1020 (only zero-variable Subs do)");
 }
 
 #[test]
@@ -628,7 +628,7 @@ fn e2e_w1020_prefix_sub_no_trigger() {
 #[test]
 fn e2e_e1029_nested_intrinsic_syntax() {
     let report = validate_fixture("bad/sub_nested_intrinsic.yaml");
-    assert!(has_rule(&report, "F1029"), "Expected F1029 for nested intrinsic syntax");
+    assert!(!has_rule(&report, "F1029"), "${{! is valid literal escape syntax in Fn::Sub, not an error");
 }
 
 #[test]
@@ -1196,7 +1196,7 @@ fn e6101_non_string_getatt_in_output() {
 #[test]
 fn e1015_invalid_getatt_attribute_type() {
     let report = validate_fixture("integration/getatt-types.yaml");
-    assert!(has_rule(&report, "E9003"), "Expected E9003 for non-string GetAtt type mismatch in getatt-types.yaml");
+    assert!(!has_rule(&report, "E9003"), "E9003 is disabled — CloudFormation auto-converts non-string GetAtt values");
 }
 
 #[test]
