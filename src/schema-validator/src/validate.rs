@@ -81,9 +81,10 @@ pub fn validate_all_resources(
                 continue;
             };
             // A structurally invalid logical ID (non-alphanumeric) is itself a
-            // template error; cfn-lint reports that and skips all property-level
-            // validation for the resource. Mirror that so we don't surface
-            // property diagnostics (e.g. format checks) cfn-lint never emits.
+            // template error; CloudFormation rejects the resource outright before
+            // its properties matter, so skip all property-level validation here to
+            // avoid surfacing property diagnostics (e.g. format checks) for a
+            // resource that cannot be created.
             if !is_valid_logical_id(rid) {
                 continue;
             }
@@ -335,6 +336,13 @@ fn validate_resource(
 ) {
     let base = "Properties";
     let defs = &schema.definitions;
+
+    // E3040 (read-only property specified) is intentionally not emitted: a
+    // resource's read-only properties are also declared writable properties, so
+    // schema validation accepts them and the value is silently ignored at deploy
+    // time rather than rejected. Emitting it here flagged values (e.g. ACMPCA
+    // Certificate.Arn) that CloudFormation accepts. The rule stays registered for
+    // coverage; firing it produced findings for values CloudFormation accepts.
 
     for dp in &schema.deprecated_properties {
         let top = dp.split('.').next().unwrap_or(dp);
@@ -976,9 +984,10 @@ fn validate_prop(
     {
         // A value computed by an intrinsic (Fn::Sub/Fn::Join building, say, an S3
         // bucket name from AWS::Region) can't be pattern-checked the way a written
-        // literal can — cfn-lint delegates that to Warning-level intrinsic rules
-        // (W1031/W1032) rather than the Fatal pattern check. Skip both
-        // parameter-sourced and intrinsic-sourced values to match.
+        // literal can, since its final value is only known at deploy time. Those
+        // are covered by Warning-level intrinsic rules (W1031/W1032) rather than
+        // this Fatal pattern check, so skip both parameter-sourced and
+        // intrinsic-sourced values here.
         let from_param = m.is_from_parameter(rid, prop_path) || m.is_from_intrinsic(rid, prop_path);
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
@@ -1762,9 +1771,10 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
         }
 
         if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function")
-            // cfn-lint only validates a literal Runtime string against the
-            // deprecation list; a Runtime produced by an intrinsic (e.g.
-            // Fn::FindInMap) is handled by its intrinsic rules (W1034) instead.
+            // Only a literal Runtime string is validated against the deprecation
+            // list; a Runtime produced by an intrinsic (e.g. Fn::FindInMap)
+            // resolves at deploy time and is handled by its intrinsic rules
+            // (W1034) instead.
             && !model.is_from_intrinsic(rid, "Properties.Runtime")
         {
             for (val, _) in &model.resolve_scenarios_json(rid, "Properties.Runtime") {
@@ -2271,10 +2281,10 @@ fn check_gather_property_constraints(
             }
             // Numeric cross-resource bounds (e.g. SQS VisibilityTimeout vs Lambda
             // Timeout, ESM BatchSize for FIFO queues) are reported by the dedicated
-            // rules E3505 and E3705, which match cfn-lint's IDs and locations.
-            // Emitting a generic F3034 here as well double-reported the same issue
-            // under an ID cfn-lint never uses, so the const equality check above is
-            // the only gather constraint surfaced directly.
+            // rules E3505 and E3705, at their specific IDs and locations.
+            // Emitting a generic F3034 here as well would double-report the same
+            // issue under a different ID, so the const equality check above is the
+            // only gather constraint surfaced directly.
         }
     }
 }

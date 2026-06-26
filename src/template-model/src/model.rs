@@ -138,7 +138,8 @@ pub struct SemanticModel {
     /// collected template-wide (resources, outputs, conditions, ForEach bodies).
     pub find_in_map_names: HashSet<String>,
     /// True when any `Fn::FindInMap` uses a non-literal map name, which disables
-    /// the unused-mapping check (W7001) to match cfn-lint.
+    /// the unused-mapping check (W7001) because usage can no longer be attributed
+    /// to a specific mapping.
     pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
@@ -373,7 +374,7 @@ impl SemanticModel {
         // the template (resources, outputs, conditions, ForEach bodies). A literal
         // first argument names a specific mapping; a non-literal one (e.g. a nested
         // Fn::FindInMap or Ref) means the referenced mapping can't be determined
-        // statically, which disables the unused-mapping check — matching cfn-lint.
+        // statically, which disables the unused-mapping check.
         let mut find_in_map_names: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut has_dynamic_findinmap_name = false;
         for idx in 0..ir.arena.len() {
@@ -442,8 +443,8 @@ impl SemanticModel {
                 // rejected by the parser and left as a plain `Fn::If` map node
                 // rather than an `IntrinsicFn::If`. Its condition is still
                 // referenced, so collect the name here too — otherwise the
-                // unused-condition check (W8001) would wrongly flag it, while
-                // cfn-lint treats the reference as real.
+                // unused-condition check (W8001) would wrongly flag a condition
+                // that the template does reference.
                 Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
                     if let Some(first) = ir.arena.as_list(entries[0].1).and_then(|items| items.first())
                         && let Some(cond_name) = ir.arena.as_str(*first)

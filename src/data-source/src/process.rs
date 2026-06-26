@@ -278,10 +278,10 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
         data_dir.join("getatt_attributes.json"),
         generate_getatt_data(&schemas, &raw_schemas, &getatt_additions),
     )?;
-    // Union the schema-derived types with the per-region known types from
-    // cfn-lint. Some types CloudFormation accepts (e.g. AWS::CDK::Metadata) have
-    // no provider schema but appear in cfn-lint's per-region maps. The single
-    // `known_resource_types` set is the source of truth
+    // Union the schema-derived types with the per-region known types. Some types
+    // CloudFormation accepts (e.g. AWS::CDK::Metadata) have no provider schema but
+    // appear only in the per-region type maps. The single `known_resource_types`
+    // set is the source of truth
     let mut known_types: BTreeSet<String> = schemas.keys().cloned().collect();
     let region_types = read_region_resource_types_union(&data_dir)?;
     known_types.extend(region_types);
@@ -302,7 +302,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
 }
 
 /// Reads `data_dir/region_resource_types.json` (produced by the sync phase from
-/// cfn-lint's per-region provider files) and returns the union of every
+/// the upstream per-region provider files) and returns the union of every
 /// resource-type key across all regions.
 ///
 /// The returned set is intentionally region-agnostic: callers (the
@@ -312,7 +312,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
 fn read_region_resource_types_union(data_dir: &Path) -> anyhow::Result<BTreeSet<String>> {
     let region_file = data_dir.join("region_resource_types.json");
     if !region_file.exists() {
-        warn!("{} not found — known_resource_types will not include cfn-lint per-region types", region_file.display());
+        warn!("{} not found — known_resource_types will not include per-region types", region_file.display());
         return Ok(BTreeSet::new());
     }
     let content = fs::read_to_string(&region_file)?;

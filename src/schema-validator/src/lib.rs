@@ -64,7 +64,7 @@ impl SchemaValidator {
         // Every rule ID the schema-validator can emit (see src/validate.rs).
         const SCHEMA_RULE_IDS: &[&str] = &[
             "F3002", "F3003", "F3012", "F3014", "F3017", "F3018", "F3020", "F3021", "F3030", "F3031", "F3032", "F3033",
-            "F3034", "F3037", "W3041", "F3058", "E3030", "F3006", "E9006", "E2531", "E2533", "E3710", "E1103",
+            "F3034", "F3037", "E3040", "W3041", "F3058", "E3030", "F3006", "E9006", "E2531", "E2533", "E3710", "E1103",
             "W9003", "W2531", "W3696", "W3697", "W9009", "I9001", "I9002",
         ];
         SCHEMA_RULE_IDS.iter().filter_map(|id| lookup_rule(id).map(|r| r.to_rule_info())).collect()

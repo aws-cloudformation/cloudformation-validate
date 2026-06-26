@@ -57,8 +57,8 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
 
 /// Whether a `DeletionPolicy`/`UpdateReplacePolicy` value is the literal
 /// `"Delete"`. A lone policy set to `Delete` is the default behavior, so
-/// CloudFormation gains nothing from also setting its counterpart — cfn-lint
-/// treats that as valid and does not warn (W3011).
+/// CloudFormation gains nothing from also setting its counterpart, and the
+/// configuration is treated as valid (no W3011 warning).
 fn policy_is_delete(policy: Option<&ResolvedValue>) -> bool {
     matches!(policy, Some(ResolvedValue::Concrete { value: v }) if v.as_str() == Some("Delete"))
 }
@@ -97,9 +97,9 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (name, res) in &m.resources {
         // A lone policy whose value is "Delete" is the default behavior, so
-        // requiring its counterpart adds no protection — cfn-lint treats that
-        // configuration as valid and stays silent. Only warn when the single
-        // present policy asks for something other than Delete.
+        // requiring its counterpart adds no protection and the configuration is
+        // valid. Only warn when the single present policy asks for something
+        // other than Delete.
         if res.deletion_policy.is_some()
             && res.update_replace_policy.is_none()
             && !policy_is_delete(res.deletion_policy.as_ref())

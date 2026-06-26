@@ -253,7 +253,7 @@ impl<'a> Resolver<'a> {
         // Record that the value at this path is produced by a string-building
         // intrinsic, even when it resolves to a concrete string. Rules that must
         // distinguish an intrinsic-built value from a written literal (e.g. the
-        // `package`-command and pattern checks, which cfn-lint only applies to
+        // `package`-command and pattern checks, which only apply to written
         // string literals) rely on `is_from_intrinsic` to see this. Ref/GetAtt
         // already record reference edges, and Fn::If is tracked per branch, so
         // only the value-producing structural intrinsics need an explicit marker.
@@ -1219,10 +1219,10 @@ impl<'a> Resolver<'a> {
             // Fn::Sub variables share Ref resolution, but an unresolved Sub
             // variable is not an invalid Ref, so resolve it without recording
             // it as one. When the variable names a resource, `lookup_ref` has
-            // already recorded a `Ref` edge — CloudFormation (and cfn-lint) treat
-            // a bare `${Resource}` substitution as a `Ref`, so recording an extra
-            // `Sub` edge would double-count the dependency (surfacing a spurious
-            // second W3005 finding under a `Sub` label cfn-lint never emits).
+            // already recorded a `Ref` edge — CloudFormation treats a bare
+            // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
+            // edge would double-count the dependency (surfacing a spurious second
+            // W3005 finding under a `Sub` label that misrepresents the edge).
             let resolved = self
                 .lookup_ref(var, span)
                 .unwrap_or_else(|| ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) });
@@ -1249,9 +1249,8 @@ impl<'a> Resolver<'a> {
         if template.contains("arn:aws:")
             && let Some(ref rid) = self.current_resource
         {
-            // cfn-lint anchors this finding at the Fn::Sub node, so its reported
-            // path ends in `.Fn::Sub`. Match that to keep the diagnostic location
-            // aligned with cfn-lint.
+            // This finding is anchored at the Fn::Sub node, so its reported path
+            // ends in `.Fn::Sub` (the intrinsic that builds the hardcoded ARN).
             self.hardcoded_partition_arns
                 .entry(rid.clone())
                 .or_default()
@@ -1684,11 +1683,10 @@ fn to_json_string_resolved(val: &ResolvedValue) -> ResolvedValue {
 }
 
 /// Whether a parameter-constraint node satisfies the expected JSON Schema type
-/// under CloudFormation's loose coercion. CloudFormation stringifies scalars, so
-/// `MaxLength: '12'` and `NoEcho: 'true'` are accepted just like their native
-/// forms — cfn-lint validates these fields with `strict_types=False` for the
-/// same reason. A native match always passes; a string that coerces to the
-/// expected type passes too.
+/// under CloudFormation's loose coercion. CloudFormation stringifies scalar
+/// values, so a quoted number/bool such as `MaxLength: '12'` and `NoEcho: 'true'`
+/// is accepted just like its native form. A native match always passes; a string
+/// that coerces to the expected type passes too.
 fn node_matches_param_type(node: &Node, expected: &str) -> bool {
     match (expected, node) {
         ("integer", Node::Int(_)) => true,

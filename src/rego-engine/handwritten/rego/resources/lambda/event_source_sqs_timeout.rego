@@ -5,8 +5,8 @@ import rego.v1
 # E3505: SQS VisibilityTimeout must be >= Lambda Function Timeout
 # When a Lambda EventSourceMapping connects a function to an SQS queue,
 # the queue's VisibilityTimeout must be >= the function's Timeout.
-# cfn-lint anchors the finding on the queue's VisibilityTimeout property with
-# this exact wording.
+# The finding is anchored on the queue's VisibilityTimeout property (the value
+# that must be raised).
 violation contains make_diag_full("E3505", "ERROR", queue_name,
     "Properties.VisibilityTimeout",
     sprintf("Queue visibility timeout (%v) is less than Function timeout (%v) seconds", [vis_timeout, func_timeout]),

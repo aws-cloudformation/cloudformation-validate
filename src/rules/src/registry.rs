@@ -36,7 +36,7 @@ pub struct RuleInfo {
 pub enum RuleOrigin {
     /// Derived from the CloudFormation resource provider schema
     Schema,
-    /// Ported from cfn-lint
+    /// Ported from the upstream linter rule set
     CfnLint,
     /// Implemented in this validation engine
     Engine,
@@ -1133,6 +1133,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "I3037",
+        category: Category::BestPractice,
+        description: "Check if a list that allows duplicates has any duplicates",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "I3510",
         category: Category::Security,
         description: "Validate statement resources match the actions",
@@ -1485,6 +1491,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         category: Category::Schema,
         description: "Array items not unique",
         origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E3040",
+        category: Category::Schema,
+        description: "Read only property should not be specified",
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "W3041",

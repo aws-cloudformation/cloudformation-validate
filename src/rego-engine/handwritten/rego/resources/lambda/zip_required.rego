@@ -3,8 +3,9 @@ package resources
 import rego.v1
 
 # W2533: Zip deployment requires Handler and Runtime.
-# cfn-lint reports a single diagnostic listing every missing property, anchored
-# at the Code property, so collect them and emit one finding to match.
+# Report a single diagnostic listing every missing property, anchored at the
+# Code property (CloudFormation rejects the resource once, not once per
+# property), so collect them and emit one finding.
 violation contains make_diag_full("W2533", "WARN", name,
     "Properties.Code",
     sprintf("Properties [%s] missing for zip file deployment at Resources/%s/Properties", [formatted, name]),

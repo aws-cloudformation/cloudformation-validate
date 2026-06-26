@@ -137,7 +137,7 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
 /// Files produced by sync_upstream (extensions, regions, additional specs).
 #[cfg(feature = "full")]
 const REQUIRED_SYNC_FILES: &[&str] = &[
-    // Enum data documents (from cfn-lint extensions)
+    // Enum data documents (from the upstream rule-source extensions)
     "aws_amazonmq_broker_instancetype_enum",
     "aws_appstream_fleet_instancetype_enum",
     "aws_dax_cluster_nodetype_enum",

@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 20:00:29  
+> Generated: 2026-06-25 20:52:01  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,14 +23,14 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 1659 |
-| False Positives (engine bugs) | 29 |
+| False Positives (engine bugs) | 27 |
 | Engine Extra (correct, cfn-lint gap) | 5218 |
 | False Negatives (engine misses) | 253 |
-| Precision | 98.28% |
+| Precision | 98.40% |
 | Recall | 86.77% |
-| F1 | 92.17% |
-| Unique rules detected | 197 |
-| Perfect templates | 298/387 |
+| F1 | 92.22% |
+| Unique rules detected | 196 |
+| Perfect templates | 300/387 |
 
 ### By Severity
 
@@ -39,31 +39,31 @@
 | Fatal | 336 | 17 | 58 | 78 | 95.18% | 81.16% |
 | Error | 296 | 1 | 3 | 117 | 99.66% | 71.67% |
 | Warning | 677 | 8 | 339 | 50 | 98.83% | 93.12% |
-| Info | 350 | 3 | 4818 | 8 | 99.15% | 97.77% |
+| Info | 350 | 1 | 4818 | 8 | 99.72% | 97.77% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 15096.8428 ms |
-| Throughput | 150.03 validations/sec |
+| Total wall time | 14161.9456 ms |
+| Throughput | 159.94 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 39.0014 ms |
-| Engine init (max) | 39.1154 ms |
-| Schema init (p99) | 68.5575 ms |
-| Schema init (max) | 69.6311 ms |
+| Engine init (p99) | 40.0527 ms |
+| Engine init (max) | 40.3512 ms |
+| Schema init (p99) | 56.7591 ms |
+| Schema init (max) | 57.4428 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.2034 | 0.0460 | 0.6285 | 0.8755 | 1.5475 | 2.7504 |
-| Schema Validate | 0.0000 | 2.4742 | 0.5674 | 6.5031 | 9.8334 | 22.4616 | 60.9589 |
-| Rule Evaluation | 2.6953 | 3.3914 | 3.0596 | 4.0614 | 4.6200 | 6.5908 | 46.6733 |
-| Diagnostic Finalize | 0.0005 | 0.0281 | 0.0044 | 0.0862 | 0.1327 | 0.3166 | 0.5702 |
-| Engine Internal | 2.7055 | 6.1467 | 3.9321 | 11.0950 | 14.7261 | 30.6577 | 71.2590 |
-| Wall Clock | 2.7057 | 6.1471 | 3.9322 | 11.0953 | 14.7266 | 30.6580 | 71.2602 |
+| Model Build | 0.0018 | 0.1873 | 0.0432 | 0.5828 | 0.8023 | 1.4653 | 2.5811 |
+| Schema Validate | 0.0000 | 2.3787 | 0.5263 | 6.1554 | 9.7844 | 22.6828 | 52.0830 |
+| Rule Evaluation | 2.6875 | 3.1772 | 2.8755 | 3.6834 | 3.9867 | 5.2196 | 47.3958 |
+| Diagnostic Finalize | 0.0005 | 0.0259 | 0.0041 | 0.0805 | 0.1260 | 0.2882 | 0.5447 |
+| Engine Internal | 2.6938 | 5.8104 | 3.6538 | 10.3809 | 14.6819 | 30.1566 | 60.4082 |
+| Wall Clock | 2.6939 | 5.8106 | 3.6540 | 10.3813 | 14.6822 | 30.1570 | 60.4090 |
 
 ## False Negatives — 253 missed findings across 70 rules
 
@@ -785,7 +785,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L312 in `lsp_comprehensive`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
 
-## False Positives — 29 extra findings across 10 rules
+## False Positives — 27 extra findings across 9 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -854,13 +854,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > Output 'AmqpEndpointUrl': GetAtt 'RabbitMqBrokerE7F26F68.AmqpEndpoints' returns type 'array', not 'string'
 - **F6101** L76 in `integration_getatt-types`
   > Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'
-
-### I2003 — 2 extra
-
-- **I2003** in `quickstart_openshift`
-  > Parameter 'OpenShiftAdminPassword' AllowedPattern '(?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*
-- **I2003** in `quickstart_openshift_master`
-  > Parameter 'OpenShiftAdminPassword' AllowedPattern '(?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*
 
 ### W1001 — 1 extra — Ref/GetAtt to resource that is available when conditions are applied
 
@@ -11425,7 +11418,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F8611** in `lsp_comprehensive`
   > 'Fn::FindInMap' is not supported in the Rules section — allowed: ["Ref", "Fn::ValueOf", "Fn::ValueOfAll", "Fn::RefAll", "Fn::Contains", "Fn::EachMemberEquals", "Fn::EachMemberIn", "Fn::Equals", "Fn::A
 
-## Per-Template Breakdown — 89 templates with mismatches
+## Per-Template Breakdown — 87 templates with mismatches
 
 ### `bad_conditions_condition_functions` — 11 mismatches (27 TP, 4 FP, 1 EE, 7 FN)
 
@@ -11871,16 +11864,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021`
 - EE: `I9001` ×3, `I9040`
 
-### `quickstart_openshift` — 1 mismatches (20 TP, 1 FP, 78 EE, 0 FN)
-
-- FP: `I2003`
-- EE: `I9001` ×38, `W9003` ×21, `I9040` ×10, `W2508` ×7, `W9010`, `W9013`
-
-### `quickstart_openshift_master` — 1 mismatches (4 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `I2003`
-- EE: `I9040` ×2
-
 ## Coverage Gaps
 
 10 cfn-lint templates with no engine report:
@@ -11912,7 +11895,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 18 | 62.07% | E9004, F0013, F0014, F3003, F6101 |
-| Stricter than cfn-lint (warnings) | 8 | 27.59% | W1001, W1028, W2001 |
-| Extra informational findings | 3 | 10.34% | I2003, I3042 |
+| Other | 18 | 66.67% | E9004, F0013, F0014, F3003, F6101 |
+| Stricter than cfn-lint (warnings) | 8 | 29.63% | W1001, W1028, W2001 |
+| Extra informational findings | 1 | 3.70% | I3042 |
 

@@ -34,8 +34,8 @@ violation contains make_diag_at("I3042", "INFO", name,
 
 # W3011: Both UpdateReplacePolicy and DeletionPolicy needed to protect resource.
 # A lone policy set to "Delete" is the default behavior, so its counterpart adds
-# no protection — cfn-lint treats that as valid and stays silent. Only warn when
-# the single present policy asks for something other than Delete.
+# no protection and the configuration is valid. Only warn when the single present
+# policy asks for something other than Delete.
 violation contains make_diag("W3011", "WARN", name,
     "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion") if {
     some name, res in input.resources

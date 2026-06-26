@@ -602,7 +602,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // A FindInMap with a non-literal map name (e.g. a nested FindInMap) makes it
     // impossible to attribute usage to a specific mapping, so the unused-mapping
-    // check is disabled entirely — matching cfn-lint's W7001. Otherwise a mapping
+    // check (W7001) is disabled entirely. Otherwise a mapping
     // is "used" if its name appears as the literal first argument of any
     // Fn::FindInMap anywhere in the template (resources, outputs, conditions,
     // ForEach bodies), which `findInMapNames` collects template-wide.
@@ -961,6 +961,12 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (pname, param) in &m.parameters {
         if let Some(ref pattern) = param.allowed_pattern
             && regex::Regex::new(pattern).is_err()
+            // CloudFormation validates AllowedPattern with a PCRE-style engine
+            // that supports lookaround and backreferences; Rust's `regex` crate
+            // does not. A pattern that fails ONLY because of those constructs is
+            // still valid service-side, so treat it as valid and only report
+            // genuinely-malformed regex.
+            && !uses_extended_regex_syntax(pattern)
         {
             out.push(make_resource_diagnostic(
                 "I2003",
@@ -974,6 +980,19 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     out
+}
+
+/// Whether a regex uses PCRE constructs that CloudFormation's service-side
+/// engine accepts but Rust's `regex` / RE2 reject: lookahead `(?=` `(?!`,
+/// lookbehind `(?<=` `(?<!`, atomic groups `(?>`, or backreferences `\1`.
+fn uses_extended_regex_syntax(pattern: &str) -> bool {
+    const EXTENDED_GROUP_PREFIXES: &[&str] = &["(?=", "(?!", "(?<=", "(?<!", "(?>"];
+    if EXTENDED_GROUP_PREFIXES.iter().any(|p| pattern.contains(p)) {
+        return true;
+    }
+    // Backreference: a backslash followed by a digit 1-9.
+    let bytes = pattern.as_bytes();
+    bytes.windows(2).any(|w| w[0] == b'\\' && w[1].is_ascii_digit() && w[1] != b'0')
 }
 
 fn condition_is_referenced(

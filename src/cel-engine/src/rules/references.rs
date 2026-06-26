@@ -14,7 +14,7 @@ pub fn register(reg: &mut NativeRuleRegistry) {
 /// Whether a property path points at a value selected by an `Fn::If` branch
 /// (a path segment `Fn::If` followed by branch index `1` or `2`). Such a
 /// reference is guarded by the surrounding `Fn::If`, so the conditional-target
-/// reference check (W1001) does not apply — matching cfn-lint.
+/// reference check (W1001) does not apply.
 fn path_inside_fn_if_branch(path: &str) -> bool {
     let segments: Vec<&str> = path.split('.').collect();
     segments.windows(2).any(|w| w[0] == "Fn::If" && (w[1] == "1" || w[1] == "2"))
@@ -103,8 +103,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
                     let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                     // A reference that is itself a value inside an Fn::If branch is
-                    // already guarded by that Fn::If — cfn-lint trusts the explicit
-                    // branch choice and does not flag it. Skip these to match.
+                    // already guarded by that Fn::If; the explicit branch choice
+                    // makes it safe, so skip these.
                     if path_inside_fn_if_branch(source_path) {
                         continue;
                     }

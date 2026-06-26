@@ -186,10 +186,11 @@ fn find_unreachable_branches(
                 ));
             }
 
-            // cfn-lint only checks reachability of the immediate Fn::If branches
-            // and does not recurse into Fn::If nested inside a branch, so we stop
-            // here. Recursing produced findings (e.g. `Fn::If.2.Fn::If.1`) that
-            // cfn-lint never reports.
+            // Only the reachability of the immediate Fn::If branches is checked;
+            // we do not recurse into an Fn::If nested inside a branch, so we stop
+            // here. Recursing would produce spurious findings (e.g.
+            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
+            // already-evaluated outer condition.
         }
         ResolvedValue::Map { entries } => {
             for e in entries {

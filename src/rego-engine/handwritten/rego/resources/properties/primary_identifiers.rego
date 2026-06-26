@@ -6,7 +6,7 @@ import rego.v1
 # satisfiable deploy-time condition assignment gives them the same primary
 # identifier simultaneously — comparing per scenario rather than collapsing all
 # Fn::If branches to a single representative value (which would invent
-# duplicates that can never coexist). Matches cfn-lint.
+# duplicates that can never coexist).
 
 violation contains make_diag_at("E3019", "ERROR", rname,
     _e3019_path(id_props),

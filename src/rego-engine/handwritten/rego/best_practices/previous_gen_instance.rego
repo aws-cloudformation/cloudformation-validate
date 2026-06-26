@@ -24,8 +24,9 @@ violation contains make_diag_full("I3100", "INFO", name,
     "") if {
     some check in instance_type_checks
     some name in resources_of_type(check.type)
-    # cfn-lint only inspects literal string instance types; values from a
-    # parameter Ref or other intrinsic are left alone.
+    # Only literal string instance types are checked; values from a parameter
+    # Ref or other intrinsic are left alone because their deploy-time value is
+    # not known here.
     not is_from_parameter(name, check.path)
     not is_from_intrinsic(name, check.path)
     val := resolve(name, check.path)
@@ -47,8 +48,9 @@ violation contains make_diag_full("I3100", "INFO", name,
     "") if {
     some check in nested_instance_type_checks
     some name in resources_of_type(check.type)
-    # cfn-lint only inspects literal string instance types; values from a
-    # parameter Ref or other intrinsic are left alone.
+    # Only literal string instance types are checked; values from a parameter
+    # Ref or other intrinsic are left alone because their deploy-time value is
+    # not known here.
     not is_from_parameter(name, check.path)
     not is_from_intrinsic(name, check.path)
     val := resolve(name, check.path)

@@ -49,11 +49,10 @@ static CAA_RECORD_RE: LazyLock<regex::Regex> =
 static MX_RECORD_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^\d+\s+\S+$").expect("Invalid MX_RECORD_RE pattern"));
 
-/// Whether a Lambda runtime supports SnapStart, mirroring cfn-lint's
-/// `_is_runtime_valid`: any Python, Java, or .NET runtime qualifies except the
-/// legacy `dotnetcore*` family and an explicit list of deprecated versions.
-/// Using the same allow/deny logic (rather than a fixed Java-only allowlist)
-/// keeps newer supported runtimes from being flagged.
+/// Whether a Lambda runtime supports SnapStart: any Python, Java, or .NET
+/// runtime qualifies except the legacy `dotnetcore*` family and an explicit
+/// list of deprecated versions. Using allow/deny logic (rather than a fixed
+/// Java-only allowlist) keeps newer supported runtimes from being flagged.
 fn snapstart_runtime_supported(runtime: &str) -> bool {
     const SNAPSTART_UNSUPPORTED_RUNTIMES: &[&str] = &[
         "dotnet5.0",
@@ -749,8 +748,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && !res.properties.contains_key("OwnershipControls")
             && let Some(serde_json::Value::String(ac)) = resolve_concrete(m, name, "Properties.AccessControl")
             // OwnershipControls is only required for ACLs that grant access to
-            // other accounts. The owner-scoped values need no OwnershipControl,
-            // matching cfn-lint's exempt enum.
+            // other accounts. These owner-scoped ACLs need no OwnershipControl.
             && !matches!(ac.as_str(), "Private" | "BucketOwnerFullControl" | "BucketOwnerRead")
         {
             out.push(make_resource_diagnostic(
@@ -885,6 +883,68 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
+    // I3037: advisory for duplicate scalar items in a list that permits
+    // duplicates. A list whose schema requires uniqueItems is covered by the
+    // Fatal uniqueItems check instead, so it is excluded here. The `Command`
+    // property of run-command resources legitimately repeats values and is
+    // exempt.
+    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+        for (name, res) in &m.resources {
+            let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) else {
+                continue;
+            };
+            let known_props = type_meta.get("property_types").and_then(|p| p.as_object());
+            let constraints = type_meta.get("property_constraints").and_then(|p| p.as_object());
+            for prop in res.properties.keys() {
+                if prop == "Command" {
+                    continue;
+                }
+                // Only a property the schema actually defines can be a "list that
+                // permits duplicates"; an unknown property is a structural error
+                // handled elsewhere.
+                if !known_props.is_some_and(|p| p.contains_key(prop)) {
+                    continue;
+                }
+                let requires_unique = constraints
+                    .and_then(|c| c.get(prop))
+                    .and_then(|meta| meta.get("uniqueItems"))
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                if requires_unique {
+                    continue;
+                }
+                let path = format!("Properties.{}", prop);
+                let Some(rv) = m.resolve_deep(name, &path).or_else(|| m.resolve(name, &path).cloned()) else {
+                    continue;
+                };
+                let ResolvedValue::Concrete { value: arr } = &rv else {
+                    continue;
+                };
+                let Some(items) = arr.as_array() else {
+                    continue;
+                };
+                // Distinct intrinsics (e.g. two different Refs) can each resolve to
+                // the same placeholder and look like duplicates; only literal items
+                // are advisory, so skip the list if any element came from an
+                // intrinsic function.
+                let any_intrinsic_item =
+                    (0..items.len()).any(|i| m.is_from_intrinsic(name, &format!("{}.{}", path, i)));
+                if m.is_from_intrinsic(name, &path) || any_intrinsic_item {
+                    continue;
+                }
+                if let Some(dup) = first_duplicate_scalar(items) {
+                    out.push(make_resource_diagnostic(
+                        "I3037",
+                        &format!("Array property '{}' contains duplicate value: {}", prop, dup),
+                        m,
+                        name,
+                        &path,
+                        None,
+                    ));
+                }
+            }
+        }
+    }
 
     static PREV_GEN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
         regex::Regex::new(r"(^|\.)([cmr][1-3]|cc2|cg1|cr1|g2|hi1|hs1|i2|t1)(\.|$)").expect("Invalid PREV_GEN_RE")
@@ -903,10 +963,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     for (rtype, prop_path) in instance_type_checks {
         for name in m.resources_of_type(rtype) {
-            // cfn-lint only inspects literal string instance types; a value that
-            // comes from a parameter Ref or other intrinsic is left alone (its
-            // default is just one of many possible deploy-time values). Skip those
-            // to avoid flagging a parameter default the author may never use.
+            // Only literal string instance types are checked; a value that comes
+            // from a parameter Ref or other intrinsic is left alone because its
+            // deploy-time value is not known here (the default is just one of many
+            // possible values). Skip those to avoid flagging a parameter default
+            // the author may never use.
             if m.is_from_parameter(name, prop_path) || m.is_from_intrinsic(name, prop_path) {
                 continue;
             }
@@ -955,7 +1016,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let Some(target) = m.follow_ref(name, "Properties.TaskDefinition") else {
             continue;
         };
-        // cfn-lint only requires FARGATE in RequiresCompatibilities when the task
+        // FARGATE is only required in RequiresCompatibilities when the task
         // definition uses a non-awsvpc network mode. An awsvpc task definition is
         // already Fargate-compatible, so it is exempt.
         if resolve_concrete(m, target, "Properties.NetworkMode").as_ref().and_then(|v| v.as_str()) == Some("awsvpc") {
@@ -1139,8 +1200,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             if let Some(fn_name) = m.follow_ref(name, "Properties.FunctionName") {
                 let timeout = resolve_concrete(m, fn_name, "Properties.Timeout").and_then(|v| v.as_i64()).unwrap_or(3);
                 // CloudFormation requires the queue's VisibilityTimeout to be at
-                // least the function Timeout. cfn-lint anchors the finding on the
-                // queue's VisibilityTimeout property with this exact wording.
+                // least the function Timeout. The finding is anchored on the
+                // queue's VisibilityTimeout property (the value that must be raised).
                 if let Some(v) = vis
                     && v < timeout
                 {
@@ -1759,7 +1820,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     _ => String::new(),
                 };
                 if hp_str != "traffic-port" {
-                    // cfn-lint anchors this on the target group's HealthCheckPort
+                    // The finding is anchored on the target group's HealthCheckPort
                     // (the property that must be 'traffic-port'), with the service
                     // as a related location.
                     let mut diag = make_resource_diagnostic(
@@ -1868,8 +1929,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // Build each resource's primary-id scenarios as (tuple, assumptions),
             // where assumptions includes the condition assignment that produces the
             // tuple plus the resource's own Condition. Comparing per scenario (not a
-            // single lex-min collapse across all branches) is what cfn-lint does:
-            // two resources only collide when a satisfiable deploy-time assignment
+            // single lex-min collapse across all branches) is required because two
+            // resources only collide when a satisfiable deploy-time assignment
             // gives them the same identifier simultaneously.
             let mut per_resource: Vec<(&String, Vec<PrimaryIdScenario>)> = Vec::new();
             for r in &resources {
@@ -3141,9 +3202,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for name in m.resources_of_type(rtype) {
                 for prop in *props {
                     let path = format!("Properties.{}", prop);
-                    // cfn-lint only inspects string literals here; a value wrapped
-                    // in an intrinsic (Fn::Join/Fn::Sub building an S3 URL) is left
-                    // alone, so skip intrinsic-sourced values to match it.
+                    // Only string literals are inspected here; a value wrapped in
+                    // an intrinsic (Fn::Join/Fn::Sub building an S3 URL) resolves
+                    // at deploy time and is left alone, so skip intrinsic-sourced
+                    // values.
                     if m.is_from_intrinsic(name, &path) {
                         continue;
                     }
@@ -3727,6 +3789,23 @@ fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) 
     // Keep only scenarios with a complete tuple and a satisfiable assignment.
     scenarios.retain(|s| s.tuple.len() == id_props.len() && m.conditions.is_satisfiable(&s.assumptions));
     scenarios
+}
+
+/// First scalar (string/number/bool) value that repeats in the array, formatted
+/// the way the diagnostic renders it. Non-scalar items and nulls are ignored —
+/// only repeated primitives are advisory.
+fn first_duplicate_scalar(items: &[serde_json::Value]) -> Option<String> {
+    let mut seen = HashSet::new();
+    for item in items {
+        if item.is_null() || item.is_array() || item.is_object() {
+            continue;
+        }
+        let key = item.to_string();
+        if !seen.insert(key) {
+            return Some(item.to_string());
+        }
+    }
+    None
 }
 
 fn resolved_to_json_best_effort(rv: &ResolvedValue) -> serde_json::Value {

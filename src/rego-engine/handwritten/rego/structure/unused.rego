@@ -106,7 +106,7 @@ _condition_used(cname) if {
 # W7001: Unused mappings (not referenced by any Fn::FindInMap).
 # A FindInMap with a non-literal map name (e.g. a nested FindInMap) makes it
 # impossible to attribute usage to a specific mapping, so the check is disabled
-# entirely — matching cfn-lint's W7001. Otherwise a mapping is "used" when its
+# entirely. Otherwise a mapping is "used" when its
 # name is the literal first argument of any Fn::FindInMap anywhere in the
 # template, which findInMapNames collects template-wide.
 violation contains make_diag("W7001", "WARN", "",

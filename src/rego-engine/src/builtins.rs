@@ -73,7 +73,8 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_coerce_to_string(rego);
     register_cfn_type_compatible(rego);
     register_estimate_string_length(rego, holder.clone());
-    register_schema_string_length(rego, schema_registry);
+    register_schema_string_length(rego, schema_registry.clone());
+    register_schema_requires_unique_items(rego, schema_registry);
     register_unreachable_if_branches(rego, holder);
 }
 
@@ -1424,6 +1425,26 @@ fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchem
     );
 }
 
+/// `schema_requires_unique_items(resource_type, property) -> bool` — true when
+/// the property's schema constraint sets `uniqueItems: true`.
+fn register_schema_requires_unique_items(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+    let _ = rego.add_extension(
+        "schema_requires_unique_items".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let rtype = params[0].as_string()?;
+            let prop = params[1].as_string()?;
+            let requires_unique = schema_reg(&registry)
+                .get(rtype.as_ref())
+                .and_then(|info| info.property_constraints.get(prop.as_ref()))
+                .and_then(|c| c.get("uniqueItems"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            Ok(Value::from(requires_unique))
+        }),
+    );
+}
+
 fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "unreachable_if_branches".into(),
@@ -1536,10 +1557,11 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
-            // cfn-lint only checks reachability of the immediate Fn::If branches
-            // and does not recurse into Fn::If nested inside a branch, so we stop
-            // here. Recursing produced findings (e.g. `Fn::If.2.Fn::If.1`) that
-            // cfn-lint never reports.
+            // Only the reachability of the immediate Fn::If branches is checked;
+            // we do not recurse into an Fn::If nested inside a branch, so we stop
+            // here. Recursing would produce spurious findings (e.g.
+            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
+            // already-evaluated outer condition.
         }
         ResolvedValue::Map { entries } => {
             for MapEntry { key, value: val } in entries {

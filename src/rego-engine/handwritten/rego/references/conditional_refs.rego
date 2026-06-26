@@ -12,8 +12,8 @@ violation contains make_diag_full("W1001", "WARN", source, edge.sourcePath,
     some edge in input.resources[source].outgoingRefs
     edge.kind in {"Ref", "GetAtt"}
     # A reference that is itself a value inside an Fn::If branch is already
-    # guarded by that Fn::If — cfn-lint trusts the explicit branch choice and
-    # does not flag it.
+    # guarded by that Fn::If; the explicit branch choice makes it safe, so it is
+    # not flagged.
     not _path_inside_fn_if_branch(edge.sourcePath)
     target := edge.target
     target in object.keys(input.resources)

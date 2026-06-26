@@ -168,9 +168,10 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if is_zip_deployment(m, name) {
-            // cfn-lint reports a single diagnostic listing every missing property,
-            // anchored at the Code property. Collect them and emit one finding to
-            // match that shape rather than one per property.
+            // Report a single diagnostic listing every missing property, anchored
+            // at the Code property (CloudFormation rejects the resource once, not
+            // once per property). Collect them and emit one finding rather than
+            // one per property.
             let missing: Vec<&str> = ["Handler", "Runtime"]
                 .into_iter()
                 .filter(|prop| {

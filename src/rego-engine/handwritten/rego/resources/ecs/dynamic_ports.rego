@@ -3,8 +3,8 @@ package resources
 import rego.v1
 
 # E3049: ECS dynamic port requires traffic-port health check.
-# cfn-lint anchors this on the target group's HealthCheckPort (the property that
-# must be 'traffic-port'), with the service as a related location.
+# The finding is anchored on the target group's HealthCheckPort (the property
+# that must be 'traffic-port'), with the service as a related location.
 violation contains make_diag_related("E3049", "ERROR", tg_name,
     "Properties.HealthCheckPort",
     sprintf("Container '%s' has HostPort 0 but TargetGroup '%s' HealthCheckPort is '%s', must be 'traffic-port'",

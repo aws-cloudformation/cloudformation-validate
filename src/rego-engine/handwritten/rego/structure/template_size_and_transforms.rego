@@ -34,7 +34,11 @@ violation contains make_diag("E1005", "ERROR", "",
     not entry.Name
 }
 
-# I2003: AllowedPattern must be a valid regex
+# I2003: AllowedPattern must be a valid regex.
+# CloudFormation validates AllowedPattern with a PCRE-style engine that supports
+# lookaround and backreferences; RE2 (regex.is_valid) does not. A pattern that
+# fails only because of those constructs is still valid service-side, so only
+# report genuinely-malformed regex.
 violation contains make_diag("I2003", "INFO", "",
     sprintf("Parameter '%s' AllowedPattern '%s' is not a valid regular expression", [pname, pattern])) if {
     some pname, param in input.parameters
@@ -42,4 +46,15 @@ violation contains make_diag("I2003", "INFO", "",
     pattern != null
     is_string(pattern)
     not regex.is_valid(pattern)
+    not _uses_extended_regex_syntax(pattern)
+}
+
+_uses_extended_regex_syntax(pattern) if {
+    some prefix in ["(?=", "(?!", "(?<=", "(?<!", "(?>"]
+    contains(pattern, prefix)
+}
+
+# Backreference: a backslash followed by a digit 1-9.
+_uses_extended_regex_syntax(pattern) if {
+    regex.match(`\\[1-9]`, pattern)
 }

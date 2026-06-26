@@ -2,9 +2,9 @@ package resources
 
 import rego.v1
 
-# E2530: Lambda SnapStart requires a supported runtime. Mirrors cfn-lint's
-# _is_runtime_valid: any Python, Java, or .NET runtime qualifies except the
-# legacy dotnetcore* family and an explicit list of deprecated versions.
+# E2530: Lambda SnapStart requires a supported runtime: any Python, Java, or
+# .NET runtime qualifies except the legacy dotnetcore* family and an explicit
+# list of deprecated versions.
 snapstart_unsupported_runtimes := {
     "dotnet5.0", "dotnet6", "dotnet7",
     "java8.al2", "java8",
