@@ -218,13 +218,18 @@ def load_cfnlint_results_from_files():
         d = CFN_LINT_RESULTS / subdir
         if not d.exists():
             continue
-        for f in sorted(d.glob("*.json")):
-            _load_cfnlint_result_file(f, subdir, results)
-        # Scan nested subdirectories (good/core/, bad/resources/, etc.)
-        for sd in sorted(d.iterdir()):
-            if sd.is_dir() and not sd.name.startswith("__"):
-                for f in sorted(sd.glob("*.json")):
-                    _load_cfnlint_result_file(f, f"{subdir}_{sd.name}", results)
+        # Recurse to every depth. The per-file key is derived from the result's
+        # internal `Filename` field, so arbitrarily nested fixtures (e.g.
+        # good/resources/properties/*.json) still key correctly; the path-derived
+        # prefix is only a fallback for files lacking a Filename. A shallow scan
+        # would silently drop deeply-nested fixtures, hiding any engine finding on
+        # those templates from the false-positive tally.
+        for f in sorted(d.rglob("*.json")):
+            if any(part.startswith("__") for part in f.relative_to(d).parts):
+                continue
+            rel_parents = "_".join(f.relative_to(d).parent.parts)
+            prefix = f"{subdir}_{rel_parents}" if rel_parents else subdir
+            _load_cfnlint_result_file(f, prefix, results)
     return results
 
 
