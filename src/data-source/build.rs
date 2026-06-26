@@ -77,13 +77,11 @@ fn main() {
 
     let mut code = String::new();
 
-    // Generated JSON data → minified &[u8]
     for (filename, const_name) in GENERATED_JSON {
         let path = resolve_json_file(&generated_data_dir, &generated_sv_dir, filename);
         embed_minified_json(&path, const_name, &out_dir, &mut code);
     }
 
-    // Handwritten JSON → minified &[u8]
     for (filename, const_name) in HANDWRITTEN_JSON {
         let path = handwritten_dir.join(format!("{filename}.json"));
         assert_exists(&path, "handwritten");
@@ -98,7 +96,6 @@ fn main() {
     }
     embed_minified_json(&cel_rules_path, "GENERATED_RULES", &out_dir, &mut code);
 
-    // Handwritten rego policies → &[(&str, &str)]
     code.push_str("pub const HANDWRITTEN_REGO_POLICIES: &[(&str, &str)] = &[\n");
     if rego_hw_dir.exists() {
         collect_rego_files(&rego_hw_dir, &rego_hw_dir, &mut code);

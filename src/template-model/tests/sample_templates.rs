@@ -28,8 +28,6 @@ fn assert_concrete_str(v: &ResolvedValue, expected: &str) {
     }
 }
 
-// ── Parsing: intentionally invalid files ────────────────────────────────
-
 #[test]
 fn parse_rejects_empty_file() {
     assert!(try_load("bad/empty_file.yaml").is_err(), "expected error for empty file");
@@ -53,8 +51,6 @@ fn parse_rejects_non_mapping_root() {
     assert!(try_load("bad/string.yaml").is_err(), "expected error for non-mapping root");
 }
 
-// ── Format version / description / transforms ──────────────────────────
-
 #[test]
 fn template_metadata_fields() {
     let m = load("lsp/comprehensive.yaml");
@@ -67,8 +63,6 @@ fn template_metadata_fields() {
     );
     assert!(m.transforms.contains(&"AWS::Include".to_string()), "transforms should contain AWS::Include");
 }
-
-// ── Parameters: all types ──────────────────────────────────────────────
 
 #[test]
 fn parameters_all_types() {
@@ -97,8 +91,6 @@ fn parameters_all_types() {
     assert_eq!(ssm.param_type, "AWS::SSM::Parameter::Value<String>");
 }
 
-// ── Mappings: extraction and FindInMap resolution ──────────────────────
-
 #[test]
 fn mappings_extraction_and_lookup() {
     let m = load("lsp/comprehensive.yaml");
@@ -124,8 +116,6 @@ fn mappings_extraction_and_lookup() {
         other => panic!("expected Enum for DBInstanceClass, got {:?}", other),
     }
 }
-
-// ── Conditions: nested short-form tags ─────────────────────────────────
 
 #[test]
 fn conditions_nested_short_form_tags() {
@@ -193,8 +183,6 @@ fn conditions_core_complex_nesting() {
     assert!(m.conditions.condition_implies("isPrimaryAndProduction", "isPrimary"));
 }
 
-// ── Fn::If: named conditions and inline expressions ────────────────────
-
 #[test]
 fn fn_if_named_condition() {
     let m = load("lsp/condition-usage.yaml");
@@ -240,8 +228,6 @@ fn fn_if_nested_conditionals() {
     }
 }
 
-// ── Fn::Sub: concrete, enum, explicit map ──────────────────────────────
-
 #[test]
 fn fn_sub_with_allowed_values_produces_enum() {
     let m = load("lsp/comprehensive.yaml");
@@ -276,8 +262,6 @@ fn fn_sub_with_explicit_map() {
     }
 }
 
-// ── Fn::Join / Fn::Select / Fn::Split / Fn::Base64 ────────────────────
-
 #[test]
 fn fn_join_concrete() {
     let m = load("lsp/parameter_usage.yaml");
@@ -304,8 +288,6 @@ fn fn_select_concrete() {
         other => panic!("expected Concrete for VPC CidrBlock, got {:?}", other),
     }
 }
-
-// ── Ref resolution: params, resources, pseudo-params ───────────────────
 
 #[test]
 fn ref_to_param_with_default() {
@@ -351,8 +333,6 @@ fn ref_to_pseudo_param_is_dynamic() {
     }
 }
 
-// ── GetAtt resolution ──────────────────────────────────────────────────
-
 #[test]
 fn getatt_produces_reference_with_attr() {
     let m = load("lsp/comprehensive.yaml");
@@ -365,8 +345,6 @@ fn getatt_produces_reference_with_attr() {
         other => panic!("expected Reference(LambdaRole, GetAtt(Arn)), got {:?}", other),
     }
 }
-
-// ── Resource attributes: Condition, DependsOn, DeletionPolicy ──────────
 
 #[test]
 fn resource_condition() {
@@ -412,8 +390,6 @@ fn resource_metadata() {
     assert_eq!(meta["Purpose"], "Main VPC");
 }
 
-// ── Outputs ────────────────────────────────────────────────────────────
-
 #[test]
 fn outputs_value_condition_export() {
     let m = load("lsp/comprehensive.yaml");
@@ -443,8 +419,6 @@ fn outputs_conditional_values() {
     }
 }
 
-// ── Reference graph ────────────────────────────────────────────────────
-
 #[test]
 fn graph_edges_and_traversal() {
     let m = load("lsp/comprehensive.yaml");
@@ -469,8 +443,6 @@ fn graph_dependson_circular() {
     assert!(!m.graph.cycles().is_empty(), "expected DependsOn circular dependency cycles");
 }
 
-// ── Dynamic references ({{resolve:...}}) ───────────────────────────────
-
 #[test]
 fn dynamic_references_resolve_to_dynamic() {
     let m = load("integration/dynamic-references.yaml");
@@ -481,8 +453,6 @@ fn dynamic_references_resolve_to_dynamic() {
     });
     assert!(has_dynamic, "expected dynamic reference resolution");
 }
-
-// ── AWS::NoValue in Fn::If ─────────────────────────────────────────────
 
 #[test]
 fn no_value_resolves_to_null() {
@@ -500,8 +470,6 @@ fn no_value_resolves_to_null() {
         other => panic!("expected Conditional with NoValue, got {:?}", other),
     }
 }
-
-// ── resolve_deep: nested property access ───────────────────────────────
 
 #[test]
 fn resolve_deep_into_concrete_object() {
@@ -522,8 +490,6 @@ fn resolve_deep_through_conditional() {
     }
 }
 
-// ── resolve_scenarios ──────────────────────────────────────────────────
-
 #[test]
 fn resolve_scenarios_expands_conditional() {
     let m = load("lsp/comprehensive.yaml");
@@ -540,8 +506,6 @@ fn resolve_scenarios_expands_conditional() {
     assert!(vals.contains(&100), "expected scenario with value 100");
     assert!(vals.contains(&20), "expected scenario with value 20");
 }
-
-// ── JSON/YAML equivalence ──────────────────────────────────────────────
 
 #[test]
 fn json_yaml_equivalence_simple() {
@@ -562,8 +526,6 @@ fn json_yaml_equivalence_conditions() {
     }
 }
 
-// ── Transforms ─────────────────────────────────────────────────────────
-
 #[test]
 fn transforms_extracted() {
     let m = load("good/transform/language_extension.yaml");
@@ -579,8 +541,6 @@ fn sam_transform() {
     assert!(m.transforms.iter().any(|t| t.contains("Serverless")), "transforms should contain a Serverless transform");
 }
 
-// ── Condition refs tracked on resources ────────────────────────────────
-
 #[test]
 fn condition_refs_tracked() {
     let m = load("lsp/condition-usage.yaml");
@@ -593,8 +553,6 @@ fn condition_refs_tracked() {
     );
 }
 
-// ── FindInMap refs tracked ─────────────────────────────────────────────
-
 #[test]
 fn findinmap_refs_tracked() {
     let m = load("lsp/comprehensive.yaml");
@@ -604,8 +562,6 @@ fn findinmap_refs_tracked() {
         "find_in_map_refs should contain EnvironmentMap"
     );
 }
-
-// ── to_json structure ────────────────────────────────────────────
 
 #[test]
 fn rego_input_complete_structure() {
@@ -624,8 +580,6 @@ fn rego_input_complete_structure() {
     assert!(json["cycles"].as_array().unwrap().is_empty(), "comprehensive template should have no cycles");
     assert_eq!(json["mappings"].as_object().unwrap().len(), 2);
 }
-
-// ── Large template smoke tests ─────────────────────────────────────────
 
 #[test]
 fn quickstart_vpc_json_large() {
@@ -649,8 +603,6 @@ fn public_watchmaker_json_large() {
     assert!(m.parameters.len() > 20, "expected > 20 parameters, got {}", m.parameters.len());
     assert!(m.conditions.conditions.len() > 10, "expected > 10 conditions, got {}", m.conditions.conditions.len());
 }
-
-// ── All parseable templates: bulk smoke test ───────────────────────────
 
 #[test]
 fn all_templates_parse_without_panic() {
@@ -690,8 +642,6 @@ fn walk_recursive(dir: &std::path::Path, out: &mut Vec<String>) {
     }
 }
 
-// ── Template-level metadata ────────────────────────────────────────────
-
 #[test]
 fn template_level_metadata_extracted() {
     let m = load("lsp/comprehensive.yaml");
@@ -709,8 +659,6 @@ fn template_level_metadata_absent_when_missing() {
     let m = load("good/minimal.yaml");
     assert_eq!(m.template_metadata, None, "minimal template should have no metadata");
 }
-
-// ── Rules ──────────────────────────────────────────────────────────────
 
 #[test]
 fn rules_extracted() {
@@ -733,8 +681,6 @@ fn rules_absent_when_missing() {
     assert_eq!(m.rules, None, "minimal template should have no rules");
 }
 
-// ── UpdatePolicy / CreationPolicy ──────────────────────────────────────
-
 #[test]
 fn resource_update_policy_and_creation_policy() {
     let m = load("lsp/comprehensive.yaml");
@@ -756,8 +702,6 @@ fn resource_without_policies_has_none() {
     assert_eq!(vpc.creation_policy, None, "VPC should have no CreationPolicy");
 }
 
-// ── Select on non-list value ───────────────────────────────────────────
-
 #[test]
 fn select_on_non_list_gives_correct_message() {
     let m = load("lsp/comprehensive.yaml");
@@ -773,15 +717,13 @@ fn select_on_non_list_gives_correct_message() {
     }
 }
 
-// ── Condition value expression treats intrinsics as opaque ──────────────
-
 #[test]
 fn condition_intrinsic_value_is_opaque_not_literal() {
     let m = load("lsp/comprehensive.yaml");
     // HasMultipleAZs: !Not [!Equals [!Select [1, !Ref AvailabilityZones], ""]]
     // The !Select result cannot be known statically, so it must be modeled as an
     // opaque value (Other), NOT a descriptive literal like "Select(...)".
-    // Treating it as a literal made the always-true/false check (W8003) compare a
+    // Treating it as a literal made the always-true/false check compare a
     // description string against "" and fire a false positive — the SAT solver
     // must instead see an unknown.
     let expr = m.conditions.get("HasMultipleAZs").unwrap();
@@ -792,8 +734,6 @@ fn condition_intrinsic_value_is_opaque_not_literal() {
         formatted
     );
 }
-
-// ── Condition refs from Metadata blocks ─────────────────────────────────
 
 #[test]
 fn condition_refs_include_metadata_fn_if() {
@@ -809,8 +749,6 @@ fn condition_refs_include_metadata_fn_if() {
         instance.diagnostics.condition_refs
     );
 }
-
-// ── to_json includes condition implications and resource_condition_map ───
 
 #[test]
 fn to_json_has_condition_implications() {

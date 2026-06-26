@@ -3,8 +3,6 @@
 use serde_json::Value;
 use std::path::PathBuf;
 
-// ── Paths ────────────────────────────────────────────────────────────────────
-
 pub fn resources_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("workspace root").join("resources")
 }
@@ -40,8 +38,6 @@ pub fn load_security_rule(filename: &str) -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read security rule {}: {e}", path.display()))
 }
 
-// ── Golden templates ─────────────────────────────────────────────────────────
-
 /// All template directories covered by golden-file tests.
 const GOLDEN_DIRS: &[&str] = &["good", "bad", "integration", "issues", "lsp", "quickstart", "public"];
 
@@ -74,8 +70,6 @@ fn walk_collect(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<Str
         }
     }
 }
-
-// ── Golden comparison ────────────────────────────────────────────────────────
 
 pub fn load_combined_golden() -> serde_json::Map<String, Value> {
     let path = resources_root().join("expected").join("all_templates.json");

@@ -536,7 +536,6 @@ impl ConditionModel {
                 return true;
             }
 
-            // Increment indices
             let mut carry = true;
             for i in (0..indices.len()).rev() {
                 if carry {
@@ -855,7 +854,7 @@ fn parse_value_expr(arena: &Arena, node_ref: NodeRef, parameters: &HashMap<Strin
         // opaque unknown (`Other`), never a comparable literal. Treating, say,
         // `Fn::Sub(...)` as the literal string "Sub(...)" would make
         // `Fn::Equals[!Sub ..., "x"]` look like a literal-vs-literal compare and
-        // spuriously fire the always-true/false check (W8003).
+        // spuriously fire the always-true/false check.
         Node::Intrinsic(IntrinsicFn::FindInMap(m, k1, k2, _)) => {
             let map_name = arena.as_str(*m).unwrap_or("?").to_string();
             let key1 = parse_value_expr(arena, *k1, parameters);
@@ -1036,6 +1035,7 @@ mod tests {
     use crate::model::PseudoParameterOverrides;
     use crate::parser;
     use crate::resolver::{extract_mappings, extract_parameters};
+    use std::fmt::Write;
 
     fn build_condition_model(input: &str) -> ConditionModel {
         let ir = parser::parse(input.as_bytes()).unwrap();
@@ -1538,9 +1538,9 @@ Resources:
         assert!(model.is_satisfiable(&[("IsUsEast1".into(), false)]));
     }
 
-    /// Regression test for a W1028 false positive: when an `Fn::Equals`
-    /// compares a pseudo-parameter to a literal and no override pins that
-    /// pseudo-parameter, both branches of an `Fn::If` keyed on that condition
+    /// Regression test for an unreachable-branch false positive: when an
+    /// `Fn::Equals` compares a pseudo-parameter to a literal and no override pins
+    /// that pseudo-parameter, both branches of an `Fn::If` keyed on that condition
     /// must remain reachable. Before this was fixed, the SAT solver resolved
     /// `AWS::Partition` to its auto-derived default (`"aws"`), making
     /// `Fn::Equals[Ref AWS::Partition, "aws"]` deterministically true and the
@@ -1820,7 +1820,6 @@ Resources:
     /// depends on the whole chain, so deciding `Contra` forces the solver to
     /// reason over every condition in the chain.
     fn chain_with_contradiction(chain_len: usize) -> String {
-        use std::fmt::Write;
         let mut s = String::from(
             "Parameters:\n  P0:\n    Type: String\n    AllowedValues: [yes, no]\n  \
              P1:\n    Type: String\n    AllowedValues: [yes, no]\n\
@@ -1896,7 +1895,6 @@ Resources:
     /// base — so a query over `Wide` has a dependency closure spanning all of
     /// the parameters.
     fn wide_parameter_closure(param_count: usize) -> String {
-        use std::fmt::Write;
         let mut s = String::from("Parameters:\n");
         for i in 0..param_count {
             let _ = write!(s, "  P{i:02}:\n    Type: String\n    AllowedValues: [yes, no]\n");

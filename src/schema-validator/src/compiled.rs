@@ -329,7 +329,6 @@ mod tests {
         let json_str = serde_json::to_string(&schema).unwrap();
         let val: serde_json::Value = serde_json::from_str(&json_str).unwrap();
         let obj = val.as_object().unwrap();
-        // Default PropSchema should serialize to empty object (all fields skipped)
         assert!(obj.is_empty(), "expected empty JSON for default PropSchema, got: {}", json_str);
     }
 

@@ -1,5 +1,6 @@
 use crate::consts::*;
 use crate::ir::*;
+use diagnostics::Diagnostic;
 use log::{debug, info, warn};
 use std::collections::{BTreeMap, HashMap};
 use std::mem;
@@ -322,7 +323,7 @@ struct YamlBuilder {
     arena: Arena,
     global_index: GlobalIndex,
     span_index: SourceSpanIndex,
-    diagnostics: Vec<diagnostics::Diagnostic>,
+    diagnostics: Vec<Diagnostic>,
 }
 
 /// Describe a YAML value's type/content for diagnostic messages.
@@ -591,8 +592,9 @@ impl YamlBuilder {
                     return None;
                 };
                 if a.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1021) can report with proper resource context.
+                    // Wrong element count — fall through to a plain map so the
+                    // downstream Fn::Join structure rule can report with proper
+                    // resource context.
                     return None;
                 }
                 if !matches!(&a[0], Yaml::String(_) | Yaml::Hash(_)) {
@@ -612,13 +614,15 @@ impl YamlBuilder {
                         // Value is an intrinsic — cannot validate statically.
                         return None;
                     }
-                    // Non-array value (e.g. string) — fall through to plain map so
-                    // downstream rules (E1017) can report with proper resource context.
+                    // Non-array value (e.g. string) — fall through to a plain map
+                    // so the downstream Fn::Select structure rule can report with
+                    // proper resource context.
                     return None;
                 };
                 if a.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1017) can report with proper resource context.
+                    // Wrong element count — fall through to a plain map so the
+                    // downstream Fn::Select structure rule can report with proper
+                    // resource context.
                     return None;
                 }
                 if !matches!(&a[0], Yaml::Integer(_) | Yaml::Hash(_)) {

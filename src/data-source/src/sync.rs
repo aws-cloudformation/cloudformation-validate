@@ -1,3 +1,4 @@
+use data_source::sync_upstream;
 use log::{error, info};
 use std::env;
 use std::path::PathBuf;
@@ -35,7 +36,7 @@ fn main() -> anyhow::Result<()> {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let upstream_dir = manifest.join("upstream");
 
-    data_source::sync_upstream(&upstream_dir, rule_source_root.as_deref())?;
+    sync_upstream(&upstream_dir, rule_source_root.as_deref())?;
 
     info!("Sync complete — run `cargo run -p data-source --example generate` to regenerate outputs");
     Ok(())

@@ -5,7 +5,7 @@ use crate::ir::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
 use crate::sam;
-use diagnostics::{PhaseMetric, phase_metric};
+use diagnostics::{Diagnostic, JsonValue, PhaseMetric, SpanProvider, phase_metric};
 use log::{debug, info, warn};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -60,11 +60,11 @@ pub struct ResolvedResource {
     pub deletion_policy: Option<ResolvedValue>,
     pub update_replace_policy: Option<ResolvedValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub update_policy: Option<diagnostics::JsonValue>,
+    pub update_policy: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub creation_policy: Option<diagnostics::JsonValue>,
+    pub creation_policy: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub metadata: Option<diagnostics::JsonValue>,
+    pub metadata: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
     /// True when the entire `Properties` block is a non-map intrinsic (e.g.
@@ -132,7 +132,7 @@ pub struct SemanticModel {
     pub outputs: HashMap<String, ResolvedOutput>,
     pub graph: ReferenceGraph,
     pub resources_by_type: HashMap<String, Vec<String>>,
-    pub diagnostics: Vec<diagnostics::Diagnostic>,
+    pub diagnostics: Vec<Diagnostic>,
     pub output_empty_joins: Vec<String>,
     pub sam_globals: HashMap<String, HashMap<String, serde_json::Value>>,
     pub sam_implicit_resources: HashSet<String>,
@@ -146,8 +146,8 @@ pub struct SemanticModel {
     /// (e.g. a Default of `!Ref OtherParam`); these still count as usage.
     pub params_referenced_in_definitions: HashSet<String>,
     /// True when any `Fn::FindInMap` uses a non-literal map name, which disables
-    /// the unused-mapping check (W7001) because usage can no longer be attributed
-    /// to a specific mapping.
+    /// the unused-mapping check because usage can no longer be attributed to a
+    /// specific mapping.
     pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
@@ -456,8 +456,8 @@ impl SemanticModel {
                 // rejected by the parser and left as a plain `Fn::If` map node
                 // rather than an `IntrinsicFn::If`. Its condition is still
                 // referenced, so collect the name here too — otherwise the
-                // unused-condition check (W8001) would wrongly flag a condition
-                // that the template does reference.
+                // unused-condition check would wrongly flag a condition that the
+                // template does reference.
                 Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
                     if let Some(first) = ir.arena.as_list(entries[0].1).and_then(|items| items.first())
                         && let Some(cond_name) = ir.arena.as_str(*first)
@@ -615,9 +615,6 @@ impl SemanticModel {
             .is_some_and(|s| s.starts_with("Parameters/"))
     }
 
-    /// True when the value at `path` (or any ancestor up to the resource root) was
-    /// produced by an intrinsic function. Used by rules that skip hardcoded-literal
-    /// checks when the property value comes from `Fn::GetAZs`, `Ref`, etc.
     /// True when the value at `path` (or any ancestor up to the resource root) was
     /// produced by an intrinsic function. Used by rules that skip hardcoded-literal
     /// checks when the property value comes from `Fn::GetAZs`, `Ref`, etc.
@@ -800,7 +797,7 @@ impl SemanticModel {
     }
 }
 
-impl diagnostics::SpanProvider for SemanticModel {
+impl SpanProvider for SemanticModel {
     fn source_location(&self, path: &str) -> Option<SourceSpan> {
         self.span_index.get(path).copied()
     }
@@ -859,12 +856,6 @@ fn parse_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node
         .collect()
 }
 
-/// Some intrinsic nodes stand in for a whole object — most notably
-/// `Properties: {Fn::If: [...]}` which the parser folds into an
-/// `IntrinsicFn::If` node. Return the CloudFormation function-name key
-/// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
-/// object-wrapping intrinsics, so downstream resolution can address the
-/// conditional by a synthetic path.
 /// Collect parameter names that are referenced (via `Ref`/`Fn::Sub`) from within
 /// another parameter's definition. These references still count as usage for the
 /// unused-parameter check even though they originate in the Parameters section.
@@ -913,6 +904,12 @@ fn collect_refs_in_subtree(
     }
 }
 
+/// Some intrinsic nodes stand in for a whole object — most notably
+/// `Properties: {Fn::If: [...]}` which the parser folds into an
+/// `IntrinsicFn::If` node. Return the CloudFormation function-name key
+/// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
+/// object-wrapping intrinsics, so downstream resolution can address the
+/// conditional by a synthetic path.
 fn intrinsic_synthetic_key(arena: &Arena, node_ref: NodeRef) -> Option<String> {
     let Node::Intrinsic(func) = arena.node(node_ref) else {
         return None;
@@ -1012,9 +1009,9 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
         depends_on,
         deletion_policy,
         update_replace_policy,
-        update_policy: update_policy.map(diagnostics::JsonValue),
-        creation_policy: creation_policy.map(diagnostics::JsonValue),
-        metadata: metadata.map(diagnostics::JsonValue),
+        update_policy: update_policy.map(JsonValue),
+        creation_policy: creation_policy.map(JsonValue),
+        metadata: metadata.map(JsonValue),
         properties,
         properties_dynamic,
         diagnostics: ResourceDiagnostics {
@@ -1545,7 +1542,7 @@ Resources:
     /// caller pinned the corresponding field — never for region-derived
     /// defaults — otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
     /// falsely deterministic and `find_unreachable_branches` would emit
-    /// false-positive W1028 diagnostics.
+    /// false-positive unreachable-branch diagnostics.
     #[test]
     fn fixed_value_returns_none_for_unset_pseudo_parameters() {
         let overrides = PseudoParameterOverrides::default();

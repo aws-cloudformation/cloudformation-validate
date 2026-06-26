@@ -1,5 +1,6 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use rules::Category;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
@@ -40,10 +41,10 @@ static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {
 });
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::BestPractice, eval_best_practices);
-    reg.add(rules::Category::BestPractice, eval_retention_period_rules);
-    reg.add(rules::Category::BestPractice, eval_deprecated_resource_types);
-    reg.add(rules::Category::Security, eval_sensitive_port_rules);
+    reg.add(Category::BestPractice, eval_best_practices);
+    reg.add(Category::BestPractice, eval_retention_period_rules);
+    reg.add(Category::BestPractice, eval_deprecated_resource_types);
+    reg.add(Category::Security, eval_sensitive_port_rules);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
@@ -57,7 +58,7 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
 /// Whether a `DeletionPolicy`/`UpdateReplacePolicy` value is the literal
 /// `"Delete"`. A lone policy set to `Delete` is the default behavior, so
 /// CloudFormation gains nothing from also setting its counterpart, and the
-/// configuration is treated as valid (no W3011 warning).
+/// configuration is treated as valid (no warning).
 fn policy_is_delete(policy: Option<&ResolvedValue>) -> bool {
     matches!(policy, Some(ResolvedValue::Concrete { value: v }) if v.as_str() == Some("Delete"))
 }
@@ -202,7 +203,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // I3042: Only fires for hardcoded partition inside Fn::Sub, skips SAM
+    // Only fires for a hardcoded partition inside Fn::Sub, and skips SAM templates.
     let has_serverless = m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
     if !has_serverless {
         for (name, res) in &m.resources {
@@ -327,7 +328,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // W2501: Parameter used as password without NoEcho — emit at parameter location
+    // Parameter used as a password without NoEcho — emit at the parameter location.
     if let Some(resources) = ctx.input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_rname, res) in resources {
             let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) else {

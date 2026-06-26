@@ -3,7 +3,8 @@ use crate::diagnostic::*;
 use crate::model::{ResolvedOutput, ResolvedResource, SemanticModel, TemplateRule};
 use crate::resolved_value::collect_condition_refs_from_resolved;
 use crate::resolver::{MapEntry, RefKind, ResolvedValue};
-use diagnostics::JsonValue;
+use diagnostics::{JsonValue, Phase};
+use rules_crate::Severity;
 use std::collections::HashMap;
 
 impl SemanticModel {
@@ -116,7 +117,7 @@ impl SemanticModel {
             has_parse_errors: self
                 .diagnostics
                 .iter()
-                .any(|d| d.severity == rules_crate::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse)),
+                .any(|d| d.severity == Severity::Fatal && d.phase == Some(Phase::Parse)),
             parsed_rules: self.parsed_rules.iter().map(build_rule).collect(),
             resolution_sources: self
                 .resolution_sources

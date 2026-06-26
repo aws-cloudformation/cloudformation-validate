@@ -434,7 +434,7 @@ mod tests {
                 resolution_source: None,
                 extra: None,
             }),
-            source: rules::RuleOrigin::CfnLint,
+            source: RuleOrigin::CfnLint,
         }
     }
 

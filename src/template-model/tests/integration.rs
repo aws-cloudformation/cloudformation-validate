@@ -1,4 +1,6 @@
+use diagnostics::SpanProvider;
 use template_model::SemanticModel;
+use template_model::resolver::ResolvedValue;
 
 const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templates");
 
@@ -32,31 +34,31 @@ fn fixture_both_intrinsic_forms() {
 
     let bucket_short = model.resource("BucketShort").unwrap();
     match bucket_short.properties.get("BucketName") {
-        Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
+        Some(ResolvedValue::Enum { variants: _ }) => {}
         other => panic!("BucketShort.BucketName: expected Enum from Sub, got {:?}", other),
     }
 
     let bucket_long = model.resource("BucketLong").unwrap();
     match bucket_long.properties.get("BucketName") {
-        Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
+        Some(ResolvedValue::Enum { variants: _ }) => {}
         other => panic!("BucketLong.BucketName: expected Enum from Sub, got {:?}", other),
     }
 
     let with_getatt = model.resource("WithGetAtt").unwrap();
     match with_getatt.properties.get("ShortForm") {
-        Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
+        Some(ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketShort")
         }
         other => panic!("WithGetAtt.ShortForm: expected Reference, got {:?}", other),
     }
     match with_getatt.properties.get("LongFormDotted") {
-        Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
+        Some(ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketShort")
         }
         other => panic!("WithGetAtt.LongFormDotted: expected Reference, got {:?}", other),
     }
     match with_getatt.properties.get("LongFormArray") {
-        Some(template_model::resolver::ResolvedValue::Reference { target: t, .. }) => {
+        Some(ResolvedValue::Reference { target: t, .. }) => {
             assert_eq!(t, "BucketLong")
         }
         other => panic!("WithGetAtt.LongFormArray: expected Reference, got {:?}", other),
@@ -64,13 +66,13 @@ fn fixture_both_intrinsic_forms() {
 
     let with_join = model.resource("WithJoin").unwrap();
     match with_join.properties.get("Short") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "a-b-c");
         }
         other => panic!("WithJoin.Short: expected Concrete 'a-b-c', got {:?}", other),
     }
     match with_join.properties.get("Long") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "x-y-z");
         }
         other => panic!("WithJoin.Long: expected Concrete 'x-y-z', got {:?}", other),
@@ -78,13 +80,13 @@ fn fixture_both_intrinsic_forms() {
 
     let with_select = model.resource("WithSelect").unwrap();
     match with_select.properties.get("Short") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "a")
         }
         other => panic!("WithSelect.Short: expected Concrete 'a', got {:?}", other),
     }
     match with_select.properties.get("Long") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "b")
         }
         other => panic!("WithSelect.Long: expected Concrete 'b', got {:?}", other),
@@ -92,15 +94,15 @@ fn fixture_both_intrinsic_forms() {
 
     let with_if = model.resource("WithIf").unwrap();
     assert!(
-        matches!(with_if.properties.get("Short"), Some(template_model::resolver::ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
+        matches!(with_if.properties.get("Short"), Some(ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
     );
     assert!(
-        matches!(with_if.properties.get("Long"), Some(template_model::resolver::ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
+        matches!(with_if.properties.get("Long"), Some(ResolvedValue::Conditional { condition: c, .. }) if c == "IsProd")
     );
 
     let with_b64 = model.resource("WithBase64").unwrap();
     match with_b64.properties.get("Short") {
-        Some(template_model::resolver::ResolvedValue::Concrete { value: v }) => {
+        Some(ResolvedValue::Concrete { value: v }) => {
             assert_eq!(v.as_str().unwrap(), "aGVsbG8=")
         }
         other => panic!("WithBase64.Short: expected Concrete base64, got {:?}", other),
@@ -108,7 +110,7 @@ fn fixture_both_intrinsic_forms() {
 
     let sub_block = model.resource("SubBlock").unwrap();
     match sub_block.properties.get("UserData") {
-        Some(template_model::resolver::ResolvedValue::Enum { variants: _ }) => {}
+        Some(ResolvedValue::Enum { variants: _ }) => {}
         other => panic!("SubBlock.UserData: expected Enum from Sub, got {:?}", other),
     }
 
@@ -120,8 +122,6 @@ fn fixture_both_intrinsic_forms() {
 
     assert_eq!(model.outputs.len(), 1);
 }
-
-// ── Parser: JSON/YAML auto-detection and edge cases ─────────────────────
 
 #[test]
 fn parser_auto_detects_json() {
@@ -312,8 +312,6 @@ fn parser_span_index_populated() {
     assert!(model.span_index.contains_key("Resources/MyBucket/Properties/BucketName"));
 }
 
-// ── SAM: globals merging, implicit resources ────────────────────────────
-
 #[test]
 fn sam_globals_merged_into_function() {
     let model = model_from_fixture("good/transform_serverless_globals.yaml");
@@ -342,21 +340,17 @@ fn sam_globals_param_refs_collected() {
     assert_eq!(model.globals_param_refs.len(), 0, "expected no param refs in globals for this template");
 }
 
-// ── Dynamic references ({{resolve:...}}) ────────────────────────────────
-
 #[test]
 fn dynamic_reference_resolves_to_dynamic() {
     let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"{{resolve:ssm:my-param}}"}}}}"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     match model.resolve("R", "Properties.V") {
-        Some(template_model::resolver::ResolvedValue::Dynamic { reason: msg }) => {
+        Some(ResolvedValue::Dynamic { reason: msg }) => {
             assert!(msg.contains("dynamic reference"));
         }
         other => panic!("Expected Dynamic, got {:?}", other),
     }
 }
-
-// ── Sub with GetAtt (implicit in ${Resource.Attr}) ──────────────────────
 
 #[test]
 fn sub_with_implicit_getatt() {
@@ -366,8 +360,6 @@ fn sub_with_implicit_getatt() {
     // Should produce a Dynamic (can't fully resolve GetAtt) but should record the edge
     assert!(model.graph.depends_on("R", "Other"));
 }
-
-// ── Condition stack edges ───────────────────────────────────────────────
 
 #[test]
 fn fn_if_edges_have_condition_context() {
@@ -397,8 +389,6 @@ Resources:
     assert!(b_edge.condition_context.as_ref().unwrap().contains("!C"));
 }
 
-// ── resolve_scenarios with nested conditionals ──────────────────────────
-
 #[test]
 fn resolve_scenarios_nested_conditionals() {
     let input = r#"
@@ -426,8 +416,6 @@ Resources:
     assert_eq!(scenarios.len(), 3, "expected 3 scenarios, got {:?}", scenarios);
 }
 
-// ── source_location / SpanProvider ──────────────────────────────────────
-
 #[test]
 fn source_location_returns_span() {
     let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
@@ -445,7 +433,6 @@ fn source_location_missing_returns_none() {
 
 #[test]
 fn span_provider_trait_works() {
-    use diagnostics::SpanProvider;
     let input = "Resources:\n  R:\n    Type: T\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     let span = SpanProvider::source_location(&model, "Resources/R");
@@ -542,8 +529,6 @@ fn verify_diagnostic_json_contract() {
         }
     }
 }
-
-// ── Rules-section ref edges ─────────────────────────────────────────────
 
 /// CDK-synthesized bootstrap-version assertion: `Fn::Not` wrapping
 /// `Fn::Contains` references the `BootstrapVersion` parameter. The

@@ -9,10 +9,10 @@ use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
-use validation_engine::{EngineConfig, ValidateConfig, validate_bytes_with_path};
+use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes_with_path};
 
 fn validate_to_json(
-    engine: &dyn validation_engine::ValidationEngine,
+    engine: &dyn ValidationEngine,
     bytes: &[u8],
     relative_path: &str,
     detail_level: DetailLevel,
@@ -39,7 +39,7 @@ fn strip_detailed_only_fields(val: &mut serde_json::Value) {
     }
 }
 
-fn check_detailed(engine_name: &str, engine: &dyn validation_engine::ValidationEngine) {
+fn check_detailed(engine_name: &str, engine: &dyn ValidationEngine) {
     let combined = load_combined_golden();
     let all_templates = discover_all_templates();
     let mut failures = Vec::new();
@@ -78,7 +78,7 @@ fn check_detailed(engine_name: &str, engine: &dyn validation_engine::ValidationE
     );
 }
 
-fn check_standard(engine_name: &str, engine: &dyn validation_engine::ValidationEngine) {
+fn check_standard(engine_name: &str, engine: &dyn ValidationEngine) {
     let combined = load_combined_golden();
     let all_templates = discover_all_templates();
     let mut failures = Vec::new();

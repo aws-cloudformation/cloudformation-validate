@@ -1,3 +1,4 @@
+use data_source::{generate_all, sync_upstream};
 use log::{error, info};
 use std::env;
 use std::path::PathBuf;
@@ -37,9 +38,9 @@ fn main() -> anyhow::Result<()> {
     let generated_dir = manifest.join("generated");
     let handwritten_dir = manifest.join("handwritten");
 
-    data_source::sync_upstream(&upstream_dir, rule_source_root.as_deref())?;
+    sync_upstream(&upstream_dir, rule_source_root.as_deref())?;
 
-    data_source::generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
+    generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
 
     info!("Full pipeline complete");
     Ok(())

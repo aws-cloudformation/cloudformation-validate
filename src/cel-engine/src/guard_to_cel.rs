@@ -450,8 +450,6 @@ mod tests {
         assert_eq!(query_to_cel_path(&[]), "");
     }
 
-    // ── access_to_cel ───────────────────────────────────────────────────
-
     fn make_access(op: Operator, negated: bool, compare_with: Option<LetValueIR>) -> AccessClauseIR {
         AccessClauseIR {
             query: vec![QueryPartIR::Key("Properties".into()), QueryPartIR::Key("Enabled".into())],
@@ -601,8 +599,6 @@ mod tests {
         assert_eq!(access_to_cel(&ac), "has(resource)");
     }
 
-    // ── guard_clause_to_cel_expr ────────────────────────────────────────
-
     #[test]
     fn guard_clause_access_delegates_to_access_to_cel() {
         let ac = make_access(Operator::Eq, false, Some(LetValueIR::Value(ValueIR::Bool(true))));
@@ -664,8 +660,6 @@ mod tests {
         let result = guard_clause_to_cel_expr(&gc);
         assert!(result.contains("param_rule"));
     }
-
-    // ── translate_to_cel ────────────────────────────────────────────────
 
     #[test]
     fn translate_type_block_produces_negated_rules() {
@@ -729,8 +723,6 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].resource_type, None);
     }
-
-    // ── to_custom_rule_json ─────────────────────────────────────────────
 
     #[test]
     fn to_custom_rule_json_serializes_correctly() {
@@ -824,8 +816,6 @@ mod tests {
         assert!(!result.is_empty());
     }
 
-    // ── when_conditions_to_cel ──────────────────────────────────────────
-
     #[test]
     fn when_conditions_empty_returns_none() {
         let conds: ConjunctionsIR<WhenClauseIR> = vec![];
@@ -870,8 +860,6 @@ mod tests {
         assert!(result.contains("param_rule"));
     }
 
-    // ── extract_resource_type_vars ──────────────────────────────────────
-
     #[test]
     fn extract_vars_from_type_filter() {
         let assignments = vec![LetExprIR {
@@ -907,8 +895,6 @@ mod tests {
         assert!(vars.is_empty());
     }
 
-    // ── extract_types_from_filter ───────────────────────────────────────
-
     #[test]
     fn extract_types_in_operator() {
         let parts = vec![QueryPartIR::Filter(
@@ -928,8 +914,6 @@ mod tests {
         let types = extract_types_from_filter(&parts);
         assert_eq!(types, vec!["AWS::EC2::Instance", "AWS::EC2::VPC"]);
     }
-
-    // ── find_resource_types_from_when ───────────────────────────────────
 
     #[test]
     fn find_types_from_when_resolves_variable() {

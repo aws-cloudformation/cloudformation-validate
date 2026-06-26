@@ -197,11 +197,9 @@ fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Resul
     let data_dir = generated_dir.join("data");
     let sv_dir = generated_dir.join("schema-validator");
 
-    // Check sync-produced files are still present and populated
     verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &data_dir, None, "Sync")?;
     // Check generate-produced files
     verify_files_exist_and_populated(REQUIRED_GENERATE_FILES, &data_dir, Some(&sv_dir), "Generate")?;
-    // Check handwritten files
     verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, None, "Handwritten")?;
 
     let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len();

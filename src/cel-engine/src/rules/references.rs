@@ -1,5 +1,6 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use rules::Category;
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION_CONTEXT, FIELD_KIND, FIELD_OUTGOING_REFS,
     FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_DEPENDS_ON, OUTPUT_PSEUDO_RESOURCE_PREFIX,
@@ -8,13 +9,13 @@ use template_model::resolver::RefKind;
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::Reference, eval_references);
+    reg.add(Category::Reference, eval_references);
 }
 
 /// Whether a property path points at a value selected by an `Fn::If` branch
 /// (a path segment `Fn::If` followed by branch index `1` or `2`). Such a
 /// reference is guarded by the surrounding `Fn::If`, so the conditional-target
-/// reference check (W1001) does not apply.
+/// reference check does not apply.
 fn path_inside_fn_if_branch(path: &str) -> bool {
     let segments: Vec<&str> = path.split('.').collect();
     segments.windows(2).any(|w| w[0] == "Fn::If" && (w[1] == "1" || w[1] == "2"))
@@ -49,7 +50,6 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                 if !m.conditions.condition_implies(source_cond.unwrap_or(""), dep_cond) && source_cond.is_some()
                     || (source_cond.is_none() && dep_res.condition.is_some())
                 {
-                    // Only flag if source doesn't imply target condition
                     let implies = match source_cond {
                         Some(sc) => m.conditions.condition_implies(sc, dep_cond),
                         None => false, // unconditional resource depends on conditional
