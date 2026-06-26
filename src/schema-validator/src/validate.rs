@@ -400,7 +400,12 @@ fn validate_resource(
         }
     }
 
-    let key_scenarios = resource_property_key_scenarios(m, rid, res);
+    // When the whole Properties block is a deploy-time intrinsic (e.g.
+    // `Properties: !Ref AWS::NoValue`), the resolved view is empty and every
+    // required property would look missing. The effective properties are not
+    // known statically, so skip the key/required-property checks.
+    let key_scenarios =
+        if res.properties_dynamic { Vec::new() } else { resource_property_key_scenarios(m, rid, res) };
     for (actual_keys, conds) in &key_scenarios {
         let scenario = if conds.is_empty() { None } else { Some(conds) };
         validate_object_keys_inner(

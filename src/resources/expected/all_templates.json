@@ -4338,7 +4338,7 @@
       "counts": {
         "fatal": 1,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 0,
         "debug": 0
       },
@@ -4370,20 +4370,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'myEnvironment' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 1,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT",
-        "section": "Parameters"
-      },
       {
         "ruleId": "F0001",
         "severity": "FATAL",
@@ -9187,7 +9173,7 @@
       "counts": {
         "fatal": 1,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 0,
         "debug": 0
       },
@@ -9219,20 +9205,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'Environment' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 1,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT",
-        "section": "Parameters"
-      },
       {
         "ruleId": "F0006",
         "severity": "FATAL",
@@ -17388,7 +17360,7 @@
       "counts": {
         "fatal": 10,
         "errors": 3,
-        "warnings": 11,
+        "warnings": 9,
         "informational": 0,
         "debug": 0
       },
@@ -17653,35 +17625,7 @@
       {
         "ruleId": "W2001",
         "severity": "WARN",
-        "message": "Parameter 'myMaxLength' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 1,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT",
-        "section": "Parameters"
-      },
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
         "message": "Parameter 'myMaxValue' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 1,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT",
-        "section": "Parameters"
-      },
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'myMinLength' is not referenced anywhere in the template",
         "source": "CFN_LINT",
         "category": "Best Practice",
         "startLine": 4,
@@ -131907,7 +131851,7 @@
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 4,
+        "fatal": 2,
         "errors": 7,
         "warnings": 1,
         "informational": 3,
@@ -132014,25 +131958,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'AssumeRolePolicyDocument' is a required property",
-        "source": "SCHEMA",
-        "resourceId": "IamRole2",
-        "resourceType": "AWS::IAM::Role",
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'AssumeRolePolicyDocument'",
-        "category": "Schema",
-        "startLine": 27,
-        "startColumn": 5,
-        "endLine": 27,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
         "ruleId": "E3530",
         "severity": "ERROR",
         "message": "'Statement' is a required property",
@@ -132066,24 +131991,6 @@
         "endColumn": 14,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'DistributionConfig' is a required property",
-        "source": "SCHEMA",
-        "resourceId": "CloudFront1",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'DistributionConfig'",
-        "category": "Schema",
-        "startLine": 40,
-        "startColumn": 5,
-        "endLine": 40,
-        "endColumn": 15,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA",
         "section": "Resources"
       },
       {
@@ -135749,7 +135656,7 @@
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 2,
+        "fatal": 1,
         "errors": 0,
         "warnings": 7,
         "informational": 18,
@@ -135783,15 +135690,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'",
-        "source": "SCHEMA",
-        "category": "Intrinsic Function",
-        "ruleDescription": "Fn::Equals must have exactly 2 elements",
-        "phase": "PARSE"
-      },
       {
         "ruleId": "F1105",
         "severity": "FATAL",

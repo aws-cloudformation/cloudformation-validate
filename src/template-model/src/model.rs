@@ -67,6 +67,11 @@ pub struct ResolvedResource {
     pub metadata: Option<diagnostics::JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
+    /// True when the entire `Properties` block is a non-map intrinsic (e.g.
+    /// `Properties: !Ref AWS::NoValue`) whose effective property set is decided at
+    /// deploy time. Distinguishes "no properties given" from "properties are
+    /// dynamic", so required-property checks can be skipped for the latter.
+    pub properties_dynamic: bool,
     pub diagnostics: ResourceDiagnostics,
 }
 
@@ -954,6 +959,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     };
 
     let mut properties = HashMap::new();
+    let mut properties_dynamic = false;
     if let Some((_, props_ref)) = entries.iter().find(|(k, _)| k == KEY_PROPERTIES) {
         if let Some(prop_entries) = arena.as_map(*props_ref) {
             for (key, val_ref) in prop_entries {
@@ -970,6 +976,11 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
             // rather than doubling the `Fn::If` segment.
             resolver.set_current_path(KEY_PROPERTIES);
             properties.insert(synthetic_key, resolver.resolve_node(*props_ref));
+        } else if matches!(arena.node(*props_ref), Node::Intrinsic(_)) {
+            // The whole Properties block is an intrinsic (e.g. `!Ref AWS::NoValue`)
+            // that did not collapse into a per-branch synthetic key. Its effective
+            // properties are only known at deploy time.
+            properties_dynamic = true;
         }
     }
 
@@ -1008,6 +1019,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
         creation_policy: creation_policy.map(diagnostics::JsonValue),
         metadata: metadata.map(diagnostics::JsonValue),
         properties,
+        properties_dynamic,
         diagnostics: ResourceDiagnostics {
             find_in_map_refs: resolver.find_in_map_refs.remove(name).unwrap_or_default(),
             simple_subs: resolver

@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 22:05:07  
+> Generated: 2026-06-25 22:34:07  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,13 +22,13 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1693 |
-| False Positives (engine bugs) | 14 |
+| True Positives | 1694 |
+| False Positives (engine bugs) | 6 |
 | Engine Extra (correct, cfn-lint gap) | 5313 |
-| False Negatives (engine misses) | 273 |
-| Precision | 99.18% |
-| Recall | 86.11% |
-| F1 | 92.19% |
+| False Negatives (engine misses) | 272 |
+| Precision | 99.65% |
+| Recall | 86.16% |
+| F1 | 92.42% |
 | Unique rules detected | 194 |
 | Perfect templates | 310/400 |
 
@@ -36,36 +36,36 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 348 | 8 | 58 | 96 | 97.75% | 78.38% |
-| Error | 299 | 1 | 3 | 112 | 99.67% | 72.75% |
-| Warning | 693 | 4 | 351 | 57 | 99.43% | 92.40% |
+| Fatal | 348 | 5 | 58 | 96 | 98.58% | 78.38% |
+| Error | 300 | 0 | 3 | 111 | 100.00% | 72.99% |
+| Warning | 693 | 0 | 351 | 57 | 100.00% | 92.40% |
 | Info | 353 | 1 | 4901 | 8 | 99.72% | 97.78% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 14265.7935 ms |
-| Throughput | 158.77 validations/sec |
+| Total wall time | 14429.3182 ms |
+| Throughput | 156.97 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 39.8965 ms |
-| Engine init (max) | 40.0767 ms |
-| Schema init (p99) | 54.9637 ms |
-| Schema init (max) | 55.3192 ms |
+| Engine init (p99) | 40.8449 ms |
+| Engine init (max) | 41.1401 ms |
+| Schema init (p99) | 54.4642 ms |
+| Schema init (max) | 55.0830 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.1890 | 0.0432 | 0.5850 | 0.7846 | 1.4952 | 2.4750 |
-| Schema Validate | 0.0000 | 2.4004 | 0.5682 | 6.4590 | 9.7904 | 22.9663 | 52.4797 |
-| Rule Evaluation | 2.6909 | 3.2094 | 2.8978 | 3.7451 | 4.0963 | 5.5326 | 46.4117 |
-| Diagnostic Finalize | 0.0005 | 0.0266 | 0.0040 | 0.0802 | 0.1245 | 0.3196 | 0.6355 |
-| Engine Internal | 2.7038 | 5.8729 | 3.6283 | 10.7390 | 14.4108 | 30.4696 | 60.2899 |
-| Wall Clock | 2.7039 | 5.8732 | 3.6285 | 10.7394 | 14.4111 | 30.4702 | 60.2908 |
+| Model Build | 0.0020 | 0.1892 | 0.0426 | 0.5910 | 0.8226 | 1.4612 | 2.5075 |
+| Schema Validate | 0.0000 | 2.4140 | 0.5605 | 6.3494 | 9.6718 | 22.9566 | 52.2028 |
+| Rule Evaluation | 2.6790 | 3.2635 | 2.9364 | 3.8601 | 4.3346 | 5.4914 | 49.1788 |
+| Diagnostic Finalize | 0.0005 | 0.0265 | 0.0042 | 0.0841 | 0.1246 | 0.3064 | 0.5583 |
+| Engine Internal | 2.6923 | 5.9388 | 3.6658 | 11.0556 | 14.3111 | 30.5576 | 60.5319 |
+| Wall Clock | 2.6924 | 5.9392 | 3.6671 | 11.0559 | 14.3115 | 30.5580 | 60.5324 |
 
-## False Negatives — 273 missed findings across 68 rules
+## False Negatives — 272 missed findings across 68 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -305,23 +305,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1030** `rAutoScalingConfigWeb` → `Properties.KeyName.Ref` L515 in `quickstart_nist_application_yaml`
   > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
 
-### E1017 — 7 missed — Select validation of parameters
-
-- **E1017** `mySubnet2` → `Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs` L27 in `bad_functions_getaz_yaml`
-  > 'us-east-1a' is not one of ['', 'af-south-1', 'ap-east-1', 'ap-east-2', 'ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-south-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-southe
-- **E1017** `mySubnet3` → `Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs.Fn::GetAtt.1` L36 in `bad_functions_getaz_yaml`
-  > 'AvailbilityZone' is not one of ['AssignIpv6AddressOnCreation', 'AvailabilityZone', 'AvailabilityZoneId', 'BlockPublicAccessStates.InternetGatewayBlockMode', 'CidrBlock', 'EnableDns64', 'EnableLniAtDe
-- **E1017** `myInstance` → `Properties.AvailabilityZone.Fn::Select.0` L11 in `bad_functions_select_yaml`
-  > 'a' is not of type 'integer'
-- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select` L19 in `bad_functions_select_yaml`
-  > expected maximum item count: 2, found: 3
-- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select.1` L21 in `bad_functions_select_yaml`
-  > 'Value1' is not of type 'array'
-- **E1017** `myInstance2` → `Properties.AvailabilityZone.Fn::Select.1` L30 in `bad_functions_select_yaml`
-  > {'Fn::Join': [',', ['a', 'b']]} is not of type 'array'
-- **E1017** `myInstance3` → `Properties.AvailabilityZone.Fn::Select` L36 in `bad_functions_select_yaml`
-  > 'foo' is not of type 'array'
-
 ### F1018 — 7 missed — Sub validation of parameters
 
 - **F1018** (cfn-lint: E1019) `MyEC2Instance` → `Properties.UserData.Fn::Sub` L46 in `bad_functions_ref_yaml`
@@ -383,6 +366,21 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
 - **W1028** `myInstance4` → `Properties.InstanceType.Fn::If.1.Fn::If.2` L74 in `good_core_conditions_yaml`
   > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
+
+### E1017 — 6 missed — Select validation of parameters
+
+- **E1017** `mySubnet2` → `Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs` L27 in `bad_functions_getaz_yaml`
+  > 'us-east-1a' is not one of ['', 'af-south-1', 'ap-east-1', 'ap-east-2', 'ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-south-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-southe
+- **E1017** `myInstance` → `Properties.AvailabilityZone.Fn::Select.0` L11 in `bad_functions_select_yaml`
+  > 'a' is not of type 'integer'
+- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select` L19 in `bad_functions_select_yaml`
+  > expected maximum item count: 2, found: 3
+- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select.1` L21 in `bad_functions_select_yaml`
+  > 'Value1' is not of type 'array'
+- **E1017** `myInstance2` → `Properties.AvailabilityZone.Fn::Select.1` L30 in `bad_functions_select_yaml`
+  > {'Fn::Join': [',', ['a', 'b']]} is not of type 'array'
+- **E1017** `myInstance3` → `Properties.AvailabilityZone.Fn::Select` L36 in `bad_functions_select_yaml`
+  > 'foo' is not of type 'array'
 
 ### E3530 — 6 missed — Validate IAM trust polices
 
@@ -681,13 +679,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3639** `DataTable` → `Properties` L72 in `cdk_DemoStack.template_json`
   > 'ProvisionedThroughput' is a required property
 
-### E9004 — 2 missed — GetAtt validation of parameters
-
-- **E9004** (cfn-lint: E1010) `LambdaFunctionTestNotDefinedFromParent` → `Properties.Environment.Variables.Fn::GetAtt` L23 in `good_custom_is-not-defined_yaml`
-  > {'Fn::GetAtt': ['LambdaExecutionRole', 'Arn']} is not of type 'object'
-- **E9004** (cfn-lint: E1010) `SsmParameter` → `Properties.Value.Fn::GetAtt` L18 in `integration_getatt-types_yaml`
-  > {'Fn::GetAtt': ['CapacityReservation', 'InstanceCount']} is not of type 'string'
-
 ### E1016 — 2 missed — ImportValue validation of parameters
 
 - **E1016** `subnet` → `Properties.CidrBlock.Fn::ImportValue` L10 in `bad_functions_import_value_yaml`
@@ -736,6 +727,13 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'INVALID_UPPERCASE_BUCKET' is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$'
 - **E1161** `Bucket` → `Properties.BucketName` L9 in `bad_sub_needed_yaml`
   > '${MyParam}-bucket' is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$'
+
+### E9004 — 2 missed — GetAtt validation of parameters
+
+- **E9004** (cfn-lint: E1010) `LambdaFunctionTestNotDefinedFromParent` → `Properties.Environment.Variables.Fn::GetAtt` L23 in `good_custom_is-not-defined_yaml`
+  > {'Fn::GetAtt': ['LambdaExecutionRole', 'Arn']} is not of type 'object'
+- **E9004** (cfn-lint: E1010) `SsmParameter` → `Properties.Value.Fn::GetAtt` L18 in `integration_getatt-types_yaml`
+  > {'Fn::GetAtt': ['CapacityReservation', 'InstanceCount']} is not of type 'string'
 
 ### E1701 — 2 missed — Validate the configuration of Assertions
 
@@ -819,31 +817,9 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3719** `AuroraDB` → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
   > 'BackupRetentionPeriod' is not allowed when 'DBClusterIdentifier' is specified. Set backup retention period on the DB cluster instead.
 
-## False Positives — 14 extra findings across 6 rules
+## False Positives — 6 extra findings across 3 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
-
-### W2001 — 4 extra — Check if Parameters are Used
-
-- **W2001** L4 in `bad_core_conditions_list_yaml`
-  > Parameter 'myEnvironment' is not referenced anywhere in the template
-- **W2001** L4 in `bad_functions_foreach_no_transform_yaml`
-  > Parameter 'Environment' is not referenced anywhere in the template
-- **W2001** L4 in `bad_parameters_default_yaml`
-  > Parameter 'myMinLength' is not referenced anywhere in the template
-- **W2001** L4 in `bad_parameters_default_yaml`
-  > Parameter 'myMinValue' is not referenced anywhere in the template
-
-### F3003 — 4 extra — Required Resource properties are missing
-
-- **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value_yaml`
-  > 'AssumeRolePolicyDocument' is a required property
-- **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value_yaml`
-  > 'DistributionConfig' is a required property
-- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value_yaml`
-  > 'TargetOriginId' is a required property
-- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value_yaml`
-  > 'ViewerProtocolPolicy' is a required property
 
 ### F6101 — 3 extra — Validate that outputs values are a string
 
@@ -854,20 +830,17 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F6101** L76 in `integration_getatt-types_yaml`
   > Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'
 
-### F0014 — 1 extra — Check Fn::And structure for validity
+### F3003 — 2 extra — Required Resource properties are missing
 
-- **F0014** in `lsp_condition-usage_yaml`
-  > Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
+- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value_yaml`
+  > 'TargetOriginId' is a required property
+- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value_yaml`
+  > 'ViewerProtocolPolicy' is a required property
 
 ### I3042 — 1 extra — ARNs should use correctly placed Pseudo Parameters
 
 - **I3042** `myKms` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub` L154 in `bad_resources_circular_dependency_yaml`
   > ARN in Resource myKms contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-
-### E9004 — 1 extra — GetAtt validation of parameters
-
-- **E9004** `mySubnet3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L29 in `bad_functions_getaz_yaml`
-  > 'AvailbilityZone' is not one of ["AssignIpv6AddressOnCreation", "AvailabilityZone", "AvailabilityZoneId", "BlockPublicAccessStates", "BlockPublicAccessStates.InternetGatewayBlockMode", "CidrBlock", "E
 
 ## Engine Extra — 5313 correct findings across 36 rules
 
@@ -11609,12 +11582,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ## Per-Template Breakdown — 90 templates with mismatches
 
-### `lsp_condition-usage_yaml` — 12 mismatches (8 TP, 1 FP, 18 EE, 11 FN)
-
-- FN: `F0013` ×6, `F6101` ×4, `E3016`
-- FP: `F0014`
-- EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`
-
 ### `bad_generic_yaml` — 11 mismatches (29 TP, 0 FP, 36 EE, 11 FN)
 
 - FN: `W1036` ×6, `W1028` ×2, `E3673`, `E1011`, `F6101`
@@ -11624,6 +11591,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3003` ×11
 - EE: `I9001` ×2
+
+### `lsp_condition-usage_yaml` — 11 mismatches (8 TP, 0 FP, 18 EE, 11 FN)
+
+- FN: `F0013` ×6, `F6101` ×4, `E3016`
+- EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`
 
 ### `bad_conditions_yaml` — 10 mismatches (11 TP, 0 FP, 14 EE, 10 FN)
 
@@ -11661,11 +11633,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1031` ×4, `W1032` ×2, `E3001`
 - EE: `I9001` ×5, `I9040` ×5
 
-### `bad_functions_foreach_no_transform_yaml` — 6 mismatches (1 TP, 1 FP, 0 EE, 5 FN)
-
-- FN: `E1032` ×3, `E0002`, `E6001`
-- FP: `W2001`
-
 ### `bad_parameters_configuration_yaml` — 6 mismatches (33 TP, 0 FP, 1 EE, 6 FN)
 
 - FN: `E2001` ×4, `W2001`, `W2002`
@@ -11691,11 +11658,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1028` ×2, `F3014` ×2, `W1001`, `W3698`
 - EE: `I9001` ×8, `I9040` ×7, `W9010` ×4
 
-### `integration_ref-no-value_yaml` — 6 mismatches (7 TP, 4 FP, 4 EE, 2 FN)
+### `bad_functions_foreach_no_transform_yaml` — 5 mismatches (1 TP, 0 FP, 0 EE, 5 FN)
 
-- FN: `F3012` ×2
-- FP: `F3003` ×4
-- EE: `I9040` ×3, `W9009`
+- FN: `E1032` ×3, `E0002`, `E6001`
 
 ### `bad_functions_select_yaml` — 5 mismatches (4 TP, 0 FP, 13 EE, 5 FN)
 
@@ -11706,12 +11671,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3510` ×2, `F1029` ×2, `E1152`
 - EE: `I9040` ×4, `I9001` ×2, `W9002` ×2, `W9013` ×2
-
-### `bad_parameters_default_yaml` — 5 mismatches (18 TP, 2 FP, 4 EE, 3 FN)
-
-- FN: `F2015` ×3
-- FP: `W2001` ×2
-- EE: `F2012` ×3, `F0001`
 
 ### `bad_properties_rt_association_yaml` — 5 mismatches (2 TP, 0 FP, 13 EE, 5 FN)
 
@@ -11733,12 +11692,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F1018` ×2, `F1020` ×2, `E3024`
 - EE: `I9001` ×2, `I9040`
 
-### `bad_core_conditions_list_yaml` — 4 mismatches (0 TP, 1 FP, 1 EE, 3 FN)
-
-- FN: `E0002`, `E1001`, `F0013`
-- FP: `W2001`
-- EE: `F0001`
-
 ### `bad_functions_join_yaml` — 4 mismatches (2 TP, 0 FP, 4 EE, 4 FN)
 
 - FN: `E1021` ×4
@@ -11748,6 +11701,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `I3011` ×4
 - EE: `I9040` ×2
+
+### `integration_ref-no-value_yaml` — 4 mismatches (7 TP, 2 FP, 4 EE, 2 FN)
+
+- FN: `F3012` ×2
+- FP: `F3003` ×2
+- EE: `I9040` ×3, `W9009`
 
 ### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 26 EE, 4 FN)
 
@@ -11769,21 +11728,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1001` ×3
 - EE: `I9040`
 
+### `bad_core_conditions_list_yaml` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
+
+- FN: `E0002`, `E1001`, `F0013`
+- EE: `F0001`
+
 ### `bad_duplicate_yaml` — 3 mismatches (0 TP, 0 FP, 2 EE, 3 FN)
 
 - FN: `F0000` ×3
 - EE: `I9040` ×2
 
-### `bad_functions_getaz_yaml` — 3 mismatches (6 TP, 1 FP, 12 EE, 2 FN)
-
-- FN: `E1017` ×2
-- FP: `E9004`
-- EE: `I9001` ×9, `I9040` ×3
-
 ### `bad_functions_import_value_yaml` — 3 mismatches (1 TP, 0 FP, 4 EE, 3 FN)
 
 - FN: `E1016` ×2, `F0014`
 - EE: `I9001` ×2, `F1105`, `I9040`
+
+### `bad_parameters_default_yaml` — 3 mismatches (18 TP, 0 FP, 4 EE, 3 FN)
+
+- FN: `F2015` ×3
+- EE: `F2012` ×3, `F0001`
 
 ### `bad_resources_primary_identifiers_yaml` — 3 mismatches (8 TP, 0 FP, 25 EE, 3 FN)
 
@@ -11943,6 +11906,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3639`
 - EE: `I9001`, `I9040`, `F3003`
 
+### `bad_functions_getaz_yaml` — 1 mismatches (7 TP, 0 FP, 12 EE, 1 FN)
+
+- FN: `E1017`
+- EE: `I9001` ×9, `I9040` ×3
+
 ### `bad_functions_ref_yaml` — 1 mismatches (11 TP, 0 FP, 19 EE, 1 FN)
 
 - FN: `F1018`
@@ -12087,17 +12055,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 114 | 41.76% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
-| Warning-level checks | 57 | 20.88% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Resource property validation | 53 | 19.41% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
-| Intrinsic function validation | 41 | 15.02% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
-| Informational checks | 8 | 2.93% | I2530, I3011 |
+| Other | 114 | 41.91% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
+| Warning-level checks | 57 | 20.96% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Resource property validation | 53 | 19.49% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
+| Intrinsic function validation | 40 | 14.71% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
+| Informational checks | 8 | 2.94% | I2530, I3011 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 9 | 64.29% | E9004, F0014, F3003, F6101 |
-| Stricter than cfn-lint (warnings) | 4 | 28.57% | W2001 |
-| Extra informational findings | 1 | 7.14% | I3042 |
+| Other | 5 | 83.33% | F3003, F6101 |
+| Extra informational findings | 1 | 16.67% | I3042 |
 
