@@ -6088,7 +6088,7 @@
       "MasterUserSecretKmsKeyId": "string",
       "MasterUsername": "string",
       "NetworkType": "string",
-      "Port": "integer",
+      "Port": "string",
       "PreferredBackupWindow": "string",
       "PreferredMaintenanceWindow": "string",
       "ReadEndpoint": "string",

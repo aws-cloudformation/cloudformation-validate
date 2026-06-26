@@ -290,9 +290,17 @@ Resources:
 }
 
 #[test]
-fn e2e_bad_ecs_fargate_mismatch() {
+fn e2e_bad_ecs_fargate_invalid_subnet() {
+    // The TaskDefinition uses NetworkMode 'awsvpc', which is already Fargate
+    // compatible, so E3054 must NOT fire (cfn-lint stays silent on it). The real
+    // defect is the malformed subnet id, reported as E1154.
     let report = validate_fixture("bad/ecs_fargate_mismatch.yaml");
-    assert!(has_rule(&report, "E3054"), "Expected E3054 for Fargate mismatch, got: {:?}", report.diagnostics);
+    assert!(
+        !has_rule(&report, "E3054"),
+        "E3054 must not fire for an awsvpc TaskDefinition, got: {:?}",
+        report.diagnostics
+    );
+    assert!(has_rule(&report, "E1154"), "Expected E1154 for invalid subnet id, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -371,8 +379,7 @@ fn e2e_list_rules_comprehensive() {
     for expected in ["F3016", "F0018", "E3601", "E3702", "I3042"] {
         assert!(ids.contains(&expected), "list_rules missing {} in {:?}", expected, ids);
     }
-    for expected in ["E3010", "E3013", "F3032", "E3051", "E5001", "I2530", "I3037", "E1150", "E1151", "E1152", "E1154"]
-    {
+    for expected in ["E3010", "E3013", "F3032", "E3051", "E5001", "I2530", "E1150", "E1151", "E1152", "E1154"] {
         assert!(ids.contains(&expected), "list_rules missing {} in {:?}", expected, ids);
     }
 }
@@ -525,7 +532,11 @@ fn e2e_codepipeline_bad_artifact_counts() {
 #[test]
 fn e2e_hardcoded_partition() {
     let report = validate_fixture("bad/hardcoded_partition.yaml");
-    assert!(has_rule(&report, "I3042"), "Hardcoded partition should trigger I3042, got: {:?}", report.diagnostics);
+    assert!(
+        !has_rule(&report, "I3042"),
+        "Plain-string ARN should NOT trigger I3042 (only Fn::Sub does), got: {:?}",
+        report.diagnostics
+    );
 }
 
 #[test]
@@ -616,7 +627,10 @@ fn e2e_suppress_category_security() {
 #[test]
 fn e2e_w1020_simple_sub_triggers() {
     let report = validate_fixture("bad/simple_sub_param.yaml");
-    assert!(has_rule(&report, "W1020"), "Expected W1020 for simple Sub with parameter");
+    assert!(
+        !has_rule(&report, "W1020"),
+        "Simple Sub with one variable should NOT trigger W1020 (only zero-variable Subs do)"
+    );
 }
 
 #[test]
@@ -628,7 +642,7 @@ fn e2e_w1020_prefix_sub_no_trigger() {
 #[test]
 fn e2e_e1029_nested_intrinsic_syntax() {
     let report = validate_fixture("bad/sub_nested_intrinsic.yaml");
-    assert!(has_rule(&report, "F1029"), "Expected F1029 for nested intrinsic syntax");
+    assert!(!has_rule(&report, "F1029"), "${{! is valid literal escape syntax in Fn::Sub, not an error");
 }
 
 #[test]
@@ -723,9 +737,17 @@ fn e2e_e3700_pipeline_no_source_first_stage() {
 }
 
 #[test]
-fn e2e_e2530_snapstart_bad_runtime() {
+fn e2e_snapstart_python_runtime_supported() {
+    // SnapStart supports any non-deprecated Python/Java/.NET runtime, so a
+    // python3.12 function must NOT trigger E2530 (cfn-lint agrees). The only
+    // finding is W2530 — SnapStart enabled without an attached Version.
     let report = validate_fixture("bad/lambda_snapstart_bad_runtime.yaml");
-    assert!(has_rule(&report, "E2530"), "SnapStart with python should trigger E2530, got: {:?}", report.diagnostics);
+    assert!(
+        !has_rule(&report, "E2530"),
+        "E2530 must not fire for a supported python runtime, got: {:?}",
+        report.diagnostics
+    );
+    assert!(has_rule(&report, "W2530"), "Expected W2530 for SnapStart without Version, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -1196,7 +1218,7 @@ fn e6101_non_string_getatt_in_output() {
 #[test]
 fn e1015_invalid_getatt_attribute_type() {
     let report = validate_fixture("integration/getatt-types.yaml");
-    assert!(has_rule(&report, "E9003"), "Expected E9003 for non-string GetAtt type mismatch in getatt-types.yaml");
+    assert!(!has_rule(&report, "E9003"), "E9003 is disabled — CloudFormation auto-converts non-string GetAtt values");
 }
 
 #[test]
@@ -1209,4 +1231,20 @@ fn e6101_rego_getatt_return_type_builtin() {
         "Expected F6101 for integer InstanceCount, got: {:?}",
         e6101_outputs
     );
+}
+
+#[test]
+fn w2511_silent_on_invalid_policy_version() {
+    // An invalid Version string (neither '2008-10-17' nor '2012-10-17') is a
+    // schema error, not the upgrade warning, so W2511 must stay silent for it.
+    let report = validate_fixture("bad/resources/iam/iam_policy.yaml");
+    let w2511: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W2511").collect();
+    assert!(w2511.is_empty(), "W2511 must not fire on an invalid Version value, got: {:?}", w2511);
+}
+
+#[test]
+fn w2511_warns_on_2008_policy_version() {
+    // The older-but-valid '2008-10-17' version is exactly what W2511 flags.
+    let report = validate_fixture("bad/override/include.yaml");
+    assert!(has_rule(&report, "W2511"), "expected W2511 for a policy pinned to Version '2008-10-17'");
 }

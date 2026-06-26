@@ -26,6 +26,10 @@ violation contains make_diag_at("W3002", "WARN", name,
     some rtype, props in _w3002_package_props
     some name in resources_of_type(rtype)
     some prop in props
+    # Only string literals are inspected here; a value wrapped in an intrinsic
+    # (Fn::Join/Fn::Sub building an S3 URL) resolves at deploy time and is left
+    # alone.
+    not is_from_intrinsic(name, sprintf("Properties.%s", [prop]))
     val := resolve(name, sprintf("Properties.%s", [prop]))
     is_string(val)
     not startswith(val, "s3://")

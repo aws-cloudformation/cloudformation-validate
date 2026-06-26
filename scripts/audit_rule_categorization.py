@@ -212,17 +212,22 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E6102": "F6005",   # Output Export validation
         "E7002": "F7002",   # Mapping name length
         "E8002": "F8002",   # Condition reference must exist
+        "E8001": "F0013",   # Fn::If structure inside a Condition (engine emits F0013)
         "E8003": "F0014",   # Fn::Equals element count
         "E8004": "F0014",   # Fn::And element count
+        "E8005": "F0014",   # Fn::Not element count
+        "E8006": "F0014",   # Fn::Or element count
         # SAM transform pre-flight: engine emits cfn-lint's E0001 directly
         "E0001": "E0001",
         # cfn-lint Error → our Error under a different ID (no Fatal divergence):
         # GetAtt — cfn-lint's single E1010 is split by the engine into E9004
         # (attribute existence) + E9003 (return-type mismatch).
         "E1010": "E9004",
-        # Extension-enum family — cfn-lint emits a per-resource ID (E3690 etc.);
-        # the engine emits one generic E9006 for any conditional-extension enum.
+        # Extension-enum family — cfn-lint emits a per-resource ID (E3690 for
+        # DBCluster, E3691 for DBInstance); the engine emits one generic E9006
+        # for any conditional-extension enum.
         "E3690": "E9006",
+        "E3691": "E9006",
     }
     # Keep only mappings whose cfn-lint key exists in this checkout (identity
     # mappings such as E0001→E0001 are always kept).
@@ -247,9 +252,18 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
             _link(eid, cid)
 
     # GetAtt: cfn-lint E1010 ↔ engine split E9004 (attribute) + E9003 (type).
-    _link("E1010", "E9004", "E9003")
-    # Extension-enum family: cfn-lint E3690 ↔ engine generic E9006.
-    _link("E9006", "E3690")
+    # E1017 (Select/GetAZs validation) reports an invalid GetAtt attribute nested
+    # inside Fn::Select/Fn::GetAZs under that ID; it is the same attribute-existence
+    # finding the engine emits as E9004, so it joins the group for matching.
+    # F1020 joins the group because cfn-lint's single E1010 also covers the case
+    # where the GetAtt *target resource* does not exist at all (message
+    # "'X' is not one of [...resources]"), which the engine reports as F1020
+    # (its generic "referenced resource missing" rule, shared with Ref/Join).
+    _link("E1010", "E9004", "E9003", "E1017", "F1020")
+    # Extension-enum family: cfn-lint uses a per-resource ID — E3690 for
+    # DBCluster Engine/EngineVersion, E3691 for DBInstance — while the engine
+    # emits one generic E9006 for any conditional-extension enum violation.
+    _link("E9006", "E3690", "E3691")
     # Type coercion: cfn-lint strict E3012 ↔ engine Fatal F3012 or soft W9003.
     _link("F3012", "E3012", "W9003")
     # E3001 (Basic Resource Check) parents several engine structural rules.

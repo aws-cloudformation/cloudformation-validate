@@ -73,7 +73,8 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_coerce_to_string(rego);
     register_cfn_type_compatible(rego);
     register_estimate_string_length(rego, holder.clone());
-    register_schema_string_length(rego, schema_registry);
+    register_schema_string_length(rego, schema_registry.clone());
+    register_schema_requires_unique_items(rego, schema_registry);
     register_unreachable_if_branches(rego, holder);
 }
 
@@ -1424,6 +1425,26 @@ fn register_schema_string_length(rego: &mut regorus::Engine, registry: LazySchem
     );
 }
 
+/// `schema_requires_unique_items(resource_type, property) -> bool` — true when
+/// the property's schema constraint sets `uniqueItems: true`.
+fn register_schema_requires_unique_items(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
+    let _ = rego.add_extension(
+        "schema_requires_unique_items".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let rtype = params[0].as_string()?;
+            let prop = params[1].as_string()?;
+            let requires_unique = schema_reg(&registry)
+                .get(rtype.as_ref())
+                .and_then(|info| info.property_constraints.get(prop.as_ref()))
+                .and_then(|c| c.get("uniqueItems"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            Ok(Value::from(requires_unique))
+        }),
+    );
+}
+
 fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "unreachable_if_branches".into(),
@@ -1443,11 +1464,14 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedMo
                         None => vec![],
                     };
                     let mut results = Vec::new();
+                    // An output is not a resource; anchor the diagnostic at the
+                    // full "Outputs/<name>/Value" path rather than a bare "Value".
+                    let path_prefix = format!("Outputs/{}/Value", output_name);
                     collect_unreachable_branches(
                         &model,
                         output_name,
                         &output.value,
-                        "Value",
+                        &path_prefix,
                         &base_assumptions,
                         &mut results,
                     );
@@ -1483,10 +1507,17 @@ fn collect_unreachable_branches(
     results: &mut Vec<Value>,
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: true_branch, if_false: false_branch } => {
+        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
-            if !model.conditions.is_satisfiable(&true_assumptions) {
+            // Flag the branch only when the surrounding assumptions make this
+            // condition value unreachable — not when the condition can never take
+            // the value on its own. A condition that is constant (a literal
+            // tautology, or a parameter pinned to a single value) is the concern
+            // of equality rules, not of branch reachability.
+            if !model.conditions.is_satisfiable(&true_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
+            {
                 let mut map = serde_json::Map::new();
                 map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
                 map.insert("path".into(), serde_json::Value::String(format!("{}.{}.1", path, FN_IF)));
@@ -1502,7 +1533,9 @@ fn collect_unreachable_branches(
 
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions) {
+            if !model.conditions.is_satisfiable(&false_assumptions)
+                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
+            {
                 let existing: Vec<String> = assumptions
                     .iter()
                     .filter(|(name, _)| name != cond)
@@ -1527,22 +1560,11 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
-            collect_unreachable_branches(
-                model,
-                resource_id,
-                true_branch,
-                &format!("{}.{}.1", path, FN_IF),
-                &true_assumptions,
-                results,
-            );
-            collect_unreachable_branches(
-                model,
-                resource_id,
-                false_branch,
-                &format!("{}.{}.2", path, FN_IF),
-                &false_assumptions,
-                results,
-            );
+            // Only the reachability of the immediate Fn::If branches is checked;
+            // we do not recurse into an Fn::If nested inside a branch, so we stop
+            // here. Recursing would produce spurious findings (e.g.
+            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
+            // already-evaluated outer condition.
         }
         ResolvedValue::Map { entries } => {
             for MapEntry { key, value: val } in entries {

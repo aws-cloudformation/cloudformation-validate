@@ -36,7 +36,7 @@ pub struct RuleInfo {
 pub enum RuleOrigin {
     /// Derived from the CloudFormation resource provider schema
     Schema,
-    /// Ported from cfn-lint
+    /// Ported from the cfn-lint
     CfnLint,
     /// Implemented in this validation engine
     Engine,
@@ -217,7 +217,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "F0014",
         category: Category::Intrinsic,
-        description: "Fn::Equals must have exactly 2 elements",
+        description: "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {

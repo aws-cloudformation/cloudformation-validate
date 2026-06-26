@@ -2191,27 +2191,6 @@
       }
     },
     {
-      "if": {
-        "properties": {
-          "PackageType": {
-            "const": "Image"
-          }
-        },
-        "required": [
-          "PackageType"
-        ]
-      },
-      "then": {
-        "dependentExcluded": {
-          "PackageType": [
-            "Handler",
-            "Runtime",
-            "Layers"
-          ]
-        }
-      }
-    },
-    {
       "additionalProperties": true,
       "description": "Using the ZipFile attribute requires a javascript or python runtime to be specified",
       "if": {

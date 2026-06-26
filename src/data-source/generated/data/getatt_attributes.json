@@ -83,14 +83,43 @@
       "DefaultDomain"
     ],
     "AWS::Amplify::Branch": [
-      "Arn"
+      "AppId",
+      "Arn",
+      "Backend.StackArn",
+      "BasicAuthConfig.EnableBasicAuth",
+      "BasicAuthConfig.Password",
+      "BasicAuthConfig.Username",
+      "BranchName",
+      "BuildSpec",
+      "ComputeRoleArn",
+      "Description",
+      "EnableAutoBuild",
+      "EnablePerformanceMode",
+      "EnablePullRequestPreview",
+      "EnableSkewProtection",
+      "EnvironmentVariables",
+      "Framework",
+      "PullRequestEnvironmentName",
+      "Stage",
+      "Tags"
     ],
     "AWS::Amplify::Domain": [
+      "AppId",
       "Arn",
+      "AutoSubDomainCreationPatterns",
+      "AutoSubDomainIAMRole",
       "Certificate",
+      "Certificate.CertificateArn",
+      "Certificate.CertificateType",
+      "Certificate.CertificateVerificationDNSRecord",
       "CertificateRecord",
+      "CertificateSettings.CertificateType",
+      "CertificateSettings.CustomCertificateArn",
+      "DomainName",
       "DomainStatus",
+      "EnableAutoSubDomain",
       "StatusReason",
+      "SubDomainSettings",
       "UpdateStatus"
     ],
     "AWS::AmplifyUIBuilder::Component": [
@@ -260,13 +289,18 @@
     ],
     "AWS::AppMesh::GatewayRoute": [
       "Arn",
+      "GatewayRouteName",
       "Id",
+      "MeshName",
+      "MeshOwner",
       "ResourceOwner",
-      "Uid"
+      "Uid",
+      "VirtualGatewayName"
     ],
     "AWS::AppMesh::Mesh": [
       "Arn",
       "Id",
+      "MeshName",
       "MeshOwner",
       "ResourceOwner",
       "Uid"
@@ -274,32 +308,48 @@
     "AWS::AppMesh::Route": [
       "Arn",
       "Id",
+      "MeshName",
+      "MeshOwner",
       "ResourceOwner",
-      "Uid"
+      "RouteName",
+      "Uid",
+      "VirtualRouterName"
     ],
     "AWS::AppMesh::VirtualGateway": [
       "Arn",
       "Id",
+      "MeshName",
+      "MeshOwner",
       "ResourceOwner",
-      "Uid"
+      "Uid",
+      "VirtualGatewayName"
     ],
     "AWS::AppMesh::VirtualNode": [
       "Arn",
       "Id",
+      "MeshName",
+      "MeshOwner",
       "ResourceOwner",
-      "Uid"
+      "Uid",
+      "VirtualNodeName"
     ],
     "AWS::AppMesh::VirtualRouter": [
       "Arn",
       "Id",
+      "MeshName",
+      "MeshOwner",
       "ResourceOwner",
-      "Uid"
+      "Uid",
+      "VirtualRouterName"
     ],
     "AWS::AppMesh::VirtualService": [
       "Arn",
       "Id",
+      "MeshName",
+      "MeshOwner",
       "ResourceOwner",
-      "Uid"
+      "Uid",
+      "VirtualServiceName"
     ],
     "AWS::AppRunner::AutoScalingConfiguration": [
       "AutoScalingConfigurationArn",
@@ -373,19 +423,41 @@
       "ChannelNamespaceArn"
     ],
     "AWS::AppSync::DataSource": [
-      "DataSourceArn"
+      "DataSourceArn",
+      "Name"
     ],
     "AWS::AppSync::DomainName": [
       "AppSyncDomainName",
+      "CertificateArn",
+      "Description",
+      "DomainName",
       "DomainNameArn",
-      "HostedZoneId"
+      "HostedZoneId",
+      "Tags"
     ],
     "AWS::AppSync::DomainNameApiAssociation": [
       "ApiAssociationIdentifier"
     ],
     "AWS::AppSync::FunctionConfiguration": [
+      "ApiId",
+      "Code",
+      "CodeS3Location",
+      "DataSourceName",
+      "Description",
       "FunctionArn",
-      "FunctionId"
+      "FunctionId",
+      "FunctionVersion",
+      "MaxBatchSize",
+      "Name",
+      "RequestMappingTemplate",
+      "RequestMappingTemplateS3Location",
+      "ResponseMappingTemplate",
+      "ResponseMappingTemplateS3Location",
+      "Runtime.Name",
+      "Runtime.RuntimeVersion",
+      "SyncConfig.ConflictDetection",
+      "SyncConfig.ConflictHandler",
+      "SyncConfig.LambdaConflictHandlerConfig.LambdaConflictHandlerArn"
     ],
     "AWS::AppSync::GraphQLApi": [
       "ApiId",
@@ -400,7 +472,28 @@
       "Id"
     ],
     "AWS::AppSync::Resolver": [
-      "ResolverArn"
+      "ApiId",
+      "CachingConfig.CachingKeys",
+      "CachingConfig.Ttl",
+      "Code",
+      "CodeS3Location",
+      "DataSourceName",
+      "FieldName",
+      "Kind",
+      "MaxBatchSize",
+      "MetricsConfig",
+      "PipelineConfig.Functions",
+      "RequestMappingTemplate",
+      "RequestMappingTemplateS3Location",
+      "ResolverArn",
+      "ResponseMappingTemplate",
+      "ResponseMappingTemplateS3Location",
+      "Runtime.Name",
+      "Runtime.RuntimeVersion",
+      "SyncConfig.ConflictDetection",
+      "SyncConfig.ConflictHandler",
+      "SyncConfig.LambdaConflictHandlerConfig.LambdaConflictHandlerArn",
+      "TypeName"
     ],
     "AWS::AppSync::SourceApiAssociation": [
       "AssociationArn",
@@ -465,7 +558,61 @@
       "CreationTime"
     ],
     "AWS::AutoScaling::AutoScalingGroup": [
-      "AutoScalingGroupARN"
+      "AutoScalingGroupARN",
+      "AutoScalingGroupName",
+      "AvailabilityZoneDistribution.CapacityDistributionStrategy",
+      "AvailabilityZoneIds",
+      "AvailabilityZoneImpairmentPolicy.ImpairedZoneHealthCheckBehavior",
+      "AvailabilityZoneImpairmentPolicy.ZonalShiftEnabled",
+      "AvailabilityZones",
+      "CapacityRebalance",
+      "CapacityReservationSpecification.CapacityReservationPreference",
+      "CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationIds",
+      "CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationResourceGroupArns",
+      "Context",
+      "Cooldown",
+      "DefaultInstanceWarmup",
+      "DeletionProtection",
+      "DesiredCapacity",
+      "DesiredCapacityType",
+      "HealthCheckGracePeriod",
+      "HealthCheckType",
+      "InstanceId",
+      "InstanceLifecyclePolicy.RetentionTriggers.TerminateHookAbandon",
+      "InstanceMaintenancePolicy.MaxHealthyPercentage",
+      "InstanceMaintenancePolicy.MinHealthyPercentage",
+      "LaunchConfigurationName",
+      "LaunchTemplate.LaunchTemplateId",
+      "LaunchTemplate.LaunchTemplateName",
+      "LaunchTemplate.Version",
+      "LifecycleHookSpecificationList",
+      "LoadBalancerNames",
+      "MaxInstanceLifetime",
+      "MaxSize",
+      "MetricsCollection",
+      "MinSize",
+      "MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy",
+      "MixedInstancesPolicy.InstancesDistribution.OnDemandBaseCapacity",
+      "MixedInstancesPolicy.InstancesDistribution.OnDemandPercentageAboveBaseCapacity",
+      "MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy",
+      "MixedInstancesPolicy.InstancesDistribution.SpotInstancePools",
+      "MixedInstancesPolicy.InstancesDistribution.SpotMaxPrice",
+      "MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateId",
+      "MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateName",
+      "MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.Version",
+      "MixedInstancesPolicy.LaunchTemplate.Overrides",
+      "NewInstancesProtectedFromScaleIn",
+      "NotificationConfiguration.NotificationTypes",
+      "NotificationConfiguration.TopicARN",
+      "NotificationConfigurations",
+      "PlacementGroup",
+      "ServiceLinkedRoleARN",
+      "SkipZonalShiftValidation",
+      "Tags",
+      "TargetGroupARNs",
+      "TerminationPolicies",
+      "TrafficSources",
+      "VPCZoneIdentifier"
     ],
     "AWS::AutoScaling::ScalingPolicy": [
       "Arn",
@@ -521,11 +668,28 @@
       "VersionId"
     ],
     "AWS::Backup::BackupSelection": [
+      "BackupPlanId",
+      "BackupSelection.Conditions.StringEquals",
+      "BackupSelection.Conditions.StringLike",
+      "BackupSelection.Conditions.StringNotEquals",
+      "BackupSelection.Conditions.StringNotLike",
+      "BackupSelection.IamRoleArn",
+      "BackupSelection.ListOfTags",
+      "BackupSelection.NotResources",
+      "BackupSelection.Resources",
+      "BackupSelection.SelectionName",
       "Id",
       "SelectionId"
     ],
     "AWS::Backup::BackupVault": [
-      "BackupVaultArn"
+      "BackupVaultArn",
+      "BackupVaultName",
+      "EncryptionKeyArn",
+      "LockConfiguration.ChangeableForDays",
+      "LockConfiguration.MaxRetentionDays",
+      "LockConfiguration.MinRetentionDays",
+      "Notifications.BackupVaultEvents",
+      "Notifications.SNSTopicArn"
     ],
     "AWS::Backup::Framework": [
       "CreationTime",
@@ -535,6 +699,13 @@
     ],
     "AWS::Backup::LogicallyAirGappedBackupVault": [
       "BackupVaultArn",
+      "BackupVaultName",
+      "EncryptionKeyArn",
+      "MaxRetentionDays",
+      "MinRetentionDays",
+      "MpaApprovalTeamArn",
+      "Notifications.BackupVaultEvents",
+      "Notifications.SNSTopicArn",
       "VaultState",
       "VaultType"
     ],
@@ -1144,7 +1315,8 @@
     ],
     "AWS::Cloud9::EnvironmentEC2": [
       "Arn",
-      "Id"
+      "Id",
+      "Name"
     ],
     "AWS::CloudFormation::CustomResource": [
       "Id"
@@ -1358,7 +1530,8 @@
     ],
     "AWS::CloudWatch::InsightRule": [
       "Arn",
-      "Id"
+      "Id",
+      "RuleName"
     ],
     "AWS::CloudWatch::MetricStream": [
       "Arn",
@@ -1372,17 +1545,25 @@
     ],
     "AWS::CodeArtifact::Domain": [
       "Arn",
+      "DomainName",
       "EncryptionKey",
       "Name",
-      "Owner"
+      "Owner",
+      "Tags"
     ],
     "AWS::CodeArtifact::PackageGroup": [
       "Arn"
     ],
     "AWS::CodeArtifact::Repository": [
       "Arn",
+      "Description",
+      "DomainName",
       "DomainOwner",
-      "Name"
+      "ExternalConnections",
+      "Name",
+      "RepositoryName",
+      "Tags",
+      "Upstreams"
     ],
     "AWS::CodeBuild::Fleet": [
       "Arn"
@@ -2118,6 +2299,7 @@
       "ClusterResourceId",
       "Endpoint",
       "Id",
+      "Port",
       "ReadEndpoint"
     ],
     "AWS::DocDB::DBClusterParameterGroup": [
@@ -2155,19 +2337,36 @@
       "CapacityManagerDataExportId"
     ],
     "AWS::EC2::CapacityReservation": [
+      "AvailabilityZone",
+      "AvailabilityZoneId",
       "AvailableInstanceCount",
       "CapacityAllocationSet",
       "CapacityReservationArn",
       "CapacityReservationFleetId",
       "CommitmentInfo",
+      "CommitmentInfo.CommitmentEndDate",
+      "CommitmentInfo.CommittedInstanceCount",
       "CreateDate",
       "DeliveryPreference",
+      "EbsOptimized",
+      "EndDate",
+      "EndDateType",
+      "EphemeralStorage",
       "Id",
+      "InstanceCount",
+      "InstanceMatchCriteria",
+      "InstancePlatform",
+      "InstanceType",
+      "OutPostArn",
       "OwnerId",
+      "PlacementGroupArn",
       "ReservationType",
       "StartDate",
       "State",
-      "TotalInstanceCount"
+      "TagSpecifications",
+      "Tenancy",
+      "TotalInstanceCount",
+      "UnusedReservationBillingOwnerId"
     ],
     "AWS::EC2::CapacityReservationFleet": [
       "CapacityReservationFleetId"
@@ -2285,12 +2484,51 @@
       "PoolCount"
     ],
     "AWS::EC2::Instance": [
+      "AdditionalInfo",
+      "Affinity",
+      "AvailabilityZone",
+      "BlockDeviceMappings",
+      "CpuOptions.CoreCount",
+      "CpuOptions.ThreadsPerCore",
+      "CreditSpecification.CPUCredits",
+      "DisableApiTermination",
+      "EbsOptimized",
+      "ElasticGpuSpecifications",
+      "ElasticInferenceAccelerators",
+      "EnclaveOptions.Enabled",
+      "HibernationOptions.Configured",
+      "HostId",
+      "HostResourceGroupArn",
+      "IamInstanceProfile",
+      "ImageId",
       "InstanceId",
+      "InstanceInitiatedShutdownBehavior",
+      "InstanceType",
+      "Ipv6AddressCount",
+      "Ipv6Addresses",
+      "KernelId",
+      "KeyName",
+      "LicenseSpecifications",
+      "Monitoring",
+      "NetworkInterfaces",
+      "PlacementGroupName",
       "PrivateDnsName",
       "PrivateIp",
+      "PrivateIpAddress",
+      "PropagateTagsToVolumeOnCreation",
       "PublicDnsName",
       "PublicIp",
+      "RamdiskId",
+      "SecurityGroupIds",
+      "SecurityGroups",
+      "SourceDestCheck",
+      "SsmAssociations",
       "State",
+      "SubnetId",
+      "Tags",
+      "Tenancy",
+      "UserData",
+      "Volumes",
       "VpcId"
     ],
     "AWS::EC2::InstanceConnectEndpoint": [
@@ -2457,8 +2695,14 @@
       "RouteTableId"
     ],
     "AWS::EC2::SecurityGroup": [
+      "GroupDescription",
       "GroupId",
-      "Id"
+      "GroupName",
+      "Id",
+      "SecurityGroupEgress",
+      "SecurityGroupIngress",
+      "Tags",
+      "VpcId"
     ],
     "AWS::EC2::SecurityGroupEgress": [
       "Id"
@@ -2483,10 +2727,30 @@
       "SqlServerLicenseUsage"
     ],
     "AWS::EC2::Subnet": [
+      "AssignIpv6AddressOnCreation",
+      "AvailabilityZone",
+      "AvailabilityZoneId",
       "BlockPublicAccessStates",
+      "BlockPublicAccessStates.InternetGatewayBlockMode",
+      "CidrBlock",
+      "EnableDns64",
+      "EnableLniAtDeviceIndex",
+      "Ipv4IpamPoolId",
+      "Ipv4NetmaskLength",
+      "Ipv6CidrBlock",
       "Ipv6CidrBlocks",
+      "Ipv6IpamPoolId",
+      "Ipv6Native",
+      "Ipv6NetmaskLength",
+      "MapPublicIpOnLaunch",
       "NetworkAclAssociationId",
-      "SubnetId"
+      "OutpostArn",
+      "PrivateDnsNameOptionsOnLaunch.EnableResourceNameDnsAAAARecord",
+      "PrivateDnsNameOptionsOnLaunch.EnableResourceNameDnsARecord",
+      "PrivateDnsNameOptionsOnLaunch.HostnameType",
+      "SubnetId",
+      "Tags",
+      "VpcId"
     ],
     "AWS::EC2::SubnetCidrBlock": [
       "Id",
@@ -2587,10 +2851,17 @@
       "Id"
     ],
     "AWS::EC2::VPC": [
+      "CidrBlock",
       "CidrBlockAssociations",
       "DefaultNetworkAcl",
       "DefaultSecurityGroup",
+      "EnableDnsHostnames",
+      "EnableDnsSupport",
+      "InstanceTenancy",
+      "Ipv4IpamPoolId",
+      "Ipv4NetmaskLength",
       "Ipv6CidrBlocks",
+      "Tags",
       "VpcId"
     ],
     "AWS::EC2::VPCBlockPublicAccessExclusion": [
@@ -2775,7 +3046,13 @@
       "ReplicationConfiguration.Destinations.*.StatusMessage"
     ],
     "AWS::EFS::MountTarget": [
-      "Id"
+      "FileSystemId",
+      "Id",
+      "IpAddress",
+      "IpAddressType",
+      "Ipv6Address",
+      "SecurityGroups",
+      "SubnetId"
     ],
     "AWS::EKS::AccessEntry": [
       "AccessEntryArn"
@@ -2809,8 +3086,42 @@
       "IdentityProviderConfigArn"
     ],
     "AWS::EKS::Nodegroup": [
+      "AmiType",
       "Arn",
-      "Id"
+      "CapacityType",
+      "ClusterName",
+      "DiskSize",
+      "ForceUpdateEnabled",
+      "Id",
+      "InstanceTypes",
+      "LaunchTemplate.Id",
+      "LaunchTemplate.Name",
+      "LaunchTemplate.Version",
+      "NodeRepairConfig.Enabled",
+      "NodeRepairConfig.MaxParallelNodesRepairedCount",
+      "NodeRepairConfig.MaxParallelNodesRepairedPercentage",
+      "NodeRepairConfig.MaxUnhealthyNodeThresholdCount",
+      "NodeRepairConfig.MaxUnhealthyNodeThresholdPercentage",
+      "NodeRepairConfig.NodeRepairConfigOverrides",
+      "NodeRole",
+      "NodegroupName",
+      "ReleaseVersion",
+      "RemoteAccess.Ec2SshKey",
+      "RemoteAccess.SourceSecurityGroups",
+      "ScalingConfig.DesiredSize",
+      "ScalingConfig.MaxSize",
+      "ScalingConfig.MinSize",
+      "Subnets",
+      "Taints",
+      "UpdateConfig.MaxUnavailable",
+      "UpdateConfig.MaxUnavailablePercentage",
+      "UpdateConfig.UpdateStrategy",
+      "Version",
+      "WarmPoolConfig.Enabled",
+      "WarmPoolConfig.MaxGroupPreparedCapacity",
+      "WarmPoolConfig.MinSize",
+      "WarmPoolConfig.PoolState",
+      "WarmPoolConfig.ReuseOnScaleIn"
     ],
     "AWS::EKS::PodIdentityAssociation": [
       "AssociationArn",
@@ -2884,10 +3195,37 @@
       "CacheParameterGroupName"
     ],
     "AWS::ElastiCache::ReplicationGroup": [
+      "AtRestEncryptionEnabled",
+      "AuthToken",
+      "AutoMinorVersionUpgrade",
+      "AutomaticFailoverEnabled",
+      "CacheNodeType",
+      "CacheParameterGroupName",
+      "CacheSecurityGroupNames",
+      "CacheSubnetGroupName",
+      "ClusterMode",
       "ConfigurationEndPoint",
       "ConfigurationEndPoint.Address",
       "ConfigurationEndPoint.Port",
+      "DataTieringEnabled",
+      "Durability",
       "EffectiveDurability",
+      "Engine",
+      "EngineVersion",
+      "GlobalReplicationGroupId",
+      "IpDiscovery",
+      "KmsKeyId",
+      "LogDeliveryConfigurations",
+      "MultiAZEnabled",
+      "NetworkType",
+      "NodeGroupConfiguration",
+      "NotificationTopicArn",
+      "NumCacheClusters",
+      "NumNodeGroups",
+      "Port",
+      "PreferredCacheClusterAZs",
+      "PreferredMaintenanceWindow",
+      "PrimaryClusterId",
       "PrimaryEndPoint",
       "PrimaryEndPoint.Address",
       "PrimaryEndPoint.Port",
@@ -2898,7 +3236,20 @@
       "ReadEndPoint.PortsList",
       "ReaderEndPoint",
       "ReaderEndPoint.Address",
-      "ReaderEndPoint.Port"
+      "ReaderEndPoint.Port",
+      "ReplicasPerNodeGroup",
+      "ReplicationGroupDescription",
+      "ReplicationGroupId",
+      "SecurityGroupIds",
+      "SnapshotArns",
+      "SnapshotName",
+      "SnapshotRetentionLimit",
+      "SnapshotWindow",
+      "SnapshottingClusterId",
+      "Tags",
+      "TransitEncryptionEnabled",
+      "TransitEncryptionMode",
+      "UserGroupIds"
     ],
     "AWS::ElastiCache::SecurityGroup": [
       "Id"
@@ -2954,9 +3305,22 @@
     "AWS::ElasticLoadBalancingV2::LoadBalancer": [
       "CanonicalHostedZoneID",
       "DNSName",
+      "EnableCapacityReservationProvisionStabilize",
+      "EnablePrefixForIpv6SourceNat",
+      "EnforceSecurityGroupInboundRulesOnPrivateLinkTraffic",
+      "IpAddressType",
+      "Ipv4IpamPoolId",
       "LoadBalancerArn",
+      "LoadBalancerAttributes",
       "LoadBalancerFullName",
-      "LoadBalancerName"
+      "LoadBalancerName",
+      "Name",
+      "Scheme",
+      "SecurityGroups",
+      "SubnetMappings",
+      "Subnets",
+      "Tags",
+      "Type"
     ],
     "AWS::ElasticLoadBalancingV2::TargetGroup": [
       "LoadBalancerArns",
@@ -3006,20 +3370,33 @@
       "UpdatedAt"
     ],
     "AWS::EventSchemas::Discoverer": [
+      "CrossAccount",
+      "Description",
       "DiscovererArn",
       "DiscovererId",
-      "State"
+      "SourceArn",
+      "State",
+      "Tags"
     ],
     "AWS::EventSchemas::Registry": [
-      "RegistryArn"
+      "Description",
+      "RegistryArn",
+      "RegistryName",
+      "Tags"
     ],
     "AWS::EventSchemas::RegistryPolicy": [
       "Id"
     ],
     "AWS::EventSchemas::Schema": [
+      "Content",
+      "Description",
       "LastModified",
+      "RegistryName",
       "SchemaArn",
+      "SchemaName",
       "SchemaVersion",
+      "Tags",
+      "Type",
       "VersionCreatedDate"
     ],
     "AWS::Events::ApiDestination": [
@@ -3044,7 +3421,15 @@
       "StateReason"
     ],
     "AWS::Events::EventBus": [
-      "Arn"
+      "Arn",
+      "DeadLetterConfig.Arn",
+      "Description",
+      "EventSourceName",
+      "KmsKeyIdentifier",
+      "LogConfig.IncludeDetail",
+      "LogConfig.Level",
+      "Name",
+      "Tags"
     ],
     "AWS::Events::Rule": [
       "Arn"
@@ -3220,17 +3605,44 @@
       "GameServerGroupArn"
     ],
     "AWS::GameLift::GameSessionQueue": [
-      "Arn"
+      "Arn",
+      "CustomEventData",
+      "Destinations",
+      "Name",
+      "NotificationTarget",
+      "PlayerLatencyPolicies",
+      "Tags",
+      "TimeoutInSeconds"
     ],
     "AWS::GameLift::Location": [
       "LocationArn"
     ],
     "AWS::GameLift::MatchmakingConfiguration": [
-      "Arn"
+      "AcceptanceRequired",
+      "AcceptanceTimeoutSeconds",
+      "AdditionalPlayerCount",
+      "Arn",
+      "BackfillMode",
+      "CreationTime",
+      "CustomEventData",
+      "Description",
+      "FlexMatchMode",
+      "GameProperties",
+      "GameSessionData",
+      "GameSessionQueueArns",
+      "Name",
+      "NotificationTarget",
+      "RequestTimeoutSeconds",
+      "RuleSetArn",
+      "RuleSetName",
+      "Tags"
     ],
     "AWS::GameLift::MatchmakingRuleSet": [
       "Arn",
-      "CreationTime"
+      "CreationTime",
+      "Name",
+      "RuleSetBody",
+      "Tags"
     ],
     "AWS::GameLift::Script": [
       "Arn",
@@ -3332,18 +3744,50 @@
       "Id"
     ],
     "AWS::Grafana::Workspace": [
+      "AccountAccessType",
+      "AuthenticationProviders",
+      "ClientToken",
       "CreationTimestamp",
+      "DataSources",
+      "Description",
       "Endpoint",
+      "GrafanaVersion",
       "Id",
       "ModificationTimestamp",
+      "Name",
+      "NetworkAccessControl.PrefixListIds",
+      "NetworkAccessControl.VpceIds",
+      "NotificationDestinations",
+      "OrganizationRoleName",
+      "OrganizationalUnits",
+      "PermissionType",
+      "PluginAdminEnabled",
+      "RoleArn",
+      "SamlConfiguration.AllowedOrganizations",
+      "SamlConfiguration.AssertionAttributes.Email",
+      "SamlConfiguration.AssertionAttributes.Groups",
+      "SamlConfiguration.AssertionAttributes.Login",
+      "SamlConfiguration.AssertionAttributes.Name",
+      "SamlConfiguration.AssertionAttributes.Org",
+      "SamlConfiguration.AssertionAttributes.Role",
+      "SamlConfiguration.IdpMetadata.Url",
+      "SamlConfiguration.IdpMetadata.Xml",
+      "SamlConfiguration.LoginValidityDuration",
+      "SamlConfiguration.RoleValues.Admin",
+      "SamlConfiguration.RoleValues.Editor",
       "SamlConfigurationStatus",
       "SsoClientId",
-      "Status"
+      "StackSetName",
+      "Status",
+      "VpcConfiguration.SecurityGroupIds",
+      "VpcConfiguration.SubnetIds"
     ],
     "AWS::Greengrass::ConnectorDefinition": [
       "Arn",
       "Id",
-      "LatestVersionArn"
+      "InitialVersion.Connectors",
+      "LatestVersionArn",
+      "Name"
     ],
     "AWS::Greengrass::ConnectorDefinitionVersion": [
       "Id"
@@ -3351,7 +3795,9 @@
     "AWS::Greengrass::CoreDefinition": [
       "Arn",
       "Id",
-      "LatestVersionArn"
+      "InitialVersion.Cores",
+      "LatestVersionArn",
+      "Name"
     ],
     "AWS::Greengrass::CoreDefinitionVersion": [
       "Id"
@@ -3359,7 +3805,9 @@
     "AWS::Greengrass::DeviceDefinition": [
       "Arn",
       "Id",
-      "LatestVersionArn"
+      "InitialVersion.Devices",
+      "LatestVersionArn",
+      "Name"
     ],
     "AWS::Greengrass::DeviceDefinitionVersion": [
       "Id"
@@ -3367,7 +3815,12 @@
     "AWS::Greengrass::FunctionDefinition": [
       "Arn",
       "Id",
-      "LatestVersionArn"
+      "InitialVersion.DefaultConfig.Execution.IsolationMode",
+      "InitialVersion.DefaultConfig.Execution.RunAs.Gid",
+      "InitialVersion.DefaultConfig.Execution.RunAs.Uid",
+      "InitialVersion.Functions",
+      "LatestVersionArn",
+      "Name"
     ],
     "AWS::Greengrass::FunctionDefinitionVersion": [
       "Id"
@@ -3375,7 +3828,16 @@
     "AWS::Greengrass::Group": [
       "Arn",
       "Id",
+      "InitialVersion.ConnectorDefinitionVersionArn",
+      "InitialVersion.CoreDefinitionVersionArn",
+      "InitialVersion.DeviceDefinitionVersionArn",
+      "InitialVersion.FunctionDefinitionVersionArn",
+      "InitialVersion.LoggerDefinitionVersionArn",
+      "InitialVersion.ResourceDefinitionVersionArn",
+      "InitialVersion.SubscriptionDefinitionVersionArn",
       "LatestVersionArn",
+      "Name",
+      "RoleArn",
       "RoleAttachedAt"
     ],
     "AWS::Greengrass::GroupVersion": [
@@ -3384,7 +3846,9 @@
     "AWS::Greengrass::LoggerDefinition": [
       "Arn",
       "Id",
-      "LatestVersionArn"
+      "InitialVersion.Loggers",
+      "LatestVersionArn",
+      "Name"
     ],
     "AWS::Greengrass::LoggerDefinitionVersion": [
       "Id"
@@ -3392,7 +3856,9 @@
     "AWS::Greengrass::ResourceDefinition": [
       "Arn",
       "Id",
-      "LatestVersionArn"
+      "InitialVersion.Resources",
+      "LatestVersionArn",
+      "Name"
     ],
     "AWS::Greengrass::ResourceDefinitionVersion": [
       "Id"
@@ -3400,7 +3866,9 @@
     "AWS::Greengrass::SubscriptionDefinition": [
       "Arn",
       "Id",
-      "LatestVersionArn"
+      "InitialVersion.Subscriptions",
+      "LatestVersionArn",
+      "Name"
     ],
     "AWS::Greengrass::SubscriptionDefinitionVersion": [
       "Id"
@@ -3587,24 +4055,52 @@
     ],
     "AWS::ImageBuilder::Component": [
       "Arn",
+      "ChangeDescription",
+      "Data",
+      "Description",
       "Encrypted",
+      "KmsKeyId",
       "LatestVersion",
       "LatestVersion.Arn",
       "LatestVersion.Major",
       "LatestVersion.Minor",
       "LatestVersion.Patch",
-      "Type"
+      "Name",
+      "Platform",
+      "SupportedOsVersions",
+      "Type",
+      "Uri",
+      "Version"
     ],
     "AWS::ImageBuilder::ContainerRecipe": [
       "Arn",
+      "Components",
+      "ContainerType",
+      "Description",
+      "DockerfileTemplateData",
+      "DockerfileTemplateUri",
+      "ImageOsVersionOverride",
+      "InstanceConfiguration.BlockDeviceMappings",
+      "InstanceConfiguration.Image",
+      "KmsKeyId",
       "LatestVersion",
       "LatestVersion.Arn",
       "LatestVersion.Major",
       "LatestVersion.Minor",
-      "LatestVersion.Patch"
+      "LatestVersion.Patch",
+      "Name",
+      "ParentImage",
+      "PlatformOverride",
+      "TargetRepository.RepositoryName",
+      "TargetRepository.Service",
+      "Version",
+      "WorkingDirectory"
     ],
     "AWS::ImageBuilder::DistributionConfiguration": [
-      "Arn"
+      "Arn",
+      "Description",
+      "Distributions",
+      "Name"
     ],
     "AWS::ImageBuilder::Image": [
       "Arn",
@@ -3619,18 +4115,64 @@
     ],
     "AWS::ImageBuilder::ImagePipeline": [
       "Arn",
-      "DeploymentId"
+      "ContainerRecipeArn",
+      "DeploymentId",
+      "Description",
+      "DistributionConfigurationArn",
+      "EnhancedImageMetadataEnabled",
+      "ExecutionRole",
+      "ImageRecipeArn",
+      "ImageScanningConfiguration.EcrConfiguration.ContainerTags",
+      "ImageScanningConfiguration.EcrConfiguration.RepositoryName",
+      "ImageScanningConfiguration.ImageScanningEnabled",
+      "ImageTestsConfiguration.ImageTestsEnabled",
+      "ImageTestsConfiguration.TimeoutMinutes",
+      "InfrastructureConfigurationArn",
+      "LoggingConfiguration.ImageLogGroupName",
+      "LoggingConfiguration.PipelineLogGroupName",
+      "Name",
+      "Schedule.AutoDisablePolicy.FailureCount",
+      "Schedule.PipelineExecutionStartCondition",
+      "Schedule.ScheduleExpression",
+      "Status",
+      "Workflows"
     ],
     "AWS::ImageBuilder::ImageRecipe": [
+      "AdditionalInstanceConfiguration.SystemsManagerAgent.UninstallAfterBuild",
+      "AdditionalInstanceConfiguration.UserDataOverride",
       "Arn",
+      "BlockDeviceMappings",
+      "Components",
+      "Description",
       "LatestVersion",
       "LatestVersion.Arn",
       "LatestVersion.Major",
       "LatestVersion.Minor",
-      "LatestVersion.Patch"
+      "LatestVersion.Patch",
+      "Name",
+      "ParentImage",
+      "Version",
+      "WorkingDirectory"
     ],
     "AWS::ImageBuilder::InfrastructureConfiguration": [
-      "Arn"
+      "Arn",
+      "Description",
+      "InstanceMetadataOptions.HttpPutResponseHopLimit",
+      "InstanceMetadataOptions.HttpTokens",
+      "InstanceProfileName",
+      "InstanceTypes",
+      "KeyPair",
+      "Logging.S3Logs.S3BucketName",
+      "Logging.S3Logs.S3KeyPrefix",
+      "Name",
+      "Placement.AvailabilityZone",
+      "Placement.HostId",
+      "Placement.HostResourceGroupArn",
+      "Placement.Tenancy",
+      "SecurityGroupIds",
+      "SnsTopicArn",
+      "SubnetId",
+      "TerminateInstanceOnFailure"
     ],
     "AWS::ImageBuilder::LifecyclePolicy": [
       "Arn"
@@ -4049,7 +4591,9 @@
     "AWS::Kinesis::StreamConsumer": [
       "ConsumerARN",
       "ConsumerCreationTimestamp",
-      "ConsumerStatus"
+      "ConsumerName",
+      "ConsumerStatus",
+      "StreamARN"
     ],
     "AWS::KinesisAnalytics::Application": [
       "Id"
@@ -4474,10 +5018,15 @@
       "Status"
     ],
     "AWS::ManagedBlockchain::Member": [
-      "MemberId"
+      "MemberId",
+      "NetworkId"
     ],
     "AWS::ManagedBlockchain::Node": [
       "Arn",
+      "MemberId",
+      "NetworkId",
+      "NodeConfiguration.AvailabilityZone",
+      "NodeConfiguration.InstanceType",
       "NodeId"
     ],
     "AWS::MediaConnect::Bridge": [
@@ -4545,15 +5094,18 @@
     ],
     "AWS::MediaConvert::JobTemplate": [
       "Arn",
-      "Id"
+      "Id",
+      "Name"
     ],
     "AWS::MediaConvert::Preset": [
       "Arn",
-      "Id"
+      "Id",
+      "Name"
     ],
     "AWS::MediaConvert::Queue": [
       "Arn",
-      "Id"
+      "Id",
+      "Name"
     ],
     "AWS::MediaLive::Channel": [
       "Arn",
@@ -4604,7 +5156,9 @@
     ],
     "AWS::MediaLive::Input": [
       "Arn",
-      "Id"
+      "Destinations",
+      "Id",
+      "Sources"
     ],
     "AWS::MediaLive::InputSecurityGroup": [
       "Arn",
@@ -4748,10 +5302,38 @@
       "Status"
     ],
     "AWS::Neptune::DBCluster": [
+      "AssociatedRoles",
+      "AvailabilityZones",
+      "BackupRetentionPeriod",
       "ClusterResourceId",
+      "CopyTagsToSnapshot",
+      "DBClusterIdentifier",
+      "DBClusterParameterGroupName",
+      "DBInstanceParameterGroupName",
+      "DBPort",
+      "DBSubnetGroupName",
+      "DeletionProtection",
+      "EnableCloudwatchLogsExports",
       "Endpoint",
+      "EngineVersion",
+      "GlobalClusterIdentifier",
+      "IamAuthEnabled",
+      "KmsKeyId",
+      "NetworkType",
       "Port",
-      "ReadEndpoint"
+      "PreferredBackupWindow",
+      "PreferredMaintenanceWindow",
+      "ReadEndpoint",
+      "RestoreToTime",
+      "RestoreType",
+      "ServerlessScalingConfiguration.MaxCapacity",
+      "ServerlessScalingConfiguration.MinCapacity",
+      "SnapshotIdentifier",
+      "SourceDBClusterIdentifier",
+      "StorageEncrypted",
+      "Tags",
+      "UseLatestRestorableTime",
+      "VpcSecurityGroupIds"
     ],
     "AWS::Neptune::DBInstance": [
       "Endpoint",
@@ -5196,6 +5778,7 @@
       "Id"
     ],
     "AWS::OpsWorks::Instance": [
+      "AvailabilityZone",
       "Id",
       "PrivateDnsName",
       "PrivateIp",
@@ -5209,7 +5792,8 @@
       "Id"
     ],
     "AWS::OpsWorks::UserProfile": [
-      "Id"
+      "Id",
+      "SshUsername"
     ],
     "AWS::OpsWorks::Volume": [
       "Id"
@@ -5585,31 +6169,120 @@
       "StorageThroughput"
     ],
     "AWS::RDS::DBInstance": [
+      "AdditionalStorageVolumes",
+      "AllocatedStorage",
+      "AllowMajorVersionUpgrade",
+      "ApplyImmediately",
+      "AssociatedRoles",
+      "AutoMinorVersionUpgrade",
+      "AutomaticBackupReplicationKmsKeyId",
+      "AutomaticBackupReplicationRegion",
+      "AutomaticBackupReplicationRetentionPeriod",
       "AutomaticRestartTime",
+      "AvailabilityZone",
+      "BackupRetentionPeriod",
+      "BackupTarget",
+      "CACertificateIdentifier",
       "CertificateDetails",
       "CertificateDetails.CAIdentifier",
       "CertificateDetails.ValidTill",
+      "CertificateRotationRestart",
+      "CharacterSetName",
+      "CopyTagsToSnapshot",
+      "CustomIAMInstanceProfile",
+      "DBClusterIdentifier",
+      "DBClusterSnapshotIdentifier",
       "DBInstanceArn",
+      "DBInstanceClass",
+      "DBInstanceIdentifier",
       "DBInstanceStatus",
+      "DBName",
+      "DBParameterGroupName",
+      "DBSecurityGroups",
+      "DBSnapshotIdentifier",
+      "DBSubnetGroupName",
+      "DBSystemId",
+      "DatabaseInsightsMode",
       "DbiResourceId",
+      "DedicatedLogVolume",
+      "DeleteAutomatedBackups",
+      "DeletionProtection",
+      "Domain",
+      "DomainAuthSecretArn",
+      "DomainDnsIps",
+      "DomainFqdn",
+      "DomainIAMRoleName",
+      "DomainOu",
+      "EnableCloudwatchLogsExports",
+      "EnableIAMDatabaseAuthentication",
+      "EnablePerformanceInsights",
       "Endpoint",
       "Endpoint.Address",
       "Endpoint.HostedZoneId",
       "Endpoint.Port",
+      "Engine",
+      "EngineLifecycleSupport",
+      "EngineVersion",
       "InstanceCreateTime",
+      "Iops",
       "IsStorageConfigUpgradeAvailable",
+      "KmsKeyId",
       "LatestRestorableTime",
+      "LicenseModel",
       "ListenerEndpoint",
       "ListenerEndpoint.Address",
       "ListenerEndpoint.HostedZoneId",
       "ListenerEndpoint.Port",
+      "ManageMasterUserPassword",
+      "MasterUserAuthenticationType",
+      "MasterUserPassword",
+      "MasterUserSecret.KmsKeyId",
       "MasterUserSecret.SecretArn",
+      "MasterUsername",
+      "MaxAllocatedStorage",
+      "MonitoringInterval",
+      "MonitoringRoleArn",
+      "MultiAZ",
+      "NcharCharacterSetName",
+      "NetworkType",
+      "OptionGroupName",
       "PercentProgress",
+      "PerformanceInsightsKMSKeyId",
+      "PerformanceInsightsRetentionPeriod",
+      "Port",
+      "PreferredBackupWindow",
+      "PreferredMaintenanceWindow",
+      "ProcessorFeatures",
+      "PromotionTier",
+      "PubliclyAccessible",
       "ReadReplicaDBClusterIdentifiers",
       "ReadReplicaDBInstanceIdentifiers",
+      "ReplicaMode",
+      "RestoreTime",
       "ResumeFullAutomationModeTime",
       "SecondaryAvailabilityZone",
-      "StatusInfos"
+      "SourceDBClusterIdentifier",
+      "SourceDBInstanceAutomatedBackupsArn",
+      "SourceDBInstanceIdentifier",
+      "SourceDbiResourceId",
+      "SourceRegion",
+      "StatusInfos",
+      "StorageEncrypted",
+      "StorageThroughput",
+      "StorageType",
+      "Tags",
+      "TdeCredentialArn",
+      "TdeCredentialPassword",
+      "Timezone",
+      "UseDefaultProcessorFeatures",
+      "UseLatestRestorableTime",
+      "VPCSecurityGroups"
+    ],
+    "AWS::RDS::DBParameterGroup": [
+      "DBParameterGroupName",
+      "Description",
+      "Family",
+      "Tags"
     ],
     "AWS::RDS::DBProxy": [
       "DBProxyArn",
@@ -5786,11 +6459,27 @@
       "Snapshot.Status"
     ],
     "AWS::RedshiftServerless::Workgroup": [
+      "BaseCapacity",
+      "ConfigParameters",
+      "EnhancedVpcRouting",
+      "MaxCapacity",
+      "NamespaceName",
+      "Port",
+      "PubliclyAccessible",
+      "RecoveryPointId",
+      "SecurityGroupIds",
+      "SnapshotArn",
+      "SnapshotName",
+      "SnapshotOwnerAccount",
+      "SubnetIds",
+      "Tags",
+      "TrackName",
       "Workgroup.BaseCapacity",
       "Workgroup.ConfigParameters",
       "Workgroup.CreationDate",
       "Workgroup.Endpoint.Address",
       "Workgroup.Endpoint.Port",
+      "Workgroup.Endpoint.VpcEndpoints",
       "Workgroup.Endpoint.VpcEndpoints.*.NetworkInterfaces.*.AvailabilityZone",
       "Workgroup.Endpoint.VpcEndpoints.*.NetworkInterfaces.*.NetworkInterfaceId",
       "Workgroup.Endpoint.VpcEndpoints.*.NetworkInterfaces.*.PrivateIpAddress",
@@ -5800,6 +6489,8 @@
       "Workgroup.EnhancedVpcRouting",
       "Workgroup.MaxCapacity",
       "Workgroup.NamespaceName",
+      "Workgroup.PricePerformanceTarget.Level",
+      "Workgroup.PricePerformanceTarget.Status",
       "Workgroup.PubliclyAccessible",
       "Workgroup.SecurityGroupIds",
       "Workgroup.Status",
@@ -5807,7 +6498,8 @@
       "Workgroup.TrackName",
       "Workgroup.WorkgroupArn",
       "Workgroup.WorkgroupId",
-      "Workgroup.WorkgroupName"
+      "Workgroup.WorkgroupName",
+      "WorkgroupName"
     ],
     "AWS::RefactorSpaces::Application": [
       "ApiGatewayId",
@@ -5907,14 +6599,30 @@
       "Arn"
     ],
     "AWS::RoboMaker::RobotApplication": [
-      "Arn"
+      "Arn",
+      "CurrentRevisionId",
+      "Environment",
+      "Name",
+      "RobotSoftwareSuite.Name",
+      "RobotSoftwareSuite.Version",
+      "Sources"
     ],
     "AWS::RoboMaker::RobotApplicationVersion": [
       "ApplicationVersion",
       "Arn"
     ],
     "AWS::RoboMaker::SimulationApplication": [
-      "Arn"
+      "Arn",
+      "CurrentRevisionId",
+      "Environment",
+      "Name",
+      "RenderingEngine.Name",
+      "RenderingEngine.Version",
+      "RobotSoftwareSuite.Name",
+      "RobotSoftwareSuite.Version",
+      "SimulationSoftwareSuite.Name",
+      "SimulationSoftwareSuite.Version",
+      "Sources"
     ],
     "AWS::RoboMaker::SimulationApplicationVersion": [
       "ApplicationVersion",
@@ -6104,8 +6812,10 @@
     ],
     "AWS::Route53Resolver::ResolverEndpoint": [
       "Arn",
+      "Direction",
       "HostVPCId",
       "IpAddressCount",
+      "Name",
       "ResolverEndpointId"
     ],
     "AWS::Route53Resolver::ResolverQueryLoggingConfig": [
@@ -6127,10 +6837,20 @@
     ],
     "AWS::Route53Resolver::ResolverRule": [
       "Arn",
-      "ResolverRuleId"
+      "DelegationRecord",
+      "DomainName",
+      "Name",
+      "ResolverEndpointId",
+      "ResolverRuleId",
+      "RuleType",
+      "Tags",
+      "TargetIps"
     ],
     "AWS::Route53Resolver::ResolverRuleAssociation": [
-      "ResolverRuleAssociationId"
+      "Name",
+      "ResolverRuleAssociationId",
+      "ResolverRuleId",
+      "VPCId"
     ],
     "AWS::S3::AccessGrant": [
       "AccessGrantArn",
@@ -6148,7 +6868,16 @@
     "AWS::S3::AccessPoint": [
       "Alias",
       "Arn",
-      "NetworkOrigin"
+      "Bucket",
+      "BucketAccountId",
+      "Name",
+      "NetworkOrigin",
+      "PublicAccessBlockConfiguration.BlockPublicAcls",
+      "PublicAccessBlockConfiguration.BlockPublicPolicy",
+      "PublicAccessBlockConfiguration.IgnorePublicAcls",
+      "PublicAccessBlockConfiguration.RestrictPublicBuckets",
+      "Tags",
+      "VpcConfiguration.VpcId"
     ],
     "AWS::S3::Bucket": [
       "Arn",
@@ -6350,14 +7079,41 @@
       "Arn"
     ],
     "AWS::SNS::Topic": [
-      "TopicArn"
+      "ContentBasedDeduplication",
+      "DeliveryStatusLogging",
+      "DisplayName",
+      "FifoThroughputScope",
+      "FifoTopic",
+      "KmsMasterKeyId",
+      "SignatureVersion",
+      "Subscription",
+      "Tags",
+      "TopicArn",
+      "TopicName",
+      "TracingConfig"
     ],
     "AWS::SNS::TopicPolicy": [
       "Id"
     ],
     "AWS::SQS::Queue": [
       "Arn",
-      "QueueUrl"
+      "ContentBasedDeduplication",
+      "DeduplicationScope",
+      "DelaySeconds",
+      "FifoQueue",
+      "FifoThroughputLimit",
+      "KmsDataKeyReusePeriodSeconds",
+      "KmsMasterKeyId",
+      "MaximumMessageSize",
+      "MessageRetentionPeriod",
+      "QueueName",
+      "QueueUrl",
+      "ReceiveMessageWaitTimeSeconds",
+      "RedrivePolicy.deadLetterTargetArn",
+      "RedrivePolicy.maxReceiveCount",
+      "SqsManagedSseEnabled",
+      "Tags",
+      "VisibilityTimeout"
     ],
     "AWS::SQS::QueuePolicy": [
       "Id"
@@ -6373,6 +7129,16 @@
     ],
     "AWS::SSM::MaintenanceWindowTask": [
       "WindowTaskId"
+    ],
+    "AWS::SSM::Parameter": [
+      "AllowedPattern",
+      "DataType",
+      "Description",
+      "Name",
+      "Policies",
+      "Tier",
+      "Type",
+      "Value"
     ],
     "AWS::SSM::PatchBaseline": [
       "Id"
@@ -6441,11 +7207,48 @@
       "RestrictedInstanceGroups.*.CurrentCount"
     ],
     "AWS::SageMaker::CodeRepository": [
+      "CodeRepositoryName",
       "Id"
     ],
     "AWS::SageMaker::DataQualityJobDefinition": [
       "CreationTime",
-      "JobDefinitionArn"
+      "DataQualityAppSpecification.ContainerArguments",
+      "DataQualityAppSpecification.ContainerEntrypoint",
+      "DataQualityAppSpecification.ImageUri",
+      "DataQualityAppSpecification.PostAnalyticsProcessorSourceUri",
+      "DataQualityAppSpecification.RecordPreprocessorSourceUri",
+      "DataQualityBaselineConfig.BaseliningJobName",
+      "DataQualityBaselineConfig.ConstraintsResource.S3Uri",
+      "DataQualityBaselineConfig.StatisticsResource.S3Uri",
+      "DataQualityJobInput.BatchTransformInput.DataCapturedDestinationS3Uri",
+      "DataQualityJobInput.BatchTransformInput.DatasetFormat.Csv.Header",
+      "DataQualityJobInput.BatchTransformInput.DatasetFormat.Json.Line",
+      "DataQualityJobInput.BatchTransformInput.DatasetFormat.Parquet",
+      "DataQualityJobInput.BatchTransformInput.ExcludeFeaturesAttribute",
+      "DataQualityJobInput.BatchTransformInput.LocalPath",
+      "DataQualityJobInput.BatchTransformInput.S3DataDistributionType",
+      "DataQualityJobInput.BatchTransformInput.S3InputMode",
+      "DataQualityJobInput.EndpointInput.EndpointName",
+      "DataQualityJobInput.EndpointInput.ExcludeFeaturesAttribute",
+      "DataQualityJobInput.EndpointInput.LocalPath",
+      "DataQualityJobInput.EndpointInput.S3DataDistributionType",
+      "DataQualityJobInput.EndpointInput.S3InputMode",
+      "DataQualityJobOutputConfig.KmsKeyId",
+      "DataQualityJobOutputConfig.MonitoringOutputs",
+      "EndpointName",
+      "JobDefinitionArn",
+      "JobDefinitionName",
+      "JobResources.ClusterConfig.InstanceCount",
+      "JobResources.ClusterConfig.InstanceType",
+      "JobResources.ClusterConfig.VolumeKmsKeyId",
+      "JobResources.ClusterConfig.VolumeSizeInGB",
+      "NetworkConfig.EnableInterContainerTrafficEncryption",
+      "NetworkConfig.EnableNetworkIsolation",
+      "NetworkConfig.VpcConfig.SecurityGroupIds",
+      "NetworkConfig.VpcConfig.Subnets",
+      "RoleArn",
+      "StoppingCondition.MaxRuntimeInSeconds",
+      "Tags"
     ],
     "AWS::SageMaker::Domain": [
       "DomainArn",
@@ -6461,6 +7264,7 @@
       "EndpointName"
     ],
     "AWS::SageMaker::EndpointConfig": [
+      "EndpointConfigName",
       "Id"
     ],
     "AWS::SageMaker::FeatureGroup": [
@@ -6505,11 +7309,55 @@
       "TrackingServerArn"
     ],
     "AWS::SageMaker::Model": [
-      "ModelArn"
+      "ModelArn",
+      "ModelName"
     ],
     "AWS::SageMaker::ModelBiasJobDefinition": [
       "CreationTime",
-      "JobDefinitionArn"
+      "EndpointName",
+      "JobDefinitionArn",
+      "JobDefinitionName",
+      "JobResources.ClusterConfig.InstanceCount",
+      "JobResources.ClusterConfig.InstanceType",
+      "JobResources.ClusterConfig.VolumeKmsKeyId",
+      "JobResources.ClusterConfig.VolumeSizeInGB",
+      "ModelBiasAppSpecification.ConfigUri",
+      "ModelBiasAppSpecification.ImageUri",
+      "ModelBiasBaselineConfig.BaseliningJobName",
+      "ModelBiasBaselineConfig.ConstraintsResource.S3Uri",
+      "ModelBiasJobInput.BatchTransformInput.DataCapturedDestinationS3Uri",
+      "ModelBiasJobInput.BatchTransformInput.DatasetFormat.Csv.Header",
+      "ModelBiasJobInput.BatchTransformInput.DatasetFormat.Json.Line",
+      "ModelBiasJobInput.BatchTransformInput.DatasetFormat.Parquet",
+      "ModelBiasJobInput.BatchTransformInput.EndTimeOffset",
+      "ModelBiasJobInput.BatchTransformInput.FeaturesAttribute",
+      "ModelBiasJobInput.BatchTransformInput.InferenceAttribute",
+      "ModelBiasJobInput.BatchTransformInput.LocalPath",
+      "ModelBiasJobInput.BatchTransformInput.ProbabilityAttribute",
+      "ModelBiasJobInput.BatchTransformInput.ProbabilityThresholdAttribute",
+      "ModelBiasJobInput.BatchTransformInput.S3DataDistributionType",
+      "ModelBiasJobInput.BatchTransformInput.S3InputMode",
+      "ModelBiasJobInput.BatchTransformInput.StartTimeOffset",
+      "ModelBiasJobInput.EndpointInput.EndTimeOffset",
+      "ModelBiasJobInput.EndpointInput.EndpointName",
+      "ModelBiasJobInput.EndpointInput.FeaturesAttribute",
+      "ModelBiasJobInput.EndpointInput.InferenceAttribute",
+      "ModelBiasJobInput.EndpointInput.LocalPath",
+      "ModelBiasJobInput.EndpointInput.ProbabilityAttribute",
+      "ModelBiasJobInput.EndpointInput.ProbabilityThresholdAttribute",
+      "ModelBiasJobInput.EndpointInput.S3DataDistributionType",
+      "ModelBiasJobInput.EndpointInput.S3InputMode",
+      "ModelBiasJobInput.EndpointInput.StartTimeOffset",
+      "ModelBiasJobInput.GroundTruthS3Input.S3Uri",
+      "ModelBiasJobOutputConfig.KmsKeyId",
+      "ModelBiasJobOutputConfig.MonitoringOutputs",
+      "NetworkConfig.EnableInterContainerTrafficEncryption",
+      "NetworkConfig.EnableNetworkIsolation",
+      "NetworkConfig.VpcConfig.SecurityGroupIds",
+      "NetworkConfig.VpcConfig.Subnets",
+      "RoleArn",
+      "StoppingCondition.MaxRuntimeInSeconds",
+      "Tags"
     ],
     "AWS::SageMaker::ModelCard": [
       "CreatedBy.DomainId",
@@ -6526,7 +7374,43 @@
     ],
     "AWS::SageMaker::ModelExplainabilityJobDefinition": [
       "CreationTime",
-      "JobDefinitionArn"
+      "EndpointName",
+      "JobDefinitionArn",
+      "JobDefinitionName",
+      "JobResources.ClusterConfig.InstanceCount",
+      "JobResources.ClusterConfig.InstanceType",
+      "JobResources.ClusterConfig.VolumeKmsKeyId",
+      "JobResources.ClusterConfig.VolumeSizeInGB",
+      "ModelExplainabilityAppSpecification.ConfigUri",
+      "ModelExplainabilityAppSpecification.ImageUri",
+      "ModelExplainabilityBaselineConfig.BaseliningJobName",
+      "ModelExplainabilityBaselineConfig.ConstraintsResource.S3Uri",
+      "ModelExplainabilityJobInput.BatchTransformInput.DataCapturedDestinationS3Uri",
+      "ModelExplainabilityJobInput.BatchTransformInput.DatasetFormat.Csv.Header",
+      "ModelExplainabilityJobInput.BatchTransformInput.DatasetFormat.Json.Line",
+      "ModelExplainabilityJobInput.BatchTransformInput.DatasetFormat.Parquet",
+      "ModelExplainabilityJobInput.BatchTransformInput.FeaturesAttribute",
+      "ModelExplainabilityJobInput.BatchTransformInput.InferenceAttribute",
+      "ModelExplainabilityJobInput.BatchTransformInput.LocalPath",
+      "ModelExplainabilityJobInput.BatchTransformInput.ProbabilityAttribute",
+      "ModelExplainabilityJobInput.BatchTransformInput.S3DataDistributionType",
+      "ModelExplainabilityJobInput.BatchTransformInput.S3InputMode",
+      "ModelExplainabilityJobInput.EndpointInput.EndpointName",
+      "ModelExplainabilityJobInput.EndpointInput.FeaturesAttribute",
+      "ModelExplainabilityJobInput.EndpointInput.InferenceAttribute",
+      "ModelExplainabilityJobInput.EndpointInput.LocalPath",
+      "ModelExplainabilityJobInput.EndpointInput.ProbabilityAttribute",
+      "ModelExplainabilityJobInput.EndpointInput.S3DataDistributionType",
+      "ModelExplainabilityJobInput.EndpointInput.S3InputMode",
+      "ModelExplainabilityJobOutputConfig.KmsKeyId",
+      "ModelExplainabilityJobOutputConfig.MonitoringOutputs",
+      "NetworkConfig.EnableInterContainerTrafficEncryption",
+      "NetworkConfig.EnableNetworkIsolation",
+      "NetworkConfig.VpcConfig.SecurityGroupIds",
+      "NetworkConfig.VpcConfig.Subnets",
+      "RoleArn",
+      "StoppingCondition.MaxRuntimeInSeconds",
+      "Tags"
     ],
     "AWS::SageMaker::ModelPackage": [
       "CreationTime",
@@ -6541,18 +7425,103 @@
     ],
     "AWS::SageMaker::ModelQualityJobDefinition": [
       "CreationTime",
-      "JobDefinitionArn"
+      "EndpointName",
+      "JobDefinitionArn",
+      "JobDefinitionName",
+      "JobResources.ClusterConfig.InstanceCount",
+      "JobResources.ClusterConfig.InstanceType",
+      "JobResources.ClusterConfig.VolumeKmsKeyId",
+      "JobResources.ClusterConfig.VolumeSizeInGB",
+      "ModelQualityAppSpecification.ContainerArguments",
+      "ModelQualityAppSpecification.ContainerEntrypoint",
+      "ModelQualityAppSpecification.ImageUri",
+      "ModelQualityAppSpecification.PostAnalyticsProcessorSourceUri",
+      "ModelQualityAppSpecification.ProblemType",
+      "ModelQualityAppSpecification.RecordPreprocessorSourceUri",
+      "ModelQualityBaselineConfig.BaseliningJobName",
+      "ModelQualityBaselineConfig.ConstraintsResource.S3Uri",
+      "ModelQualityJobInput.BatchTransformInput.DataCapturedDestinationS3Uri",
+      "ModelQualityJobInput.BatchTransformInput.DatasetFormat.Csv.Header",
+      "ModelQualityJobInput.BatchTransformInput.DatasetFormat.Json.Line",
+      "ModelQualityJobInput.BatchTransformInput.DatasetFormat.Parquet",
+      "ModelQualityJobInput.BatchTransformInput.EndTimeOffset",
+      "ModelQualityJobInput.BatchTransformInput.InferenceAttribute",
+      "ModelQualityJobInput.BatchTransformInput.LocalPath",
+      "ModelQualityJobInput.BatchTransformInput.ProbabilityAttribute",
+      "ModelQualityJobInput.BatchTransformInput.ProbabilityThresholdAttribute",
+      "ModelQualityJobInput.BatchTransformInput.S3DataDistributionType",
+      "ModelQualityJobInput.BatchTransformInput.S3InputMode",
+      "ModelQualityJobInput.BatchTransformInput.StartTimeOffset",
+      "ModelQualityJobInput.EndpointInput.EndTimeOffset",
+      "ModelQualityJobInput.EndpointInput.EndpointName",
+      "ModelQualityJobInput.EndpointInput.InferenceAttribute",
+      "ModelQualityJobInput.EndpointInput.LocalPath",
+      "ModelQualityJobInput.EndpointInput.ProbabilityAttribute",
+      "ModelQualityJobInput.EndpointInput.ProbabilityThresholdAttribute",
+      "ModelQualityJobInput.EndpointInput.S3DataDistributionType",
+      "ModelQualityJobInput.EndpointInput.S3InputMode",
+      "ModelQualityJobInput.EndpointInput.StartTimeOffset",
+      "ModelQualityJobInput.GroundTruthS3Input.S3Uri",
+      "ModelQualityJobOutputConfig.KmsKeyId",
+      "ModelQualityJobOutputConfig.MonitoringOutputs",
+      "NetworkConfig.EnableInterContainerTrafficEncryption",
+      "NetworkConfig.EnableNetworkIsolation",
+      "NetworkConfig.VpcConfig.SecurityGroupIds",
+      "NetworkConfig.VpcConfig.Subnets",
+      "RoleArn",
+      "StoppingCondition.MaxRuntimeInSeconds",
+      "Tags"
     ],
     "AWS::SageMaker::MonitoringSchedule": [
       "CreationTime",
+      "EndpointName",
+      "FailureReason",
       "LastModifiedTime",
-      "MonitoringScheduleArn"
+      "LastMonitoringExecutionSummary.CreationTime",
+      "LastMonitoringExecutionSummary.EndpointName",
+      "LastMonitoringExecutionSummary.FailureReason",
+      "LastMonitoringExecutionSummary.LastModifiedTime",
+      "LastMonitoringExecutionSummary.MonitoringExecutionStatus",
+      "LastMonitoringExecutionSummary.MonitoringScheduleName",
+      "LastMonitoringExecutionSummary.ProcessingJobArn",
+      "LastMonitoringExecutionSummary.ScheduledTime",
+      "MonitoringScheduleArn",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.BaselineConfig.ConstraintsResource.S3Uri",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.BaselineConfig.StatisticsResource.S3Uri",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringAppSpecification.ContainerArguments",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringAppSpecification.ContainerEntrypoint",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringAppSpecification.ImageUri",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringAppSpecification.PostAnalyticsProcessorSourceUri",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringAppSpecification.RecordPreprocessorSourceUri",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringInputs",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringOutputConfig.KmsKeyId",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringOutputConfig.MonitoringOutputs",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringResources.ClusterConfig.InstanceCount",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringResources.ClusterConfig.InstanceType",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringResources.ClusterConfig.VolumeKmsKeyId",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.MonitoringResources.ClusterConfig.VolumeSizeInGB",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.NetworkConfig.EnableInterContainerTrafficEncryption",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.NetworkConfig.EnableNetworkIsolation",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.NetworkConfig.VpcConfig.SecurityGroupIds",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.NetworkConfig.VpcConfig.Subnets",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.RoleArn",
+      "MonitoringScheduleConfig.MonitoringJobDefinition.StoppingCondition.MaxRuntimeInSeconds",
+      "MonitoringScheduleConfig.MonitoringJobDefinitionName",
+      "MonitoringScheduleConfig.MonitoringType",
+      "MonitoringScheduleConfig.ScheduleConfig.DataAnalysisEndTime",
+      "MonitoringScheduleConfig.ScheduleConfig.DataAnalysisStartTime",
+      "MonitoringScheduleConfig.ScheduleConfig.ScheduleExpression",
+      "MonitoringScheduleName",
+      "MonitoringScheduleStatus",
+      "Tags"
     ],
     "AWS::SageMaker::NotebookInstance": [
-      "Id"
+      "Id",
+      "NotebookInstanceName"
     ],
     "AWS::SageMaker::NotebookInstanceLifecycleConfig": [
-      "Id"
+      "Id",
+      "NotebookInstanceLifecycleConfigName"
     ],
     "AWS::SageMaker::PartnerApp": [
       "Arn",
@@ -6589,7 +7558,8 @@
       "UserProfileArn"
     ],
     "AWS::SageMaker::Workteam": [
-      "Id"
+      "Id",
+      "WorkteamName"
     ],
     "AWS::Scheduler::Schedule": [
       "Arn"
@@ -6798,7 +7768,8 @@
     ],
     "AWS::ServiceDiscovery::Service": [
       "Arn",
-      "Id"
+      "Id",
+      "Name"
     ],
     "AWS::Shield::DRTAccess": [
       "AccountId"
@@ -6823,7 +7794,12 @@
       "DescribePayload"
     ],
     "AWS::StepFunctions::Activity": [
-      "Arn"
+      "Arn",
+      "EncryptionConfiguration.KmsDataKeyReusePeriodSeconds",
+      "EncryptionConfiguration.KmsKeyId",
+      "EncryptionConfiguration.Type",
+      "Name",
+      "Tags"
     ],
     "AWS::StepFunctions::StateMachine": [
       "Arn",
@@ -6918,7 +7894,9 @@
       "State"
     ],
     "AWS::Transfer::User": [
-      "Arn"
+      "Arn",
+      "ServerId",
+      "UserName"
     ],
     "AWS::Transfer::WebApp": [
       "Arn",
@@ -11761,7 +12739,7 @@
       "MasterUserSecretKmsKeyId": "string",
       "MasterUsername": "string",
       "NetworkType": "string",
-      "Port": "integer",
+      "Port": "string",
       "PreferredBackupWindow": "string",
       "PreferredMaintenanceWindow": "string",
       "ReadEndpoint": "string",

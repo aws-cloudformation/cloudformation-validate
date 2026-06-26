@@ -215,17 +215,26 @@ fn format_validation_with_refs() {
 
 // ── Integration: ref type checking ──────────────────────────────────
 
+// A reference whose target resource produces the wrong destination ARN format
+// is a semantic, cross-resource concern owned by the rule engine, not the schema
+// validator. The schema validator only proves structural type incompatibility,
+// which a string-typed reference name does not violate — so it must not raise an
+// ARN-format violation here.
 #[test]
-fn ref_type_mismatch_detected() {
+fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
     let diags = validate_fixture("integration/ref-types.yaml");
-    let type_or_format: Vec<_> = diags
+    let format_violations: Vec<_> = diags
         .iter()
         .filter(|d| {
-            (d.rule_id == "F3012" || d.rule_id == "E1151")
+            matches!(d.rule_id.as_str(), "E1150" | "E1151" | "E1152" | "E1154")
                 && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Subnet2")
         })
         .collect();
-    assert!(!type_or_format.is_empty(), "expected type/format diagnostic for Subnet2 VpcId ref to IAM Role");
+    assert!(
+        format_violations.is_empty(),
+        "schema validator must not emit an ARN-format violation for a reference-valued property; got {:?}",
+        format_violations.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
 }
 
 // ── Integration: getatt type checking ───────────────────────────────
@@ -353,6 +362,45 @@ fn structural_f3014_required_xor() {
 }
 
 #[test]
+fn f3014_excludes_novalue_from_exclusive_count() {
+    // CidrIp is set to AWS::NoValue, leaving exactly one of the mutually
+    // exclusive source properties (SourceSecurityGroupId), so no F3014.
+    let diags = validate_fixture("good/resources/properties/exclusive.yaml");
+    let f3014: Vec<_> = diags
+        .iter()
+        .filter(|d| d.rule_id == "F3014" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Ingress"))
+        .collect();
+    assert!(f3014.is_empty(), "AWS::NoValue property must not count toward the exclusive-one tally");
+}
+
+#[test]
+fn f3037_ignores_novalue_collapsed_list_items() {
+    // Two Fn::If list items resolve to AWS::NoValue (null) in the false branch;
+    // CloudFormation removes them, so they are not duplicates.
+    let diags = validate_fixture("good/resources/properties/list_duplicates.yaml");
+    let f3037: Vec<_> = diags
+        .iter()
+        .filter(|d| {
+            d.rule_id == "F3037"
+                && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("IamRoleWithNestedConditions")
+        })
+        .collect();
+    assert!(f3037.is_empty(), "null (AWS::NoValue) list items must not be treated as duplicates");
+}
+
+#[test]
+fn f3012_property_type_error_reported_once_across_conditional_branches() {
+    // PolicyDocument is a list (wrong type) wrapping an Fn::If; the branch
+    // expansion must not multiply the single property-level type error.
+    let diags = validate_fixture("bad/resources/iam/iam_policy.yaml");
+    let f3012: Vec<_> = diags
+        .iter()
+        .filter(|d| d.rule_id == "F3012" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("rIamPolicy"))
+        .collect();
+    assert_eq!(f3012.len(), 1, "expected a single F3012 for the list-typed PolicyDocument, got {}", f3012.len());
+}
+
+#[test]
 fn structural_f3021_dependent_required() {
     let diags = validate_fixture("bad/schema_structural.yaml");
     let f3021: Vec<_> = diags
@@ -379,14 +427,12 @@ fn property_f3031_pattern_violation() {
 }
 
 #[test]
-fn property_f3040_read_only() {
+fn read_only_property_not_flagged() {
+    // E3040 (read-only property specified) was removed: cfn-lint defines the rule
+    // but never emits it on real templates, so firing it produced false positives.
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let f3040: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "E3040" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ReadOnlyProp"))
-        .collect();
-    assert!(!f3040.is_empty(), "expected E3040 for read-only Arn on ACMPCA Certificate");
-    assert!(f3040[0].message.contains("Read only"));
+    let e3040: Vec<_> = diags.iter().filter(|d| d.rule_id == "E3040").collect();
+    assert!(e3040.is_empty(), "E3040 was removed and must not be emitted, got: {:?}", e3040);
 }
 
 #[test]
@@ -501,12 +547,16 @@ fn composition_f3017_any_of_no_match() {
 // ── Extension rules (cfnGather) ────────────────────────────────────
 
 #[test]
-fn extension_cfn_gather_cross_resource() {
+fn extension_cfn_gather_no_duplicate_numeric_constraint() {
+    // The cfnGather extension's numeric cross-resource bounds (ESM BatchSize vs
+    // FIFO-queue limit, SQS VisibilityTimeout vs Lambda Timeout) are reported by
+    // the dedicated engine rules E3705 / E3505, which match cfn-lint's IDs and
+    // locations. The schema-validator must NOT also emit a generic F3034 for
+    // them, which previously double-reported under an ID cfn-lint never uses.
     let diags = validate_fixture("integration/cfn-gather.yaml");
-    let cross_resource: Vec<_> = diags.iter().filter(|d| d.rule_id == "F3034").collect();
     assert!(
-        !cross_resource.is_empty(),
-        "expected F3034 cross-resource diagnostic from cfn-gather template, got rules: {:?}",
+        !diags.iter().any(|d| d.rule_id == "F3034"),
+        "F3034 must not double-report a gather constraint, got: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }

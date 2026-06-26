@@ -177,7 +177,7 @@ fn extract_primary_type(v: &serde_json::Value) -> Option<String> {
 
 /// Process schemas: load raw schemas, apply patches and extensions, then generate
 /// shared metadata files consumed by all engine crates.
-pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Result<SyncStats> {
+pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<SyncStats> {
     let mut stats = SyncStats::default();
     let schema_source = crate::schema::schema_dir(upstream_dir);
     if !schema_source.exists() {
@@ -273,11 +273,16 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
     info!("Wrote {} patched schemas to patched_schemas/", raw_schemas.len());
 
     fs::write(data_dir.join("schema_metadata.json"), generate_schema_metadata(&schemas, &raw_schemas))?;
-    fs::write(data_dir.join("getatt_attributes.json"), generate_getatt_data(&schemas, &raw_schemas))?;
-    // Union the schema-derived types with the per-region known types from
-    // cfn-lint. Some types CloudFormation accepts (e.g. AWS::CDK::Metadata) have
-    // no provider schema but appear in cfn-lint's per-region maps. The single
-    // `known_resource_types` set is the source of truth
+    let getatt_additions = read_getatt_additions(handwritten_dir)?;
+    let getatt_return_overrides = read_getatt_return_type_overrides(handwritten_dir)?;
+    fs::write(
+        data_dir.join("getatt_attributes.json"),
+        generate_getatt_data(&schemas, &raw_schemas, &getatt_additions, &getatt_return_overrides),
+    )?;
+    // Union the schema-derived types with the per-region known types. Some types
+    // CloudFormation accepts (e.g. AWS::CDK::Metadata) have no provider schema but
+    // appear only in the per-region type maps. The single `known_resource_types`
+    // set is the source of truth
     let mut known_types: BTreeSet<String> = schemas.keys().cloned().collect();
     let region_types = read_region_resource_types_union(&data_dir)?;
     known_types.extend(region_types);
@@ -298,7 +303,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
 }
 
 /// Reads `data_dir/region_resource_types.json` (produced by the sync phase from
-/// cfn-lint's per-region provider files) and returns the union of every
+/// the upstream per-region provider files) and returns the union of every
 /// resource-type key across all regions.
 ///
 /// The returned set is intentionally region-agnostic: callers (the
@@ -308,7 +313,7 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path) -> anyhow::Res
 fn read_region_resource_types_union(data_dir: &Path) -> anyhow::Result<BTreeSet<String>> {
     let region_file = data_dir.join("region_resource_types.json");
     if !region_file.exists() {
-        warn!("{} not found — known_resource_types will not include cfn-lint per-region types", region_file.display());
+        warn!("{} not found — known_resource_types will not include per-region types", region_file.display());
         return Ok(BTreeSet::new());
     }
     let content = fs::read_to_string(&region_file)?;
@@ -505,6 +510,8 @@ fn extract_property_constraints(
 fn generate_getatt_data(
     schemas: &HashMap<String, (String, SchemaTop)>,
     raw: &HashMap<String, serde_json::Value>,
+    additions: &BTreeMap<String, Vec<String>>,
+    return_type_overrides: &BTreeMap<String, BTreeMap<String, String>>,
 ) -> String {
     let mut attrs: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut attr_types: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
@@ -538,8 +545,64 @@ fn generate_getatt_data(
             attr_types.insert(tn.clone(), tt);
         }
     }
+    // Extend the schema-derived readOnly attributes with the broader set of
+    // attributes CloudFormation actually exposes for Fn::GetAtt (writable
+    // properties surfaced as attributes on older resource types), so attribute
+    // validity matches what CloudFormation accepts.
+    for (type_name, extra_attrs) in additions {
+        let valid_attrs = attrs.entry(type_name.clone()).or_default();
+        valid_attrs.extend(extra_attrs.iter().cloned());
+        valid_attrs.sort();
+        valid_attrs.dedup();
+    }
+    // Apply explicit GetAtt-return-type overrides for attributes whose GetAtt
+    // value type differs from the declared property type.
+    for (type_name, attr_overrides) in return_type_overrides {
+        let type_map = attr_types.entry(type_name.clone()).or_default();
+        for (attr, ret_type) in attr_overrides {
+            type_map.insert(attr.clone(), ret_type.clone());
+        }
+    }
     serde_json::to_string_pretty(&serde_json::json!({"getatt_attributes": attrs, "getatt_attribute_types": attr_types}))
         .unwrap()
+}
+
+/// Reads the hand-maintained GetAtt attribute additions that extend the
+/// schema-derived readOnly attributes with the full set CloudFormation exposes
+/// for Fn::GetAtt on each resource type.
+fn read_getatt_additions(handwritten_dir: &Path) -> anyhow::Result<BTreeMap<String, Vec<String>>> {
+    #[derive(Deserialize)]
+    struct GetAttAdditions {
+        getatt_additions: BTreeMap<String, Vec<String>>,
+    }
+    let path = handwritten_dir.join("getatt_additions.json");
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let parsed: GetAttAdditions = serde_json::from_str(&contents)
+        .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    Ok(parsed.getatt_additions)
+}
+
+/// Reads overrides for the type CloudFormation returns from `Fn::GetAtt` on
+/// specific attributes, where it differs from the raw schema property type
+/// (CloudFormation stringifies many GetAtt return values). Missing file yields
+/// an empty map.
+fn read_getatt_return_type_overrides(
+    handwritten_dir: &Path,
+) -> anyhow::Result<BTreeMap<String, BTreeMap<String, String>>> {
+    #[derive(Deserialize)]
+    struct Overrides {
+        getatt_return_type_overrides: BTreeMap<String, BTreeMap<String, String>>,
+    }
+    let path = handwritten_dir.join("getatt_return_type_overrides.json");
+    if !path.exists() {
+        return Ok(BTreeMap::new());
+    }
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let parsed: Overrides = serde_json::from_str(&contents)
+        .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    Ok(parsed.getatt_return_type_overrides)
 }
 
 /// Generates user-settable primary identifier properties per resource type,
@@ -814,7 +877,7 @@ mod tests {
             copy_dir(&upstream_dir.join("extensions"), &tmp_upstream.join("extensions"));
         }
 
-        let result = process_schemas(&tmp_upstream, &tmp);
+        let result = process_schemas(&tmp_upstream, &tmp, &manifest.join("handwritten"));
         let stats = result.expect("process_schemas should succeed");
         assert!(stats.files_written > 0, "expected files_written > 0, got {}", stats.files_written);
 

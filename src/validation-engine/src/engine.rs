@@ -193,6 +193,7 @@ pub(crate) fn validate(
     }
 
     gate_sam_transform_errors(&mut all_diagnostics);
+    gate_cdk_suppressed_rules(&mut all_diagnostics, &model);
 
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
@@ -729,6 +730,20 @@ fn gate_sam_transform_errors(diagnostics: &mut Vec<Diagnostic>) {
     if has_transform_error {
         diagnostics.retain(|d| is_sam_transform_error_message(&d.message));
     }
+}
+
+/// Rules suppressed on CDK-generated templates. CDK synthesizes templates from
+/// higher-level code, so findings about how the template itself is written are
+/// not actionable for the developer and would only add noise.
+const CDK_SUPPRESSED_RULE_IDS: [&str; 2] = ["I1022", "W3010"];
+
+/// Suppresses non-actionable findings on CDK-generated templates (see
+/// [`CDK_SUPPRESSED_RULE_IDS`]).
+fn gate_cdk_suppressed_rules(diagnostics: &mut Vec<Diagnostic>, model: &SemanticModel) {
+    if !model.is_cdk {
+        return;
+    }
+    diagnostics.retain(|d| !CDK_SUPPRESSED_RULE_IDS.contains(&d.rule_id.as_str()));
 }
 
 pub(crate) fn enrich_diagnostics(

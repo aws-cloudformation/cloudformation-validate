@@ -2,7 +2,6 @@
   "retention_period_requirements": {
     "AWS::SQS::Queue": ["MessageRetentionPeriod"],
     "AWS::Kinesis::Stream": ["RetentionPeriodHours"],
-    "AWS::Logs::LogGroup": ["RetentionInDays"],
     "AWS::RDS::DBInstance": ["BackupRetentionPeriod"],
     "AWS::RDS::DBCluster": ["BackupRetentionPeriod"],
     "AWS::DocDB::DBCluster": ["BackupRetentionPeriod"],

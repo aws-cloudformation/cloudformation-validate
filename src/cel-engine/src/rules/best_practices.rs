@@ -4,7 +4,8 @@ use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::consts::{
-    EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, KEY_PROPERTIES,
+    EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
+    KEY_PROPERTIES, TRANSFORM_SERVERLESS,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
@@ -53,6 +54,14 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     }
 }
 
+/// Whether a `DeletionPolicy`/`UpdateReplacePolicy` value is the literal
+/// `"Delete"`. A lone policy set to `Delete` is the default behavior, so
+/// CloudFormation gains nothing from also setting its counterpart, and the
+/// configuration is treated as valid (no W3011 warning).
+fn policy_is_delete(policy: Option<&ResolvedValue>) -> bool {
+    matches!(policy, Some(ResolvedValue::Concrete { value: v }) if v.as_str() == Some("Delete"))
+}
+
 fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -86,7 +95,14 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
-        if res.deletion_policy.is_some() && res.update_replace_policy.is_none() {
+        // A lone policy whose value is "Delete" is the default behavior, so
+        // requiring its counterpart adds no protection and the configuration is
+        // valid. Only warn when the single present policy asks for something
+        // other than Delete.
+        if res.deletion_policy.is_some()
+            && res.update_replace_policy.is_none()
+            && !policy_is_delete(res.deletion_policy.as_ref())
+        {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -96,7 +112,10 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-        if res.update_replace_policy.is_some() && res.deletion_policy.is_none() {
+        if res.update_replace_policy.is_some()
+            && res.deletion_policy.is_none()
+            && !policy_is_delete(res.update_replace_policy.as_ref())
+        {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -183,38 +202,23 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for (name, res) in &m.resources {
-        // Plain string properties
-        for val in res.properties.values() {
-            if let ResolvedValue::Concrete { value: v } = val
-                && let Some(s) = v.as_str()
-                && s.starts_with("arn:aws:")
-                && !crate::functions::contains_unresolvable_content(val)
-            {
+    // I3042: Only fires for hardcoded partition inside Fn::Sub, skips SAM
+    let has_serverless = m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
+    if !has_serverless {
+        for (name, res) in &m.resources {
+            for path in &res.diagnostics.hardcoded_partition_arns {
                 out.push(make_resource_diagnostic(
                     "I3042",
-                    "Hardcoded partition 'aws' in ARN — use AWS::Partition pseudo-parameter for portability",
+                    &format!(
+                        "ARN in Resource {} contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters",
+                        name
+                    ),
                     m,
                     name,
-                    "",
+                    path,
                     None,
                 ));
-                break;
             }
-        }
-        // Fn::Sub templates
-        for path in &res.diagnostics.hardcoded_partition_arns {
-            out.push(make_resource_diagnostic(
-                "I3042",
-                &format!(
-                    "ARN in Resource {} contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters",
-                    name
-                ),
-                m,
-                name,
-                &format!("Properties.{}", path),
-                None,
-            ));
         }
     }
 
@@ -476,6 +480,9 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
     let m = ctx.model;
     for (resource_type, required_props) in &ctx.cached_data.retention_period_requirements {
         for resource_name in m.resources_of_type(resource_type) {
+            if resource_type == "AWS::RDS::DBInstance" && !rds_dbinstance_needs_retention(ctx, resource_name) {
+                continue;
+            }
             for prop in required_props {
                 let has_prop = m
                     .resources
@@ -495,6 +502,21 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
     out
+}
+
+// A standalone, non-Aurora DB instance is the only RDS instance that needs an
+// explicit backup retention period: Aurora manages backups at the cluster level
+// and a read replica inherits its source's retention.
+fn rds_dbinstance_needs_retention(ctx: &EvalContext, name: &str) -> bool {
+    let Some(props) =
+        ctx.input.get(FIELD_RESOURCES).and_then(|r| r.get(name)).and_then(|res| res.get(FIELD_PROPERTIES))
+    else {
+        return false;
+    };
+    let Some(engine) = props.get("Engine").and_then(|e| e.as_str()) else {
+        return false;
+    };
+    !engine.starts_with("aurora") && props.get("SourceDBInstanceIdentifier").is_none()
 }
 
 fn check_notaction_policy(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, doc: &serde_json::Value) {

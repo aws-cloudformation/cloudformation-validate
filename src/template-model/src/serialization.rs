@@ -101,6 +101,18 @@ impl SemanticModel {
             sam_implicit_resources: self.sam_implicit_resources.iter().cloned().collect(),
             globals_param_refs: self.globals_param_refs.clone(),
             is_cdk: self.is_cdk,
+            fn_if_conditions: self.fn_if_conditions.clone(),
+            find_in_map_names: {
+                let mut names: Vec<String> = self.find_in_map_names.iter().cloned().collect();
+                names.sort();
+                names
+            },
+            params_referenced_in_definitions: {
+                let mut names: Vec<String> = self.params_referenced_in_definitions.iter().cloned().collect();
+                names.sort();
+                names
+            },
+            has_dynamic_findinmap_name: self.has_dynamic_findinmap_name,
             has_parse_errors: self
                 .diagnostics
                 .iter()

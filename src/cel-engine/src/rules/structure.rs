@@ -10,7 +10,7 @@ use template_model::consts::{
     FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS, FIELD_UPDATE_REPLACE_POLICY, POLICY_DELETE, POLICY_RETAIN,
     POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
     SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
-    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_SERVERLESS,
+    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
 };
 use validation_engine::make_resource_diagnostic;
 
@@ -338,8 +338,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         ));
     }
 
+    let has_lang_ext = m.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     for name in m.resources.keys() {
-        if !ALPHANUM_RE.is_match(name) {
+        if !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with("Fn::ForEach::"))) {
             out.push(make_resource_diagnostic(
                 "F0006",
                 &format!("Logical ID '{}' must be alphanumeric (A-Za-z0-9)", name),
@@ -506,8 +507,30 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object()) {
-        let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    // A transform (SAM, language extensions, or a custom macro) can reference
+    // parameters in ways not visible before expansion, so an unreferenced
+    // parameter is not a reliable signal once any transform is present.
+    //
+    // A parameter can be referenced from a section the parser could not read —
+    // an unexpanded Fn::ForEach key (the transform that would expand it is
+    // missing) or a malformed Conditions section (e.g. authored as a list). In
+    // those cases the reference graph is incomplete, so the unused-parameter
+    // check is skipped rather than reporting a parameter as unused when the
+    // reference simply could not be seen.
+    let resources_obj = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    let has_unexpanded_foreach = resources_obj.is_some_and(|r| r.keys().any(|k| k.contains("Fn::ForEach")));
+    let conditions_malformed = input
+        .get("template")
+        .and_then(|t| t.get("rawTopLevelKeys"))
+        .and_then(|v| v.as_array())
+        .is_some_and(|keys| keys.iter().any(|k| k.as_str() == Some(SECTION_CONDITIONS)))
+        && input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()).map(|c| c.is_empty()).unwrap_or(true);
+    if !has_unexpanded_foreach
+        && !conditions_malformed
+        && m.transforms.is_empty()
+        && let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object())
+    {
+        let resources = resources_obj;
         for pname in params.keys() {
             let mut referenced = false;
             if let Some(res_map) = resources {
@@ -563,6 +586,15 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
+            // Check references from within other parameter definitions
+            if !referenced && let Some(refs) = input.get("paramsReferencedInDefinitions").and_then(|r| r.as_array()) {
+                for r in refs {
+                    if r.as_str() == Some(pname.as_str()) {
+                        referenced = true;
+                        break;
+                    }
+                }
+            }
             // Check output edges
             if !referenced && let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
                 for (_, out_val) in outputs {
@@ -592,26 +624,21 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object()) {
-        let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    // A FindInMap with a non-literal map name (e.g. a nested FindInMap) makes it
+    // impossible to attribute usage to a specific mapping, so the unused-mapping
+    // check (W7001) is disabled entirely. Otherwise a mapping
+    // is "used" if its name appears as the literal first argument of any
+    // Fn::FindInMap anywhere in the template (resources, outputs, conditions,
+    // ForEach bodies), which `findInMapNames` collects template-wide.
+    let dynamic_map_name = input.get("hasDynamicFindinmapName").and_then(|v| v.as_bool()).unwrap_or(false);
+    if !dynamic_map_name && let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object()) {
+        let used_names: HashSet<&str> = input
+            .get("findInMapNames")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
+            .unwrap_or_default();
         for mname in mappings.keys() {
-            let mut used = false;
-            if let Some(res_map) = resources {
-                for (_, res) in res_map {
-                    if let Some(refs) = res.get("findInMapRefs").and_then(|r| r.as_array()) {
-                        for r in refs {
-                            if r.as_str() == Some(mname.as_str()) {
-                                used = true;
-                                break;
-                            }
-                        }
-                    }
-                    if used {
-                        break;
-                    }
-                }
-            }
-            if !used {
+            if !used_names.contains(mname.as_str()) {
                 out.push(make_resource_diagnostic(
                     "W7001",
                     &format!("Mapping '{}' is not referenced by any Fn::FindInMap", mname),
@@ -626,14 +653,20 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if let Some(conds) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
         let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+        let fn_if_conditions: HashSet<&str> = input
+            .get("fnIfConditions")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
+            .unwrap_or_default();
         for cname in conds.keys() {
-            if !condition_is_referenced(
-                cname,
-                conds,
-                resources,
-                input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()),
-                &mut HashSet::new(),
-            ) {
+            if !fn_if_conditions.contains(cname.as_str())
+                && !condition_is_referenced(
+                    cname,
+                    conds,
+                    resources,
+                    input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()),
+                )
+            {
                 out.push(make_resource_diagnostic(
                     "W8001",
                     &format!("Condition '{}' is not used by any resource or Fn::If", cname),
@@ -674,6 +707,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
                             && ret_type != "string"
                         {
+                            // An array-returning GetAtt in an output is consumed by
+                            // Fn::Select to extract a string element — the array
+                            // itself is never the output value, so it is not a
+                            // string-type violation. Only scalar non-string returns
+                            // (integer, boolean) are reported.
+                            if ret_type == "array" {
+                                continue;
+                            }
                             out.push(make_resource_diagnostic(
                                 "F6101",
                                 &format!(
@@ -681,8 +722,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     name, resource, attribute, ret_type
                                 ),
                                 m,
-                                "",
-                                "",
+                                name,
+                                &format!("Outputs/{}/Value", name),
                                 None,
                             ));
                         }
@@ -950,6 +991,12 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (pname, param) in &m.parameters {
         if let Some(ref pattern) = param.allowed_pattern
             && regex::Regex::new(pattern).is_err()
+            // CloudFormation validates AllowedPattern with a PCRE-style engine
+            // that supports lookaround and backreferences; Rust's `regex` crate
+            // does not. A pattern that fails ONLY because of those constructs is
+            // still valid service-side, so treat it as valid and only report
+            // genuinely-malformed regex.
+            && !uses_extended_regex_syntax(pattern)
         {
             out.push(make_resource_diagnostic(
                 "I2003",
@@ -965,16 +1012,25 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
+/// Whether a regex uses PCRE constructs that CloudFormation's service-side
+/// engine accepts but Rust's `regex` / RE2 reject: lookahead `(?=` `(?!`,
+/// lookbehind `(?<=` `(?<!`, atomic groups `(?>`, or backreferences `\1`.
+fn uses_extended_regex_syntax(pattern: &str) -> bool {
+    const EXTENDED_GROUP_PREFIXES: &[&str] = &["(?=", "(?!", "(?<=", "(?<!", "(?>"];
+    if EXTENDED_GROUP_PREFIXES.iter().any(|p| pattern.contains(p)) {
+        return true;
+    }
+    // Backreference: a backslash followed by a digit 1-9.
+    let bytes = pattern.as_bytes();
+    bytes.windows(2).any(|w| w[0] == b'\\' && w[1].is_ascii_digit() && w[1] != b'0')
+}
+
 fn condition_is_referenced(
     cname: &str,
     conds: &serde_json::Map<String, serde_json::Value>,
     resources: Option<&serde_json::Map<String, serde_json::Value>>,
     outputs: Option<&serde_json::Map<String, serde_json::Value>>,
-    visited: &mut HashSet<String>,
 ) -> bool {
-    if !visited.insert(cname.to_string()) {
-        return false;
-    }
     // Direct usage by resource condition or condition_refs
     if let Some(res_map) = resources {
         for (_, res) in res_map {
@@ -1001,14 +1057,15 @@ fn condition_is_referenced(
             }
         }
     }
-    // Transitive: another condition depends on this one via !Condition
+    // Referenced by another condition via Fn::And/Or/Not Condition entries. The
+    // reference alone marks this condition used, independent of whether the
+    // referencing condition is itself used.
     for (other, cond_val) in conds {
         if other == cname {
             continue;
         }
         if let Some(deps) = cond_val.get("deps").and_then(|d| d.as_array())
             && deps.iter().any(|d| d.as_str() == Some(cname))
-            && condition_is_referenced(other, conds, resources, outputs, visited)
         {
             return true;
         }

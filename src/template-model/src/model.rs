@@ -67,6 +67,11 @@ pub struct ResolvedResource {
     pub metadata: Option<diagnostics::JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
+    /// True when the entire `Properties` block is a non-map intrinsic (e.g.
+    /// `Properties: !Ref AWS::NoValue`) whose effective property set is decided at
+    /// deploy time. Distinguishes "no properties given" from "properties are
+    /// dynamic", so required-property checks can be skipped for the latter.
+    pub properties_dynamic: bool,
     pub diagnostics: ResourceDiagnostics,
 }
 
@@ -133,6 +138,17 @@ pub struct SemanticModel {
     pub sam_implicit_resources: HashSet<String>,
     pub globals_param_refs: Vec<String>,
     pub is_cdk: bool,
+    pub fn_if_conditions: Vec<String>,
+    /// Mapping names referenced by an `Fn::FindInMap` with a literal map name,
+    /// collected template-wide (resources, outputs, conditions, ForEach bodies).
+    pub find_in_map_names: HashSet<String>,
+    /// Parameter names referenced from within another parameter's definition
+    /// (e.g. a Default of `!Ref OtherParam`); these still count as usage.
+    pub params_referenced_in_definitions: HashSet<String>,
+    /// True when any `Fn::FindInMap` uses a non-literal map name, which disables
+    /// the unused-mapping check (W7001) because usage can no longer be attributed
+    /// to a specific mapping.
+    pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
@@ -255,6 +271,11 @@ impl SemanticModel {
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
         let ir = crate::parser::parse(bytes)?;
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
+        // A parameter's definition can reference another parameter (e.g. a
+        // Default given as `!Ref OtherParam`). Such a reference still counts as
+        // usage, so collect the parameter names referenced from within the
+        // Parameters section to feed the unused-parameter check.
+        let params_referenced_in_definitions = collect_parameter_definition_refs(&ir, &parameters);
         let (mappings, mapping_diagnostics) = extract_mappings(&ir);
         let mut conditions = ConditionModel::from_ir(&ir, &parameters, &config.pseudo_parameters, &mappings);
 
@@ -362,6 +383,24 @@ impl SemanticModel {
             conditions.register_inline(name, expr);
         }
 
+        // Collect every mapping name referenced by an Fn::FindInMap anywhere in
+        // the template (resources, outputs, conditions, ForEach bodies). A literal
+        // first argument names a specific mapping; a non-literal one (e.g. a nested
+        // Fn::FindInMap or Ref) means the referenced mapping can't be determined
+        // statically, which disables the unused-mapping check.
+        let mut find_in_map_names: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut has_dynamic_findinmap_name = false;
+        for idx in 0..ir.arena.len() {
+            if let Node::Intrinsic(IntrinsicFn::FindInMap(map_name_ref, _, _, _)) = ir.arena.node(idx as NodeRef) {
+                match ir.arena.as_str(*map_name_ref) {
+                    Some(name) => {
+                        find_in_map_names.insert(name.to_string());
+                    }
+                    None => has_dynamic_findinmap_name = true,
+                }
+            }
+        }
+
         let resolution_sources = resolver.resolution_sources();
         let mut all_edges = resolver.edges;
         for (id, res) in &resources {
@@ -400,17 +439,37 @@ impl SemanticModel {
 
         diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
 
+        let mut fn_if_conditions: Vec<String> = Vec::new();
         for idx in 0..ir.arena.len() {
-            if let Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) = ir.arena.node(idx as NodeRef)
-                && !conditions.conditions.contains_key(cond_name)
-            {
-                diagnostics.push(crate::make_parse_diagnostic(
-                    "F1104",
-                    format!("Fn::If references undefined condition '{}'", cond_name),
-                    ir.arena.span(idx as NodeRef),
-                ));
+            match ir.arena.node(idx as NodeRef) {
+                Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) => {
+                    fn_if_conditions.push(cond_name.clone());
+                    if !conditions.conditions.contains_key(cond_name) {
+                        diagnostics.push(crate::make_parse_diagnostic(
+                            "F1104",
+                            format!("Fn::If references undefined condition '{}'", cond_name),
+                            ir.arena.span(idx as NodeRef),
+                        ));
+                    }
+                }
+                // A structurally malformed Fn::If (wrong arity, wrong type) is
+                // rejected by the parser and left as a plain `Fn::If` map node
+                // rather than an `IntrinsicFn::If`. Its condition is still
+                // referenced, so collect the name here too — otherwise the
+                // unused-condition check (W8001) would wrongly flag a condition
+                // that the template does reference.
+                Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
+                    if let Some(first) = ir.arena.as_list(entries[0].1).and_then(|items| items.first())
+                        && let Some(cond_name) = ir.arena.as_str(*first)
+                    {
+                        fn_if_conditions.push(cond_name.to_string());
+                    }
+                }
+                _ => {}
             }
         }
+        fn_if_conditions.sort();
+        fn_if_conditions.dedup();
         let mut output_empty_joins: Vec<String> = Vec::new();
         for (key, joins) in &resolver.empty_joins {
             if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
@@ -502,6 +561,10 @@ impl SemanticModel {
                 sam_implicit_resources,
                 globals_param_refs,
                 is_cdk,
+                fn_if_conditions,
+                find_in_map_names,
+                params_referenced_in_definitions,
+                has_dynamic_findinmap_name,
                 resolution_sources,
                 resolve_memo: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
@@ -581,11 +644,17 @@ impl SemanticModel {
     }
 
     fn path_from_intrinsic(&self, resource_id: &str, path: &str) -> bool {
+        let edges = self.graph.outgoing(resource_id);
         let mut p = path.to_string();
         loop {
             if let Some(src) = self.resolution_sources.get(&(resource_id.to_string(), p.clone()))
                 && src.starts_with("Intrinsic/")
             {
+                return true;
+            }
+            // A reference edge (Ref, GetAtt, Sub) anchored at this path means the
+            // value is produced by an intrinsic rather than written as a literal.
+            if edges.iter().any(|e| e.source_path == p) {
                 return true;
             }
             match p.rfind('.') {
@@ -796,6 +865,54 @@ fn parse_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node
 /// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
 /// object-wrapping intrinsics, so downstream resolution can address the
 /// conditional by a synthetic path.
+/// Collect parameter names that are referenced (via `Ref`/`Fn::Sub`) from within
+/// another parameter's definition. These references still count as usage for the
+/// unused-parameter check even though they originate in the Parameters section.
+fn collect_parameter_definition_refs(ir: &TemplateIR, parameters: &HashMap<String, ParameterInfo>) -> HashSet<String> {
+    let mut referenced = HashSet::new();
+    if ir.parameters == NULL_REF {
+        return referenced;
+    }
+    let Some(param_entries) = ir.arena.as_map(ir.parameters) else {
+        return referenced;
+    };
+    for (_, param_ref) in param_entries {
+        collect_refs_in_subtree(&ir.arena, *param_ref, parameters, &mut referenced);
+    }
+    referenced
+}
+
+fn collect_refs_in_subtree(
+    arena: &Arena,
+    node_ref: NodeRef,
+    parameters: &HashMap<String, ParameterInfo>,
+    referenced: &mut HashSet<String>,
+) {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Ref(target)) => {
+            if parameters.contains_key(target) {
+                referenced.insert(target.clone());
+            }
+        }
+        Node::Intrinsic(IntrinsicFn::Sub(_, Some(bindings))) => {
+            for (_, v) in bindings {
+                collect_refs_in_subtree(arena, *v, parameters, referenced);
+            }
+        }
+        Node::List(items) => {
+            for item in items {
+                collect_refs_in_subtree(arena, *item, parameters, referenced);
+            }
+        }
+        Node::Map(entries) => {
+            for (_, v) in entries {
+                collect_refs_in_subtree(arena, *v, parameters, referenced);
+            }
+        }
+        _ => {}
+    }
+}
+
 fn intrinsic_synthetic_key(arena: &Arena, node_ref: NodeRef) -> Option<String> {
     let Node::Intrinsic(func) = arena.node(node_ref) else {
         return None;
@@ -839,6 +956,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     };
 
     let mut properties = HashMap::new();
+    let mut properties_dynamic = false;
     if let Some((_, props_ref)) = entries.iter().find(|(k, _)| k == KEY_PROPERTIES) {
         if let Some(prop_entries) = arena.as_map(*props_ref) {
             for (key, val_ref) in prop_entries {
@@ -855,6 +973,11 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
             // rather than doubling the `Fn::If` segment.
             resolver.set_current_path(KEY_PROPERTIES);
             properties.insert(synthetic_key, resolver.resolve_node(*props_ref));
+        } else if matches!(arena.node(*props_ref), Node::Intrinsic(_)) {
+            // The whole Properties block is an intrinsic (e.g. `!Ref AWS::NoValue`)
+            // that did not collapse into a per-branch synthetic key. Its effective
+            // properties are only known at deploy time.
+            properties_dynamic = true;
         }
     }
 
@@ -869,6 +992,12 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     }
     if let Some(ref meta_resolved) = resolved_metadata {
         collect_condition_refs_from_resolved(meta_resolved, &mut condition_refs);
+    }
+    if let Some(ref dp) = deletion_policy {
+        collect_condition_refs_from_resolved(dp, &mut condition_refs);
+    }
+    if let Some(ref urp) = update_replace_policy {
+        collect_condition_refs_from_resolved(urp, &mut condition_refs);
     }
     if let Some(mut extra) = resolver.extra_condition_refs.remove(name) {
         condition_refs.append(&mut extra);
@@ -887,6 +1016,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
         creation_policy: creation_policy.map(diagnostics::JsonValue),
         metadata: metadata.map(diagnostics::JsonValue),
         properties,
+        properties_dynamic,
         diagnostics: ResourceDiagnostics {
             find_in_map_refs: resolver.find_in_map_refs.remove(name).unwrap_or_default(),
             simple_subs: resolver
@@ -898,7 +1028,9 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
                 .collect(),
             redundant_subs: resolver.redundant_subs.remove(name).unwrap_or_default(),
             empty_joins: resolver.empty_joins.remove(name).unwrap_or_default(),
-            hardcoded_partition_arns: resolver.hardcoded_partition_arns.remove(name).unwrap_or_default(),
+            hardcoded_partition_arns: collapse_list_sibling_arn_paths(
+                resolver.hardcoded_partition_arns.remove(name).unwrap_or_default(),
+            ),
             foreach_expansions: resolver
                 .foreach_expansions
                 .remove(name)
@@ -931,6 +1063,48 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
             condition_refs,
         },
     }
+}
+
+/// Collapses hardcoded-partition ARN paths that are list siblings sharing one
+/// source location into a single path at the lowest index.
+///
+/// When several `Fn::Sub` ARNs are list elements of the same property (e.g.
+/// `Principal.AWS.0.Fn::Sub`, `Principal.AWS.1.Fn::Sub`), they map to the same
+/// source span — the list's location — so they are one observable finding, not
+/// several. Paths whose only difference is the list index immediately before the
+/// trailing `.Fn::Sub` segment are therefore folded to the smallest index.
+fn collapse_list_sibling_arn_paths(paths: Vec<String>) -> Vec<String> {
+    // Group key: the path with the final list index (the segment just before
+    // `.Fn::Sub`) blanked out. Tracks the minimum index seen per group so the
+    // surviving path reports the first sibling.
+    let mut min_index: HashMap<String, usize> = HashMap::new();
+    let mut ungrouped: Vec<String> = Vec::new();
+    for path in &paths {
+        match split_trailing_list_index(path) {
+            Some((prefix, idx, suffix)) => {
+                let key = format!("{}\u{0}{}", prefix, suffix);
+                min_index.entry(key).and_modify(|m| *m = (*m).min(idx)).or_insert(idx);
+            }
+            None => ungrouped.push(path.clone()),
+        }
+    }
+    let mut out = ungrouped;
+    for (key, idx) in min_index {
+        let (prefix, suffix) = key.split_once('\u{0}').unwrap_or((key.as_str(), ""));
+        out.push(format!("{}{}.{}", prefix, idx, suffix));
+    }
+    out.sort();
+    out
+}
+
+/// Splits a path like `a.b.2.Fn::Sub` into (`"a.b."`, `2`, `"Fn::Sub"`) when a
+/// numeric list index directly precedes the trailing `.Fn::Sub` segment.
+fn split_trailing_list_index(path: &str) -> Option<(String, usize, String)> {
+    let suffix = "Fn::Sub";
+    let stem = path.strip_suffix(suffix)?.strip_suffix('.')?;
+    let (head, last) = stem.rsplit_once('.')?;
+    let idx: usize = last.parse().ok()?;
+    Some((format!("{}.", head), idx, suffix.to_string()))
 }
 
 fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> ResolvedOutput {
@@ -1491,5 +1665,39 @@ Resources:
         let r = model.resource("R").unwrap();
         assert!(!r.diagnostics.invalid_refs.is_empty());
         assert!(r.diagnostics.invalid_refs.iter().any(|s| s.value == "NonExistent"));
+    }
+
+    #[test]
+    fn collapse_arn_paths_folds_list_siblings_to_lowest_index() {
+        let input = vec![
+            "Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub".to_string(),
+            "Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub".to_string(),
+        ];
+        let out = collapse_list_sibling_arn_paths(input);
+        assert_eq!(out, vec!["Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub".to_string()]);
+    }
+
+    #[test]
+    fn collapse_arn_paths_keeps_distinct_parent_lists() {
+        // Differing index is the Statement index, not the one before Fn::Sub, so
+        // these are separate source locations and must both survive.
+        let input = vec![
+            "Properties.PolicyDocument.Statement.0.Resource.Fn::Sub".to_string(),
+            "Properties.PolicyDocument.Statement.1.Resource.Fn::Sub".to_string(),
+        ];
+        let mut out = collapse_list_sibling_arn_paths(input.clone());
+        out.sort();
+        assert_eq!(out, input);
+    }
+
+    #[test]
+    fn collapse_arn_paths_leaves_scalar_paths_untouched() {
+        let input = vec![
+            "Properties.KeyPolicy.Statement.0.Principal.AWS.Fn::Sub".to_string(),
+            "Properties.KeyPolicy.Statement.1.Principal.AWS.Fn::Sub".to_string(),
+        ];
+        let mut out = collapse_list_sibling_arn_paths(input.clone());
+        out.sort();
+        assert_eq!(out, input);
     }
 }

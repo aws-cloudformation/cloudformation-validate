@@ -36,11 +36,6 @@ static AZ_RE: LazyLock<regex::Regex> =
 static W1030_AMI_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^ami-[0-9a-f]{8,17}$").expect("Invalid W1030_AMI_RE pattern"));
 
-static W1030_ARN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^(arn:(aws[A-Za-z\-]*?|\*):[^:]+:[^:]*(:(\d{12}|\*|aws)?:.+|)|\*)$")
-        .expect("Invalid W1030_ARN_RE pattern")
-});
-
 static W1030_VPC_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$").expect("Invalid W1030_VPC_RE pattern")
 });
@@ -53,6 +48,32 @@ static CAA_RECORD_RE: LazyLock<regex::Regex> =
 
 static MX_RECORD_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^\d+\s+\S+$").expect("Invalid MX_RECORD_RE pattern"));
+
+/// Whether a Lambda runtime supports SnapStart: any Python, Java, or .NET
+/// runtime qualifies except the legacy `dotnetcore*` family and an explicit
+/// list of deprecated versions. Using allow/deny logic (rather than a fixed
+/// Java-only allowlist) keeps newer supported runtimes from being flagged.
+fn snapstart_runtime_supported(runtime: &str) -> bool {
+    const SNAPSTART_UNSUPPORTED_RUNTIMES: &[&str] = &[
+        "dotnet5.0",
+        "dotnet6",
+        "dotnet7",
+        "java8.al2",
+        "java8",
+        "python3.7",
+        "python3.8",
+        "python3.9",
+        "python3.10",
+        "python3.11",
+    ];
+    if !(runtime.starts_with("python") || runtime.starts_with("java") || runtime.starts_with("dotnet")) {
+        return false;
+    }
+    if runtime.starts_with("dotnetcore") {
+        return false;
+    }
+    !SNAPSTART_UNSUPPORTED_RUNTIMES.contains(&runtime)
+}
 
 fn resolve_all_json(m: &SemanticModel, rid: &str, path: &str) -> Vec<serde_json::Value> {
     let rv = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned());
@@ -518,12 +539,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for name in m.resources_of_type(rtype) {
             let scenarios = m.resolve_scenarios_json(name, path);
             for (val, _conds) in &scenarios {
-                if let Some(ver) = val.as_str()
-                    && ver != "2012-10-17"
-                {
+                // Only the older-but-valid policy version is worth a portability
+                // warning (suggesting an upgrade). Any other string is either the
+                // current version or an invalid value; invalid enum values are a
+                // schema error, not this best-practice warning, so they are left
+                // to the policy-document schema check.
+                if val.as_str() == Some("2008-10-17") {
                     out.push(make_resource_diagnostic(
                         "W2511",
-                        &format!("IAM policy document Version should be '2012-10-17', got '{}'", ver),
+                        "IAM Policy Version should be updated to '2012-10-17'",
                         m,
                         name,
                         path,
@@ -726,7 +750,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && res.properties.contains_key("AccessControl")
             && !res.properties.contains_key("OwnershipControls")
             && let Some(serde_json::Value::String(ac)) = resolve_concrete(m, name, "Properties.AccessControl")
-            && ac != "Private"
+            // OwnershipControls is only required for ACLs that grant access to
+            // other accounts. These owner-scoped ACLs need no OwnershipControl.
+            && !matches!(ac.as_str(), "Private" | "BucketOwnerFullControl" | "BucketOwnerRead")
         {
             out.push(make_resource_diagnostic(
                 "E3045",
@@ -779,12 +805,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let snapstart_runtimes = ["java11", "java17", "java21"];
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
             && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions")
             && let Some(serde_json::Value::String(rt)) = resolve_concrete(m, name, "Properties.Runtime")
-            && !snapstart_runtimes.contains(&rt.as_str())
+            && !snapstart_runtime_supported(&rt)
         {
             out.push(make_resource_diagnostic(
                 "E2530",
@@ -792,7 +817,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 m,
                 name,
                 "Properties.SnapStart",
-                Some("Use a supported Java runtime: java11, java17, java21, or java25"),
+                Some("Use a supported Python, Java, or .NET runtime"),
             ));
         }
     }
@@ -861,43 +886,64 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for (name, res) in &m.resources {
-        for prop in res.properties.keys() {
-            let path = format!("Properties.{}", prop);
-            let Some(rv) = m.resolve_deep(name, &path).or_else(|| m.resolve(name, &path).cloned()) else {
+    // I3037: advisory for duplicate scalar items in a list that permits
+    // duplicates. A list whose schema requires uniqueItems is covered by the
+    // Fatal uniqueItems check instead, so it is excluded here. The `Command`
+    // property of run-command resources legitimately repeats values and is
+    // exempt.
+    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+        for (name, res) in &m.resources {
+            let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) else {
                 continue;
             };
-            // Extract array items whether the value came back as fully-Concrete JSON or
-            // as a `ResolvedValue::List` tree (which happens when list items contain
-            // intrinsics like Ref). Conditional branches in the list are flattened to
-            // their concrete representative (first concrete) via best-effort conversion.
-            let items: Vec<serde_json::Value> = match &rv {
-                ResolvedValue::Concrete { value: v } => match v.as_array() {
-                    Some(a) => a.clone(),
-                    None => continue,
-                },
-                ResolvedValue::List { items } => items.iter().map(resolved_to_json_best_effort).collect(),
-                _ => match resolved_to_json_best_effort(&rv) {
-                    serde_json::Value::Array(a) => a,
-                    _ => continue,
-                },
-            };
-            let mut seen = HashSet::new();
-            for item in &items {
-                if item.is_null() {
+            let known_props = type_meta.get("property_types").and_then(|p| p.as_object());
+            let constraints = type_meta.get("property_constraints").and_then(|p| p.as_object());
+            for prop in res.properties.keys() {
+                if prop == "Command" {
                     continue;
                 }
-                let key = item.to_string();
-                if !seen.insert(key) {
+                // Only a property the schema actually defines can be a "list that
+                // permits duplicates"; an unknown property is a structural error
+                // handled elsewhere.
+                if !known_props.is_some_and(|p| p.contains_key(prop)) {
+                    continue;
+                }
+                let requires_unique = constraints
+                    .and_then(|c| c.get(prop))
+                    .and_then(|meta| meta.get("uniqueItems"))
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                if requires_unique {
+                    continue;
+                }
+                let path = format!("Properties.{}", prop);
+                let Some(rv) = m.resolve_deep(name, &path).or_else(|| m.resolve(name, &path).cloned()) else {
+                    continue;
+                };
+                let ResolvedValue::Concrete { value: arr } = &rv else {
+                    continue;
+                };
+                let Some(items) = arr.as_array() else {
+                    continue;
+                };
+                // Distinct intrinsics (e.g. two different Refs) can each resolve to
+                // the same placeholder and look like duplicates; only literal items
+                // are advisory, so skip the list if any element came from an
+                // intrinsic function.
+                let any_intrinsic_item =
+                    (0..items.len()).any(|i| m.is_from_intrinsic(name, &format!("{}.{}", path, i)));
+                if m.is_from_intrinsic(name, &path) || any_intrinsic_item {
+                    continue;
+                }
+                if let Some(dup) = first_duplicate_scalar(items) {
                     out.push(make_resource_diagnostic(
                         "I3037",
-                        &format!("Array property '{}' contains duplicate value: {}", prop, item),
+                        &format!("Array property '{}' contains duplicate value: {}", prop, dup),
                         m,
                         name,
                         &path,
                         None,
                     ));
-                    break;
                 }
             }
         }
@@ -920,6 +966,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     ];
     for (rtype, prop_path) in instance_type_checks {
         for name in m.resources_of_type(rtype) {
+            // Only literal string instance types are checked; a value that comes
+            // from a parameter Ref or other intrinsic is left alone because its
+            // deploy-time value is not known here (the default is just one of many
+            // possible values). Skip those to avoid flagging a parameter default
+            // the author may never use.
+            if m.is_from_parameter(name, prop_path) || m.is_from_intrinsic(name, prop_path) {
+                continue;
+            }
             if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path)
                 && PREV_GEN_RE.is_match(&val)
             {
@@ -965,6 +1019,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let Some(target) = m.follow_ref(name, "Properties.TaskDefinition") else {
             continue;
         };
+        // FARGATE is only required in RequiresCompatibilities when the task
+        // definition uses a non-awsvpc network mode. An awsvpc task definition is
+        // already Fargate-compatible, so it is exempt.
+        if resolve_concrete(m, target, "Properties.NetworkMode").as_ref().and_then(|v| v.as_str()) == Some("awsvpc") {
+            continue;
+        }
         let compat_rv = m
             .resolve_deep(target, "Properties.RequiresCompatibilities")
             .or_else(|| m.resolve(target, "Properties.RequiresCompatibilities").cloned());
@@ -1142,18 +1202,21 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let vis = resolve_concrete(m, target, "Properties.VisibilityTimeout").and_then(|v| v.as_i64());
             if let Some(fn_name) = m.follow_ref(name, "Properties.FunctionName") {
                 let timeout = resolve_concrete(m, fn_name, "Properties.Timeout").and_then(|v| v.as_i64()).unwrap_or(3);
+                // CloudFormation requires the queue's VisibilityTimeout to be at
+                // least the function Timeout. The finding is anchored on the
+                // queue's VisibilityTimeout property (the value that must be raised).
                 if let Some(v) = vis
-                    && v < timeout * 6
+                    && v < timeout
                 {
                     out.push(make_resource_diagnostic(
                         "E3505",
                         &format!(
-                            "SQS queue '{}' VisibilityTimeout ({}) is less than Lambda function '{}' Timeout ({})",
-                            target, v, fn_name, timeout
+                            "Queue visibility timeout ({}) is less than Function timeout ({}) seconds",
+                            v, timeout
                         ),
                         m,
-                        name,
-                        "Properties",
+                        target,
+                        "Properties.VisibilityTimeout",
                         Some("Set the SQS VisibilityTimeout to at least the Lambda function Timeout"),
                     ));
                 }
@@ -1282,40 +1345,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for (name, res) in &m.resources {
-        for p in &res.diagnostics.redundant_subs {
-            out.push(make_resource_diagnostic(
-                "W1020",
-                "Fn::Sub isn't needed because there are no variables",
-                m,
-                name,
-                p,
-                None,
-            ));
-        }
-    }
-
-    // Only fires when the variable is a parameter; GetAtt-shaped variables
-    // like ${X.Arn} and resource refs to GetAtt attrs are out of scope.
-    // Skip NoEcho parameters — simplifying to !Ref would expose the value.
-    for (name, res) in &m.resources {
-        for pair in &res.diagnostics.simple_subs {
-            let path = &pair.path;
-            let var = &pair.value;
-            let Some(param) = m.parameters.get(var.as_str()) else {
-                continue;
-            };
-            if param.no_echo {
-                continue;
+    let has_sam_for_w1020 = m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
+    if !has_sam_for_w1020 {
+        for (name, res) in &m.resources {
+            for p in &res.diagnostics.redundant_subs {
+                out.push(make_resource_diagnostic(
+                    "W1020",
+                    "Fn::Sub isn't needed because there are no variables",
+                    m,
+                    name,
+                    p,
+                    None,
+                ));
             }
-            out.push(make_resource_diagnostic(
-                "W1020",
-                &format!("Fn::Sub '${{{}}}' can be simplified to !Ref {}", var, var),
-                m,
-                name,
-                path,
-                None,
-            ));
         }
     }
 
@@ -1493,17 +1535,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                         Some("Use parameter type AWS::EC2::Image::Id"),
                                     ));
                                 }
-                                // KeyName with empty default
-                                if sp.ends_with("KeyName") && def.is_empty() {
-                                    out.push(make_resource_diagnostic(
-                                        "W1030",
-                                        &format!("{{'Ref': '{}'}} is shorter than 1 when 'Ref' is resolved", target),
-                                        m,
-                                        name,
-                                        sp,
-                                        Some("Set a non-empty default or add AllowedValues"),
-                                    ));
-                                }
                                 // CidrBlock: fire if Default fails strict CIDR validation (host bits set)
                                 if (sp.ends_with("CidrBlock") || sp.ends_with("DestinationCidrBlock"))
                                     && param.param_type == "String"
@@ -1523,34 +1554,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 }
                             }
 
-                            // SecurityGroup.Id: String parameter used where security group ID expected
-                            if param.param_type == "String"
-                                && (sp.ends_with("GroupSet")
-                                    || sp.contains("GroupSet.")
-                                    || sp.ends_with("SecurityGroupIds")
-                                    || sp.contains("SecurityGroupIds."))
-                            {
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{{8}}|[a-fA-F0-9]{{17}})$' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                            }
-
-                            // Subnet.Id: String parameter used where subnet ID expected
-                            if param.param_type == "String" && sp.ends_with("SubnetId") {
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{{8}})|([0-9A-Fa-f]{{17}}))$' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{{1,512}}\\Z' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                            }
-
-                            // VPC.Id: String parameter used where VPC ID expected
-                            if param.param_type == "String" && sp.ends_with("VpcId") {
-                                out.push(make_resource_diagnostic("W1030",
-                                    &format!("{{'Ref': '{}'}} is not a 'AWS::EC2::VPC.Id' with pattern '^vpc-([a-fA-F0-9]{{8}}|[a-fA-F0-9]{{17}})$' when 'Ref' is resolved", target),
-                                    m, name, sp, None));
-                            }
+                            // SecurityGroup.Id: not validated without concrete default
+                            // Subnet.Id: not validated without concrete default
+                            // VPC.Id: not validated without concrete default
 
                             // VPC.Id: parameter default fails VPC ID pattern
                             if sp.ends_with("VpcId")
@@ -1569,47 +1575,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    {
-        let mut checked: HashSet<String> = HashSet::new();
-        if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-            for (_name, res) in resources {
-                if let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) {
-                    for edge in edges {
-                        if edge.get(FIELD_KIND).and_then(|k| k.as_str()) != Some(EDGE_KIND_REF) {
-                            continue;
-                        }
-                        let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
-                        let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
-                        if !is_arn_prop(sp) {
-                            continue;
-                        }
-                        if checked.contains(target) {
-                            continue;
-                        }
-                        if let Some(param) = m.parameters.get(target) {
-                            if param.param_type != "String" {
-                                continue;
-                            }
-                            if let Some(ref def) = param.default
-                                && !W1030_ARN_RE.is_match(def)
-                            {
-                                checked.insert(target.to_string());
-                                let param_path = format!("Parameters.{}.Default", target);
-                                out.push(make_resource_diagnostic("W1030",
-                                        &format!("{{'Ref': '{}'}} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{{12}}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved", target),
-                                        m, "", &param_path, Some("Ensure the parameter default matches the expected ARN pattern")));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     let getatt_format: HashMap<(&str, &str), &str> = [
         (("AWS::EC2::SecurityGroup", "GroupId"), "AWS::EC2::SecurityGroup.Id"),
         (("AWS::EC2::SecurityGroup", "GroupName"), "AWS::EC2::SecurityGroup.Name"),
-        (("AWS::EC2::VPC", "DefaultSecurityGroup"), "AWS::EC2::VPC.DefaultSecurityGroup"),
+        (("AWS::EC2::VPC", "DefaultSecurityGroup"), "AWS::EC2::SecurityGroup.Id"),
         (("AWS::Logs::LogGroup", "Arn"), "AWS::Logs::LogGroup.Arn"),
     ]
     .into_iter()
@@ -1854,6 +1823,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     _ => String::new(),
                 };
                 if hp_str != "traffic-port" {
+                    // The finding is anchored on the target group's HealthCheckPort
+                    // (the property that must be 'traffic-port'), with the service
+                    // as a related location.
                     let mut diag = make_resource_diagnostic(
                         "E3049",
                         &format!(
@@ -1861,23 +1833,23 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             cn, tg_id, hp_str
                         ),
                         m,
-                        svc_name,
-                        "Properties.LoadBalancers",
+                        tg_id,
+                        "Properties.HealthCheckPort",
                         None,
                     );
-                    let tg_span = m.resource_span(tg_id, "Properties.HealthCheckPort");
+                    let svc_span = m.resource_span(svc_name, "Properties.LoadBalancers");
                     diag.related_resources.get_or_insert_with(Vec::new).push(diagnostics::RelatedResource {
                         resource: Some(diagnostics::ResourceRef {
-                            id: Some(tg_id.to_string()),
-                            resource_type: m.resources.get(tg_id).map(|r| r.resource_type.clone()),
+                            id: Some(svc_name.to_string()),
+                            resource_type: m.resources.get(svc_name).map(|r| r.resource_type.clone()),
                         }),
                         location: Some(diagnostics::SourceSpan {
-                            start_line: tg_span.start_line,
-                            start_column: tg_span.start_column,
-                            end_line: tg_span.end_line,
-                            end_column: tg_span.end_column,
+                            start_line: svc_span.start_line,
+                            start_column: svc_span.start_column,
+                            end_line: svc_span.end_line,
+                            end_column: svc_span.end_column,
                         }),
-                        message: "HealthCheckPort defined here".into(),
+                        message: "Dynamic host port defined here".into(),
                     });
                     out.push(diag);
                 }
@@ -1893,73 +1865,25 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .and_then(|v| v.as_object())
             .or_else(|| ctx.cached_data.iam_action_resource_patterns.as_object())
         {
-            let mut iam_patterns: HashMap<String, String> = HashMap::new();
+            let mut iam_patterns: HashMap<String, Vec<String>> = HashMap::new();
             for (k, v) in iam_obj {
-                if let Some(s) = v.as_str() {
-                    iam_patterns.insert(k.clone(), s.to_string());
+                if let Some(arr) = v.as_array() {
+                    let formats: Vec<String> = arr.iter().filter_map(|s| s.as_str().map(String::from)).collect();
+                    if !formats.is_empty() {
+                        iam_patterns.insert(k.clone(), formats);
+                    }
                 }
             }
             if !iam_patterns.is_empty() {
-                let policy_types = [
-                    ("AWS::IAM::Policy", "Properties.PolicyDocument"),
-                    ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
-                ];
-                for (rtype, doc_path) in &policy_types {
-                    for name in m.resources_of_type(rtype) {
-                        let doc_rv = m.resolve_deep(name, doc_path).or_else(|| m.resolve(name, doc_path).cloned());
-                        let Some(rv) = doc_rv else {
-                            continue;
-                        };
-                        let doc = resolved_to_json_best_effort(&rv);
-                        check_iam_action_resources(&mut out, m, name, &doc, doc_path, &iam_patterns);
-                    }
-                }
-                for name in m.resources_of_type("AWS::IAM::Role") {
-                    // Resolve each policy's PolicyDocument independently so that
-                    // non-concrete sibling fields (e.g., Sub-templated PolicyName)
-                    // don't cause the entire Policies array to fail resolve_concrete.
-                    let Some(res) = m.resources.get(name.as_str()) else {
+                for name in m.resources_of_type("AWS::IAM::Policy") {
+                    let doc_rv = m
+                        .resolve_deep(name, "Properties.PolicyDocument")
+                        .or_else(|| m.resolve(name, "Properties.PolicyDocument").cloned());
+                    let Some(rv) = doc_rv else {
                         continue;
                     };
-                    let policies_len = match res.properties.get("Policies") {
-                        Some(ResolvedValue::List { items }) => items.len(),
-                        Some(ResolvedValue::Concrete { value: v }) => v.as_array().map(|a| a.len()).unwrap_or(0),
-                        _ => 0,
-                    };
-                    for idx in 0..policies_len {
-                        let doc_path = format!("Properties.Policies.{}.PolicyDocument", idx);
-                        if let Some(doc) = resolve_concrete(m, name, &doc_path) {
-                            check_iam_action_resources(
-                                &mut out,
-                                m,
-                                name,
-                                &doc,
-                                &format!("Properties.Policies[{}].PolicyDocument", idx),
-                                &iam_patterns,
-                            );
-                            continue;
-                        }
-                        // Fallback: the PolicyDocument may be partially unresolved but still
-                        // usable as raw JSON — extract via the ResolvedValue tree so we don't
-                        // miss statements like those with Sub'd PolicyName sibling fields.
-                        if let Some(ResolvedValue::List { items }) = res.properties.get("Policies")
-                            && let Some(ResolvedValue::Map { entries }) = items.get(idx)
-                        {
-                            for entry in entries {
-                                if entry.key == "PolicyDocument" {
-                                    let json = resolved_to_json_best_effort(&entry.value);
-                                    check_iam_action_resources(
-                                        &mut out,
-                                        m,
-                                        name,
-                                        &json,
-                                        &format!("Properties.Policies[{}].PolicyDocument", idx),
-                                        &iam_patterns,
-                                    );
-                                }
-                            }
-                        }
-                    }
+                    let doc = resolved_to_json_best_effort(&rv);
+                    check_iam_action_resources(&mut out, m, name, &doc, &iam_patterns);
                 }
             }
         }
@@ -2005,50 +1929,47 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             if resources.len() < 2 {
                 continue;
             }
-            let mut tuples: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
+            // Build each resource's primary-id scenarios as (tuple, assumptions),
+            // where assumptions includes the condition assignment that produces the
+            // tuple plus the resource's own Condition. Comparing per scenario (not a
+            // single lex-min collapse across all branches) is required because two
+            // resources only collide when a satisfiable deploy-time assignment
+            // gives them the same identifier simultaneously.
+            let mut per_resource: Vec<(&String, Vec<PrimaryIdScenario>)> = Vec::new();
             for r in &resources {
-                let mut tuple: Vec<String> = Vec::with_capacity(id_props.len());
-                let mut complete = true;
-                for prop in id_props {
-                    let path = format!("Properties.{}", prop);
-                    let mut vals: Vec<String> = collect_concrete_scenarios(m, r, &path)
-                        .into_iter()
-                        .filter(|v| !v.is_null())
-                        .map(|v| match v {
-                            serde_json::Value::String(s) => s,
-                            other => other.to_string(),
-                        })
-                        .collect();
-                    vals.sort();
-                    match vals.into_iter().next() {
-                        Some(v) => tuple.push(v),
-                        None => {
-                            complete = false;
-                            break;
+                let scenarios = primary_id_scenarios(m, r, id_props);
+                if !scenarios.is_empty() {
+                    per_resource.push((*r, scenarios));
+                }
+            }
+
+            // tuple -> ordered set of resources that can collide on it.
+            let mut conflicts: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
+            for i in 0..per_resource.len() {
+                for j in (i + 1)..per_resource.len() {
+                    let (name_a, scenarios_a) = &per_resource[i];
+                    let (name_b, scenarios_b) = &per_resource[j];
+                    for sa in scenarios_a {
+                        for sb in scenarios_b {
+                            if sa.tuple != sb.tuple {
+                                continue;
+                            }
+                            // Both resources take this identical identifier only if
+                            // their producing condition assignments are jointly
+                            // satisfiable. Mutually exclusive branches never coexist.
+                            let mut assumptions = sa.assumptions.clone();
+                            assumptions.extend(sb.assumptions.iter().cloned());
+                            if m.conditions.is_satisfiable(&assumptions) {
+                                let entry = conflicts.entry(sa.tuple.clone()).or_default();
+                                entry.insert((*name_a).clone());
+                                entry.insert((*name_b).clone());
+                            }
                         }
                     }
                 }
-                if !complete {
-                    continue;
-                }
-                tuples.entry(tuple).or_default().insert((*r).clone());
             }
-            for (tuple, names) in &tuples {
-                if names.len() < 2 {
-                    continue;
-                }
-                // Skip if all resources with duplicate identifiers are behind
-                // mutually exclusive conditions (they can never coexist at deploy time)
-                let all_mutex = names.len() >= 2 && {
-                    let conds: Vec<&str> =
-                        names.iter().filter_map(|n| m.resources.get(n.as_str())?.condition.as_deref()).collect();
-                    // All resources must have conditions, and no pair can be simultaneously true
-                    conds.len() == names.len()
-                        && conds.windows(2).all(|pair| !m.conditions.conditions_compatible(pair[0], pair[1]))
-                };
-                if all_mutex {
-                    continue;
-                }
+
+            for (tuple, names) in &conflicts {
                 let instance_repr = render_primary_id_dict(id_props, tuple);
                 let resources_repr = render_resource_set(names);
                 let path = if id_props.len() == 1 {
@@ -2430,21 +2351,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for &(rtype, descriptor) in AZ_PATHS {
         for name in m.resources_of_type(rtype) {
             emit_w3010_for_path(&mut out, m, name, descriptor);
-        }
-    }
-
-    for name in m.resources_of_type("AWS::ECS::Service") {
-        if resolve_concrete(m, name, "Properties.LaunchType").as_ref().and_then(|v| v.as_str()) == Some("FARGATE")
-            && resolve_concrete(m, name, "Properties.PlacementConstraints").is_some()
-        {
-            out.push(make_resource_diagnostic(
-                "E3048",
-                "PlacementConstraints is not supported with FARGATE launch type",
-                m,
-                name,
-                "Properties.PlacementConstraints",
-                None,
-            ));
         }
     }
 
@@ -3299,6 +3205,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for name in m.resources_of_type(rtype) {
                 for prop in *props {
                     let path = format!("Properties.{}", prop);
+                    // Only string literals are inspected here; a value wrapped in
+                    // an intrinsic (Fn::Join/Fn::Sub building an S3 URL) resolves
+                    // at deploy time and is left alone, so skip intrinsic-sourced
+                    // values.
+                    if m.is_from_intrinsic(name, &path) {
+                        continue;
+                    }
                     if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path) {
                         if val.starts_with("s3://") || val.starts_with("https://") {
                             continue;
@@ -3726,7 +3639,6 @@ fn walk_w3010(
     path: String,
 ) {
     if idx == segments.len() {
-        // Scalar leaf: path resolves to a string AZ.
         if m.is_from_intrinsic(name, &path) {
             return;
         }
@@ -3746,7 +3658,6 @@ fn walk_w3010(
     }
     let seg = segments[idx];
     if seg == "*" {
-        // Leaf list: enumerate items of the current path.
         if m.is_from_intrinsic(name, &path) {
             return;
         }
@@ -3772,7 +3683,6 @@ fn walk_w3010(
             }
         }
     } else if seg == "{}" {
-        // Intermediate list wildcard: recurse into each index.
         let Some(len) = resolve_array_len_any(m, name, &path) else {
             return;
         };
@@ -3816,37 +3726,90 @@ fn render_resource_set(names: &BTreeSet<String>) -> String {
 
 /// needed to detect primary-identifier duplication across templates that
 /// switch the identifier on a condition (e.g. `!If [cond, "x", !Ref AWS::NoValue]`).
-fn collect_concrete_scenarios(m: &Arc<SemanticModel>, rid: &str, path: &str) -> Vec<serde_json::Value> {
-    let rv = match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
-        Some(v) => v,
-        None => {
-            // `Properties` wrapped in `Fn::If` stores values only under the
-            // synthetic branch path; scenario resolution exposes them for
-            // callers that walk by property name.
-            let scenarios = m.resolve_scenarios_json(rid, path);
-            return scenarios.into_iter().map(|(v, _)| v).collect();
-        }
-    };
-    let mut out = Vec::new();
-    push_concrete_leaves(&rv, &mut out);
-    out
+/// One way a resource's primary-identifier tuple can resolve, paired with the
+/// condition assignment (`assumptions`) that produces it. Used by E3019 to test
+/// whether two resources can share an identifier in a satisfiable deployment.
+struct PrimaryIdScenario {
+    tuple: Vec<String>,
+    assumptions: Vec<(String, bool)>,
 }
 
-fn push_concrete_leaves(rv: &ResolvedValue, out: &mut Vec<serde_json::Value>) {
-    match rv {
-        ResolvedValue::Concrete { value: v } => out.push(v.0.clone()),
-        ResolvedValue::Enum { variants } => {
-            for v in variants {
-                push_concrete_leaves(v, out);
+fn scenario_value_to_string(v: &serde_json::Value) -> Option<String> {
+    if v.is_null() {
+        return None;
+    }
+    Some(match v {
+        serde_json::Value::String(s) => s.clone(),
+        other => other.to_string(),
+    })
+}
+
+/// Enumerate a resource's primary-identifier scenarios. Each property's
+/// `(value, condition_map)` scenarios are combined across all identifier
+/// properties; a scenario is kept only when every property resolves to a
+/// concrete value and the merged condition assignments are mutually consistent.
+/// The resource's own `Condition` (if any) is folded into every scenario.
+fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) -> Vec<PrimaryIdScenario> {
+    let base_assumptions: Vec<(String, bool)> = match m.resources.get(rid).and_then(|r| r.condition.as_deref()) {
+        Some(cond) => vec![(cond.to_string(), true)],
+        None => Vec::new(),
+    };
+    let mut scenarios =
+        vec![PrimaryIdScenario { tuple: Vec::with_capacity(id_props.len()), assumptions: base_assumptions }];
+    for prop in id_props {
+        let path = format!("Properties.{}", prop);
+        let prop_scenarios = m.resolve_scenarios_json(rid, &path);
+        let mut next = Vec::new();
+        for existing in &scenarios {
+            for (value, cond_map) in &prop_scenarios {
+                let Some(val_str) = scenario_value_to_string(value) else {
+                    continue;
+                };
+                let mut assumptions = existing.assumptions.clone();
+                let mut consistent = true;
+                for (cond, truth) in cond_map {
+                    if let Some((_, prior)) = assumptions.iter().find(|(c, _)| c == cond) {
+                        if prior != truth {
+                            consistent = false;
+                            break;
+                        }
+                    } else {
+                        assumptions.push((cond.clone(), *truth));
+                    }
+                }
+                if !consistent {
+                    continue;
+                }
+                let mut tuple = existing.tuple.clone();
+                tuple.push(val_str);
+                next.push(PrimaryIdScenario { tuple, assumptions });
             }
         }
-        ResolvedValue::Conditional { if_true, if_false, .. } => {
-            push_concrete_leaves(if_true, out);
-            push_concrete_leaves(if_false, out);
+        scenarios = next;
+        if scenarios.is_empty() {
+            break;
         }
-        // List/Map/Reference/Dynamic: no scalar concrete value to contribute.
-        _ => {}
     }
+    // Keep only scenarios with a complete tuple and a satisfiable assignment.
+    scenarios.retain(|s| s.tuple.len() == id_props.len() && m.conditions.is_satisfiable(&s.assumptions));
+    scenarios
+}
+
+/// First scalar (string/number/bool) value that repeats in the array, formatted
+/// the way the diagnostic renders it. Non-scalar items and nulls are ignored —
+/// only repeated primitives are advisory.
+fn first_duplicate_scalar(items: &[serde_json::Value]) -> Option<String> {
+    let mut seen = HashSet::new();
+    for item in items {
+        if item.is_null() || item.is_array() || item.is_object() {
+            continue;
+        }
+        let key = item.to_string();
+        if !seen.insert(key) {
+            return Some(item.to_string());
+        }
+    }
+    None
 }
 
 fn resolved_to_json_best_effort(rv: &ResolvedValue) -> serde_json::Value {
@@ -3876,13 +3839,46 @@ fn resolved_to_json_best_effort(rv: &ResolvedValue) -> serde_json::Value {
     }
 }
 
-fn arn_matches_pattern(arn: &str, pattern: &str) -> bool {
-    let arn_parts: Vec<&str> = arn.split(':').collect();
-    let pat_parts: Vec<&str> = pattern.split(':').collect();
-    if arn_parts.len() < 6 || pat_parts.len() < 6 {
+fn arn_matches_format(resource_arn: &str, format_arn: &str) -> bool {
+    let r_parts: Vec<&str> = resource_arn.splitn(6, ':').collect();
+    let f_parts: Vec<&str> = format_arn.splitn(6, ':').collect();
+    if r_parts.len() < 6 || f_parts.len() < 6 {
         return false;
     }
-    arn_parts.iter().zip(pat_parts.iter()).all(|(a, p)| *p == "*" || *p == *a)
+    for i in 0..5 {
+        if r_parts[i] == "*" {
+            continue;
+        }
+        if matches!(f_parts[i], "${Partition}" | "${Region}" | "${Account}") {
+            continue;
+        }
+        if r_parts[i] != f_parts[i] {
+            return false;
+        }
+    }
+    if r_parts[5] == "*" {
+        return true;
+    }
+    let delimiter = if f_parts[5].contains(':') {
+        ':'
+    } else if f_parts[5].contains('/') {
+        '/'
+    } else {
+        return true;
+    };
+    for (r_seg, f_seg) in r_parts[5].split(delimiter).zip(f_parts[5].split(delimiter)) {
+        if r_seg == f_seg {
+            continue;
+        }
+        if r_seg == "*" || r_seg.starts_with('*') || f_seg.is_empty() || f_seg == ".*" {
+            return true;
+        }
+        if r_seg.starts_with(f_seg) && r_seg.contains('*') {
+            return true;
+        }
+        return false;
+    }
+    true
 }
 
 fn check_iam_action_resources(
@@ -3890,33 +3886,65 @@ fn check_iam_action_resources(
     m: &Arc<SemanticModel>,
     name: &str,
     doc: &serde_json::Value,
-    path: &str,
-    patterns: &HashMap<String, String>,
+    patterns: &HashMap<String, Vec<String>>,
 ) {
     let stmts = match doc.get("Statement").and_then(|s| s.as_array()) {
         Some(s) => s,
         None => return,
     };
-    for stmt in stmts {
-        let resources: Vec<&str> = match stmt.get("Resource") {
-            Some(serde_json::Value::String(s)) => vec![s.as_str()],
-            Some(serde_json::Value::Array(arr)) => {
-                if arr.iter().any(|v| !v.is_string()) {
-                    continue;
+    for (stmt_idx, stmt) in stmts.iter().enumerate() {
+        if !stmt.is_object() {
+            continue;
+        }
+        let mut using_functions = false;
+        let mut all_resources: Vec<&str> = Vec::new();
+        let mut skip_statement = false;
+
+        for key in &["Resource", "NotResource"] {
+            let field = match stmt.get(*key) {
+                Some(v) => v,
+                None => continue,
+            };
+            let items: Vec<&serde_json::Value> = match field {
+                serde_json::Value::Array(arr) => arr.iter().collect(),
+                other => vec![other],
+            };
+            for val in items {
+                match val {
+                    serde_json::Value::String(s) => {
+                        if s.contains("{{resolve:") {
+                            skip_statement = true;
+                            break;
+                        }
+                        if s == "*" {
+                            skip_statement = true;
+                            break;
+                        }
+                        all_resources.push(s.as_str());
+                    }
+                    serde_json::Value::Object(obj) => {
+                        if let Some(ref_target) = obj.get("Ref").and_then(|v| v.as_str())
+                            && m.parameters.contains_key(ref_target)
+                        {
+                            skip_statement = true;
+                            break;
+                        }
+                        using_functions = true;
+                    }
+                    serde_json::Value::Null => {
+                        using_functions = true;
+                    }
+                    _ => {}
                 }
-                arr.iter().filter_map(|v| v.as_str()).collect()
             }
-            _ => continue,
-        };
-        if resources.is_empty() {
+            if skip_statement {
+                break;
+            }
+        }
+        if skip_statement {
             continue;
         }
-        if resources.contains(&"*") {
-            continue;
-        }
-        if resources.iter().any(|r| r.contains("${") || r.contains("{{resolve:")) {
-            continue;
-        }
+
         let actions: Vec<&str> = match stmt.get("Action") {
             Some(serde_json::Value::String(s)) => vec![s.as_str()],
             Some(serde_json::Value::Array(arr)) => arr.iter().filter_map(|v| v.as_str()).collect(),
@@ -3927,18 +3955,22 @@ fn check_iam_action_resources(
                 continue;
             }
             let key = action.to_lowercase();
-            if let Some(expected) = patterns.get(&key)
-                && !resources.iter().any(|r| arn_matches_pattern(r, expected))
-            {
+            let Some(candidate_formats) = patterns.get(&key) else {
+                continue;
+            };
+            if using_functions {
+                continue;
+            }
+            let matched = candidate_formats.iter().any(|fmt| all_resources.iter().any(|r| arn_matches_format(r, fmt)));
+            if !matched {
+                let formats_display =
+                    candidate_formats.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
                 out.push(make_resource_diagnostic(
                     "I3510",
-                    &format!(
-                        "Action '{}' requires a resource matching '{}' but none of the resources match",
-                        action, expected
-                    ),
+                    &format!("action '{}' requires a resource of [{}]", action, formats_display),
                     m,
                     name,
-                    path,
+                    &format!("Properties.PolicyDocument.Statement.{}.Resource", stmt_idx),
                     None,
                 ));
             }
@@ -4021,10 +4053,6 @@ fn check_iam_statements(
             }
         }
     }
-}
-
-fn is_arn_prop(path: &str) -> bool {
-    path.ends_with("TopicArn") || path.ends_with("Arn") || path.contains("Resource.") || path.ends_with("Resource")
 }
 
 fn check_dynamic_ref_spaces(
@@ -4170,22 +4198,32 @@ mod tests {
 
     #[test]
     fn arn_matches_exact() {
-        assert!(arn_matches_pattern("arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket"));
+        assert!(arn_matches_format("arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket"));
     }
 
     #[test]
-    fn arn_matches_wildcard() {
-        assert!(arn_matches_pattern("arn:aws:s3:::my-bucket", "arn:aws:s3:*:*:*"));
+    fn arn_matches_resource_wildcard() {
+        assert!(arn_matches_format("arn:*:s3:::my-bucket", "arn:${Partition}:s3:::my-bucket"));
+    }
+
+    #[test]
+    fn arn_matches_placeholder_partition() {
+        assert!(arn_matches_format("arn:aws:iam::123456:user/test", "arn:${Partition}:iam::${Account}:user/.*"));
+    }
+
+    #[test]
+    fn arn_matches_resource_star_sixth() {
+        assert!(arn_matches_format("arn:aws:s3:::*", "arn:${Partition}:s3:::.*"));
     }
 
     #[test]
     fn arn_no_match_different_service() {
-        assert!(!arn_matches_pattern("arn:aws:ec2:::instance", "arn:aws:s3:::*"));
+        assert!(!arn_matches_format("arn:aws:ec2:::instance", "arn:${Partition}:s3:::.*"));
     }
 
     #[test]
     fn arn_too_few_parts() {
-        assert!(!arn_matches_pattern("arn:aws", "arn:aws:s3:::*"));
-        assert!(!arn_matches_pattern("arn:aws:s3:::*", "short"));
+        assert!(!arn_matches_format("arn:aws", "arn:aws:s3:::*"));
+        assert!(!arn_matches_format("arn:aws:s3:::*", "short"));
     }
 }

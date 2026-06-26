@@ -63,7 +63,7 @@ pub fn sync_additional_specs(
     if policies_file.exists() {
         let content = fs::read_to_string(&policies_file)?;
         let policies: BTreeMap<String, serde_json::Value> = serde_json::from_str(&content)?;
-        let mut patterns: BTreeMap<String, String> = BTreeMap::new();
+        let mut patterns: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
         for (service, svc_val) in &policies {
             let resources = match svc_val.get("Resources").and_then(|v| v.as_object()) {
@@ -74,23 +74,27 @@ pub fn sync_additional_specs(
                 Some(a) => a,
                 None => continue,
             };
-            let mut res_arns: BTreeMap<String, String> = BTreeMap::new();
+            let mut res_last_arn: BTreeMap<String, String> = BTreeMap::new();
             for (res_name, res_val) in resources {
                 if let Some(arns) = res_val.get("ARNFormats").and_then(|v| v.as_array()) {
-                    if let Some(first) = arns.first().and_then(|v| v.as_str()) {
-                        let normalized =
-                            first.replace("${Partition}", "*").replace("${Region}", "*").replace("${Account}", "*");
-                        res_arns.insert(res_name.to_lowercase(), normalized);
+                    if let Some(last) = arns.last().and_then(|v| v.as_str()) {
+                        res_last_arn.insert(res_name.to_lowercase(), last.to_string());
                     }
                 }
             }
             for (action_name, action_val) in actions {
                 if let Some(action_resources) = action_val.get("Resources").and_then(|v| v.as_array()) {
-                    if let Some(first_res) = action_resources.first().and_then(|v| v.as_str()) {
-                        if let Some(arn) = res_arns.get(&first_res.to_lowercase()) {
-                            let key = format!("{}:{}", service, action_name);
-                            patterns.insert(key, arn.clone());
+                    let mut arn_formats = Vec::new();
+                    for res_ref in action_resources {
+                        if let Some(res_name) = res_ref.as_str() {
+                            if let Some(arn) = res_last_arn.get(&res_name.to_lowercase()) {
+                                arn_formats.push(arn.clone());
+                            }
                         }
+                    }
+                    if !arn_formats.is_empty() {
+                        let key = format!("{}:{}", service, action_name);
+                        patterns.insert(key, arn_formats);
                     }
                 }
             }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare CfnValidationEngine diagnostics against cfn-lint expected results.
+"""Compare cloudformation-validate diagnostics against cfn-lint expected results.
 
 Builds the native Rust engine (cargo release), runs cfn-benchmark to generate
 fresh per-template JSON reports, then compares against cfn-lint baselines and
@@ -199,11 +199,14 @@ def _load_cfnlint_result_file(f, prefix, results):
         return
     # Derive key from the template filename inside the JSON, not the results filename.
     # cfn-lint results filenames may differ from the actual template filename
-    # (e.g., results file "metadata.json" for template "metdata.yaml").
+    # (e.g., results file "metadata.json" for template "metdata.yaml"). The file
+    # extension is kept as part of the key (".yaml" -> "_yaml") so a template
+    # authored in both JSON and YAML maps to two distinct keys, matching the
+    # engine report names.
     key = f"{prefix}_{f.stem}"
     if data and isinstance(data[0], dict) and data[0].get("Filename"):
         tpl = data[0]["Filename"].replace("test/fixtures/templates/", "")
-        derived = tpl.replace("/", "_").replace(".yaml", "").replace(".json", "")
+        derived = tpl.replace("/", "_").replace(".yaml", "_yaml").replace(".yml", "_yml").replace(".json", "_json")
         if derived:
             key = derived
     results[key] = normalize_cfnlint_diags(data)
@@ -215,13 +218,18 @@ def load_cfnlint_results_from_files():
         d = CFN_LINT_RESULTS / subdir
         if not d.exists():
             continue
-        for f in sorted(d.glob("*.json")):
-            _load_cfnlint_result_file(f, subdir, results)
-        # Scan nested subdirectories (good/core/, bad/resources/, etc.)
-        for sd in sorted(d.iterdir()):
-            if sd.is_dir() and not sd.name.startswith("__"):
-                for f in sorted(sd.glob("*.json")):
-                    _load_cfnlint_result_file(f, f"{subdir}_{sd.name}", results)
+        # Recurse to every depth. The per-file key is derived from the result's
+        # internal `Filename` field, so arbitrarily nested fixtures (e.g.
+        # good/resources/properties/*.json) still key correctly; the path-derived
+        # prefix is only a fallback for files lacking a Filename. A shallow scan
+        # would silently drop deeply-nested fixtures, hiding any engine finding on
+        # those templates from the false-positive tally.
+        for f in sorted(d.rglob("*.json")):
+            if any(part.startswith("__") for part in f.relative_to(d).parts):
+                continue
+            rel_parents = "_".join(f.relative_to(d).parent.parts)
+            prefix = f"{subdir}_{rel_parents}" if rel_parents else subdir
+            _load_cfnlint_result_file(f, prefix, results)
     return results
 
 
@@ -250,7 +258,7 @@ def load_cfnlint_inline_results():
         for scenario in local_ns.get("scenarios", []):
             filename = scenario.get("filename", "")
             rel = filename.replace("test/fixtures/templates/", "")
-            key = rel.replace("/", "_").replace(".yaml", "").replace(".json", "")
+            key = rel.replace("/", "_").replace(".yaml", "_yaml").replace(".yml", "_yml").replace(".json", "_json")
             results[key] = normalize_cfnlint_diags(scenario.get("results", []))
     except Exception:
         pass
@@ -297,15 +305,22 @@ def load_engine_results():
             rule_id = d.get("ruleId", "")
             severity = d.get("severity", "")
             severity = _ENGINE_SEV_MAP.get(severity, severity)
+            resource_id = d.get("resourceId", "")
+            resource_path = d.get("propertyPath", "")
+            if resource_path.startswith("Outputs/"):
+                resource_path = resource_path.replace("/", ".")
+                resource_id = ""
+            elif resource_id and resource_path.startswith("Outputs."):
+                resource_id = ""
             diags.append({
                 "rule_id": rule_id,
                 "rule_description": d.get("ruleDescription", ""),
                 "rule_source": d.get("documentationUrl", ""),
                 "severity": severity,
                 "message": d.get("message", ""),
-                "resource_id": d.get("resourceId", ""),
+                "resource_id": resource_id,
                 "resource_type": d.get("resourceType", ""),
-                "resource_path": d.get("propertyPath", ""),
+                "resource_path": resource_path,
                 "line": d.get("startLine", 0),
                 "end_line": d.get("endLine", 0),
                 "category": d.get("category", ""),
@@ -475,8 +490,7 @@ def fmt_diag(d, template):
 
 
 def run_single():
-    """Run comparison for the current ENGINE_NAME globals."""
-    cfnlint_all = {**load_cfnlint_results_from_files(), **load_cfnlint_inline_results()}
+    cfnlint_all = {**load_cfnlint_inline_results(), **load_cfnlint_results_from_files()}
     engine_all = load_engine_results()
     agg_perf = load_aggregate_perf()
 
@@ -546,7 +560,7 @@ def run_single():
     w = lines.append
 
     # ── Header ───────────────────────────────────────────────────────────
-    w("# CfnValidationEngine vs cfn-lint — Parity Report")
+    w("# cloudformation-validate vs cfn-lint — Parity Report")
     w("")
     w(f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ")
     w(f"> Engine: **{ENGINE_NAME}**  ")

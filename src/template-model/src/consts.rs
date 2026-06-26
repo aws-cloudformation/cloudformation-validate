@@ -271,9 +271,13 @@ pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
 pub const BOOLEAN_FN_KEYS: &[&str] =
     &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT, FN_CONTAINS, FN_EACH_MEMBER_EQUALS, FN_EACH_MEMBER_IN];
 
-/// Intrinsic functions whose output can stand in for a string-typed
-/// argument to `Fn::Equals`. An `Fn::Equals` argument that is a single-key
-/// mapping must use one of these keys to be considered well-formed.
+/// Intrinsic functions whose output can stand in for an `Fn::Equals` argument.
+/// An `Fn::Equals` argument that is a single-key mapping must use one of these
+/// keys to be considered well-formed. This includes the string/value-producing
+/// functions as well as the boolean-producing condition functions (`Fn::And`,
+/// `Fn::Or`, `Fn::Not`, a nested `Fn::Equals`, `Condition`, and the Rules-section
+/// membership functions), since CloudFormation permits comparing a boolean result
+/// against another value.
 pub const EQUALS_ARG_FN_KEYS: &[&str] = &[
     FN_REF,
     FN_FIND_IN_MAP,
@@ -288,6 +292,14 @@ pub const EQUALS_ARG_FN_KEYS: &[&str] = &[
     FN_GET_ATT,
     FN_GET_AZS,
     FN_IMPORT_VALUE,
+    FN_AND,
+    FN_OR,
+    FN_NOT,
+    FN_EQUALS,
+    FN_CONDITION,
+    FN_CONTAINS,
+    FN_EACH_MEMBER_EQUALS,
+    FN_EACH_MEMBER_IN,
 ];
 
 // Edge kind values used in the serialized reference graph.

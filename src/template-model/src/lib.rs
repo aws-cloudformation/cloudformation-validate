@@ -30,3 +30,24 @@ use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, SourceSpan};
 pub(crate) fn make_parse_diagnostic(rule_id: &str, message: String, span: SourceSpan) -> Diagnostic {
     RegisteredDiagnostic::new(rule_id, message).location(span).phase(Phase::Parse).build()
 }
+
+/// Like [`make_parse_diagnostic`], but attaches the resource and property path
+/// derived from a builder path such as `Resources/R/Properties/X/Fn::If`. A
+/// structural defect anchored at a resource property carries the logical ID and
+/// a dotted property path so it lands at the same location consumers expect;
+/// paths outside `Resources/<id>/Properties/...` (e.g. `Conditions/...`) keep
+/// the bare parse diagnostic.
+pub(crate) fn make_parse_diagnostic_at(
+    rule_id: &str,
+    message: String,
+    span: SourceSpan,
+    build_path: &str,
+) -> Diagnostic {
+    let mut builder = RegisteredDiagnostic::new(rule_id, message).location(span).phase(Phase::Parse);
+    let segments: Vec<&str> = build_path.split('/').collect();
+    if segments.len() >= 4 && segments[0] == "Resources" && segments[2] == "Properties" {
+        builder = builder.resource(segments[1], None);
+        builder = builder.property_path(segments[2..].join("."));
+    }
+    builder.build()
+}

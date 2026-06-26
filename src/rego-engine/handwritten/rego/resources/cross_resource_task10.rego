@@ -75,15 +75,6 @@ violation contains make_diag_at("E3704", "ERROR", name,
     not has_property(name, "TransitEncryptionEnabled")
 }
 
-# E3048: ECS Fargate tasks cannot use PlacementConstraints
-violation contains make_diag_at("E3048", "ERROR", name,
-    "Properties.PlacementConstraints",
-    "PlacementConstraints is not supported with FARGATE launch type") if {
-    some name in resources_of_type("AWS::ECS::Service")
-    resolve(name, "Properties.LaunchType") == "FARGATE"
-    has_property(name, "PlacementConstraints")
-}
-
 # E3680: Application load balancer requires at least 2 subnets
 violation contains make_diag_at("E3680", "ERROR", name,
     "Properties.Subnets",

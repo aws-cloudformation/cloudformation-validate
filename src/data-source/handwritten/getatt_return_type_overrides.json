@@ -1,0 +1,8 @@
+{
+  "_comment": "Overrides for the type CloudFormation returns from Fn::GetAtt on specific resource attributes, where it differs from the raw schema property type. CloudFormation stringifies many GetAtt return values, so an attribute declared as an integer/boolean property can be returned as a string when accessed via GetAtt. Each entry maps a resource type to attribute->return-type overrides consumed by output string-type validation.",
+  "getatt_return_type_overrides": {
+    "AWS::DocDB::DBCluster": {
+      "Port": "string"
+    }
+  }
+}

@@ -27,6 +27,19 @@ violation contains make_diag_at("I3013", "INFO", name,
     sprintf("'%s' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", [prop])) if {
     some rtype, props in data.retention_period_requirements
     some name in resources_of_type(rtype)
+    _i3013_applies(name, rtype)
     some prop in props
     not has_property(name, prop)
+}
+
+# RDS DB instances only need an explicit backup retention period when they are a
+# standalone, non-Aurora engine: Aurora manages backups at the cluster level and a
+# read replica inherits its source's retention.
+_i3013_applies(_, rtype) if rtype != "AWS::RDS::DBInstance"
+
+_i3013_applies(name, "AWS::RDS::DBInstance") if {
+    engine := object.get(input.resources[name].properties, "Engine", null)
+    is_string(engine)
+    not startswith(engine, "aurora")
+    not has_property(name, "SourceDBInstanceIdentifier")
 }

@@ -9,6 +9,41 @@ use template_model::consts::{FN_IF, KEY_PROPERTIES};
 use template_model::model::ResolvedResource;
 use template_model::resolver::{RefKind, ResolvedValue};
 
+/// Properties that accept a string value when used with `aws cloudformation package`.
+/// The baseline skips type checks for these paths when the value is a string.
+const PACKAGING_PROPERTY_PATHS: &[(&str, &str)] = &[
+    ("AWS::Lambda::Function", "Properties.Code"),
+    ("AWS::Lambda::LayerVersion", "Properties.Content"),
+    ("AWS::ApiGateway::RestApi", "Properties.BodyS3Location"),
+    ("AWS::ElasticBeanstalk::ApplicationVersion", "Properties.SourceBundle"),
+    ("AWS::StepFunctions::StateMachine", "Properties.DefinitionS3Location"),
+    ("AWS::AppSync::GraphQLSchema", "Properties.DefinitionS3Location"),
+    ("AWS::AppSync::Resolver", "Properties.RequestMappingTemplateS3Location"),
+    ("AWS::AppSync::Resolver", "Properties.ResponseMappingTemplateS3Location"),
+    ("AWS::AppSync::FunctionConfiguration", "Properties.RequestMappingTemplateS3Location"),
+    ("AWS::AppSync::FunctionConfiguration", "Properties.ResponseMappingTemplateS3Location"),
+    ("AWS::CloudFormation::Stack", "Properties.TemplateURL"),
+    ("AWS::CodeCommit::Repository", "Properties.Code.S3"),
+];
+
+/// Property paths where the baseline skips type validation entirely because
+/// the property accepts free-form user-defined content.
+const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
+    ("AWS::Lambda::Function", "Properties.Environment.Variables"),
+    ("AWS::Lambda::Function", "Properties.Environment"),
+];
+
+/// Returns true if the value is an unresolved or malformed intrinsic function.
+/// These are JSON objects with a single key that starts with "Fn::" or is "Ref"/"Condition".
+fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
+    let Some(obj) = val.as_object() else { return false };
+    if obj.len() != 1 {
+        return false;
+    }
+    let key = obj.keys().next().unwrap();
+    key.starts_with("Fn::") || key == "Ref" || key == "Condition"
+}
+
 pub fn validate_all_resources(
     store: &CompiledSchemaStore,
     model: &Arc<SemanticModel>,
@@ -45,11 +80,34 @@ pub fn validate_all_resources(
             let Some(res) = model.resources.get(rid.as_str()) else {
                 continue;
             };
+            // A structurally invalid logical ID (non-alphanumeric) is itself a
+            // template error; CloudFormation rejects the resource outright before
+            // its properties matter, so skip all property-level validation here to
+            // avoid surfacing property diagnostics (e.g. format checks) for a
+            // resource that cannot be created.
+            if !is_valid_logical_id(rid) {
+                continue;
+            }
+            // AWS::Serverless::* resources are rewritten by the SAM transform
+            // before deployment, so their authored form does not have to satisfy
+            // the raw resource schema (required properties, etc. are supplied or
+            // relaxed during expansion). Validating the pre-transform shape would
+            // flag requirements the transform fills in.
+            if rtype.starts_with("AWS::Serverless::") {
+                continue;
+            }
             validate_resource(&mut out, store, model, rid, res, schema, region);
             validate_extensions(&mut out, store, model, rid, res);
         }
     }
     out
+}
+
+/// CloudFormation logical IDs must be alphanumeric (`[A-Za-z0-9]+`). A resource
+/// whose ID violates this is rejected outright, so property-level schema checks
+/// against it would be noise.
+fn is_valid_logical_id(rid: &str) -> bool {
+    !rid.is_empty() && rid.bytes().all(|b| b.is_ascii_alphanumeric())
 }
 
 pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {
@@ -287,19 +345,12 @@ fn validate_resource(
     let base = "Properties";
     let defs = &schema.definitions;
 
-    for ro in &schema.read_only_properties {
-        let top = ro.split('.').next().unwrap_or(ro);
-        if res.properties.contains_key(top) {
-            out.push(build_diagnostic(
-                "E3040",
-                &format!("Read only property '{}' should not be specified", top),
-                m,
-                rid,
-                &format!("{}.{}", base, top),
-                None,
-            ));
-        }
-    }
+    // E3040 (read-only property specified) is intentionally not emitted: a
+    // resource's read-only properties are also declared writable properties, so
+    // schema validation accepts them and the value is silently ignored at deploy
+    // time rather than rejected. Emitting it here flagged values (e.g. ACMPCA
+    // Certificate.Arn) that CloudFormation accepts. The rule stays registered for
+    // coverage; firing it produced findings for values CloudFormation accepts.
 
     for dp in &schema.deprecated_properties {
         let top = dp.split('.').next().unwrap_or(dp);
@@ -349,7 +400,11 @@ fn validate_resource(
         }
     }
 
-    let key_scenarios = resource_property_key_scenarios(m, rid, res);
+    // When the whole Properties block is a deploy-time intrinsic (e.g.
+    // `Properties: !Ref AWS::NoValue`), the resolved view is empty and every
+    // required property would look missing. The effective properties are not
+    // known statically, so skip the key/required-property checks.
+    let key_scenarios = if res.properties_dynamic { Vec::new() } else { resource_property_key_scenarios(m, rid, res) };
     for (actual_keys, conds) in &key_scenarios {
         let scenario = if conds.is_empty() { None } else { Some(conds) };
         validate_object_keys_inner(
@@ -404,7 +459,7 @@ fn validate_resource(
         let matches = condition_matches(&ite.condition, &actual_keys, m, rid, defs);
         let sub = if matches { &ite.then_schema } else { &ite.else_schema };
         if let Some(sub) = sub {
-            validate_sub(out, m, rid, &res.resource_type, &actual_keys, sub, defs, base);
+            validate_sub_dependencies(out, m, rid, &actual_keys, sub, base);
         }
     }
 }
@@ -568,7 +623,13 @@ fn validate_object_keys_inner(
     }
 
     if !req_xor.is_empty() {
-        let count = req_xor.iter().filter(|p| actual_keys.contains(p)).count();
+        // A property whose value resolves to `AWS::NoValue` (null) is removed by
+        // CloudFormation at deploy time, so it does not count toward the
+        // "exactly one" tally even though its key is present in the source. Count
+        // only members that resolve to a concrete value in some satisfiable
+        // scenario.
+        let count =
+            req_xor.iter().filter(|p| actual_keys.contains(p) && property_present(m, rid, base_path, p)).count();
         if count != 1 {
             let names = req_xor.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
             out.push(build_diagnostic(
@@ -735,6 +796,24 @@ fn validate_sub(
             ));
         }
     }
+    validate_sub_dependencies(out, m, rid, actual_keys, sub, base_path);
+}
+
+/// Validates the dependentRequired/dependentExcluded constraints of a subschema.
+///
+/// Split out from `validate_sub` so conditional (`if`/`then`) branches can still
+/// enforce property co-dependencies without raising the unconditional structural
+/// required check: a property that is required only when a sibling holds a
+/// particular value is a semantic dependency, which dedicated resource-specific
+/// rules own, not a Fatal structural violation.
+fn validate_sub_dependencies(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    actual_keys: &[String],
+    sub: &SubSchema,
+    base_path: &str,
+) {
     for (trigger, deps) in &sub.dependent_required {
         if actual_keys.contains(trigger) {
             for dep in deps {
@@ -795,7 +874,9 @@ fn validate_prop(
 
     let scenarios = m.resolve_scenarios_json(rid, prop_path);
 
-    if scenarios.is_empty() {
+    let is_type_exempt = TYPE_CHECK_EXEMPT_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
+
+    if scenarios.is_empty() && !is_type_exempt {
         validate_reference_type(out, store, m, rid, prop_path, schema);
     }
 
@@ -804,41 +885,74 @@ fn validate_prop(
     // Type check — coerce before rejecting since string↔number, string↔boolean,
     // bool→string, number→string are silently coerced at deploy time.
     // Successful coercion → Warn; failed coercion → Fatal.
-    if let Some(ref pt) = schema.prop_type {
+    if let Some(ref pt) = schema.prop_type
+        && !is_type_exempt
+    {
+        let is_packaging_path = PACKAGING_PROPERTY_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
+        // Skip type checks for array elements whose parent array or the element itself
+        // came from an intrinsic function — those are validated by function-specific rules.
+        let from_intrinsic = m.is_from_intrinsic(rid, prop_path)
+            || prop_path
+                .rsplit_once('.')
+                .and_then(|(parent, seg)| seg.parse::<usize>().ok().map(|_| parent))
+                .is_some_and(|parent| m.is_from_intrinsic(rid, parent));
+        // A property whose value embeds an `Fn::If` expands into one scenario per
+        // branch. When the value is the wrong type at the property level (e.g. a
+        // list where an object is required), every branch fails the same check,
+        // which would emit the same type diagnostic once per branch. Track the
+        // (rule, expected-type) pairs already reported for this path so the
+        // property-level mismatch is reported once, as a single observable error.
+        let mut emitted_type_errors: HashSet<(&str, &str)> = HashSet::new();
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
+                continue;
+            }
+            // Skip unresolved/malformed intrinsics — already validated by structure rules
+            if is_unresolved_intrinsic(val) {
+                continue;
+            }
+            // Skip packaging properties when value is a string — valid with `package` command
+            if is_packaging_path && val.is_string() {
+                continue;
+            }
+            // Skip elements from intrinsic-resolved arrays
+            if from_intrinsic {
                 continue;
             }
             if !type_matches(val, pt) {
                 let expected = pt.primary().unwrap_or("unknown");
                 match cfn_coerce_value(val, expected) {
                     CoerceResult::Coerced(_, ref description) => {
-                        out.push(build_diagnostic_conditional(
-                            "W9003",
-                            &format!(
-                                "{}{} is not of type '{}' — automatically coerced ({})",
-                                format_value(val),
-                                res_suffix,
-                                expected,
-                                description
-                            ),
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
+                        if emitted_type_errors.insert(("W9003", expected)) {
+                            out.push(build_diagnostic_conditional(
+                                "W9003",
+                                &format!(
+                                    "{}{} is not of type '{}' — automatically coerced ({})",
+                                    format_value(val),
+                                    res_suffix,
+                                    expected,
+                                    description
+                                ),
+                                m,
+                                rid,
+                                prop_path,
+                                None,
+                                condition_map(conds),
+                            ));
+                        }
                     }
                     _ => {
-                        out.push(build_diagnostic_conditional(
-                            "F3012",
-                            &format!("{}{} is not of type '{}'", format_value(val), res_suffix, expected),
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
+                        if emitted_type_errors.insert(("F3012", expected)) {
+                            out.push(build_diagnostic_conditional(
+                                "F3012",
+                                &format!("{}{} is not of type '{}'", format_value(val), res_suffix, expected),
+                                m,
+                                rid,
+                                prop_path,
+                                None,
+                                condition_map(conds),
+                            ));
+                        }
                     }
                 }
             }
@@ -899,7 +1013,13 @@ fn validate_prop(
     if let Some(ref pat) = schema.pattern
         && let Ok(re) = regex::Regex::new(pat)
     {
-        let from_param = m.is_from_parameter(rid, prop_path);
+        // A value computed by an intrinsic (Fn::Sub/Fn::Join building, say, an S3
+        // bucket name from AWS::Region) can't be pattern-checked the way a written
+        // literal can, since its final value is only known at deploy time. Those
+        // are covered by Warning-level intrinsic rules (W1031/W1032) rather than
+        // this Fatal pattern check, so skip both parameter-sourced and
+        // intrinsic-sourced values here.
+        let from_param = m.is_from_parameter(rid, prop_path) || m.is_from_intrinsic(rid, prop_path);
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
@@ -1086,6 +1206,13 @@ fn validate_prop(
             if let Some(arr) = val.as_array() {
                 let mut seen = Vec::new();
                 for item in arr {
+                    // A null element is an `AWS::NoValue` that CloudFormation
+                    // removes from the list at deploy time, so it is not a real
+                    // member and two such elements are not a duplicate. Only the
+                    // surviving concrete items are checked for uniqueness.
+                    if item.is_null() {
+                        continue;
+                    }
                     if seen.contains(item) {
                         out.push(build_diagnostic_conditional(
                             "F3037",
@@ -1136,14 +1263,18 @@ fn validate_prop(
                 prop_path,
                 visited,
             );
-        } else if !schema.required.is_empty() {
-            // Empty concrete object scenario (e.g. `Fn::If: [C, NoValue, {}]`) —
-            // still validate required properties per-scenario. An empty object
-            // has no keys but required properties must still be present.
-            // Uses `resolve_scenarios` (not _json) to bypass SAT filtering:
-            // pseudo-parameter concretization (e.g. AWS::Region default) can
-            // mark an Fn::If branch as unreachable, but both branches are
-            // evaluated at deploy time with the real parameter values.
+        } else if !schema.required.is_empty()
+            && !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. }))
+        {
+            // Empty concrete object scenario (e.g. a literal `{}`) — still
+            // validate required properties. An empty object has no keys but
+            // required properties must still be present.
+            //
+            // The `Conditional` guard skips properties that are an `Fn::If`:
+            // there the branch-aware required-property rule owns the check and
+            // anchors the diagnostic at the branch path (`<prop>.Fn::If.<idx>`),
+            // so reporting here too would duplicate that finding at the
+            // un-qualified property path.
             for (val, _conds) in m.resolve_scenarios(rid, prop_path) {
                 if let ResolvedValue::Concrete { value } = &val
                     && let Some(obj) = value.as_object()
@@ -1343,6 +1474,20 @@ fn enum_matches(val: &serde_json::Value, allowed: &[serde_json::Value]) -> bool 
     })
 }
 
+/// True when property `prop` under `base` resolves to a concrete (non-null)
+/// value in at least one satisfiable scenario. A property set to `AWS::NoValue`
+/// resolves to null in every scenario and is treated as absent — CloudFormation
+/// strips it before deployment. When resolution yields no scenarios (the value
+/// is opaque/dynamic), the property is conservatively considered present so a
+/// genuinely-specified property is never miscounted as absent.
+fn property_present(m: &Arc<SemanticModel>, rid: &str, base: &str, prop: &str) -> bool {
+    let scenarios = m.resolve_scenarios_json(rid, &format!("{}.{}", base, prop));
+    if scenarios.is_empty() {
+        return true;
+    }
+    scenarios.iter().any(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
+}
+
 fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {
     for (val, conds) in &m.resolve_scenarios_json(rid, &format!("{}.{}", base, req)) {
         if !is_satisfiable(m, conds) {
@@ -1432,6 +1577,17 @@ fn condition_matches(
     for (prop_name, prop_schema) in &cond.properties {
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("Properties.{}", prop_name);
+        // Check nested required sub-properties (e.g. Code requires ZipFile)
+        if !resolved.required.is_empty() {
+            for sub_req in &resolved.required {
+                let sub_path = format!("{}.{}", prop_path, sub_req);
+                let sub_scenarios = m.resolve_scenarios_json(rid, &sub_path);
+                let sub_exists = sub_scenarios.iter().any(|(v, c)| is_satisfiable(m, c) && !v.is_null());
+                if !sub_exists {
+                    return false;
+                }
+            }
+        }
         let scenarios = m.resolve_scenarios_json(rid, &prop_path);
         // When the value is dynamic (unresolvable) and the condition has a concrete
         // constraint (pattern/enum/const), we cannot confirm the match — return false
@@ -1534,21 +1690,6 @@ fn validate_reference_type(
                     None,
                 ));
             }
-
-            if let Some(ref fmt) = schema.format {
-                let compatible = store.ref_types().format_compatible_types(fmt);
-                if !compatible.is_empty() && !compatible.iter().any(|t| t == target_rtype) {
-                    let rule_id = rules::format_rule_for_format(fmt).unwrap_or("E1103");
-                    out.push(build_diagnostic(
-                        rule_id,
-                        &format!("Ref to '{}' ({}) may not produce a valid '{}' value", target, target_rtype, fmt),
-                        m,
-                        rid,
-                        prop_path,
-                        None,
-                    ));
-                }
-            }
         }
         ResolvedValue::TypedDynamic { reason: _name, param_type } => {
             let source = cfn_param_type_to_schema_type(param_type);
@@ -1603,7 +1744,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
         "AWS::EC2::VPC.Id" => Some(r"^vpc-[a-f0-9]{8,17}$"),
         "AWS::EC2::Subnet.Id" => Some(r"^subnet-[a-f0-9]{8,17}$"),
         "AWS::EC2::SecurityGroup.Id" => Some(r"^sg-[a-f0-9]{8,17}$"),
-        "AWS::EC2::Image.Id" => Some(r"^ami-[a-f0-9]{8,17}$"),
+        "AWS::EC2::Image.Id" => Some(r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
         "AWS::IAM::Role.Arn" => Some(r"^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role/.+"),
         "AWS::Logs::LogGroup.Name" => Some(r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
         "AWS::EC2::SecurityGroup.Name" => Some(r"^[\s\S]+$"),
@@ -1685,7 +1826,13 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
             out.push(build_diagnostic(rule_id, &msg, model, rid, "", None));
         }
 
-        if res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function" {
+        if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function")
+            // Only a literal Runtime string is validated against the deprecation
+            // list; a Runtime produced by an intrinsic (e.g. Fn::FindInMap)
+            // resolves at deploy time and is handled by its intrinsic rules
+            // (W1034) instead.
+            && !model.is_from_intrinsic(rid, "Properties.Runtime")
+        {
             for (val, _) in &model.resolve_scenarios_json(rid, "Properties.Runtime") {
                 let Some(runtime) = val.as_str() else {
                     continue;
@@ -1948,7 +2095,8 @@ fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<Semant
 
     if let Some(props) = obj.get("properties").and_then(|v| v.as_object()) {
         for (prop_name, constraint) in props {
-            let scenarios = model.resolve_scenarios_json(rid, &format!("Properties.{}", prop_name));
+            let prop_path = format!("Properties.{}", prop_name);
+            let scenarios = model.resolve_scenarios_json(rid, &prop_path);
             if scenarios.is_empty() {
                 return false;
             }
@@ -1956,6 +2104,19 @@ fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<Semant
                 Some(o) => o,
                 None => continue,
             };
+            // Check nested required sub-properties within the constraint
+            if let Some(nested_required) = constraint_obj.get("required").and_then(|v| v.as_array()) {
+                for sub_req in nested_required {
+                    if let Some(sub_name) = sub_req.as_str() {
+                        let sub_path = format!("{}.{}", prop_path, sub_name);
+                        let sub_scenarios = model.resolve_scenarios_json(rid, &sub_path);
+                        let sub_exists = sub_scenarios.iter().any(|(v, c)| is_satisfiable(model, c) && !v.is_null());
+                        if !sub_exists {
+                            return false;
+                        }
+                    }
+                }
+            }
             let any_match = scenarios.iter().any(|(val, conds)| {
                 if !is_satisfiable(model, conds) {
                     return false;
@@ -2173,38 +2334,12 @@ fn check_gather_property_constraints(
                     None,
                 ));
             }
-            if let Some(min_val) = pc.get("minimum").and_then(cfn_coerce_to_number)
-                && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                && actual_num < min_val
-            {
-                out.push(build_diagnostic(
-                    "F3034",
-                    &format!(
-                        "Cross-resource constraint: {}.{} is {} but must be >= {} (from referenced resource)",
-                        slot_name, prop_name, actual_num, min_val
-                    ),
-                    model,
-                    rid,
-                    "Properties",
-                    None,
-                ));
-            }
-            if let Some(max_val) = pc.get("maximum").and_then(cfn_coerce_to_number)
-                && let Some(actual_num) = cfn_coerce_to_number(prop_val)
-                && actual_num > max_val
-            {
-                out.push(build_diagnostic(
-                    "F3034",
-                    &format!(
-                        "Cross-resource constraint: {}.{} is {} but must be <= {} (from referenced resource)",
-                        slot_name, prop_name, actual_num, max_val
-                    ),
-                    model,
-                    rid,
-                    "Properties",
-                    None,
-                ));
-            }
+            // Numeric cross-resource bounds (e.g. SQS VisibilityTimeout vs Lambda
+            // Timeout, ESM BatchSize for FIFO queues) are reported by the dedicated
+            // rules E3505 and E3705, at their specific IDs and locations.
+            // Emitting a generic F3034 here as well would double-report the same
+            // issue under a different ID, so the const equality check above is the
+            // only gather constraint surfaced directly.
         }
     }
 }

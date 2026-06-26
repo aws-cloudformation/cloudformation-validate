@@ -10,13 +10,11 @@ use template_model::consts::{
     SECTION_OUTPUTS, TRANSFORM_LANGUAGE_EXTENSIONS,
 };
 use template_model::resolver::RefKind;
-use template_model::resolver::ResolvedValue;
 use template_model::{PSEUDO_PARAMETERS, SemanticModel};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(rules::Category::Intrinsic, eval_intrinsics);
-    reg.add(rules::Category::Intrinsic, eval_format_validation);
     reg.add(rules::Category::Intrinsic, eval_intrinsic_params);
     reg.add(rules::Category::Intrinsic, eval_dynamic_references);
 }
@@ -56,7 +54,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Load GetAtt attribute data
     let getatt_attrs = &ctx.cached_data.getatt_attrs;
-    let getatt_attr_types = &ctx.cached_data.getatt_attr_types;
+    let _getatt_attr_types = &ctx.cached_data.getatt_attr_types;
 
     for (name, res) in resources {
         let refs = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array());
@@ -101,42 +99,24 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                         } else if !attr.is_empty()
                             && let Some(target_res) = resources.get(target)
                             && let Some(rtype) = target_res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str())
+                            && let Some(valid_list) = getatt_attrs.get(rtype)
+                            && !valid_list.iter().any(|a| a == attr)
+                            && !rtype.starts_with("Custom::")
+                            && !rtype.starts_with("AWS::CloudFormation::CustomResource")
+                            && rtype != "AWS::CloudFormation::Stack"
+                            && rtype != "AWS::CloudFormation::Macro"
                         {
-                            if let Some(valid_list) = getatt_attrs.get(rtype)
-                                && !valid_list.iter().any(|a| a == attr)
-                                && !rtype.starts_with("Custom::")
-                                && !rtype.starts_with("AWS::CloudFormation::CustomResource")
-                                && rtype != "AWS::CloudFormation::Stack"
-                                && rtype != "AWS::CloudFormation::Macro"
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E9004",
-                                    &format!("'{}' is not one of {:?}", attr, valid_list),
-                                    m,
-                                    name,
-                                    source_path,
-                                    Some("Check the resource type documentation for valid GetAtt attributes"),
-                                ));
-                            }
-
-                            if let Some(ret_type) = getatt_attr_types.get(rtype).and_then(|m| m.get(attr))
-                                && matches!(ret_type.as_str(), "integer" | "number" | "boolean")
-                            {
-                                let res_type = m.resources.get(name).map(|r| r.resource_type.as_str()).unwrap_or("");
-                                if res_type == "AWS::SSM::Parameter" && source_path.contains("Value") {
-                                    out.push(make_resource_diagnostic(
-                                        "E9003",
-                                        &format!(
-                                            "{{'Fn::GetAtt': ['{}', '{}']}} is not of type 'string'",
-                                            target, attr
-                                        ),
-                                        m,
-                                        name,
-                                        source_path,
-                                        Some("GetAtt returns a non-string type"),
-                                    ));
-                                }
-                            }
+                            // E9003 (return-type mismatch) is intentionally not emitted here:
+                            // CloudFormation auto-converts non-string GetAtt return values to
+                            // strings when the destination is typed as string.
+                            out.push(make_resource_diagnostic(
+                                "E9004",
+                                &format!("'{}' is not one of {:?}", attr, valid_list),
+                                m,
+                                name,
+                                source_path,
+                                Some("Check the resource type documentation for valid GetAtt attributes"),
+                            ));
                         }
                     }
                     EDGE_KIND_SUB
@@ -248,227 +228,6 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                     p,
                     None,
                 ));
-            }
-        }
-    }
-
-    out
-}
-
-static SG_ID_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^sg-[a-f0-9]{8,17}$").expect("Invalid SG_ID_RE"));
-
-// NetworkInterfaces GroupSet accepts mixed-case hex.
-static SG_ID_MIXED_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^sg-[a-fA-F0-9]{8,17}$").expect("Invalid SG_ID_MIXED_RE"));
-
-static VPC_ID_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^vpc-[a-f0-9]{8,17}$").expect("Invalid VPC_ID_RE"));
-
-static AMI_ID_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^ami-[a-f0-9]{8,17}$").expect("Invalid AMI_ID_RE"));
-
-static SUBNET_ID_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^subnet-[a-f0-9]{8,17}$").expect("Invalid SUBNET_ID_RE"));
-
-static LOG_GROUP_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^[\.\-_/#A-Za-z0-9]{1,512}$").expect("Invalid LOG_GROUP_RE"));
-
-static IAM_ROLE_ARN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):iam::[0-9]{12}:role/.*$")
-        .expect("Invalid IAM_ROLE_ARN_RE")
-});
-
-fn resolve_concrete_fmt(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
-    match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned())? {
-        ResolvedValue::Concrete { value: v } => Some(v.into_inner()),
-        _ => None,
-    }
-}
-
-fn check_format(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    prop: &str,
-    rule_id: &str,
-    msg_fmt: &str,
-    re: &regex::Regex,
-) {
-    let path = format!("Properties.{}", prop);
-    let scenarios = m.resolve_scenarios_json(name, &path);
-    let mut seen: HashSet<String> = HashSet::new();
-    for (val, _) in scenarios {
-        let Some(s) = val.as_str() else {
-            continue;
-        };
-        if s.starts_with("{{") || re.is_match(s) {
-            continue;
-        }
-        if !seen.insert(s.to_string()) {
-            continue;
-        }
-        out.push(make_resource_diagnostic(
-            rule_id,
-            &format!("Value '{}' does not match {}", s, msg_fmt),
-            m,
-            name,
-            &path,
-            None,
-        ));
-    }
-}
-
-fn check_format_arn(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, prop: &str, re: &regex::Regex) {
-    let path = format!("Properties.{}", prop);
-    if let Some(serde_json::Value::String(val)) = resolve_concrete_fmt(m, name, &path)
-        && !val.starts_with("{{")
-        && val.starts_with("arn:")
-        && !re.is_match(&val)
-    {
-        out.push(make_resource_diagnostic(
-            "E1156",
-            &format!("Value '{}' does not match IAM Role ARN format", val),
-            m,
-            name,
-            &path,
-            None,
-        ));
-    }
-}
-
-fn eval_format_validation(ctx: &EvalContext) -> Vec<Diagnostic> {
-    let mut out = Vec::new();
-    let m = ctx.model;
-
-    let sg_id_props: &[(&str, &[&str])] = &[("AWS::EC2::Instance", &["SecurityGroupIds"])];
-    for &(rtype, props) in sg_id_props {
-        for name in m.resources_of_type(rtype) {
-            for &prop in props {
-                let path = format!("Properties.{}", prop);
-                if let Some(serde_json::Value::Array(items)) = resolve_concrete_fmt(m, name, &path) {
-                    for item in items.iter() {
-                        if let Some(val) = item.as_str()
-                            && !val.starts_with("{{")
-                            && !SG_ID_RE.is_match(val)
-                        {
-                            out.push(make_resource_diagnostic(
-                                "E1150",
-                                &format!("Value '{}' does not match Security Group ID format (sg-xxxxxxxxx)", val),
-                                m,
-                                name,
-                                &path,
-                                None,
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    for rtype in &["AWS::EC2::Instance", "AWS::EC2::LaunchTemplate"] {
-        for name in m.resources_of_type(rtype) {
-            let Some(res) = m.resources.get(name.as_str()) else {
-                continue;
-            };
-            let Some(ni) = res.properties.get("NetworkInterfaces") else {
-                continue;
-            };
-            let ni_len = match ni {
-                ResolvedValue::Concrete { value: v } => v.as_array().map(|a| a.len()).unwrap_or(0),
-                ResolvedValue::List { items } => items.len(),
-                _ => 0,
-            };
-            let mut seen: HashSet<String> = HashSet::new();
-            for ni_idx in 0..ni_len {
-                let gs_path = format!("Properties.NetworkInterfaces.{}.GroupSet", ni_idx);
-                let Some(rv) = m.resolve_deep(name, &gs_path).or_else(|| m.resolve(name, &gs_path).cloned()) else {
-                    continue;
-                };
-                let items: Vec<serde_json::Value> = match rv {
-                    ResolvedValue::Concrete { value: v } => v.as_array().cloned().unwrap_or_default(),
-                    ResolvedValue::List { items } => items
-                        .iter()
-                        .filter_map(|it| match it {
-                            ResolvedValue::Concrete { value: v } => Some(v.0.clone()),
-                            _ => None,
-                        })
-                        .collect(),
-                    _ => continue,
-                };
-                for item in &items {
-                    let Some(val) = item.as_str() else { continue };
-                    if val.starts_with("sg-") && !SG_ID_MIXED_RE.is_match(val) && seen.insert(val.to_string()) {
-                        out.push(make_resource_diagnostic(
-                            "E1150",
-                            &format!("'{}' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{{8}}|[a-fA-F0-9]{{17}})$'", val),
-                            m, name, "Properties.NetworkInterfaces.GroupSet", None,
-                        ));
-                    }
-                }
-            }
-        }
-    }
-
-    let vpc_id_props: &[(&str, &[&str])] = &[
-        ("AWS::EC2::Subnet", &["VpcId"]),
-        ("AWS::EC2::SecurityGroup", &["VpcId"]),
-        ("AWS::EC2::RouteTable", &["VpcId"]),
-        ("AWS::EC2::InternetGatewayAttachment", &["VpcId"]),
-        ("AWS::EC2::NetworkAcl", &["VpcId"]),
-    ];
-    for &(rtype, props) in vpc_id_props {
-        for name in m.resources_of_type(rtype) {
-            for &prop in props {
-                check_format(&mut out, m, name, prop, "E1151", "VPC ID format (vpc-xxxxxxxxx)", &VPC_ID_RE);
-            }
-        }
-    }
-
-    for name in m.resources_of_type("AWS::EC2::Instance") {
-        check_format(&mut out, m, name, "ImageId", "E1152", "AMI ID format (ami-xxxxxxxxx)", &AMI_ID_RE);
-    }
-
-    for name in m.resources_of_type("AWS::AutoScaling::LaunchConfiguration") {
-        check_format(&mut out, m, name, "ImageId", "E1152", "AMI ID format (ami-xxxxxxxxx)", &AMI_ID_RE);
-    }
-
-    for name in m.resources_of_type("AWS::EC2::LaunchTemplate") {
-        check_format(
-            &mut out,
-            m,
-            name,
-            "LaunchTemplateData.ImageId",
-            "E1152",
-            "AMI ID format (ami-xxxxxxxxx)",
-            &AMI_ID_RE,
-        );
-    }
-
-    let subnet_id_props: &[(&str, &[&str])] =
-        &[("AWS::EC2::Instance", &["SubnetId"]), ("AWS::EC2::NetworkInterface", &["SubnetId"])];
-    for &(rtype, props) in subnet_id_props {
-        for name in m.resources_of_type(rtype) {
-            for &prop in props {
-                check_format(&mut out, m, name, prop, "E1154", "Subnet ID format (subnet-xxxxxxxxx)", &SUBNET_ID_RE);
-            }
-        }
-    }
-
-    for name in m.resources_of_type("AWS::Logs::LogGroup") {
-        check_format(&mut out, m, name, "LogGroupName", "E1155", "Log Group Name format", &LOG_GROUP_RE);
-    }
-
-    let iam_role_arn_props: &[(&str, &[&str])] = &[
-        ("AWS::Lambda::Function", &["Role"]),
-        ("AWS::ECS::TaskDefinition", &["ExecutionRoleArn", "TaskRoleArn"]),
-        ("AWS::StepFunctions::StateMachine", &["RoleArn"]),
-    ];
-    for &(rtype, props) in iam_role_arn_props {
-        for name in m.resources_of_type(rtype) {
-            for &prop in props {
-                check_format_arn(&mut out, m, name, prop, &IAM_ROLE_ARN_RE);
             }
         }
     }
