@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 20:52:01  
+> Generated: 2026-06-25 21:06:44  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,22 +22,22 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1659 |
-| False Positives (engine bugs) | 27 |
+| True Positives | 1663 |
+| False Positives (engine bugs) | 23 |
 | Engine Extra (correct, cfn-lint gap) | 5218 |
-| False Negatives (engine misses) | 253 |
-| Precision | 98.40% |
-| Recall | 86.77% |
-| F1 | 92.22% |
-| Unique rules detected | 196 |
+| False Negatives (engine misses) | 249 |
+| Precision | 98.64% |
+| Recall | 86.98% |
+| F1 | 92.44% |
+| Unique rules detected | 194 |
 | Perfect templates | 300/387 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 336 | 17 | 58 | 78 | 95.18% | 81.16% |
-| Error | 296 | 1 | 3 | 117 | 99.66% | 71.67% |
+| Fatal | 340 | 13 | 58 | 83 | 96.32% | 80.38% |
+| Error | 296 | 1 | 3 | 108 | 99.66% | 73.27% |
 | Warning | 677 | 8 | 339 | 50 | 98.83% | 93.12% |
 | Info | 350 | 1 | 4818 | 8 | 99.72% | 97.77% |
 
@@ -45,27 +45,27 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 14161.9456 ms |
-| Throughput | 159.94 validations/sec |
+| Total wall time | 14133.6543 ms |
+| Throughput | 160.26 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 40.0527 ms |
-| Engine init (max) | 40.3512 ms |
-| Schema init (p99) | 56.7591 ms |
-| Schema init (max) | 57.4428 ms |
+| Engine init (p99) | 41.4401 ms |
+| Engine init (max) | 41.6959 ms |
+| Schema init (p99) | 57.2958 ms |
+| Schema init (max) | 57.9880 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.1873 | 0.0432 | 0.5828 | 0.8023 | 1.4653 | 2.5811 |
-| Schema Validate | 0.0000 | 2.3787 | 0.5263 | 6.1554 | 9.7844 | 22.6828 | 52.0830 |
-| Rule Evaluation | 2.6875 | 3.1772 | 2.8755 | 3.6834 | 3.9867 | 5.2196 | 47.3958 |
-| Diagnostic Finalize | 0.0005 | 0.0259 | 0.0041 | 0.0805 | 0.1260 | 0.2882 | 0.5447 |
-| Engine Internal | 2.6938 | 5.8104 | 3.6538 | 10.3809 | 14.6819 | 30.1566 | 60.4082 |
-| Wall Clock | 2.6939 | 5.8106 | 3.6540 | 10.3813 | 14.6822 | 30.1570 | 60.4090 |
+| Model Build | 0.0022 | 0.1875 | 0.0425 | 0.5765 | 0.7977 | 1.4983 | 2.4940 |
+| Schema Validate | 0.0000 | 2.3884 | 0.5550 | 6.1966 | 9.8493 | 23.1553 | 51.9312 |
+| Rule Evaluation | 2.6811 | 3.1763 | 2.8959 | 3.6390 | 4.0607 | 5.1433 | 45.7182 |
+| Diagnostic Finalize | 0.0005 | 0.0263 | 0.0041 | 0.0868 | 0.1220 | 0.3016 | 0.5882 |
+| Engine Internal | 2.6908 | 5.8244 | 3.6387 | 10.4145 | 14.5350 | 30.6410 | 59.5023 |
+| Wall Clock | 2.6910 | 5.8247 | 3.6399 | 10.4146 | 14.5355 | 30.6421 | 59.5028 |
 
-## False Negatives — 253 missed findings across 70 rules
+## False Negatives — 249 missed findings across 68 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -160,6 +160,27 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions`
   > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
 
+### F0013 — 9 missed — Conditions have appropriate properties
+
+- **F0013** (cfn-lint: E8001) → `Conditions.BadCondition` L41 in `bad_conditions`
+  > 'String' is not of type 'boolean'
+- **F0013** (cfn-lint: E8001) → `Conditions.TooManyConditions` L43 in `bad_conditions`
+  > {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod'], 'Fn::Not': {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod']}} is not of type 'boolean'
+- **F0013** (cfn-lint: E8001) → `Conditions.HasParam` L47 in `bad_conditions`
+  > {'Fn::Of': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnvType'}, '']}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnableGeoBlocking'}, '']}]}]} is not of type 'boolean'
+- **F0013** (cfn-lint: E8001) → `Conditions.NullCondition` L51 in `bad_conditions`
+  > None is not of type 'boolean'
+- **F0013** (cfn-lint: E1028) `EC2Instance` → `Properties.Tags.1.Fn::If.0` L61 in `bad_conditions`
+  > 'isProd' is not one of ['CreateProdResources', 'BadCondition', 'UnusedCondition', 'TooManyConditions', 'EnableGeoBlocking', 'HasParam', 'NullCondition']
+- **F0013** (cfn-lint: E1028) `myInstance4` → `Properties.InstanceType.Fn::If` L67 in `bad_core_conditions`
+  > {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'
+- **F0013** (cfn-lint: E1028) `AMIIDLookup` → `Properties.Role.Fn::If` L100 in `bad_core_conditions`
+  > expected minimum item count: 3, found: 2
+- **F0013** (cfn-lint: E8001) → `Conditions` L6 in `bad_core_conditions_list`
+  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
+- **F0013** (cfn-lint: E1028) `R` → `Properties.BucketName.Fn::If` L12 in `bad_if_wrong_arity`
+  > expected minimum item count: 3, found: 2
+
 ### E1021 — 8 missed — Base64 validation of parameters
 
 - **E1021** `myInstance` → `Properties.UserData.Fn::Base64` L11 in `bad_functions_base64`
@@ -178,23 +199,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'Fn::Transform': {'Name': 'DynamicUserData'}} is not of type 'array', 'string'
 - **E1021** `LaunchConfiguration` → `Properties.UserData.Fn::Base64.Fn::Sub` L27 in `good_parameters_used_transforms`
   > {'Fn::Transform': {'Name': 'DynamicUserData'}} is not of type 'array', 'string'
-
-### E8001 — 7 missed — Conditions have appropriate properties
-
-- **E8001** → `Conditions.BadCondition` L41 in `bad_conditions`
-  > 'String' is not of type 'boolean'
-- **E8001** → `Conditions.TooManyConditions` L43 in `bad_conditions`
-  > {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod'], 'Fn::Not': {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod']}} is not of type 'boolean'
-- **E8001** → `Conditions.HasParam` L47 in `bad_conditions`
-  > {'Fn::Of': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnvType'}, '']}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnableGeoBlocking'}, '']}]}]} is not of type 'boolean'
-- **E8001** → `Conditions.NullCondition` L51 in `bad_conditions`
-  > None is not of type 'boolean'
-- **E8001** → `Conditions.TestIfNotArray` L31 in `bad_conditions_condition_functions`
-  > {'Fn::If': 'string'} is not of type 'boolean'
-- **E8001** → `Conditions.TestIfWrongCount` L32 in `bad_conditions_condition_functions`
-  > {'Fn::If': ['c', 't']} is not of type 'boolean'
-- **E8001** → `Conditions` L6 in `bad_core_conditions_list`
-  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
 
 ### E3001 — 7 missed — Basic CloudFormation Resource Check
 
@@ -441,17 +445,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3024** `Bucket` → `Properties.Tags.0.Value.Ref` L34 in `lsp_constants`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 
-### F0013 — 4 missed — Check Fn::If structure for validity
-
-- **F0013** (cfn-lint: E1028) `EC2Instance` → `Properties.Tags.1.Fn::If.0` L61 in `bad_conditions`
-  > 'isProd' is not one of ['CreateProdResources', 'BadCondition', 'UnusedCondition', 'TooManyConditions', 'EnableGeoBlocking', 'HasParam', 'NullCondition']
-- **F0013** (cfn-lint: E1028) `myInstance4` → `Properties.InstanceType.Fn::If` L67 in `bad_core_conditions`
-  > {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'
-- **F0013** (cfn-lint: E1028) `AMIIDLookup` → `Properties.Role.Fn::If` L100 in `bad_core_conditions`
-  > expected minimum item count: 3, found: 2
-- **F0013** (cfn-lint: E1028) `R` → `Properties.BucketName.Fn::If` L12 in `bad_if_wrong_arity`
-  > expected minimum item count: 3, found: 2
-
 ### F0000 — 4 missed — Parsing error found when parsing the template
 
 - **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map`
@@ -613,13 +606,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'isPrimary' is not one of ['isProduction', 'isPrimaryAndProduction']
 - **F0014** (cfn-lint: E8003) → `Conditions.primaryRegion.Fn::Equals.0` L4 in `bad_functions_import_value`
   > {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'
-
-### E8005 — 2 missed — Check Fn::Not structure for validity
-
-- **E8005** → `Conditions.TestNotEmpty.Fn::Not` L29 in `bad_conditions_condition_functions`
-  > expected minimum item count: 1, found: 0
-- **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions`
-  > None is not of type 'array'
 
 ### W3698 — 2 missed — VirtualName is ignored when Ebs is specified
 
@@ -785,7 +771,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L312 in `lsp_comprehensive`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
 
-## False Positives — 27 extra findings across 9 rules
+## False Positives — 23 extra findings across 9 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -804,19 +790,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L9 in `lsp_test-template`
   > 'StageName' is a required property
 
-### F0013 — 5 extra — Check Fn::If structure for validity
-
-- **F0013** in `bad_conditions_condition_functions`
-  > Fn::If: 'string' is not of type 'array'
-- **F0013** in `bad_conditions_condition_functions`
-  > Fn::If: must have exactly 3 elements, got 2
-- **F0013** in `bad_core_conditions`
-  > Fn::If: must have exactly 3 elements, got 2
-- **F0013** in `bad_core_conditions`
-  > Fn::If: {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'
-- **F0013** in `bad_if_wrong_arity`
-  > Fn::If: must have exactly 3 elements, got 2
-
 ### W2001 — 4 extra — Check if Parameters are Used
 
 - **W2001** L4 in `bad_core_conditions_list`
@@ -828,6 +801,15 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W2001** L4 in `bad_parameters_default`
   > Parameter 'myMinValue' is not referenced anywhere in the template
 
+### F0013 — 3 extra — Conditions have appropriate properties
+
+- **F0013** in `bad_core_conditions`
+  > Fn::If: must have exactly 3 elements, got 2
+- **F0013** in `bad_core_conditions`
+  > Fn::If: {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'
+- **F0013** in `bad_if_wrong_arity`
+  > Fn::If: must have exactly 3 elements, got 2
+
 ### W1028 — 3 extra — Check Fn::If has a path that cannot be reached
 
 - **W1028** `ConditionalOutput` → `Value.Fn::If.2` in `lsp_comprehensive`
@@ -837,15 +819,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicPolicy.Fn::If.2` L53 in `lsp_condition-usage`
   > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
 
-### F0014 — 3 extra — Check Fn::And structure for validity
-
-- **F0014** in `bad_conditions_condition_functions`
-  > Fn::Not: must have exactly 1 element, got 0
-- **F0014** in `bad_conditions_condition_functions`
-  > Fn::Not: null is not of type 'array'
-- **F0014** in `lsp_condition-usage`
-  > Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
-
 ### F6101 — 3 extra — Validate that outputs values are a string
 
 - **F6101** L1112 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template`
@@ -854,6 +827,11 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > Output 'AmqpEndpointUrl': GetAtt 'RabbitMqBrokerE7F26F68.AmqpEndpoints' returns type 'array', not 'string'
 - **F6101** L76 in `integration_getatt-types`
   > Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'
+
+### F0014 — 1 extra — Check Fn::And structure for validity
+
+- **F0014** in `lsp_condition-usage`
+  > Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
 
 ### W1001 — 1 extra — Ref/GetAtt to resource that is available when conditions are applied
 
@@ -11420,12 +11398,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ## Per-Template Breakdown — 87 templates with mismatches
 
-### `bad_conditions_condition_functions` — 11 mismatches (27 TP, 4 FP, 1 EE, 7 FN)
-
-- FN: `E1001` ×3, `E8005` ×2, `E8001` ×2
-- FP: `F0013` ×2, `F0014` ×2
-- EE: `I9040`
-
 ### `bad_core_conditions` — 11 mismatches (14 TP, 2 FP, 15 EE, 9 FN)
 
 - FN: `W1001` ×2, `F3014` ×2, `F0013` ×2, `F3003`, `W1028`, `W3698`
@@ -11444,7 +11416,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_conditions` — 10 mismatches (11 TP, 0 FP, 14 EE, 10 FN)
 
-- FN: `E8001` ×4, `E3024` ×2, `E1001`, `F0013`, `E3001`, `W1028`
+- FN: `F0013` ×5, `E3024` ×2, `E1001`, `E3001`, `W1028`
 - EE: `I9001` ×4, `F1104` ×2, `F1060` ×2, `F3002` ×2, `I9040` ×2, `W9010`, `W9009`
 
 ### `bad_resources_circular_dependency` — 7 mismatches (24 TP, 1 FP, 32 EE, 6 FN)
@@ -11549,7 +11521,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_core_conditions_list` — 4 mismatches (0 TP, 1 FP, 1 EE, 3 FN)
 
-- FN: `E0002`, `E1001`, `E8001`
+- FN: `E0002`, `E1001`, `F0013`
 - FP: `W2001`
 - EE: `F0001`
 
@@ -11567,6 +11539,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `W1030` ×4
 - EE: `I9001` ×8, `I9040`
+
+### `bad_conditions_condition_functions` — 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
+
+- FN: `E1001` ×3
+- EE: `I9040`
 
 ### `bad_duplicate` — 3 mismatches (0 TP, 0 FP, 2 EE, 3 FN)
 
@@ -11885,17 +11862,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 105 | 41.50% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E8001, E8005, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
-| Resource property validation | 50 | 19.76% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 50 | 19.76% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Intrinsic function validation | 40 | 15.81% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
-| Informational checks | 8 | 3.16% | I2530, I3011 |
+| Other | 101 | 40.56% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
+| Resource property validation | 50 | 20.08% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 50 | 20.08% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Intrinsic function validation | 40 | 16.06% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
+| Informational checks | 8 | 3.21% | I2530, I3011 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 18 | 66.67% | E9004, F0013, F0014, F3003, F6101 |
-| Stricter than cfn-lint (warnings) | 8 | 29.63% | W1001, W1028, W2001 |
-| Extra informational findings | 1 | 3.70% | I3042 |
+| Other | 14 | 60.87% | E9004, F0013, F0014, F3003, F6101 |
+| Stricter than cfn-lint (warnings) | 8 | 34.78% | W1001, W1028, W2001 |
+| Extra informational findings | 1 | 4.35% | I3042 |
 

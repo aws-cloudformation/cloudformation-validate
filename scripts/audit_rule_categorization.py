@@ -212,8 +212,11 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E6102": "F6005",   # Output Export validation
         "E7002": "F7002",   # Mapping name length
         "E8002": "F8002",   # Condition reference must exist
+        "E8001": "F0013",   # Fn::If structure inside a Condition (engine emits F0013)
         "E8003": "F0014",   # Fn::Equals element count
         "E8004": "F0014",   # Fn::And element count
+        "E8005": "F0014",   # Fn::Not element count
+        "E8006": "F0014",   # Fn::Or element count
         # SAM transform pre-flight: engine emits cfn-lint's E0001 directly
         "E0001": "E0001",
         # cfn-lint Error → our Error under a different ID (no Fatal divergence):
