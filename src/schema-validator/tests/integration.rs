@@ -362,6 +362,45 @@ fn structural_f3014_required_xor() {
 }
 
 #[test]
+fn f3014_excludes_novalue_from_exclusive_count() {
+    // CidrIp is set to AWS::NoValue, leaving exactly one of the mutually
+    // exclusive source properties (SourceSecurityGroupId), so no F3014.
+    let diags = validate_fixture("good/resources/properties/exclusive.yaml");
+    let f3014: Vec<_> = diags
+        .iter()
+        .filter(|d| d.rule_id == "F3014" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Ingress"))
+        .collect();
+    assert!(f3014.is_empty(), "AWS::NoValue property must not count toward the exclusive-one tally");
+}
+
+#[test]
+fn f3037_ignores_novalue_collapsed_list_items() {
+    // Two Fn::If list items resolve to AWS::NoValue (null) in the false branch;
+    // CloudFormation removes them, so they are not duplicates.
+    let diags = validate_fixture("good/resources/properties/list_duplicates.yaml");
+    let f3037: Vec<_> = diags
+        .iter()
+        .filter(|d| {
+            d.rule_id == "F3037"
+                && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("IamRoleWithNestedConditions")
+        })
+        .collect();
+    assert!(f3037.is_empty(), "null (AWS::NoValue) list items must not be treated as duplicates");
+}
+
+#[test]
+fn f3012_property_type_error_reported_once_across_conditional_branches() {
+    // PolicyDocument is a list (wrong type) wrapping an Fn::If; the branch
+    // expansion must not multiply the single property-level type error.
+    let diags = validate_fixture("bad/resources/iam/iam_policy.yaml");
+    let f3012: Vec<_> = diags
+        .iter()
+        .filter(|d| d.rule_id == "F3012" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("rIamPolicy"))
+        .collect();
+    assert_eq!(f3012.len(), 1, "expected a single F3012 for the list-typed PolicyDocument, got {}", f3012.len());
+}
+
+#[test]
 fn structural_f3021_dependent_required() {
     let diags = validate_fixture("bad/schema_structural.yaml");
     let f3021: Vec<_> = diags

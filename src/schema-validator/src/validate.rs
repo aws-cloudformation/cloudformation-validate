@@ -623,7 +623,15 @@ fn validate_object_keys_inner(
     }
 
     if !req_xor.is_empty() {
-        let count = req_xor.iter().filter(|p| actual_keys.contains(p)).count();
+        // A property whose value resolves to `AWS::NoValue` (null) is removed by
+        // CloudFormation at deploy time, so it does not count toward the
+        // "exactly one" tally even though its key is present in the source. Count
+        // only members that resolve to a concrete value in some satisfiable
+        // scenario.
+        let count = req_xor
+            .iter()
+            .filter(|p| actual_keys.contains(p) && property_present(m, rid, base_path, p))
+            .count();
         if count != 1 {
             let names = req_xor.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
             out.push(build_diagnostic(
@@ -890,6 +898,13 @@ fn validate_prop(
                 .rsplit_once('.')
                 .and_then(|(parent, seg)| seg.parse::<usize>().ok().map(|_| parent))
                 .is_some_and(|parent| m.is_from_intrinsic(rid, parent));
+        // A property whose value embeds an `Fn::If` expands into one scenario per
+        // branch. When the value is the wrong type at the property level (e.g. a
+        // list where an object is required), every branch fails the same check,
+        // which would emit the same type diagnostic once per branch. Track the
+        // (rule, expected-type) pairs already reported for this path so the
+        // property-level mismatch is reported once, as a single observable error.
+        let mut emitted_type_errors: HashSet<(&str, &str)> = HashSet::new();
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
@@ -910,32 +925,36 @@ fn validate_prop(
                 let expected = pt.primary().unwrap_or("unknown");
                 match cfn_coerce_value(val, expected) {
                     CoerceResult::Coerced(_, ref description) => {
-                        out.push(build_diagnostic_conditional(
-                            "W9003",
-                            &format!(
-                                "{}{} is not of type '{}' — automatically coerced ({})",
-                                format_value(val),
-                                res_suffix,
-                                expected,
-                                description
-                            ),
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
+                        if emitted_type_errors.insert(("W9003", expected)) {
+                            out.push(build_diagnostic_conditional(
+                                "W9003",
+                                &format!(
+                                    "{}{} is not of type '{}' — automatically coerced ({})",
+                                    format_value(val),
+                                    res_suffix,
+                                    expected,
+                                    description
+                                ),
+                                m,
+                                rid,
+                                prop_path,
+                                None,
+                                condition_map(conds),
+                            ));
+                        }
                     }
                     _ => {
-                        out.push(build_diagnostic_conditional(
-                            "F3012",
-                            &format!("{}{} is not of type '{}'", format_value(val), res_suffix, expected),
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
+                        if emitted_type_errors.insert(("F3012", expected)) {
+                            out.push(build_diagnostic_conditional(
+                                "F3012",
+                                &format!("{}{} is not of type '{}'", format_value(val), res_suffix, expected),
+                                m,
+                                rid,
+                                prop_path,
+                                None,
+                                condition_map(conds),
+                            ));
+                        }
                     }
                 }
             }
@@ -1189,6 +1208,13 @@ fn validate_prop(
             if let Some(arr) = val.as_array() {
                 let mut seen = Vec::new();
                 for item in arr {
+                    // A null element is an `AWS::NoValue` that CloudFormation
+                    // removes from the list at deploy time, so it is not a real
+                    // member and two such elements are not a duplicate. Only the
+                    // surviving concrete items are checked for uniqueness.
+                    if item.is_null() {
+                        continue;
+                    }
                     if seen.contains(item) {
                         out.push(build_diagnostic_conditional(
                             "F3037",
@@ -1448,6 +1474,20 @@ fn enum_matches(val: &serde_json::Value, allowed: &[serde_json::Value]) -> bool 
         }
         false
     })
+}
+
+/// True when property `prop` under `base` resolves to a concrete (non-null)
+/// value in at least one satisfiable scenario. A property set to `AWS::NoValue`
+/// resolves to null in every scenario and is treated as absent — CloudFormation
+/// strips it before deployment. When resolution yields no scenarios (the value
+/// is opaque/dynamic), the property is conservatively considered present so a
+/// genuinely-specified property is never miscounted as absent.
+fn property_present(m: &Arc<SemanticModel>, rid: &str, base: &str, prop: &str) -> bool {
+    let scenarios = m.resolve_scenarios_json(rid, &format!("{}.{}", base, prop));
+    if scenarios.is_empty() {
+        return true;
+    }
+    scenarios.iter().any(|(val, conds)| is_satisfiable(m, conds) && !val.is_null())
 }
 
 fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, base: &str, req: &str) {

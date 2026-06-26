@@ -1,10 +1,10 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-26 00:09:37  
+> Generated: 2026-06-26 02:33:39  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **400**  
+> Templates compared: **450**  
 
 ## Terminology
 
@@ -22,57 +22,75 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1694 |
+| True Positives | 1892 |
 | False Positives (engine bugs) | 0 |
-| Engine Extra (correct, cfn-lint gap) | 5313 |
-| False Negatives (engine misses) | 272 |
+| Engine Extra (correct, cfn-lint gap) | 5498 |
+| False Negatives (engine misses) | 334 |
 | Precision | 100.00% |
-| Recall | 86.16% |
-| F1 | 92.57% |
-| Unique rules detected | 194 |
-| Perfect templates | 311/400 |
+| Recall | 85.00% |
+| F1 | 91.89% |
+| Unique rules detected | 202 |
+| Perfect templates | 343/450 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 348 | 0 | 58 | 96 | 100.00% | 78.38% |
-| Error | 300 | 0 | 3 | 111 | 100.00% | 72.99% |
-| Warning | 693 | 0 | 351 | 57 | 100.00% | 92.40% |
-| Info | 353 | 0 | 4901 | 8 | 100.00% | 97.78% |
+| Fatal | 388 | 0 | 63 | 110 | 100.00% | 77.91% |
+| Error | 323 | 0 | 3 | 155 | 100.00% | 67.57% |
+| Warning | 720 | 0 | 357 | 58 | 100.00% | 92.54% |
+| Info | 461 | 0 | 5075 | 11 | 100.00% | 97.67% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 18201.3234 ms |
-| Throughput | 124.44 validations/sec |
+| Total wall time | 19363.2369 ms |
+| Throughput | 116.97 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 63.3823 ms |
-| Engine init (max) | 63.7708 ms |
-| Schema init (p99) | 65.7681 ms |
-| Schema init (max) | 66.8787 ms |
+| Engine init (p99) | 61.2696 ms |
+| Engine init (max) | 61.4570 ms |
+| Schema init (p99) | 53.8618 ms |
+| Schema init (max) | 54.4753 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0017 | 0.1851 | 0.0429 | 0.5765 | 0.7977 | 1.4449 | 2.4744 |
-| Schema Validate | 0.0000 | 2.3420 | 0.5493 | 6.0790 | 9.7298 | 22.1648 | 52.0371 |
-| Rule Evaluation | 0.9458 | 4.9856 | 2.1747 | 11.9858 | 18.0767 | 29.7800 | 89.6537 |
-| Diagnostic Finalize | 0.0002 | 0.0246 | 0.0033 | 0.0779 | 0.1204 | 0.3217 | 0.5438 |
-| Engine Internal | 0.9533 | 7.5732 | 2.8710 | 19.0054 | 29.7918 | 52.1522 | 110.9251 |
-| Wall Clock | 0.9535 | 7.5734 | 2.8711 | 19.0056 | 29.7922 | 52.1525 | 110.9257 |
+| Model Build | 0.0019 | 0.1993 | 0.0465 | 0.6244 | 0.8572 | 1.5796 | 2.7016 |
+| Schema Validate | 0.0000 | 2.5404 | 0.5716 | 6.6121 | 10.4344 | 24.2968 | 56.1370 |
+| Rule Evaluation | 1.0194 | 5.3570 | 2.3420 | 12.8898 | 19.1535 | 31.6669 | 100.4849 |
+| Diagnostic Finalize | 0.0003 | 0.0279 | 0.0038 | 0.0896 | 0.1360 | 0.3373 | 0.6073 |
+| Engine Internal | 1.0287 | 8.1643 | 3.1206 | 20.5374 | 31.6542 | 56.3832 | 120.1127 |
+| Wall Clock | 1.0288 | 8.1646 | 3.1207 | 20.5404 | 31.6549 | 56.3839 | 120.1134 |
 
-## False Negatives — 272 missed findings across 68 rules
+## False Negatives — 334 missed findings across 80 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
-### F3003 — 22 missed — Required Resource properties are missing
+### F3003 — 31 missed — Required Resource properties are missing
 
 - **F3003** (cfn-lint: E3003) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1` L46-48 in `bad_core_conditions_yaml`
   > 'DeviceName' is a required property
+- **F3003** (cfn-lint: E3003) `rIamPolicy` → `Properties` L37 in `bad_resources_iam_iam_policy_yaml`
+  > 'Users' is a required property
+- **F3003** (cfn-lint: E3003) `rIamPolicy` → `Properties` L37 in `bad_resources_iam_iam_policy_yaml`
+  > 'Groups' is a required property
+- **F3003** (cfn-lint: E3003) `rIamPolicy` → `Properties` L37 in `bad_resources_iam_iam_policy_yaml`
+  > 'Roles' is a required property
+- **F3003** (cfn-lint: E3003) `myPolicy` → `Properties` L10 in `bad_resources_properties_atleastone_yaml`
+  > 'Users' is a required property
+- **F3003** (cfn-lint: E3003) `myPolicy` → `Properties` L10 in `bad_resources_properties_atleastone_yaml`
+  > 'Groups' is a required property
+- **F3003** (cfn-lint: E3003) `myPolicy` → `Properties` L10 in `bad_resources_properties_atleastone_yaml`
+  > 'Roles' is a required property
+- **F3003** (cfn-lint: E3003) `myPolicy2` → `Properties.Fn::If.1` L19-21 in `bad_resources_properties_atleastone_yaml`
+  > 'Users' is a required property
+- **F3003** (cfn-lint: E3003) `myPolicy2` → `Properties.Fn::If.1` L19-21 in `bad_resources_properties_atleastone_yaml`
+  > 'Groups' is a required property
+- **F3003** (cfn-lint: E3003) `myPolicy2` → `Properties.Fn::If.1` L19-21 in `bad_resources_properties_atleastone_yaml`
+  > 'Roles' is a required property
 - **F3003** (cfn-lint: E3003) `NoImage` → `Properties` L6 in `bad_schema_composition_yaml`
   > 'ImageName' is a required property
 - **F3003** (cfn-lint: E3003) `NoImage` → `Properties` L6 in `bad_schema_composition_yaml`
@@ -115,6 +133,49 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'ServiceToken' is a required property
 - **F3003** (cfn-lint: E3003) `SubBlock` → `Properties` L114 in `good_both_forms_yaml`
   > 'ServiceToken' is a required property
+
+### E3510 — 20 missed — Validate identity based IAM polices
+
+- **E3510** `myPolicy` → `Properties.PolicyDocument.Statement.0.Resource` L25 in `bad_functions_sub_needed_yaml`
+  > 'arn:aws:iam::${AWS::AccountId}:user/${aws:username}-${AMIId}' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'
+- **E3510** `myPolicy` → `Properties.PolicyDocument.Statement.1.NotResource` L29 in `bad_functions_sub_needed_yaml`
+  > 'arn:aws:iam::${AWS::AccountId}:user/${aws:username}-${AMIId}' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'
+- **E3510** `Policy` → `Properties.PolicyDocument.Statement.0` L10-13 in `bad_iam_bad_statement_yaml`
+  > 'Effect' is a required property
+- **E3510** `rIamRole` → `Properties.Policies.0.PolicyDocument.Version` L14 in `bad_resources_iam_iam_policy_yaml`
+  > 'blah' is not one of ['2008-10-17', '2012-10-17']
+- **E3510** `rIamRole` → `Properties.Policies.0.PolicyDocument.BadProperty` L15 in `bad_resources_iam_iam_policy_yaml`
+  > Additional properties are not allowed ('BadProperty' was unexpected)
+- **E3510** `rIamRole` → `Properties.Policies.0.PolicyDocument.Statement` L16 in `bad_resources_iam_iam_policy_yaml`
+  > 'Test' is not of type 'object', 'array'
+- **E3510** `rIamUser` → `Properties.PolicyDocument.Version` L21 in `bad_resources_iam_iam_policy_yaml`
+  > 'blah' is not one of ['2008-10-17', '2012-10-17']
+- **E3510** `rIamUser` → `Properties.PolicyDocument.Statement.0` L23-26 in `bad_resources_iam_iam_policy_yaml`
+  > Only one of ['Action', 'NotAction'] is a required property
+- **E3510** `rIamUser` → `Properties.PolicyDocument.Statement.0.Effect` L24 in `bad_resources_iam_iam_policy_yaml`
+  > 'NotAllow' is not one of ['Allow', 'Deny']
+- **E3510** `rIamUser` → `Properties.PolicyDocument.Statement.0.Principal` L25 in `bad_resources_iam_iam_policy_yaml`
+  > Additional properties are not allowed ('Principal' was unexpected)
+- **E3510** `rIamUser` → `Properties.PolicyDocument.Statement.1.Resource.0` L30-31 in `bad_resources_iam_iam_policy_yaml`
+  > {'Effect': 'Allow'} is not of type 'string'
+- **E3510** `rIamUser` → `Properties.PolicyDocument.Statement.1.Resource.1` L31-35 in `bad_resources_iam_iam_policy_yaml`
+  > {'Effect': 'Allow', 'Action': ['cloudwatch:*'], 'Resource': '*'} is not of type 'string'
+- **E3510** `rIamPolicy` → `Properties.PolicyDocument` L38 in `bad_resources_iam_iam_policy_yaml`
+  > [{'Fn::If': ['cCondition', {'Statement': {}}, {'Statement': []}]}] is not of type 'object'
+- **E3510** `rIamPolicyExtraThings` → `Properties.PolicyDocument.Statement.0.Action` L54 in `bad_resources_iam_iam_policy_yaml`
+  > Only one of ['Action', 'NotAction'] is a required property
+- **E3510** `rIamPolicyExtraThings` → `Properties.PolicyDocument.Statement.0.NotAction` L56 in `bad_resources_iam_iam_policy_yaml`
+  > Only one of ['Action', 'NotAction'] is a required property
+- **E3510** `rIamPolicyExtraThings` → `Properties.PolicyDocument.Statement.0.Resource` L58 in `bad_resources_iam_iam_policy_yaml`
+  > Only one of ['Resource', 'NotResource'] is a required property
+- **E3510** `rIamPolicyExtraThings` → `Properties.PolicyDocument.Statement.0.NotResource` L60 in `bad_resources_iam_iam_policy_yaml`
+  > Only one of ['Resource', 'NotResource'] is a required property
+- **E3510** `rIamPolicyExtraThings` → `Properties.PolicyDocument.Statement.0.NotResource.0` L61 in `bad_resources_iam_iam_policy_yaml`
+  > 'arn' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'
+- **E3510** `myPolicy2` → `Properties.Fn::If.2.PolicyDocument` L22 in `bad_resources_properties_atleastone_yaml`
+  > 'Statement' is a required property
+- **E3510** `SomeManagedPolicy` → `Properties.PolicyDocument.Statement.1.Fn::If.1.Resource.0` L29 in `good_resources_iam_policy_yaml`
+  > 'SomeOptionalParameter' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'
 
 ### F0013 — 12 missed — Conditions have appropriate properties
 
@@ -214,6 +275,25 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions_yaml`
   > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
 
+### I3011 — 8 missed — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
+
+- **I3011** `Function` → `Resources.Function` L3 in `good_resources_properties_templated_code_sam_yaml`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `Function` → `Resources.Function` L3 in `good_resources_properties_templated_code_sam_yaml`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location_yaml`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location_yaml`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location_yaml`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location_yaml`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `AppName` → `Resources.AppName` L18 in `good_transform_yaml`
+  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+- **I3011** `AppName` → `Resources.AppName` L18 in `good_transform_yaml`
+  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+
 ### E3001 — 8 missed — Basic CloudFormation Resource Check
 
 - **E3001** `CloudFrontDistribution` → `Resources.CloudFrontDistribution.Condition` L84 in `bad_conditions_yaml`
@@ -270,6 +350,42 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'Fn::Equals': [{'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]}, True]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCrea
 - **F6101** (cfn-lint: E6101) → `Outputs.EdgeCaseOutput.Value.Fn::If.0` L251-256 in `lsp_condition-usage_yaml`
   > {'Fn::Equals': [{'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]}, True]} is not of type 'string'
+
+### E3043 — 8 missed — Validate parameters for in a nested stack
+
+- **E3043** `StackNormal` → `Properties.Parameters` L10 in `bad_resources_cloudformation_stacks_yaml`
+  > Nested stack template parameter "Two" is not specified at Resources/StackNormal/Properties/Parameters
+- **E3043** `StackNormal` → `Properties.Parameters.Three` L12 in `bad_resources_cloudformation_stacks_yaml`
+  > Specified parameter "Three" doesn't exist in nested stack template at Resources/StackNormal/Properties/Parameters/Three
+- **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
+  > Specified parameter "Zero" doesn't exist in nested stack template when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
+- **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
+  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
+- **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
+- **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
+  > Nested stack template parameter "One" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
+- **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
+- **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
+  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
+
+### W1028 — 7 missed — Check Fn::If has a path that cannot be reached
+
+- **W1028** `CloudFrontDistribution` → `Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.RestrictionType.Fn::If.2` L94 in `bad_conditions_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'EnableGeoBlocking' to False from current status True
+- **W1028** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2` L43 in `bad_core_conditions_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Listeners.0.Fn::If.2` L161-164 in `bad_generic_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Tags.0.Fn::If.2` L178-180 in `bad_generic_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2` L44 in `good_core_conditions_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
+- **W1028** `myInstance4` → `Properties.InstanceType.Fn::If.1.Fn::If.2` L74 in `good_core_conditions_yaml`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
+- **W1028** `Stack3` → `Properties.Parameters.Fn::If.2.Fn::If.1` L48-50 in `good_resources_cloudformation_stacks_yaml`
+  > ['Fn::If', 1] is not reachable. When setting condition 'IsUsEast1' to True from current status False
 
 ### W1001 — 7 missed — Ref/GetAtt to resource that is available when conditions are applied
 
@@ -336,36 +452,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'obj' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 - **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
-
-### I3011 — 6 missed — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
-
-- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location_yaml`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `App1` → `Resources.App1` L3 in `good_transform_applications_location_yaml`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location_yaml`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location_yaml`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `AppName` → `Resources.AppName` L18 in `good_transform_yaml`
-  > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-- **I3011** `AppName` → `Resources.AppName` L18 in `good_transform_yaml`
-  > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
-
-### W1028 — 6 missed — Check Fn::If has a path that cannot be reached
-
-- **W1028** `CloudFrontDistribution` → `Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.RestrictionType.Fn::If.2` L94 in `bad_conditions_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'EnableGeoBlocking' to False from current status True
-- **W1028** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2` L43 in `bad_core_conditions_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
-- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Listeners.0.Fn::If.2` L161-164 in `bad_generic_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Tags.0.Fn::If.2` L178-180 in `bad_generic_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2` L44 in `good_core_conditions_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
-- **W1028** `myInstance4` → `Properties.InstanceType.Fn::If.1.Fn::If.2` L74 in `good_core_conditions_yaml`
-  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
 
 ### E1017 — 6 missed — Select validation of parameters
 
@@ -481,6 +567,19 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3022** `AuxilliaryCustomSubnetRouteTableAssociation` → `Properties.SubnetId` L74 in `bad_properties_rt_association_yaml`
   > SubnetId in AuxilliaryCustomSubnetRouteTableAssociation is also associated with CustomSubnetRouteTableAssociation
 
+### E3026 — 5 missed — Check Elastic Cache Redis Cluster settings
+
+- **E3026** `BasicReplicationGroup` → `Properties.CacheParameterGroupName.Fn::If.1.Ref.AutomaticFailoverEnabled` L39 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > "AutomaticFailoverEnabled" must be misssing or True when setting up a cluster when when condition "isCluster" is True at Resources/BasicReplicationGroup/Properties/CacheParameterGroupName/Fn::If/1/Ref
+- **E3026** `SecondReplicationGroup` → `Properties.CacheParameterGroupName.Fn::If.2.Ref.AutomaticFailoverEnabled` L58 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > "AutomaticFailoverEnabled" must be misssing or True when setting up a cluster when when condition "isCluster" is False at Resources/SecondReplicationGroup/Properties/CacheParameterGroupName/Fn::If/2/R
+- **E3026** `SecondReplicationGroup` → `Properties.CacheParameterGroupName.Fn::If.2.Ref.NumCacheClusters` L58 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > "NumCacheClusters" must be greater than one when creating a cluster when when condition "isCluster" is False at Resources/SecondReplicationGroup/Properties/CacheParameterGroupName/Fn::If/2/Ref/NumCach
+- **E3026** `ThirdReplicationGroup` → `Properties.CacheParameterGroupName.Ref.NumCacheClusters` L77 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > "NumCacheClusters" must be greater than one when creating a cluster at Resources/ThirdReplicationGroup/Properties/CacheParameterGroupName/Ref/NumCacheClusters
+- **E3026** `FourtReplicationGroup` → `Properties.CacheParameterGroupName.Ref.NumCacheClusters` L94 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > "NumCacheClusters" must be greater than one when creating a cluster at Resources/FourtReplicationGroup/Properties/CacheParameterGroupName/Ref/NumCacheClusters
+
 ### E3023 — 5 missed — Validate Route53 RecordSets
 
 - **E3023** `MyCNAMERecordSetConditions` → `Properties.ResourceRecords` L90 in `bad_route53_yaml`
@@ -493,6 +592,28 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'No valid domain name' does not match '^.*\\.acm-validations\\.aws\\.?$'
 - **E3023** `MyRecordSetGroup` → `Properties.RecordSets.7.ResourceRecords.1` L170 in `bad_route53_yaml`
   > '65536 mx2.example.com' does not match '^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{1-3}|65[0-4][0-9]{1-2}|655[0-2][0-9]|6553[0-5])\\s[a-zA-Z0-9\\!"\\#\\$\\%\\&\\\'\\(\\)\\*\\+\\,-\\/\\:\\;\\<\\=\\>\\?\\@\
+
+### F3012 — 4 missed — Check resource properties values
+
+- **F3012** (cfn-lint: E3012) `ExampleLambda` → `Properties.Environment.Variables` L14 in `bad_resources_properties_primitive_types_map_yaml`
+  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
+- **F3012** (cfn-lint: E3012) `ExampleLambda1` → `Properties.Environment.Variables.Fn::If.1` L34-37 in `bad_resources_properties_primitive_types_map_yaml`
+  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
+- **F3012** (cfn-lint: E3012) `IamRole2` → `Properties.Ref` L26 in `integration_ref-no-value_yaml`
+  > {'Ref': 'AWS::NoValue'} is not of type object
+- **F3012** (cfn-lint: E3012) `CloudFront1` → `Properties.Ref` L39 in `integration_ref-no-value_yaml`
+  > {'Ref': 'AWS::NoValue'} is not of type object
+
+### E3513 — 4 missed — Validate ECR repository policy
+
+- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.Effect` L12 in `bad_resources_iam_resource_policy_yaml`
+  > 'NotAllow' is not one of ['Allow', 'Deny']
+- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.Principal` L13 in `bad_resources_iam_resource_policy_yaml`
+  > '*' was expected
+- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.BadProperty` L16 in `bad_resources_iam_resource_policy_yaml`
+  > Additional properties are not allowed ('BadProperty' was unexpected)
+- **E3513** `ecr2` → `Properties.RepositoryPolicyText.Statement.0.Principal` L26 in `bad_resources_iam_resource_policy_yaml`
+  > '*' was expected
 
 ### E7001 — 4 missed — Mappings are appropriately configured
 
@@ -538,6 +659,17 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E2001** → `Parameters.NullParamType` L35 in `bad_parameters_configuration_yaml`
   > 'Type' is a required property
 
+### F3031 — 4 missed — Check if property values adhere to a specific pattern
+
+- **F3031** (cfn-lint: E3031) `mySecurityGroupNonVpc` → `Properties.GroupDescription` L23 in `bad_properties_sg_ingress_yaml`
+  > 'Special charaters like ^ and " are not supported' does not match '^([a-z,A-Z,0-9,. _\\-:/()#,@[\\]+=&;\\{\\}!$*])*$'
+- **F3031** (cfn-lint: E3031) `myRepository2` → `Properties.RepositoryName` L11 in `bad_resources_properties_string_size_yaml`
+  > '' does not match '^[a-zA-Z0-9._\\-]+(?<!\\.git)$'
+- **F3031** (cfn-lint: E3031) `Bucket` → `Properties.BucketName` L9 in `bad_sub_needed_yaml`
+  > '${MyParam}-bucket' does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$'
+- **F3031** (cfn-lint: E3031) `TestRole` → `Properties.RoleName` L10 in `good_functions_sub_needed_custom_excludes_yaml`
+  > 'TestRole-${Stage}' does not match '^[\\w+=,.@-]+$'
+
 ### W1032 — 4 missed — Validate the values that come from a Fn::Join function
 
 - **W1032** `Bucket2` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_json`
@@ -576,15 +708,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1032** → `Outputs.Fn::ForEach::BucketOutputs.2.Fn::ForEach::GetAttLoop` L36 in `bad_functions_foreach_no_transform_yaml`
   > Missing Transform: Declare the AWS::LanguageExtensions Transform globally to enable use of the intrinsic function Fn::ForEach at Outputs/Fn::ForEach::BucketOutputs/2/Fn::ForEach::GetAttLoop
 
-### E3510 — 3 missed — Validate identity based IAM polices
-
-- **E3510** `myPolicy` → `Properties.PolicyDocument.Statement.0.Resource` L25 in `bad_functions_sub_needed_yaml`
-  > 'arn:aws:iam::${AWS::AccountId}:user/${aws:username}-${AMIId}' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'
-- **E3510** `myPolicy` → `Properties.PolicyDocument.Statement.1.NotResource` L29 in `bad_functions_sub_needed_yaml`
-  > 'arn:aws:iam::${AWS::AccountId}:user/${aws:username}-${AMIId}' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'
-- **E3510** `Policy` → `Properties.PolicyDocument.Statement.0` L10-13 in `bad_iam_bad_statement_yaml`
-  > 'Effect' is a required property
-
 ### W1034 — 3 missed — Validate the values that come from a Fn::FindInMap function
 
 - **W1034** `mySubnet` → `Properties.CidrBlock.Fn::FindInMap` L20 in `bad_mappings_used_yaml`
@@ -603,15 +726,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E5001** `MyModule` → `Resources.MyModule.Metadata.AWS::CloudFormation::Module.{'something': 'true'}` L7 in `bad_modules_bad_uses_module_metadata_yaml`
   > The Metadata key AWS::CloudFormation::Module is reserved
 
-### F3031 — 3 missed — Check if property values adhere to a specific pattern
-
-- **F3031** (cfn-lint: E3031) `mySecurityGroupNonVpc` → `Properties.GroupDescription` L23 in `bad_properties_sg_ingress_yaml`
-  > 'Special charaters like ^ and " are not supported' does not match '^([a-z,A-Z,0-9,. _\\-:/()#,@[\\]+=&;\\{\\}!$*])*$'
-- **F3031** (cfn-lint: E3031) `Bucket` → `Properties.BucketName` L9 in `bad_sub_needed_yaml`
-  > '${MyParam}-bucket' does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$'
-- **F3031** (cfn-lint: E3031) `TestRole` → `Properties.RoleName` L10 in `good_functions_sub_needed_custom_excludes_yaml`
-  > 'TestRole-${Stage}' does not match '^[\\w+=,.@-]+$'
-
 ### E3048 — 3 missed — Validate ECS Fargate tasks have required properties and values
 
 - **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency_yaml`
@@ -620,6 +734,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'Cpu' is a required property
 - **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency_yaml`
   > 'Memory' is a required property
+
+### E3025 — 3 missed — Validates RDS DB Instance Class
+
+- **E3025** `DBInstance1` → `Properties.DBInstanceClass` L13 in `bad_resources_rds_instance_sizes_yaml`
+  > 'db.m4.xlarge' is not one of ['db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.
+- **E3025** `DBInstance2` → `Properties.DBInstanceClass` L19 in `bad_resources_rds_instance_sizes_yaml`
+  > 'db.x2e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5
+- **E3025** `DBInstance3` → `Properties.DBInstanceClass` L26 in `bad_resources_rds_instance_sizes_yaml`
+  > 'db.x1e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5
 
 ### E1005 — 3 missed — Validate Transform configuration
 
@@ -651,13 +774,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F0014** (cfn-lint: E8003) → `Conditions.primaryRegion.Fn::Equals.0` L4 in `bad_functions_import_value_yaml`
   > {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'
 
-### F3012 — 2 missed — Check resource properties values
-
-- **F3012** (cfn-lint: E3012) `IamRole2` → `Properties.Ref` L26 in `integration_ref-no-value_yaml`
-  > {'Ref': 'AWS::NoValue'} is not of type object
-- **F3012** (cfn-lint: E3012) `CloudFront1` → `Properties.Ref` L39 in `integration_ref-no-value_yaml`
-  > {'Ref': 'AWS::NoValue'} is not of type object
-
 ### E0002 — 2 missed — Error processing rule on the template
 
 - **E0002** L1 in `bad_core_conditions_list_yaml`
@@ -671,6 +787,13 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'VirtualName' is ignored when 'Ebs' is specified
 - **W3698** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
   > 'VirtualName' is ignored when 'Ebs' is specified
+
+### E3039 — 2 missed — AttributeDefinitions / KeySchemas mismatch
+
+- **E3039** `dynamoDBTable` → `Properties` L6 in `bad_resources_dynamodb_unused_attribute_definition_1_yaml`
+  > The set of Attributes in AttributeDefinitions: ['Album', 'Artist', 'Sales'] and KeySchemas: ['Album', 'Artist'] must match at Resources/dynamoDBTable/Properties
+- **E3039** `dynamoDBTable` → `Properties` L6 in `bad_resources_dynamodb_unused_attribute_definition_2_yaml`
+  > The set of Attributes in AttributeDefinitions: ['Album', 'Artist', 'Sales'] and KeySchemas: ['Album', 'Artist'] must match at Resources/dynamoDBTable/Properties
 
 ### E3639 — 2 missed — When BillingMode is Provisioned you must specify ProvisionedThroughput
 
@@ -721,13 +844,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W3037** `myRoleToWriteToS3` → `Properties.Policies.0.PolicyDocument.Statement.2.Action` L140 in `bad_resources_circular_dependency_yaml`
   > 'listobjects' is not one of ['abortmultipartupload', 'associateaccessgrantsidentitycenter', 'bypassgovernanceretention', 'createaccessgrant', 'createaccessgrantsinstance', 'createaccessgrantslocation'
 
-### E1161 — 2 missed — Validate S3 bucket name format
-
-- **E1161** `PatternBucket` → `Properties.BucketName` L6 in `bad_schema_property_constraints_yaml`
-  > 'INVALID_UPPERCASE_BUCKET' is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$'
-- **E1161** `Bucket` → `Properties.BucketName` L9 in `bad_sub_needed_yaml`
-  > '${MyParam}-bucket' is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$'
-
 ### E9004 — 2 missed — GetAtt validation of parameters
 
 - **E9004** (cfn-lint: E1010) `LambdaFunctionTestNotDefinedFromParent` → `Properties.Environment.Variables.Fn::GetAtt` L23 in `good_custom_is-not-defined_yaml`
@@ -735,12 +851,31 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E9004** (cfn-lint: E1010) `SsmParameter` → `Properties.Value.Fn::GetAtt` L18 in `integration_getatt-types_yaml`
   > {'Fn::GetAtt': ['CapacityReservation', 'InstanceCount']} is not of type 'string'
 
+### F3037 — 2 missed — Check if a list has duplicate values
+
+- **F3037** (cfn-lint: E3037) `IamGroup` → `Properties.ManagedPolicyArns` L14 in `bad_resources_properties_list_duplicates_yaml`
+  > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
+- **F3037** (cfn-lint: E3037) `IamGroupWithConditions` → `Properties.ManagedPolicyArns` L22 in `bad_resources_properties_list_duplicates_yaml`
+  > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
+
+### E1161 — 2 missed — Validate S3 bucket name format
+
+- **E1161** `PatternBucket` → `Properties.BucketName` L6 in `bad_schema_property_constraints_yaml`
+  > 'INVALID_UPPERCASE_BUCKET' is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$'
+- **E1161** `Bucket` → `Properties.BucketName` L9 in `bad_sub_needed_yaml`
+  > '${MyParam}-bucket' is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$'
+
 ### E1701 — 2 missed — Validate the configuration of Assertions
 
 - **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L312 in `lsp_comprehensive_json`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
 - **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L130 in `lsp_comprehensive_yaml`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
+
+### E1150 — 1 missed — Validate security group format
+
+- **E1150** `Ingress` → `Properties.GroupId` L8 in `good_resources_properties_exclusive_yaml`
+  > 'sg-abc1234567' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$'
 
 ### E3682 — 1 missed — Validate when using Aurora certain properies aren't required
 
@@ -767,6 +902,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E6001** → `Outputs.Fn::ForEach::BucketOutputs` L33 in `bad_functions_foreach_no_transform_yaml`
   > 'Fn::ForEach::BucketOutputs' does not match any of the regexes: '^[a-zA-Z0-9]+$'
 
+### I3510 — 1 missed — Validate statement resources match the actions
+
+- **I3510** `SomeManagedPolicy` → `Properties.PolicyDocument.Statement.1.Fn::If.1.Resource` L28 in `good_resources_iam_policy_yaml`
+  > action 's3:PutObject' requires a resource of ['arn:${Partition}:s3:::.*']
+
 ### E3673 — 1 missed — Validate if an ImageId is required
 
 - **E3673** `myEc2Instance4` → `Properties` L67 in `bad_generic_yaml`
@@ -781,6 +921,26 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 - **W2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
   > 'AWS::SSM::Parameter::Value<Test>' is not an officially documented CloudFormation parameter type. While CloudFormation may accept this type, it will not validate the parameter value.
+
+### E3700 — 1 missed — Validate CodePipeline Source actions are only in the first stage
+
+- **E3700** `TestPipeline` → `Properties.Stages.1.Actions.0.ActionTypeId.Category` L34 in `bad_resources_codepipeline_stages_second_stage_yaml`
+  > 'Source' is not one of ['Build', 'Approval', 'Deploy', 'Test', 'Invoke', 'Compute']
+
+### E3504 — 1 missed — Check minimum 90 period is met between BackupPlan cold and delete
+
+- **E3504** `BackupPlan` → `Properties.BackupPlan.BackupPlanRule.0.Lifecycle.DeleteAfterDays` L17 in `bad_resources_backup_test_backup_plan_lifecycle_rule_yml`
+  > DeleteAfterDays 30 must be at least 90 days after MoveToColdStorageAfterDays 7
+
+### E3678 — 1 missed — Using the ZipFile attribute requires a runtime to be specified
+
+- **E3678** `Function3` → `Properties` L25 in `bad_resources_lambda_required_properties_yaml`
+  > 'Runtime' is a required property
+
+### E3065 — 1 missed — Check if a list has more unique values than allowed
+
+- **E3065** `CloudWatchAlarm` → `Properties.AlarmActions` L15 in `bad_resources_properties_string_size_yaml`
+  > expected maximum unique item count: 5, found: 6
 
 ### W1054 — 1 missed — Pseudo-parameter string found without Ref
 
@@ -821,11 +981,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-## Engine Extra — 5313 correct findings across 36 rules
+## Engine Extra — 5498 correct findings across 36 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 — 3531 findings
+### I9001 — 3606 findings
 
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -1287,8 +1447,58 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
 - **I9001** `taskdefinition` (AWS::ECS::TaskDefinition) → `Properties.Volumes` L221 in `bad_resources_circular_dependency_yaml`
   > Property 'Volumes' is create-only; updating it will cause resource replacement
+- **I9001** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Name` L6 in `bad_resources_codepipeline_stages_second_stage_yaml`
+  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L25 in `bad_resources_deletionpolicy_yaml`
   > Property 'UserName' is create-only; updating it will cause resource replacement
+- **I9001** `MyParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L11 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement
+- **I9001** `MyClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L19 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement
+- **I9001** `MyNonClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L27 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement
+- **I9001** `BasicReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L35 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `BasicReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Port` L35 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `SecondReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L54 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `SecondReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Port` L54 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `ThirdReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L73 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `ThirdReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Port` L73 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `FourtReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L90 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `FourtReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Port` L90 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `rIamRole` (AWS::IAM::Role) → `Properties.RoleName` L7 in `bad_resources_iam_iam_policy_yaml`
+  > Property 'RoleName' is create-only; updating it will cause resource replacement
+- **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L5 in `bad_resources_iam_managed_policy_description`
+  > Property 'Description' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Path` L34 in `bad_resources_iam_ref_with_path_yaml`
+  > Property 'Path' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildVPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L62 in `bad_resources_iam_ref_with_path_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L71 in `bad_resources_iam_ref_with_path_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L71 in `bad_resources_iam_ref_with_path_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L77 in `bad_resources_iam_ref_with_path_yaml`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L77 in `bad_resources_iam_ref_with_path_yaml`
+  > Property 'GroupName' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L77 in `bad_resources_iam_ref_with_path_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `myLambdaFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L7 in `bad_resources_lambda_function_property_value_limits_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `myLambdaFunction2` (AWS::Lambda::Function) → `Properties.FunctionName` L17 in `bad_resources_lambda_function_property_value_limits_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `myLambdaFunction3` (AWS::Lambda::Function) → `Properties.FunctionName` L27 in `bad_resources_lambda_function_property_value_limits_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `Function2` (AWS::Lambda::Function) → `Properties.PackageType` L14 in `bad_resources_lambda_required_properties_yaml`
+  > Property 'PackageType' is create-only; updating it will cause resource replacement
 - **I9001** `RootRole` (AWS::IAM::Role) → `Properties.Path` L6 in `bad_resources_primary_identifiers_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
 - **I9001** `RootRole` (AWS::IAM::Role) → `Properties.RoleName` L6 in `bad_resources_primary_identifiers_yaml`
@@ -1319,6 +1529,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `Project2` (AWS::CodeBuild::Project) → `Properties.Name` L186 in `bad_resources_primary_identifiers_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `MyTopic` (AWS::SNS::Topic) → `Properties.TopicName` L5 in `bad_resources_sns_topic_name_yaml`
+  > Property 'TopicName' is create-only; updating it will cause resource replacement
 - **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L25 in `bad_resources_updatereplacepolicy_yaml`
   > Property 'UserName' is create-only; updating it will cause resource replacement
 - **I9001** `MyHostedZone` (AWS::Route53::HostedZone) → `Properties.Name` L17 in `bad_route53_yaml`
@@ -6195,6 +6407,58 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Name` L6 in `good_resources_codepipeline_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `MyParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L16 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement
+- **I9001** `MyClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L24 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement
+- **I9001** `MyNonClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L32 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement
+- **I9001** `MyOptionalClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L40 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement
+- **I9001** `BasicReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L49 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `BasicReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Port` L49 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `SecondReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L68 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `SecondReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Port` L68 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `ThirdReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L88 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `ThirdReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Port` L88 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `FourthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.AtRestEncryptionEnabled` L107 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'AtRestEncryptionEnabled' is create-only; updating it will cause resource replacement
+- **I9001** `FourthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L107 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `FifthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.AtRestEncryptionEnabled` L123 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'AtRestEncryptionEnabled' is create-only; updating it will cause resource replacement
+- **I9001** `FifthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L123 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `SixthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.AtRestEncryptionEnabled` L140 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'AtRestEncryptionEnabled' is create-only; updating it will cause resource replacement
+- **I9001** `SixthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L140 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
+- **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L5 in `good_resources_iam_managed_policy_description`
+  > Property 'Description' is create-only; updating it will cause resource replacement
+- **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L12 in `good_resources_iam_policy_yaml`
+  > Property 'Description' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Path` L34 in `good_resources_iam_ref_with_path`
+  > Property 'Path' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildVPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L62 in `good_resources_iam_ref_with_path`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L71 in `good_resources_iam_ref_with_path`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L71 in `good_resources_iam_ref_with_path`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L77 in `good_resources_iam_ref_with_path`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L77 in `good_resources_iam_ref_with_path`
+  > Property 'GroupName' is create-only; updating it will cause resource replacement
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L77 in `good_resources_iam_ref_with_path`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Function3` (AWS::Lambda::Function) → `Properties.PackageType` L24 in `good_resources_lambda_required_properties_yaml`
+  > Property 'PackageType' is create-only; updating it will cause resource replacement
 - **I9001** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `good_resources_name_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `RootRole` (AWS::IAM::Role) → `Properties.Path` L6 in `good_resources_primary_identifiers`
@@ -6221,6 +6485,52 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `FunctionPermission2` (AWS::Lambda::Permission) → `Properties.Principal` L95 in `good_resources_primary_identifiers`
   > Property 'Principal' is create-only; updating it will cause resource replacement
+- **I9001** `TESTROLE` (AWS::IAM::Role) → `Properties.Path` L6 in `good_resources_properties_allowed_pattern`
+  > Property 'Path' is create-only; updating it will cause resource replacement
+- **I9001** `TESTROLE` (AWS::IAM::Role) → `Properties.RoleName` L6 in `good_resources_properties_allowed_pattern`
+  > Property 'RoleName' is create-only; updating it will cause resource replacement
+- **I9001** `Instance` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L5 in `good_resources_properties_az_cdk_yaml`
+  > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
+- **I9001** `Instance` (AWS::EC2::Subnet) → `Properties.VpcId` L5 in `good_resources_properties_az_cdk_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Ingress` (AWS::EC2::SecurityGroupIngress) → `Properties.CidrIp` L3 in `good_resources_properties_exclusive_yaml`
+  > Property 'CidrIp' is create-only; updating it will cause resource replacement
+- **I9001** `Ingress` (AWS::EC2::SecurityGroupIngress) → `Properties.GroupId` L3 in `good_resources_properties_exclusive_yaml`
+  > Property 'GroupId' is create-only; updating it will cause resource replacement
+- **I9001** `Ingress` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L3 in `good_resources_properties_exclusive_yaml`
+  > Property 'IpProtocol' is create-only; updating it will cause resource replacement
+- **I9001** `Ingress` (AWS::EC2::SecurityGroupIngress) → `Properties.SourceSecurityGroupId` L3 in `good_resources_properties_exclusive_yaml`
+  > Property 'SourceSecurityGroupId' is create-only; updating it will cause resource replacement
+- **I9001** `Alarm` (AWS::CloudWatch::Alarm) → `Properties.AlarmName` L10 in `good_resources_properties_exclusive_yaml`
+  > Property 'AlarmName' is create-only; updating it will cause resource replacement
+- **I9001** `Authorizer` (AWS::ApiGateway::Authorizer) → `Properties.RestApiId` L3 in `good_resources_properties_hard_coded_arn_properties`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Bucket` (AWS::S3::BucketPolicy) → `Properties.Bucket` L18 in `good_resources_properties_hard_coded_arn_properties`
+  > Property 'Bucket' is create-only; updating it will cause resource replacement
+- **I9001** `SampleBadBucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L16 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
+  > Property 'Bucket' is create-only; updating it will cause resource replacement
+- **I9001** `SampleRole` (AWS::IAM::Role) → `Properties.Path` L28 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
+  > Property 'Path' is create-only; updating it will cause resource replacement
+- **I9001** `SampleBadBucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L18 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
+  > Property 'Bucket' is create-only; updating it will cause resource replacement
+- **I9001** `SampleRole` (AWS::IAM::Role) → `Properties.Path` L30 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
+  > Property 'Path' is create-only; updating it will cause resource replacement
+- **I9001** `IngestionPipeline` (AWS::OSIS::Pipeline) → `Properties.PipelineName` L87 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
+  > Property 'PipelineName' is create-only; updating it will cause resource replacement
+- **I9001** `MyDB` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L16 in `good_resources_properties_password_yaml`
+  > Property 'MasterUsername' is create-only; updating it will cause resource replacement
+- **I9001** `myNewDb` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L25 in `good_resources_properties_password_yaml`
+  > Property 'MasterUsername' is create-only; updating it will cause resource replacement
+- **I9001** `myThirdDb` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L34 in `good_resources_properties_password_yaml`
+  > Property 'MasterUsername' is create-only; updating it will cause resource replacement
+- **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L43 in `good_resources_properties_password_yaml`
+  > Property 'UserName' is create-only; updating it will cause resource replacement
+- **I9001** `AppSyncSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L8 in `good_resources_properties_templated_code`
+  > Property 'ApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Bucket2` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_resources_s3_access-control-obsolete`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `BucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L11 in `good_resources_s3_access-control-obsolete`
+  > Property 'Bucket' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `good_schema_valid_resources`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_simple_sub_prefix`
@@ -7890,7 +8200,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2113 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1368 findings
+### I9040 — 1467 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -8258,8 +8568,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'myInstanceSub' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `taskdefinition` (AWS::ECS::TaskDefinition) → `Properties.Tags` L221 in `bad_resources_circular_dependency_yaml`
   > Resource 'taskdefinition' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `StackNormal` (AWS::CloudFormation::Stack) → `Properties.Tags` L7 in `bad_resources_cloudformation_stacks_yaml`
+  > Resource 'StackNormal' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `Stack3` (AWS::CloudFormation::Stack) → `Properties.Tags` L15 in `bad_resources_cloudformation_stacks_yaml`
+  > Resource 'Stack3' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L4 in `bad_resources_cloudfront_invalid_aliases_yaml`
   > Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
+- **I9040** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L6 in `bad_resources_codepipeline_stages_second_stage_yaml`
+  > Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L11 in `bad_resources_deletionpolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.Tags` L18 in `bad_resources_deletionpolicy_yaml`
@@ -8268,6 +8584,52 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyIAMUser' of type 'AWS::IAM::User' supports Tags but none are configured
 - **I9040** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.Tags` L38 in `bad_resources_deletionpolicy_yaml`
   > Resource 'InvalidMapping' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `dynamoDBTable` (AWS::DynamoDB::Table) → `Properties.Tags` L5 in `bad_resources_dynamodb_undefined_attribute_definition_yaml`
+  > Resource 'dynamoDBTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `dynamoDBTable` (AWS::DynamoDB::Table) → `Properties.Tags` L5 in `bad_resources_dynamodb_unused_attribute_definition_1_yaml`
+  > Resource 'dynamoDBTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `dynamoDBTable` (AWS::DynamoDB::Table) → `Properties.Tags` L5 in `bad_resources_dynamodb_unused_attribute_definition_2_yaml`
+  > Resource 'dynamoDBTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `MyParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.Tags` L11 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'MyParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured
+- **I9040** `MyClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.Tags` L19 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'MyClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured
+- **I9040** `MyNonClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.Tags` L27 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'MyNonClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured
+- **I9040** `BasicReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L35 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'BasicReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `SecondReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L54 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'SecondReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `ThirdReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L73 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'ThirdReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `FourtReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L90 in `bad_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'FourtReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `rIamRole` (AWS::IAM::Role) → `Properties.Tags` L7 in `bad_resources_iam_iam_policy_yaml`
+  > Resource 'rIamRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `CodeBuildProject` (AWS::CodeBuild::Project) → `Properties.Tags` L5 in `bad_resources_iam_ref_with_path_yaml`
+  > Resource 'CodeBuildProject' of type 'AWS::CodeBuild::Project' supports Tags but none are configured
+- **I9040** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Tags` L34 in `bad_resources_iam_ref_with_path_yaml`
+  > Resource 'CodeBuildRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.Tags` L71 in `bad_resources_iam_ref_with_path_yaml`
+  > Resource 'CodeBuildSubnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L77 in `bad_resources_iam_ref_with_path_yaml`
+  > Resource 'CodeBuildSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `ecr1` (AWS::ECR::Repository) → `Properties.Tags` L5 in `bad_resources_iam_resource_policy_yaml`
+  > Resource 'ecr1' of type 'AWS::ECR::Repository' supports Tags but none are configured
+- **I9040** `ecr2` (AWS::ECR::Repository) → `Properties.Tags` L18 in `bad_resources_iam_resource_policy_yaml`
+  > Resource 'ecr2' of type 'AWS::ECR::Repository' supports Tags but none are configured
+- **I9040** `myLambdaFunction` (AWS::Lambda::Function) → `Properties.Tags` L7 in `bad_resources_lambda_function_property_value_limits_yaml`
+  > Resource 'myLambdaFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `myLambdaFunction2` (AWS::Lambda::Function) → `Properties.Tags` L17 in `bad_resources_lambda_function_property_value_limits_yaml`
+  > Resource 'myLambdaFunction2' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `myLambdaFunction3` (AWS::Lambda::Function) → `Properties.Tags` L27 in `bad_resources_lambda_function_property_value_limits_yaml`
+  > Resource 'myLambdaFunction3' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Function1` (AWS::Lambda::Function) → `Properties.Tags` L5 in `bad_resources_lambda_required_properties_yaml`
+  > Resource 'Function1' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Function2` (AWS::Lambda::Function) → `Properties.Tags` L14 in `bad_resources_lambda_required_properties_yaml`
+  > Resource 'Function2' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Function3` (AWS::Lambda::Function) → `Properties.Tags` L24 in `bad_resources_lambda_required_properties_yaml`
+  > Resource 'Function3' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `my.Instance` (AWS::EC2::Instance) → `Properties.Tags` L4 in `bad_resources_name_yaml`
   > Resource 'my.Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `my_Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_resources_name_yaml`
@@ -8292,6 +8654,40 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Project1' of type 'AWS::CodeBuild::Project' supports Tags but none are configured
 - **I9040** `Project2` (AWS::CodeBuild::Project) → `Properties.Tags` L186 in `bad_resources_primary_identifiers_yaml`
   > Resource 'Project2' of type 'AWS::CodeBuild::Project' supports Tags but none are configured
+- **I9040** `ExampleLambda` (AWS::Lambda::Function) → `Properties.Tags` L6 in `bad_resources_properties_primitive_types_map_yaml`
+  > Resource 'ExampleLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ExampleLambda1` (AWS::Lambda::Function) → `Properties.Tags` L23 in `bad_resources_properties_primitive_types_map_yaml`
+  > Resource 'ExampleLambda1' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `myRepository` (AWS::CodeCommit::Repository) → `Properties.Tags` L5 in `bad_resources_properties_string_size_yaml`
+  > Resource 'myRepository' of type 'AWS::CodeCommit::Repository' supports Tags but none are configured
+- **I9040** `myRepository2` (AWS::CodeCommit::Repository) → `Properties.Tags` L9 in `bad_resources_properties_string_size_yaml`
+  > Resource 'myRepository2' of type 'AWS::CodeCommit::Repository' supports Tags but none are configured
+- **I9040** `CloudWatchAlarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L13 in `bad_resources_properties_string_size_yaml`
+  > Resource 'CloudWatchAlarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
+- **I9040** `SampleLambda` (AWS::Lambda::Function) → `Properties.Tags` L5 in `bad_resources_properties_templated_code_yaml`
+  > Resource 'SampleLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `DBInstance1` (AWS::RDS::DBInstance) → `Properties.Tags` L11 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance1' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance2` (AWS::RDS::DBInstance) → `Properties.Tags` L17 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance2' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance3` (AWS::RDS::DBInstance) → `Properties.Tags` L24 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance3' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance4` (AWS::RDS::DBInstance) → `Properties.Tags` L31 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance4' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance5` (AWS::RDS::DBInstance) → `Properties.Tags` L37 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance5' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance7` (AWS::RDS::DBInstance) → `Properties.Tags` L43 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance7' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance8` (AWS::RDS::DBInstance) → `Properties.Tags` L50 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance8' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance9` (AWS::RDS::DBInstance) → `Properties.Tags` L57 in `bad_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance9' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `Bucket1` (AWS::S3::Bucket) → `Properties.Tags` L4 in `bad_resources_s3_access-control-obsolete_yaml`
+  > Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Bucket2` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_resources_s3_access-control-obsolete_yaml`
+  > Resource 'Bucket2' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `MyTopic` (AWS::SNS::Topic) → `Properties.Tags` L5 in `bad_resources_sns_topic_name_yaml`
+  > Resource 'MyTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `Name` (AWS::SNS::Topic) → `Properties.Tags` L6 in `bad_resources_uniqueNames_yaml`
   > Resource 'Name' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L11 in `bad_resources_updatereplacepolicy_yaml`
@@ -10040,12 +10436,70 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'RouteTable1' of type 'AWS::EC2::RouteTable' supports Tags but none are configured
 - **I9040** `NatGW` (AWS::EC2::NatGateway) → `Properties.Tags` L28 in `good_redshift_private`
   > Resource 'NatGW' of type 'AWS::EC2::NatGateway' supports Tags but none are configured
+- **I9040** `NestedStack` (AWS::CloudFormation::Stack) → `Properties.Tags` L5 in `good_resources_cloudformation_nested_stack_dynamic`
+  > Resource 'NestedStack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `StackNormal` (AWS::CloudFormation::Stack) → `Properties.Tags` L6 in `good_resources_cloudformation_stacks_yaml`
+  > Resource 'StackNormal' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `StackIsWebUrl` (AWS::CloudFormation::Stack) → `Properties.Tags` L14 in `good_resources_cloudformation_stacks_yaml`
+  > Resource 'StackIsWebUrl' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `StackUrlIsObject` (AWS::CloudFormation::Stack) → `Properties.Tags` L22 in `good_resources_cloudformation_stacks_yaml`
+  > Resource 'StackUrlIsObject' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `StackInvalidPath` (AWS::CloudFormation::Stack) → `Properties.Tags` L30 in `good_resources_cloudformation_stacks_yaml`
+  > Resource 'StackInvalidPath' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `Stack3` (AWS::CloudFormation::Stack) → `Properties.Tags` L38 in `good_resources_cloudformation_stacks_yaml`
+  > Resource 'Stack3' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L4 in `good_resources_cloudfront_aliases`
+  > Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
 - **I9040** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L6 in `good_resources_codepipeline`
   > Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L6 in `good_resources_codepipeline_yaml`
   > Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L27 in `good_resources_deletionpolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DDBTable1` (AWS::DynamoDB::Table) → `Properties.Tags` L7 in `good_resources_dynamodb_attributes_yaml`
+  > Resource 'DDBTable1' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `DDBTable2` (AWS::DynamoDB::Table) → `Properties.Tags` L35 in `good_resources_dynamodb_attributes_yaml`
+  > Resource 'DDBTable2' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `MyParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.Tags` L16 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'MyParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured
+- **I9040** `MyClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.Tags` L24 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'MyClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured
+- **I9040** `MyNonClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.Tags` L32 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'MyNonClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured
+- **I9040** `MyOptionalClusterParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.Tags` L40 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'MyOptionalClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured
+- **I9040** `BasicReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L49 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'BasicReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `SecondReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L68 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'SecondReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `ThirdReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L88 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'ThirdReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `FourthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L107 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'FourthReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `FifthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L123 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'FifthReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `SixthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.Tags` L140 in `good_resources_elasticache_cache_cluster_failover_yaml`
+  > Resource 'SixthReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured
+- **I9040** `IAMInstanceProfile` (AWS::CloudFormation::Stack) → `Properties.Tags` L4 in `good_resources_iam_instance_profile_yaml`
+  > Resource 'IAMInstanceProfile' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `Instance` (AWS::CloudFormation::Stack) → `Properties.Tags` L8 in `good_resources_iam_instance_profile_yaml`
+  > Resource 'Instance' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `CodeBuildProject` (AWS::CodeBuild::Project) → `Properties.Tags` L5 in `good_resources_iam_ref_with_path`
+  > Resource 'CodeBuildProject' of type 'AWS::CodeBuild::Project' supports Tags but none are configured
+- **I9040** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Tags` L34 in `good_resources_iam_ref_with_path`
+  > Resource 'CodeBuildRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.Tags` L71 in `good_resources_iam_ref_with_path`
+  > Resource 'CodeBuildSubnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L77 in `good_resources_iam_ref_with_path`
+  > Resource 'CodeBuildSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `Ecr` (AWS::ECR::Repository) → `Properties.Tags` L5 in `good_resources_iam_resource_policy`
+  > Resource 'Ecr' of type 'AWS::ECR::Repository' supports Tags but none are configured
+- **I9040** `Function1` (AWS::Lambda::Function) → `Properties.Tags` L5 in `good_resources_lambda_required_properties_yaml`
+  > Resource 'Function1' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Function2` (AWS::Lambda::Function) → `Properties.Tags` L14 in `good_resources_lambda_required_properties_yaml`
+  > Resource 'Function2' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Function3` (AWS::Lambda::Function) → `Properties.Tags` L24 in `good_resources_lambda_required_properties_yaml`
+  > Resource 'Function3' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `myInstance` (AWS::EC2::Instance) → `Properties.Tags` L4 in `good_resources_name_yaml`
   > Resource 'myInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `RootRole` (AWS::IAM::Role) → `Properties.Tags` L6 in `good_resources_primary_identifiers`
@@ -10057,6 +10511,60 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9040** `Bucket1` (AWS::S3::Bucket) → `Properties.Tags` L75 in `good_resources_primary_identifiers`
   > Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket2` (AWS::S3::Bucket) → `Properties.Tags` L82 in `good_resources_primary_identifiers`
+  > Resource 'Bucket2' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `TESTROLE` (AWS::IAM::Role) → `Properties.Tags` L6 in `good_resources_properties_allowed_pattern`
+  > Resource 'TESTROLE' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `Instance` (AWS::EC2::Subnet) → `Properties.Tags` L5 in `good_resources_properties_az_cdk_yaml`
+  > Resource 'Instance' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `Alarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L10 in `good_resources_properties_exclusive_yaml`
+  > Resource 'Alarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
+- **I9040** `Stack` (AWS::CloudFormation::Stack) → `Properties.Tags` L10 in `good_resources_properties_hard_coded_arn_properties`
+  > Resource 'Stack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `S3BadBucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
+  > Resource 'S3BadBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `SampleRole` (AWS::IAM::Role) → `Properties.Tags` L28 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
+  > Resource 'SampleRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `S3BadBucket` (AWS::S3::Bucket) → `Properties.Tags` L9 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
+  > Resource 'S3BadBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `SampleRole` (AWS::IAM::Role) → `Properties.Tags` L30 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
+  > Resource 'SampleRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `IngestionPipeline` (AWS::OSIS::Pipeline) → `Properties.Tags` L87 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
+  > Resource 'IngestionPipeline' of type 'AWS::OSIS::Pipeline' supports Tags but none are configured
+- **I9040** `IamRole` (AWS::IAM::Role) → `Properties.Tags` L14 in `good_resources_properties_list_duplicates_yaml`
+  > Resource 'IamRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `IamRoleWithConditions` (AWS::IAM::Role) → `Properties.Tags` L23 in `good_resources_properties_list_duplicates_yaml`
+  > Resource 'IamRoleWithConditions' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `IamRoleWithNestedConditions` (AWS::IAM::Role) → `Properties.Tags` L35 in `good_resources_properties_list_duplicates_yaml`
+  > Resource 'IamRoleWithNestedConditions' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `MyDB` (AWS::RDS::DBInstance) → `Properties.Tags` L16 in `good_resources_properties_password_yaml`
+  > Resource 'MyDB' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `myNewDb` (AWS::RDS::DBInstance) → `Properties.Tags` L25 in `good_resources_properties_password_yaml`
+  > Resource 'myNewDb' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `myThirdDb` (AWS::RDS::DBInstance) → `Properties.Tags` L34 in `good_resources_properties_password_yaml`
+  > Resource 'myThirdDb' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `MyIAMUser` (AWS::IAM::User) → `Properties.Tags` L43 in `good_resources_properties_password_yaml`
+  > Resource 'MyIAMUser' of type 'AWS::IAM::User' supports Tags but none are configured
+- **I9040** `myRepository` (AWS::CodeCommit::Repository) → `Properties.Tags` L5 in `good_resources_properties_string_size`
+  > Resource 'myRepository' of type 'AWS::CodeCommit::Repository' supports Tags but none are configured
+- **I9040** `AppSync` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L3 in `good_resources_properties_templated_code`
+  > Resource 'AppSync' of type 'AWS::AppSync::GraphQLApi' supports Tags but none are configured
+- **I9040** `Function` (AWS::Serverless::Application) → `Properties.Tags` L4 in `good_resources_properties_templated_code_sam_yaml`
+  > Resource 'Function' of type 'AWS::Serverless::Application' supports Tags but none are configured
+- **I9040** `DBInstance1` (AWS::RDS::DBInstance) → `Properties.Tags` L11 in `good_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance1' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance2` (AWS::RDS::DBInstance) → `Properties.Tags` L17 in `good_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance2' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance3` (AWS::RDS::DBInstance) → `Properties.Tags` L23 in `good_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance3' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance4` (AWS::RDS::DBInstance) → `Properties.Tags` L30 in `good_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance4' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance5` (AWS::RDS::DBInstance) → `Properties.Tags` L37 in `good_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance5' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DBInstance6` (AWS::RDS::DBInstance) → `Properties.Tags` L43 in `good_resources_rds_instance_sizes_yaml`
+  > Resource 'DBInstance6' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `Bucket1` (AWS::S3::Bucket) → `Properties.Tags` L4 in `good_resources_s3_access-control-obsolete`
+  > Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Bucket2` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_resources_s3_access-control-obsolete`
   > Resource 'Bucket2' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L27 in `good_resources_updatereplacepolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
@@ -10629,7 +11137,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9040** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.Tags` L2113 in `quickstart_vpc_json`
   > Resource 'S3VPCEndpoint' of type 'AWS::EC2::VPCEndpoint' supports Tags but none are configured
 
-### W9003 — 182 findings
+### W9003 — 159 findings
 
 - **W9003** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L4 in `bad_aurora_with_allocated_storage_yaml`
   > 100 is not of type 'string' — automatically coerced (number → string)
@@ -10703,12 +11211,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 1 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.2.DeviceIndex` L26 in `integration_formats_yaml`
   > 2 is not of type 'string' — automatically coerced (number → string)
-- **W9003** `Database` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L631 in `lsp_comprehensive_json`
-  > 20 (from Fn::If on condition 'IsProduction') is not of type 'string' — automatically coerced (number → string)
 - **W9003** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.IpProtocol` L174 in `lsp_comprehensive_yaml`
   > -1 is not of type 'string' — automatically coerced (number → string)
-- **W9003** `Database` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L266 in `lsp_comprehensive_yaml`
-  > 20 (from Fn::If on condition 'IsProduction') is not of type 'string' — automatically coerced (number → string)
 - **W9003** `UnauthorizedAttemptsCloudWatchFilter` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1646 in `quickstart_cis_benchmark_yaml`
   > 1 is not of type 'string' — automatically coerced (number → string)
 - **W9003** `IAMRootActivityCloudWatchMetric` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1680 in `quickstart_cis_benchmark_yaml`
@@ -10843,48 +11347,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > '20' is not of type 'integer' — automatically coerced (string → integer)
 - **W9003** `ProductionVpcTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L526 in `quickstart_nist_high_main_yaml`
   > '20' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.AssociatePublicIpAddress` L280 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeleteOnTermination` L280 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `KeyGen` (AWS::Lambda::Function) → `Properties.Timeout` L799 in `quickstart_openshift_yaml`
-  > '5' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftEtcdASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.PropagateAtLaunch` L842 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `OpenShiftEtcdLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.BlockDeviceMappings.0.Ebs.VolumeSize` L861 in `quickstart_openshift_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftEtcdLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.InstanceMonitoring` L861 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `OpenShiftMasterASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.PropagateAtLaunch` L1064 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `OpenShiftMasterASLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.BlockDeviceMappings.0.Ebs.VolumeSize` L1085 in `quickstart_openshift_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftMasterASLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.InstanceMonitoring` L1085 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `OpenShiftNodeASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.PropagateAtLaunch` L1349 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `OpenShiftNodeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.FromPort` L1395 in `quickstart_openshift_yaml`
-  > '8080' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftNodeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.ToPort` L1395 in `quickstart_openshift_yaml`
-  > '8080' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftNodeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.FromPort` L1395 in `quickstart_openshift_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftNodeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.ToPort` L1395 in `quickstart_openshift_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftNodesLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.BlockDeviceMappings.0.Ebs.VolumeSize` L1415 in `quickstart_openshift_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftNodesLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.BlockDeviceMappings.1.Ebs.VolumeSize` L1415 in `quickstart_openshift_yaml`
-  > '110' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftNodesLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.InstanceMonitoring` L1415 in `quickstart_openshift_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
-- **W9003** `OpenShiftSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.FromPort` L1637 in `quickstart_openshift_yaml`
-  > '8443' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.ToPort` L1637 in `quickstart_openshift_yaml`
-  > '8444' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.FromPort` L1637 in `quickstart_openshift_yaml`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `OpenShiftSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.ToPort` L1637 in `quickstart_openshift_yaml`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
 - **W9003** `rVPCManagement` (AWS::EC2::VPC) → `Properties.EnableDnsHostnames` L339 in `quickstart_vpc-management_json`
   > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
 - **W9003** `rVPCManagement` (AWS::EC2::VPC) → `Properties.EnableDnsSupport` L339 in `quickstart_vpc-management_json`
@@ -10996,7 +11458,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9003** `NATInstanceSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L2093 in `quickstart_vpc_json`
   > '65535' is not of type 'integer' — automatically coerced (string → integer)
 
-### W9013 — 42 findings
+### W9013 — 51 findings
 
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_codepipeline_bad_artifact_counts_yaml`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
@@ -11027,6 +11489,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9013** `LambdaFn` (AWS::Lambda::Function) L4 in `bad_lambda_zipfile_java_yaml`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_pipeline_no_source_first_stage_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Function1` (AWS::Lambda::Function) L5 in `bad_resources_lambda_required_properties_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Function2` (AWS::Lambda::Function) L14 in `bad_resources_lambda_required_properties_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Function3` (AWS::Lambda::Function) L24 in `bad_resources_lambda_required_properties_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `ExampleLambda` (AWS::Lambda::Function) L6 in `bad_resources_properties_primitive_types_map_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `ExampleLambda1` (AWS::Lambda::Function) L23 in `bad_resources_properties_primitive_types_map_yaml`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `EolLambda` (AWS::Lambda::Function) L24 in `bad_schema_lifecycle_yaml`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
@@ -11070,6 +11542,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `TestPipeline` (AWS::CodePipeline::Pipeline) L6 in `good_resources_codepipeline_yaml`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Function1` (AWS::Lambda::Function) L5 in `good_resources_lambda_required_properties_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Function2` (AWS::Lambda::Function) L14 in `good_resources_lambda_required_properties_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Function3` (AWS::Lambda::Function) L24 in `good_resources_lambda_required_properties_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Authorizer` (AWS::ApiGateway::Authorizer) L3 in `good_resources_properties_hard_coded_arn_properties`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `SM` (AWS::StepFunctions::StateMachine) L4 in `good_stepfunctions_valid`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `SkillFunction` (AWS::Lambda::Function) L8 in `good_transform_list_transform_not_sam`
@@ -11082,6 +11562,85 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `rDBPassword` (Custom::Secret) L83 in `quickstart_test_yaml`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+
+### W9008 — 38 findings
+
+- **W9008** `Rds` (AWS::RDS::DBInstance) L61 in `bad_W3010_full_coverage_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L4 in `bad_aurora_with_allocated_storage_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance` (AWS::RDS::DBInstance) L10 in `bad_previous_generation_instances_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `MyDB` (AWS::RDS::DBInstance) L17 in `bad_properties_password_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `MyNewDB` (AWS::RDS::DBInstance) L26 in `bad_properties_password_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `myThirdDb` (AWS::RDS::DBInstance) L35 in `bad_properties_password_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) L11 in `bad_resources_deletionpolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L18 in `bad_resources_deletionpolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L38 in `bad_resources_deletionpolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance1` (AWS::RDS::DBInstance) L11 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance2` (AWS::RDS::DBInstance) L17 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance3` (AWS::RDS::DBInstance) L24 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance4` (AWS::RDS::DBInstance) L31 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance5` (AWS::RDS::DBInstance) L37 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance7` (AWS::RDS::DBInstance) L43 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance8` (AWS::RDS::DBInstance) L50 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance9` (AWS::RDS::DBInstance) L57 in `bad_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) L11 in `bad_resources_updatereplacepolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L18 in `bad_resources_updatereplacepolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L38 in `bad_resources_updatereplacepolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `RDSE0E96D00` (AWS::RDS::DBInstance) L91 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L4 in `good_aurora_dbinstance_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DB` (AWS::RDS::DBInstance) L7 in `good_deletion_policies_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) L27 in `good_resources_deletionpolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `MyDB` (AWS::RDS::DBInstance) L16 in `good_resources_properties_password_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `myNewDb` (AWS::RDS::DBInstance) L25 in `good_resources_properties_password_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `myThirdDb` (AWS::RDS::DBInstance) L34 in `good_resources_properties_password_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance1` (AWS::RDS::DBInstance) L11 in `good_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance2` (AWS::RDS::DBInstance) L17 in `good_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance3` (AWS::RDS::DBInstance) L23 in `good_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance4` (AWS::RDS::DBInstance) L30 in `good_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance5` (AWS::RDS::DBInstance) L37 in `good_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance6` (AWS::RDS::DBInstance) L43 in `good_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) L27 in `good_resources_updatereplacepolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) L50 in `good_transform_language_extension_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `BadEngineInstance` (AWS::RDS::DBInstance) L116 in `integration_cfn-gather_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `Database` (AWS::RDS::DBInstance) L90 in `lsp_condition-usage_json`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `Database` (AWS::RDS::DBInstance) L92 in `lsp_condition-usage_yaml`
+  > RDS instance should have StorageEncrypted set to true
 
 ### W9010 — 30 findings
 
@@ -11146,52 +11705,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9010** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.ImageId` L280 in `quickstart_openshift_yaml`
   > Hardcoded AMI ID — use a parameter or mapping for portability
 
-### W9008 — 21 findings
-
-- **W9008** `Rds` (AWS::RDS::DBInstance) L61 in `bad_W3010_full_coverage_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L4 in `bad_aurora_with_allocated_storage_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance` (AWS::RDS::DBInstance) L10 in `bad_previous_generation_instances_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyDB` (AWS::RDS::DBInstance) L17 in `bad_properties_password_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyNewDB` (AWS::RDS::DBInstance) L26 in `bad_properties_password_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `myThirdDb` (AWS::RDS::DBInstance) L35 in `bad_properties_password_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L11 in `bad_resources_deletionpolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L18 in `bad_resources_deletionpolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L38 in `bad_resources_deletionpolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L11 in `bad_resources_updatereplacepolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L18 in `bad_resources_updatereplacepolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L38 in `bad_resources_updatereplacepolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `RDSE0E96D00` (AWS::RDS::DBInstance) L91 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L4 in `good_aurora_dbinstance_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `DB` (AWS::RDS::DBInstance) L7 in `good_deletion_policies_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L27 in `good_resources_deletionpolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L27 in `good_resources_updatereplacepolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L50 in `good_transform_language_extension_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `BadEngineInstance` (AWS::RDS::DBInstance) L116 in `integration_cfn-gather_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) L90 in `lsp_condition-usage_json`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) L92 in `lsp_condition-usage_yaml`
-  > RDS instance should have StorageEncrypted set to true
-
-### F0001 — 19 findings
+### F0001 — 21 findings
 
 - **F0001** L24 in `bad_conditions_and_yaml`
   > Resources section must exist and be non-empty
@@ -11211,6 +11725,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resources section must exist and be non-empty
 - **F0001** L62 in `bad_parameters_default_yaml`
   > Resources section must exist and be non-empty
+- **F0001** L7 in `bad_resources_cloudformation_stack_nested_yaml`
+  > Resources section must exist and be non-empty
 - **F0001** L3 in `bad_templates_base_date_yaml`
   > Resources section must exist and be non-empty
 - **F0001** L4 in `bad_templates_base_null_yaml`
@@ -11229,8 +11745,51 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resources section must exist and be non-empty
 - **F0001** L82 in `good_parameters_default_yaml`
   > Resources section must exist and be non-empty
+- **F0001** L7 in `good_resources_cloudformation_stack_nested_yaml`
+  > Resources section must exist and be non-empty
 - **F0001** L22 in `integration_metdata_yaml`
   > Resources section must exist and be non-empty
+
+### W9002 — 19 findings
+
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifact_counts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifacts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L4 in `bad_elb_http_443`
+  > Property 'LoadBalancerArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L36 in `bad_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L57 in `bad_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_pipeline_no_source_first_stage_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_resources_codepipeline_stages_second_stage_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.CertificateAuthorityArn` L9 in `bad_schema_property_constraints_yaml`
+  > Property 'CertificateAuthorityArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.CertificateAuthorityArn` L5 in `bad_schema_write_only_yaml`
+  > Property 'CertificateAuthorityArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_bad_start_at_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `StateMachine` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_invalid_state_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+  > Property 'S3BucketArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+  > Property 'S3BucketArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L490 in `cdk_py-url-shortener--urlshort-app.template_json`
+  > Property 'RegionalCertificateArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `good_codepipeline_artifact_counts`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L138 in `good_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `good_stepfunctions_valid`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
 
 ### W2508 — 19 findings
 
@@ -11273,46 +11832,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2508** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L801 in `quickstart_vpc-management_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 
-### W9002 — 18 findings
-
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifact_counts_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifacts_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L4 in `bad_elb_http_443`
-  > Property 'LoadBalancerArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L36 in `bad_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L57 in `bad_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_pipeline_no_source_first_stage_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.CertificateAuthorityArn` L9 in `bad_schema_property_constraints_yaml`
-  > Property 'CertificateAuthorityArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.CertificateAuthorityArn` L5 in `bad_schema_write_only_yaml`
-  > Property 'CertificateAuthorityArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_bad_start_at_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `StateMachine` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_invalid_state_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
-  > Property 'S3BucketArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
-  > Property 'S3BucketArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L490 in `cdk_py-url-shortener--urlshort-app.template_json`
-  > Property 'RegionalCertificateArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `good_codepipeline_artifact_counts`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L138 in `good_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `good_stepfunctions_valid`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-
-### W9009 — 12 findings
+### W9009 — 13 findings
 
 - **W9009** `Dist` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L4 in `bad_cloudfront_bad_alias_yaml`
   > Property 'DistributionConfig' is deprecated
@@ -11336,10 +11856,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'DistributionConfig' is deprecated
 - **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L40 in `good_conditions_yaml`
   > Property 'DistributionConfig' is deprecated
+- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L4 in `good_resources_cloudfront_aliases`
+  > Property 'DistributionConfig' is deprecated
 - **W9009** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L41 in `integration_ref-no-value_yaml`
   > Property 'DistributionConfig' is deprecated
 
-### F3003 — 7 findings — Required Resource properties are missing
+### F3003 — 8 findings — Required Resource properties are missing
 
 - **F3003** `BadListener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties` L20 in `bad_cross_resource_task10_yaml`
   > 'Certificates' is a required property (from extension)
@@ -11347,6 +11869,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 'TransitEncryptionEnabled' is a required property (from extension)
 - **F3003** `DDBTable` (AWS::DynamoDB::Table) → `Properties` L6 in `bad_dynamodb_provisioned_no_throughput_yaml`
   > 'ProvisionedThroughput' is a required property (from extension)
+- **F3003** `Function3` (AWS::Lambda::Function) → `Properties` L26 in `bad_resources_lambda_required_properties_yaml`
+  > 'Runtime' is a required property (from extension)
 - **F3003** `Bucket` (AWS::S3::Bucket) → `Properties` L6 in `bad_schema_enum_violation_yaml`
   > 'OwnershipControls' is a required property (from extension)
 - **F3003** `DataBucket` (AWS::S3::Bucket) → `Properties` L40 in `cdk_DemoStack.template_json`
@@ -11429,6 +11953,35 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F3002** `myBucketPass` (AWS::S3::Bucket) → `Properties.BucketName1` L6 in `bad_core_mandatory_checks_yaml`
   > Additional properties are not allowed ('BucketName1' was unexpected. Did you mean 'BucketName'?)
 
+### W2512 — 4 findings
+
+- **W2512** `NotActionUser` (AWS::IAM::User) L35 in `bad_iam_wildcard_all_types`
+  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+- **W2512** `rIamPolicyExtraThings` (AWS::IAM::Policy) L44 in `bad_resources_iam_iam_policy_yaml`
+  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+- **W2512** `rSysAdminPolicy` (AWS::IAM::ManagedPolicy) L61 in `quickstart_iam_json`
+  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+- **W2512** `rSysAdminPolicy` (AWS::IAM::ManagedPolicy) L276 in `quickstart_nist_iam_yaml`
+  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+
+### F1104 — 3 findings
+
+- **F1104** in `bad_conditions_yaml`
+  > Fn::If references undefined condition 'isDev'
+- **F1104** in `bad_conditions_yaml`
+  > Fn::If references undefined condition 'isProd'
+- **F1104** in `bad_resources_iam_iam_policy_yaml`
+  > Fn::If references undefined condition 'cCondition'
+
+### F1060 — 3 findings
+
+- **F1060** `EC2Instance` (AWS::EC2::Instance) L54 in `bad_conditions_yaml`
+  > Fn::If condition 'isDev' does not exist in Conditions section
+- **F1060** `EC2Instance` (AWS::EC2::Instance) L54 in `bad_conditions_yaml`
+  > Fn::If condition 'isProd' does not exist in Conditions section
+- **F1060** `rIamPolicy` (AWS::IAM::Policy) L36 in `bad_resources_iam_iam_policy_yaml`
+  > Fn::If condition 'cCondition' does not exist in Conditions section
+
 ### F1105 — 3 findings
 
 - **F1105** in `bad_functions_base64_yaml`
@@ -11438,15 +11991,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F1105** in `lsp_condition-usage_yaml`
   > 'Fn::And' is not allowed inside 'Fn::Equals'
 
-### W2512 — 3 findings
-
-- **W2512** `NotActionUser` (AWS::IAM::User) L35 in `bad_iam_wildcard_all_types`
-  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
-- **W2512** `rSysAdminPolicy` (AWS::IAM::ManagedPolicy) L61 in `quickstart_iam_json`
-  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
-- **W2512** `rSysAdminPolicy` (AWS::IAM::ManagedPolicy) L276 in `quickstart_nist_iam_yaml`
-  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
-
 ### W2509 — 3 findings
 
 - **W2509** L6 in `bad_properties_password_yaml`
@@ -11455,20 +11999,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Parameter 'MyPassword' appears to be a password but does not have NoEcho set to true
 - **W2509** L2 in `integration_resources-cloudformation-init`
   > Parameter 'DBPassword' appears to be a password but does not have NoEcho set to true
-
-### F1104 — 2 findings
-
-- **F1104** in `bad_conditions_yaml`
-  > Fn::If references undefined condition 'isDev'
-- **F1104** in `bad_conditions_yaml`
-  > Fn::If references undefined condition 'isProd'
-
-### F1060 — 2 findings
-
-- **F1060** `EC2Instance` (AWS::EC2::Instance) L54 in `bad_conditions_yaml`
-  > Fn::If condition 'isDev' does not exist in Conditions section
-- **F1060** `EC2Instance` (AWS::EC2::Instance) L54 in `bad_conditions_yaml`
-  > Fn::If condition 'isProd' does not exist in Conditions section
 
 ### W1020 — 2 findings — Sub isn't needed if it doesn't have a variable defined
 
@@ -11559,7 +12089,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F8610** in `lsp_comprehensive_yaml`
   > Rule 'ValidateParameterCombinations' Assertions[1] Assert must be a condition function (object), not array
 
-## Per-Template Breakdown — 89 templates with mismatches
+## Per-Template Breakdown — 107 templates with mismatches
+
+### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 5 EE, 18 FN)
+
+- FN: `E3510` ×15, `F3003` ×3
+- EE: `F1104`, `I9001`, `I9040`, `F1060`, `W2512`
 
 ### `bad_generic_yaml` — 11 mismatches (29 TP, 0 FP, 36 EE, 11 FN)
 
@@ -11586,10 +12121,19 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1031` ×6, `W1032` ×2, `E3001`
 - EE: `I9001` ×7, `I9040` ×7
 
+### `bad_resources_cloudformation_stacks_yaml` — 8 mismatches (6 TP, 0 FP, 2 EE, 8 FN)
+
+- FN: `E3043` ×8
+- EE: `I9040` ×2
+
 ### `bad_core_conditions_yaml` — 7 mismatches (16 TP, 0 FP, 15 EE, 7 FN)
 
 - FN: `W1001` ×2, `F3014` ×2, `F3003`, `W1028`, `W3698`
 - EE: `I9001` ×8, `I9040` ×7
+
+### `bad_resources_properties_atleastone_yaml` — 7 mismatches (4 TP, 0 FP, 0 EE, 7 FN)
+
+- FN: `F3003` ×6, `E3510`
 
 ### `bad_schema_composition_yaml` — 7 mismatches (4 TP, 0 FP, 3 EE, 7 FN)
 
@@ -11660,6 +12204,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3014` ×4, `F3031`
 - EE: `I9001` ×17, `W9003` ×7, `I9040` ×3
 
+### `bad_resources_elasticache_cache_cluster_failover_yaml` — 5 mismatches (12 TP, 0 FP, 18 EE, 5 FN)
+
+- FN: `E3026` ×5
+- EE: `I9001` ×11, `I9040` ×7
+
 ### `lsp_constants_json` — 5 mismatches (1 TP, 0 FP, 3 EE, 5 FN)
 
 - FN: `F1018` ×2, `F1020` ×2, `E3024`
@@ -11675,20 +12224,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021` ×4
 - EE: `I9001` ×2, `I9040` ×2
 
+### `bad_resources_iam_resource_policy_yaml` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
+
+- FN: `E3513` ×4
+- EE: `I9040` ×2
+
 ### `good_transform_applications_location_yaml` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
 - FN: `I3011` ×4
 - EE: `I9040` ×2
 
-### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 26 EE, 4 FN)
+### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 25 EE, 4 FN)
 
 - FN: `W1001` ×2, `E1701`, `F6101`
-- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W2508`, `W9003`
+- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W2508`
 
-### `lsp_comprehensive_yaml` — 4 mismatches (9 TP, 0 FP, 28 EE, 4 FN)
+### `lsp_comprehensive_yaml` — 4 mismatches (9 TP, 0 FP, 27 EE, 4 FN)
 
 - FN: `W1001` ×2, `E1701`, `F6101`
-- EE: `I9001` ×19, `I9040` ×4, `W9003` ×2, `F8610`, `F8611`, `W2508`
+- EE: `I9001` ×19, `I9040` ×4, `F8610`, `F8611`, `W9003`, `W2508`
 
 ### `quickstart_nat-instance_json` — 4 mismatches (5 TP, 0 FP, 9 EE, 4 FN)
 
@@ -11724,6 +12278,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3019` ×2, `E3001`
 - EE: `I9001` ×15, `I9040` ×10
+
+### `bad_resources_rds_instance_sizes_yaml` — 3 mismatches (23 TP, 0 FP, 16 EE, 3 FN)
+
+- FN: `E3025` ×3
+- EE: `W9008` ×8, `I9040` ×8
 
 ### `bad_security_issues_yaml` — 3 mismatches (1 TP, 0 FP, 3 EE, 3 FN)
 
@@ -11778,6 +12337,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3671` ×2
 - EE: `I9001` ×7, `W9010` ×2, `I9040` ×2, `W9003`
 
+### `bad_resources_properties_list_duplicates_yaml` — 2 mismatches (1 TP, 0 FP, 0 EE, 2 FN)
+
+- FN: `F3037` ×2
+
+### `bad_resources_properties_primitive_types_map_yaml` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
+
+- FN: `F3012` ×2
+- EE: `W9013` ×2, `I9040` ×2
+
+### `bad_resources_properties_string_size_yaml` — 2 mismatches (2 TP, 0 FP, 3 EE, 2 FN)
+
+- FN: `F3031`, `E3065`
+- EE: `I9040` ×3
+
 ### `bad_sub_needed_yaml` — 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
 
 - FN: `E1161`, `F3031`
@@ -11816,6 +12389,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `good_functions_foreach_yaml` — 2 mismatches (0 TP, 0 FP, 0 EE, 2 FN)
 
 - FN: `E3045`, `W3045`
+
+### `good_resources_iam_policy_yaml` — 2 mismatches (0 TP, 0 FP, 1 EE, 2 FN)
+
+- FN: `I3510`, `E3510`
+- EE: `I9001`
+
+### `good_resources_properties_templated_code_sam_yaml` — 2 mismatches (0 TP, 0 FP, 1 EE, 2 FN)
+
+- FN: `I3011` ×2
+- EE: `I9040`
 
 ### `good_transform_yaml` — 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
 
@@ -11930,6 +12513,30 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F1018`
 - EE: `I9001` ×6, `W9010` ×2, `I9040` ×2
 
+### `bad_resources_backup_test_backup_plan_lifecycle_rule_yml` — 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
+
+- FN: `E3504`
+
+### `bad_resources_codepipeline_stages_second_stage_yaml` — 1 mismatches (3 TP, 0 FP, 3 EE, 1 FN)
+
+- FN: `E3700`
+- EE: `W9002`, `I9001`, `I9040`
+
+### `bad_resources_dynamodb_unused_attribute_definition_1_yaml` — 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `E3039`
+- EE: `I9040`
+
+### `bad_resources_dynamodb_unused_attribute_definition_2_yaml` — 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `E3039`
+- EE: `I9040`
+
+### `bad_resources_lambda_required_properties_yaml` — 1 mismatches (4 TP, 0 FP, 8 EE, 1 FN)
+
+- FN: `E3678`
+- EE: `W9013` ×3, `I9040` ×3, `I9001`, `F3003`
+
 ### `bad_schema_property_constraints_yaml` — 1 mismatches (1 TP, 0 FP, 11 EE, 1 FN)
 
 - FN: `E1161`
@@ -11990,6 +12597,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021`
 - EE: `I9001` ×3, `I9040`
 
+### `good_resources_cloudformation_stacks_yaml` — 1 mismatches (13 TP, 0 FP, 5 EE, 1 FN)
+
+- FN: `W1028`
+- EE: `I9040` ×5
+
+### `good_resources_properties_exclusive_yaml` — 1 mismatches (1 TP, 0 FP, 6 EE, 1 FN)
+
+- FN: `E1150`
+- EE: `I9001` ×5, `I9040`
+
 ### `integration_getatt-types_yaml` — 1 mismatches (8 TP, 0 FP, 17 EE, 1 FN)
 
 - FN: `E9004`
@@ -12002,7 +12619,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ## Coverage Gaps
 
-15 cfn-lint templates with no engine report:
+16 cfn-lint templates with no engine report:
 
 - `bad_core_config_invalid_json_json` (1 expected diagnostics)
 - `bad_core_config_invalid_yaml_yaml` (1 expected diagnostics)
@@ -12015,6 +12632,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - `good_core_config_cfn_lint.yaml` (0 expected diagnostics)
 - `good_functions_get_stack_output` (0 expected diagnostics)
 - `good_functions_get_stack_output_yaml` (0 expected diagnostics)
+- `good_resources_dynamodb_attributes_transform_yaml` (6 expected diagnostics)
 - `integration_get-stack-output_yaml` (2 expected diagnostics)
 - `integration_module-sub-resources` (0 expected diagnostics)
 - `lsp_simple.json` (0 expected diagnostics)
@@ -12026,11 +12644,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 114 | 41.91% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
-| Warning-level checks | 57 | 20.96% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Resource property validation | 53 | 19.49% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
-| Intrinsic function validation | 40 | 14.71% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
-| Informational checks | 8 | 2.94% | I2530, I3011 |
+| Other | 128 | 38.32% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 96 | 28.74% | E3001, E3016, E3019, E3022, E3023, E3024, E3025, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3671, E3673, E3678, E3682, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 58 | 17.37% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Intrinsic function validation | 41 | 12.28% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1150, E1152, E1161, E1701 |
+| Informational checks | 11 | 3.29% | I2530, I3011, I3510 |
 
 ### False Positive Root Causes
 

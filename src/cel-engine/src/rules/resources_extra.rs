@@ -539,12 +539,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for name in m.resources_of_type(rtype) {
             let scenarios = m.resolve_scenarios_json(name, path);
             for (val, _conds) in &scenarios {
-                if let Some(ver) = val.as_str()
-                    && ver != "2012-10-17"
-                {
+                // Only the older-but-valid policy version is worth a portability
+                // warning (suggesting an upgrade). Any other string is either the
+                // current version or an invalid value; invalid enum values are a
+                // schema error, not this best-practice warning, so they are left
+                // to the policy-document schema check.
+                if val.as_str() == Some("2008-10-17") {
                     out.push(make_resource_diagnostic(
                         "W2511",
-                        &format!("IAM policy document Version should be '2012-10-17', got '{}'", ver),
+                        "IAM Policy Version should be updated to '2012-10-17'",
                         m,
                         name,
                         path,

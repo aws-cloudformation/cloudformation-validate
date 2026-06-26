@@ -22,7 +22,9 @@ violation contains make_diag_full("E3512", "ERROR", name,
     not doc.Statement
 }
 
-# W2511: IAM policy document Version should be "2012-10-17"
+# W2511: IAM policy document still pins the older-but-valid '2008-10-17'
+# version. Only that specific value warrants the upgrade warning; the current
+# version is fine and an invalid value is a schema error, not this warning.
 _policy_version_paths := {
     {"type": "AWS::S3::BucketPolicy", "path": "Properties.PolicyDocument.Version"},
     {"type": "AWS::SNS::TopicPolicy", "path": "Properties.PolicyDocument.Version"},
@@ -35,13 +37,11 @@ _policy_version_paths := {
 
 violation contains make_diag_full("W2511", "WARN", name,
     prop.path,
-    sprintf("IAM policy document Version should be '2012-10-17', got '%s'", [ver]),
+    "IAM Policy Version should be updated to '2012-10-17'",
     "Update the policy document Version to '2012-10-17'",
     "") if {
     some prop in _policy_version_paths
     some name in resources_of_type(prop.type)
     some scenario in resolve_scenarios(name, prop.path)
-    ver := scenario.value
-    is_string(ver)
-    ver != "2012-10-17"
+    scenario.value == "2008-10-17"
 }
