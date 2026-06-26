@@ -3754,7 +3754,8 @@ fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) 
         Some(cond) => vec![(cond.to_string(), true)],
         None => Vec::new(),
     };
-    let mut scenarios = vec![PrimaryIdScenario { tuple: Vec::with_capacity(id_props.len()), assumptions: base_assumptions }];
+    let mut scenarios =
+        vec![PrimaryIdScenario { tuple: Vec::with_capacity(id_props.len()), assumptions: base_assumptions }];
     for prop in id_props {
         let path = format!("Properties.{}", prop);
         let prop_scenarios = m.resolve_scenarios_json(rid, &path);
@@ -3922,11 +3923,11 @@ fn check_iam_action_resources(
                         all_resources.push(s.as_str());
                     }
                     serde_json::Value::Object(obj) => {
-                        if let Some(ref_target) = obj.get("Ref").and_then(|v| v.as_str()) {
-                            if m.parameters.contains_key(ref_target) {
-                                skip_statement = true;
-                                break;
-                            }
+                        if let Some(ref_target) = obj.get("Ref").and_then(|v| v.as_str())
+                            && m.parameters.contains_key(ref_target)
+                        {
+                            skip_statement = true;
+                            break;
                         }
                         using_functions = true;
                     }
@@ -3960,21 +3961,13 @@ fn check_iam_action_resources(
             if using_functions {
                 continue;
             }
-            let matched = candidate_formats.iter().any(|fmt| {
-                all_resources.iter().any(|r| arn_matches_format(r, fmt))
-            });
+            let matched = candidate_formats.iter().any(|fmt| all_resources.iter().any(|r| arn_matches_format(r, fmt)));
             if !matched {
-                let formats_display = candidate_formats
-                    .iter()
-                    .map(|s| format!("'{}'", s))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                let formats_display =
+                    candidate_formats.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
                 out.push(make_resource_diagnostic(
                     "I3510",
-                    &format!(
-                        "action '{}' requires a resource of [{}]",
-                        action, formats_display
-                    ),
+                    &format!("action '{}' requires a resource of [{}]", action, formats_display),
                     m,
                     name,
                     &format!("Properties.PolicyDocument.Statement.{}.Resource", stmt_idx),

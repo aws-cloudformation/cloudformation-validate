@@ -307,12 +307,6 @@ def load_engine_results():
             severity = _ENGINE_SEV_MAP.get(severity, severity)
             resource_id = d.get("resourceId", "")
             resource_path = d.get("propertyPath", "")
-            # An Output is not a resource. cfn-lint anchors output diagnostics at
-            # "Outputs/<name>/..." with no resource_id; the engine records the
-            # output's logical name in resourceId for IDE navigation. Normalize the
-            # engine's form to cfn-lint's so the same output location compares
-            # equal: drop the resource_id and express the path the way cfn-lint's
-            # path normalization does ("Outputs.<name>....").
             if resource_path.startswith("Outputs/"):
                 resource_path = resource_path.replace("/", ".")
                 resource_id = ""
@@ -496,12 +490,6 @@ def fmt_diag(d, template):
 
 
 def run_single():
-    """Run comparison for the current ENGINE_NAME globals."""
-    # Snapshot result files are generated with `-e -c I` (the full informational +
-    # experimental rule set) and are the authoritative baseline. The inline
-    # scenarios in test_good_templates.py are recorded without those flags, so they
-    # omit informational rules; let the snapshot files win for any template present
-    # in both, and use inline only to cover templates that have no snapshot file.
     cfnlint_all = {**load_cfnlint_inline_results(), **load_cfnlint_results_from_files()}
     engine_all = load_engine_results()
     agg_perf = load_aggregate_perf()

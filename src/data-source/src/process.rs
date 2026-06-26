@@ -576,8 +576,8 @@ fn read_getatt_additions(handwritten_dir: &Path) -> anyhow::Result<BTreeMap<Stri
         getatt_additions: BTreeMap<String, Vec<String>>,
     }
     let path = handwritten_dir.join("getatt_additions.json");
-    let contents = fs::read_to_string(&path)
-        .map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
     let parsed: GetAttAdditions = serde_json::from_str(&contents)
         .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
     Ok(parsed.getatt_additions)
@@ -598,8 +598,8 @@ fn read_getatt_return_type_overrides(
     if !path.exists() {
         return Ok(BTreeMap::new());
     }
-    let contents = fs::read_to_string(&path)
-        .map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
     let parsed: Overrides = serde_json::from_str(&contents)
         .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
     Ok(parsed.getatt_return_type_overrides)

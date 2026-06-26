@@ -5,8 +5,7 @@ use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::consts::{
     EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    KEY_PROPERTIES,
-    TRANSFORM_SERVERLESS,
+    KEY_PROPERTIES, TRANSFORM_SERVERLESS,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
@@ -509,11 +508,8 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
 // explicit backup retention period: Aurora manages backups at the cluster level
 // and a read replica inherits its source's retention.
 fn rds_dbinstance_needs_retention(ctx: &EvalContext, name: &str) -> bool {
-    let Some(props) = ctx
-        .input
-        .get(FIELD_RESOURCES)
-        .and_then(|r| r.get(name))
-        .and_then(|res| res.get(FIELD_PROPERTIES))
+    let Some(props) =
+        ctx.input.get(FIELD_RESOURCES).and_then(|r| r.get(name)).and_then(|res| res.get(FIELD_PROPERTIES))
     else {
         return false;
     };

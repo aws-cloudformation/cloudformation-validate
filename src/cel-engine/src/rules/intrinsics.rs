@@ -99,26 +99,24 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                         } else if !attr.is_empty()
                             && let Some(target_res) = resources.get(target)
                             && let Some(rtype) = target_res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str())
+                            && let Some(valid_list) = getatt_attrs.get(rtype)
+                            && !valid_list.iter().any(|a| a == attr)
+                            && !rtype.starts_with("Custom::")
+                            && !rtype.starts_with("AWS::CloudFormation::CustomResource")
+                            && rtype != "AWS::CloudFormation::Stack"
+                            && rtype != "AWS::CloudFormation::Macro"
                         {
-                            if let Some(valid_list) = getatt_attrs.get(rtype)
-                                && !valid_list.iter().any(|a| a == attr)
-                                && !rtype.starts_with("Custom::")
-                                && !rtype.starts_with("AWS::CloudFormation::CustomResource")
-                                && rtype != "AWS::CloudFormation::Stack"
-                                && rtype != "AWS::CloudFormation::Macro"
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "E9004",
-                                    &format!("'{}' is not one of {:?}", attr, valid_list),
-                                    m,
-                                    name,
-                                    source_path,
-                                    Some("Check the resource type documentation for valid GetAtt attributes"),
-                                ));
-                            }
-
-                            // E9003 disabled — CloudFormation auto-converts non-string
-                            // GetAtt return values to strings when destination is typed as string.
+                            // E9003 (return-type mismatch) is intentionally not emitted here:
+                            // CloudFormation auto-converts non-string GetAtt return values to
+                            // strings when the destination is typed as string.
+                            out.push(make_resource_diagnostic(
+                                "E9004",
+                                &format!("'{}' is not one of {:?}", attr, valid_list),
+                                m,
+                                name,
+                                source_path,
+                                Some("Check the resource type documentation for valid GetAtt attributes"),
+                            ));
                         }
                     }
                     EDGE_KIND_SUB

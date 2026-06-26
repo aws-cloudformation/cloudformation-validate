@@ -628,10 +628,8 @@ fn validate_object_keys_inner(
         // "exactly one" tally even though its key is present in the source. Count
         // only members that resolve to a concrete value in some satisfiable
         // scenario.
-        let count = req_xor
-            .iter()
-            .filter(|p| actual_keys.contains(p) && property_present(m, rid, base_path, p))
-            .count();
+        let count =
+            req_xor.iter().filter(|p| actual_keys.contains(p) && property_present(m, rid, base_path, p)).count();
         if count != 1 {
             let names = req_xor.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", ");
             out.push(build_diagnostic(

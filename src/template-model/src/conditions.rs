@@ -849,23 +849,18 @@ fn parse_value_expr(arena: &Arena, node_ref: NodeRef, parameters: &HashMap<Strin
                 ValueExpr::Other
             }
         }
-        Node::Intrinsic(intrinsic) => {
-            // FindInMap can resolve to a concrete value, so it gets a dedicated
-            // variant the SAT solver understands. Every other intrinsic produces
-            // a value that cannot be known statically — it must be treated as an
-            // opaque unknown (`Other`), never a comparable literal. Treating, say,
-            // `Fn::Sub(...)` as the literal string "Sub(...)" would make
-            // `Fn::Equals[!Sub ..., "x"]` look like a literal-vs-literal compare and
-            // spuriously fire the always-true/false check (W8003).
-            match intrinsic {
-                IntrinsicFn::FindInMap(m, k1, k2, _) => {
-                    let map_name = arena.as_str(*m).unwrap_or("?").to_string();
-                    let key1 = parse_value_expr(arena, *k1, parameters);
-                    let key2 = parse_value_expr(arena, *k2, parameters);
-                    ValueExpr::MappingLookup { map_name, key1: Box::new(key1), key2: Box::new(key2) }
-                }
-                _ => ValueExpr::Other,
-            }
+        // FindInMap can resolve to a concrete value, so it gets a dedicated
+        // variant the SAT solver understands. Every other intrinsic produces
+        // a value that cannot be known statically — it must be treated as an
+        // opaque unknown (`Other`), never a comparable literal. Treating, say,
+        // `Fn::Sub(...)` as the literal string "Sub(...)" would make
+        // `Fn::Equals[!Sub ..., "x"]` look like a literal-vs-literal compare and
+        // spuriously fire the always-true/false check (W8003).
+        Node::Intrinsic(IntrinsicFn::FindInMap(m, k1, k2, _)) => {
+            let map_name = arena.as_str(*m).unwrap_or("?").to_string();
+            let key1 = parse_value_expr(arena, *k1, parameters);
+            let key2 = parse_value_expr(arena, *k2, parameters);
+            ValueExpr::MappingLookup { map_name, key1: Box::new(key1), key2: Box::new(key2) }
         }
         _ => ValueExpr::Other,
     }

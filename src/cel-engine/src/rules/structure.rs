@@ -340,9 +340,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     let has_lang_ext = m.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     for name in m.resources.keys() {
-        if !ALPHANUM_RE.is_match(name)
-            && !(has_lang_ext && name.starts_with("Fn::ForEach::"))
-        {
+        if !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with("Fn::ForEach::"))) {
             out.push(make_resource_diagnostic(
                 "F0006",
                 &format!("Logical ID '{}' must be alphanumeric (A-Za-z0-9)", name),
@@ -633,9 +631,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     // Fn::FindInMap anywhere in the template (resources, outputs, conditions,
     // ForEach bodies), which `findInMapNames` collects template-wide.
     let dynamic_map_name = input.get("hasDynamicFindinmapName").and_then(|v| v.as_bool()).unwrap_or(false);
-    if !dynamic_map_name
-        && let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object())
-    {
+    if !dynamic_map_name && let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object()) {
         let used_names: HashSet<&str> = input
             .get("findInMapNames")
             .and_then(|v| v.as_array())

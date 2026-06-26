@@ -228,11 +228,8 @@ fn main() {
         // Keep the file extension as part of the key (".yaml" -> "_yaml") so a
         // template authored in both JSON and YAML (e.g. format round-trip tests)
         // produces two distinct reports instead of one overwriting the other.
-        let json_stem = relative_path
-            .replace('/', "_")
-            .replace(".yaml", "_yaml")
-            .replace(".yml", "_yml")
-            .replace(".json", "_json");
+        let json_stem =
+            relative_path.replace('/', "_").replace(".yaml", "_yaml").replace(".yml", "_yml").replace(".json", "_json");
         let dump_report = report;
         let benchmark_metrics = serde_json::json!({
             "iterations": iterations,
