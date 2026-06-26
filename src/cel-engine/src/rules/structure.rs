@@ -711,6 +711,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                             ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
                             && ret_type != "string"
                         {
+                            // An array-returning GetAtt in an output is consumed by
+                            // Fn::Select to extract a string element — the array
+                            // itself is never the output value, so it is not a
+                            // string-type violation. Only scalar non-string returns
+                            // (integer, boolean) are reported.
+                            if ret_type == "array" {
+                                continue;
+                            }
                             out.push(make_resource_diagnostic(
                                 "F6101",
                                 &format!(
@@ -718,8 +726,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     name, resource, attribute, ret_type
                                 ),
                                 m,
-                                "",
-                                "",
+                                name,
+                                &format!("Outputs/{}/Value", name),
                                 None,
                             ));
                         }

@@ -38352,7 +38352,7 @@
       "rulesEvaluated": 273,
       "resourcesScanned": 27,
       "counts": {
-        "fatal": 2,
+        "fatal": 0,
         "errors": 0,
         "warnings": 10,
         "informational": 40,
@@ -39281,34 +39281,6 @@
           "lifecycle": "create-only",
           "resolutionSource": "GetAtt consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonEv3DB60A38.Arn"
         }
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'AmqpEndpointPort': GetAtt 'RabbitMqBrokerE7F26F68.AmqpEndpoints' returns type 'array', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 1112,
-        "startColumn": 2,
-        "endLine": 1112,
-        "endColumn": 10,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'AmqpEndpointUrl': GetAtt 'RabbitMqBrokerE7F26F68.AmqpEndpoints' returns type 'array', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 1112,
-        "startColumn": 2,
-        "endLine": 1112,
-        "endColumn": 10,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
       }
     ]
   },
@@ -131313,6 +131285,78 @@
     },
     "diagnostics": [
       {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'BooleanGetAtt': GetAtt 'CapacityReservation.EphemeralStorage' returns type 'boolean', not 'string'",
+        "source": "SCHEMA",
+        "resourceId": "BooleanGetAtt",
+        "propertyPath": "Outputs/BooleanGetAtt/Value",
+        "category": "Structure",
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'DocDBClusterPort': GetAtt 'DocDBCluster.Port' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "resourceId": "DocDBClusterPort",
+        "propertyPath": "Outputs/DocDBClusterPort/Value",
+        "category": "Structure",
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'Ipv4NetmaskLength': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "resourceId": "Ipv4NetmaskLength",
+        "propertyPath": "Outputs/Ipv4NetmaskLength/Value",
+        "category": "Structure",
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'JoinWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "resourceId": "JoinWithGetAtt",
+        "propertyPath": "Outputs/JoinWithGetAtt/Value",
+        "category": "Structure",
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'String': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "resourceId": "String",
+        "propertyPath": "Outputs/String/Value",
+        "category": "Structure",
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "resourceId": "SubWithGetAtt",
+        "propertyPath": "Outputs/SubWithGetAtt/Value",
+        "category": "Structure",
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      },
+      {
         "ruleId": "I1022",
         "severity": "INFO",
         "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
@@ -131684,90 +131728,6 @@
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'BooleanGetAtt': GetAtt 'CapacityReservation.EphemeralStorage' returns type 'boolean', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 76,
-        "startColumn": 1,
-        "endLine": 76,
-        "endColumn": 8,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'DocDBClusterPort': GetAtt 'DocDBCluster.Port' returns type 'integer', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 76,
-        "startColumn": 1,
-        "endLine": 76,
-        "endColumn": 8,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'Ipv4NetmaskLength': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 76,
-        "startColumn": 1,
-        "endLine": 76,
-        "endColumn": 8,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'JoinWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 76,
-        "startColumn": 1,
-        "endLine": 76,
-        "endColumn": 8,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'String': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 76,
-        "startColumn": 1,
-        "endLine": 76,
-        "endColumn": 8,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 76,
-        "startColumn": 1,
-        "endLine": 76,
-        "endColumn": 8,
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Outputs"
       }
     ]
   },

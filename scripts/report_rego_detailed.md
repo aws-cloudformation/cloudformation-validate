@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 22:33:51  
+> Generated: 2026-06-25 22:50:22  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,20 +23,20 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 1694 |
-| False Positives (engine bugs) | 6 |
+| False Positives (engine bugs) | 4 |
 | Engine Extra (correct, cfn-lint gap) | 5313 |
 | False Negatives (engine misses) | 272 |
-| Precision | 99.65% |
+| Precision | 99.76% |
 | Recall | 86.16% |
-| F1 | 92.42% |
+| F1 | 92.47% |
 | Unique rules detected | 194 |
-| Perfect templates | 310/400 |
+| Perfect templates | 311/400 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 348 | 5 | 58 | 96 | 98.58% | 78.38% |
+| Fatal | 348 | 3 | 58 | 96 | 99.15% | 78.38% |
 | Error | 300 | 0 | 3 | 111 | 100.00% | 72.99% |
 | Warning | 693 | 0 | 351 | 57 | 100.00% | 92.40% |
 | Info | 353 | 1 | 4901 | 8 | 99.72% | 97.78% |
@@ -45,25 +45,25 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 18551.0633 ms |
-| Throughput | 122.10 validations/sec |
+| Total wall time | 18327.1957 ms |
+| Throughput | 123.59 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 61.7711 ms |
-| Engine init (max) | 62.1148 ms |
-| Schema init (p99) | 85.5562 ms |
-| Schema init (max) | 87.5275 ms |
+| Engine init (p99) | 64.4318 ms |
+| Engine init (max) | 64.8092 ms |
+| Schema init (p99) | 90.0153 ms |
+| Schema init (max) | 92.1233 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.1880 | 0.0432 | 0.5928 | 0.8031 | 1.4620 | 2.5468 |
-| Schema Validate | 0.0000 | 2.4135 | 0.5530 | 6.4098 | 9.8755 | 22.9161 | 53.2369 |
-| Rule Evaluation | 0.9485 | 5.0877 | 2.1902 | 12.4931 | 18.0692 | 29.9479 | 90.3775 |
-| Diagnostic Finalize | 0.0003 | 0.0260 | 0.0036 | 0.0860 | 0.1249 | 0.3029 | 0.5548 |
-| Engine Internal | 0.9518 | 7.7613 | 2.9684 | 19.7376 | 29.9192 | 53.7296 | 114.1090 |
-| Wall Clock | 0.9519 | 7.7615 | 2.9685 | 19.7381 | 29.9198 | 53.7300 | 114.1098 |
+| Model Build | 0.0017 | 0.1876 | 0.0430 | 0.6016 | 0.8132 | 1.4719 | 2.4807 |
+| Schema Validate | 0.0000 | 2.3773 | 0.5505 | 6.1429 | 9.8048 | 22.5574 | 52.0857 |
+| Rule Evaluation | 0.9366 | 5.0325 | 2.1896 | 12.1172 | 17.9900 | 29.7972 | 89.2198 |
+| Diagnostic Finalize | 0.0003 | 0.0251 | 0.0038 | 0.0826 | 0.1204 | 0.3006 | 0.5439 |
+| Engine Internal | 0.9405 | 7.6650 | 2.9986 | 19.4643 | 29.3650 | 52.9293 | 111.9112 |
+| Wall Clock | 0.9405 | 7.6652 | 2.9989 | 19.4645 | 29.3652 | 52.9301 | 111.9120 |
 
 ## False Negatives — 272 missed findings across 68 rules
 
@@ -817,18 +817,9 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3719** `AuroraDB` → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
   > 'BackupRetentionPeriod' is not allowed when 'DBClusterIdentifier' is specified. Set backup retention period on the DB cluster instead.
 
-## False Positives — 6 extra findings across 3 rules
+## False Positives — 4 extra findings across 3 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
-
-### F6101 — 3 extra — Validate that outputs values are a string
-
-- **F6101** L1112 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json`
-  > Output 'AmqpEndpointPort': GetAtt 'RabbitMqBrokerE7F26F68.AmqpEndpoints' returns type 'array', not 'string'
-- **F6101** L1112 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json`
-  > Output 'AmqpEndpointUrl': GetAtt 'RabbitMqBrokerE7F26F68.AmqpEndpoints' returns type 'array', not 'string'
-- **F6101** L76 in `integration_getatt-types_yaml`
-  > Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'
 
 ### F3003 — 2 extra — Required Resource properties are missing
 
@@ -841,6 +832,11 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 
 - **I3042** `myKms` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub` L154 in `bad_resources_circular_dependency_yaml`
   > ARN in Resource myKms contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
+
+### F6101 — 1 extra — Validate that outputs values are a string
+
+- **F6101** → `Outputs.SubWithGetAtt.Value` in `integration_getatt-types_yaml`
+  > Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'
 
 ## Engine Extra — 5313 correct findings across 36 rules
 
@@ -11580,7 +11576,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F8610** in `lsp_comprehensive_yaml`
   > Rule 'ValidateParameterCombinations' Assertions[1] Assert must be a condition function (object), not array
 
-## Per-Template Breakdown — 90 templates with mismatches
+## Per-Template Breakdown — 89 templates with mismatches
 
 ### `bad_generic_yaml` — 11 mismatches (29 TP, 0 FP, 36 EE, 11 FN)
 
@@ -11821,11 +11817,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1005` ×2
 - EE: `F0001`
 
-### `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json` — 2 mismatches (23 TP, 2 FP, 27 EE, 0 FN)
-
-- FP: `F6101` ×2
-- EE: `I9040` ×18, `I9001` ×9
-
 ### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json` — 2 mismatches (1 TP, 0 FP, 42 EE, 2 FN)
 
 - FN: `W1034` ×2
@@ -12065,6 +12056,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 5 | 83.33% | F3003, F6101 |
-| Extra informational findings | 1 | 16.67% | I3042 |
+| Other | 3 | 75.00% | F3003, F6101 |
+| Extra informational findings | 1 | 25.00% | I3042 |
 
