@@ -5,7 +5,7 @@ use crate::ir::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
 use crate::sam;
-use diagnostics::{PhaseMetric, phase_metric};
+use diagnostics::{Diagnostic, JsonValue, PhaseMetric, SpanProvider, phase_metric};
 use log::{debug, info, warn};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -60,11 +60,11 @@ pub struct ResolvedResource {
     pub deletion_policy: Option<ResolvedValue>,
     pub update_replace_policy: Option<ResolvedValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub update_policy: Option<diagnostics::JsonValue>,
+    pub update_policy: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub creation_policy: Option<diagnostics::JsonValue>,
+    pub creation_policy: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
-    pub metadata: Option<diagnostics::JsonValue>,
+    pub metadata: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
     /// True when the entire `Properties` block is a non-map intrinsic (e.g.
@@ -132,7 +132,7 @@ pub struct SemanticModel {
     pub outputs: HashMap<String, ResolvedOutput>,
     pub graph: ReferenceGraph,
     pub resources_by_type: HashMap<String, Vec<String>>,
-    pub diagnostics: Vec<diagnostics::Diagnostic>,
+    pub diagnostics: Vec<Diagnostic>,
     pub output_empty_joins: Vec<String>,
     pub sam_globals: HashMap<String, HashMap<String, serde_json::Value>>,
     pub sam_implicit_resources: HashSet<String>,
@@ -797,7 +797,7 @@ impl SemanticModel {
     }
 }
 
-impl diagnostics::SpanProvider for SemanticModel {
+impl SpanProvider for SemanticModel {
     fn source_location(&self, path: &str) -> Option<SourceSpan> {
         self.span_index.get(path).copied()
     }
@@ -1009,9 +1009,9 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
         depends_on,
         deletion_policy,
         update_replace_policy,
-        update_policy: update_policy.map(diagnostics::JsonValue),
-        creation_policy: creation_policy.map(diagnostics::JsonValue),
-        metadata: metadata.map(diagnostics::JsonValue),
+        update_policy: update_policy.map(JsonValue),
+        creation_policy: creation_policy.map(JsonValue),
+        metadata: metadata.map(JsonValue),
         properties,
         properties_dynamic,
         diagnostics: ResourceDiagnostics {

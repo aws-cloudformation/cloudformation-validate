@@ -1,6 +1,7 @@
 use crate::consts::*;
 use crate::ir::cfn_function_name;
 use crate::ir::*;
+use diagnostics::Diagnostic;
 
 const CONDITION_CHILDREN: &[&str] = &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT];
 
@@ -12,7 +13,7 @@ const FINDINMAP_KEY_CHILDREN: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
 const FINDINMAP_KEY_CHILDREN_EXT: &[&str] =
     &[FN_REF, FN_FIND_IN_MAP, FN_JOIN, FN_SUB, FN_IF, FN_SELECT, FN_LENGTH, FN_TO_JSON_STRING];
 
-pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<diagnostics::Diagnostic> {
+pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<Diagnostic> {
     let has_lang_ext = transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     let mut out = Vec::new();
 

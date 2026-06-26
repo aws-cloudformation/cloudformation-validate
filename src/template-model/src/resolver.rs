@@ -1,6 +1,7 @@
 use crate::consts::*;
 use crate::ir::*;
 use base64::Engine as _;
+use diagnostics::JsonValue;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -10,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 pub enum ResolvedValue {
     Concrete {
-        value: diagnostics::JsonValue,
+        value: JsonValue,
     },
     #[cfg_attr(feature = "uniffi-bindings", uniffi(name = "ListValue"))]
     List {
@@ -95,7 +96,7 @@ pub(crate) struct Resolver<'a> {
     mappings: &'a MappingData,
     resource_ids: HashSet<String>,
     pub(crate) edges: Vec<ResolverEdge>,
-    pub(crate) diagnostics: Vec<diagnostics::Diagnostic>,
+    pub(crate) diagnostics: Vec<Diagnostic>,
     pub(crate) find_in_map_refs: HashMap<String, Vec<String>>,
     pub(crate) simple_subs: HashMap<String, Vec<(String, String)>>,
     pub(crate) redundant_subs: HashMap<String, Vec<String>>,
@@ -646,9 +647,9 @@ impl<'a> Resolver<'a> {
                 for v in &resolved {
                     self.collect_extra_condition_refs(v);
                 }
-                let all_concrete_bool = resolved.iter().all(|v| {
-                    matches!(v, ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Bool(_)) })
-                });
+                let all_concrete_bool = resolved
+                    .iter()
+                    .all(|v| matches!(v, ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Bool(_)) }));
                 if all_concrete_bool {
                     let all_true = resolved.iter().all(|v| match v {
                         ResolvedValue::Concrete { value: bv } => bv.as_bool().unwrap_or(false),
@@ -664,9 +665,9 @@ impl<'a> Resolver<'a> {
                 for v in &resolved {
                     self.collect_extra_condition_refs(v);
                 }
-                let all_concrete_bool = resolved.iter().all(|v| {
-                    matches!(v, ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Bool(_)) })
-                });
+                let all_concrete_bool = resolved
+                    .iter()
+                    .all(|v| matches!(v, ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Bool(_)) }));
                 if all_concrete_bool {
                     let any_true = resolved.iter().any(|v| match v {
                         ResolvedValue::Concrete { value: bv } => bv.as_bool().unwrap_or(false),
@@ -681,7 +682,7 @@ impl<'a> Resolver<'a> {
                 let resolved = self.resolve_node(*child);
                 self.collect_extra_condition_refs(&resolved);
                 match &resolved {
-                    ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Bool(b)) } => {
+                    ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Bool(b)) } => {
                         ResolvedValue::Concrete { value: serde_json::Value::Bool(!b).into() }
                     }
                     _ => ResolvedValue::Dynamic { reason: "condition expression".into() },
@@ -727,10 +728,10 @@ impl<'a> Resolver<'a> {
             IntrinsicFn::Length(val_ref) => {
                 let val = self.resolve_node(*val_ref);
                 match &val {
-                    ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Array(arr)) } => {
+                    ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Array(arr)) } => {
                         ResolvedValue::Concrete { value: serde_json::json!(arr.len()).into() }
                     }
-                    ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Object(map)) } => {
+                    ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Object(map)) } => {
                         ResolvedValue::Concrete { value: serde_json::json!(map.len()).into() }
                     }
                     ResolvedValue::List { items } => {
@@ -1594,10 +1595,10 @@ fn base64_resolved(val: &ResolvedValue) -> ResolvedValue {
 
 fn length_resolved(val: &ResolvedValue) -> ResolvedValue {
     match val {
-        ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Array(arr)) } => {
+        ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Array(arr)) } => {
             ResolvedValue::Concrete { value: serde_json::json!(arr.len()).into() }
         }
-        ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Object(map)) } => {
+        ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Object(map)) } => {
             ResolvedValue::Concrete { value: serde_json::json!(map.len()).into() }
         }
         ResolvedValue::Enum { variants } => {
@@ -1697,7 +1698,7 @@ fn node_matches_param_type(node: &Node, expected: &str) -> bool {
     }
 }
 
-pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, Vec<diagnostics::Diagnostic>) {
+pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, Vec<Diagnostic>) {
     let mut params = HashMap::new();
     let mut diags = Vec::new();
     if ir.parameters == NULL_REF {
@@ -1707,16 +1708,15 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
         return (params, diags);
     };
 
-    let e2001 =
-        |msg: String, param_name: &str, prop: Option<&str>, span: diagnostics::SourceSpan| -> diagnostics::Diagnostic {
-            let path = match prop {
-                Some(p) => format!("Parameters.{}.{}", param_name, p),
-                None => format!("Parameters.{}", param_name),
-            };
-            let mut d = crate::make_parse_diagnostic("E2001", msg, span);
-            d.property_path = Some(path);
-            d
+    let e2001 = |msg: String, param_name: &str, prop: Option<&str>, span: SourceSpan| -> Diagnostic {
+        let path = match prop {
+            Some(p) => format!("Parameters.{}.{}", param_name, p),
+            None => format!("Parameters.{}", param_name),
         };
+        let mut d = crate::make_parse_diagnostic("E2001", msg, span);
+        d.property_path = Some(path);
+        d
+    };
 
     const VALID_KEYS: &[&str] = &[
         KEY_ALLOWED_PATTERN,
@@ -1971,7 +1971,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
     (params, diags)
 }
 
-pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<diagnostics::Diagnostic>) {
+pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<Diagnostic>) {
     let mut mappings = MappingData::new();
     let mut diagnostics = Vec::new();
     if ir.mappings == NULL_REF {
@@ -2116,7 +2116,7 @@ mod tests {
         let v_ref = ir.arena.map_get(props, "V").unwrap();
         let result = resolver.resolve_node(v_ref);
         match result {
-            ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::String(s)) } => {
+            ResolvedValue::Concrete { value: JsonValue(serde_json::Value::String(s)) } => {
                 assert_eq!(s, DEFAULT_REGION);
             }
             other => panic!("Expected Concrete(\"us-east-1\"), got {:?}", other),

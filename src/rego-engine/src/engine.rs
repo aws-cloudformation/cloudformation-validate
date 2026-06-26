@@ -1,5 +1,6 @@
 use data_source::embedded;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
+use guard_translator::{pack_name_from_path, parse_guard};
 use log::{debug, info, warn};
 use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
 use std::collections::HashMap;
@@ -153,9 +154,9 @@ impl RegoEngine {
         let mut translated_guard_sources = Vec::new();
         let mut guard_rule_metadata: Vec<(String, Option<String>, String, Severity, RuleOrigin)> = Vec::new();
         for entry in &config.guard_rules {
-            let guard_file = guard_translator::parse_guard(&entry.content, &entry.name)
+            let guard_file = parse_guard(&entry.content, &entry.name)
                 .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
-            let pack = guard_translator::pack_name_from_path(&entry.name);
+            let pack = pack_name_from_path(&entry.name);
             for tr in crate::guard_to_rego::translate_to_rego(&guard_file, &pack, &[]) {
                 guard_rule_metadata.push((
                     tr.rule_id.clone(),
@@ -385,6 +386,7 @@ impl ValidationEngine for RegoEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rules::{FilterConfig, RuleFilterConfig};
     use template_model::SemanticModel;
     use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
 
@@ -436,7 +438,7 @@ Resources:
         );
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         assert!(
-            diags.iter().all(|d| d.severity != rules::Severity::Fatal),
+            diags.iter().all(|d| d.severity != Severity::Fatal),
             "rego engine should not produce Fatal diagnostics"
         );
     }
@@ -471,9 +473,9 @@ Resources:
 "#,
         );
         let config = ValidateConfig {
-            filters: rules::FilterConfig::new(
-                rules::RuleFilterConfig::default(),
-                rules::RuleFilterConfig { categories: vec!["best_practices".to_string()], ..Default::default() },
+            filters: FilterConfig::new(
+                RuleFilterConfig::default(),
+                RuleFilterConfig { categories: vec!["best_practices".to_string()], ..Default::default() },
             ),
             ..Default::default()
         };
@@ -599,7 +601,7 @@ Resources:
         let _ = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         assert!(
-            diags.iter().all(|d| d.severity != rules::Severity::Fatal),
+            diags.iter().all(|d| d.severity != Severity::Fatal),
             "rego engine should not produce Fatal diagnostics"
         );
     }

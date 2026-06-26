@@ -1,9 +1,10 @@
 use diagnostics::{
-    DetailLevel, Diagnostic, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
+    DetailLevel, Diagnostic, JsonValue, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext,
     apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
 };
 use rules::{FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, section_for_rule_id};
+use schema_validator::{SchemaValidationResult, SchemaValidator};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -160,7 +161,7 @@ pub trait ValidationEngine {
 
 pub(crate) fn validate(
     engine: &dyn ValidationEngine,
-    schema_validator: &schema_validator::SchemaValidator,
+    schema_validator: &SchemaValidator,
     result: ParseResult,
     config: ValidateConfig,
     file_path: String,
@@ -175,7 +176,7 @@ pub(crate) fn validate(
     );
 
     let schema_result = if config.disable_builtin_rules {
-        schema_validator::SchemaValidationResult { diagnostics: Vec::new(), metric: phase_metric(Instant::now()) }
+        SchemaValidationResult { diagnostics: Vec::new(), metric: phase_metric(Instant::now()) }
     } else {
         schema_validator.validate(&model, config.pseudo_parameter_overrides.region())
     };
@@ -249,7 +250,7 @@ pub(crate) fn validate(
 #[cfg(any(test, feature = "test"))]
 pub fn validate_bytes(
     engine: &dyn ValidationEngine,
-    schema_validator: &schema_validator::SchemaValidator,
+    schema_validator: &SchemaValidator,
     bytes: &[u8],
     config: ValidateConfig,
 ) -> Result<ValidationReport, ValidationError> {
@@ -258,7 +259,7 @@ pub fn validate_bytes(
 
 pub fn validate_bytes_with_path(
     engine: &dyn ValidationEngine,
-    schema_validator: &schema_validator::SchemaValidator,
+    schema_validator: &SchemaValidator,
     bytes: &[u8],
     config: ValidateConfig,
     file_path: String,
@@ -606,10 +607,10 @@ pub(crate) fn build_context(
         scenarios.into_iter().next().map(|(v, _)| v)
     };
 
-    let mut actual_value: Option<diagnostics::JsonValue> = None;
+    let mut actual_value: Option<JsonValue> = None;
     let mut property = None;
     let mut lifecycle = None;
-    let mut extra: HashMap<String, diagnostics::JsonValue> = HashMap::new();
+    let mut extra: HashMap<String, JsonValue> = HashMap::new();
 
     match rule_id {
         "F3012" | "E3012" => {
@@ -826,8 +827,8 @@ pub fn make_resource_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use diagnostics::Phase;
-    use rules::{Category, lookup_rule};
+    use diagnostics::{Phase, SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
+    use rules::{Category, build_rule_metadata_map, lookup_rule};
 
     fn minimal_model() -> SemanticModel {
         let yaml = br#"
@@ -842,7 +843,7 @@ Resources:
     }
 
     fn meta_map() -> HashMap<String, RuleMetadataEntry> {
-        rules::build_rule_metadata_map()
+        build_rule_metadata_map()
     }
 
     fn default_diag() -> Diagnostic {
@@ -1294,9 +1295,9 @@ Resources:
         Diagnostic {
             message: format!(
                 "{} Resource with id [Fn] is invalid. 'AutoPublishAlias' must be a string or a Ref to a template parameter",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX
+                SAM_TRANSFORM_ERROR_PREFIX
             ),
-            ..make_diag(diagnostics::SAM_TRANSFORM_ERROR_RULE_ID, Severity::Error, 1, 1)
+            ..make_diag(SAM_TRANSFORM_ERROR_RULE_ID, Severity::Error, 1, 1)
         }
     }
 
@@ -1907,7 +1908,7 @@ Resources:
 
     #[test]
     fn engine_exception_surfaces_as_error_never_as_diagnostic() {
-        let schema_validator = schema_validator::SchemaValidator::new();
+        let schema_validator = SchemaValidator::new();
         let engine = ExplodingEngine::new(Explosion::ReturnErr);
         let result = validate_bytes_with_path(
             &engine,
@@ -1932,7 +1933,7 @@ Resources:
 
     #[test]
     fn engine_panic_is_caught_as_error_never_as_diagnostic() {
-        let schema_validator = schema_validator::SchemaValidator::new();
+        let schema_validator = SchemaValidator::new();
         let engine = ExplodingEngine::new(Explosion::Panic);
         let result = validate_catching_panics(|| {
             validate_bytes_with_path(

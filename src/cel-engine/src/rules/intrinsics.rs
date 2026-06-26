@@ -1,5 +1,7 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use diagnostics::Phase;
+use rules::{Category, Severity};
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::consts::{
@@ -14,9 +16,9 @@ use template_model::{PSEUDO_PARAMETERS, SemanticModel};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::Intrinsic, eval_intrinsics);
-    reg.add(rules::Category::Intrinsic, eval_intrinsic_params);
-    reg.add(rules::Category::Intrinsic, eval_dynamic_references);
+    reg.add(Category::Intrinsic, eval_intrinsics);
+    reg.add(Category::Intrinsic, eval_intrinsic_params);
+    reg.add(Category::Intrinsic, eval_dynamic_references);
 }
 
 fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -47,10 +49,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Suppress ref validation when the template has parse errors — the model
     // is incomplete and refs to unparsed sections would be false positives.
-    let has_parse_errors = m
-        .diagnostics
-        .iter()
-        .any(|d| d.severity == rules::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse));
+    let has_parse_errors = m.diagnostics.iter().any(|d| d.severity == Severity::Fatal && d.phase == Some(Phase::Parse));
 
     // Load GetAtt attribute data
     let getatt_attrs = &ctx.cached_data.getatt_attrs;

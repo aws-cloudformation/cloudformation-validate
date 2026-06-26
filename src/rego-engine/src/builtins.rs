@@ -1,4 +1,7 @@
 use crate::engine::{SharedModel, SharedRegion};
+use data_source::embedded::{GETATT_ATTRIBUTES_BYTES, SCHEMA_METADATA_BYTES};
+use data_source::types::GetattData;
+use diagnostics::{SourceSpan, UNKNOWN_SPAN};
 use regorus::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
@@ -1014,8 +1017,7 @@ fn load_schema_registry() -> HashMap<String, SchemaInfo> {
         #[serde(default)]
         schema_metadata: HashMap<String, SchemaInfo>,
     }
-    let w: Wrapper = serde_json::from_slice(&data_source::embedded::SCHEMA_METADATA_BYTES)
-        .expect("Failed to parse schema_metadata JSON");
+    let w: Wrapper = serde_json::from_slice(&SCHEMA_METADATA_BYTES).expect("Failed to parse schema_metadata JSON");
     w.schema_metadata
 }
 
@@ -1112,8 +1114,8 @@ fn register_attribute_type(rego: &mut regorus::Engine, registry: LazySchemaRegis
 }
 
 fn load_getatt_type_registry() -> HashMap<String, HashMap<String, String>> {
-    let data: data_source::types::GetattData = serde_json::from_slice(&data_source::embedded::GETATT_ATTRIBUTES_BYTES)
-        .expect("Failed to deserialize getatt_attributes JSON data");
+    let data: GetattData =
+        serde_json::from_slice(&GETATT_ATTRIBUTES_BYTES).expect("Failed to deserialize getatt_attributes JSON data");
     data.getatt_attribute_types
 }
 
@@ -1200,14 +1202,13 @@ fn register_make_diag(rego: &mut regorus::Engine, holder: SharedModel) {
             let severity = params[1].as_string()?;
             let resource_id = params[2].as_string()?;
             let message = params[3].as_string()?;
-            let span =
-                if resource_id.is_empty() { diagnostics::UNKNOWN_SPAN } else { model.resource_span(resource_id, "") };
+            let span = if resource_id.is_empty() { UNKNOWN_SPAN } else { model.resource_span(resource_id, "") };
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
                 "message": message.as_ref(), "resource_id": resource_id.as_ref(),
                 "resource_path": "",
             });
-            if span != diagnostics::UNKNOWN_SPAN {
+            if span != UNKNOWN_SPAN {
                 let m = obj.as_object_mut().unwrap();
                 m.insert("start_line".into(), span.start_line.into());
                 m.insert("start_column".into(), span.start_column.into());
@@ -1232,17 +1233,13 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
             let resource_id = params[2].as_string()?;
             let prop_path = params[3].as_string()?;
             let message = params[4].as_string()?;
-            let span = if resource_id.is_empty() {
-                diagnostics::UNKNOWN_SPAN
-            } else {
-                model.resource_span(resource_id, prop_path)
-            };
+            let span = if resource_id.is_empty() { UNKNOWN_SPAN } else { model.resource_span(resource_id, prop_path) };
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
                 "message": message.as_ref(), "resource_id": resource_id.as_ref(),
                 "resource_path": prop_path.as_ref(),
             });
-            if span != diagnostics::UNKNOWN_SPAN {
+            if span != UNKNOWN_SPAN {
                 let m = obj.as_object_mut().unwrap();
                 m.insert("start_line".into(), span.start_line.into());
                 m.insert("start_column".into(), span.start_column.into());
@@ -1254,7 +1251,7 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
-fn resolve_span(model: &SemanticModel, resource_id: &str, prop_path: &str) -> diagnostics::SourceSpan {
+fn resolve_span(model: &SemanticModel, resource_id: &str, prop_path: &str) -> SourceSpan {
     model.resource_span(resource_id, prop_path)
 }
 
@@ -1287,7 +1284,7 @@ fn register_make_diag_full(rego: &mut regorus::Engine, holder: SharedModel) {
                 "resource_path": prop_path.as_ref(),
                 "suggested_fix": fix_val, "documentation_url": doc_val,
             });
-            if span != diagnostics::UNKNOWN_SPAN {
+            if span != UNKNOWN_SPAN {
                 let m = obj.as_object_mut().unwrap();
                 m.insert("start_line".into(), span.start_line.into());
                 m.insert("start_column".into(), span.start_column.into());
@@ -1326,7 +1323,7 @@ fn register_make_diag_related(rego: &mut regorus::Engine, holder: SharedModel) {
             "resource_path": prop_path.as_ref(),
             "related_locations": related,
         });
-        if span != diagnostics::UNKNOWN_SPAN {
+        if span != UNKNOWN_SPAN {
             let m = obj.as_object_mut().unwrap();
             m.insert("start_line".into(), span.start_line.into());
             m.insert("start_column".into(), span.start_column.into());
@@ -1360,7 +1357,7 @@ fn register_make_diag_conditional(rego: &mut regorus::Engine, holder: SharedMode
                 "resource_path": prop_path.as_ref(),
                 "condition_scenario": conds_val,
             });
-            if span != diagnostics::UNKNOWN_SPAN {
+            if span != UNKNOWN_SPAN {
                 let m = obj.as_object_mut().unwrap();
                 m.insert("start_line".into(), span.start_line.into());
                 m.insert("start_column".into(), span.start_column.into());

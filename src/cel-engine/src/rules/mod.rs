@@ -4,6 +4,7 @@ use data_source::types::{
     PrimaryIdentifiers, RetentionPeriodRequirements, SensitivePorts, StatefulResourceTypes,
 };
 use diagnostics::Diagnostic;
+use rules::Category;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock, OnceLock};
 use template_model::SemanticModel;
@@ -176,7 +177,7 @@ pub struct EvalContext<'a> {
 pub type NativeRuleFn = fn(&EvalContext) -> Vec<Diagnostic>;
 
 pub struct NativeRuleRegistry {
-    pub rules: Vec<(rules::Category, NativeRuleFn)>,
+    pub rules: Vec<(Category, NativeRuleFn)>,
 }
 
 impl NativeRuleRegistry {
@@ -191,7 +192,7 @@ impl NativeRuleRegistry {
         reg
     }
 
-    pub fn add(&mut self, category: rules::Category, f: NativeRuleFn) {
+    pub fn add(&mut self, category: Category, f: NativeRuleFn) {
         self.rules.push((category, f));
     }
 

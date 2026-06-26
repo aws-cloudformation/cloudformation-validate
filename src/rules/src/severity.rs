@@ -61,6 +61,7 @@ impl fmt::Display for Severity {
 #[cfg(test)]
 mod tests {
     use crate::Severity;
+    use std::str::FromStr;
 
     #[test]
     fn as_str_returns_screaming_case_for_all_variants() {
@@ -73,8 +74,6 @@ mod tests {
 
     #[test]
     fn from_str_parses_case_insensitively() {
-        use std::str::FromStr;
-
         assert_eq!(Severity::from_str("fatal").unwrap(), Severity::Fatal);
         assert_eq!(Severity::from_str("FATAL").unwrap(), Severity::Fatal);
 
@@ -93,8 +92,6 @@ mod tests {
 
     #[test]
     fn from_str_errors_on_unknown_value() {
-        use std::str::FromStr;
-
         let err = Severity::from_str("test").unwrap_err();
         assert_eq!(err, "Invalid severity 'test'; expected one of: fatal, error, warn, info, debug");
     }

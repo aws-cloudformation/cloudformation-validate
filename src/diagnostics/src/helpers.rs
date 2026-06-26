@@ -1,4 +1,4 @@
-use rules::{RuleOrigin, section_for_rule_id};
+use rules::{RuleOrigin, lookup_rule, section_for_rule_id};
 
 use crate::span::{SourceSpan, SpanProvider, UNKNOWN_SPAN};
 
@@ -19,7 +19,7 @@ pub fn is_sam_transform_error_message(message: &str) -> bool {
 /// Panics if the rule is not registered — every built-in rule must be in the registry.
 /// For custom/guard rules (not in the registry), callers must set `source` directly.
 pub fn source_for_rule(rule_id: &str) -> RuleOrigin {
-    rules::lookup_rule(rule_id).unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id)).origin
+    lookup_rule(rule_id).unwrap_or_else(|| panic!("Rule '{}' not found in RULE_REGISTRY", rule_id)).origin
 }
 
 /// Maps a rule ID to its template section (via `section_for_rule_id`) and

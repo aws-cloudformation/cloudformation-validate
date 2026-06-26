@@ -2,8 +2,9 @@ use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
-use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
+use diagnostics::{Diagnostic, PhaseMetric, ResourceRef, UNKNOWN_SPAN, phase_metric};
+use guard_translator::{pack_name_from_path, parse_guard};
+use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
 use template_model::SemanticModel;
 use validation_engine::{
     EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
@@ -68,14 +69,14 @@ impl CelEngine {
         let native_rules = NativeRuleRegistry::new();
         let generated_rules = GeneratedRuleRegistry::new()?;
 
-        let registry_metadata = rules::build_rule_metadata_map();
+        let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
 
         let mut translated_guard_sources = Vec::new();
         for entry in &config.guard_rules {
-            let guard_file = guard_translator::parse_guard(&entry.content, &entry.name)
+            let guard_file = parse_guard(&entry.content, &entry.name)
                 .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
-            let pack = guard_translator::pack_name_from_path(&entry.name);
+            let pack = pack_name_from_path(&entry.name);
             let translated = crate::guard_to_cel::translate_to_cel(&guard_file, &pack, &[]);
             let json = crate::guard_to_cel::to_custom_rule_json(&translated)
                 .map_err(|e| anyhow::anyhow!("Failed to translate guard file '{}' to CEL: {}", entry.name, e))?;
@@ -231,11 +232,8 @@ fn emit_custom_diagnostic(
     rid: &str,
     msg: &str,
 ) {
-    let span = if rid.is_empty() {
-        diagnostics::UNKNOWN_SPAN
-    } else {
-        model.resource_span(rid, rule.prop_path.as_deref().unwrap_or(""))
-    };
+    let span =
+        if rid.is_empty() { UNKNOWN_SPAN } else { model.resource_span(rid, rule.prop_path.as_deref().unwrap_or("")) };
     out.push(Diagnostic {
         rule_id: rule.rule_id.clone(),
         severity: rule.severity,
@@ -243,7 +241,7 @@ fn emit_custom_diagnostic(
         resource: if rid.is_empty() {
             None
         } else {
-            Some(diagnostics::ResourceRef {
+            Some(ResourceRef {
                 id: Some(rid.to_string()),
                 resource_type: model.resources.get(rid).map(|r| r.resource_type.clone()),
             })
@@ -252,7 +250,7 @@ fn emit_custom_diagnostic(
         suggested_fix: rule.suggested_fix.clone(),
         documentation_url: None,
         category: rule.category.clone(),
-        location: if span == diagnostics::UNKNOWN_SPAN { None } else { Some(span) },
+        location: if span == UNKNOWN_SPAN { None } else { Some(span) },
         related_resources: None,
         condition_scenario: None,
         rule_description: None,

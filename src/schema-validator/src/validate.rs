@@ -1,6 +1,7 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
-use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, resolve_section_span};
+use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
+use rules::format_rule_for_format;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -138,7 +139,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
         }
 
         if let Some(source) = describe_resolution(model, rid, d.property_path.as_deref().unwrap_or("")) {
-            let ctx = d.context.get_or_insert_with(|| diagnostics::ViolationContext {
+            let ctx = d.context.get_or_insert_with(|| ViolationContext {
                 actual_value: None,
                 expected_constraint: None,
                 property: None,
@@ -157,7 +158,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
 
         macro_rules! ensure_ctx {
             ($d:expr) => {
-                $d.context.get_or_insert_with(|| diagnostics::ViolationContext {
+                $d.context.get_or_insert_with(|| ViolationContext {
                     actual_value: None,
                     expected_constraint: None,
                     property: None,
@@ -1772,7 +1773,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
                 continue;
             }
             if !re.is_match(&s) {
-                let rule_id = rules::format_rule_for_format(format).unwrap_or("E1103");
+                let rule_id = format_rule_for_format(format).unwrap_or("E1103");
                 out.push(build_diagnostic_conditional(
                     rule_id,
                     &format!("{} does not match format '{}'", format_value(val), format),

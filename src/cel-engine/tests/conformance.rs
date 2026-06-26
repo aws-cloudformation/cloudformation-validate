@@ -3,14 +3,13 @@ mod tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine};
+    use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
     static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -20,7 +19,7 @@ mod tests {
         let full = format!("../resources/templates/{}", path);
         let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report = validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -139,14 +138,13 @@ mod nested_schema_tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig};
+    use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
     static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn diags(template: &str) -> Vec<(String, String)> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV2, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV2, template.as_bytes(), ValidateConfig::default()).unwrap();
         report.diagnostics.iter().map(|d| (d.rule_id.clone(), d.message.clone())).collect()
     }
 
@@ -259,7 +257,8 @@ mod guard_tests {
     use rules::{FilterConfig, RuleFilterConfig, Severity};
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
+    use validation_engine::guard::resolve_guard_config;
+    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
     static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
@@ -283,7 +282,7 @@ rule s3_versioning_check {
         };
         let engine = CelEngine::new(config).unwrap();
         let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-        let report = validation_engine::validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
         let rules = engine.list_rules();
         let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check");
         assert!(guard_rule.is_some(), "Guard rule should appear in list_rules");
@@ -297,9 +296,7 @@ rule s3_versioning_check {
 
     #[test]
     fn guard_rule_pack_loads_from_directory() {
-        let guard_rules =
-            validation_engine::guard::resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()])
-                .unwrap_or_default();
+        let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()]).unwrap_or_default();
         let config = EngineConfig { guard_rules, ..Default::default() };
         let engine = CelEngine::new(config);
         // Pack loading may fail if translated CEL has issues from wildcard let assignments.
@@ -330,7 +327,7 @@ rule s3_versioning_check {
             ),
             ..Default::default()
         };
-        let report = validation_engine::validate_bytes(&engine, &SV, template, validate_config).unwrap();
+        let report = validate_bytes(&engine, &SV, template, validate_config).unwrap();
         assert!(
             !report.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
             "Guard rule should be filtered out by category exclusion"
@@ -372,14 +369,13 @@ mod rule_category_tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig};
+    use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
     static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -389,7 +385,7 @@ mod rule_category_tests {
         let full = format!("../resources/templates/{}", path);
         let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report = validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids

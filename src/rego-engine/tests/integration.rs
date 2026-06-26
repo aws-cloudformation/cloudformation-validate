@@ -1,10 +1,11 @@
-use diagnostics::ValidationReport;
+use diagnostics::{Diagnostic, ValidationReport};
 use rego_engine::RegoEngine;
 use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use template_model::SemanticModel;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
+use template_model::{PseudoParameterOverrides, SemanticModel};
+use validation_engine::guard::resolve_guard_config;
+use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
 static SHARED_ENGINE: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
@@ -12,14 +13,14 @@ static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new
 fn validate_fixture(path: &str) -> ValidationReport {
     let full = format!("../resources/templates/{}", path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
-    validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, ValidateConfig::default())
+    validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, ValidateConfig::default())
         .unwrap_or_else(|e| panic!("Failed to validate {}: {}", full, e))
 }
 
 fn validate_with_config(path: &str, config: ValidateConfig) -> ValidationReport {
     let full = format!("../resources/templates/{}", path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
-    validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, config)
+    validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes, config)
         .unwrap_or_else(|e| panic!("Failed to validate {}: {}", full, e))
 }
 
@@ -192,7 +193,7 @@ fn e2e_diagnostics_sorted() {
     let report = validate_fixture("good/generic.yaml");
     for w in report.diagnostics.windows(2) {
         // Engine sort contract: (line ASC, col ASC, severity DESC, rule_id ASC).
-        let key = |d: &diagnostics::Diagnostic| {
+        let key = |d: &Diagnostic| {
             (
                 d.location.as_ref().map_or(0, |l| l.start_line),
                 d.location.as_ref().map_or(0, |l| l.start_column),
@@ -208,10 +209,8 @@ fn e2e_diagnostics_sorted() {
 fn e2e_engine_reusable() {
     let bytes1 = std::fs::read("../resources/templates/good/minimal.yaml").unwrap();
     let bytes2 = std::fs::read("../resources/templates/good/generic.yaml").unwrap();
-    let r1 =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes1, ValidateConfig::default()).unwrap();
-    let r2 =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes2, ValidateConfig::default()).unwrap();
+    let r1 = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes1, ValidateConfig::default()).unwrap();
+    let r2 = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, &bytes2, ValidateConfig::default()).unwrap();
     assert!(no_errors(&r1));
     assert!(no_errors(&r2));
 }
@@ -259,9 +258,7 @@ Resources:
       BucketName: test
       NotARealProperty: bad
 "#;
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default())
-            .unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default()).unwrap();
     assert!(
         report.diagnostics.iter().any(|d| d.rule_id == "F3002"),
         "Expected F3002 for unknown property, got: {:?}",
@@ -279,9 +276,7 @@ Resources:
     Properties:
       AccessControl: InvalidValue
 "#;
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default())
-            .unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default()).unwrap();
     assert!(
         report.diagnostics.iter().any(|d| d.rule_id == "F3030"),
         "Expected F3030 for invalid enum, got: {:?}",
@@ -350,8 +345,7 @@ fn e2e_findinmap_bad_map() {
 #[test]
 fn e2e_suggested_fix_on_required_property() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Role:\n    Type: AWS::IAM::Role\n";
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
     let found = report.diagnostics.iter().find(|d| d.rule_id == "F3003");
     assert!(found.is_some(), "Expected F3003 for missing required property");
     assert!(found.unwrap().suggested_fix.is_some(), "F3003 should have suggested_fix, got: {:?}", found);
@@ -445,13 +439,13 @@ fn e2e_region_restricted() {
     let input =
         b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  R:\n    Type: AWS::APS::Scraper\n    Properties: {}\n";
     let config = ValidateConfig {
-        pseudo_parameter_overrides: template_model::PseudoParameterOverrides {
+        pseudo_parameter_overrides: PseudoParameterOverrides {
             region: Some("cn-north-1".to_string()),
             ..Default::default()
         },
         ..Default::default()
     };
-    let report = validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, config).unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, config).unwrap();
     assert!(
         has_rule(&report, "E3001"),
         "APS::Scraper in cn-north-1 should trigger E3001, got: {:?}",
@@ -542,8 +536,7 @@ fn e2e_hardcoded_partition() {
 #[test]
 fn e2e_lambda_runtime_from_data() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  F:\n    Type: AWS::Lambda::Function\n    Properties:\n      Runtime: python3.7\n      Handler: index.handler\n      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role\n      Code:\n        ZipFile: |\n          def handler(event, context): pass\n";
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
     assert!(
         has_rule(&report, "E2531"),
         "python3.7 should trigger E2531 (blocked for new function creation), got: {:?}",
@@ -554,8 +547,7 @@ fn e2e_lambda_runtime_from_data() {
 #[test]
 fn e2e_schema_violations_from_multiple_services() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      NotReal: bad\n  VPC:\n    Type: AWS::EC2::VPC\n    Properties:\n      NotReal: bad\n";
-    let report =
-        validation_engine::validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
     let f3002_resources: Vec<&str> = report
         .diagnostics
         .iter()
@@ -1108,7 +1100,7 @@ violation contains make_diag("C0001", "WARN", name, "Custom rule triggered") if 
     };
     let engine = RegoEngine::new(config).unwrap();
     let bytes = std::fs::read("../resources/templates/good/minimal.yaml").unwrap();
-    let report = validation_engine::validate_bytes(&engine, &SHARED_SV, &bytes, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&engine, &SHARED_SV, &bytes, ValidateConfig::default()).unwrap();
     assert!(has_rule(&report, "C0001"), "Custom rule C0001 should fire for resources, got: {:?}", report.diagnostics);
 }
 
@@ -1142,7 +1134,7 @@ fn e2e_guard_rule_source() {
     // but the translator emits this as a violation condition (fires when condition is true).
     // Use a template where the condition IS true to verify the plumbing works.
     let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-    let report = validation_engine::validate_bytes(&engine, &SHARED_SV, template, ValidateConfig::default()).unwrap();
+    let report = validate_bytes(&engine, &SHARED_SV, template, ValidateConfig::default()).unwrap();
     let guard_diags: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check").collect();
     // Verify category and severity are correct on any guard diagnostics
     for d in &guard_diags {
@@ -1164,9 +1156,7 @@ fn e2e_guard_rule_source() {
 
 #[test]
 fn e2e_guard_rule_pack() {
-    let guard_rules =
-        validation_engine::guard::resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()])
-            .unwrap_or_default();
+    let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()]).unwrap_or_default();
     let config = EngineConfig { guard_rules, ..Default::default() };
     let engine = RegoEngine::new(config);
     // Pack loading may fail if translated rego has syntax issues from wildcard let assignments.
@@ -1197,7 +1187,7 @@ fn e2e_guard_rule_filtering() {
         ),
         ..Default::default()
     };
-    let report = validation_engine::validate_bytes(&engine, &SHARED_SV, template, validate_config).unwrap();
+    let report = validate_bytes(&engine, &SHARED_SV, template, validate_config).unwrap();
     assert!(
         !report.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
         "Guard rule should be filtered out by category exclusion"

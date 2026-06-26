@@ -1,5 +1,8 @@
 use super::EvalContext;
 use diagnostics::Diagnostic;
+use diagnostics::RelatedResource;
+use diagnostics::ResourceRef;
+use diagnostics::SourceSpan;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
@@ -1837,12 +1840,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     );
                     let svc_span = m.resource_span(svc_name, "Properties.LoadBalancers");
-                    diag.related_resources.get_or_insert_with(Vec::new).push(diagnostics::RelatedResource {
-                        resource: Some(diagnostics::ResourceRef {
+                    diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+                        resource: Some(ResourceRef {
                             id: Some(svc_name.to_string()),
                             resource_type: m.resources.get(svc_name).map(|r| r.resource_type.clone()),
                         }),
-                        location: Some(diagnostics::SourceSpan {
+                        location: Some(SourceSpan {
                             start_line: svc_span.start_line,
                             start_column: svc_span.start_column,
                             end_line: svc_span.end_line,
@@ -2103,12 +2106,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             );
             let cluster_span = m.resource_span(cluster_name, "Properties.Engine");
-            diag.related_resources.get_or_insert_with(Vec::new).push(diagnostics::RelatedResource {
-                resource: Some(diagnostics::ResourceRef {
+            diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+                resource: Some(ResourceRef {
                     id: Some(cluster_name.to_string()),
                     resource_type: m.resources.get(cluster_name).map(|r| r.resource_type.clone()),
                 }),
-                location: Some(diagnostics::SourceSpan {
+                location: Some(SourceSpan {
                     start_line: cluster_span.start_line,
                     start_column: cluster_span.start_column,
                     end_line: cluster_span.end_line,

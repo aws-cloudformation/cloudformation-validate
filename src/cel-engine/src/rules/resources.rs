@@ -1,5 +1,6 @@
 use super::{EvalContext, NativeRuleRegistry};
-use diagnostics::Diagnostic;
+use diagnostics::{Diagnostic, RelatedResource, ResourceRef, SourceSpan};
+use rules::Category;
 use template_model::SemanticModel;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
@@ -9,8 +10,8 @@ use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::Resource, eval_resources);
-    reg.add(rules::Category::Resource, crate::rules::resources_extra::eval_extra_resources);
+    reg.add(Category::Resource, eval_resources);
+    reg.add(Category::Resource, crate::rules::resources_extra::eval_extra_resources);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
@@ -108,12 +109,12 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             );
             let span = m.resource_span(a_name, "");
-            diag.related_resources.get_or_insert_with(Vec::new).push(diagnostics::RelatedResource {
-                resource: Some(diagnostics::ResourceRef {
+            diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+                resource: Some(ResourceRef {
                     id: Some(a_name.clone()),
                     resource_type: m.resources.get(a_name.as_str()).map(|r| r.resource_type.clone()),
                 }),
-                location: Some(diagnostics::SourceSpan {
+                location: Some(SourceSpan {
                     start_line: span.start_line,
                     start_column: span.start_column,
                     end_line: span.end_line,

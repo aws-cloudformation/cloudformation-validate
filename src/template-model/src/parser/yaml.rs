@@ -1,5 +1,6 @@
 use crate::consts::*;
 use crate::ir::*;
+use diagnostics::Diagnostic;
 use log::{debug, info, warn};
 use std::collections::{BTreeMap, HashMap};
 use std::mem;
@@ -322,7 +323,7 @@ struct YamlBuilder {
     arena: Arena,
     global_index: GlobalIndex,
     span_index: SourceSpanIndex,
-    diagnostics: Vec<diagnostics::Diagnostic>,
+    diagnostics: Vec<Diagnostic>,
 }
 
 /// Describe a YAML value's type/content for diagnostic messages.

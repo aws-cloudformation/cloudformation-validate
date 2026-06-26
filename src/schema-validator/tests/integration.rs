@@ -1,4 +1,9 @@
+use diagnostics::Diagnostic;
+use diagnostics::Phase;
+use rules::Severity;
+use schema_validator::CompiledSchemaStore;
 use schema_validator::SchemaValidator;
+use schema_validator::validate::validate_all_resources;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 
@@ -6,18 +11,18 @@ const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templ
 
 static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
-fn validate_fixture(path: &str) -> Vec<diagnostics::Diagnostic> {
+fn validate_fixture(path: &str) -> Vec<Diagnostic> {
     let full = format!("{}/{}", TEMPLATES, path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("read {}: {}", full, e));
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap_or_else(|e| panic!("parse {}: {}", full, e)));
     SV.validate(&model, "us-east-1").diagnostics
 }
 
-fn has_rule(diags: &[diagnostics::Diagnostic], rule_id: &str) -> bool {
+fn has_rule(diags: &[Diagnostic], rule_id: &str) -> bool {
     diags.iter().any(|d| d.rule_id == rule_id)
 }
 
-fn diags_for<'a>(diags: &'a [diagnostics::Diagnostic], rule_id: &str) -> Vec<&'a diagnostics::Diagnostic> {
+fn diags_for<'a>(diags: &'a [Diagnostic], rule_id: &str) -> Vec<&'a Diagnostic> {
     diags.iter().filter(|d| d.rule_id == rule_id).collect()
 }
 
@@ -38,17 +43,15 @@ fn list_rules_returns_known_rule_ids() {
 #[test]
 fn valid_resources_produce_no_fatal_diagnostics() {
     let diags = validate_fixture("good/schema_valid_resources.yaml");
-    let fatals: Vec<_> = diags.iter().filter(|d| d.severity == rules::Severity::Fatal).collect();
+    let fatals: Vec<_> = diags.iter().filter(|d| d.severity == Severity::Fatal).collect();
     assert!(fatals.is_empty(), "unexpected fatals: {:?}", fatals);
 }
 
 #[test]
 fn minimal_template_no_schema_errors() {
     let diags = validate_fixture("good/minimal.yaml");
-    let schema_fatals: Vec<_> = diags
-        .iter()
-        .filter(|d| d.phase == Some(diagnostics::Phase::Schema) && d.severity == rules::Severity::Fatal)
-        .collect();
+    let schema_fatals: Vec<_> =
+        diags.iter().filter(|d| d.phase == Some(Phase::Schema) && d.severity == Severity::Fatal).collect();
     assert!(schema_fatals.is_empty(), "unexpected schema fatals: {:?}", schema_fatals);
 }
 
@@ -173,7 +176,7 @@ fn deprecated_resource_type_flagged() {
 #[test]
 fn generic_bad_template_produces_multiple_schema_violations() {
     let diags = validate_fixture("bad/generic.yaml");
-    let schema_diags: Vec<_> = diags.iter().filter(|d| d.phase == Some(diagnostics::Phase::Schema)).collect();
+    let schema_diags: Vec<_> = diags.iter().filter(|d| d.phase == Some(Phase::Schema)).collect();
     assert!(schema_diags.len() >= 3, "expected 3+ schema diagnostics, got {}", schema_diags.len());
 }
 
@@ -435,14 +438,14 @@ fn region_availability_e3037() {
     let full = format!("{}/good/minimal.yaml", TEMPLATES);
     let bytes = std::fs::read(&full).unwrap();
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
-    let mut store = schema_validator::CompiledSchemaStore::new();
+    let mut store = CompiledSchemaStore::new();
     let region_json = serde_json::json!({
         "region_resource_types": {
             "us-east-1": { "AWS::S3::Bucket": true }
         }
     });
     store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
-    let diags = schema_validator::validate::validate_all_resources(&store, &model, "us-east-1");
+    let diags = validate_all_resources(&store, &model, "us-east-1");
     let f3006 = diags.iter().filter(|d| d.rule_id == "F3006").count();
     assert!(
         f3006 > 0,

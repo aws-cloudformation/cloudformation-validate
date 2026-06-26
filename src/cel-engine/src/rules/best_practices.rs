@@ -1,5 +1,6 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use rules::Category;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
@@ -40,10 +41,10 @@ static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {
 });
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::BestPractice, eval_best_practices);
-    reg.add(rules::Category::BestPractice, eval_retention_period_rules);
-    reg.add(rules::Category::BestPractice, eval_deprecated_resource_types);
-    reg.add(rules::Category::Security, eval_sensitive_port_rules);
+    reg.add(Category::BestPractice, eval_best_practices);
+    reg.add(Category::BestPractice, eval_retention_period_rules);
+    reg.add(Category::BestPractice, eval_deprecated_resource_types);
+    reg.add(Category::Security, eval_sensitive_port_rules);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {

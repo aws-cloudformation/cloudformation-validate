@@ -8,7 +8,7 @@
 use crate::consts::*;
 use crate::ir::cfn_function_name;
 use crate::ir::*;
-use diagnostics::{Phase, RegisteredDiagnostic};
+use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic};
 
 const VALID_RULE_KEYS: &[&str] = &[KEY_RULE_CONDITION, KEY_ASSERTIONS];
 const VALID_ASSERTION_KEYS: &[&str] = &[KEY_ASSERT, KEY_ASSERT_DESCRIPTION];
@@ -29,18 +29,14 @@ const ALLOWED_RULE_FUNCTIONS: &[&str] = &[
     FN_SELECT,
 ];
 
-pub fn validate_rules(
-    rules_json: &Option<serde_json::Value>,
-    arena: &Arena,
-    rules_node: NodeRef,
-) -> Vec<diagnostics::Diagnostic> {
+pub fn validate_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node: NodeRef) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     validate_structure(rules_json, &mut out);
     validate_allowed_functions(arena, rules_node, &mut out);
     out
 }
 
-fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<diagnostics::Diagnostic>) {
+fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<Diagnostic>) {
     let Some(rules) = rules_json else {
         return;
     };
@@ -54,7 +50,7 @@ fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<diag
     }
 }
 
-fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &mut Vec<diagnostics::Diagnostic>) {
+fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &mut Vec<Diagnostic>) {
     let Some(rule_obj) = rule_value.as_object() else {
         out.push(rule_diag("F8601", format!("Rule '{}' must be an object", rule_name)));
         return;
@@ -103,12 +99,7 @@ fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &m
     }
 }
 
-fn validate_single_assertion(
-    rule_name: &str,
-    idx: usize,
-    assertion: &serde_json::Value,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json::Value, out: &mut Vec<Diagnostic>) {
     let Some(assertion_obj) = assertion.as_object() else {
         out.push(rule_diag("F8607", format!("Rule '{}' {}[{}] must be an object", rule_name, KEY_ASSERTIONS, idx)));
         return;
@@ -149,14 +140,14 @@ fn validate_single_assertion(
     }
 }
 
-fn validate_allowed_functions(arena: &Arena, rules_node: NodeRef, out: &mut Vec<diagnostics::Diagnostic>) {
+fn validate_allowed_functions(arena: &Arena, rules_node: NodeRef, out: &mut Vec<Diagnostic>) {
     if rules_node == NULL_REF {
         return;
     }
     walk_for_disallowed_functions(arena, rules_node, out);
 }
 
-fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec<diagnostics::Diagnostic>) {
+fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec<Diagnostic>) {
     if !arena.is_valid(node_ref) {
         return;
     }
@@ -188,7 +179,7 @@ fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec
     }
 }
 
-fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, out: &mut Vec<diagnostics::Diagnostic>) {
+fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, out: &mut Vec<Diagnostic>) {
     let mut children = Vec::new();
     match intrinsic {
         IntrinsicFn::Ref(_)
@@ -263,13 +254,15 @@ fn json_type_name(val: &serde_json::Value) -> &'static str {
     }
 }
 
-fn rule_diag(rule_id: &str, message: String) -> diagnostics::Diagnostic {
+fn rule_diag(rule_id: &str, message: String) -> Diagnostic {
     RegisteredDiagnostic::new(rule_id, message).phase(Phase::Parse).build()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use diagnostics::UNKNOWN_SPAN;
+    use rules_crate::Severity;
     use serde_json::json;
 
     #[test]
@@ -284,7 +277,7 @@ mod tests {
             }
         });
         let diags = validate_rules(&Some(rules), &Arena::new(), NULL_REF);
-        let errors: Vec<_> = diags.iter().filter(|d| d.severity == rules_crate::Severity::Error).collect();
+        let errors: Vec<_> = diags.iter().filter(|d| d.severity == Severity::Error).collect();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
     }
 
@@ -349,12 +342,12 @@ mod tests {
         let mut arena = Arena::new();
         let getatt = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::GetAtt("Res".into(), "Arn".into())),
-            span: diagnostics::UNKNOWN_SPAN,
+            span: UNKNOWN_SPAN,
             path: "Rules/MyRule".into(),
         });
         let rule_map = arena.alloc(SpannedNode {
             node: Node::Map(vec![(KEY_ASSERT.into(), getatt)]),
-            span: diagnostics::UNKNOWN_SPAN,
+            span: UNKNOWN_SPAN,
             path: "Rules".into(),
         });
 
@@ -371,17 +364,17 @@ mod tests {
         let mut arena = Arena::new();
         let ref_node = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::Ref("Env".into())),
-            span: diagnostics::UNKNOWN_SPAN,
+            span: UNKNOWN_SPAN,
             path: "Rules/R/0".into(),
         });
         let lit = arena.alloc(SpannedNode {
             node: Node::String("prod".into()),
-            span: diagnostics::UNKNOWN_SPAN,
+            span: UNKNOWN_SPAN,
             path: "Rules/R/1".into(),
         });
         let equals = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::Equals(ref_node, lit)),
-            span: diagnostics::UNKNOWN_SPAN,
+            span: UNKNOWN_SPAN,
             path: "Rules/R".into(),
         });
 
