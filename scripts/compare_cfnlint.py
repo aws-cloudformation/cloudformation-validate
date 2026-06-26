@@ -199,11 +199,14 @@ def _load_cfnlint_result_file(f, prefix, results):
         return
     # Derive key from the template filename inside the JSON, not the results filename.
     # cfn-lint results filenames may differ from the actual template filename
-    # (e.g., results file "metadata.json" for template "metdata.yaml").
+    # (e.g., results file "metadata.json" for template "metdata.yaml"). The file
+    # extension is kept as part of the key (".yaml" -> "_yaml") so a template
+    # authored in both JSON and YAML maps to two distinct keys, matching the
+    # engine report names.
     key = f"{prefix}_{f.stem}"
     if data and isinstance(data[0], dict) and data[0].get("Filename"):
         tpl = data[0]["Filename"].replace("test/fixtures/templates/", "")
-        derived = tpl.replace("/", "_").replace(".yaml", "").replace(".json", "")
+        derived = tpl.replace("/", "_").replace(".yaml", "_yaml").replace(".yml", "_yml").replace(".json", "_json")
         if derived:
             key = derived
     results[key] = normalize_cfnlint_diags(data)
@@ -250,7 +253,7 @@ def load_cfnlint_inline_results():
         for scenario in local_ns.get("scenarios", []):
             filename = scenario.get("filename", "")
             rel = filename.replace("test/fixtures/templates/", "")
-            key = rel.replace("/", "_").replace(".yaml", "").replace(".json", "")
+            key = rel.replace("/", "_").replace(".yaml", "_yaml").replace(".yml", "_yml").replace(".json", "_json")
             results[key] = normalize_cfnlint_diags(scenario.get("results", []))
     except Exception:
         pass
@@ -297,15 +300,28 @@ def load_engine_results():
             rule_id = d.get("ruleId", "")
             severity = d.get("severity", "")
             severity = _ENGINE_SEV_MAP.get(severity, severity)
+            resource_id = d.get("resourceId", "")
+            resource_path = d.get("propertyPath", "")
+            # An Output is not a resource. cfn-lint anchors output diagnostics at
+            # "Outputs/<name>/..." with no resource_id; the engine records the
+            # output's logical name in resourceId for IDE navigation. Normalize the
+            # engine's form to cfn-lint's so the same output location compares
+            # equal: drop the resource_id and express the path the way cfn-lint's
+            # path normalization does ("Outputs.<name>....").
+            if resource_path.startswith("Outputs/"):
+                resource_path = resource_path.replace("/", ".")
+                resource_id = ""
+            elif resource_id and resource_path.startswith("Outputs."):
+                resource_id = ""
             diags.append({
                 "rule_id": rule_id,
                 "rule_description": d.get("ruleDescription", ""),
                 "rule_source": d.get("documentationUrl", ""),
                 "severity": severity,
                 "message": d.get("message", ""),
-                "resource_id": d.get("resourceId", ""),
+                "resource_id": resource_id,
                 "resource_type": d.get("resourceType", ""),
-                "resource_path": d.get("propertyPath", ""),
+                "resource_path": resource_path,
                 "line": d.get("startLine", 0),
                 "end_line": d.get("endLine", 0),
                 "category": d.get("category", ""),

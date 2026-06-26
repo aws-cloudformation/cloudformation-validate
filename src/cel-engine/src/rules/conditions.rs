@@ -129,13 +129,17 @@ fn eval_unreachable_if_branches(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Also check Output values for unreachable Fn::If branches
+    // Also check Output values for unreachable Fn::If branches. An output is not
+    // a resource, so anchor the diagnostic at the full "Outputs/<name>/Value"
+    // path (matching how output locations are addressed elsewhere) rather than a
+    // bare "Value" under the output's logical name.
     for (name, output) in &m.outputs {
         let base_assumptions: Vec<(String, bool)> = match &output.condition {
             Some(cond) => vec![(cond.clone(), true)],
             None => vec![],
         };
-        find_unreachable_branches(&mut out, m, name, &output.value, "Value", &base_assumptions);
+        let path_prefix = format!("Outputs/{}/Value", name);
+        find_unreachable_branches(&mut out, m, name, &output.value, &path_prefix, &base_assumptions);
     }
     out
 }

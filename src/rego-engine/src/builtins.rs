@@ -1464,11 +1464,14 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedMo
                         None => vec![],
                     };
                     let mut results = Vec::new();
+                    // An output is not a resource; anchor the diagnostic at the
+                    // full "Outputs/<name>/Value" path rather than a bare "Value".
+                    let path_prefix = format!("Outputs/{}/Value", output_name);
                     collect_unreachable_branches(
                         &model,
                         output_name,
                         &output.value,
-                        "Value",
+                        &path_prefix,
                         &base_assumptions,
                         &mut results,
                     );
