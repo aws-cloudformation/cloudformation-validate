@@ -392,7 +392,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Mapping key format validation
     {
         let key1_re = regex::Regex::new(r"^[a-zA-Z0-9.\-]+$").unwrap();
         let key2_re = regex::Regex::new(r"^[a-zA-Z0-9]+$").unwrap();
@@ -559,7 +558,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-            // Also check edges array
             if !referenced && let Some(edges) = input.get(FIELD_EDGES).and_then(|e| e.as_array()) {
                 for edge in edges {
                     if edge.get(FIELD_TARGET).and_then(|t| t.as_str()) == Some(pname.as_str()) {
@@ -568,7 +566,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-            // Check condition_param_refs
             if !referenced && let Some(refs) = input.get("conditionParamRefs").and_then(|r| r.as_array()) {
                 for r in refs {
                     if r.as_str() == Some(pname.as_str()) {
@@ -701,32 +698,30 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 for ga_ref in refs {
                     let resource = ga_ref.get("resource").and_then(|r| r.as_str()).unwrap_or("");
                     let attribute = ga_ref.get("attribute").and_then(|a| a.as_str()).unwrap_or("");
-                    if let Some(res) = m.resources.get(resource) {
-                        // Check return type via cached schema data
-                        if let Some(ret_type) =
+                    if let Some(res) = m.resources.get(resource)
+                        && let Some(ret_type) =
                             ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
-                            && ret_type != "string"
-                        {
-                            // An array-returning GetAtt in an output is consumed by
-                            // Fn::Select to extract a string element — the array
-                            // itself is never the output value, so it is not a
-                            // string-type violation. Only scalar non-string returns
-                            // (integer, boolean) are reported.
-                            if ret_type == "array" {
-                                continue;
-                            }
-                            out.push(make_resource_diagnostic(
-                                "F6101",
-                                &format!(
-                                    "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
-                                    name, resource, attribute, ret_type
-                                ),
-                                m,
-                                name,
-                                &format!("Outputs/{}/Value", name),
-                                None,
-                            ));
+                        && ret_type != "string"
+                    {
+                        // An array-returning GetAtt in an output is consumed by
+                        // Fn::Select to extract a string element — the array
+                        // itself is never the output value, so it is not a
+                        // string-type violation. Only scalar non-string returns
+                        // (integer, boolean) are reported.
+                        if ret_type == "array" {
+                            continue;
                         }
+                        out.push(make_resource_diagnostic(
+                            "F6101",
+                            &format!(
+                                "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
+                                name, resource, attribute, ret_type
+                            ),
+                            m,
+                            name,
+                            &format!("Outputs/{}/Value", name),
+                            None,
+                        ));
                     }
                 }
             }
@@ -1146,7 +1141,6 @@ mod tests {
 
     #[test]
     fn list_of_string_is_valid() {
-        // `List<String>` is a valid parameter Type.
         assert!(is_valid_parameter_type("List<String>"));
     }
 }

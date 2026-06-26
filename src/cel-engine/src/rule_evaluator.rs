@@ -664,8 +664,6 @@ mod tests {
     use serde_json::json;
     use template_model::resolver::{MapEntry, ResolvedValue};
 
-    // ── extract_has_prop / extract_not_has_prop ─────────────────────────
-
     #[test]
     fn extract_has_prop_valid() {
         assert_eq!(extract_has_prop("has_property(name, \"BucketName\")"), Some("BucketName"));

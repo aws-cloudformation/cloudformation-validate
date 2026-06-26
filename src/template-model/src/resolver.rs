@@ -2480,8 +2480,6 @@ mod tests {
         }
     }
 
-    // --- Task 5: FindInMap with Enum second key ---
-
     #[test]
     fn findinmap_concrete_first_key_enum_second_key_produces_enum() {
         let input = r#"{
@@ -2552,8 +2550,6 @@ mod tests {
         }
     }
 
-    // --- Task 6: Fn::Select with ResolvedValue::List ---
-
     #[test]
     fn select_from_list_with_mixed_items_returns_element() {
         // When the list contains a Ref (non-concrete), it becomes a List variant.
@@ -2590,8 +2586,6 @@ mod tests {
             other => panic!("Expected Dynamic out of bounds, got {:?}", other),
         }
     }
-
-    // --- Task 7: Fn::Equals/And/Or/Not resolution ---
 
     #[test]
     fn equals_two_concrete_strings_returns_true() {
@@ -2730,8 +2724,6 @@ mod tests {
         }
     }
 
-    // --- Task 8: Fn::Sub with mixed Enum + Reference ---
-
     #[test]
     fn sub_enum_plus_reference_produces_enum_with_dynamic_variants() {
         let input = r#"{
@@ -2759,8 +2751,6 @@ mod tests {
         }
     }
 
-    // --- Task 9: Fn::Join partial resolution ---
-
     #[test]
     fn join_list_with_mixed_concrete_and_reference_produces_partial_dynamic() {
         let input = r#"{
@@ -2779,8 +2769,6 @@ mod tests {
             other => panic!("Expected Dynamic with Join: prefix, got {:?}", other),
         }
     }
-
-    // --- Task 10: GetAZs with Enum, Cidr with Enum ---
 
     #[test]
     fn getazs_enum_region_produces_enum_of_az_arrays() {
@@ -2827,8 +2815,6 @@ mod tests {
             other => panic!("Expected Enum of CIDR arrays, got {:?}", other),
         }
     }
-
-    // --- Task 11: ToJsonString and Length propagation ---
 
     #[test]
     fn to_json_string_enum_produces_enum_of_strings() {
@@ -2883,8 +2869,6 @@ mod tests {
             other => panic!("Expected Concrete(3), got {:?}", other),
         }
     }
-
-    // --- Task 12: ForEach body evaluation ---
 
     #[test]
     fn foreach_concrete_collection_evaluates_body() {

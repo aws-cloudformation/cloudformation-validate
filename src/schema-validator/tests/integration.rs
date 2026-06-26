@@ -52,8 +52,6 @@ fn minimal_template_no_schema_errors() {
     assert!(schema_fatals.is_empty(), "unexpected schema fatals: {:?}", schema_fatals);
 }
 
-// ── Type mismatch ──────────────────────────────────────────────────
-
 #[test]
 fn type_mismatch_integer_for_string() {
     let diags = validate_fixture("bad/schema_type_mismatch.yaml");
@@ -81,8 +79,6 @@ fn type_mismatch_boolean_for_string() {
     );
 }
 
-// ── Enum violation ─────────────────────────────────────────────────
-
 #[test]
 fn enum_violation_invalid_access_control() {
     let diags = validate_fixture("bad/schema_enum_violation.yaml");
@@ -94,8 +90,6 @@ fn enum_violation_invalid_access_control() {
         enum_diags.iter().map(|d| &d.message).collect::<Vec<_>>()
     );
 }
-
-// ── Additional properties ──────────────────────────────────────────
 
 #[test]
 fn additional_properties_rejected() {
@@ -116,16 +110,12 @@ fn additional_properties_typo_suggestion() {
     );
 }
 
-// ── Numeric bounds ─────────────────────────────────────────────────
-
 #[test]
 fn numeric_bounds_exceeded() {
     let diags = validate_fixture("bad/schema_numeric_bounds.yaml");
     let f3034 = diags_for(&diags, "F3034");
     assert!(!f3034.is_empty(), "expected F3034 for numeric bounds violation");
 }
-
-// ── String length ──────────────────────────────────────────────────
 
 #[test]
 fn string_length_too_short() {
@@ -135,8 +125,6 @@ fn string_length_too_short() {
         assert!(f3033.iter().any(|d| { d.property_path.as_deref().is_some_and(|p| p.contains("FunctionName")) }));
     }
 }
-
-// ── Subnet ID format validation ────────────────────────────────────
 
 #[test]
 fn format_violation_bad_subnet_id() {
@@ -148,8 +136,6 @@ fn format_violation_bad_subnet_id() {
         e1154.iter().map(|d| (&d.property_path, &d.message)).collect::<Vec<_>>()
     );
 }
-
-// ── Conditional type mismatch ───────────────────────────────────────
 
 #[test]
 fn conditional_type_mismatch_with_scenario() {
@@ -166,15 +152,11 @@ fn conditional_type_mismatch_with_scenario() {
     assert!(with_scenario.is_some(), "expected condition_scenario on conditional diagnostic");
 }
 
-// ── Unique items ───────────────────────────────────────────────────
-
 #[test]
 fn unique_items_violation() {
     let diags = validate_fixture("bad/unique_items.yaml");
     assert!(has_rule(&diags, "F3002"), "expected F3002 for unknown AvailabilityZones property");
 }
-
-// ── Unknown resource type ───────────────────────────────────────────
 
 #[test]
 fn unknown_resource_type_no_crash() {
@@ -182,15 +164,11 @@ fn unknown_resource_type_no_crash() {
     assert!(has_rule(&diags, "F3002"), "expected F3002 for FakeProperty on S3 Bucket");
 }
 
-// ── Lifecycle: deprecated resource type ─────────────────────────────
-
 #[test]
 fn deprecated_resource_type_flagged() {
     let diags = validate_fixture("bad/deprecated_type.yaml");
     let _ = diags;
 }
-
-// ── Integration: generic bad template ───────────────────────────────
 
 #[test]
 fn generic_bad_template_produces_multiple_schema_violations() {
@@ -198,8 +176,6 @@ fn generic_bad_template_produces_multiple_schema_violations() {
     let schema_diags: Vec<_> = diags.iter().filter(|d| d.phase == Some(diagnostics::Phase::Schema)).collect();
     assert!(schema_diags.len() >= 3, "expected 3+ schema diagnostics, got {}", schema_diags.len());
 }
-
-// ── Integration: format validation ──────────────────────────────────
 
 #[test]
 fn format_validation_with_refs() {
@@ -212,8 +188,6 @@ fn format_validation_with_refs() {
         assert!(!d.message.contains("Ref to 'Vpc'"), "Ref to VPC resource should be format-compatible: {}", d.message);
     }
 }
-
-// ── Integration: ref type checking ──────────────────────────────────
 
 // A reference whose target resource produces the wrong destination ARN format
 // is a semantic, cross-resource concern owned by the rule engine, not the schema
@@ -237,8 +211,6 @@ fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
     );
 }
 
-// ── Integration: getatt type checking ───────────────────────────────
-
 #[test]
 fn getatt_type_mismatch_detected() {
     let diags = validate_fixture("integration/getatt-types.yaml");
@@ -253,8 +225,6 @@ fn getatt_type_mismatch_detected() {
         );
     }
 }
-
-// ── Enrich context ──────────────────────────────────────────────────
 
 #[test]
 fn enrich_context_adds_documentation_url() {
@@ -284,8 +254,6 @@ fn enrich_context_adds_allowed_values_for_enum() {
         );
     }
 }
-
-// ── Lifecycle rules ─────────────────────────────────────────────────
 
 #[test]
 fn lifecycle_e3710_shutdown_service() {
@@ -326,8 +294,6 @@ fn lifecycle_w2531_deprecated_runtime() {
     assert!(!w2531.is_empty(), "expected W2531 for deprecated runtime nodejs16.x");
     assert!(w2531.iter().any(|d| d.message.contains("nodejs16.x")));
 }
-
-// ── Structural constraints ──────────────────────────────────────────
 
 #[test]
 fn structural_f3020_dependent_excluded() {
@@ -414,8 +380,6 @@ fn structural_f3021_dependent_required() {
     assert!(!f3021.is_empty(), "expected F3021 for ResourceId without ScalableDimension/ServiceNamespace");
 }
 
-// ── Property constraints ────────────────────────────────────────────
-
 #[test]
 fn property_f3031_pattern_violation() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
@@ -466,8 +430,6 @@ fn property_w3041_write_only_in_output() {
     assert!(w3041[0].message.contains("Write-only") || w3041[0].message.contains("write-only"));
 }
 
-// ── Region availability ────────────────────────────────────────────
-
 #[test]
 fn region_availability_e3037() {
     let full = format!("{}/good/minimal.yaml", TEMPLATES);
@@ -489,8 +451,6 @@ fn region_availability_e3037() {
     );
 }
 
-// ── Array bounds (maxItems) ────────────────────────────────────────
-
 #[test]
 fn array_bounds_f3032_max_items() {
     let diags = validate_fixture("bad/resources_iam_instanceprofile_roles.yaml");
@@ -499,8 +459,6 @@ fn array_bounds_f3032_max_items() {
     assert!(f3032[0].message.contains("maximum"), "expected max items message: {}", f3032[0].message);
 }
 
-// ── uniqueItems ────────────────────────────────────────────────────
-
 #[test]
 fn unique_items_f3037_duplicate_roles() {
     let diags = validate_fixture("bad/schema_unique_items.yaml");
@@ -508,8 +466,6 @@ fn unique_items_f3037_duplicate_roles() {
     assert!(!f3037.is_empty(), "expected F3037 for duplicate roles in InstanceProfile");
     assert!(f3037[0].message.contains("not unique"));
 }
-
-// ── Type mismatch (array where object expected) ────────────────────
 
 #[test]
 fn type_mismatch_array_for_object() {
@@ -521,8 +477,6 @@ fn type_mismatch_array_for_object() {
     assert!(!type_diags.is_empty(), "expected F3012 for array where object expected on UserPoolTags");
 }
 
-// ── oneOf (zero matches) ───────────────────────────────────────────
-
 #[test]
 fn composition_f3018_one_of_zero_matches() {
     let diags = validate_fixture("bad/schema_composition.yaml");
@@ -533,8 +487,6 @@ fn composition_f3018_one_of_zero_matches() {
     assert!(!f3018.is_empty(), "expected F3018 for ImageBuilder missing both ImageName and ImageArn");
 }
 
-// ── anyOf (no match) ───────────────────────────────────────────────
-
 #[test]
 fn composition_f3017_any_of_no_match() {
     let diags = validate_fixture("bad/schema_composition.yaml");
@@ -544,8 +496,6 @@ fn composition_f3017_any_of_no_match() {
         .collect();
     assert!(!f3017.is_empty(), "expected F3017 for Volume missing all required AZ/Size/Snapshot combos");
 }
-
-// ── Extension rules (cfnGather) ────────────────────────────────────
 
 #[test]
 fn extension_cfn_gather_no_duplicate_numeric_constraint() {

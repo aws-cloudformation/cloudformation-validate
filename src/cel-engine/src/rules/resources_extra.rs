@@ -4107,8 +4107,6 @@ fn check_dynamic_ref_spaces(
 mod tests {
     use super::*;
 
-    // ── parse_ipv4_cidr ─────────────────────────────────────────────────
-
     #[test]
     fn parse_cidr_valid() {
         let (addr, prefix) = parse_ipv4_cidr("10.0.0.0/16").unwrap();
@@ -4147,8 +4145,6 @@ mod tests {
         assert_eq!(parse_ipv4_cidr("10.0.0/16"), None, "incomplete IP should return None");
         assert_eq!(parse_ipv4_cidr(""), None, "empty string should return None");
     }
-
-    // ── is_subnet_of ────────────────────────────────────────────────────
 
     #[test]
     fn subnet_of_true() {

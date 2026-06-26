@@ -121,8 +121,6 @@ fn fixture_both_intrinsic_forms() {
     assert_eq!(model.outputs.len(), 1);
 }
 
-// ── Parser: JSON/YAML auto-detection and edge cases ─────────────────────
-
 #[test]
 fn parser_auto_detects_json() {
     let input = r#"{"Resources":{"R":{"Type":"T"}}}"#;
@@ -312,8 +310,6 @@ fn parser_span_index_populated() {
     assert!(model.span_index.contains_key("Resources/MyBucket/Properties/BucketName"));
 }
 
-// ── SAM: globals merging, implicit resources ────────────────────────────
-
 #[test]
 fn sam_globals_merged_into_function() {
     let model = model_from_fixture("good/transform_serverless_globals.yaml");
@@ -342,8 +338,6 @@ fn sam_globals_param_refs_collected() {
     assert_eq!(model.globals_param_refs.len(), 0, "expected no param refs in globals for this template");
 }
 
-// ── Dynamic references ({{resolve:...}}) ────────────────────────────────
-
 #[test]
 fn dynamic_reference_resolves_to_dynamic() {
     let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"{{resolve:ssm:my-param}}"}}}}"#;
@@ -356,8 +350,6 @@ fn dynamic_reference_resolves_to_dynamic() {
     }
 }
 
-// ── Sub with GetAtt (implicit in ${Resource.Attr}) ──────────────────────
-
 #[test]
 fn sub_with_implicit_getatt() {
     let input =
@@ -366,8 +358,6 @@ fn sub_with_implicit_getatt() {
     // Should produce a Dynamic (can't fully resolve GetAtt) but should record the edge
     assert!(model.graph.depends_on("R", "Other"));
 }
-
-// ── Condition stack edges ───────────────────────────────────────────────
 
 #[test]
 fn fn_if_edges_have_condition_context() {
@@ -397,8 +387,6 @@ Resources:
     assert!(b_edge.condition_context.as_ref().unwrap().contains("!C"));
 }
 
-// ── resolve_scenarios with nested conditionals ──────────────────────────
-
 #[test]
 fn resolve_scenarios_nested_conditionals() {
     let input = r#"
@@ -425,8 +413,6 @@ Resources:
     // Should produce 3 scenarios: A=true,B=true→1; A=true,B=false→2; A=false→3
     assert_eq!(scenarios.len(), 3, "expected 3 scenarios, got {:?}", scenarios);
 }
-
-// ── source_location / SpanProvider ──────────────────────────────────────
 
 #[test]
 fn source_location_returns_span() {
@@ -542,8 +528,6 @@ fn verify_diagnostic_json_contract() {
         }
     }
 }
-
-// ── Rules-section ref edges ─────────────────────────────────────────────
 
 /// CDK-synthesized bootstrap-version assertion: `Fn::Not` wrapping
 /// `Fn::Contains` references the `BootstrapVersion` parameter. The
