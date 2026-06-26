@@ -868,10 +868,7 @@ fn parse_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node
 /// Collect parameter names that are referenced (via `Ref`/`Fn::Sub`) from within
 /// another parameter's definition. These references still count as usage for the
 /// unused-parameter check even though they originate in the Parameters section.
-fn collect_parameter_definition_refs(
-    ir: &TemplateIR,
-    parameters: &HashMap<String, ParameterInfo>,
-) -> HashSet<String> {
+fn collect_parameter_definition_refs(ir: &TemplateIR, parameters: &HashMap<String, ParameterInfo>) -> HashSet<String> {
     let mut referenced = HashSet::new();
     if ir.parameters == NULL_REF {
         return referenced;
@@ -1031,7 +1028,9 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
                 .collect(),
             redundant_subs: resolver.redundant_subs.remove(name).unwrap_or_default(),
             empty_joins: resolver.empty_joins.remove(name).unwrap_or_default(),
-            hardcoded_partition_arns: resolver.hardcoded_partition_arns.remove(name).unwrap_or_default(),
+            hardcoded_partition_arns: collapse_list_sibling_arn_paths(
+                resolver.hardcoded_partition_arns.remove(name).unwrap_or_default(),
+            ),
             foreach_expansions: resolver
                 .foreach_expansions
                 .remove(name)
@@ -1064,6 +1063,48 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
             condition_refs,
         },
     }
+}
+
+/// Collapses hardcoded-partition ARN paths that are list siblings sharing one
+/// source location into a single path at the lowest index.
+///
+/// When several `Fn::Sub` ARNs are list elements of the same property (e.g.
+/// `Principal.AWS.0.Fn::Sub`, `Principal.AWS.1.Fn::Sub`), they map to the same
+/// source span — the list's location — so they are one observable finding, not
+/// several. Paths whose only difference is the list index immediately before the
+/// trailing `.Fn::Sub` segment are therefore folded to the smallest index.
+fn collapse_list_sibling_arn_paths(paths: Vec<String>) -> Vec<String> {
+    // Group key: the path with the final list index (the segment just before
+    // `.Fn::Sub`) blanked out. Tracks the minimum index seen per group so the
+    // surviving path reports the first sibling.
+    let mut min_index: HashMap<String, usize> = HashMap::new();
+    let mut ungrouped: Vec<String> = Vec::new();
+    for path in &paths {
+        match split_trailing_list_index(path) {
+            Some((prefix, idx, suffix)) => {
+                let key = format!("{}\u{0}{}", prefix, suffix);
+                min_index.entry(key).and_modify(|m| *m = (*m).min(idx)).or_insert(idx);
+            }
+            None => ungrouped.push(path.clone()),
+        }
+    }
+    let mut out = ungrouped;
+    for (key, idx) in min_index {
+        let (prefix, suffix) = key.split_once('\u{0}').unwrap_or((key.as_str(), ""));
+        out.push(format!("{}{}.{}", prefix, idx, suffix));
+    }
+    out.sort();
+    out
+}
+
+/// Splits a path like `a.b.2.Fn::Sub` into (`"a.b."`, `2`, `"Fn::Sub"`) when a
+/// numeric list index directly precedes the trailing `.Fn::Sub` segment.
+fn split_trailing_list_index(path: &str) -> Option<(String, usize, String)> {
+    let suffix = "Fn::Sub";
+    let stem = path.strip_suffix(suffix)?.strip_suffix('.')?;
+    let (head, last) = stem.rsplit_once('.')?;
+    let idx: usize = last.parse().ok()?;
+    Some((format!("{}.", head), idx, suffix.to_string()))
 }
 
 fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> ResolvedOutput {
@@ -1624,5 +1665,39 @@ Resources:
         let r = model.resource("R").unwrap();
         assert!(!r.diagnostics.invalid_refs.is_empty());
         assert!(r.diagnostics.invalid_refs.iter().any(|s| s.value == "NonExistent"));
+    }
+
+    #[test]
+    fn collapse_arn_paths_folds_list_siblings_to_lowest_index() {
+        let input = vec![
+            "Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub".to_string(),
+            "Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub".to_string(),
+        ];
+        let out = collapse_list_sibling_arn_paths(input);
+        assert_eq!(out, vec!["Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub".to_string()]);
+    }
+
+    #[test]
+    fn collapse_arn_paths_keeps_distinct_parent_lists() {
+        // Differing index is the Statement index, not the one before Fn::Sub, so
+        // these are separate source locations and must both survive.
+        let input = vec![
+            "Properties.PolicyDocument.Statement.0.Resource.Fn::Sub".to_string(),
+            "Properties.PolicyDocument.Statement.1.Resource.Fn::Sub".to_string(),
+        ];
+        let mut out = collapse_list_sibling_arn_paths(input.clone());
+        out.sort();
+        assert_eq!(out, input);
+    }
+
+    #[test]
+    fn collapse_arn_paths_leaves_scalar_paths_untouched() {
+        let input = vec![
+            "Properties.KeyPolicy.Statement.0.Principal.AWS.Fn::Sub".to_string(),
+            "Properties.KeyPolicy.Statement.1.Principal.AWS.Fn::Sub".to_string(),
+        ];
+        let mut out = collapse_list_sibling_arn_paths(input.clone());
+        out.sort();
+        assert_eq!(out, input);
     }
 }

@@ -37,7 +37,12 @@ pub(crate) fn make_parse_diagnostic(rule_id: &str, message: String, span: Source
 /// a dotted property path so it lands at the same location consumers expect;
 /// paths outside `Resources/<id>/Properties/...` (e.g. `Conditions/...`) keep
 /// the bare parse diagnostic.
-pub(crate) fn make_parse_diagnostic_at(rule_id: &str, message: String, span: SourceSpan, build_path: &str) -> Diagnostic {
+pub(crate) fn make_parse_diagnostic_at(
+    rule_id: &str,
+    message: String,
+    span: SourceSpan,
+    build_path: &str,
+) -> Diagnostic {
     let mut builder = RegisteredDiagnostic::new(rule_id, message).location(span).phase(Phase::Parse);
     let segments: Vec<&str> = build_path.split('/').collect();
     if segments.len() >= 4 && segments[0] == "Resources" && segments[2] == "Properties" {

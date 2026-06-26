@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 23:08:05  
+> Generated: 2026-06-26 00:09:37  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,12 +23,12 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 1694 |
-| False Positives (engine bugs) | 3 |
+| False Positives (engine bugs) | 0 |
 | Engine Extra (correct, cfn-lint gap) | 5313 |
 | False Negatives (engine misses) | 272 |
-| Precision | 99.82% |
+| Precision | 100.00% |
 | Recall | 86.16% |
-| F1 | 92.49% |
+| F1 | 92.57% |
 | Unique rules detected | 194 |
 | Perfect templates | 311/400 |
 
@@ -36,34 +36,34 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 348 | 2 | 58 | 96 | 99.43% | 78.38% |
+| Fatal | 348 | 0 | 58 | 96 | 100.00% | 78.38% |
 | Error | 300 | 0 | 3 | 111 | 100.00% | 72.99% |
 | Warning | 693 | 0 | 351 | 57 | 100.00% | 92.40% |
-| Info | 353 | 1 | 4901 | 8 | 99.72% | 97.78% |
+| Info | 353 | 0 | 4901 | 8 | 100.00% | 97.78% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 18431.3495 ms |
-| Throughput | 122.89 validations/sec |
+| Total wall time | 18201.3234 ms |
+| Throughput | 124.44 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 65.2485 ms |
-| Engine init (max) | 65.6843 ms |
-| Schema init (p99) | 78.9689 ms |
-| Schema init (max) | 80.6454 ms |
+| Engine init (p99) | 63.3823 ms |
+| Engine init (max) | 63.7708 ms |
+| Schema init (p99) | 65.7681 ms |
+| Schema init (max) | 66.8787 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0021 | 0.1875 | 0.0433 | 0.5891 | 0.7969 | 1.4513 | 2.4643 |
-| Schema Validate | 0.0000 | 2.3902 | 0.5629 | 6.2687 | 9.7651 | 22.4280 | 53.0323 |
-| Rule Evaluation | 0.9458 | 5.0712 | 2.2354 | 12.2043 | 18.2272 | 29.9541 | 89.9308 |
-| Diagnostic Finalize | 0.0002 | 0.0260 | 0.0039 | 0.0822 | 0.1246 | 0.2973 | 0.5559 |
-| Engine Internal | 0.9550 | 7.7183 | 2.9971 | 19.4915 | 29.1509 | 53.5279 | 113.8699 |
-| Wall Clock | 0.9551 | 7.7185 | 2.9981 | 19.4917 | 29.1513 | 53.5284 | 113.8705 |
+| Model Build | 0.0017 | 0.1851 | 0.0429 | 0.5765 | 0.7977 | 1.4449 | 2.4744 |
+| Schema Validate | 0.0000 | 2.3420 | 0.5493 | 6.0790 | 9.7298 | 22.1648 | 52.0371 |
+| Rule Evaluation | 0.9458 | 4.9856 | 2.1747 | 11.9858 | 18.0767 | 29.7800 | 89.6537 |
+| Diagnostic Finalize | 0.0002 | 0.0246 | 0.0033 | 0.0779 | 0.1204 | 0.3217 | 0.5438 |
+| Engine Internal | 0.9533 | 7.5732 | 2.8710 | 19.0054 | 29.7918 | 52.1522 | 110.9251 |
+| Wall Clock | 0.9535 | 7.5734 | 2.8711 | 19.0056 | 29.7922 | 52.1525 | 110.9257 |
 
 ## False Negatives — 272 missed findings across 68 rules
 
@@ -817,21 +817,9 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3719** `AuroraDB` → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
   > 'BackupRetentionPeriod' is not allowed when 'DBClusterIdentifier' is specified. Set backup retention period on the DB cluster instead.
 
-## False Positives — 3 extra findings across 2 rules
+## False Positives — 0 extra findings across 0 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
-
-### F3003 — 2 extra — Required Resource properties are missing
-
-- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value_yaml`
-  > 'TargetOriginId' is a required property
-- **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value_yaml`
-  > 'ViewerProtocolPolicy' is a required property
-
-### I3042 — 1 extra — ARNs should use correctly placed Pseudo Parameters
-
-- **I3042** `myKms` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub` L154 in `bad_resources_circular_dependency_yaml`
-  > ARN in Resource myKms contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
 
 ## Engine Extra — 5313 correct findings across 36 rules
 
@@ -11603,12 +11591,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1001` ×2, `F3014` ×2, `F3003`, `W1028`, `W3698`
 - EE: `I9001` ×8, `I9040` ×7
 
-### `bad_resources_circular_dependency_yaml` — 7 mismatches (24 TP, 1 FP, 32 EE, 6 FN)
-
-- FN: `E3048` ×3, `W3037` ×2, `F1018`
-- FP: `I3042`
-- EE: `I9001` ×18, `I9040` ×9, `W9003` ×5
-
 ### `bad_schema_composition_yaml` — 7 mismatches (4 TP, 0 FP, 3 EE, 7 FN)
 
 - FN: `F3003` ×7
@@ -11628,6 +11610,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E2001` ×4, `W2001`, `W2002`
 - EE: `I9040`
+
+### `bad_resources_circular_dependency_yaml` — 6 mismatches (24 TP, 0 FP, 32 EE, 6 FN)
+
+- FN: `E3048` ×3, `W3037` ×2, `F1018`
+- EE: `I9001` ×18, `I9040` ×9, `W9003` ×5
 
 ### `bad_resources_deletionpolicy_yaml` — 6 mismatches (15 TP, 0 FP, 8 EE, 6 FN)
 
@@ -11692,12 +11679,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `I3011` ×4
 - EE: `I9040` ×2
-
-### `integration_ref-no-value_yaml` — 4 mismatches (7 TP, 2 FP, 4 EE, 2 FN)
-
-- FN: `F3012` ×2
-- FP: `F3003` ×2
-- EE: `I9040` ×3, `W9009`
 
 ### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 26 EE, 4 FN)
 
@@ -11840,6 +11821,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `I3011` ×2
 - EE: `I9040` ×2
+
+### `integration_ref-no-value_yaml` — 2 mismatches (7 TP, 0 FP, 4 EE, 2 FN)
+
+- FN: `F3012` ×2
+- EE: `I9040` ×3, `W9009`
 
 ### `issues_sam_w_conditions_yaml` — 2 mismatches (8 TP, 0 FP, 27 EE, 2 FN)
 
@@ -12050,6 +12036,4 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 2 | 66.67% | F3003 |
-| Extra informational findings | 1 | 33.33% | I3042 |
 

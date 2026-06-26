@@ -404,8 +404,7 @@ fn validate_resource(
     // `Properties: !Ref AWS::NoValue`), the resolved view is empty and every
     // required property would look missing. The effective properties are not
     // known statically, so skip the key/required-property checks.
-    let key_scenarios =
-        if res.properties_dynamic { Vec::new() } else { resource_property_key_scenarios(m, rid, res) };
+    let key_scenarios = if res.properties_dynamic { Vec::new() } else { resource_property_key_scenarios(m, rid, res) };
     for (actual_keys, conds) in &key_scenarios {
         let scenario = if conds.is_empty() { None } else { Some(conds) };
         validate_object_keys_inner(
@@ -880,7 +879,9 @@ fn validate_prop(
     // Type check — coerce before rejecting since string↔number, string↔boolean,
     // bool→string, number→string are silently coerced at deploy time.
     // Successful coercion → Warn; failed coercion → Fatal.
-    if let Some(ref pt) = schema.prop_type && !is_type_exempt {
+    if let Some(ref pt) = schema.prop_type
+        && !is_type_exempt
+    {
         let is_packaging_path = PACKAGING_PROPERTY_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
         // Skip type checks for array elements whose parent array or the element itself
         // came from an intrinsic function — those are validated by function-specific rules.
@@ -1238,14 +1239,18 @@ fn validate_prop(
                 prop_path,
                 visited,
             );
-        } else if !schema.required.is_empty() {
-            // Empty concrete object scenario (e.g. `Fn::If: [C, NoValue, {}]`) —
-            // still validate required properties per-scenario. An empty object
-            // has no keys but required properties must still be present.
-            // Uses `resolve_scenarios` (not _json) to bypass SAT filtering:
-            // pseudo-parameter concretization (e.g. AWS::Region default) can
-            // mark an Fn::If branch as unreachable, but both branches are
-            // evaluated at deploy time with the real parameter values.
+        } else if !schema.required.is_empty()
+            && !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. }))
+        {
+            // Empty concrete object scenario (e.g. a literal `{}`) — still
+            // validate required properties. An empty object has no keys but
+            // required properties must still be present.
+            //
+            // The `Conditional` guard skips properties that are an `Fn::If`:
+            // there the branch-aware required-property rule owns the check and
+            // anchors the diagnostic at the branch path (`<prop>.Fn::If.<idx>`),
+            // so reporting here too would duplicate that finding at the
+            // un-qualified property path.
             for (val, _conds) in m.resolve_scenarios(rid, prop_path) {
                 if let ResolvedValue::Concrete { value } = &val
                     && let Some(obj) = value.as_object()
@@ -2067,8 +2072,7 @@ fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<Semant
                     if let Some(sub_name) = sub_req.as_str() {
                         let sub_path = format!("{}.{}", prop_path, sub_name);
                         let sub_scenarios = model.resolve_scenarios_json(rid, &sub_path);
-                        let sub_exists =
-                            sub_scenarios.iter().any(|(v, c)| is_satisfiable(model, c) && !v.is_null());
+                        let sub_exists = sub_scenarios.iter().any(|(v, c)| is_satisfiable(model, c) && !v.is_null());
                         if !sub_exists {
                             return false;
                         }

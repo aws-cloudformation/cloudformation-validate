@@ -1692,9 +1692,7 @@ fn node_matches_param_type(node: &Node, expected: &str) -> bool {
         ("integer", Node::Int(_)) => true,
         ("number", Node::Int(_) | Node::Float(_)) => true,
         ("boolean", Node::Bool(_)) => true,
-        (_, Node::String(s)) => {
-            crate::coercion::cfn_type_compatible(&serde_json::Value::String(s.clone()), expected)
-        }
+        (_, Node::String(s)) => crate::coercion::cfn_type_compatible(&serde_json::Value::String(s.clone()), expected),
         _ => false,
     }
 }
