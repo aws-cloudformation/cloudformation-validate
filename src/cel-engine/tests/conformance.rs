@@ -72,8 +72,8 @@ Resources:
       BucketName: !Ref NonExistent
 "#,
         );
-        // A Ref to a completely unknown target is recorded as an invalid ref
-        // and surfaced as F1020 ("Ref/GetAtt target must exist").
+        // A Ref to a completely unknown target is recorded as an invalid ref and
+        // surfaced as a "Ref/GetAtt target must exist" diagnostic.
         assert!(ids.contains(&"F1020".to_string()), "Expected F1020 for Ref to unknown target, got: {:?}", ids);
     }
 
@@ -442,9 +442,9 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_ref() {
         let ids = validate_file("bad/refs.yaml");
-        // Refs to unknown targets are recorded as invalid refs and surfaced as
-        // F1020. Fn::Sub variables resolve through the same path but are not
-        // recorded as invalid refs, so they do not trigger F1020 here.
+        // Refs to unknown targets are recorded as invalid refs and surfaced as the
+        // invalid-reference diagnostic. Fn::Sub variables resolve through the same
+        // path but are not recorded as invalid refs, so they do not trigger it here.
         assert!(has_rule(&ids, "F1020"), "Expected F1020 for refs to unknown targets, got: {:?}", ids);
     }
 
@@ -457,8 +457,9 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_select() {
         let ids = validate_file("bad/functions_select.yaml");
-        // Parser no longer emits F1101 for malformed Select — it falls through
-        // to a plain map node. W1102 fires for non-integer index in valid 2-element Select.
+        // The parser no longer emits a structural error for a malformed Select —
+        // it falls through to a plain map node. A type warning fires instead for a
+        // non-integer index in a valid 2-element Select.
         let has_select_warning = ids.iter().any(|id| id == "W1102");
         assert!(has_select_warning, "Expected W1102 Select type warning, got: {:?}", ids);
     }

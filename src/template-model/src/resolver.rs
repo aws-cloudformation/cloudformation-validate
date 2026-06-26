@@ -805,8 +805,8 @@ impl<'a> Resolver<'a> {
             return resolved;
         }
         // The unresolved target is recorded in `invalid_refs`; the engines
-        // surface it as the F1020 diagnostic. This is an expected outcome for
-        // an invalid template, so log it at debug rather than warn.
+        // surface it as the invalid-reference diagnostic. This is an expected
+        // outcome for an invalid template, so log it at debug rather than warn.
         debug!("Ref '{}' does not reference a valid target", target);
         if let Some(ref rid) = self.current_resource {
             self.invalid_refs.entry(rid.clone()).or_default().push((self.current_path.clone(), target.to_string()));
@@ -1222,7 +1222,7 @@ impl<'a> Resolver<'a> {
             // already recorded a `Ref` edge — CloudFormation treats a bare
             // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
             // edge would double-count the dependency (surfacing a spurious second
-            // W3005 finding under a `Sub` label that misrepresents the edge).
+            // dependency finding under a `Sub` label that misrepresents the edge).
             let resolved = self
                 .lookup_ref(var, span)
                 .unwrap_or_else(|| ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) });

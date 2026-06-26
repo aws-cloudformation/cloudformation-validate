@@ -146,8 +146,8 @@ pub struct SemanticModel {
     /// (e.g. a Default of `!Ref OtherParam`); these still count as usage.
     pub params_referenced_in_definitions: HashSet<String>,
     /// True when any `Fn::FindInMap` uses a non-literal map name, which disables
-    /// the unused-mapping check (W7001) because usage can no longer be attributed
-    /// to a specific mapping.
+    /// the unused-mapping check because usage can no longer be attributed to a
+    /// specific mapping.
     pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
@@ -456,8 +456,8 @@ impl SemanticModel {
                 // rejected by the parser and left as a plain `Fn::If` map node
                 // rather than an `IntrinsicFn::If`. Its condition is still
                 // referenced, so collect the name here too — otherwise the
-                // unused-condition check (W8001) would wrongly flag a condition
-                // that the template does reference.
+                // unused-condition check would wrongly flag a condition that the
+                // template does reference.
                 Node::Map(entries) if entries.len() == 1 && entries[0].0 == FN_IF => {
                     if let Some(first) = ir.arena.as_list(entries[0].1).and_then(|items| items.first())
                         && let Some(cond_name) = ir.arena.as_str(*first)
@@ -1545,7 +1545,7 @@ Resources:
     /// caller pinned the corresponding field — never for region-derived
     /// defaults — otherwise `Fn::Equals[Ref AWS::Partition, "aws"]` would be
     /// falsely deterministic and `find_unreachable_branches` would emit
-    /// false-positive W1028 diagnostics.
+    /// false-positive unreachable-branch diagnostics.
     #[test]
     fn fixed_value_returns_none_for_unset_pseudo_parameters() {
         let overrides = PseudoParameterOverrides::default();

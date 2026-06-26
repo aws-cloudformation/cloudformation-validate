@@ -331,8 +331,9 @@ impl JsonBuilder {
                     }
                 };
                 if arr.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1021) can report with proper resource context.
+                    // Wrong element count — fall through to a plain map so the
+                    // downstream Fn::Join structure rule can report with proper
+                    // resource context.
                     return None;
                 }
                 if !arr[0].is_string() && !arr[0].is_object() {
@@ -354,14 +355,16 @@ impl JsonBuilder {
                             // Value is an intrinsic — cannot validate statically.
                             return None;
                         }
-                        // Non-array value — fall through to plain map so downstream
-                        // rules (E1017) can report with proper resource context.
+                        // Non-array value — fall through to a plain map so the
+                        // downstream Fn::Select structure rule can report with
+                        // proper resource context.
                         return None;
                     }
                 };
                 if arr.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1017) can report with proper resource context.
+                    // Wrong element count — fall through to a plain map so the
+                    // downstream Fn::Select structure rule can report with proper
+                    // resource context.
                     return None;
                 }
                 if !arr[0].is_number() && !arr[0].is_object() {
@@ -1342,8 +1345,8 @@ mod tests {
         assert!(f0014.is_empty(), "Expected no F0014 for Fn::And of rule-section booleans, got: {:?}", f0014);
     }
 
-    /// Genuinely-invalid input still produces F0014 — bare strings and
-    /// non-boolean-producing intrinsics like Fn::Sub remain rejected.
+    /// Genuinely-invalid input still produces the boolean-expression error — bare
+    /// strings and non-boolean-producing intrinsics like Fn::Sub remain rejected.
     #[test]
     fn fn_not_with_string_argument_still_produces_f0014() {
         let input = r#"{

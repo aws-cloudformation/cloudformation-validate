@@ -591,8 +591,9 @@ impl YamlBuilder {
                     return None;
                 };
                 if a.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1021) can report with proper resource context.
+                    // Wrong element count — fall through to a plain map so the
+                    // downstream Fn::Join structure rule can report with proper
+                    // resource context.
                     return None;
                 }
                 if !matches!(&a[0], Yaml::String(_) | Yaml::Hash(_)) {
@@ -612,13 +613,15 @@ impl YamlBuilder {
                         // Value is an intrinsic — cannot validate statically.
                         return None;
                     }
-                    // Non-array value (e.g. string) — fall through to plain map so
-                    // downstream rules (E1017) can report with proper resource context.
+                    // Non-array value (e.g. string) — fall through to a plain map
+                    // so the downstream Fn::Select structure rule can report with
+                    // proper resource context.
                     return None;
                 };
                 if a.len() != 2 {
-                    // Wrong element count — fall through to plain map so downstream
-                    // rules (E1017) can report with proper resource context.
+                    // Wrong element count — fall through to a plain map so the
+                    // downstream Fn::Select structure rule can report with proper
+                    // resource context.
                     return None;
                 }
                 if !matches!(&a[0], Yaml::Integer(_) | Yaml::Hash(_)) {

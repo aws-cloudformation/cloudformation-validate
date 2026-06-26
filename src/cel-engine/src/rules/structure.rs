@@ -626,10 +626,10 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // A FindInMap with a non-literal map name (e.g. a nested FindInMap) makes it
     // impossible to attribute usage to a specific mapping, so the unused-mapping
-    // check (W7001) is disabled entirely. Otherwise a mapping
-    // is "used" if its name appears as the literal first argument of any
-    // Fn::FindInMap anywhere in the template (resources, outputs, conditions,
-    // ForEach bodies), which `findInMapNames` collects template-wide.
+    // check is disabled entirely. Otherwise a mapping is "used" if its name
+    // appears as the literal first argument of any Fn::FindInMap anywhere in the
+    // template (resources, outputs, conditions, ForEach bodies), which
+    // `findInMapNames` collects template-wide.
     let dynamic_map_name = input.get("hasDynamicFindinmapName").and_then(|v| v.as_bool()).unwrap_or(false);
     if !dynamic_map_name && let Some(mappings) = input.get(FIELD_MAPPINGS).and_then(|m| m.as_object()) {
         let used_names: HashSet<&str> = input

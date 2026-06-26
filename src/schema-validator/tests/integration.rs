@@ -364,7 +364,8 @@ fn structural_f3014_required_xor() {
 #[test]
 fn f3014_excludes_novalue_from_exclusive_count() {
     // CidrIp is set to AWS::NoValue, leaving exactly one of the mutually
-    // exclusive source properties (SourceSecurityGroupId), so no F3014.
+    // exclusive source properties (SourceSecurityGroupId), so the
+    // mutual-exclusivity check must not fire.
     let diags = validate_fixture("good/resources/properties/exclusive.yaml");
     let f3014: Vec<_> = diags
         .iter()
@@ -428,8 +429,8 @@ fn property_f3031_pattern_violation() {
 
 #[test]
 fn read_only_property_not_flagged() {
-    // E3040 (read-only property specified) was removed: cfn-lint defines the rule
-    // but never emits it on real templates, so firing it produced false positives.
+    // The read-only-property check was removed: it never fires on real templates
+    // but firing it produced false positives, so it must not be emitted.
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
     let e3040: Vec<_> = diags.iter().filter(|d| d.rule_id == "E3040").collect();
     assert!(e3040.is_empty(), "E3040 was removed and must not be emitted, got: {:?}", e3040);
@@ -550,9 +551,9 @@ fn composition_f3017_any_of_no_match() {
 fn extension_cfn_gather_no_duplicate_numeric_constraint() {
     // The cfnGather extension's numeric cross-resource bounds (ESM BatchSize vs
     // FIFO-queue limit, SQS VisibilityTimeout vs Lambda Timeout) are reported by
-    // the dedicated engine rules E3705 / E3505, which match cfn-lint's IDs and
-    // locations. The schema-validator must NOT also emit a generic F3034 for
-    // them, which previously double-reported under an ID cfn-lint never uses.
+    // the dedicated cross-resource engine rules at their specific locations. The
+    // schema-validator must not also emit a generic schema-bounds diagnostic for
+    // them, which previously double-reported the same issue.
     let diags = validate_fixture("integration/cfn-gather.yaml");
     assert!(
         !diags.iter().any(|d| d.rule_id == "F3034"),

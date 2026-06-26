@@ -781,7 +781,7 @@ fn condition_intrinsic_value_is_opaque_not_literal() {
     // HasMultipleAZs: !Not [!Equals [!Select [1, !Ref AvailabilityZones], ""]]
     // The !Select result cannot be known statically, so it must be modeled as an
     // opaque value (Other), NOT a descriptive literal like "Select(...)".
-    // Treating it as a literal made the always-true/false check (W8003) compare a
+    // Treating it as a literal made the always-true/false check compare a
     // description string against "" and fire a false positive — the SAT solver
     // must instead see an unknown.
     let expr = m.conditions.get("HasMultipleAZs").unwrap();

@@ -14,7 +14,7 @@ pub fn register(reg: &mut NativeRuleRegistry) {
 /// Whether a property path points at a value selected by an `Fn::If` branch
 /// (a path segment `Fn::If` followed by branch index `1` or `2`). Such a
 /// reference is guarded by the surrounding `Fn::If`, so the conditional-target
-/// reference check (W1001) does not apply.
+/// reference check does not apply.
 fn path_inside_fn_if_branch(path: &str) -> bool {
     let segments: Vec<&str> = path.split('.').collect();
     segments.windows(2).any(|w| w[0] == "Fn::If" && (w[1] == "1" || w[1] == "2"))

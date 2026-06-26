@@ -106,7 +106,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             && rtype != "AWS::CloudFormation::Stack"
                             && rtype != "AWS::CloudFormation::Macro"
                         {
-                            // E9003 (return-type mismatch) is intentionally not emitted here:
+                            // The return-type-mismatch check is intentionally not emitted here:
                             // CloudFormation auto-converts non-string GetAtt return values to
                             // strings when the destination is typed as string.
                             out.push(make_resource_diagnostic(

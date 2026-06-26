@@ -292,8 +292,8 @@ Resources:
 #[test]
 fn e2e_bad_ecs_fargate_invalid_subnet() {
     // The TaskDefinition uses NetworkMode 'awsvpc', which is already Fargate
-    // compatible, so E3054 must NOT fire (cfn-lint stays silent on it). The real
-    // defect is the malformed subnet id, reported as E1154.
+    // compatible, so the Fargate-compatibility check must not fire. The real
+    // defect is the malformed subnet id.
     let report = validate_fixture("bad/ecs_fargate_mismatch.yaml");
     assert!(
         !has_rule(&report, "E3054"),
@@ -739,8 +739,8 @@ fn e2e_e3700_pipeline_no_source_first_stage() {
 #[test]
 fn e2e_snapstart_python_runtime_supported() {
     // SnapStart supports any non-deprecated Python/Java/.NET runtime, so a
-    // python3.12 function must NOT trigger E2530 (cfn-lint agrees). The only
-    // finding is W2530 — SnapStart enabled without an attached Version.
+    // python3.12 function must not trigger the unsupported-runtime check. The
+    // only finding is SnapStart enabled without an attached Version.
     let report = validate_fixture("bad/lambda_snapstart_bad_runtime.yaml");
     assert!(
         !has_rule(&report, "E2530"),
@@ -1236,7 +1236,8 @@ fn e6101_rego_getatt_return_type_builtin() {
 #[test]
 fn w2511_silent_on_invalid_policy_version() {
     // An invalid Version string (neither '2008-10-17' nor '2012-10-17') is a
-    // schema error, not the upgrade warning, so W2511 must stay silent for it.
+    // schema error, not the upgrade warning, so the policy-version upgrade check
+    // must stay silent for it.
     let report = validate_fixture("bad/resources/iam/iam_policy.yaml");
     let w2511: Vec<_> = report.diagnostics.iter().filter(|d| d.rule_id == "W2511").collect();
     assert!(w2511.is_empty(), "W2511 must not fire on an invalid Version value, got: {:?}", w2511);
@@ -1244,7 +1245,8 @@ fn w2511_silent_on_invalid_policy_version() {
 
 #[test]
 fn w2511_warns_on_2008_policy_version() {
-    // The older-but-valid '2008-10-17' version is exactly what W2511 flags.
+    // The older-but-valid '2008-10-17' version is exactly what the policy-version
+    // upgrade check flags.
     let report = validate_fixture("bad/override/include.yaml");
     assert!(has_rule(&report, "W2511"), "expected W2511 for a policy pinned to Version '2008-10-17'");
 }

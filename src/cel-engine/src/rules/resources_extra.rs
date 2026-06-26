@@ -886,11 +886,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // I3037: advisory for duplicate scalar items in a list that permits
-    // duplicates. A list whose schema requires uniqueItems is covered by the
-    // Fatal uniqueItems check instead, so it is excluded here. The `Command`
-    // property of run-command resources legitimately repeats values and is
-    // exempt.
+    // Advisory for duplicate scalar items in a list that permits duplicates. A
+    // list whose schema requires uniqueItems is covered by the Fatal uniqueItems
+    // check instead, so it is excluded here. The `Command` property of
+    // run-command resources legitimately repeats values and is exempt.
     if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
         for (name, res) in &m.resources {
             let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) else {
@@ -3181,9 +3180,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // W3002: Properties that only work with `aws cloudformation package`
-    // The parent property (e.g. Code, Content, TemplateURL) is checked as a string.
-    // If the value is a string not starting with s3:// or https://, it warns.
+    // Warns on properties that only work with `aws cloudformation package`. The
+    // parent property (e.g. Code, Content, TemplateURL) is checked as a string;
+    // if its value is a string not starting with s3:// or https://, it warns.
     // SAM templates are excluded entirely.
     if !m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS) {
         const PACKAGE_PROPS: &[(&str, &[&str])] = &[
@@ -3459,7 +3458,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, base_path) {
                         check_bdm_virtualname_ignored(&mut out, m, name, &bdms, base_path);
                     } else {
-                        // Fall back to conditional branch traversal for E3715 only
+                        // Fall back to conditional branch traversal for the
+                        // virtual-name-ignored check only
                         let bdm_arrays = resolve_all_json(m, name, base_path);
                         for bdms_val in &bdm_arrays {
                             if let serde_json::Value::Array(bdms) = bdms_val {
@@ -3727,8 +3727,9 @@ fn render_resource_set(names: &BTreeSet<String>) -> String {
 /// needed to detect primary-identifier duplication across templates that
 /// switch the identifier on a condition (e.g. `!If [cond, "x", !Ref AWS::NoValue]`).
 /// One way a resource's primary-identifier tuple can resolve, paired with the
-/// condition assignment (`assumptions`) that produces it. Used by E3019 to test
-/// whether two resources can share an identifier in a satisfiable deployment.
+/// condition assignment (`assumptions`) that produces it. Used by the
+/// duplicate-identifier check to test whether two resources can share an
+/// identifier in a satisfiable deployment.
 struct PrimaryIdScenario {
     tuple: Vec<String>,
     assumptions: Vec<(String, bool)>,
