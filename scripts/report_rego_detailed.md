@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 11:35:51  
+> Generated: 2026-06-25 20:00:13  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,50 +22,50 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1666 |
-| False Positives (engine bugs) | 93 |
-| Engine Extra (correct, cfn-lint gap) | 5221 |
-| False Negatives (engine misses) | 246 |
-| Precision | 94.71% |
-| Recall | 87.13% |
-| F1 | 90.77% |
-| Unique rules detected | 201 |
-| Perfect templates | 278/387 |
+| True Positives | 1659 |
+| False Positives (engine bugs) | 29 |
+| Engine Extra (correct, cfn-lint gap) | 5218 |
+| False Negatives (engine misses) | 253 |
+| Precision | 98.28% |
+| Recall | 86.77% |
+| F1 | 92.17% |
+| Unique rules detected | 197 |
+| Perfect templates | 298/387 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 336 | 26 | 59 | 78 | 92.82% | 81.16% |
-| Error | 292 | 24 | 3 | 121 | 92.41% | 70.70% |
-| Warning | 688 | 34 | 339 | 39 | 95.29% | 94.64% |
-| Info | 350 | 9 | 4820 | 8 | 97.49% | 97.77% |
+| Fatal | 336 | 17 | 58 | 78 | 95.18% | 81.16% |
+| Error | 296 | 1 | 3 | 117 | 99.66% | 71.67% |
+| Warning | 677 | 8 | 339 | 50 | 98.83% | 93.12% |
+| Info | 350 | 3 | 4818 | 8 | 99.15% | 97.77% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 18166.1984 ms |
-| Throughput | 124.68 validations/sec |
+| Total wall time | 18388.7059 ms |
+| Throughput | 123.17 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 64.7131 ms |
-| Engine init (max) | 65.0036 ms |
-| Schema init (p99) | 56.6614 ms |
-| Schema init (max) | 57.2587 ms |
+| Engine init (p99) | 63.9898 ms |
+| Engine init (max) | 64.4491 ms |
+| Schema init (p99) | 59.1720 ms |
+| Schema init (max) | 60.0425 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0016 | 0.1906 | 0.0429 | 0.5768 | 0.8110 | 1.4830 | 2.5999 |
-| Schema Validate | 0.0000 | 2.3812 | 0.5456 | 6.2876 | 9.8844 | 22.6645 | 51.7360 |
-| Rule Evaluation | 0.9377 | 4.9373 | 2.1797 | 11.7780 | 17.0489 | 29.0384 | 96.7023 |
-| Diagnostic Finalize | 0.0003 | 0.0265 | 0.0039 | 0.0913 | 0.1197 | 0.2995 | 0.5607 |
-| Engine Internal | 0.9467 | 7.5770 | 2.9178 | 19.3121 | 28.7209 | 51.7563 | 104.9978 |
-| Wall Clock | 0.9468 | 7.5773 | 2.9180 | 19.3127 | 28.7210 | 51.7568 | 104.9980 |
+| Model Build | 0.0017 | 0.2026 | 0.0429 | 0.6199 | 0.8720 | 1.6036 | 3.0029 |
+| Schema Validate | 0.0000 | 2.4245 | 0.5473 | 6.4221 | 9.8818 | 23.0650 | 55.0071 |
+| Rule Evaluation | 0.9352 | 4.9556 | 2.1220 | 12.1738 | 17.5170 | 28.6311 | 90.3669 |
+| Diagnostic Finalize | 0.0003 | 0.0268 | 0.0040 | 0.0897 | 0.1304 | 0.3283 | 0.5505 |
+| Engine Internal | 0.9444 | 7.6541 | 2.8809 | 19.5584 | 28.3750 | 51.5480 | 115.4646 |
+| Wall Clock | 0.9445 | 7.6544 | 2.8810 | 19.5589 | 28.3762 | 51.5483 | 115.4659 |
 
-## False Negatives — 246 missed findings across 73 rules
+## False Negatives — 253 missed findings across 70 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -213,6 +213,40 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3001** `Bucket1` → `Resources.Bucket1.Conditions` L31 in `lsp_parameter_usage`
   > Additional properties are not allowed ('Conditions' was unexpected. Did you mean 'Condition'?)
 
+### W1028 — 7 missed — Check Fn::If has a path that cannot be reached
+
+- **W1028** `CloudFrontDistribution` → `Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.RestrictionType.Fn::If.2` L94 in `bad_conditions`
+  > ['Fn::If', 2] is not reachable. When setting condition 'EnableGeoBlocking' to False from current status True
+- **W1028** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2` L43 in `bad_core_conditions`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Listeners.0.Fn::If.2` L161-164 in `bad_generic`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Tags.0.Fn::If.2` L178-180 in `bad_generic`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2` L44 in `good_core_conditions`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
+- **W1028** `myInstance4` → `Properties.InstanceType.Fn::If.1.Fn::If.2` L74 in `good_core_conditions`
+  > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
+- **W1028** → `Outputs.ConditionalOutput.Value.Fn::If.2` L1014-1016 in `lsp_comprehensive`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+
+### W1030 — 7 missed — Validate the values that come from a Ref function
+
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.0.Ref` L82 in `quickstart_nat-instance`
+  > {'Ref': 'pSecurityGroupSSHFromVpc'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.1.Ref` L84 in `quickstart_nat-instance`
+  > {'Ref': 'pSecurityGroupVpcNat'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** → `Parameters.pSecurityAlarmTopic.Default` L198 in `quickstart_nist_application`
+  > {'Ref': 'pSecurityAlarmTopic'} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved at 'Resources/rPostProcInstanceRole/Properties/Policies
+- **W1030** `rAutoScalingConfigApp` → `Properties.KeyName.Ref` L383 in `quickstart_nist_application`
+  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
+- **W1030** `rAutoScalingConfigWeb` → `Properties.KeyName.Ref` L515 in `quickstart_nist_application`
+  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
+
 ### E1017 — 7 missed — Select validation of parameters
 
 - **E1017** `mySubnet2` → `Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs` L27 in `bad_functions_getaz`
@@ -244,6 +278,21 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
 - **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location`
   > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+
+### W1001 — 6 missed — Ref/GetAtt to resource that is available when conditions are applied
+
+- **W1001** `myInstance1` → `Properties.SubnetId.Fn::If.1` L30 in `bad_core_conditions`
+  > Ref to resource 'mySubnet' that may not be available when condition 'isPrimaryAndProduction' is False and when condition 'isDevelopment' is True at Resources/myInstance1/Properties/SubnetId/Fn::If/1
+- **W1001** `AMIIDLookup` → `Properties.Role.Fn::If.1` L102 in `bad_core_conditions`
+  > GetAtt to resource 'LambdaExecutionRole' that may not be available when condition 'isPrimary' is False at Resources/AMIIDLookup/Properties/Role/Fn::If/1
+- **W1001** → `Outputs.lambdaArn.Value` L63 in `bad_functions_relationship_conditions`
+  > GetAtt to resource 'LambdaExecutionRole' that may not be available when condition 'isPrimary' is False at Outputs/lambdaArn/Value
+- **W1001** `myInstance1` → `Properties.SubnetId.Fn::If.1` L30 in `good_core_conditions`
+  > Ref to resource 'mySubnet' that may not be available when condition 'isPrimaryAndProduction' is False and when condition 'isDevelopment' is True at Resources/myInstance1/Properties/SubnetId/Fn::If/1
+- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.1` L586-588 in `lsp_comprehensive`
+  > Ref to resource 'PublicSubnet' that may not be available when condition 'IsProductionOrStaging' is False and when condition 'HasMultipleAZs' is True at Resources/AutoScalingGroup/Properties/VPCZoneIde
+- **W1001** `AutoScalingGroup` → `Properties.VPCZoneIdentifier.0.Fn::If.2` L589-591 in `lsp_comprehensive`
+  > Ref to resource 'PublicSubnet' that may not be available when condition 'IsProductionOrStaging' is False and when condition 'HasMultipleAZs' is False at Resources/AutoScalingGroup/Properties/VPCZoneId
 
 ### E3530 — 6 missed — Validate IAM trust polices
 
@@ -319,19 +368,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'Fn::Sub': 'Bucket-${AWS::Region}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
 - **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L66 in `lsp_parameter_usage`
   > {'Fn::Sub': 'Bucket-${AWS::Region}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
-
-### W1030 — 5 missed — Validate the values that come from a Ref function
-
-- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance`
-  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance`
-  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.GroupSet.0.Ref` L82 in `quickstart_nat-instance`
-  > {'Ref': 'pSecurityGroupSSHFromVpc'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.GroupSet.1.Ref` L84 in `quickstart_nat-instance`
-  > {'Ref': 'pSecurityGroupVpcNat'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** → `Parameters.pSecurityAlarmTopic.Default` L198 in `quickstart_nist_application`
-  > {'Ref': 'pSecurityAlarmTopic'} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved at 'Resources/rPostProcInstanceRole/Properties/Policies
 
 ### F1018 — 5 missed — Sub validation of parameters
 
@@ -460,24 +496,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E2001** → `Parameters.NullParamType` L35 in `bad_parameters_configuration`
   > 'Type' is a required property
 
-### W1028 — 3 missed — Check Fn::If has a path that cannot be reached
-
-- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Listeners.0.Fn::If.2` L161-164 in `bad_generic`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `conditionLoadBalancer` → `Properties.Fn::If.1.Tags.0.Fn::If.2` L178-180 in `bad_generic`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** → `Outputs.ConditionalOutput.Value.Fn::If.2` L1014-1016 in `lsp_comprehensive`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-
-### E3048 — 3 missed — Validate ECS Fargate tasks have required properties and values
-
-- **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency`
-  > 'NetworkMode' is a required property
-- **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency`
-  > 'Cpu' is a required property
-- **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency`
-  > 'Memory' is a required property
-
 ### E1011 — 3 missed — FindInMap validation of configuration
 
 - **E1011** `Bucket` → `Properties.Tags.0.Value.Fn::FindInMap.0` L9 in `bad_findinmap_bad`
@@ -549,6 +567,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > '${MyParam}-bucket' does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$'
 - **F3031** (cfn-lint: E3031) `TestRole` → `Properties.RoleName` L10 in `good_functions_sub_needed_custom_excludes`
   > 'TestRole-${Stage}' does not match '^[\\w+=,.@-]+$'
+
+### E3048 — 3 missed — Validate ECS Fargate tasks have required properties and values
+
+- **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency`
+  > 'NetworkMode' is a required property
+- **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency`
+  > 'Cpu' is a required property
+- **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency`
+  > 'Memory' is a required property
 
 ### E1005 — 3 missed — Validate Transform configuration
 
@@ -650,13 +677,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **I2530** `DmdEventsLambda` → `Properties.SnapStart.ApplyOn` L293 in `issues_sam_w_conditions`
   > 'java11' runtime should consider using 'SnapStart'
 
-### E3505 — 2 missed — Validate SQS 'VisibilityTimeout' is greater than a function's 'Timeout'
-
-- **E3505** `Queue` → `Properties.VisibilityTimeout` L6 in `bad_lambda_sqs_timeout`
-  > Queue visibility timeout (10) is less than Function timeout (60) seconds
-- **E3505** `TaskQueue` → `Properties.VisibilityTimeout` L118 in `cdk_DemoStack.template`
-  > Queue visibility timeout (10) is less than Function timeout (60) seconds
-
 ### E3671 — 2 missed — Validate block device mapping configuration
 
 - **E3671** `MyEC2Instance` → `Properties.BlockDeviceMappings.0.Ebs.Iops` L17 in `bad_properties_ebs`
@@ -704,16 +724,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 - **E1152** `myInstance` → `Properties.ImageId` L11 in `bad_functions_sub_needed`
   > '${AMIId}' is not a 'AWS::EC2::Image.Id' with pattern '^ami-([0-9a-z]{8}|[0-9a-z]{17})$'
-
-### W1001 — 1 missed — Ref/GetAtt to resource that is available when conditions are applied
-
-- **W1001** → `Outputs.lambdaArn.Value` L63 in `bad_functions_relationship_conditions`
-  > GetAtt to resource 'LambdaExecutionRole' that may not be available when condition 'isPrimary' is False at Outputs/lambdaArn/Value
-
-### E3049 — 1 missed — Validate ECS tasks with dynamic host port have traffic-port ELB target groups
-
-- **E3049** `TargetGroup` → `Properties.HealthCheckPort` L18 in `bad_ecs_dynamic_port_no_traffic`
-  > When using an ECS task definition of host port 0 and associating that container to an ELB the target group has to have a 'HealthCheckPort' of 'traffic-port'
 
 ### E6001 — 1 missed — Check the properties of Outputs
 
@@ -775,37 +785,9 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L312 in `lsp_comprehensive`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
 
-### E3691 — 1 missed — Validate DB Instance Engine and Engine Version
-
-- **E3691** `Database` → `Properties.EngineVersion` L647 in `lsp_comprehensive`
-  > '8.0' is not one of ['5.5.62', '5.6.51', '5.7.33', '5.7.34', '5.7.36', '5.7.37', '5.7.38', '5.7.39', '5.7.40', '5.7.41', '5.7.42', '5.7.43', '5.7.44', '5.7.44-rds.20240408', '5.7.44-rds.20240529', '5.
-
-## False Positives — 93 extra findings across 36 rules
+## False Positives — 29 extra findings across 10 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
-
-### E2001 — 10 extra — Parameters have appropriate properties
-
-- **E2001** → `Parameters.AppVolumeSize.MaxValue` in `public_watchmaker`
-  > Parameter 'AppVolumeSize': MaxValue must be a number
-- **E2001** → `Parameters.AppVolumeSize.MinValue` in `public_watchmaker`
-  > Parameter 'AppVolumeSize': MinValue must be a number
-- **E2001** → `Parameters.OpenShiftAdminPassword.MaxLength` in `quickstart_openshift`
-  > Parameter 'OpenShiftAdminPassword': MaxLength must be an integer
-- **E2001** → `Parameters.OpenShiftAdminPassword.MinLength` in `quickstart_openshift`
-  > Parameter 'OpenShiftAdminPassword': MinLength must be an integer
-- **E2001** → `Parameters.OpenShiftAdminPassword.NoEcho` in `quickstart_openshift`
-  > Parameter 'OpenShiftAdminPassword': NoEcho must be a boolean
-- **E2001** → `Parameters.RedhatSubscriptionPassword.NoEcho` in `quickstart_openshift`
-  > Parameter 'RedhatSubscriptionPassword': NoEcho must be a boolean
-- **E2001** → `Parameters.OpenShiftAdminPassword.MaxLength` in `quickstart_openshift_master`
-  > Parameter 'OpenShiftAdminPassword': MaxLength must be an integer
-- **E2001** → `Parameters.OpenShiftAdminPassword.MinLength` in `quickstart_openshift_master`
-  > Parameter 'OpenShiftAdminPassword': MinLength must be an integer
-- **E2001** → `Parameters.OpenShiftAdminPassword.NoEcho` in `quickstart_openshift_master`
-  > Parameter 'OpenShiftAdminPassword': NoEcho must be a boolean
-- **E2001** → `Parameters.RedhatSubscriptionPassword.NoEcho` in `quickstart_openshift_master`
-  > Parameter 'RedhatSubscriptionPassword': NoEcho must be a boolean
 
 ### F3003 — 6 extra — Required Resource properties are missing
 
@@ -822,21 +804,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L9 in `lsp_test-template`
   > 'StageName' is a required property
 
-### W7001 — 6 extra — Check if Mappings are Used
-
-- **W7001** L9 in `bad_core_conditions`
-  > Mapping 'location' is not referenced by any Fn::FindInMap
-- **W7001** L7 in `bad_functions_foreach_no_transform`
-  > Mapping 'Buckets' is not referenced by any Fn::FindInMap
-- **W7001** L9 in `good_core_conditions`
-  > Mapping 'location' is not referenced by any Fn::FindInMap
-- **W7001** L7 in `good_functions_foreach`
-  > Mapping 'Buckets' is not referenced by any Fn::FindInMap
-- **W7001** L7 in `good_mappings_used`
-  > Mapping 'AcceptanceSubnets' is not referenced by any Fn::FindInMap
-- **W7001** L196 in `public_watchmaker`
-  > Mapping 'InstanceTypeMap' is not referenced by any Fn::FindInMap
-
 ### F0013 — 5 extra — Check Fn::If structure for validity
 
 - **F0013** in `bad_conditions_condition_functions`
@@ -850,43 +817,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F0013** in `bad_if_wrong_arity`
   > Fn::If: must have exactly 3 elements, got 2
 
-### F0014 — 5 extra — Check Fn::And structure for validity
-
-- **F0014** in `bad_conditions_condition_functions`
-  > Fn::Not: must have exactly 1 element, got 0
-- **F0014** in `bad_conditions_condition_functions`
-  > Fn::Not: null is not of type 'array'
-- **F0014** in `good_conditions_and`
-  > Fn::And: element 0: [{'Ref': 'Users'}, ''] is not of type 'boolean'
-- **F0014** in `good_conditions_and`
-  > Fn::And: element 1: [{'Ref': 'Users'}, 'another'] is not of type 'boolean'
-- **F0014** in `lsp_condition-usage`
-  > Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
-
-### W3002 — 5 extra — Warn when properties are configured to only work with the package command
-
-- **W3002** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L333 in `quickstart_nist_vpc_management`
-  > This code may only work with 'package' cli command
-- **W3002** `rNatInstanceTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L557 in `quickstart_nist_vpc_management`
-  > This code may only work with 'package' cli command
-- **W3002** `rNatInstanceTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L527 in `quickstart_nist_vpc_production`
-  > This code may only work with 'package' cli command
-- **W3002** `rNatInstanceTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L377 in `quickstart_vpc-management`
-  > This code may only work with 'package' cli command
-- **W3002** `rDeepSecurityInfrastructureTemplate` (AWS::CloudFormation::Stack) → `Properties.TemplateURL` L915 in `quickstart_vpc-management`
-  > This code may only work with 'package' cli command
-
-### W1028 — 4 extra — Check Fn::If has a path that cannot be reached
-
-- **W1028** `ConditionalOutput` → `Value.Fn::If.2` in `lsp_comprehensive`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `LogicalConditionalOutput` → `Value.Fn::If.2.Fn::If.1` in `lsp_condition-usage`
-  > ['Fn::If', 1] is not reachable. When setting condition '__inline_cond_187' to True
-- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` L53 in `lsp_condition-usage`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicPolicy.Fn::If.2` L53 in `lsp_condition-usage`
-  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
-
 ### W2001 — 4 extra — Check if Parameters are Used
 
 - **W2001** L4 in `bad_core_conditions_list`
@@ -898,34 +828,23 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **W2001** L4 in `bad_parameters_default`
   > Parameter 'myMinValue' is not referenced anywhere in the template
 
-### W1001 — 4 extra — Ref/GetAtt to resource that is available when conditions are applied
+### W1028 — 3 extra — Check Fn::If has a path that cannot be reached
 
-- **W1001** `lambdaArn` → `Outputs/lambdaArn/Value` in `bad_functions_relationship_conditions`
-  > Reference to 'LambdaExecutionRole' which is conditional on 'isPrimary' - target may not exist
-- **W1001** `ConditionalResource` (AWS::EC2::Instance) → `Properties.SecurityGroups.0.Fn::If.2` L102 in `lsp_condition-usage`
-  > Reference to 'DevSecurityGroup' which is conditional on 'IsDevelopment' - target may not exist
-- **W1001** `NestedConditionResource` (AWS::S3::BucketPolicy) → `Properties.Bucket.Fn::If.2` L146 in `lsp_condition-usage`
-  > Reference to 'DevelopmentBucket' which is conditional on 'IsDevelopment' - target may not exist
-- **W1001** `NestedConditionResource` (AWS::S3::BucketPolicy) → `Properties.PolicyDocument.Statement.0.Resource.Fn::If.2` L146 in `lsp_condition-usage`
-  > Reference to 'DevelopmentBucket' which is conditional on 'IsDevelopment' - target may not exist
+- **W1028** `ConditionalOutput` → `Value.Fn::If.2` in `lsp_comprehensive`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` L53 in `lsp_condition-usage`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
+- **W1028** `ProductionBucket` (AWS::S3::Bucket) → `Properties.PublicAccessBlockConfiguration.BlockPublicPolicy.Fn::If.2` L53 in `lsp_condition-usage`
+  > ['Fn::If', 2] is not reachable. When setting condition 'IsProduction' to False from current status True
 
-### W1030 — 3 extra — Validate the values that come from a Ref function
+### F0014 — 3 extra — Check Fn::And structure for validity
 
-- **W1030** `rNatInstance` (AWS::EC2::Instance) → `Properties.KeyName` L93 in `quickstart_nat-instance`
-  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
-- **W1030** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.KeyName` L479 in `quickstart_nist_vpc_management`
-  > {'Ref': 'pEC2KeyPairBastion'} is shorter than 1 when 'Ref' is resolved
-- **W1030** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.KeyName` L635 in `quickstart_vpc-management`
-  > {'Ref': 'pEC2KeyPairBastion'} is shorter than 1 when 'Ref' is resolved
-
-### I3100 — 3 extra — Checks for legacy instance type generations
-
-- **I3100** `rNatInstance` (AWS::EC2::Instance) → `Properties.InstanceType` L93 in `quickstart_nat-instance`
-  > Previous generation instance type 'm3.large' — consider upgrading
-- **I3100** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.InstanceType` L479 in `quickstart_nist_vpc_management`
-  > Previous generation instance type 'm3.large' — consider upgrading
-- **I3100** `rMgmtBastionInstance` (AWS::EC2::Instance) → `Properties.InstanceType` L635 in `quickstart_vpc-management`
-  > Previous generation instance type 'm3.large' — consider upgrading
+- **F0014** in `bad_conditions_condition_functions`
+  > Fn::Not: must have exactly 1 element, got 0
+- **F0014** in `bad_conditions_condition_functions`
+  > Fn::Not: null is not of type 'array'
+- **F0014** in `lsp_condition-usage`
+  > Fn::Equals: argument 0: {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
 
 ### F6101 — 3 extra — Validate that outputs values are a string
 
@@ -936,66 +855,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F6101** L76 in `integration_getatt-types`
   > Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'
 
-### F3034 — 3 extra — Check if a number is between min and max
-
-- **F3034** `ESM` (AWS::Lambda::EventSourceMapping) → `Properties` L20 in `bad_lambda_sqs_timeout`
-  > Cross-resource constraint: queue.VisibilityTimeout is 10 but must be >= 60 (from referenced resource)
-- **F3034** `QueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties` L126 in `cdk_DemoStack.template`
-  > Cross-resource constraint: queue.VisibilityTimeout is 10 but must be >= 60 (from referenced resource)
-- **F3034** `FifoMapping` (AWS::Lambda::EventSourceMapping) → `Properties` L105 in `integration_cfn-gather`
-  > Cross-resource constraint: local.BatchSize is 15 but must be <= 10 (from referenced resource)
-
-### I3037 — 3 extra
-
-- **I3037** `Profile` (AWS::IAM::InstanceProfile) → `Properties.Roles` L4 in `bad_schema_unique_items`
-  > Array property 'Roles' contains duplicate value: "arn:aws:iam::012345678901:role/SameRole"
-- **I3037** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L4 in `bad_unique_items`
-  > Array property 'AvailabilityZones' contains duplicate value: "us-east-1a"
-- **I3037** `rNatInstanceEni` (AWS::EC2::NetworkInterface) → `Properties.GroupSet` L75 in `quickstart_nat-instance`
-  > Array property 'GroupSet' contains duplicate value: ""
-
-### E3019 — 2 extra — Validate that all resources have unique primary identifiers
-
-- **E3019** `BucketA` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `bad_duplicate_primary_id_multi`
-  > Primary identifiers {'BucketName': 'aaa-shared'} should have unique values across the resources {'BucketA', 'BucketB'}
-- **E3019** `BucketB` (AWS::S3::Bucket) → `Properties.BucketName` L13 in `bad_duplicate_primary_id_multi`
-  > Primary identifiers {'BucketName': 'aaa-shared'} should have unique values across the resources {'BucketA', 'BucketB'}
-
-### W8003 — 2 extra — Fn::Equals will always return true or false
-
-- **W8003** L107 in `lsp_comprehensive`
-  > Fn::Equals in condition 'HasMultipleAZs' will always return False
-- **W8003** L22 in `lsp_parameter_usage`
-  > Fn::Equals in condition 'IsDevEnv' will always return False
-
-### E1152 — 2 extra — Validate AMI id format
-
-- **E1152** `my.Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_resources_name`
-  > 'ami-123456' does not match format 'AWS::EC2::Image.Id'
-- **E1152** `my_Instance` (AWS::EC2::Instance) → `Properties.ImageId` L8 in `bad_resources_name`
-  > 'ami-123456' does not match format 'AWS::EC2::Image.Id'
-
-### W3011 — 2 extra — Check resources with UpdateReplacePolicy/DeletionPolicy have both
-
-- **W3011** `ProdTable` (AWS::DynamoDB::Table) L4 in `bad_dynamodb_prod_no_kms`
-  > Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion
-- **W3011** `rWebContentBucket` (AWS::S3::Bucket) L1178 in `quickstart_nist_application`
-  > Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion
-
-### E3505 — 2 extra — Validate SQS 'VisibilityTimeout' is greater than a function's 'Timeout'
-
-- **E3505** `ESM` (AWS::Lambda::EventSourceMapping) → `Properties` L20 in `bad_lambda_sqs_timeout`
-  > SQS queue 'Queue' VisibilityTimeout (10) is less than Lambda function 'Func' Timeout (60)
-- **E3505** `QueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties` L126 in `cdk_DemoStack.template`
-  > SQS queue 'TaskQueue' VisibilityTimeout (10) is less than Lambda function 'AppFunction' Timeout (60)
-
-### F3031 — 2 extra — Check if property values adhere to a specific pattern
-
-- **F3031** `Bucket3` (AWS::S3::Bucket) → `Properties.BucketName` L40 in `lsp_parameter_usage`
-  > 'us-east-1-bucketName' does not match pattern '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$'
-- **F3031** `Bucket7` (AWS::S3::Bucket) → `Properties.BucketName` L62 in `lsp_parameter_usage`
-  > 'Bucket-us-east-1' does not match pattern '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$'
-
 ### I2003 — 2 extra
 
 - **I2003** in `quickstart_openshift`
@@ -1003,86 +862,26 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **I2003** in `quickstart_openshift_master`
   > Parameter 'OpenShiftAdminPassword' AllowedPattern '(?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*
 
-### W8001 — 1 extra — Check if Conditions are Used
+### W1001 — 1 extra — Ref/GetAtt to resource that is available when conditions are applied
 
-- **W8001** L3 in `bad_if_wrong_arity`
-  > Condition 'IsProd' is not used by any resource or Fn::If
-
-### F3012 — 1 extra — Check resource properties values
-
-- **F3012** `lambdaMap2` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0` L202 in `bad_generic`
-  > [{"CidrIp":"0.0.0.0/0","IpProtocol":"tcp","ToPort":80,"FromPort":80}] is not of type 'object'
+- **W1001** `lambdaArn` → `Outputs/lambdaArn/Value` in `bad_functions_relationship_conditions`
+  > Reference to 'LambdaExecutionRole' which is conditional on 'isPrimary' - target may not exist
 
 ### I3042 — 1 extra — ARNs should use correctly placed Pseudo Parameters
 
-- **I3042** `myKms` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.3.Principal.AWS` L154 in `bad_resources_circular_dependency`
+- **I3042** `myKms` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub` L154 in `bad_resources_circular_dependency`
   > ARN in Resource myKms contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-
-### F3020 — 1 extra — Validate that when a property is specified another property should be excluded
-
-- **F3020** `BadImageLambda` (AWS::Lambda::Function) → `Properties.Handler` L53 in `bad_cross_resource_task10`
-  > 'Handler' should not be included with 'PackageType'
-
-### E3048 — 1 extra — Validate ECS Fargate tasks have required properties and values
-
-- **E3048** `BadFargateService` (AWS::ECS::Service) → `Properties.PlacementConstraints` L74 in `bad_cross_resource_task10`
-  > PlacementConstraints is not supported with FARGATE launch type
-
-### E3049 — 1 extra — Validate ECS tasks with dynamic host port have traffic-port ELB target groups
-
-- **E3049** `Service` (AWS::ECS::Service) → `Properties.LoadBalancers` L20 in `bad_ecs_dynamic_port_no_traffic`
-  > Container 'app' has HostPort 0 but TargetGroup 'TargetGroup' HealthCheckPort is '8080', must be 'traffic-port'
-
-### E3054 — 1 extra — Validate ECS service using Fargate uses TaskDefinition that allows Fargate
-
-- **E3054** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L4 in `bad_ecs_fargate_mismatch`
-  > [""] does not contain items matching 'FARGATE'
 
 ### E9004 — 1 extra — GetAtt validation of parameters
 
 - **E9004** `mySubnet3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L29 in `bad_functions_getaz`
   > 'AvailbilityZone' is not one of ["AssignIpv6AddressOnCreation", "AvailabilityZone", "AvailabilityZoneId", "BlockPublicAccessStates", "BlockPublicAccessStates.InternetGatewayBlockMode", "CidrBlock", "E
 
-### E2530 — 1 extra
-
-- **E2530** `SnapStartFunc` (AWS::Lambda::Function) → `Properties.SnapStart` L4 in `bad_lambda_snapstart_bad_runtime`
-  > SnapStart is not supported with runtime 'python3.12'
-
-### W2533 — 1 extra — Check required properties for Lambda if the deployment package is a .zip file
-
-- **W2533** `Func` (AWS::Lambda::Function) → `Properties` L6 in `bad_lambda_zip_no_handler`
-  > Property 'Runtime' is required for zip file deployment
-
-### W3005 — 1 extra — Check obsolete DependsOn configuration for Resources
-
-- **W3005** `FunctionToFormatCloudWatchEvent` (AWS::Lambda::Function) → `DependsOn` L1857 in `quickstart_cis_benchmark`
-  > 'SnsTopicForCloudWatchEvents' dependency already enforced by a 'Sub' at 'Properties.Code.ZipFile'
-
-### E3045 — 1 extra — Validate AccessControl are set with OwnershipControls
-
-- **E3045** `examplebucketC9DFA43E` (AWS::S3::Bucket) → `Properties` L5 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template`
-  > A bucket with 'AccessControl' set should also have at least one 'OwnershipControl' configured
-
-### W2531 — 1 extra — Check if EOL Lambda Function Runtimes are used
-
-- **W2531** `CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E` (AWS::Lambda::Function) → `Properties.Runtime` L560 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template`
-  > Runtime 'nodejs20.x' is deprecated
-
-### E3040 — 1 extra
-
-- **E3040** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.Arn` L9 in `bad_schema_property_constraints`
-  > Read only property 'Arn' should not be specified
-
-### E9006 — 1 extra — Validate DB Cluster Engine and Engine Version
-
-- **E9006** `Database` (AWS::RDS::DBInstance) → `Properties.EngineVersion` L266 in `lsp_comprehensive`
-  > '8.0' is not one of ["5.5.62", "5.6.51", "5.7.33", "5.7.34", "5.7.36", "5.7.37", "5.7.38", "5.7.39", "5.7.40", "5.7.41", "5.7.42", "5.7.43", "5.7.44", "5.7.44-rds.20240408", "5.7.44-rds.20240529", "5.
-
-## Engine Extra — 5221 correct findings across 36 rules
+## Engine Extra — 5218 correct findings across 36 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 — 3486 findings
+### I9001 — 3484 findings
 
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_E1150_network_interfaces_groupset_multi`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -1544,10 +1343,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Volumes' is create-only; updating it will cause resource replacement
 - **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L25 in `bad_resources_deletionpolicy`
   > Property 'UserName' is create-only; updating it will cause resource replacement
-- **I9001** `my.Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_resources_name`
-  > Property 'ImageId' is create-only; updating it will cause resource replacement
-- **I9001** `my_Instance` (AWS::EC2::Instance) → `Properties.ImageId` L8 in `bad_resources_name`
-  > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `RootRole` (AWS::IAM::Role) → `Properties.Path` L6 in `bad_resources_primary_identifiers`
   > Property 'Path' is create-only; updating it will cause resource replacement
 - **I9001** `RootRole` (AWS::IAM::Role) → `Properties.RoleName` L6 in `bad_resources_primary_identifiers`
@@ -11585,13 +11380,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **E9002** `AppSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L92 in `cdk_DemoStack.template`
   > FromPort 443 is greater than ToPort 80
 
-### F8610 — 2 findings
-
-- **F8610** in `lsp_comprehensive`
-  > Rule 'ValidateParameterCombinations' Assertions[1] Assert must be a condition function (object), not array
-- **F8610** in `lsp_comprehensive`
-  > Rule 'ValidateRegionAndEnvironment' Assertions[0] Assert must be a condition function (object), not array
-
 ### F3030 — 1 findings — Check if properties have a valid value
 
 - **F3030** `myBucketFirstAndLastPass` (AWS::S3::Bucket) → `Properties.VersioningConfiguration.Status` L19 in `bad_core_directives`
@@ -11627,18 +11415,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **E2504** `FifoQueue` (AWS::SQS::Queue) → `Properties.QueueName` L4 in `bad_sqs_fifo_no_suffix`
   > FIFO queue name 'my-queue' must end with '.fifo'
 
+### F8610 — 1 findings
+
+- **F8610** in `lsp_comprehensive`
+  > Rule 'ValidateParameterCombinations' Assertions[1] Assert must be a condition function (object), not array
+
 ### F8611 — 1 findings
 
 - **F8611** in `lsp_comprehensive`
   > 'Fn::FindInMap' is not supported in the Rules section — allowed: ["Ref", "Fn::ValueOf", "Fn::ValueOfAll", "Fn::RefAll", "Fn::Contains", "Fn::EachMemberEquals", "Fn::EachMemberIn", "Fn::Equals", "Fn::A
 
-## Per-Template Breakdown — 109 templates with mismatches
-
-### `bad_generic` — 12 mismatches (29 TP, 1 FP, 36 EE, 11 FN)
-
-- FN: `W1036` ×6, `W1028` ×2, `E3673`, `E1011`, `F6101`
-- FP: `F3012`
-- EE: `I9001` ×15, `I9040` ×13, `W9003` ×5, `W9010` ×3
+## Per-Template Breakdown — 89 templates with mismatches
 
 ### `bad_conditions_condition_functions` — 11 mismatches (27 TP, 4 FP, 1 EE, 7 FN)
 
@@ -11646,38 +11433,26 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F0013` ×2, `F0014` ×2
 - EE: `I9040`
 
+### `bad_core_conditions` — 11 mismatches (14 TP, 2 FP, 15 EE, 9 FN)
+
+- FN: `W1001` ×2, `F3014` ×2, `F0013` ×2, `F3003`, `W1028`, `W3698`
+- FP: `F0013` ×2
+- EE: `I9001` ×8, `I9040` ×7
+
+### `bad_generic` — 11 mismatches (29 TP, 0 FP, 36 EE, 11 FN)
+
+- FN: `W1036` ×6, `W1028` ×2, `E3673`, `E1011`, `F6101`
+- EE: `I9001` ×15, `I9040` ×13, `W9003` ×5, `W9010` ×3
+
 ### `good_both_forms` — 11 mismatches (1 TP, 0 FP, 2 EE, 11 FN)
 
 - FN: `F3003` ×11
 - EE: `I9001` ×2
 
-### `lsp_parameter_usage` — 10 mismatches (3 TP, 3 FP, 14 EE, 7 FN)
+### `bad_conditions` — 10 mismatches (11 TP, 0 FP, 14 EE, 10 FN)
 
-- FN: `W1031` ×4, `W1032` ×2, `E3001`
-- FP: `F3031` ×2, `W8003`
-- EE: `I9001` ×7, `I9040` ×7
-
-### `bad_conditions` — 9 mismatches (12 TP, 0 FP, 14 EE, 9 FN)
-
-- FN: `E8001` ×4, `E3024` ×2, `E1001`, `F0013`, `E3001`
+- FN: `E8001` ×4, `E3024` ×2, `E1001`, `F0013`, `E3001`, `W1028`
 - EE: `I9001` ×4, `F1104` ×2, `F1060` ×2, `F3002` ×2, `I9040` ×2, `W9010`, `W9009`
-
-### `bad_core_conditions` — 9 mismatches (17 TP, 3 FP, 15 EE, 6 FN)
-
-- FN: `F3014` ×2, `F0013` ×2, `F3003`, `W3698`
-- FP: `F0013` ×2, `W7001`
-- EE: `I9001` ×8, `I9040` ×7
-
-### `lsp_condition-usage` — 9 mismatches (6 TP, 7 FP, 18 EE, 2 FN)
-
-- FN: `W8001`, `E3016`
-- FP: `W1028` ×3, `W1001` ×3, `F0014`
-- EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`
-
-### `bad_functions_foreach_no_transform` — 7 mismatches (1 TP, 2 FP, 0 EE, 5 FN)
-
-- FN: `E1032` ×3, `E0002`, `E6001`
-- FP: `W2001`, `W7001`
 
 ### `bad_resources_circular_dependency` — 7 mismatches (24 TP, 1 FP, 32 EE, 6 FN)
 
@@ -11695,17 +11470,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3530` ×6, `F3031`
 - EE: `I9001`, `I9040`
 
-### `lsp_comprehensive` — 7 mismatches (9 TP, 3 FP, 29 EE, 4 FN)
+### `lsp_parameter_usage` — 7 mismatches (3 TP, 0 FP, 14 EE, 7 FN)
 
-- FN: `E1701`, `E3691`, `F6101`, `W1028`
-- FP: `W1028`, `W8003`, `E9006`
-- EE: `I9001` ×19, `I9040` ×4, `F8610` ×2, `W9003` ×2, `F8611`, `W2508`
+- FN: `W1031` ×4, `W1032` ×2, `E3001`
+- EE: `I9001` ×7, `I9040` ×7
 
-### `quickstart_nat-instance` — 7 mismatches (5 TP, 3 FP, 9 EE, 4 FN)
+### `bad_functions_foreach_no_transform` — 6 mismatches (1 TP, 1 FP, 0 EE, 5 FN)
 
-- FN: `W1030` ×4
-- FP: `I3037`, `W1030`, `I3100`
-- EE: `I9001` ×8, `I9040`
+- FN: `E1032` ×3, `E0002`, `E6001`
+- FP: `W2001`
 
 ### `bad_parameters_configuration` — 6 mismatches (33 TP, 0 FP, 1 EE, 6 FN)
 
@@ -11727,11 +11500,22 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3023` ×5, `W1054`
 - EE: `I9001` ×19, `I9002`
 
+### `good_core_conditions` — 6 mismatches (4 TP, 0 FP, 19 EE, 6 FN)
+
+- FN: `W1028` ×2, `F3014` ×2, `W1001`, `W3698`
+- EE: `I9001` ×8, `I9040` ×7, `W9010` ×4
+
 ### `integration_ref-no-value` — 6 mismatches (7 TP, 4 FP, 4 EE, 2 FN)
 
 - FN: `F3012` ×2
 - FP: `F3003` ×4
 - EE: `I9040` ×3, `W9009`
+
+### `lsp_comprehensive` — 6 mismatches (8 TP, 1 FP, 28 EE, 5 FN)
+
+- FN: `W1001` ×2, `E1701`, `F6101`, `W1028`
+- FP: `W1028`
+- EE: `I9001` ×19, `I9040` ×4, `W9003` ×2, `F8610`, `F8611`, `W2508`
 
 ### `bad_functions_select` — 5 mismatches (4 TP, 0 FP, 13 EE, 5 FN)
 
@@ -11759,20 +11543,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3014` ×4, `F3031`
 - EE: `I9001` ×17, `W9003` ×7, `I9040` ×3
 
+### `lsp_condition-usage` — 5 mismatches (6 TP, 3 FP, 18 EE, 2 FN)
+
+- FN: `W8001`, `E3016`
+- FP: `W1028` ×2, `F0014`
+- EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`
+
 ### `lsp_constants` — 5 mismatches (1 TP, 0 FP, 3 EE, 5 FN)
 
 - FN: `F1018` ×2, `F1020` ×2, `E3024`
 - EE: `I9001` ×2, `I9040`
-
-### `quickstart_openshift` — 5 mismatches (20 TP, 5 FP, 78 EE, 0 FN)
-
-- FP: `E2001` ×4, `I2003`
-- EE: `I9001` ×38, `W9003` ×21, `I9040` ×10, `W2508` ×7, `W9010`, `W9013`
-
-### `quickstart_openshift_master` — 5 mismatches (4 TP, 5 FP, 2 EE, 0 FN)
-
-- FP: `E2001` ×4, `I2003`
-- EE: `I9040` ×2
 
 ### `bad_core_conditions_list` — 4 mismatches (0 TP, 1 FP, 1 EE, 3 FN)
 
@@ -11785,32 +11565,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021` ×4
 - EE: `I9001` ×2, `I9040` ×2
 
-### `cdk_DemoStack.template` — 4 mismatches (8 TP, 2 FP, 14 EE, 2 FN)
-
-- FN: `E3639`, `E3505`
-- FP: `F3034`, `E3505`
-- EE: `I9040` ×7, `I9001` ×3, `F3003` ×2, `E9002`, `W2508`
-
-### `good_core_conditions` — 4 mismatches (7 TP, 1 FP, 19 EE, 3 FN)
-
-- FN: `F3014` ×2, `W3698`
-- FP: `W7001`
-- EE: `I9001` ×8, `I9040` ×7, `W9010` ×4
-
 ### `good_transform_applications_location` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
 - FN: `I3011` ×4
 - EE: `I9040` ×2
 
-### `quickstart_nist_vpc_management` — 4 mismatches (36 TP, 4 FP, 64 EE, 0 FN)
+### `quickstart_nat-instance` — 4 mismatches (5 TP, 0 FP, 9 EE, 4 FN)
 
-- FP: `W3002` ×2, `W1030`, `I3100`
-- EE: `I9001` ×56, `I9040` ×5, `W2508` ×2, `W2502`
-
-### `quickstart_vpc-management` — 4 mismatches (22 TP, 4 FP, 79 EE, 0 FN)
-
-- FP: `W3002` ×2, `W1030`, `I3100`
-- EE: `I9001` ×56, `W9003` ×15, `I9040` ×5, `W2508` ×2, `W2502`
+- FN: `W1030` ×4
+- EE: `I9001` ×8, `I9040`
 
 ### `bad_duplicate` — 3 mismatches (0 TP, 0 FP, 2 EE, 3 FN)
 
@@ -11828,18 +11591,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1016` ×2, `F0014`
 - EE: `I9001` ×2, `F1105`, `I9040`
 
-### `bad_if_wrong_arity` — 3 mismatches (1 TP, 2 FP, 2 EE, 1 FN)
-
-- FN: `F0013`
-- FP: `F0013`, `W8001`
-- EE: `I9001`, `I9040`
-
-### `bad_lambda_sqs_timeout` — 3 mismatches (3 TP, 2 FP, 5 EE, 1 FN)
-
-- FN: `E3505`
-- FP: `F3034`, `E3505`
-- EE: `I9040` ×3, `W9013`, `I9001`
-
 ### `bad_resources_primary_identifiers` — 3 mismatches (8 TP, 0 FP, 25 EE, 3 FN)
 
 - FN: `E3019` ×2, `E3001`
@@ -11855,17 +11606,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1001` ×2, `E1005`
 - EE: `F0001`
 
-### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template` — 3 mismatches (1 TP, 1 FP, 42 EE, 2 FN)
-
-- FN: `W1034` ×2
-- FP: `W2531`
-- EE: `I9001` ×38, `I9040` ×4
-
-### `good_functions_foreach` — 3 mismatches (0 TP, 1 FP, 0 EE, 2 FN)
-
-- FN: `E3045`, `W3045`
-- FP: `W7001`
-
 ### `good_parameters_used_transform_language_extension` — 3 mismatches (1 TP, 0 FP, 0 EE, 3 FN)
 
 - FN: `W8001` ×3
@@ -11876,10 +11616,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F3003`
 - EE: `I9040` ×2
 
-### `public_watchmaker` — 3 mismatches (32 TP, 3 FP, 5 EE, 0 FN)
+### `quickstart_nist_application` — 3 mismatches (44 TP, 0 FP, 99 EE, 3 FN)
 
-- FP: `E2001` ×2, `W7001`
-- EE: `I9001` ×4, `I9040`
+- FN: `W1030` ×3
+- EE: `W9003` ×53, `I9001` ×36, `I9040` ×10
 
 ### `bad_aurora_with_allocated_storage` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
 
@@ -11895,22 +11635,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3001` ×2
 - EE: `I9040` ×4, `F3002`
-
-### `bad_cross_resource_task10` — 2 mismatches (11 TP, 2 FP, 29 EE, 0 FN)
-
-- FP: `F3020`, `E3048`
-- EE: `I9001` ×14, `I9040` ×9, `W9003` ×2, `F3003` ×2, `W9013` ×2
-
-### `bad_duplicate_primary_id_multi` — 2 mismatches (0 TP, 2 FP, 4 EE, 0 FN)
-
-- FP: `E3019` ×2
-- EE: `I9001` ×2, `I9040` ×2
-
-### `bad_ecs_dynamic_port_no_traffic` — 2 mismatches (1 TP, 1 FP, 7 EE, 1 FN)
-
-- FN: `E3049`
-- FP: `E3049`
-- EE: `I9001` ×4, `I9040` ×3
 
 ### `bad_findinmap_bad` — 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
 
@@ -11928,6 +11652,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `W1001`
 - EE: `I9040` ×4, `I9001` ×2
 
+### `bad_if_wrong_arity` — 2 mismatches (1 TP, 1 FP, 2 EE, 1 FN)
+
+- FN: `F0013`
+- FP: `F0013`
+- EE: `I9001`, `I9040`
+
 ### `bad_modules_bad_has_update_policy` — 2 mismatches (1 TP, 0 FP, 0 EE, 2 FN)
 
 - FN: `E3016`, `E5001`
@@ -11936,17 +11666,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3671` ×2
 - EE: `I9001` ×7, `W9010` ×2, `I9040` ×2, `W9003`
-
-### `bad_resources_name` — 2 mismatches (2 TP, 2 FP, 4 EE, 0 FN)
-
-- FP: `E1152` ×2
-- EE: `I9001` ×2, `I9040` ×2
-
-### `bad_schema_property_constraints` — 2 mismatches (1 TP, 1 FP, 11 EE, 1 FN)
-
-- FN: `E1161`
-- FP: `E3040`
-- EE: `I9001` ×6, `I9040` ×2, `W9002`, `W9013`, `W9009`
 
 ### `bad_sub_needed` — 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
 
@@ -11974,6 +11693,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F6101` ×2
 - EE: `I9040` ×18, `I9001` ×9
 
+### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template` — 2 mismatches (1 TP, 0 FP, 42 EE, 2 FN)
+
+- FN: `W1034` ×2
+- EE: `I9001` ×38, `I9040` ×4
+
 ### `cdk_resource-overrides--resource-overrides.template` — 2 mismatches (6 TP, 0 FP, 28 EE, 2 FN)
 
 - FN: `E3016`, `E3001`
@@ -11984,14 +11708,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3707`, `E3719`
 - EE: `W9008`, `I9001`, `I9002`, `I9040`
 
-### `good_conditions_and` — 2 mismatches (0 TP, 2 FP, 0 EE, 0 FN)
-
-- FP: `F0014` ×2
-
 ### `good_functions_findinmap` — 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
 
 - FN: `E7001` ×2
 - EE: `I9001` ×3, `I9040` ×3
+
+### `good_functions_foreach` — 2 mismatches (0 TP, 0 FP, 0 EE, 2 FN)
+
+- FN: `E3045`, `W3045`
 
 ### `good_transform` — 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
 
@@ -12008,12 +11732,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `I2530` ×2
 - EE: `I9001` ×21, `I9040` ×6
-
-### `quickstart_nist_application` — 2 mismatches (46 TP, 1 FP, 99 EE, 1 FN)
-
-- FN: `W1030`
-- FP: `W3011`
-- EE: `W9003` ×53, `I9001` ×36, `I9040` ×10
 
 ### `bad_F2002_ssm_parameter_type_invalid` — 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
@@ -12040,20 +11758,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F0000`
 - EE: `F1020` ×5, `W1020` ×2
 
-### `bad_dynamodb_prod_no_kms` — 1 mismatches (1 TP, 1 FP, 1 EE, 0 FN)
-
-- FP: `W3011`
-- EE: `I9001`
-
 ### `bad_dynamodb_provisioned_no_throughput` — 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
 
 - FN: `E3639`
 - EE: `I9001`, `I9040`, `F3003`
-
-### `bad_ecs_fargate_mismatch` — 1 mismatches (1 TP, 1 FP, 7 EE, 0 FN)
-
-- FP: `E3054`
-- EE: `I9001` ×5, `I9040` ×2
 
 ### `bad_functions_ref` — 1 mismatches (11 TP, 0 FP, 19 EE, 1 FN)
 
@@ -12069,16 +11777,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E7001`
 - EE: `F0017`, `I9040`
-
-### `bad_lambda_snapstart_bad_runtime` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `E2530`
-- EE: `W9013`, `I9001`, `I9040`
-
-### `bad_lambda_zip_no_handler` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `W2533`
-- EE: `W9013`, `I9001`, `I9040`
 
 ### `bad_mappings_name` — 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
 
@@ -12118,14 +11816,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F1018`
 - EE: `I9001` ×6, `W9010` ×2, `I9040` ×2
 
+### `bad_schema_property_constraints` — 1 mismatches (1 TP, 0 FP, 11 EE, 1 FN)
+
+- FN: `E1161`
+- EE: `I9001` ×6, `I9040` ×2, `W9002`, `W9013`, `W9009`
+
 ### `bad_schema_structural` — 1 mismatches (6 TP, 0 FP, 10 EE, 1 FN)
 
 - FN: `F3014`
 - EE: `I9001` ×8, `I9040` ×2
-
-### `bad_schema_unique_items` — 1 mismatches (2 TP, 1 FP, 0 EE, 0 FN)
-
-- FP: `I3037`
 
 ### `bad_schema_write_only` — 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
 
@@ -12137,10 +11836,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E2529`
 - EE: `I9040` ×8, `I9001` ×4
 
-### `bad_unique_items` — 1 mismatches (1 TP, 1 FP, 1 EE, 0 FN)
+### `cdk_DemoStack.template` — 1 mismatches (9 TP, 0 FP, 14 EE, 1 FN)
 
-- FP: `I3037`
-- EE: `W9007`
+- FN: `E3639`
+- EE: `I9040` ×7, `I9001` ×3, `F3003` ×2, `E9002`, `W2508`
 
 ### `cdk_application-load-balancer--LoadBalancerStack.template` — 1 mismatches (5 TP, 0 FP, 68 EE, 1 FN)
 
@@ -12152,11 +11851,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W3691`
 - EE: `I9001` ×6, `I9040` ×4, `W9007`, `W9008`
 
-### `cdk_s3-object-lambda--S3ObjectLambdaStack.template` — 1 mismatches (3 TP, 1 FP, 12 EE, 0 FN)
-
-- FP: `E3045`
-- EE: `I9001` ×8, `I9040` ×4
-
 ### `good_custom_is-not-defined` — 1 mismatches (8 TP, 0 FP, 6 EE, 1 FN)
 
 - FN: `E9004`
@@ -12166,11 +11860,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E1021`
 - EE: `I9001` ×6, `I9040` ×5
-
-### `good_mappings_used` — 1 mismatches (1 TP, 1 FP, 3 EE, 0 FN)
-
-- FP: `W7001`
-- EE: `I9001` ×2, `I9040`
 
 ### `good_parameters_not_used_parameters` — 1 mismatches (3 TP, 0 FP, 4 EE, 1 FN)
 
@@ -12182,20 +11871,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021`
 - EE: `I9001` ×3, `I9040`
 
-### `integration_cfn-gather` — 1 mismatches (24 TP, 1 FP, 36 EE, 0 FN)
+### `quickstart_openshift` — 1 mismatches (20 TP, 1 FP, 78 EE, 0 FN)
 
-- FP: `F3034`
-- EE: `I9001` ×20, `I9040` ×14, `W9013`, `W9008`
+- FP: `I2003`
+- EE: `I9001` ×38, `W9003` ×21, `I9040` ×10, `W2508` ×7, `W9010`, `W9013`
 
-### `quickstart_cis_benchmark` — 1 mismatches (69 TP, 1 FP, 148 EE, 0 FN)
+### `quickstart_openshift_master` — 1 mismatches (4 TP, 1 FP, 2 EE, 0 FN)
 
-- FP: `W3005`
-- EE: `I9001` ×104, `I9040` ×38, `W9003` ×6
-
-### `quickstart_nist_vpc_production` — 1 mismatches (62 TP, 1 FP, 96 EE, 0 FN)
-
-- FP: `W3002`
-- EE: `I9001` ×90, `I9040` ×5, `W2508`
+- FP: `I2003`
+- EE: `I9040` ×2
 
 ## Coverage Gaps
 
@@ -12218,18 +11902,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 105 | 42.68% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E8001, E8005, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
-| Resource property validation | 54 | 21.95% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3049, E3505, E3510, E3530, E3639, E3671, E3673, E3682, E3691, E3701, E3707, E3712, E3719 |
-| Intrinsic function validation | 40 | 16.26% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
-| Warning-level checks | 39 | 15.85% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Informational checks | 8 | 3.25% | I2530, I3011 |
+| Other | 105 | 41.50% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E8001, E8005, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
+| Resource property validation | 50 | 19.76% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 50 | 19.76% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Intrinsic function validation | 40 | 15.81% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
+| Informational checks | 8 | 3.16% | I2530, I3011 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 39 | 41.94% | E2001, E2530, E9004, E9006, F0013, F0014, F3003, F3012, F3020, F3031, F3034, F6101 |
-| Stricter than cfn-lint (warnings) | 34 | 36.56% | W1001, W1028, W1030, W2001, W2531, W2533, W3002, W3005, W3011, W7001, W8001, W8003 |
-| Over-reporting property/intrinsic errors | 11 | 11.83% | E1152, E3019, E3040, E3045, E3048, E3049, E3054, E3505 |
-| Extra informational findings | 9 | 9.68% | I2003, I3037, I3042, I3100 |
+| Other | 18 | 62.07% | E9004, F0013, F0014, F3003, F6101 |
+| Stricter than cfn-lint (warnings) | 8 | 27.59% | W1001, W1028, W2001 |
+| Extra informational findings | 3 | 10.34% | I2003, I3042 |
 
