@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare CfnValidationEngine diagnostics against cfn-lint expected results.
+"""Compare cloudformation-validate diagnostics against cfn-lint expected results.
 
 Builds the native Rust engine (cargo release), runs cfn-benchmark to generate
 fresh per-template JSON reports, then compares against cfn-lint baselines and
@@ -560,7 +560,7 @@ def run_single():
     w = lines.append
 
     # ── Header ───────────────────────────────────────────────────────────
-    w("# CfnValidationEngine vs cfn-lint — Parity Report")
+    w("# cloudformation-validate vs cfn-lint — Parity Report")
     w("")
     w(f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ")
     w(f"> Engine: **{ENGINE_NAME}**  ")
