@@ -131250,7 +131250,7 @@
       "rulesEvaluated": 273,
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 6,
+        "fatal": 5,
         "errors": 1,
         "warnings": 0,
         "informational": 19,
@@ -131291,18 +131291,6 @@
         "source": "SCHEMA",
         "resourceId": "BooleanGetAtt",
         "propertyPath": "Outputs/BooleanGetAtt/Value",
-        "category": "Structure",
-        "ruleDescription": "Output value must be a string",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F6101",
-        "severity": "FATAL",
-        "message": "Output 'DocDBClusterPort': GetAtt 'DocDBCluster.Port' returns type 'integer', not 'string'",
-        "source": "SCHEMA",
-        "resourceId": "DocDBClusterPort",
-        "propertyPath": "Outputs/DocDBClusterPort/Value",
         "category": "Structure",
         "ruleDescription": "Output value must be a string",
         "phase": "SCHEMA",

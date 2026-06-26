@@ -274,9 +274,10 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
 
     fs::write(data_dir.join("schema_metadata.json"), generate_schema_metadata(&schemas, &raw_schemas))?;
     let getatt_additions = read_getatt_additions(handwritten_dir)?;
+    let getatt_return_overrides = read_getatt_return_type_overrides(handwritten_dir)?;
     fs::write(
         data_dir.join("getatt_attributes.json"),
-        generate_getatt_data(&schemas, &raw_schemas, &getatt_additions),
+        generate_getatt_data(&schemas, &raw_schemas, &getatt_additions, &getatt_return_overrides),
     )?;
     // Union the schema-derived types with the per-region known types. Some types
     // CloudFormation accepts (e.g. AWS::CDK::Metadata) have no provider schema but
@@ -510,6 +511,7 @@ fn generate_getatt_data(
     schemas: &HashMap<String, (String, SchemaTop)>,
     raw: &HashMap<String, serde_json::Value>,
     additions: &BTreeMap<String, Vec<String>>,
+    return_type_overrides: &BTreeMap<String, BTreeMap<String, String>>,
 ) -> String {
     let mut attrs: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut attr_types: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
@@ -553,6 +555,14 @@ fn generate_getatt_data(
         valid_attrs.sort();
         valid_attrs.dedup();
     }
+    // Apply explicit GetAtt-return-type overrides for attributes whose GetAtt
+    // value type differs from the declared property type.
+    for (type_name, attr_overrides) in return_type_overrides {
+        let type_map = attr_types.entry(type_name.clone()).or_default();
+        for (attr, ret_type) in attr_overrides {
+            type_map.insert(attr.clone(), ret_type.clone());
+        }
+    }
     serde_json::to_string_pretty(&serde_json::json!({"getatt_attributes": attrs, "getatt_attribute_types": attr_types}))
         .unwrap()
 }
@@ -571,6 +581,28 @@ fn read_getatt_additions(handwritten_dir: &Path) -> anyhow::Result<BTreeMap<Stri
     let parsed: GetAttAdditions = serde_json::from_str(&contents)
         .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
     Ok(parsed.getatt_additions)
+}
+
+/// Reads overrides for the type CloudFormation returns from `Fn::GetAtt` on
+/// specific attributes, where it differs from the raw schema property type
+/// (CloudFormation stringifies many GetAtt return values). Missing file yields
+/// an empty map.
+fn read_getatt_return_type_overrides(
+    handwritten_dir: &Path,
+) -> anyhow::Result<BTreeMap<String, BTreeMap<String, String>>> {
+    #[derive(Deserialize)]
+    struct Overrides {
+        getatt_return_type_overrides: BTreeMap<String, BTreeMap<String, String>>,
+    }
+    let path = handwritten_dir.join("getatt_return_type_overrides.json");
+    if !path.exists() {
+        return Ok(BTreeMap::new());
+    }
+    let contents = fs::read_to_string(&path)
+        .map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let parsed: Overrides = serde_json::from_str(&contents)
+        .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+    Ok(parsed.getatt_return_type_overrides)
 }
 
 /// Generates user-settable primary identifier properties per resource type,
