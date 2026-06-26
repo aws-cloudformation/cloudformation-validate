@@ -252,7 +252,10 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
             _link(eid, cid)
 
     # GetAtt: cfn-lint E1010 ↔ engine split E9004 (attribute) + E9003 (type).
-    _link("E1010", "E9004", "E9003")
+    # E1017 (Select/GetAZs validation) reports an invalid GetAtt attribute nested
+    # inside Fn::Select/Fn::GetAZs under that ID; it is the same attribute-existence
+    # finding the engine emits as E9004, so it joins the group for matching.
+    _link("E1010", "E9004", "E9003", "E1017")
     # Extension-enum family: cfn-lint uses a per-resource ID — E3690 for
     # DBCluster Engine/EngineVersion, E3691 for DBInstance — while the engine
     # emits one generic E9006 for any conditional-extension enum violation.

@@ -480,6 +480,7 @@ fn verify_diagnostic_json_contract() {
         "isCdk",
         "fnIfConditions",
         "findInMapNames",
+        "paramsReferencedInDefinitions",
         "hasDynamicFindinmapName",
         "hasParseErrors",
         "parsedRules",

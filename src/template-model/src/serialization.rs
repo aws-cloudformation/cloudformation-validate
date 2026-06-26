@@ -107,6 +107,11 @@ impl SemanticModel {
                 names.sort();
                 names
             },
+            params_referenced_in_definitions: {
+                let mut names: Vec<String> = self.params_referenced_in_definitions.iter().cloned().collect();
+                names.sort();
+                names
+            },
             has_dynamic_findinmap_name: self.has_dynamic_findinmap_name,
             has_parse_errors: self
                 .diagnostics

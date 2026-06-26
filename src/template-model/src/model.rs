@@ -137,6 +137,9 @@ pub struct SemanticModel {
     /// Mapping names referenced by an `Fn::FindInMap` with a literal map name,
     /// collected template-wide (resources, outputs, conditions, ForEach bodies).
     pub find_in_map_names: HashSet<String>,
+    /// Parameter names referenced from within another parameter's definition
+    /// (e.g. a Default of `!Ref OtherParam`); these still count as usage.
+    pub params_referenced_in_definitions: HashSet<String>,
     /// True when any `Fn::FindInMap` uses a non-literal map name, which disables
     /// the unused-mapping check (W7001) because usage can no longer be attributed
     /// to a specific mapping.
@@ -263,6 +266,11 @@ impl SemanticModel {
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
         let ir = crate::parser::parse(bytes)?;
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
+        // A parameter's definition can reference another parameter (e.g. a
+        // Default given as `!Ref OtherParam`). Such a reference still counts as
+        // usage, so collect the parameter names referenced from within the
+        // Parameters section to feed the unused-parameter check.
+        let params_referenced_in_definitions = collect_parameter_definition_refs(&ir, &parameters);
         let (mappings, mapping_diagnostics) = extract_mappings(&ir);
         let mut conditions = ConditionModel::from_ir(&ir, &parameters, &config.pseudo_parameters, &mappings);
 
@@ -550,6 +558,7 @@ impl SemanticModel {
                 is_cdk,
                 fn_if_conditions,
                 find_in_map_names,
+                params_referenced_in_definitions,
                 has_dynamic_findinmap_name,
                 resolution_sources,
                 resolve_memo: Mutex::new(HashMap::new()),
@@ -851,6 +860,57 @@ fn parse_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node
 /// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
 /// object-wrapping intrinsics, so downstream resolution can address the
 /// conditional by a synthetic path.
+/// Collect parameter names that are referenced (via `Ref`/`Fn::Sub`) from within
+/// another parameter's definition. These references still count as usage for the
+/// unused-parameter check even though they originate in the Parameters section.
+fn collect_parameter_definition_refs(
+    ir: &TemplateIR,
+    parameters: &HashMap<String, ParameterInfo>,
+) -> HashSet<String> {
+    let mut referenced = HashSet::new();
+    if ir.parameters == NULL_REF {
+        return referenced;
+    }
+    let Some(param_entries) = ir.arena.as_map(ir.parameters) else {
+        return referenced;
+    };
+    for (_, param_ref) in param_entries {
+        collect_refs_in_subtree(&ir.arena, *param_ref, parameters, &mut referenced);
+    }
+    referenced
+}
+
+fn collect_refs_in_subtree(
+    arena: &Arena,
+    node_ref: NodeRef,
+    parameters: &HashMap<String, ParameterInfo>,
+    referenced: &mut HashSet<String>,
+) {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Ref(target)) => {
+            if parameters.contains_key(target) {
+                referenced.insert(target.clone());
+            }
+        }
+        Node::Intrinsic(IntrinsicFn::Sub(_, Some(bindings))) => {
+            for (_, v) in bindings {
+                collect_refs_in_subtree(arena, *v, parameters, referenced);
+            }
+        }
+        Node::List(items) => {
+            for item in items {
+                collect_refs_in_subtree(arena, *item, parameters, referenced);
+            }
+        }
+        Node::Map(entries) => {
+            for (_, v) in entries {
+                collect_refs_in_subtree(arena, *v, parameters, referenced);
+            }
+        }
+        _ => {}
+    }
+}
+
 fn intrinsic_synthetic_key(arena: &Arena, node_ref: NodeRef) -> Option<String> {
     let Node::Intrinsic(func) = arena.node(node_ref) else {
         return None;

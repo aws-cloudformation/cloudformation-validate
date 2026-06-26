@@ -512,10 +512,27 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     // A transform (SAM, language extensions, or a custom macro) can reference
     // parameters in ways not visible before expansion, so an unreferenced
     // parameter is not a reliable signal once any transform is present.
-    if m.transforms.is_empty()
+    //
+    // A parameter can be referenced from a section the parser could not read —
+    // an unexpanded Fn::ForEach key (the transform that would expand it is
+    // missing) or a malformed Conditions section (e.g. authored as a list). In
+    // those cases the reference graph is incomplete, so the unused-parameter
+    // check is skipped rather than reporting a parameter as unused when the
+    // reference simply could not be seen.
+    let resources_obj = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+    let has_unexpanded_foreach = resources_obj.is_some_and(|r| r.keys().any(|k| k.contains("Fn::ForEach")));
+    let conditions_malformed = input
+        .get("template")
+        .and_then(|t| t.get("rawTopLevelKeys"))
+        .and_then(|v| v.as_array())
+        .is_some_and(|keys| keys.iter().any(|k| k.as_str() == Some(SECTION_CONDITIONS)))
+        && input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()).map(|c| c.is_empty()).unwrap_or(true);
+    if !has_unexpanded_foreach
+        && !conditions_malformed
+        && m.transforms.is_empty()
         && let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object())
     {
-        let resources = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
+        let resources = resources_obj;
         for pname in params.keys() {
             let mut referenced = false;
             if let Some(res_map) = resources {
@@ -564,6 +581,15 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             // Check SAM Globals parameter refs
             if !referenced && let Some(refs) = input.get("globalsParamRefs").and_then(|r| r.as_array()) {
+                for r in refs {
+                    if r.as_str() == Some(pname.as_str()) {
+                        referenced = true;
+                        break;
+                    }
+                }
+            }
+            // Check references from within other parameter definitions
+            if !referenced && let Some(refs) = input.get("paramsReferencedInDefinitions").and_then(|r| r.as_array()) {
                 for r in refs {
                     if r.as_str() == Some(pname.as_str()) {
                         referenced = true;

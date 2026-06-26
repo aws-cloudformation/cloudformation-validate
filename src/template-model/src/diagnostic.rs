@@ -31,6 +31,7 @@ pub struct DiagnosticModel {
     pub is_cdk: bool,
     pub fn_if_conditions: Vec<String>,
     pub find_in_map_names: Vec<String>,
+    pub params_referenced_in_definitions: Vec<String>,
     pub has_dynamic_findinmap_name: bool,
     pub has_parse_errors: bool,
     pub parsed_rules: Vec<DiagnosticRule>,
