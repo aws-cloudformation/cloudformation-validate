@@ -3716,20 +3716,26 @@
       {
         "ruleId": "F0013",
         "severity": "FATAL",
-        "message": "Fn::If: must have exactly 3 elements, got 2",
+        "message": "Fn::If: {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'",
         "source": "SCHEMA",
+        "resourceId": "myInstance4",
+        "propertyPath": "Properties.InstanceType.Fn::If",
         "category": "Intrinsic Function",
         "ruleDescription": "Fn::If must have exactly 3 elements",
-        "phase": "PARSE"
+        "phase": "PARSE",
+        "section": "Resources"
       },
       {
         "ruleId": "F0013",
         "severity": "FATAL",
-        "message": "Fn::If: {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'",
+        "message": "Fn::If: must have exactly 3 elements, got 2",
         "source": "SCHEMA",
+        "resourceId": "AMIIDLookup",
+        "propertyPath": "Properties.Role.Fn::If",
         "category": "Intrinsic Function",
         "ruleDescription": "Fn::If must have exactly 3 elements",
-        "phase": "PARSE"
+        "phase": "PARSE",
+        "section": "Resources"
       },
       {
         "ruleId": "W8001",
@@ -13866,9 +13872,12 @@
         "severity": "FATAL",
         "message": "Fn::If: must have exactly 3 elements, got 2",
         "source": "SCHEMA",
+        "resourceId": "R",
+        "propertyPath": "Properties.BucketName.Fn::If",
         "category": "Intrinsic Function",
         "ruleDescription": "Fn::If must have exactly 3 elements",
-        "phase": "PARSE"
+        "phase": "PARSE",
+        "section": "Resources"
       },
       {
         "ruleId": "W8003",

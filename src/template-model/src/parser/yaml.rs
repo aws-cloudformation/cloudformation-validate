@@ -453,13 +453,28 @@ impl YamlBuilder {
 
     /// Emit a structural diagnostic for Fn::Equals, Fn::And, Fn::Or, Fn::Not.
     /// CloudFormation rejects templates with these defects at deploy time.
-    fn condition_fn_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0014", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
+    /// `path` is the location of the enclosing intrinsic, so the diagnostic is
+    /// anchored at the function node (e.g. `Resources/R/Properties/X/Fn::And`)
+    /// and lands at the same location as the equivalent property-level error.
+    fn condition_fn_error(&mut self, fn_name: &str, message: &str, path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at(
+            "F0014",
+            format!("{}: {}", fn_name, message),
+            UNKNOWN_SPAN,
+            &format!("{}/{}", path, fn_name),
+        ));
     }
 
-    /// Emit a structural diagnostic for Fn::If.
-    fn fn_if_structural_error(&mut self, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0013", format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
+    /// Emit a structural diagnostic for Fn::If. `path` is the location of the
+    /// enclosing intrinsic, so the diagnostic is anchored at the Fn::If node and
+    /// lands at the same location as a property-level error.
+    fn fn_if_structural_error(&mut self, message: &str, path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at(
+            "F0013",
+            format!("{}: {}", FN_IF, message),
+            UNKNOWN_SPAN,
+            &format!("{}/{}", path, FN_IF),
+        ));
     }
 
     fn try_intrinsic(&mut self, key: &str, val: &Yaml, path: &str) -> Option<NodeRef> {
@@ -624,11 +639,11 @@ impl YamlBuilder {
                     } else {
                         format!("{} is not of type 'array'", describe_yaml_value(val))
                     };
-                    self.fn_if_structural_error(&kind);
+                    self.fn_if_structural_error(&kind, path);
                     return None;
                 };
                 if a.len() != 3 {
-                    self.fn_if_structural_error(&format!("must have exactly 3 elements, got {}", a.len()));
+                    self.fn_if_structural_error(&format!("must have exactly 3 elements, got {}", a.len()), path);
                     return None;
                 }
                 let t = self.build_yaml(&a[1], &format!("{}/Fn::If/1", path));
@@ -748,20 +763,32 @@ impl YamlBuilder {
             }
             FN_AND => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(FN_AND, &format!("{} is not of type 'array'", describe_yaml_value(val)));
+                    self.condition_fn_error(
+                        FN_AND,
+                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
+                        path,
+                    );
                     return None;
                 };
                 if a.len() < 2 {
-                    self.condition_fn_error(FN_AND, &format!("expected minimum item count: 2, found: {}", a.len()));
+                    self.condition_fn_error(
+                        FN_AND,
+                        &format!("expected minimum item count: 2, found: {}", a.len()),
+                        path,
+                    );
                     return None;
                 }
                 if a.len() > 10 {
-                    self.condition_fn_error(FN_AND, &format!("expected maximum item count: 10, found: {}", a.len()));
+                    self.condition_fn_error(
+                        FN_AND,
+                        &format!("expected maximum item count: 10, found: {}", a.len()),
+                        path,
+                    );
                     return None;
                 }
                 for (idx, elem) in a.iter().enumerate() {
                     if let Some(reason) = condition_element_error_yaml(elem) {
-                        self.condition_fn_error(FN_AND, &format!("element {}: {}", idx, reason));
+                        self.condition_fn_error(FN_AND, &format!("element {}: {}", idx, reason), path);
                     }
                 }
                 let c: Vec<NodeRef> = a
@@ -773,20 +800,32 @@ impl YamlBuilder {
             }
             FN_OR => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(FN_OR, &format!("{} is not of type 'array'", describe_yaml_value(val)));
+                    self.condition_fn_error(
+                        FN_OR,
+                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
+                        path,
+                    );
                     return None;
                 };
                 if a.len() < 2 {
-                    self.condition_fn_error(FN_OR, &format!("expected minimum item count: 2, found: {}", a.len()));
+                    self.condition_fn_error(
+                        FN_OR,
+                        &format!("expected minimum item count: 2, found: {}", a.len()),
+                        path,
+                    );
                     return None;
                 }
                 if a.len() > 10 {
-                    self.condition_fn_error(FN_OR, &format!("expected maximum item count: 10, found: {}", a.len()));
+                    self.condition_fn_error(
+                        FN_OR,
+                        &format!("expected maximum item count: 10, found: {}", a.len()),
+                        path,
+                    );
                     return None;
                 }
                 for (idx, elem) in a.iter().enumerate() {
                     if let Some(reason) = condition_element_error_yaml(elem) {
-                        self.condition_fn_error(FN_OR, &format!("element {}: {}", idx, reason));
+                        self.condition_fn_error(FN_OR, &format!("element {}: {}", idx, reason), path);
                     }
                 }
                 let c: Vec<NodeRef> = a
@@ -798,22 +837,30 @@ impl YamlBuilder {
             }
             FN_NOT => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(FN_NOT, &format!("{} is not of type 'array'", describe_yaml_value(val)));
+                    self.condition_fn_error(
+                        FN_NOT,
+                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
+                        path,
+                    );
                     return None;
                 };
                 if a.len() != 1 {
-                    self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", a.len()));
+                    self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", a.len()), path);
                     return None;
                 }
                 if let Some(reason) = condition_element_error_yaml(&a[0]) {
-                    self.condition_fn_error(FN_NOT, &format!("element 0: {}", reason));
+                    self.condition_fn_error(FN_NOT, &format!("element 0: {}", reason), path);
                 }
                 let c = self.build_yaml(&a[0], &format!("{}/{}/0", path, FN_NOT));
                 IntrinsicFn::Not(c)
             }
             FN_EQUALS => {
                 let Some(a) = val.as_vec() else {
-                    self.condition_fn_error(FN_EQUALS, &format!("{} is not of type 'array'", describe_yaml_value(val)));
+                    self.condition_fn_error(
+                        FN_EQUALS,
+                        &format!("{} is not of type 'array'", describe_yaml_value(val)),
+                        path,
+                    );
                     return None;
                 };
                 if a.len() != 2 {
@@ -821,12 +868,13 @@ impl YamlBuilder {
                     self.condition_fn_error(
                         FN_EQUALS,
                         &format!("expected {} item count: 2, found: {}", bound, a.len()),
+                        path,
                     );
                     return None;
                 }
                 for (idx, elem) in a.iter().enumerate() {
                     if let Some(reason) = equals_argument_error_yaml(elem) {
-                        self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason));
+                        self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason), path);
                     }
                 }
                 let x = self.build_yaml(&a[0], &format!("{}/{}/0", path, FN_EQUALS));

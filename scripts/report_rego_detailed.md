@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 21:06:29  
+> Generated: 2026-06-25 21:21:24  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,21 +22,21 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1663 |
-| False Positives (engine bugs) | 23 |
+| True Positives | 1666 |
+| False Positives (engine bugs) | 20 |
 | Engine Extra (correct, cfn-lint gap) | 5218 |
-| False Negatives (engine misses) | 249 |
-| Precision | 98.64% |
-| Recall | 86.98% |
-| F1 | 92.44% |
+| False Negatives (engine misses) | 246 |
+| Precision | 98.81% |
+| Recall | 87.13% |
+| F1 | 92.61% |
 | Unique rules detected | 194 |
-| Perfect templates | 300/387 |
+| Perfect templates | 301/387 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 340 | 13 | 58 | 83 | 96.32% | 80.38% |
+| Fatal | 343 | 10 | 58 | 80 | 97.17% | 81.09% |
 | Error | 296 | 1 | 3 | 108 | 99.66% | 73.27% |
 | Warning | 677 | 8 | 339 | 50 | 98.83% | 93.12% |
 | Info | 350 | 1 | 4818 | 8 | 99.72% | 97.77% |
@@ -45,27 +45,27 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 18450.0403 ms |
-| Throughput | 122.76 validations/sec |
+| Total wall time | 18418.7751 ms |
+| Throughput | 122.97 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 65.3287 ms |
-| Engine init (max) | 65.7808 ms |
-| Schema init (p99) | 59.8976 ms |
-| Schema init (max) | 60.8018 ms |
+| Engine init (p99) | 63.6374 ms |
+| Engine init (max) | 64.0235 ms |
+| Schema init (p99) | 75.5229 ms |
+| Schema init (max) | 77.0520 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0017 | 0.1888 | 0.0426 | 0.5827 | 0.8104 | 1.4673 | 2.5309 |
-| Schema Validate | 0.0000 | 2.3908 | 0.5248 | 6.3473 | 9.7386 | 23.1549 | 52.6958 |
-| Rule Evaluation | 0.9363 | 5.0397 | 2.1696 | 12.2630 | 18.0645 | 29.8562 | 91.6195 |
-| Diagnostic Finalize | 0.0003 | 0.0259 | 0.0035 | 0.0866 | 0.1247 | 0.3103 | 0.5418 |
-| Engine Internal | 0.9435 | 7.6903 | 2.8791 | 19.7006 | 29.5626 | 53.5022 | 112.8657 |
-| Wall Clock | 0.9437 | 7.6906 | 2.8793 | 19.7010 | 29.5630 | 53.5044 | 112.8667 |
+| Model Build | 0.0016 | 0.1889 | 0.0434 | 0.6178 | 0.8106 | 1.4800 | 2.5773 |
+| Schema Validate | 0.0000 | 2.3936 | 0.5678 | 6.3240 | 9.9107 | 22.5732 | 51.7177 |
+| Rule Evaluation | 0.9473 | 5.0592 | 2.2023 | 12.2828 | 17.8039 | 30.1622 | 92.9069 |
+| Diagnostic Finalize | 0.0003 | 0.0260 | 0.0037 | 0.0806 | 0.1279 | 0.2985 | 0.5809 |
+| Engine Internal | 0.9505 | 7.7167 | 2.9583 | 19.5645 | 29.8216 | 53.1360 | 109.9195 |
+| Wall Clock | 0.9507 | 7.7170 | 2.9584 | 19.5646 | 29.8224 | 53.1380 | 109.9200 |
 
-## False Negatives — 249 missed findings across 68 rules
+## False Negatives — 246 missed findings across 68 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -159,27 +159,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
 - **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions`
   > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-
-### F0013 — 9 missed — Conditions have appropriate properties
-
-- **F0013** (cfn-lint: E8001) → `Conditions.BadCondition` L41 in `bad_conditions`
-  > 'String' is not of type 'boolean'
-- **F0013** (cfn-lint: E8001) → `Conditions.TooManyConditions` L43 in `bad_conditions`
-  > {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod'], 'Fn::Not': {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod']}} is not of type 'boolean'
-- **F0013** (cfn-lint: E8001) → `Conditions.HasParam` L47 in `bad_conditions`
-  > {'Fn::Of': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnvType'}, '']}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnableGeoBlocking'}, '']}]}]} is not of type 'boolean'
-- **F0013** (cfn-lint: E8001) → `Conditions.NullCondition` L51 in `bad_conditions`
-  > None is not of type 'boolean'
-- **F0013** (cfn-lint: E1028) `EC2Instance` → `Properties.Tags.1.Fn::If.0` L61 in `bad_conditions`
-  > 'isProd' is not one of ['CreateProdResources', 'BadCondition', 'UnusedCondition', 'TooManyConditions', 'EnableGeoBlocking', 'HasParam', 'NullCondition']
-- **F0013** (cfn-lint: E1028) `myInstance4` → `Properties.InstanceType.Fn::If` L67 in `bad_core_conditions`
-  > {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'
-- **F0013** (cfn-lint: E1028) `AMIIDLookup` → `Properties.Role.Fn::If` L100 in `bad_core_conditions`
-  > expected minimum item count: 3, found: 2
-- **F0013** (cfn-lint: E8001) → `Conditions` L6 in `bad_core_conditions_list`
-  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
-- **F0013** (cfn-lint: E1028) `R` → `Properties.BucketName.Fn::If` L12 in `bad_if_wrong_arity`
-  > expected minimum item count: 3, found: 2
 
 ### E1021 — 8 missed — Base64 validation of parameters
 
@@ -282,6 +261,21 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
 - **I3011** `App2` → `Resources.App2` L7 in `good_transform_applications_location`
   > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
+
+### F0013 — 6 missed — Conditions have appropriate properties
+
+- **F0013** (cfn-lint: E8001) → `Conditions.BadCondition` L41 in `bad_conditions`
+  > 'String' is not of type 'boolean'
+- **F0013** (cfn-lint: E8001) → `Conditions.TooManyConditions` L43 in `bad_conditions`
+  > {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod'], 'Fn::Not': {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod']}} is not of type 'boolean'
+- **F0013** (cfn-lint: E8001) → `Conditions.HasParam` L47 in `bad_conditions`
+  > {'Fn::Of': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnvType'}, '']}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnableGeoBlocking'}, '']}]}]} is not of type 'boolean'
+- **F0013** (cfn-lint: E8001) → `Conditions.NullCondition` L51 in `bad_conditions`
+  > None is not of type 'boolean'
+- **F0013** (cfn-lint: E1028) `EC2Instance` → `Properties.Tags.1.Fn::If.0` L61 in `bad_conditions`
+  > 'isProd' is not one of ['CreateProdResources', 'BadCondition', 'UnusedCondition', 'TooManyConditions', 'EnableGeoBlocking', 'HasParam', 'NullCondition']
+- **F0013** (cfn-lint: E8001) → `Conditions` L6 in `bad_core_conditions_list`
+  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
 
 ### W1001 — 6 missed — Ref/GetAtt to resource that is available when conditions are applied
 
@@ -771,7 +765,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L312 in `lsp_comprehensive`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
 
-## False Positives — 23 extra findings across 9 rules
+## False Positives — 20 extra findings across 8 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -800,15 +794,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > Parameter 'myMinLength' is not referenced anywhere in the template
 - **W2001** L4 in `bad_parameters_default`
   > Parameter 'myMinValue' is not referenced anywhere in the template
-
-### F0013 — 3 extra — Conditions have appropriate properties
-
-- **F0013** in `bad_core_conditions`
-  > Fn::If: must have exactly 3 elements, got 2
-- **F0013** in `bad_core_conditions`
-  > Fn::If: {'Fn::If': ['isPrimary', 't3.2xlarge', 't3.xlarge']} is not of type 'array'
-- **F0013** in `bad_if_wrong_arity`
-  > Fn::If: must have exactly 3 elements, got 2
 
 ### W1028 — 3 extra — Check Fn::If has a path that cannot be reached
 
@@ -11396,13 +11381,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F8611** in `lsp_comprehensive`
   > 'Fn::FindInMap' is not supported in the Rules section — allowed: ["Ref", "Fn::ValueOf", "Fn::ValueOfAll", "Fn::RefAll", "Fn::Contains", "Fn::EachMemberEquals", "Fn::EachMemberIn", "Fn::Equals", "Fn::A
 
-## Per-Template Breakdown — 87 templates with mismatches
-
-### `bad_core_conditions` — 11 mismatches (14 TP, 2 FP, 15 EE, 9 FN)
-
-- FN: `W1001` ×2, `F3014` ×2, `F0013` ×2, `F3003`, `W1028`, `W3698`
-- FP: `F0013` ×2
-- EE: `I9001` ×8, `I9040` ×7
+## Per-Template Breakdown — 86 templates with mismatches
 
 ### `bad_generic` — 11 mismatches (29 TP, 0 FP, 36 EE, 11 FN)
 
@@ -11418,6 +11397,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F0013` ×5, `E3024` ×2, `E1001`, `E3001`, `W1028`
 - EE: `I9001` ×4, `F1104` ×2, `F1060` ×2, `F3002` ×2, `I9040` ×2, `W9010`, `W9009`
+
+### `bad_core_conditions` — 7 mismatches (16 TP, 0 FP, 15 EE, 7 FN)
+
+- FN: `W1001` ×2, `F3014` ×2, `F3003`, `W1028`, `W3698`
+- EE: `I9001` ×8, `I9040` ×7
 
 ### `bad_resources_circular_dependency` — 7 mismatches (24 TP, 1 FP, 32 EE, 6 FN)
 
@@ -11621,12 +11605,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1001`
 - FP: `W1001`
 - EE: `I9040` ×4, `I9001` ×2
-
-### `bad_if_wrong_arity` — 2 mismatches (1 TP, 1 FP, 2 EE, 1 FN)
-
-- FN: `F0013`
-- FP: `F0013`
-- EE: `I9001`, `I9040`
 
 ### `bad_modules_bad_has_update_policy` — 2 mismatches (1 TP, 0 FP, 0 EE, 2 FN)
 
@@ -11862,17 +11840,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 101 | 40.56% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
-| Resource property validation | 50 | 20.08% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 50 | 20.08% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Intrinsic function validation | 40 | 16.06% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
-| Informational checks | 8 | 3.21% | I2530, I3011 |
+| Other | 98 | 39.84% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F6101 |
+| Resource property validation | 50 | 20.33% | E3001, E3016, E3019, E3022, E3023, E3024, E3045, E3048, E3510, E3530, E3639, E3671, E3673, E3682, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 50 | 20.33% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Intrinsic function validation | 40 | 16.26% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1152, E1161, E1701 |
+| Informational checks | 8 | 3.25% | I2530, I3011 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 14 | 60.87% | E9004, F0013, F0014, F3003, F6101 |
-| Stricter than cfn-lint (warnings) | 8 | 34.78% | W1001, W1028, W2001 |
-| Extra informational findings | 1 | 4.35% | I3042 |
+| Other | 11 | 55.00% | E9004, F0014, F3003, F6101 |
+| Stricter than cfn-lint (warnings) | 8 | 40.00% | W1001, W1028, W2001 |
+| Extra informational findings | 1 | 5.00% | I3042 |
 

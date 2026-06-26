@@ -158,15 +158,30 @@ impl JsonBuilder {
     }
 
     /// Emit a structural diagnostic for Fn::Equals, Fn::And, Fn::Or, Fn::Not.
-    /// CloudFormation rejects templates with these defects at deploy time
-    fn condition_fn_error(&mut self, fn_name: &str, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0014", format!("{}: {}", fn_name, message), UNKNOWN_SPAN));
+    /// CloudFormation rejects templates with these defects at deploy time.
+    /// `path` is the location of the enclosing intrinsic, so the diagnostic is
+    /// anchored at the function node (e.g. `Resources/R/Properties/X/Fn::And`)
+    /// and lands at the same location as the equivalent property-level error.
+    fn condition_fn_error(&mut self, fn_name: &str, message: &str, path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at(
+            "F0014",
+            format!("{}: {}", fn_name, message),
+            UNKNOWN_SPAN,
+            &format!("{}/{}", path, fn_name),
+        ));
     }
 
     /// Emit a structural diagnostic for Fn::If. CloudFormation rejects
-    /// malformed Fn::If at deploy time; classified as Fatal.
-    fn fn_if_structural_error(&mut self, message: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F0013", format!("{}: {}", FN_IF, message), UNKNOWN_SPAN));
+    /// malformed Fn::If at deploy time; classified as Fatal. `path` is the
+    /// location of the enclosing intrinsic, so the diagnostic is anchored at the
+    /// Fn::If node and lands at the same location as a property-level error.
+    fn fn_if_structural_error(&mut self, message: &str, path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at(
+            "F0013",
+            format!("{}: {}", FN_IF, message),
+            UNKNOWN_SPAN,
+            &format!("{}/{}", path, FN_IF),
+        ));
     }
 
     fn try_build_intrinsic(&mut self, key: &str, val: &serde_json::Value, path: &str) -> Option<NodeRef> {
@@ -369,12 +384,12 @@ impl JsonBuilder {
                         } else {
                             format!("{} is not of type 'array'", describe_json_value(val))
                         };
-                        self.fn_if_structural_error(&kind);
+                        self.fn_if_structural_error(&kind, path);
                         return None;
                     }
                 };
                 if arr.len() != 3 {
-                    self.fn_if_structural_error(&format!("must have exactly 3 elements, got {}", arr.len()));
+                    self.fn_if_structural_error(&format!("must have exactly 3 elements, got {}", arr.len()), path);
                     return None;
                 }
                 let if_true = self.build_value(&arr[1], &format!("{}/Fn::If/1", path));
@@ -555,21 +570,30 @@ impl JsonBuilder {
                         self.condition_fn_error(
                             FN_AND,
                             &format!("{} is not of type 'array'", describe_json_value(val)),
+                            path,
                         );
                         return None;
                     }
                 };
                 if arr.len() < 2 {
-                    self.condition_fn_error(FN_AND, &format!("expected minimum item count: 2, found: {}", arr.len()));
+                    self.condition_fn_error(
+                        FN_AND,
+                        &format!("expected minimum item count: 2, found: {}", arr.len()),
+                        path,
+                    );
                     return None;
                 }
                 if arr.len() > 10 {
-                    self.condition_fn_error(FN_AND, &format!("expected maximum item count: 10, found: {}", arr.len()));
+                    self.condition_fn_error(
+                        FN_AND,
+                        &format!("expected maximum item count: 10, found: {}", arr.len()),
+                        path,
+                    );
                     return None;
                 }
                 for (idx, elem) in arr.iter().enumerate() {
                     if let Some(reason) = condition_element_error(elem) {
-                        self.condition_fn_error(FN_AND, &format!("element {}: {}", idx, reason));
+                        self.condition_fn_error(FN_AND, &format!("element {}: {}", idx, reason), path);
                     }
                 }
                 let children: Vec<NodeRef> = arr
@@ -587,21 +611,33 @@ impl JsonBuilder {
                 let arr = match val.as_array() {
                     Some(a) => a,
                     None => {
-                        self.condition_fn_error(FN_OR, &format!("{} is not of type 'array'", describe_json_value(val)));
+                        self.condition_fn_error(
+                            FN_OR,
+                            &format!("{} is not of type 'array'", describe_json_value(val)),
+                            path,
+                        );
                         return None;
                     }
                 };
                 if arr.len() < 2 {
-                    self.condition_fn_error(FN_OR, &format!("expected minimum item count: 2, found: {}", arr.len()));
+                    self.condition_fn_error(
+                        FN_OR,
+                        &format!("expected minimum item count: 2, found: {}", arr.len()),
+                        path,
+                    );
                     return None;
                 }
                 if arr.len() > 10 {
-                    self.condition_fn_error(FN_OR, &format!("expected maximum item count: 10, found: {}", arr.len()));
+                    self.condition_fn_error(
+                        FN_OR,
+                        &format!("expected maximum item count: 10, found: {}", arr.len()),
+                        path,
+                    );
                     return None;
                 }
                 for (idx, elem) in arr.iter().enumerate() {
                     if let Some(reason) = condition_element_error(elem) {
-                        self.condition_fn_error(FN_OR, &format!("element {}: {}", idx, reason));
+                        self.condition_fn_error(FN_OR, &format!("element {}: {}", idx, reason), path);
                     }
                 }
                 let children: Vec<NodeRef> = arr
@@ -622,16 +658,17 @@ impl JsonBuilder {
                         self.condition_fn_error(
                             FN_NOT,
                             &format!("{} is not of type 'array'", describe_json_value(val)),
+                            path,
                         );
                         return None;
                     }
                 };
                 if arr.len() != 1 {
-                    self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", arr.len()));
+                    self.condition_fn_error(FN_NOT, &format!("must have exactly 1 element, got {}", arr.len()), path);
                     return None;
                 }
                 if let Some(reason) = condition_element_error(&arr[0]) {
-                    self.condition_fn_error(FN_NOT, &format!("element 0: {}", reason));
+                    self.condition_fn_error(FN_NOT, &format!("element 0: {}", reason), path);
                 }
                 let child = self.build_value(&arr[0], &format!("{}/{}/0", path, FN_NOT));
                 Some(self.arena.alloc(SpannedNode {
@@ -647,6 +684,7 @@ impl JsonBuilder {
                         self.condition_fn_error(
                             FN_EQUALS,
                             &format!("{} is not of type 'array'", describe_json_value(val)),
+                            path,
                         );
                         return None;
                     }
@@ -656,12 +694,13 @@ impl JsonBuilder {
                     self.condition_fn_error(
                         FN_EQUALS,
                         &format!("expected {} item count: 2, found: {}", bound, arr.len()),
+                        path,
                     );
                     return None;
                 }
                 for (idx, elem) in arr.iter().enumerate() {
                     if let Some(reason) = equals_argument_error(elem) {
-                        self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason));
+                        self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason), path);
                     }
                 }
                 let a = self.build_value(&arr[0], &format!("{}/{}/0", path, FN_EQUALS));
