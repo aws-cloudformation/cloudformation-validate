@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 22:50:37  
+> Generated: 2026-06-25 23:08:20  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,12 +23,12 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 1694 |
-| False Positives (engine bugs) | 4 |
+| False Positives (engine bugs) | 3 |
 | Engine Extra (correct, cfn-lint gap) | 5313 |
 | False Negatives (engine misses) | 272 |
-| Precision | 99.76% |
+| Precision | 99.82% |
 | Recall | 86.16% |
-| F1 | 92.47% |
+| F1 | 92.49% |
 | Unique rules detected | 194 |
 | Perfect templates | 311/400 |
 
@@ -36,7 +36,7 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 348 | 3 | 58 | 96 | 99.15% | 78.38% |
+| Fatal | 348 | 2 | 58 | 96 | 99.43% | 78.38% |
 | Error | 300 | 0 | 3 | 111 | 100.00% | 72.99% |
 | Warning | 693 | 0 | 351 | 57 | 100.00% | 92.40% |
 | Info | 353 | 1 | 4901 | 8 | 99.72% | 97.78% |
@@ -45,25 +45,25 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 14031.5308 ms |
-| Throughput | 161.42 validations/sec |
+| Total wall time | 14046.8531 ms |
+| Throughput | 161.25 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 40.1444 ms |
-| Engine init (max) | 40.3873 ms |
-| Schema init (p99) | 54.3954 ms |
-| Schema init (max) | 54.9945 ms |
+| Engine init (p99) | 39.6454 ms |
+| Engine init (max) | 39.8851 ms |
+| Schema init (p99) | 54.5240 ms |
+| Schema init (max) | 55.1171 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0017 | 0.1878 | 0.0434 | 0.6170 | 0.7925 | 1.4686 | 2.5052 |
-| Schema Validate | 0.0000 | 2.3840 | 0.5453 | 6.2615 | 9.9329 | 22.8278 | 52.3078 |
-| Rule Evaluation | 2.6702 | 3.1214 | 2.8255 | 3.6349 | 4.1089 | 5.1052 | 44.5618 |
-| Diagnostic Finalize | 0.0004 | 0.0258 | 0.0037 | 0.0842 | 0.1238 | 0.3292 | 0.5467 |
-| Engine Internal | 2.6788 | 5.7592 | 3.5275 | 10.4257 | 14.6072 | 30.1345 | 59.8038 |
-| Wall Clock | 2.6789 | 5.7595 | 3.5277 | 10.4260 | 14.6075 | 30.1348 | 59.8041 |
+| Model Build | 0.0022 | 0.1867 | 0.0437 | 0.5844 | 0.7828 | 1.4633 | 2.5280 |
+| Schema Validate | 0.0000 | 2.3752 | 0.5646 | 6.1808 | 9.7572 | 22.6295 | 54.9587 |
+| Rule Evaluation | 2.6583 | 3.1337 | 2.8474 | 3.5952 | 3.9327 | 5.4716 | 43.9803 |
+| Diagnostic Finalize | 0.0004 | 0.0256 | 0.0037 | 0.0835 | 0.1240 | 0.3029 | 0.5695 |
+| Engine Internal | 2.6643 | 5.7624 | 3.6173 | 10.3801 | 14.3063 | 30.2267 | 64.4495 |
+| Wall Clock | 2.6644 | 5.7627 | 3.6174 | 10.3804 | 14.3066 | 30.2272 | 64.4506 |
 
 ## False Negatives — 272 missed findings across 68 rules
 
@@ -817,7 +817,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3719** `AuroraDB` → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
   > 'BackupRetentionPeriod' is not allowed when 'DBClusterIdentifier' is specified. Set backup retention period on the DB cluster instead.
 
-## False Positives — 4 extra findings across 3 rules
+## False Positives — 3 extra findings across 2 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -832,11 +832,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 
 - **I3042** `myKms` (AWS::KMS::Key) → `Properties.KeyPolicy.Statement.2.Principal.AWS.1.Fn::Sub` L154 in `bad_resources_circular_dependency_yaml`
   > ARN in Resource myKms contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters
-
-### F6101 — 1 extra — Validate that outputs values are a string
-
-- **F6101** → `Outputs.SubWithGetAtt.Value` in `integration_getatt-types_yaml`
-  > Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'
 
 ## Engine Extra — 5313 correct findings across 36 rules
 
@@ -11846,12 +11841,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `I3011` ×2
 - EE: `I9040` ×2
 
-### `integration_getatt-types_yaml` — 2 mismatches (8 TP, 1 FP, 17 EE, 1 FN)
-
-- FN: `E9004`
-- FP: `F6101`
-- EE: `I9001` ×10, `I9040` ×7
-
 ### `issues_sam_w_conditions_yaml` — 2 mismatches (8 TP, 0 FP, 27 EE, 2 FN)
 
 - FN: `I2530` ×2
@@ -12015,6 +12004,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1021`
 - EE: `I9001` ×3, `I9040`
 
+### `integration_getatt-types_yaml` — 1 mismatches (8 TP, 0 FP, 17 EE, 1 FN)
+
+- FN: `E9004`
+- EE: `I9001` ×10, `I9040` ×7
+
 ### `lsp_condition-usage_json` — 1 mismatches (7 TP, 0 FP, 9 EE, 1 FN)
 
 - FN: `E3016`
@@ -12056,6 +12050,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 3 | 75.00% | F3003, F6101 |
-| Extra informational findings | 1 | 25.00% | I3042 |
+| Other | 2 | 66.67% | F3003 |
+| Extra informational findings | 1 | 33.33% | I3042 |
 
