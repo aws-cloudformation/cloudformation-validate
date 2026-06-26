@@ -217,7 +217,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "F0014",
         category: Category::Intrinsic,
-        description: "Fn::Equals must have exactly 2 elements",
+        description: "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
