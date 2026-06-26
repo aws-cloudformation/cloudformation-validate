@@ -1,6 +1,6 @@
 # CfnValidationEngine vs cfn-lint — Parity Report
 
-> Generated: 2026-06-25 21:21:40  
+> Generated: 2026-06-25 21:38:10  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,12 +23,12 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 1666 |
-| False Positives (engine bugs) | 20 |
+| False Positives (engine bugs) | 18 |
 | Engine Extra (correct, cfn-lint gap) | 5218 |
 | False Negatives (engine misses) | 246 |
-| Precision | 98.81% |
+| Precision | 98.93% |
 | Recall | 87.13% |
-| F1 | 92.61% |
+| F1 | 92.66% |
 | Unique rules detected | 194 |
 | Perfect templates | 301/387 |
 
@@ -36,7 +36,7 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 343 | 10 | 58 | 80 | 97.17% | 81.09% |
+| Fatal | 343 | 8 | 58 | 80 | 97.72% | 81.09% |
 | Error | 296 | 1 | 3 | 108 | 99.66% | 73.27% |
 | Warning | 677 | 8 | 339 | 50 | 98.83% | 93.12% |
 | Info | 350 | 1 | 4818 | 8 | 99.72% | 97.77% |
@@ -45,25 +45,25 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 14752.9604 ms |
-| Throughput | 153.53 validations/sec |
+| Total wall time | 14311.1013 ms |
+| Throughput | 158.27 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 41.7091 ms |
-| Engine init (max) | 41.9715 ms |
-| Schema init (p99) | 57.2091 ms |
-| Schema init (max) | 57.7537 ms |
+| Engine init (p99) | 43.9337 ms |
+| Engine init (max) | 44.2899 ms |
+| Schema init (p99) | 56.8272 ms |
+| Schema init (max) | 57.4428 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.1917 | 0.0435 | 0.6062 | 0.8112 | 1.4954 | 2.5743 |
-| Schema Validate | 0.0000 | 2.4481 | 0.5414 | 6.5635 | 9.9431 | 23.0493 | 53.0885 |
-| Rule Evaluation | 2.7367 | 3.3819 | 3.0180 | 4.1959 | 4.6450 | 5.7276 | 47.2293 |
-| Diagnostic Finalize | 0.0006 | 0.0277 | 0.0045 | 0.0879 | 0.1277 | 0.3028 | 0.5923 |
-| Engine Internal | 2.7423 | 6.1022 | 3.6830 | 11.3669 | 15.2017 | 31.5774 | 61.4200 |
-| Wall Clock | 2.7425 | 6.1026 | 3.6834 | 11.3678 | 15.2019 | 31.5778 | 61.4205 |
+| Model Build | 0.0018 | 0.1898 | 0.0444 | 0.5818 | 0.8364 | 1.4792 | 2.5760 |
+| Schema Validate | 0.0000 | 2.3977 | 0.5346 | 6.2263 | 9.7872 | 23.1888 | 52.1383 |
+| Rule Evaluation | 2.6920 | 3.2169 | 2.8969 | 3.8116 | 4.1765 | 5.1540 | 45.1664 |
+| Diagnostic Finalize | 0.0005 | 0.0259 | 0.0041 | 0.0847 | 0.1207 | 0.2906 | 0.5561 |
+| Engine Internal | 2.7089 | 5.8735 | 3.7144 | 10.5240 | 14.7396 | 31.1567 | 60.3589 |
+| Wall Clock | 2.7091 | 5.8738 | 3.7148 | 10.5242 | 14.7398 | 31.1572 | 60.3592 |
 
 ## False Negatives — 246 missed findings across 68 rules
 
@@ -765,14 +765,12 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1701** → `Rules.ValidateParameterCombinations.Assertions.1.Assert` L312 in `lsp_comprehensive`
   > {'Fn::Implies': [{'Fn::Equals': [{'Ref': 'BooleanParameter'}, 'true']}, {'Fn::And': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'InstanceCount'}, 1]}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'SSMParameter'},
 
-## False Positives — 20 extra findings across 8 rules
+## False Positives — 18 extra findings across 8 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-### F3003 — 6 extra — Required Resource properties are missing
+### F3003 — 4 extra — Required Resource properties are missing
 
-- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L8 in `bad_transform_no_properties`
-  > 'StageName' is a required property
 - **F3003** `IamRole2` (AWS::IAM::Role) → `Properties` L27 in `integration_ref-no-value`
   > 'AssumeRolePolicyDocument' is a required property
 - **F3003** `CloudFront1` (AWS::CloudFront::Distribution) → `Properties` L40 in `integration_ref-no-value`
@@ -781,8 +779,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > 'TargetOriginId' is a required property
 - **F3003** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig.DefaultCacheBehavior` L41 in `integration_ref-no-value`
   > 'ViewerProtocolPolicy' is a required property
-- **F3003** `MyApi` (AWS::Serverless::Api) → `Properties` L9 in `lsp_test-template`
-  > 'StageName' is a required property
 
 ### W2001 — 4 extra — Check if Parameters are Used
 
@@ -11564,12 +11560,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `W8001` ×3
 
-### `lsp_test-template` — 3 mismatches (2 TP, 1 FP, 2 EE, 2 FN)
-
-- FN: `F3006` ×2
-- FP: `F3003`
-- EE: `I9040` ×2
-
 ### `quickstart_nist_application` — 3 mismatches (44 TP, 0 FP, 99 EE, 3 FN)
 
 - FN: `W1030` ×3
@@ -11630,12 +11620,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1005` ×2
 - EE: `F0001`
 
-### `bad_transform_no_properties` — 2 mismatches (0 TP, 1 FP, 1 EE, 1 FN)
-
-- FN: `E0001`
-- FP: `F3003`
-- EE: `I9040`
-
 ### `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template` — 2 mismatches (23 TP, 2 FP, 27 EE, 0 FN)
 
 - FP: `F6101` ×2
@@ -11680,6 +11664,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `I2530` ×2
 - EE: `I9001` ×21, `I9040` ×6
+
+### `lsp_test-template` — 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
+
+- FN: `F3006` ×2
+- EE: `I9040` ×2
 
 ### `bad_F2002_ssm_parameter_type_invalid` — 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
@@ -11784,6 +11773,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E2529`
 - EE: `I9040` ×8, `I9001` ×4
 
+### `bad_transform_no_properties` — 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `E0001`
+- EE: `I9040`
+
 ### `cdk_DemoStack.template` — 1 mismatches (9 TP, 0 FP, 14 EE, 1 FN)
 
 - FN: `E3639`
@@ -11850,7 +11844,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 11 | 55.00% | E9004, F0014, F3003, F6101 |
-| Stricter than cfn-lint (warnings) | 8 | 40.00% | W1001, W1028, W2001 |
-| Extra informational findings | 1 | 5.00% | I3042 |
+| Other | 9 | 50.00% | E9004, F0014, F3003, F6101 |
+| Stricter than cfn-lint (warnings) | 8 | 44.44% | W1001, W1028, W2001 |
+| Extra informational findings | 1 | 5.56% | I3042 |
 

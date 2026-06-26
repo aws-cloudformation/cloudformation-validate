@@ -88,6 +88,14 @@ pub fn validate_all_resources(
             if !is_valid_logical_id(rid) {
                 continue;
             }
+            // AWS::Serverless::* resources are rewritten by the SAM transform
+            // before deployment, so their authored form does not have to satisfy
+            // the raw resource schema (required properties, etc. are supplied or
+            // relaxed during expansion). Validating the pre-transform shape would
+            // flag requirements the transform fills in.
+            if rtype.starts_with("AWS::Serverless::") {
+                continue;
+            }
             validate_resource(&mut out, store, model, rid, res, schema, region);
             validate_extensions(&mut out, store, model, rid, res);
         }
