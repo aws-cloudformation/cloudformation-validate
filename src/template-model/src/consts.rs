@@ -350,7 +350,6 @@ pub const POLICY_RETAIN_EXCEPT_ON_CREATE: &str = "RetainExceptOnCreate";
 // Convention prefix for encoding condition references inside Ref nodes.
 pub const CONDITION_REF_PREFIX: &str = "Condition:";
 
-// Parameter type constants.
 pub const PARAM_TYPE_STRING: &str = "String";
 pub const PARAM_TYPE_NUMBER: &str = "Number";
 pub const PARAM_TYPE_COMMA_DELIMITED_LIST: &str = "CommaDelimitedList";

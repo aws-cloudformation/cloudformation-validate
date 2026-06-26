@@ -10,8 +10,6 @@ use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine};
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 fn assert_list_rules_identical(cel_rules: &[rules::RuleInfo], rego_rules: &[rules::RuleInfo], label: &str) {
     let cel_json = serde_json::to_value(cel_rules).expect("serialize cel rules");
     let rego_json = serde_json::to_value(rego_rules).expect("serialize rego rules");
@@ -77,8 +75,6 @@ fn multi_combined_config(engine: &str) -> EngineConfig {
     }
 }
 
-// ── Default listRules ────────────────────────────────────────────────────────
-
 #[test]
 fn default_list_rules_identical_between_engines() {
     assert_list_rules_identical(&CEL.list_rules(), &REGO.list_rules(), "default");
@@ -87,8 +83,6 @@ fn default_list_rules_identical_between_engines() {
     assert!(builtin_count > 0, "must have built-in rules");
     assert_eq!(builtin_count, rules::registry::RULE_REGISTRY.len(), "engine rule count must match registry");
 }
-
-// ── Custom rules: 1 file, 1 rule ────────────────────────────────────────────
 
 #[test]
 fn custom_rule_list_rules_and_validate_match_between_engines() {
@@ -127,8 +121,6 @@ fn custom_rule_list_rules_and_validate_match_between_engines() {
     }
 }
 
-// ── Guard rules: 1 file, 1 rule ─────────────────────────────────────────────
-
 #[test]
 fn guard_rule_list_rules_and_validate_match_between_engines() {
     let cel = CelEngine::new(guard_config()).unwrap();
@@ -164,8 +156,6 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
     }
 }
 
-// ── Combined: 1 custom file + 1 guard file ──────────────────────────────────
-
 #[test]
 fn single_combined_list_rules_and_validate_match_between_engines() {
     let cel = CelEngine::new(single_combined_config("cel")).unwrap();
@@ -187,8 +177,6 @@ fn single_combined_list_rules_and_validate_match_between_engines() {
 
     assert_list_rules_identical(&cel.list_rules(), &rego.list_rules(), "single_combined");
 }
-
-// ── Multi: 2 custom rules + 2 guard files (1 rule + 2 rules) ────────────────
 
 #[test]
 fn multi_combined_list_rules_and_validate_match_between_engines() {
@@ -236,8 +224,6 @@ fn multi_combined_list_rules_and_validate_match_between_engines() {
 
     assert_list_rules_identical(&cel.list_rules(), &rego.list_rules(), "multi_combined");
 }
-
-// ── rule_metadata parity ─────────────────────────────────────────────────────
 
 fn assert_metadata_maps_identical(
     cel_meta: &std::collections::HashMap<String, rules::RuleMetadataEntry>,
@@ -327,8 +313,6 @@ fn multi_combined_external_rule_metadata_identical_between_engines() {
 
     assert_metadata_maps_identical(&cel_ext, &rego_ext, "multi_combined external_rule_metadata");
 }
-
-// ── Good templates: no false positives ───────────────────────────────────────
 
 #[test]
 fn good_templates_produce_no_fatal_or_error_diagnostics() {

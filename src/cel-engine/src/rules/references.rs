@@ -49,7 +49,6 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                 if !m.conditions.condition_implies(source_cond.unwrap_or(""), dep_cond) && source_cond.is_some()
                     || (source_cond.is_none() && dep_res.condition.is_some())
                 {
-                    // Only flag if source doesn't imply target condition
                     let implies = match source_cond {
                         Some(sc) => m.conditions.condition_implies(sc, dep_cond),
                         None => false, // unconditional resource depends on conditional

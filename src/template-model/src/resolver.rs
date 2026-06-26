@@ -1748,18 +1748,15 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
             continue;
         };
 
-        // Check for required 'Type' property
         let has_type = param_map.iter().any(|(k, _)| k == KEY_TYPE);
         if !has_type {
             diags.push(e2001(format!("Parameter '{}': 'Type' is a required property", name), name, None, param_span));
         }
 
-        // Validate each property
         for (key, val_ref) in param_map {
             let val_span = ir.arena.span(*val_ref);
             let node = ir.arena.node(*val_ref);
 
-            // Check for unknown properties
             if !VALID_KEYS.contains(&key.as_str()) {
                 diags.push(e2001(
                     format!("Parameter '{}': '{}' is not one of {:?}", name, key, VALID_KEYS),
@@ -1770,7 +1767,6 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                 continue;
             }
 
-            // Type-check each property value
             match key.as_str() {
                 KEY_TYPE => {
                     if matches!(node, Node::Null) {
@@ -1871,7 +1867,6 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
             }
         }
 
-        // Extract ParameterInfo (existing logic)
         let param_type = param_map
             .iter()
             .find(|(k, _)| k == KEY_TYPE)

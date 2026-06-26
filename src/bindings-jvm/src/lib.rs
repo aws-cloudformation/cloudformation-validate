@@ -55,8 +55,6 @@ impl ValidateConfig {
     }
 }
 
-// ── Error ────────────────────────────────────────────────────────────────────
-
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum ValidationError {
     #[error("{msg}")]
@@ -72,8 +70,6 @@ pub enum ValidationError {
 fn panic_to_error(message: String) -> ValidationError {
     ValidationError::Engine { msg: format!("Internal validation error: {message}") }
 }
-
-// ── SchemaValidator ──────────────────────────────────────────────────────────
 
 #[derive(uniffi::Record)]
 pub struct JvmSchemaValidationResult {
@@ -118,8 +114,6 @@ impl JvmSchemaValidator {
         )
     }
 }
-
-// ── Engine implementations ───────────────────────────────────────────────────
 
 macro_rules! impl_jvm_engine {
     ($JvmType:ident, $InnerEngine:ty, $constructor:path) => {
@@ -202,8 +196,6 @@ macro_rules! impl_jvm_engine {
 
 impl_jvm_engine!(JvmRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new);
 impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new);
-
-// ── SemanticModel ────────────────────────────────────────────────────────────
 
 #[derive(uniffi::Object)]
 pub struct JvmSemanticModel {

@@ -45,8 +45,6 @@ impl<'de> Deserialize<'de> for JsonValue {
     }
 }
 
-// ── UniFFI bridge ────────────────────────────────────────────────────────────
-
 #[cfg(feature = "uniffi-bindings")]
 use std::collections::HashMap;
 

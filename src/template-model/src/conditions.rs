@@ -536,7 +536,6 @@ impl ConditionModel {
                 return true;
             }
 
-            // Increment indices
             let mut carry = true;
             for i in (0..indices.len()).rev() {
                 if carry {

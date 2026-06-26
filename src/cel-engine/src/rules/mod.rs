@@ -176,7 +176,7 @@ pub struct EvalContext<'a> {
 pub type NativeRuleFn = fn(&EvalContext) -> Vec<Diagnostic>;
 
 pub struct NativeRuleRegistry {
-    pub rules: Vec<(rules::Category, NativeRuleFn)>, // (category, fn)
+    pub rules: Vec<(rules::Category, NativeRuleFn)>,
 }
 
 impl NativeRuleRegistry {

@@ -618,9 +618,6 @@ impl SemanticModel {
     /// True when the value at `path` (or any ancestor up to the resource root) was
     /// produced by an intrinsic function. Used by rules that skip hardcoded-literal
     /// checks when the property value comes from `Fn::GetAZs`, `Ref`, etc.
-    /// True when the value at `path` (or any ancestor up to the resource root) was
-    /// produced by an intrinsic function. Used by rules that skip hardcoded-literal
-    /// checks when the property value comes from `Fn::GetAZs`, `Ref`, etc.
     #[must_use]
     pub fn is_from_intrinsic(&self, resource_id: &str, path: &str) -> bool {
         if self.path_from_intrinsic(resource_id, path) {
@@ -859,12 +856,6 @@ fn parse_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node
         .collect()
 }
 
-/// Some intrinsic nodes stand in for a whole object — most notably
-/// `Properties: {Fn::If: [...]}` which the parser folds into an
-/// `IntrinsicFn::If` node. Return the CloudFormation function-name key
-/// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
-/// object-wrapping intrinsics, so downstream resolution can address the
-/// conditional by a synthetic path.
 /// Collect parameter names that are referenced (via `Ref`/`Fn::Sub`) from within
 /// another parameter's definition. These references still count as usage for the
 /// unused-parameter check even though they originate in the Parameters section.
@@ -913,6 +904,12 @@ fn collect_refs_in_subtree(
     }
 }
 
+/// Some intrinsic nodes stand in for a whole object — most notably
+/// `Properties: {Fn::If: [...]}` which the parser folds into an
+/// `IntrinsicFn::If` node. Return the CloudFormation function-name key
+/// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
+/// object-wrapping intrinsics, so downstream resolution can address the
+/// conditional by a synthetic path.
 fn intrinsic_synthetic_key(arena: &Arena, node_ref: NodeRef) -> Option<String> {
     let Node::Intrinsic(func) = arena.node(node_ref) else {
         return None;

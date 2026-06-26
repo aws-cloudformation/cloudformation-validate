@@ -652,8 +652,6 @@ Resources:
         assert!(transform_errors(template).is_empty());
     }
 
-    // ── LayerVersion: ContentUri required ──────────────────────────────────
-
     #[test]
     fn layer_version_with_content_uri_is_accepted() {
         let template = r#"
@@ -698,8 +696,6 @@ Resources:
         );
     }
 
-    // ── Application: Location required ─────────────────────────────────────
-
     #[test]
     fn application_with_location_is_accepted() {
         let template = r#"
@@ -734,8 +730,6 @@ Resources:
         assert_eq!(diag.resource.as_ref().and_then(|r| r.id.as_deref()), Some("App"));
         assert_eq!(diag.property_path.as_deref(), Some("Properties/Location"));
     }
-
-    // ── Schedule event: Schedule property required ─────────────────────────
 
     #[test]
     fn schedule_event_with_schedule_property_is_accepted() {

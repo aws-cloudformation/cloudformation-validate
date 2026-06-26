@@ -275,8 +275,6 @@ fn is_zip_deployment(m: &SemanticModel, name: &str) -> bool {
 mod tests {
     use super::*;
 
-    // ── valid_fargate_combo ─────────────────────────────────────────────
-
     #[test]
     fn fargate_cpu_256_valid() {
         assert!(valid_fargate_combo(256, 512));

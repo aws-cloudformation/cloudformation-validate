@@ -146,8 +146,6 @@ mod tests {
         }
     }
 
-    // ── resolved_to_cel ─────────────────────────────────────────────────
-
     #[test]
     fn resolved_concrete_delegates_to_json_to_cel() {
         let rv = ResolvedValue::Concrete { value: json!(42).into() };
@@ -233,8 +231,6 @@ mod tests {
     fn dynamic_is_unresolvable() {
         assert!(contains_unresolvable_content(&ResolvedValue::Dynamic { reason: "x".into() }));
     }
-
-    // ── build_custom_context ────────────────────────────────────────────
 
     #[test]
     fn build_context_without_resource_binds_top_level() {

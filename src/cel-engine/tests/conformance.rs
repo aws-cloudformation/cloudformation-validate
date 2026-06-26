@@ -102,7 +102,6 @@ Resources:
               SSEAlgorithm: AES256
 "#,
         );
-        // Well-formed template — no errors expected
         assert!(!ids.iter().any(|id| id.starts_with("F0")), "No structure (fatal) errors expected, got: {:?}", ids);
     }
 
@@ -254,10 +253,6 @@ Resources:
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Guard rule integration tests
-// ══════════════════════════════════════════════════════════════
-
 #[cfg(test)]
 mod guard_tests {
     use cel_engine::CelEngine;
@@ -289,13 +284,11 @@ rule s3_versioning_check {
         let engine = CelEngine::new(config).unwrap();
         let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
         let report = validation_engine::validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
-        // Verify the rule is registered with correct metadata
         let rules = engine.list_rules();
         let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check");
         assert!(guard_rule.is_some(), "Guard rule should appear in list_rules");
         let guard_rule = guard_rule.unwrap();
         assert_eq!(guard_rule.category.as_deref(), Some("guard:s3_versioning"));
-        // Verify any guard diagnostics have correct category/severity
         for d in report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check") {
             assert_eq!(d.severity, Severity::Error);
             assert_eq!(d.category.as_deref(), Some("guard:s3_versioning"));
@@ -345,10 +338,7 @@ rule s3_versioning_check {
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Cross-engine consistency: list_rules metadata sync
-// Note: Full cross-engine tests live in cfn-validate which has both engines.
-// ══════════════════════════════════════════════════════════════
+// Full cross-engine parity tests live in cfn-validate, which has both engines available.
 
 #[cfg(test)]
 mod consistency_tests {
@@ -361,7 +351,6 @@ mod consistency_tests {
         let rules = engine.list_rules();
         let categories: std::collections::HashSet<&str> =
             rules.iter().map(|r| r.category.as_deref().unwrap_or("")).collect();
-        // Verify all expected categories are present
         for expected in [
             "Structure",
             "Intrinsic Function",
@@ -377,10 +366,6 @@ mod consistency_tests {
         }
     }
 }
-
-// ══════════════════════════════════════════════════════════════
-// Integration tests: rule category coverage via resources
-// ══════════════════════════════════════════════════════════════
 
 #[cfg(test)]
 mod rule_category_tests {
@@ -489,8 +474,6 @@ mod rule_category_tests {
         assert!(has_rule(&ids, "F3004"), "Expected E3004 for DependsOn circular, got: {:?}", ids);
     }
 
-    // ── Best practices rules ────────────────────────────────────────────
-
     #[test]
     fn best_practices_deletion_policy() {
         let ids = validate_file("bad/resources_deletionpolicy.yaml");
@@ -517,8 +500,6 @@ mod rule_category_tests {
         let ids = validate_file("good/deletion_policies.yaml");
         assert!(!ids.iter().any(|id| id.starts_with("E") || id.starts_with("F")), "No errors expected, got: {:?}", ids);
     }
-
-    // ── Resource-specific rules ─────────────────────────────────────────
 
     #[test]
     fn resources_fargate_bad_cpu_memory() {
@@ -556,8 +537,6 @@ mod rule_category_tests {
         assert!(!has_rule(&ids, "E3042"), "No E3042 expected for valid Fargate, got: {:?}", ids);
     }
 
-    // ── Condition rules ─────────────────────────────────────────────────
-
     #[test]
     fn conditions_undefined_condition() {
         let ids = validate_file("bad/undefined_condition.yaml");
@@ -594,8 +573,6 @@ mod rule_category_tests {
         let ids = validate_file("bad/unique_items.yaml");
         assert!(has_rule(&ids, "W9007"), "Expected unique items error, got: {:?}", ids);
     }
-
-    // ── Cross-category: good templates produce no errors ────────────────
 
     #[test]
     fn good_generic_no_errors() {

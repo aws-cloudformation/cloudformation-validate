@@ -897,8 +897,6 @@ fn e2e_i2530_lambda_no_snapstart() {
     );
 }
 
-// New feature tests: filter system, output format, diagnostics
-
 #[test]
 fn e2e_standard_detail_level() {
     let report = validate_fixture("bad/generic.yaml");
@@ -1120,8 +1118,6 @@ fn e2e_w2511_iam_wildcard_all_types() {
     let w2512 = report.diagnostics.iter().filter(|d| d.rule_id == "W2512").count();
     assert!(w2512 >= 1, "Expected at least 1 W2512 (NotAction on User), got {}", w2512);
 }
-
-// Guard rule integration tests
 
 const GUARD_S3_VERSIONING: &str = r#"
 rule s3_versioning_check {

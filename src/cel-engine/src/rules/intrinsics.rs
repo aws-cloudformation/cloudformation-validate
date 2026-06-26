@@ -308,7 +308,6 @@ fn eval_intrinsic_params(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        // Scan properties for intrinsic function validation
         scan_intrinsic_params(&mut out, m, name, res);
     }
 
@@ -468,10 +467,7 @@ fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     // Scan resources for dynamic references in non-Properties locations
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, res) in resources {
-            // Check DependsOn, Condition, Metadata for dynamic references
             check_dynamic_ref_in_attributes(&mut out, m, name, res);
-            // Check Properties for Secrets Manager cross-account ARN
-            check_secrets_manager_arn(&mut out, m, name, res);
         }
     }
 
@@ -527,7 +523,6 @@ fn check_dynamic_ref_in_attributes(
     resource_id: &str,
     res: &serde_json::Value,
 ) {
-    // Check DependsOn
     if let Some(deps) = res.get(FIELD_DEPENDS_ON).and_then(|d| d.as_array()) {
         for dep in deps {
             if let Some(s) = dep.as_str() {
@@ -643,48 +638,6 @@ fn scan_for_dynamic_refs_in_section(
         serde_json::Value::Object(obj) => {
             for (_, v) in obj {
                 scan_for_dynamic_refs_in_section(out, m, v, section, _sm_rule, _ssm_rule);
-            }
-        }
-        _ => {}
-    }
-}
-
-fn check_secrets_manager_arn(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    resource_id: &str,
-    res: &serde_json::Value,
-) {
-    if let Some(props) = res.get(FIELD_PROPERTIES).and_then(|p| p.as_object()) {
-        for (_, val) in props {
-            scan_for_sm_cross_account(out, m, resource_id, val);
-        }
-    }
-}
-
-fn scan_for_sm_cross_account(
-    _out: &mut Vec<Diagnostic>,
-    _m: &Arc<SemanticModel>,
-    _resource_id: &str,
-    val: &serde_json::Value,
-) {
-    match val {
-        serde_json::Value::String(s) => {
-            if s.contains("{{resolve:secretsmanager:") && !s.contains("{{resolve:secretsmanager:arn:") {
-                // Secrets Manager should use full ARN for cross-account
-                // Only warn if the reference looks like it could be cross-account (has a colon-separated secret name)
-                // The pattern {{resolve:secretsmanager:SECRET_NAME:...}} without arn: prefix
-                // is fine for same-account, but cross-account requires full ARN
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            for item in arr {
-                scan_for_sm_cross_account(_out, _m, _resource_id, item);
-            }
-        }
-        serde_json::Value::Object(obj) => {
-            for (_, v) in obj {
-                scan_for_sm_cross_account(_out, _m, _resource_id, v);
             }
         }
         _ => {}
