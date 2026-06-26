@@ -36,7 +36,7 @@ pub struct RuleInfo {
 pub enum RuleOrigin {
     /// Derived from the CloudFormation resource provider schema
     Schema,
-    /// Ported from the upstream linter rule set
+    /// Ported from the cfn-lint
     CfnLint,
     /// Implemented in this validation engine
     Engine,
