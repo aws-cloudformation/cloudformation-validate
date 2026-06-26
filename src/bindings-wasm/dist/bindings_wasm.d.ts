@@ -80,6 +80,10 @@ export interface DiagnosticModel {
     samImplicitResources: string[];
     globalsParamRefs: string[];
     isCdk: boolean;
+    fnIfConditions: string[];
+    findInMapNames: string[];
+    paramsReferencedInDefinitions: string[];
+    hasDynamicFindinmapName: boolean;
     hasParseErrors: boolean;
     parsedRules: DiagnosticRule[];
     resolutionSources: ResolutionSource[];
@@ -288,6 +292,7 @@ export interface ResolvedResource {
     creationPolicy: JsonValue | undefined;
     metadata: JsonValue | undefined;
     properties: Record<string, ResolvedValue>;
+    propertiesDynamic: boolean;
     diagnostics: ResourceDiagnostics;
 }
 
