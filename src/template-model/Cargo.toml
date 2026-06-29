@@ -22,9 +22,9 @@ uniffi-bindings = ["dep:uniffi", "diagnostics/uniffi-bindings"]
 
 [dependencies]
 diagnostics = { path = "../diagnostics" }
-rules_crate = { path = "../rules", package = "rules" }
+rules = { path = "../rules" }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
 yaml-rust2 = "0.11.0"
 base64 = "0.22"
 log = "0.4"

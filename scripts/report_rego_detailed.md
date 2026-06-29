@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-06-26 13:53:58  
+> Generated: 2026-06-29 11:45:06  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,13 +22,13 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1892 |
+| True Positives | 1894 |
 | False Positives (engine bugs) | 0 |
 | Engine Extra (correct, cfn-lint gap) | 5498 |
-| False Negatives (engine misses) | 334 |
+| False Negatives (engine misses) | 332 |
 | Precision | 100.00% |
-| Recall | 85.00% |
-| F1 | 91.89% |
+| Recall | 85.09% |
+| F1 | 91.94% |
 | Unique rules detected | 202 |
 | Perfect templates | 343/450 |
 
@@ -36,7 +36,7 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 388 | 0 | 63 | 110 | 100.00% | 77.91% |
+| Fatal | 390 | 0 | 63 | 108 | 100.00% | 78.31% |
 | Error | 323 | 0 | 3 | 155 | 100.00% | 67.57% |
 | Warning | 720 | 0 | 357 | 58 | 100.00% | 92.54% |
 | Info | 461 | 0 | 5075 | 11 | 100.00% | 97.67% |
@@ -45,27 +45,27 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 18454.0494 ms |
-| Throughput | 122.74 validations/sec |
+| Total wall time | 19880.9742 ms |
+| Throughput | 113.93 validations/sec |
 | Templates | 453 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 62.4995 ms |
-| Engine init (max) | 62.7808 ms |
-| Schema init (p99) | 74.7990 ms |
-| Schema init (max) | 76.2033 ms |
+| Engine init (p99) | 64.7253 ms |
+| Engine init (max) | 65.0265 ms |
+| Schema init (p99) | 77.5841 ms |
+| Schema init (max) | 79.0549 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0016 | 0.1897 | 0.0457 | 0.5977 | 0.8280 | 1.4865 | 2.5820 |
-| Schema Validate | 0.0000 | 2.4059 | 0.5348 | 6.2085 | 9.9069 | 23.1817 | 53.2303 |
-| Rule Evaluation | 0.9178 | 5.0951 | 2.2122 | 12.2270 | 17.8794 | 30.4254 | 92.0703 |
-| Diagnostic Finalize | 0.0003 | 0.0267 | 0.0040 | 0.0830 | 0.1293 | 0.3310 | 0.5645 |
-| Engine Internal | 0.9215 | 7.7614 | 3.0272 | 19.8006 | 30.1797 | 53.8069 | 113.5672 |
-| Wall Clock | 0.9216 | 7.7616 | 3.0273 | 19.8010 | 30.1803 | 53.8075 | 113.5679 |
+| Model Build | 0.0018 | 0.2081 | 0.0462 | 0.6911 | 0.8979 | 1.6244 | 2.9032 |
+| Schema Validate | 0.0000 | 2.5285 | 0.5654 | 6.5639 | 10.4734 | 24.5581 | 55.4039 |
+| Rule Evaluation | 0.9569 | 5.3746 | 2.3219 | 13.1001 | 18.9923 | 32.5913 | 94.5026 |
+| Diagnostic Finalize | 0.0003 | 0.0282 | 0.0045 | 0.0878 | 0.1319 | 0.3250 | 0.6300 |
+| Engine Internal | 0.9665 | 8.1904 | 3.1545 | 21.0341 | 32.1429 | 56.5630 | 119.0893 |
+| Wall Clock | 0.9666 | 8.1908 | 3.1548 | 21.0344 | 32.1438 | 56.5639 | 119.0898 |
 
-## False Negatives — 334 missed findings across 80 rules
+## False Negatives — 332 missed findings across 80 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -541,19 +541,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3024** `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 
-### F0000 — 5 missed — Parsing error found when parsing the template
-
-- **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
-  > Unhashable type "{'Fn::ImportValue': 'Fn::Sub'}" (line 18)
-- **F0000** (cfn-lint: E0000) L23 in `bad_duplicate_json`
-  > Duplicate found 'MySNSTopic' (line 23)
-- **F0000** (cfn-lint: E0000) L3 in `bad_duplicate_yaml`
-  > Duplicate found 'mySnsTopic' (line 3)
-- **F0000** (cfn-lint: E0000) L9 in `bad_duplicate_yaml`
-  > Duplicate found 'mySnsTopic' (line 9)
-- **F0000** (cfn-lint: E0000) L13 in `bad_duplicate_yaml`
-  > Duplicate found 'mySnsTopic' (line 13)
-
 ### E3022 — 5 missed — Resource SubnetRouteTableAssociation Properties
 
 - **E3022** `PublicSubnetRouteTableAssociation1` → `Properties.SubnetId` L27 in `bad_properties_rt_association_yaml`
@@ -689,6 +676,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > Condition IsParamCEnabled not used
 - **W8001** → `Conditions.IsParamDEnabled` L44 in `good_parameters_used_transform_language_extension_json`
   > Condition IsParamDEnabled not used
+
+### F0000 — 3 missed — Parsing error found when parsing the template
+
+- **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
+  > Unhashable type "{'Fn::ImportValue': 'Fn::Sub'}" (line 18)
+- **F0000** (cfn-lint: E0000) L23 in `bad_duplicate_json`
+  > Duplicate found 'MySNSTopic' (line 23)
+- **F0000** (cfn-lint: E0000) L13 in `bad_duplicate_yaml`
+  > Duplicate found 'mySnsTopic' (line 13)
 
 ### E1011 — 3 missed — FindInMap validation of configuration
 
@@ -12019,7 +12015,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W1102** in `bad_functions_select_yaml`
   > Fn::Select: index (first argument) must be an integer or an intrinsic function
 - **W1102** in `quickstart_vpc_json`
-  > Fn::Select: Fn::Select index (first element) must be an integer
+  > Fn::Select: index (first argument) must be an integer or an intrinsic function
 
 ### F0016 — 2 findings
 
@@ -12259,11 +12255,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E0002`, `E1001`, `F0013`
 - EE: `F0001`
 
-### `bad_duplicate_yaml` — 3 mismatches (0 TP, 0 FP, 2 EE, 3 FN)
-
-- FN: `F0000` ×3
-- EE: `I9040` ×2
-
 ### `bad_functions_import_value_yaml` — 3 mismatches (1 TP, 0 FP, 4 EE, 3 FN)
 
 - FN: `E1016` ×2, `F0014`
@@ -12449,6 +12440,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F0000`
 - EE: `I9040` ×2, `I9001`
+
+### `bad_duplicate_yaml` — 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
+
+- FN: `F0000`
+- EE: `I9040` ×2
 
 ### `bad_dynamodb_provisioned_no_throughput_yaml` — 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
 
@@ -12644,11 +12640,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 128 | 38.32% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 96 | 28.74% | E3001, E3016, E3019, E3022, E3023, E3024, E3025, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3671, E3673, E3678, E3682, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 58 | 17.37% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Intrinsic function validation | 41 | 12.28% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1150, E1152, E1161, E1701 |
-| Informational checks | 11 | 3.29% | I2530, I3011, I3510 |
+| Other | 126 | 37.95% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 96 | 28.92% | E3001, E3016, E3019, E3022, E3023, E3024, E3025, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3671, E3673, E3678, E3682, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 58 | 17.47% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Intrinsic function validation | 41 | 12.35% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1150, E1152, E1161, E1701 |
+| Informational checks | 11 | 3.31% | I2530, I3011, I3510 |
 
 ### False Positive Root Causes
 

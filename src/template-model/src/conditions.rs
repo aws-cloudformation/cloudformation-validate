@@ -1,6 +1,6 @@
 use crate::consts::{
-    CONDITION_REF_PREFIX, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS, MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL,
-    PSEUDO_PREFIX,
+    CONDITION_REF_PREFIX, FN_AND, FN_CONDITION, FN_EQUALS, FN_NOT, FN_OR, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS,
+    MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL, PSEUDO_PREFIX,
 };
 use crate::ir::*;
 use crate::model::PseudoParameterOverrides;
@@ -791,7 +791,7 @@ pub fn parse_condition_expr(
             {
                 let (key, val) = &entries[0];
                 match key.as_str() {
-                    "Fn::Equals" => {
+                    FN_EQUALS => {
                         if let Some(arr) = arena.as_list(*val)
                             && arr.len() == 2
                         {
@@ -800,19 +800,19 @@ pub fn parse_condition_expr(
                             return ConditionExpr::Equals(va, vb);
                         }
                     }
-                    "Fn::And" => {
+                    FN_AND => {
                         if let Some(arr) = arena.as_list(*val) {
                             let exprs = arr.iter().map(|c| parse_condition_expr(arena, *c, parameters)).collect();
                             return ConditionExpr::And(exprs);
                         }
                     }
-                    "Fn::Or" => {
+                    FN_OR => {
                         if let Some(arr) = arena.as_list(*val) {
                             let exprs = arr.iter().map(|c| parse_condition_expr(arena, *c, parameters)).collect();
                             return ConditionExpr::Or(exprs);
                         }
                     }
-                    "Fn::Not" => {
+                    FN_NOT => {
                         if let Some(arr) = arena.as_list(*val)
                             && !arr.is_empty()
                         {
@@ -820,7 +820,7 @@ pub fn parse_condition_expr(
                             return ConditionExpr::Not(Box::new(expr));
                         }
                     }
-                    "Condition" => {
+                    FN_CONDITION => {
                         if let Some(name) = arena.as_str(*val) {
                             return ConditionExpr::ConditionRef(name.to_string());
                         }
@@ -854,7 +854,7 @@ fn parse_value_expr(arena: &Arena, node_ref: NodeRef, parameters: &HashMap<Strin
         // opaque unknown (`Other`), never a comparable literal. Treating, say,
         // `Fn::Sub(...)` as the literal string "Sub(...)" would make
         // `Fn::Equals[!Sub ..., "x"]` look like a literal-vs-literal compare and
-        // spuriously fire the always-true/false check.
+        // spuriously fire the always-true/false tautology check.
         Node::Intrinsic(IntrinsicFn::FindInMap(m, k1, k2, _)) => {
             let map_name = arena.as_str(*m).unwrap_or("?").to_string();
             let key1 = parse_value_expr(arena, *k1, parameters);
@@ -1538,16 +1538,6 @@ Resources:
         assert!(model.is_satisfiable(&[("IsUsEast1".into(), false)]));
     }
 
-    /// Regression test for an unreachable-branch false positive: when an
-    /// `Fn::Equals` compares a pseudo-parameter to a literal and no override pins
-    /// that pseudo-parameter, both branches of an `Fn::If` keyed on that condition
-    /// must remain reachable. Before this was fixed, the SAT solver resolved
-    /// `AWS::Partition` to its auto-derived default (`"aws"`), making
-    /// `Fn::Equals[Ref AWS::Partition, "aws"]` deterministically true and the
-    /// `Fn::If` false branch (the `Ref AWS::NoValue` arm) appear unreachable.
-    /// At deploy time `AWS::Partition` ranges over `aws`, `aws-cn`,
-    /// `aws-us-gov`, etc. — so without an explicit pin it has to behave as a
-    /// free variable.
     #[test]
     fn pseudo_param_partition_false_branch_is_reachable_without_override() {
         let input = r#"

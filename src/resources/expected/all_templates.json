@@ -2824,7 +2824,7 @@
       {
         "ruleId": "F0014",
         "severity": "FATAL",
-        "message": "Fn::And: element 0: {\"Condition\":\"TestAndString\",\"Extra\":\"ThisIsBad\"} is not of type 'boolean'",
+        "message": "Fn::And: element 0: {'Condition': 'TestAndString', 'Extra': 'ThisIsBad'} is not of type 'boolean'",
         "source": "SCHEMA",
         "category": "Intrinsic Function",
         "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
@@ -2842,7 +2842,7 @@
       {
         "ruleId": "F0014",
         "severity": "FATAL",
-        "message": "Fn::And: element 1: {\"Bad\":\"TestAndString\"} is not of type 'boolean'",
+        "message": "Fn::And: element 1: {'Bad': 'TestAndString'} is not of type 'boolean'",
         "source": "SCHEMA",
         "category": "Intrinsic Function",
         "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
@@ -2878,7 +2878,7 @@
       {
         "ruleId": "F0014",
         "severity": "FATAL",
-        "message": "Fn::Equals: argument 0: [{\"Ref\":\"AWS::Region\"}] is not of type 'string'",
+        "message": "Fn::Equals: argument 0: [{'Ref': 'AWS::Region'}] is not of type 'string'",
         "source": "SCHEMA",
         "category": "Intrinsic Function",
         "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
@@ -2887,7 +2887,7 @@
       {
         "ruleId": "F0014",
         "severity": "FATAL",
-        "message": "Fn::Equals: argument 1: {\"Bad\":\"Value\"} is not of type 'string'",
+        "message": "Fn::Equals: argument 1: {'Bad': 'Value'} is not of type 'string'",
         "source": "SCHEMA",
         "category": "Intrinsic Function",
         "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
@@ -6684,7 +6684,7 @@
       "rulesEvaluated": 273,
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 0,
+        "fatal": 2,
         "errors": 0,
         "warnings": 0,
         "informational": 2,
@@ -6735,6 +6735,32 @@
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "F0000",
+        "severity": "FATAL",
+        "message": "Duplicate key 'mySnsTopic'",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 13,
+        "ruleDescription": "Duplicate key in template",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F0000",
+        "severity": "FATAL",
+        "message": "Duplicate key 'mySnsTopic'",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 14,
+        "startColumn": 3,
+        "endLine": 14,
+        "endColumn": 13,
+        "ruleDescription": "Duplicate key in template",
+        "phase": "PARSE"
       },
       {
         "ruleId": "I9040",
@@ -159250,7 +159276,7 @@
       {
         "ruleId": "W1102",
         "severity": "WARN",
-        "message": "Fn::Select: Fn::Select index (first element) must be an integer",
+        "message": "Fn::Select: index (first argument) must be an integer or an intrinsic function",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Invalid intrinsic function usage",
