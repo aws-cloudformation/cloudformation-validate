@@ -3234,7 +3234,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // API Gateway mixing inline definitions with external Body
     {
-        let apigw_resource_types = ["AWS::ApiGateway::Method", "AWS::ApiGateway::Stage", "AWS::ApiGateway::Deployment"];
+        let apigw_resource_types = ["AWS::ApiGateway::Method"];
         let mut rest_api_refs: HashMap<String, Vec<String>> = HashMap::new();
         for rtype in &apigw_resource_types {
             for name in m.resources_of_type(rtype) {
