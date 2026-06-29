@@ -284,7 +284,7 @@ mod tests {
             }
         });
         let diags = validate_rules(&Some(rules), &Arena::new(), NULL_REF);
-        let errors: Vec<_> = diags.iter().filter(|d| d.severity == rules_crate::Severity::Error).collect();
+        let errors: Vec<_> = diags.iter().filter(|d| d.severity == rules::Severity::Error).collect();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
     }
 

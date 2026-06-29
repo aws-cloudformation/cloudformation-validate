@@ -116,7 +116,7 @@ impl SemanticModel {
             has_parse_errors: self
                 .diagnostics
                 .iter()
-                .any(|d| d.severity == rules_crate::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse)),
+                .any(|d| d.severity == rules::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse)),
             parsed_rules: self.parsed_rules.iter().map(build_rule).collect(),
             resolution_sources: self
                 .resolution_sources

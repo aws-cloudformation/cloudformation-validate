@@ -1,7 +1,7 @@
 //! Comprehensive tests against the sample templates in /templates.
 //! Each test targets a specific CFN representation capability.
 
-use rules_crate::Severity;
+use rules::Severity;
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{ParseError, SemanticModel};
 

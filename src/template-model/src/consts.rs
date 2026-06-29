@@ -77,9 +77,15 @@ pub const KEY_EXPORT: &str = "Export";
 pub const KEY_NAME: &str = "Name";
 pub const KEY_CONSTRAINT_DESCRIPTION: &str = "ConstraintDescription";
 
+/// Optional fourth element of `Fn::FindInMap`: `{ "DefaultValue": ... }`.
+pub const KEY_DEFAULT_VALUE: &str = "DefaultValue";
+
 pub const SAM_TRANSFORM_MARKER: &str = "Serverless";
 pub const SAM_SERVERLESS_TYPE_PREFIX: &str = "AWS::Serverless::";
 pub const SAM_FUNCTION_TYPE: &str = "AWS::Serverless::Function";
+pub const SAM_API_TYPE: &str = "AWS::Serverless::Api";
+pub const SAM_HTTP_API_TYPE: &str = "AWS::Serverless::HttpApi";
+pub const SAM_SIMPLE_TABLE_TYPE: &str = "AWS::Serverless::SimpleTable";
 pub const SAM_LAYER_VERSION_TYPE: &str = "AWS::Serverless::LayerVersion";
 pub const SAM_APPLICATION_TYPE: &str = "AWS::Serverless::Application";
 pub const SAM_EVENT_TYPE_API: &str = "Api";
@@ -91,16 +97,21 @@ pub const SAM_APPLICATION_LOCATION: &str = "Location";
 pub const SAM_FUNCTION_EVENTS: &str = "Events";
 pub const SAM_SCHEDULE_PROPERTY: &str = "Schedule";
 
+/// Maps each `Globals` template-section key to the SAM resource type whose
+/// defaults it carries.
 pub const SAM_GLOBALS_TYPE_MAP: &[(&str, &str)] = &[
-    ("Function", "AWS::Serverless::Function"),
-    ("Api", "AWS::Serverless::Api"),
-    ("HttpApi", "AWS::Serverless::HttpApi"),
-    ("SimpleTable", "AWS::Serverless::SimpleTable"),
+    (SAM_FUNCTION_GLOBALS_KEY, SAM_FUNCTION_TYPE),
+    (SAM_API_GLOBALS_KEY, SAM_API_TYPE),
+    (SAM_HTTP_API_GLOBALS_KEY, SAM_HTTP_API_TYPE),
+    (SAM_SIMPLE_TABLE_GLOBALS_KEY, SAM_SIMPLE_TABLE_TYPE),
 ];
 
-/// Short name for `AWS::Serverless::Function` defaults inside the
-/// `Globals` template section.
+// Keys under the `Globals` template section, each naming the SAM resource type
+// whose defaults follow (see `SAM_GLOBALS_TYPE_MAP`).
 pub const SAM_FUNCTION_GLOBALS_KEY: &str = "Function";
+pub const SAM_API_GLOBALS_KEY: &str = "Api";
+pub const SAM_HTTP_API_GLOBALS_KEY: &str = "HttpApi";
+pub const SAM_SIMPLE_TABLE_GLOBALS_KEY: &str = "SimpleTable";
 
 pub const CDK_METADATA_TYPE: &str = "AWS::CDK::Metadata";
 
@@ -258,6 +269,74 @@ pub const FN_REF_ALL: &str = "Fn::RefAll";
 pub const FN_CONTAINS: &str = "Fn::Contains";
 pub const FN_EACH_MEMBER_EQUALS: &str = "Fn::EachMemberEquals";
 pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
+
+// Short (bare) intrinsic names — the suffix after the `Fn::` prefix that appears in
+// YAML shorthand tags (`!GetAtt`) and in the serialized reference graph. `Ref` and
+// `Condition` have no `Fn::` form, so their short and long spellings coincide.
+pub const TAG_REF: &str = "Ref";
+pub const TAG_GET_ATT: &str = "GetAtt";
+pub const TAG_SUB: &str = "Sub";
+pub const TAG_JOIN: &str = "Join";
+pub const TAG_SELECT: &str = "Select";
+pub const TAG_IF: &str = "If";
+pub const TAG_FIND_IN_MAP: &str = "FindInMap";
+pub const TAG_SPLIT: &str = "Split";
+pub const TAG_BASE64: &str = "Base64";
+pub const TAG_CIDR: &str = "Cidr";
+pub const TAG_GET_AZS: &str = "GetAZs";
+pub const TAG_IMPORT_VALUE: &str = "ImportValue";
+pub const TAG_TRANSFORM: &str = "Transform";
+pub const TAG_AND: &str = "And";
+pub const TAG_OR: &str = "Or";
+pub const TAG_NOT: &str = "Not";
+pub const TAG_EQUALS: &str = "Equals";
+pub const TAG_CONDITION: &str = "Condition";
+pub const TAG_TO_JSON_STRING: &str = "ToJsonString";
+pub const TAG_LENGTH: &str = "Length";
+pub const TAG_FOR_EACH: &str = "ForEach";
+pub const TAG_VALUE_OF: &str = "ValueOf";
+pub const TAG_VALUE_OF_ALL: &str = "ValueOfAll";
+pub const TAG_REF_ALL: &str = "RefAll";
+pub const TAG_CONTAINS: &str = "Contains";
+pub const TAG_EACH_MEMBER_EQUALS: &str = "EachMemberEquals";
+pub const TAG_EACH_MEMBER_IN: &str = "EachMemberIn";
+
+/// Display label for the expression form of `Fn::If` (the condition is itself an
+/// intrinsic rather than a named condition). This is an internal variant, not a
+/// CloudFormation tag, so it is deliberately absent from `SHORT_TAG_TO_FN_KEY`.
+pub const TAG_IF_EXPR: &str = "IfExpr";
+
+/// YAML shorthand tags map their bare suffix to the canonical `Fn::`-prefixed key
+/// used everywhere downstream. `Ref` and `Condition` map to themselves.
+pub const SHORT_TAG_TO_FN_KEY: &[(&str, &str)] = &[
+    (TAG_REF, FN_REF),
+    (TAG_GET_ATT, FN_GET_ATT),
+    (TAG_SUB, FN_SUB),
+    (TAG_JOIN, FN_JOIN),
+    (TAG_SELECT, FN_SELECT),
+    (TAG_IF, FN_IF),
+    (TAG_FIND_IN_MAP, FN_FIND_IN_MAP),
+    (TAG_SPLIT, FN_SPLIT),
+    (TAG_BASE64, FN_BASE64),
+    (TAG_CIDR, FN_CIDR),
+    (TAG_GET_AZS, FN_GET_AZS),
+    (TAG_IMPORT_VALUE, FN_IMPORT_VALUE),
+    (TAG_TRANSFORM, FN_TRANSFORM),
+    (TAG_AND, FN_AND),
+    (TAG_OR, FN_OR),
+    (TAG_NOT, FN_NOT),
+    (TAG_EQUALS, FN_EQUALS),
+    (TAG_CONDITION, FN_CONDITION),
+    (TAG_TO_JSON_STRING, FN_TO_JSON_STRING),
+    (TAG_LENGTH, FN_LENGTH),
+    (TAG_FOR_EACH, FN_FOR_EACH),
+    (TAG_VALUE_OF, FN_VALUE_OF),
+    (TAG_VALUE_OF_ALL, FN_VALUE_OF_ALL),
+    (TAG_REF_ALL, FN_REF_ALL),
+    (TAG_CONTAINS, FN_CONTAINS),
+    (TAG_EACH_MEMBER_EQUALS, FN_EACH_MEMBER_EQUALS),
+    (TAG_EACH_MEMBER_IN, FN_EACH_MEMBER_IN),
+];
 
 /// Keys that identify a well-formed boolean condition expression when used
 /// as the sole key of a single-key mapping. Inputs to `Fn::And`, `Fn::Or`,

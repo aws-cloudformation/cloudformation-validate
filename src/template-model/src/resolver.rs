@@ -517,9 +517,10 @@ impl<'a> Resolver<'a> {
                     _ => ResolvedValue::Dynamic { reason: "Base64 with unresolvable argument".into() },
                 }
             }
-            IntrinsicFn::ImportValue(_) => {
-                ResolvedValue::TypedDynamic { reason: "cross-stack import".into(), param_type: "String".into() }
-            }
+            IntrinsicFn::ImportValue(_) => ResolvedValue::TypedDynamic {
+                reason: "cross-stack import".into(),
+                param_type: PARAM_TYPE_STRING.into(),
+            },
             IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
             IntrinsicFn::GetAZs(region_ref) => {
                 if let Some(ref rid) = self.current_resource {
@@ -805,8 +806,8 @@ impl<'a> Resolver<'a> {
             return resolved;
         }
         // The unresolved target is recorded in `invalid_refs`; the engines
-        // surface it as the F1020 diagnostic. This is an expected outcome for
-        // an invalid template, so log it at debug rather than warn.
+        // surface it as the invalid-reference diagnostic. This is an expected
+        // outcome for an invalid template, so log it at debug rather than warn.
         debug!("Ref '{}' does not reference a valid target", target);
         if let Some(ref rid) = self.current_resource {
             self.invalid_refs.entry(rid.clone()).or_default().push((self.current_path.clone(), target.to_string()));
@@ -1222,7 +1223,7 @@ impl<'a> Resolver<'a> {
             // already recorded a `Ref` edge — CloudFormation treats a bare
             // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
             // edge would double-count the dependency (surfacing a spurious second
-            // W3005 finding under a `Sub` label that misrepresents the edge).
+            // dependency finding under a `Sub` label that misrepresents the edge).
             let resolved = self
                 .lookup_ref(var, span)
                 .unwrap_or_else(|| ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) });
@@ -1386,7 +1387,7 @@ impl<'a> Resolver<'a> {
 
 fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
     match param_type {
-        "Number" => value
+        PARAM_TYPE_NUMBER => value
             .parse::<f64>()
             .map(|n| {
                 serde_json::Number::from_f64(n)
@@ -1876,7 +1877,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
             .iter()
             .find(|(k, _)| k == KEY_TYPE)
             .and_then(|(_, v)| ir.arena.as_str(*v))
-            .unwrap_or("String")
+            .unwrap_or(PARAM_TYPE_STRING)
             .to_string();
 
         let default = param_map.iter().find(|(k, _)| k == KEY_DEFAULT).and_then(|(_, v)| match ir.arena.node(*v) {
@@ -2044,33 +2045,33 @@ pub fn node_to_json(arena: &Arena, node_ref: NodeRef) -> serde_json::Value {
 
 fn intrinsic_name(intrinsic: &IntrinsicFn) -> &'static str {
     match intrinsic {
-        IntrinsicFn::Ref(_) => "Ref",
-        IntrinsicFn::GetAtt(_, _) => "GetAtt",
-        IntrinsicFn::If(_, _, _) => "If",
-        IntrinsicFn::IfExpr(_, _, _) => "IfExpr",
-        IntrinsicFn::FindInMap(_, _, _, _) => "FindInMap",
-        IntrinsicFn::Sub(_, _) => "Sub",
-        IntrinsicFn::Join(_, _) => "Join",
-        IntrinsicFn::Select(_, _) => "Select",
-        IntrinsicFn::Split(_, _) => "Split",
-        IntrinsicFn::Base64(_) => "Base64",
-        IntrinsicFn::ImportValue(_) => "ImportValue",
-        IntrinsicFn::Transform(_, _) => "Transform",
-        IntrinsicFn::GetAZs(_) => "GetAZs",
-        IntrinsicFn::Cidr(_, _, _) => "Cidr",
-        IntrinsicFn::And(_) => "And",
-        IntrinsicFn::Or(_) => "Or",
-        IntrinsicFn::Not(_) => "Not",
-        IntrinsicFn::Equals(_, _) => "Equals",
-        IntrinsicFn::ToJsonString(_) => "ToJsonString",
-        IntrinsicFn::Length(_) => "Length",
-        IntrinsicFn::ForEach(_, _, _, _) => "ForEach",
-        IntrinsicFn::ValueOf(_, _) => "ValueOf",
-        IntrinsicFn::ValueOfAll(_, _) => "ValueOfAll",
-        IntrinsicFn::RefAll(_) => "RefAll",
-        IntrinsicFn::Contains(_, _) => "Contains",
-        IntrinsicFn::EachMemberEquals(_, _) => "EachMemberEquals",
-        IntrinsicFn::EachMemberIn(_, _) => "EachMemberIn",
+        IntrinsicFn::Ref(_) => TAG_REF,
+        IntrinsicFn::GetAtt(_, _) => TAG_GET_ATT,
+        IntrinsicFn::If(_, _, _) => TAG_IF,
+        IntrinsicFn::IfExpr(_, _, _) => TAG_IF_EXPR,
+        IntrinsicFn::FindInMap(_, _, _, _) => TAG_FIND_IN_MAP,
+        IntrinsicFn::Sub(_, _) => TAG_SUB,
+        IntrinsicFn::Join(_, _) => TAG_JOIN,
+        IntrinsicFn::Select(_, _) => TAG_SELECT,
+        IntrinsicFn::Split(_, _) => TAG_SPLIT,
+        IntrinsicFn::Base64(_) => TAG_BASE64,
+        IntrinsicFn::ImportValue(_) => TAG_IMPORT_VALUE,
+        IntrinsicFn::Transform(_, _) => TAG_TRANSFORM,
+        IntrinsicFn::GetAZs(_) => TAG_GET_AZS,
+        IntrinsicFn::Cidr(_, _, _) => TAG_CIDR,
+        IntrinsicFn::And(_) => TAG_AND,
+        IntrinsicFn::Or(_) => TAG_OR,
+        IntrinsicFn::Not(_) => TAG_NOT,
+        IntrinsicFn::Equals(_, _) => TAG_EQUALS,
+        IntrinsicFn::ToJsonString(_) => TAG_TO_JSON_STRING,
+        IntrinsicFn::Length(_) => TAG_LENGTH,
+        IntrinsicFn::ForEach(_, _, _, _) => TAG_FOR_EACH,
+        IntrinsicFn::ValueOf(_, _) => TAG_VALUE_OF,
+        IntrinsicFn::ValueOfAll(_, _) => TAG_VALUE_OF_ALL,
+        IntrinsicFn::RefAll(_) => TAG_REF_ALL,
+        IntrinsicFn::Contains(_, _) => TAG_CONTAINS,
+        IntrinsicFn::EachMemberEquals(_, _) => TAG_EACH_MEMBER_EQUALS,
+        IntrinsicFn::EachMemberIn(_, _) => TAG_EACH_MEMBER_IN,
     }
 }
 
