@@ -39,7 +39,7 @@ pub fn load_security_rule(filename: &str) -> String {
 }
 
 /// All template directories covered by golden-file tests.
-const GOLDEN_DIRS: &[&str] = &["good", "bad", "integration", "issues", "lsp", "quickstart", "public"];
+const GOLDEN_DIRS: &[&str] = &["good", "bad", "integration", "issues", "gh-issues", "lsp", "quickstart", "public"];
 
 /// Discover all templates under the given subdirectories of templates_dir().
 pub fn discover_all_templates() -> Vec<String> {

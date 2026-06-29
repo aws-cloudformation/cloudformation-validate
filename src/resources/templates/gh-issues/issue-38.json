@@ -1,0 +1,54 @@
+{
+  "Resources": {
+    "Memory": {
+      "Type": "AWS::BedrockAgentCore::Memory",
+      "Properties": {
+        "Name": "MyMemory",
+        "EventExpiryDuration": 90,
+        "MemoryStrategies": [
+          {
+            "SummaryMemoryStrategy": {
+              "Description": "Summarize interactions to preserve critical context and key insights",
+              "Name": "summary_builtin_cdkGen0001",
+              "Namespaces": [
+                "/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}"
+              ]
+            }
+          },
+          {
+            "SemanticMemoryStrategy": {
+              "Description": "Extract general factual knowledge, concepts and meanings from raw conversations in a context-independent format.",
+              "Name": "semantic_builtin_cdkGen0001",
+              "Namespaces": [
+                "/strategies/{memoryStrategyId}/actors/{actorId}"
+              ]
+            }
+          },
+          {
+            "UserPreferenceMemoryStrategy": {
+              "Description": "Capture individual preferences, interaction patterns, and personalized settings to enhance future experiences.",
+              "Name": "preference_builtin_cdkGen0001",
+              "Namespaces": [
+                "/strategies/{memoryStrategyId}/actors/{actorId}"
+              ]
+            }
+          },
+          {
+            "EpisodicMemoryStrategy": {
+              "Description": "Captures meaningful slices of user and system interactions.",
+              "Name": "episodic_builtin_cdkGen0001",
+              "Namespaces": [
+                "/strategy/{memoryStrategyId}/actor/{actorId}/session/{sessionId}"
+              ],
+              "ReflectionConfiguration": {
+                "Namespaces": [
+                  "/strategy/{memoryStrategyId}/actor/{actorId}"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

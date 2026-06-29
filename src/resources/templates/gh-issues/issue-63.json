@@ -1,0 +1,36 @@
+{
+  "Parameters": {
+    "SomeParameter": {
+      "Type": "String",
+      "Default": {
+        "Fn::GetStackOutput": {
+          "StackName": "Stack1",
+          "Region": "es-norst-1",
+          "RoleArn": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::123456789012:role/Stack1PublishGetStackOutputRole61CE6C61"
+              ]
+            ]
+          },
+          "OutputName": "PublishOutputRefAWSAccountIdDC72A8F2"
+        }
+      }
+    }
+  },
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": {
+          "Ref": "SomeParameter"
+        }
+      }
+    }
+  }
+}

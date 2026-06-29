@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  TaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: my-task
+      ContainerDefinitions:
+        - Name: web
+          Image: nginx:latest
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 0
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: vpc-12345678
+      # HealthCheckPort intentionally omitted -> defaults to traffic-port
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: my-cluster
+      TaskDefinition: !Ref TaskDef
+      LoadBalancers:
+        - ContainerName: web
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup

@@ -1,0 +1,29 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "MyFunc": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "my-func",
+        "Handler": "index.handler",
+        "Role": "arn:aws:iam::123456789012:role/lambda-role",
+        "Runtime": "nodejs99.x",
+        "Code": {
+          "ZipFile": "exports.handler = async () => {};"
+        }
+      }
+    },
+    "FutureNodeFunc": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "future-func",
+        "Handler": "index.handler",
+        "Role": "arn:aws:iam::123456789012:role/lambda-role",
+        "Runtime": "node99.x",
+        "Code": {
+          "ZipFile": "exports.handler = async () => {};"
+        }
+      }
+    }
+  }
+}

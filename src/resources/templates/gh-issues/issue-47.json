@@ -1,0 +1,16 @@
+{
+  "Resources": {
+    "MyFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "demo",
+        "Handler": "index.handler",
+        "Role": "arn:aws:iam::123456789012:role/lambda-role",
+        "Runtime": "node99.x",
+        "Code": {
+          "ZipFile": "exports.handler = async () => {};"
+        }
+      }
+    }
+  }
+}

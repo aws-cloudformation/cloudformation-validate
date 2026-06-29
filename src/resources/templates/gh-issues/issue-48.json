@@ -1,0 +1,19 @@
+{
+  "Resources": {
+    "MyBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Join": [
+            "-",
+            [
+              "my-bucket",
+              { "Ref": "AWS::AccountId" },
+              { "Ref": "AWS::Region" }
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
