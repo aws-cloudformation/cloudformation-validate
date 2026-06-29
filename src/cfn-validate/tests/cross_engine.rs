@@ -2,30 +2,31 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::{load_rule, load_template};
+use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
-use rules::{RuleOrigin, Severity};
+use rules::registry::RULE_REGISTRY;
+use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
+use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine};
+use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine, validate_bytes};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-fn assert_list_rules_identical(cel_rules: &[rules::RuleInfo], rego_rules: &[rules::RuleInfo], label: &str) {
+fn assert_list_rules_identical(cel_rules: &[RuleInfo], rego_rules: &[RuleInfo], label: &str) {
     let cel_json = serde_json::to_value(cel_rules).expect("serialize cel rules");
     let rego_json = serde_json::to_value(rego_rules).expect("serialize rego rules");
     assert_eq!(cel_json, rego_json, "{label}: listRules differ between engines");
 }
 
-fn find_rule<'a>(rules: &'a [rules::RuleInfo], id: &str) -> &'a rules::RuleInfo {
+fn find_rule<'a>(rules: &'a [RuleInfo], id: &str) -> &'a RuleInfo {
     rules.iter().find(|r| r.id == id).unwrap_or_else(|| panic!("rule {id} not found in listRules"))
 }
 
-fn validate_template(engine: &dyn ValidationEngine, template: &str) -> Vec<diagnostics::Diagnostic> {
-    let sv = schema_validator::SchemaValidator::new();
+fn validate_template(engine: &dyn ValidationEngine, template: &str) -> Vec<Diagnostic> {
+    let sv = SchemaValidator::new();
     let bytes = load_template(template);
-    validation_engine::validate_bytes(engine, &sv, &bytes, Default::default()).unwrap().diagnostics
+    validate_bytes(engine, &sv, &bytes, Default::default()).unwrap().diagnostics
 }
 
 fn custom_config(engine: &str) -> EngineConfig {
@@ -77,18 +78,14 @@ fn multi_combined_config(engine: &str) -> EngineConfig {
     }
 }
 
-// ── Default listRules ────────────────────────────────────────────────────────
-
 #[test]
 fn default_list_rules_identical_between_engines() {
     assert_list_rules_identical(&CEL.list_rules(), &REGO.list_rules(), "default");
 
     let builtin_count = CEL.list_rules().len();
     assert!(builtin_count > 0, "must have built-in rules");
-    assert_eq!(builtin_count, rules::registry::RULE_REGISTRY.len(), "engine rule count must match registry");
+    assert_eq!(builtin_count, RULE_REGISTRY.len(), "engine rule count must match registry");
 }
-
-// ── Custom rules: 1 file, 1 rule ────────────────────────────────────────────
 
 #[test]
 fn custom_rule_list_rules_and_validate_match_between_engines() {
@@ -127,8 +124,6 @@ fn custom_rule_list_rules_and_validate_match_between_engines() {
     }
 }
 
-// ── Guard rules: 1 file, 1 rule ─────────────────────────────────────────────
-
 #[test]
 fn guard_rule_list_rules_and_validate_match_between_engines() {
     let cel = CelEngine::new(guard_config()).unwrap();
@@ -164,8 +159,6 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
     }
 }
 
-// ── Combined: 1 custom file + 1 guard file ──────────────────────────────────
-
 #[test]
 fn single_combined_list_rules_and_validate_match_between_engines() {
     let cel = CelEngine::new(single_combined_config("cel")).unwrap();
@@ -187,8 +180,6 @@ fn single_combined_list_rules_and_validate_match_between_engines() {
 
     assert_list_rules_identical(&cel.list_rules(), &rego.list_rules(), "single_combined");
 }
-
-// ── Multi: 2 custom rules + 2 guard files (1 rule + 2 rules) ────────────────
 
 #[test]
 fn multi_combined_list_rules_and_validate_match_between_engines() {
@@ -237,11 +228,9 @@ fn multi_combined_list_rules_and_validate_match_between_engines() {
     assert_list_rules_identical(&cel.list_rules(), &rego.list_rules(), "multi_combined");
 }
 
-// ── rule_metadata parity ─────────────────────────────────────────────────────
-
 fn assert_metadata_maps_identical(
-    cel_meta: &std::collections::HashMap<String, rules::RuleMetadataEntry>,
-    rego_meta: &std::collections::HashMap<String, rules::RuleMetadataEntry>,
+    cel_meta: &std::collections::HashMap<String, RuleMetadataEntry>,
+    rego_meta: &std::collections::HashMap<String, RuleMetadataEntry>,
     label: &str,
 ) {
     assert_eq!(
@@ -328,8 +317,6 @@ fn multi_combined_external_rule_metadata_identical_between_engines() {
     assert_metadata_maps_identical(&cel_ext, &rego_ext, "multi_combined external_rule_metadata");
 }
 
-// ── Good templates: no false positives ───────────────────────────────────────
-
 #[test]
 fn good_templates_produce_no_fatal_or_error_diagnostics() {
     let new_rule_ids: std::collections::HashSet<&str> = [
@@ -341,16 +328,13 @@ fn good_templates_produce_no_fatal_or_error_diagnostics() {
     .into_iter()
     .collect();
 
-    let sv = schema_validator::SchemaValidator::new();
+    let sv = SchemaValidator::new();
     let root = common::templates_dir().join("good");
     let mut failures = Vec::new();
-    for (engine_name, engine) in [
-        ("cel", &*CEL as &dyn validation_engine::ValidationEngine),
-        ("rego", &*REGO as &dyn validation_engine::ValidationEngine),
-    ] {
+    for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
         for entry in walkdir(&root) {
             let bytes = std::fs::read(&entry).unwrap();
-            let report = match validation_engine::validate_bytes(engine, &sv, &bytes, Default::default()) {
+            let report = match validate_bytes(engine, &sv, &bytes, Default::default()) {
                 Ok(r) => r,
                 Err(_) => continue,
             };

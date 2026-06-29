@@ -1,3 +1,4 @@
+use data_source::generate_all;
 use log::info;
 use std::env;
 use std::path::PathBuf;
@@ -18,7 +19,7 @@ fn main() -> anyhow::Result<()> {
     let generated_dir = manifest.join("generated");
     let handwritten_dir = manifest.join("handwritten");
 
-    data_source::generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
+    generate_all(&upstream_dir, &generated_dir, &handwritten_dir)?;
 
     info!("Done — all outputs in data-source/generated/");
     Ok(())

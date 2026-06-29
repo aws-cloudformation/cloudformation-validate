@@ -31,8 +31,9 @@ fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
-/// Parses a rule ID range like `"E3000-E3099"` into an `IdRange`.
-/// Returns `None` if the format is invalid.
+/// Parses a rule ID range of the form `"<start>-<end>"` (a shared letter prefix
+/// followed by an inclusive numeric span) into an `IdRange`. Returns `None` if
+/// the format is invalid.
 pub fn parse_range(s: &str) -> Option<IdRange> {
     let halves: Vec<&str> = s.split('-').collect();
     if halves.len() != 2 {

@@ -1,6 +1,6 @@
 use crate::ir::*;
 use crate::resolver::{RefKind, ResolverEdge};
-use diagnostics::{Phase, RegisteredDiagnostic};
+use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic};
 use log::{info, warn};
 use std::collections::{BTreeSet, HashMap, VecDeque};
 
@@ -118,10 +118,7 @@ impl ReferenceGraph {
         self.incoming(resource_id).iter().map(|e| e.source_resource.as_str()).collect()
     }
 
-    pub fn cycle_diagnostics(
-        &self,
-        span_index: &HashMap<String, diagnostics::SourceSpan>,
-    ) -> Vec<diagnostics::Diagnostic> {
+    pub fn cycle_diagnostics(&self, span_index: &HashMap<String, SourceSpan>) -> Vec<Diagnostic> {
         let mut out = Vec::new();
         for cycle in &self.cycles {
             for i in 0..cycle.len() {

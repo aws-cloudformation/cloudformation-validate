@@ -1,6 +1,7 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
-use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, resolve_section_span};
+use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
+use rules::format_rule_for_format;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -138,7 +139,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
         }
 
         if let Some(source) = describe_resolution(model, rid, d.property_path.as_deref().unwrap_or("")) {
-            let ctx = d.context.get_or_insert_with(|| diagnostics::ViolationContext {
+            let ctx = d.context.get_or_insert_with(|| ViolationContext {
                 actual_value: None,
                 expected_constraint: None,
                 property: None,
@@ -157,7 +158,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
 
         macro_rules! ensure_ctx {
             ($d:expr) => {
-                $d.context.get_or_insert_with(|| diagnostics::ViolationContext {
+                $d.context.get_or_insert_with(|| ViolationContext {
                     actual_value: None,
                     expected_constraint: None,
                     property: None,
@@ -345,12 +346,11 @@ fn validate_resource(
     let base = "Properties";
     let defs = &schema.definitions;
 
-    // E3040 (read-only property specified) is intentionally not emitted: a
-    // resource's read-only properties are also declared writable properties, so
-    // schema validation accepts them and the value is silently ignored at deploy
-    // time rather than rejected. Emitting it here flagged values (e.g. ACMPCA
-    // Certificate.Arn) that CloudFormation accepts. The rule stays registered for
-    // coverage; firing it produced findings for values CloudFormation accepts.
+    // The read-only-property check is intentionally not emitted here: a resource's
+    // read-only properties are also declared as writable properties, so schema
+    // validation accepts them and CloudFormation silently ignores the value at
+    // deploy time rather than rejecting it. Emitting it flagged values (e.g. ACMPCA
+    // Certificate.Arn) that CloudFormation accepts.
 
     for dp in &schema.deprecated_properties {
         let top = dp.split('.').next().unwrap_or(dp);
@@ -1016,9 +1016,9 @@ fn validate_prop(
         // A value computed by an intrinsic (Fn::Sub/Fn::Join building, say, an S3
         // bucket name from AWS::Region) can't be pattern-checked the way a written
         // literal can, since its final value is only known at deploy time. Those
-        // are covered by Warning-level intrinsic rules (W1031/W1032) rather than
-        // this Fatal pattern check, so skip both parameter-sourced and
-        // intrinsic-sourced values here.
+        // are covered by the Warning-level intrinsic rules rather than this Fatal
+        // pattern check, so skip both parameter-sourced and intrinsic-sourced
+        // values here.
         let from_param = m.is_from_parameter(rid, prop_path) || m.is_from_intrinsic(rid, prop_path);
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
@@ -1773,7 +1773,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
                 continue;
             }
             if !re.is_match(&s) {
-                let rule_id = rules::format_rule_for_format(format).unwrap_or("E1103");
+                let rule_id = format_rule_for_format(format).unwrap_or("E1103");
                 out.push(build_diagnostic_conditional(
                     rule_id,
                     &format!("{} does not match format '{}'", format_value(val), format),
@@ -1829,8 +1829,8 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
         if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function")
             // Only a literal Runtime string is validated against the deprecation
             // list; a Runtime produced by an intrinsic (e.g. Fn::FindInMap)
-            // resolves at deploy time and is handled by its intrinsic rules
-            // (W1034) instead.
+            // resolves at deploy time and is handled by the intrinsic rules
+            // instead.
             && !model.is_from_intrinsic(rid, "Properties.Runtime")
         {
             for (val, _) in &model.resolve_scenarios_json(rid, "Properties.Runtime") {
@@ -2336,10 +2336,10 @@ fn check_gather_property_constraints(
             }
             // Numeric cross-resource bounds (e.g. SQS VisibilityTimeout vs Lambda
             // Timeout, ESM BatchSize for FIFO queues) are reported by the dedicated
-            // rules E3505 and E3705, at their specific IDs and locations.
-            // Emitting a generic F3034 here as well would double-report the same
-            // issue under a different ID, so the const equality check above is the
-            // only gather constraint surfaced directly.
+            // cross-resource rules at their specific locations. Emitting a generic
+            // schema-bounds diagnostic here as well would double-report the same
+            // issue, so the const equality check above is the only gather
+            // constraint surfaced directly.
         }
     }
 }

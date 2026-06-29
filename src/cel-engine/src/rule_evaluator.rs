@@ -1,3 +1,4 @@
+use data_source::embedded::GENERATED_RULES_BYTES;
 use diagnostics::{Diagnostic, RegisteredDiagnostic};
 use rules::lookup_rule;
 use std::collections::{HashMap, HashSet};
@@ -35,7 +36,7 @@ impl GeneratedRuleRegistry {
         let mut global_rules = Vec::new();
         let mut total = 0;
 
-        let file: RuleFile = serde_json::from_slice(&data_source::embedded::GENERATED_RULES_BYTES)
+        let file: RuleFile = serde_json::from_slice(&GENERATED_RULES_BYTES)
             .map_err(|e| anyhow::anyhow!("Failed to parse generated rules: {}", e))?;
         for rule in file.rules {
             total += 1;
@@ -663,8 +664,6 @@ mod tests {
     use super::*;
     use serde_json::json;
     use template_model::resolver::{MapEntry, ResolvedValue};
-
-    // ── extract_has_prop / extract_not_has_prop ─────────────────────────
 
     #[test]
     fn extract_has_prop_valid() {

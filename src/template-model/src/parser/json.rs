@@ -192,7 +192,7 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
 
 /// Pre-parse scan for duplicate keys in JSON. serde_json silently deduplicates,
 /// so we must scan raw bytes before parsing.
-fn detect_duplicate_keys(bytes: &[u8]) -> Vec<diagnostics::Diagnostic> {
+fn detect_duplicate_keys(bytes: &[u8]) -> Vec<Diagnostic> {
     let line_offsets = build_line_offsets(bytes);
     let mut diagnostics = Vec::new();
     let mut key_stacks: Vec<HashMap<String, usize>> = Vec::new();

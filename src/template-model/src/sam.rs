@@ -2,7 +2,7 @@ use crate::consts::*;
 use crate::ir::*;
 use crate::model::ResolvedResource;
 use crate::resolver::ResolvedValue;
-use diagnostics::{RegisteredDiagnostic, SAM_TRANSFORM_ERROR_RULE_ID};
+use diagnostics::{Diagnostic, RegisteredDiagnostic, SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 use std::collections::{HashMap, HashSet};
 
 pub fn extract_sam_globals(arena: &Arena, globals_ref: NodeRef) -> HashMap<String, HashMap<String, serde_json::Value>> {
@@ -109,10 +109,7 @@ pub fn collect_globals_param_refs(arena: &Arena, globals_ref: NodeRef) -> Vec<St
     refs
 }
 
-pub fn cycle_involves_sam_diagnostic(
-    diagnostic: &diagnostics::Diagnostic,
-    resources: &HashMap<String, ResolvedResource>,
-) -> bool {
+pub fn cycle_involves_sam_diagnostic(diagnostic: &Diagnostic, resources: &HashMap<String, ResolvedResource>) -> bool {
     resources.iter().any(|(name, res)| {
         res.resource_type.starts_with(SAM_SERVERLESS_TYPE_PREFIX) && diagnostic.message.contains(name.as_str())
     })
@@ -184,7 +181,7 @@ pub fn collect_transform_errors(
     resources: &HashMap<String, ResolvedResource>,
     parameter_names: &HashSet<String>,
     span_index: &SourceSpanIndex,
-) -> Vec<diagnostics::Diagnostic> {
+) -> Vec<Diagnostic> {
     let context = TransformErrorContext { arena, resources_node, globals_node, resources, parameter_names, span_index };
 
     let mut errors = Vec::new();
@@ -230,10 +227,7 @@ impl<'a> TransformErrorContext<'a> {
     }
 }
 
-fn auto_publish_alias_must_be_string_or_parameter_ref(
-    ctx: &TransformErrorContext,
-    out: &mut Vec<diagnostics::Diagnostic>,
-) {
+fn auto_publish_alias_must_be_string_or_parameter_ref(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
         let Some(located) = located_auto_publish_alias(ctx.arena, ctx.resources_node, ctx.globals_node, name) else {
             continue;
@@ -244,12 +238,7 @@ fn auto_publish_alias_must_be_string_or_parameter_ref(
         out.push(make_transform_error(
             name,
             sam_property_path(KEY_PROPERTIES, SAM_AUTO_PUBLISH_ALIAS),
-            format!(
-                "{} Resource with id [{}] is invalid. {}",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX,
-                name,
-                message_suffix
-            ),
+            format!("{} Resource with id [{}] is invalid. {}", SAM_TRANSFORM_ERROR_PREFIX, name, message_suffix),
             located.diagnostic_span(name, ctx.span_index),
         ));
     }
@@ -273,7 +262,7 @@ fn auto_publish_alias_violation(arena: &Arena, node: NodeRef, parameter_names: &
     }
 }
 
-fn layer_version_must_have_content_uri(ctx: &TransformErrorContext, out: &mut Vec<diagnostics::Diagnostic>) {
+fn layer_version_must_have_content_uri(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
     for name in ctx.resources_of_type(SAM_LAYER_VERSION_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_LAYER_CONTENT_URI) {
             continue;
@@ -284,16 +273,14 @@ fn layer_version_must_have_content_uri(ctx: &TransformErrorContext, out: &mut Ve
             prop_path.clone(),
             format!(
                 "{} Resource with id [{}] is invalid. Missing required property '{}'.",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX,
-                name,
-                SAM_LAYER_CONTENT_URI
+                SAM_TRANSFORM_ERROR_PREFIX, name, SAM_LAYER_CONTENT_URI
             ),
             ctx.span_for(name, &prop_path),
         ));
     }
 }
 
-fn application_must_have_location(ctx: &TransformErrorContext, out: &mut Vec<diagnostics::Diagnostic>) {
+fn application_must_have_location(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
     for name in ctx.resources_of_type(SAM_APPLICATION_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_APPLICATION_LOCATION) {
             continue;
@@ -304,16 +291,14 @@ fn application_must_have_location(ctx: &TransformErrorContext, out: &mut Vec<dia
             prop_path.clone(),
             format!(
                 "{} Resource with id [{}] is invalid. Resource is missing the required [{}] property.",
-                diagnostics::SAM_TRANSFORM_ERROR_PREFIX,
-                name,
-                SAM_APPLICATION_LOCATION
+                SAM_TRANSFORM_ERROR_PREFIX, name, SAM_APPLICATION_LOCATION
             ),
             ctx.span_for(name, &prop_path),
         ));
     }
 }
 
-fn schedule_event_must_have_schedule(ctx: &TransformErrorContext, out: &mut Vec<diagnostics::Diagnostic>) {
+fn schedule_event_must_have_schedule(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
         let Some(events_value) = ctx.resources.get(name).and_then(|res| res.properties.get(SAM_FUNCTION_EVENTS)) else {
             continue;
@@ -328,10 +313,7 @@ fn schedule_event_must_have_schedule(ctx: &TransformErrorContext, out: &mut Vec<
                 prop_path.clone(),
                 format!(
                     "{} Resource with id [{}{}] is invalid. Missing required property '{}'.",
-                    diagnostics::SAM_TRANSFORM_ERROR_PREFIX,
-                    name,
-                    event_name,
-                    SAM_SCHEDULE_PROPERTY
+                    SAM_TRANSFORM_ERROR_PREFIX, name, event_name, SAM_SCHEDULE_PROPERTY
                 ),
                 ctx.span_for(name, &prop_path),
             ));
@@ -462,12 +444,7 @@ fn sort_key(span_index: &SourceSpanIndex, name: &str) -> (u32, u32) {
         .unwrap_or((u32::MAX, u32::MAX))
 }
 
-fn make_transform_error(
-    resource_id: &str,
-    property_path: String,
-    message: String,
-    span: SourceSpan,
-) -> diagnostics::Diagnostic {
+fn make_transform_error(resource_id: &str, property_path: String, message: String, span: SourceSpan) -> Diagnostic {
     RegisteredDiagnostic::new(SAM_TRANSFORM_ERROR_RULE_ID, message)
         .resource(resource_id, None)
         .property_path(property_path)
@@ -478,7 +455,7 @@ fn make_transform_error(
 #[cfg(test)]
 mod tests {
     use crate::model::SemanticModel;
-    use diagnostics::Diagnostic;
+    use diagnostics::{Diagnostic, is_sam_transform_error_message};
 
     fn transform_errors(template: &str) -> Vec<String> {
         sam_transform_diagnostics(template).into_iter().map(|d| d.message).collect()
@@ -486,7 +463,7 @@ mod tests {
 
     fn sam_transform_diagnostics(template: &str) -> Vec<Diagnostic> {
         let model = SemanticModel::from_bytes(template.as_bytes()).expect("template should parse");
-        model.diagnostics.iter().filter(|d| diagnostics::is_sam_transform_error_message(&d.message)).cloned().collect()
+        model.diagnostics.iter().filter(|d| is_sam_transform_error_message(&d.message)).cloned().collect()
     }
 
     #[test]
@@ -652,8 +629,6 @@ Resources:
         assert!(transform_errors(template).is_empty());
     }
 
-    // ── LayerVersion: ContentUri required ──────────────────────────────────
-
     #[test]
     fn layer_version_with_content_uri_is_accepted() {
         let template = r#"
@@ -698,8 +673,6 @@ Resources:
         );
     }
 
-    // ── Application: Location required ─────────────────────────────────────
-
     #[test]
     fn application_with_location_is_accepted() {
         let template = r#"
@@ -734,8 +707,6 @@ Resources:
         assert_eq!(diag.resource.as_ref().and_then(|r| r.id.as_deref()), Some("App"));
         assert_eq!(diag.property_path.as_deref(), Some("Properties/Location"));
     }
-
-    // ── Schedule event: Schedule property required ─────────────────────────
 
     #[test]
     fn schedule_event_with_schedule_property_is_accepted() {

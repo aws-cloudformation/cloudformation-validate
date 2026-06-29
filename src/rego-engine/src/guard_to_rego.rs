@@ -459,6 +459,7 @@ fn emit_resource_scoped_violation(lines: &mut Vec<String>, rule_name: &str, gc: 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use guard_translator::parse_guard;
 
     #[test]
     fn strip_variable_prefix_removes_percent_var() {
@@ -977,7 +978,7 @@ rule check_s3_encryption {
     }
 }
 "#;
-        let file = guard_translator::parse_guard(source, "test.guard").unwrap();
+        let file = parse_guard(source, "test.guard").unwrap();
         let results = translate_to_rego(&file, "s3_encryption", &[]);
         assert!(!results.is_empty());
         assert!(results[0].source.contains("violation contains"));
@@ -994,7 +995,7 @@ rule check_runtime {
     }
 }
 "#;
-        let file = guard_translator::parse_guard(source, "lambda.guard").unwrap();
+        let file = parse_guard(source, "lambda.guard").unwrap();
         let results = translate_to_rego(&file, "lambda_runtime", &[]);
         assert!(!results.is_empty());
         let src = &results[0].source;
@@ -1070,7 +1071,7 @@ rule check_runtime {
     #[test]
     fn negated_guard_clause_access_flips_negation() {
         // Guard: `Enabled == true` → violation when `Enabled != true`
-        let file = guard_translator::parse_guard(
+        let file = parse_guard(
             r#"
 rule r1 {
     AWS::S3::Bucket { Properties.Enabled == true <<must be enabled>> }
@@ -1086,7 +1087,7 @@ rule r1 {
 
     #[test]
     fn negated_guard_clause_exists_flips_to_not() {
-        let file = guard_translator::parse_guard(
+        let file = parse_guard(
             r#"
 rule r1 {
     AWS::S3::Bucket { Properties.Name EXISTS <<name required>> }
@@ -1302,7 +1303,7 @@ rule check_tags when %buckets !empty {
     <<Tags are required on S3 buckets>>
 }
 "#;
-        let file = guard_translator::parse_guard(source, "tags.guard").unwrap();
+        let file = parse_guard(source, "tags.guard").unwrap();
         let results = translate_to_rego(&file, "tags", &[]);
         assert!(!results.is_empty());
         let src = &results[0].source;
@@ -1320,7 +1321,7 @@ rule multi_check {
     }
 }
 "#;
-        let file = guard_translator::parse_guard(source, "multi.guard").unwrap();
+        let file = parse_guard(source, "multi.guard").unwrap();
         let results = translate_to_rego(&file, "multi", &[]);
         assert_eq!(results.len(), 1);
         let src = &results[0].source;

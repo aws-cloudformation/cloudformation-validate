@@ -1,5 +1,5 @@
 use crate::consts::*;
-pub(crate) use diagnostics::{SourceSpan, UNKNOWN_SPAN};
+pub(crate) use diagnostics::{Diagnostic, SourceSpan, UNKNOWN_SPAN};
 use std::collections::HashMap;
 use std::error;
 use std::fmt;
@@ -192,7 +192,7 @@ pub struct TemplateIR {
     pub(crate) description: Option<String>,
     pub(crate) transforms: Vec<String>,
     pub(crate) raw_top_level_keys: Vec<String>,
-    pub(crate) diagnostics: Vec<diagnostics::Diagnostic>,
+    pub(crate) diagnostics: Vec<Diagnostic>,
     pub(crate) globals: NodeRef,
 }
 

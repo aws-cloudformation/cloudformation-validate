@@ -1,4 +1,9 @@
+use diagnostics::Diagnostic;
+use diagnostics::Phase;
+use rules::Severity;
+use schema_validator::CompiledSchemaStore;
 use schema_validator::SchemaValidator;
+use schema_validator::validate::validate_all_resources;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 
@@ -6,18 +11,18 @@ const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templ
 
 static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
-fn validate_fixture(path: &str) -> Vec<diagnostics::Diagnostic> {
+fn validate_fixture(path: &str) -> Vec<Diagnostic> {
     let full = format!("{}/{}", TEMPLATES, path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("read {}: {}", full, e));
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap_or_else(|e| panic!("parse {}: {}", full, e)));
     SV.validate(&model, "us-east-1").diagnostics
 }
 
-fn has_rule(diags: &[diagnostics::Diagnostic], rule_id: &str) -> bool {
+fn has_rule(diags: &[Diagnostic], rule_id: &str) -> bool {
     diags.iter().any(|d| d.rule_id == rule_id)
 }
 
-fn diags_for<'a>(diags: &'a [diagnostics::Diagnostic], rule_id: &str) -> Vec<&'a diagnostics::Diagnostic> {
+fn diags_for<'a>(diags: &'a [Diagnostic], rule_id: &str) -> Vec<&'a Diagnostic> {
     diags.iter().filter(|d| d.rule_id == rule_id).collect()
 }
 
@@ -38,21 +43,17 @@ fn list_rules_returns_known_rule_ids() {
 #[test]
 fn valid_resources_produce_no_fatal_diagnostics() {
     let diags = validate_fixture("good/schema_valid_resources.yaml");
-    let fatals: Vec<_> = diags.iter().filter(|d| d.severity == rules::Severity::Fatal).collect();
+    let fatals: Vec<_> = diags.iter().filter(|d| d.severity == Severity::Fatal).collect();
     assert!(fatals.is_empty(), "unexpected fatals: {:?}", fatals);
 }
 
 #[test]
 fn minimal_template_no_schema_errors() {
     let diags = validate_fixture("good/minimal.yaml");
-    let schema_fatals: Vec<_> = diags
-        .iter()
-        .filter(|d| d.phase == Some(diagnostics::Phase::Schema) && d.severity == rules::Severity::Fatal)
-        .collect();
+    let schema_fatals: Vec<_> =
+        diags.iter().filter(|d| d.phase == Some(Phase::Schema) && d.severity == Severity::Fatal).collect();
     assert!(schema_fatals.is_empty(), "unexpected schema fatals: {:?}", schema_fatals);
 }
-
-// ── Type mismatch ──────────────────────────────────────────────────
 
 #[test]
 fn type_mismatch_integer_for_string() {
@@ -81,8 +82,6 @@ fn type_mismatch_boolean_for_string() {
     );
 }
 
-// ── Enum violation ─────────────────────────────────────────────────
-
 #[test]
 fn enum_violation_invalid_access_control() {
     let diags = validate_fixture("bad/schema_enum_violation.yaml");
@@ -94,8 +93,6 @@ fn enum_violation_invalid_access_control() {
         enum_diags.iter().map(|d| &d.message).collect::<Vec<_>>()
     );
 }
-
-// ── Additional properties ──────────────────────────────────────────
 
 #[test]
 fn additional_properties_rejected() {
@@ -116,16 +113,12 @@ fn additional_properties_typo_suggestion() {
     );
 }
 
-// ── Numeric bounds ─────────────────────────────────────────────────
-
 #[test]
 fn numeric_bounds_exceeded() {
     let diags = validate_fixture("bad/schema_numeric_bounds.yaml");
     let f3034 = diags_for(&diags, "F3034");
     assert!(!f3034.is_empty(), "expected F3034 for numeric bounds violation");
 }
-
-// ── String length ──────────────────────────────────────────────────
 
 #[test]
 fn string_length_too_short() {
@@ -135,8 +128,6 @@ fn string_length_too_short() {
         assert!(f3033.iter().any(|d| { d.property_path.as_deref().is_some_and(|p| p.contains("FunctionName")) }));
     }
 }
-
-// ── Subnet ID format validation ────────────────────────────────────
 
 #[test]
 fn format_violation_bad_subnet_id() {
@@ -148,8 +139,6 @@ fn format_violation_bad_subnet_id() {
         e1154.iter().map(|d| (&d.property_path, &d.message)).collect::<Vec<_>>()
     );
 }
-
-// ── Conditional type mismatch ───────────────────────────────────────
 
 #[test]
 fn conditional_type_mismatch_with_scenario() {
@@ -166,15 +155,11 @@ fn conditional_type_mismatch_with_scenario() {
     assert!(with_scenario.is_some(), "expected condition_scenario on conditional diagnostic");
 }
 
-// ── Unique items ───────────────────────────────────────────────────
-
 #[test]
 fn unique_items_violation() {
     let diags = validate_fixture("bad/unique_items.yaml");
     assert!(has_rule(&diags, "F3002"), "expected F3002 for unknown AvailabilityZones property");
 }
-
-// ── Unknown resource type ───────────────────────────────────────────
 
 #[test]
 fn unknown_resource_type_no_crash() {
@@ -182,24 +167,18 @@ fn unknown_resource_type_no_crash() {
     assert!(has_rule(&diags, "F3002"), "expected F3002 for FakeProperty on S3 Bucket");
 }
 
-// ── Lifecycle: deprecated resource type ─────────────────────────────
-
 #[test]
 fn deprecated_resource_type_flagged() {
     let diags = validate_fixture("bad/deprecated_type.yaml");
     let _ = diags;
 }
 
-// ── Integration: generic bad template ───────────────────────────────
-
 #[test]
 fn generic_bad_template_produces_multiple_schema_violations() {
     let diags = validate_fixture("bad/generic.yaml");
-    let schema_diags: Vec<_> = diags.iter().filter(|d| d.phase == Some(diagnostics::Phase::Schema)).collect();
+    let schema_diags: Vec<_> = diags.iter().filter(|d| d.phase == Some(Phase::Schema)).collect();
     assert!(schema_diags.len() >= 3, "expected 3+ schema diagnostics, got {}", schema_diags.len());
 }
-
-// ── Integration: format validation ──────────────────────────────────
 
 #[test]
 fn format_validation_with_refs() {
@@ -212,8 +191,6 @@ fn format_validation_with_refs() {
         assert!(!d.message.contains("Ref to 'Vpc'"), "Ref to VPC resource should be format-compatible: {}", d.message);
     }
 }
-
-// ── Integration: ref type checking ──────────────────────────────────
 
 // A reference whose target resource produces the wrong destination ARN format
 // is a semantic, cross-resource concern owned by the rule engine, not the schema
@@ -237,8 +214,6 @@ fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
     );
 }
 
-// ── Integration: getatt type checking ───────────────────────────────
-
 #[test]
 fn getatt_type_mismatch_detected() {
     let diags = validate_fixture("integration/getatt-types.yaml");
@@ -253,8 +228,6 @@ fn getatt_type_mismatch_detected() {
         );
     }
 }
-
-// ── Enrich context ──────────────────────────────────────────────────
 
 #[test]
 fn enrich_context_adds_documentation_url() {
@@ -284,8 +257,6 @@ fn enrich_context_adds_allowed_values_for_enum() {
         );
     }
 }
-
-// ── Lifecycle rules ─────────────────────────────────────────────────
 
 #[test]
 fn lifecycle_e3710_shutdown_service() {
@@ -327,8 +298,6 @@ fn lifecycle_w2531_deprecated_runtime() {
     assert!(w2531.iter().any(|d| d.message.contains("nodejs16.x")));
 }
 
-// ── Structural constraints ──────────────────────────────────────────
-
 #[test]
 fn structural_f3020_dependent_excluded() {
     let diags = validate_fixture("bad/schema_structural.yaml");
@@ -364,7 +333,8 @@ fn structural_f3014_required_xor() {
 #[test]
 fn f3014_excludes_novalue_from_exclusive_count() {
     // CidrIp is set to AWS::NoValue, leaving exactly one of the mutually
-    // exclusive source properties (SourceSecurityGroupId), so no F3014.
+    // exclusive source properties (SourceSecurityGroupId), so the
+    // mutual-exclusivity check must not fire.
     let diags = validate_fixture("good/resources/properties/exclusive.yaml");
     let f3014: Vec<_> = diags
         .iter()
@@ -413,8 +383,6 @@ fn structural_f3021_dependent_required() {
     assert!(!f3021.is_empty(), "expected F3021 for ResourceId without ScalableDimension/ServiceNamespace");
 }
 
-// ── Property constraints ────────────────────────────────────────────
-
 #[test]
 fn property_f3031_pattern_violation() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
@@ -428,8 +396,8 @@ fn property_f3031_pattern_violation() {
 
 #[test]
 fn read_only_property_not_flagged() {
-    // E3040 (read-only property specified) was removed: cfn-lint defines the rule
-    // but never emits it on real templates, so firing it produced false positives.
+    // The read-only-property check was removed: it never fires on real templates
+    // but firing it produced false positives, so it must not be emitted.
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
     let e3040: Vec<_> = diags.iter().filter(|d| d.rule_id == "E3040").collect();
     assert!(e3040.is_empty(), "E3040 was removed and must not be emitted, got: {:?}", e3040);
@@ -465,21 +433,19 @@ fn property_w3041_write_only_in_output() {
     assert!(w3041[0].message.contains("Write-only") || w3041[0].message.contains("write-only"));
 }
 
-// ── Region availability ────────────────────────────────────────────
-
 #[test]
 fn region_availability_e3037() {
     let full = format!("{}/good/minimal.yaml", TEMPLATES);
     let bytes = std::fs::read(&full).unwrap();
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
-    let mut store = schema_validator::CompiledSchemaStore::new();
+    let mut store = CompiledSchemaStore::new();
     let region_json = serde_json::json!({
         "region_resource_types": {
             "us-east-1": { "AWS::S3::Bucket": true }
         }
     });
     store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
-    let diags = schema_validator::validate::validate_all_resources(&store, &model, "us-east-1");
+    let diags = validate_all_resources(&store, &model, "us-east-1");
     let f3006 = diags.iter().filter(|d| d.rule_id == "F3006").count();
     assert!(
         f3006 > 0,
@@ -487,8 +453,6 @@ fn region_availability_e3037() {
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
-
-// ── Array bounds (maxItems) ────────────────────────────────────────
 
 #[test]
 fn array_bounds_f3032_max_items() {
@@ -498,8 +462,6 @@ fn array_bounds_f3032_max_items() {
     assert!(f3032[0].message.contains("maximum"), "expected max items message: {}", f3032[0].message);
 }
 
-// ── uniqueItems ────────────────────────────────────────────────────
-
 #[test]
 fn unique_items_f3037_duplicate_roles() {
     let diags = validate_fixture("bad/schema_unique_items.yaml");
@@ -507,8 +469,6 @@ fn unique_items_f3037_duplicate_roles() {
     assert!(!f3037.is_empty(), "expected F3037 for duplicate roles in InstanceProfile");
     assert!(f3037[0].message.contains("not unique"));
 }
-
-// ── Type mismatch (array where object expected) ────────────────────
 
 #[test]
 fn type_mismatch_array_for_object() {
@@ -520,8 +480,6 @@ fn type_mismatch_array_for_object() {
     assert!(!type_diags.is_empty(), "expected F3012 for array where object expected on UserPoolTags");
 }
 
-// ── oneOf (zero matches) ───────────────────────────────────────────
-
 #[test]
 fn composition_f3018_one_of_zero_matches() {
     let diags = validate_fixture("bad/schema_composition.yaml");
@@ -531,8 +489,6 @@ fn composition_f3018_one_of_zero_matches() {
         .collect();
     assert!(!f3018.is_empty(), "expected F3018 for ImageBuilder missing both ImageName and ImageArn");
 }
-
-// ── anyOf (no match) ───────────────────────────────────────────────
 
 #[test]
 fn composition_f3017_any_of_no_match() {
@@ -544,15 +500,13 @@ fn composition_f3017_any_of_no_match() {
     assert!(!f3017.is_empty(), "expected F3017 for Volume missing all required AZ/Size/Snapshot combos");
 }
 
-// ── Extension rules (cfnGather) ────────────────────────────────────
-
 #[test]
 fn extension_cfn_gather_no_duplicate_numeric_constraint() {
     // The cfnGather extension's numeric cross-resource bounds (ESM BatchSize vs
     // FIFO-queue limit, SQS VisibilityTimeout vs Lambda Timeout) are reported by
-    // the dedicated engine rules E3705 / E3505, which match cfn-lint's IDs and
-    // locations. The schema-validator must NOT also emit a generic F3034 for
-    // them, which previously double-reported under an ID cfn-lint never uses.
+    // the dedicated cross-resource engine rules at their specific locations. The
+    // schema-validator must not also emit a generic schema-bounds diagnostic for
+    // them, which previously double-reported the same issue.
     let diags = validate_fixture("integration/cfn-gather.yaml");
     assert!(
         !diags.iter().any(|d| d.rule_id == "F3034"),

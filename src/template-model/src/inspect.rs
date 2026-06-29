@@ -92,6 +92,9 @@ fn inspect_file(path: &str) {
     if !model.transforms.is_empty() {
         println!("Transforms: {}", model.transforms.join(", "));
     }
+    if !model.raw_top_level_keys.is_empty() {
+        println!("Top-level sections (as written): {}", model.raw_top_level_keys.join(", "));
+    }
     if model.is_cdk {
         println!("CDK Template: yes");
     }
@@ -144,6 +147,14 @@ fn inspect_file(path: &str) {
                 println!("    {}", desc);
             }
         }
+        if !model.params_referenced_in_definitions.is_empty() {
+            let mut referenced: Vec<&String> = model.params_referenced_in_definitions.iter().collect();
+            referenced.sort();
+            println!(
+                "  Referenced from other parameter definitions: {}",
+                referenced.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            );
+        }
         println!();
     }
 
@@ -157,6 +168,17 @@ fn inspect_file(path: &str) {
                     println!("      {}: {}", k2, format_json_compact(v));
                 }
             }
+        }
+        if !model.find_in_map_names.is_empty() {
+            let mut referenced: Vec<&String> = model.find_in_map_names.iter().collect();
+            referenced.sort();
+            println!(
+                "  Referenced by Fn::FindInMap: {}",
+                referenced.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            );
+        }
+        if model.has_dynamic_findinmap_name {
+            println!("  ⚠ Fn::FindInMap with a non-literal map name present (unused-mapping check disabled)");
         }
         println!();
     }
@@ -205,6 +227,9 @@ fn inspect_file(path: &str) {
         let ref_params = model.conditions.referenced_params();
         if !ref_params.is_empty() {
             println!("  Condition-driving parameters: [{}]", ref_params.join(", "));
+        }
+        if !model.fn_if_conditions.is_empty() {
+            println!("  Referenced by Fn::If: [{}]", model.fn_if_conditions.join(", "));
         }
         for (cond_name, always_val) in model.conditions.tautological_equals() {
             println!("  ⚠ Tautological: {} always {}", cond_name, if always_val { "True" } else { "False" });
@@ -287,6 +312,9 @@ fn inspect_file(path: &str) {
                     println!("  │    {}: {}", key, format_resolved(val));
                 }
             }
+        }
+        if res.properties_dynamic {
+            println!("  │  Properties: <dynamic — resolved at deploy time>");
         }
 
         if !res.diagnostics.find_in_map_refs.is_empty() {
@@ -384,6 +412,16 @@ fn inspect_file(path: &str) {
         }
     }
     println!();
+
+    if !model.resolution_sources.is_empty() {
+        println!("── Resolution Sources ({}) ───────────────────────────", model.resolution_sources.len());
+        let mut sources: Vec<(&(String, String), &String)> = model.resolution_sources.iter().collect();
+        sources.sort_by_key(|(key, _)| *key);
+        for ((resource_id, path), source) in sources {
+            println!("  {} @ {} ← {}", resource_id, path, source);
+        }
+        println!();
+    }
 
     if !model.outputs.is_empty() {
         println!("── Outputs ({}) ──────────────────────────────────────", model.outputs.len());

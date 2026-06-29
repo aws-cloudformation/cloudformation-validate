@@ -1,5 +1,8 @@
 use super::EvalContext;
 use diagnostics::Diagnostic;
+use diagnostics::RelatedResource;
+use diagnostics::ResourceRef;
+use diagnostics::SourceSpan;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
@@ -886,11 +889,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // I3037: advisory for duplicate scalar items in a list that permits
-    // duplicates. A list whose schema requires uniqueItems is covered by the
-    // Fatal uniqueItems check instead, so it is excluded here. The `Command`
-    // property of run-command resources legitimately repeats values and is
-    // exempt.
+    // Advisory for duplicate scalar items in a list that permits duplicates. A
+    // list whose schema requires uniqueItems is covered by the Fatal uniqueItems
+    // check instead, so it is excluded here. The `Command` property of
+    // run-command resources legitimately repeats values and is exempt.
     if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
         for (name, res) in &m.resources {
             let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) else {
@@ -1838,12 +1840,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     );
                     let svc_span = m.resource_span(svc_name, "Properties.LoadBalancers");
-                    diag.related_resources.get_or_insert_with(Vec::new).push(diagnostics::RelatedResource {
-                        resource: Some(diagnostics::ResourceRef {
+                    diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+                        resource: Some(ResourceRef {
                             id: Some(svc_name.to_string()),
                             resource_type: m.resources.get(svc_name).map(|r| r.resource_type.clone()),
                         }),
-                        location: Some(diagnostics::SourceSpan {
+                        location: Some(SourceSpan {
                             start_line: svc_span.start_line,
                             start_column: svc_span.start_column,
                             end_line: svc_span.end_line,
@@ -2104,12 +2106,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             );
             let cluster_span = m.resource_span(cluster_name, "Properties.Engine");
-            diag.related_resources.get_or_insert_with(Vec::new).push(diagnostics::RelatedResource {
-                resource: Some(diagnostics::ResourceRef {
+            diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
+                resource: Some(ResourceRef {
                     id: Some(cluster_name.to_string()),
                     resource_type: m.resources.get(cluster_name).map(|r| r.resource_type.clone()),
                 }),
-                location: Some(diagnostics::SourceSpan {
+                location: Some(SourceSpan {
                     start_line: cluster_span.start_line,
                     start_column: cluster_span.start_column,
                     end_line: cluster_span.end_line,
@@ -3181,9 +3183,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // W3002: Properties that only work with `aws cloudformation package`
-    // The parent property (e.g. Code, Content, TemplateURL) is checked as a string.
-    // If the value is a string not starting with s3:// or https://, it warns.
+    // Warns on properties that only work with `aws cloudformation package`. The
+    // parent property (e.g. Code, Content, TemplateURL) is checked as a string;
+    // if its value is a string not starting with s3:// or https://, it warns.
     // SAM templates are excluded entirely.
     if !m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS) {
         const PACKAGE_PROPS: &[(&str, &[&str])] = &[
@@ -3232,7 +3234,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // API Gateway mixing inline definitions with external Body
     {
-        let apigw_resource_types = ["AWS::ApiGateway::Method", "AWS::ApiGateway::Stage", "AWS::ApiGateway::Deployment"];
+        let apigw_resource_types = ["AWS::ApiGateway::Method"];
         let mut rest_api_refs: HashMap<String, Vec<String>> = HashMap::new();
         for rtype in &apigw_resource_types {
             for name in m.resources_of_type(rtype) {
@@ -3459,7 +3461,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, base_path) {
                         check_bdm_virtualname_ignored(&mut out, m, name, &bdms, base_path);
                     } else {
-                        // Fall back to conditional branch traversal for E3715 only
+                        // Fall back to conditional branch traversal for the
+                        // virtual-name-ignored check only
                         let bdm_arrays = resolve_all_json(m, name, base_path);
                         for bdms_val in &bdm_arrays {
                             if let serde_json::Value::Array(bdms) = bdms_val {
@@ -3727,8 +3730,9 @@ fn render_resource_set(names: &BTreeSet<String>) -> String {
 /// needed to detect primary-identifier duplication across templates that
 /// switch the identifier on a condition (e.g. `!If [cond, "x", !Ref AWS::NoValue]`).
 /// One way a resource's primary-identifier tuple can resolve, paired with the
-/// condition assignment (`assumptions`) that produces it. Used by E3019 to test
-/// whether two resources can share an identifier in a satisfiable deployment.
+/// condition assignment (`assumptions`) that produces it. Used by the
+/// duplicate-identifier check to test whether two resources can share an
+/// identifier in a satisfiable deployment.
 struct PrimaryIdScenario {
     tuple: Vec<String>,
     assumptions: Vec<(String, bool)>,
@@ -4106,8 +4110,6 @@ fn check_dynamic_ref_spaces(
 mod tests {
     use super::*;
 
-    // ── parse_ipv4_cidr ─────────────────────────────────────────────────
-
     #[test]
     fn parse_cidr_valid() {
         let (addr, prefix) = parse_ipv4_cidr("10.0.0.0/16").unwrap();
@@ -4146,8 +4148,6 @@ mod tests {
         assert_eq!(parse_ipv4_cidr("10.0.0/16"), None, "incomplete IP should return None");
         assert_eq!(parse_ipv4_cidr(""), None, "empty string should return None");
     }
-
-    // ── is_subnet_of ────────────────────────────────────────────────────
 
     #[test]
     fn subnet_of_true() {

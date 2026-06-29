@@ -65,8 +65,6 @@ fn build_core_config(opts: ValidateConfig, detail_level: DetailLevel) -> validat
     }
 }
 
-// ── SchemaValidator ──────────────────────────────────────────────────────────
-
 #[derive(serde::Serialize, tsify::Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct WasmSchemaValidationResult {
@@ -107,8 +105,6 @@ impl WasmSchemaValidator {
         )
     }
 }
-
-// ── Engine ───────────────────────────────────────────────────────────────────
 
 macro_rules! wasm_engine {
     ($wrapper:ident, $inner:ty) => {
@@ -184,8 +180,6 @@ macro_rules! wasm_engine {
 
 wasm_engine!(WasmRegoEngine, RegoEngine);
 wasm_engine!(WasmCelEngine, CelEngine);
-
-// ── SemanticModel ────────────────────────────────────────────────────────────
 
 #[wasm_bindgen]
 pub struct WasmSemanticModel {

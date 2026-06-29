@@ -282,7 +282,6 @@ rule r {
     };
     assert_eq!(bc.block.conjunctions.len(), 2);
 
-    // Verify the Gt operator on Memory > 128
     let memory_check = match &bc.block.conjunctions[1][0] {
         GuardClauseIR::Access(ac) => ac,
         other => panic!("Expected Access, got {:?}", other),

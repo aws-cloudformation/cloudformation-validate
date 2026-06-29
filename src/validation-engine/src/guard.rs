@@ -1,4 +1,5 @@
 use crate::engine::ExternalRuleSource;
+use guard_translator::load_guard_sources_recursive;
 use std::fs;
 use std::path::Path;
 
@@ -8,7 +9,7 @@ pub fn resolve_guard_config(rule_source_paths: &[String]) -> Result<Vec<External
     for path in rule_source_paths {
         let p = Path::new(path);
         if p.is_dir() {
-            let sources = guard_translator::load_guard_sources_recursive(path)?;
+            let sources = load_guard_sources_recursive(path)?;
             for (file_path, file_content) in sources {
                 entries.push(ExternalRuleSource { name: file_path, content: file_content });
             }

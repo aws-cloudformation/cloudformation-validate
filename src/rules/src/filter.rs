@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
-/// Numeric range filter for rule IDs sharing a common prefix (e.g. E3000–E3099).
+/// Numeric range filter for rule IDs sharing a common letter prefix, matching an
+/// inclusive span of the trailing numbers.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]

@@ -103,8 +103,6 @@ struct RegionResourceTypes {
     region_resource_types: HashMap<String, HashMap<String, bool>>,
 }
 
-// --- Measurement types ---
-
 #[derive(Clone)]
 struct FormatCandidate {
     compressed_bytes: usize,
@@ -123,8 +121,6 @@ struct FileReport {
     lz4_json: FormatCandidate,
     lz4_postcard: Option<FormatCandidate>,
 }
-
-// --- Compression helpers ---
 
 fn minify_json(path: &Path) -> Vec<u8> {
     let raw = std::fs::read_to_string(path).expect("read JSON file");
@@ -155,8 +151,6 @@ fn decompress_lz4(data: &[u8]) -> Vec<u8> {
     lz4_flex::decompress_size_prepended(data).expect("lz4 decompress")
 }
 
-// --- Timing helpers ---
-
 fn measure_cold_start_us(mut operation: impl FnMut()) -> f64 {
     let start = Instant::now();
     operation();
@@ -177,8 +171,6 @@ fn measure_warm_percentiles_us(iterations: usize, mut operation: impl FnMut()) -
     let p99 = latencies_us[(iterations as f64 * 0.99) as usize];
     (p50, p99)
 }
-
-// --- Benchmark routines ---
 
 fn bench_json_decompress(mut decompress: impl FnMut(&[u8]) -> Vec<u8>, compressed: &[u8]) -> (f64, f64, f64) {
     let (p50, p99) = measure_warm_percentiles_us(WARM_ITERATIONS, || {
@@ -261,8 +253,6 @@ fn bench_postcard_deserialize(
         _ => unreachable!("no postcard type for {name}"),
     }
 }
-
-// --- Display formatting ---
 
 fn format_bytes(bytes: usize) -> String {
     if bytes >= 1_048_576 {
@@ -402,7 +392,6 @@ fn main() {
         eprintln!(" done");
     }
 
-    // --- Generate markdown report ---
     let mut report = String::new();
     report.push_str("# Embedding Format Benchmark — Decision Report\n\n");
     report.push_str(&format!(
@@ -552,8 +541,6 @@ fn main() {
             format_optional(&file_report.lz4_postcard, &format_percentiles),
         ));
     }
-
-    // --- Summary and guidance ---
 
     let zstd_size_ratio = total_zstd_bytes as f64 / total_json_bytes as f64;
     let lz4_size_ratio = total_lz4_bytes as f64 / total_json_bytes as f64;

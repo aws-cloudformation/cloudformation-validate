@@ -1,6 +1,7 @@
 use crate::consts::*;
 use crate::ir::*;
 use base64::Engine as _;
+use diagnostics::JsonValue;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -10,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 pub enum ResolvedValue {
     Concrete {
-        value: diagnostics::JsonValue,
+        value: JsonValue,
     },
     #[cfg_attr(feature = "uniffi-bindings", uniffi(name = "ListValue"))]
     List {
@@ -95,7 +96,7 @@ pub(crate) struct Resolver<'a> {
     mappings: &'a MappingData,
     resource_ids: HashSet<String>,
     pub(crate) edges: Vec<ResolverEdge>,
-    pub(crate) diagnostics: Vec<diagnostics::Diagnostic>,
+    pub(crate) diagnostics: Vec<Diagnostic>,
     pub(crate) find_in_map_refs: HashMap<String, Vec<String>>,
     pub(crate) simple_subs: HashMap<String, Vec<(String, String)>>,
     pub(crate) redundant_subs: HashMap<String, Vec<String>>,
@@ -647,9 +648,9 @@ impl<'a> Resolver<'a> {
                 for v in &resolved {
                     self.collect_extra_condition_refs(v);
                 }
-                let all_concrete_bool = resolved.iter().all(|v| {
-                    matches!(v, ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Bool(_)) })
-                });
+                let all_concrete_bool = resolved
+                    .iter()
+                    .all(|v| matches!(v, ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Bool(_)) }));
                 if all_concrete_bool {
                     let all_true = resolved.iter().all(|v| match v {
                         ResolvedValue::Concrete { value: bv } => bv.as_bool().unwrap_or(false),
@@ -665,9 +666,9 @@ impl<'a> Resolver<'a> {
                 for v in &resolved {
                     self.collect_extra_condition_refs(v);
                 }
-                let all_concrete_bool = resolved.iter().all(|v| {
-                    matches!(v, ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Bool(_)) })
-                });
+                let all_concrete_bool = resolved
+                    .iter()
+                    .all(|v| matches!(v, ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Bool(_)) }));
                 if all_concrete_bool {
                     let any_true = resolved.iter().any(|v| match v {
                         ResolvedValue::Concrete { value: bv } => bv.as_bool().unwrap_or(false),
@@ -682,7 +683,7 @@ impl<'a> Resolver<'a> {
                 let resolved = self.resolve_node(*child);
                 self.collect_extra_condition_refs(&resolved);
                 match &resolved {
-                    ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Bool(b)) } => {
+                    ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Bool(b)) } => {
                         ResolvedValue::Concrete { value: serde_json::Value::Bool(!b).into() }
                     }
                     _ => ResolvedValue::Dynamic { reason: "condition expression".into() },
@@ -728,10 +729,10 @@ impl<'a> Resolver<'a> {
             IntrinsicFn::Length(val_ref) => {
                 let val = self.resolve_node(*val_ref);
                 match &val {
-                    ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Array(arr)) } => {
+                    ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Array(arr)) } => {
                         ResolvedValue::Concrete { value: serde_json::json!(arr.len()).into() }
                     }
-                    ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Object(map)) } => {
+                    ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Object(map)) } => {
                         ResolvedValue::Concrete { value: serde_json::json!(map.len()).into() }
                     }
                     ResolvedValue::List { items } => {
@@ -1595,10 +1596,10 @@ fn base64_resolved(val: &ResolvedValue) -> ResolvedValue {
 
 fn length_resolved(val: &ResolvedValue) -> ResolvedValue {
     match val {
-        ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Array(arr)) } => {
+        ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Array(arr)) } => {
             ResolvedValue::Concrete { value: serde_json::json!(arr.len()).into() }
         }
-        ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::Object(map)) } => {
+        ResolvedValue::Concrete { value: JsonValue(serde_json::Value::Object(map)) } => {
             ResolvedValue::Concrete { value: serde_json::json!(map.len()).into() }
         }
         ResolvedValue::Enum { variants } => {
@@ -1698,7 +1699,7 @@ fn node_matches_param_type(node: &Node, expected: &str) -> bool {
     }
 }
 
-pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, Vec<diagnostics::Diagnostic>) {
+pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, Vec<Diagnostic>) {
     let mut params = HashMap::new();
     let mut diags = Vec::new();
     if ir.parameters == NULL_REF {
@@ -1708,16 +1709,15 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
         return (params, diags);
     };
 
-    let e2001 =
-        |msg: String, param_name: &str, prop: Option<&str>, span: diagnostics::SourceSpan| -> diagnostics::Diagnostic {
-            let path = match prop {
-                Some(p) => format!("Parameters.{}.{}", param_name, p),
-                None => format!("Parameters.{}", param_name),
-            };
-            let mut d = crate::make_parse_diagnostic("E2001", msg, span);
-            d.property_path = Some(path);
-            d
+    let e2001 = |msg: String, param_name: &str, prop: Option<&str>, span: SourceSpan| -> Diagnostic {
+        let path = match prop {
+            Some(p) => format!("Parameters.{}.{}", param_name, p),
+            None => format!("Parameters.{}", param_name),
         };
+        let mut d = crate::make_parse_diagnostic("E2001", msg, span);
+        d.property_path = Some(path);
+        d
+    };
 
     const VALID_KEYS: &[&str] = &[
         KEY_ALLOWED_PATTERN,
@@ -1749,18 +1749,15 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
             continue;
         };
 
-        // Check for required 'Type' property
         let has_type = param_map.iter().any(|(k, _)| k == KEY_TYPE);
         if !has_type {
             diags.push(e2001(format!("Parameter '{}': 'Type' is a required property", name), name, None, param_span));
         }
 
-        // Validate each property
         for (key, val_ref) in param_map {
             let val_span = ir.arena.span(*val_ref);
             let node = ir.arena.node(*val_ref);
 
-            // Check for unknown properties
             if !VALID_KEYS.contains(&key.as_str()) {
                 diags.push(e2001(
                     format!("Parameter '{}': '{}' is not one of {:?}", name, key, VALID_KEYS),
@@ -1771,7 +1768,6 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                 continue;
             }
 
-            // Type-check each property value
             match key.as_str() {
                 KEY_TYPE => {
                     if matches!(node, Node::Null) {
@@ -1872,7 +1868,6 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
             }
         }
 
-        // Extract ParameterInfo (existing logic)
         let param_type = param_map
             .iter()
             .find(|(k, _)| k == KEY_TYPE)
@@ -1977,7 +1972,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
     (params, diags)
 }
 
-pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<diagnostics::Diagnostic>) {
+pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<Diagnostic>) {
     let mut mappings = MappingData::new();
     let mut diagnostics = Vec::new();
     if ir.mappings == NULL_REF {
@@ -2122,7 +2117,7 @@ mod tests {
         let v_ref = ir.arena.map_get(props, "V").unwrap();
         let result = resolver.resolve_node(v_ref);
         match result {
-            ResolvedValue::Concrete { value: diagnostics::JsonValue(serde_json::Value::String(s)) } => {
+            ResolvedValue::Concrete { value: JsonValue(serde_json::Value::String(s)) } => {
                 assert_eq!(s, DEFAULT_REGION);
             }
             other => panic!("Expected Concrete(\"us-east-1\"), got {:?}", other),
@@ -2486,8 +2481,6 @@ mod tests {
         }
     }
 
-    // --- Task 5: FindInMap with Enum second key ---
-
     #[test]
     fn findinmap_concrete_first_key_enum_second_key_produces_enum() {
         let input = r#"{
@@ -2558,8 +2551,6 @@ mod tests {
         }
     }
 
-    // --- Task 6: Fn::Select with ResolvedValue::List ---
-
     #[test]
     fn select_from_list_with_mixed_items_returns_element() {
         // When the list contains a Ref (non-concrete), it becomes a List variant.
@@ -2596,8 +2587,6 @@ mod tests {
             other => panic!("Expected Dynamic out of bounds, got {:?}", other),
         }
     }
-
-    // --- Task 7: Fn::Equals/And/Or/Not resolution ---
 
     #[test]
     fn equals_two_concrete_strings_returns_true() {
@@ -2736,8 +2725,6 @@ mod tests {
         }
     }
 
-    // --- Task 8: Fn::Sub with mixed Enum + Reference ---
-
     #[test]
     fn sub_enum_plus_reference_produces_enum_with_dynamic_variants() {
         let input = r#"{
@@ -2765,8 +2752,6 @@ mod tests {
         }
     }
 
-    // --- Task 9: Fn::Join partial resolution ---
-
     #[test]
     fn join_list_with_mixed_concrete_and_reference_produces_partial_dynamic() {
         let input = r#"{
@@ -2785,8 +2770,6 @@ mod tests {
             other => panic!("Expected Dynamic with Join: prefix, got {:?}", other),
         }
     }
-
-    // --- Task 10: GetAZs with Enum, Cidr with Enum ---
 
     #[test]
     fn getazs_enum_region_produces_enum_of_az_arrays() {
@@ -2833,8 +2816,6 @@ mod tests {
             other => panic!("Expected Enum of CIDR arrays, got {:?}", other),
         }
     }
-
-    // --- Task 11: ToJsonString and Length propagation ---
 
     #[test]
     fn to_json_string_enum_produces_enum_of_strings() {
@@ -2889,8 +2870,6 @@ mod tests {
             other => panic!("Expected Concrete(3), got {:?}", other),
         }
     }
-
-    // --- Task 12: ForEach body evaluation ---
 
     #[test]
     fn foreach_concrete_collection_evaluates_body() {

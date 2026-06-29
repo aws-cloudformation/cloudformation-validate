@@ -3,14 +3,13 @@ mod tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine};
+    use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
     static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -20,7 +19,7 @@ mod tests {
         let full = format!("../resources/templates/{}", path);
         let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report = validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -72,8 +71,8 @@ Resources:
       BucketName: !Ref NonExistent
 "#,
         );
-        // A Ref to a completely unknown target is recorded as an invalid ref
-        // and surfaced as F1020 ("Ref/GetAtt target must exist").
+        // A Ref to a completely unknown target is recorded as an invalid ref and
+        // surfaced as a "Ref/GetAtt target must exist" diagnostic.
         assert!(ids.contains(&"F1020".to_string()), "Expected F1020 for Ref to unknown target, got: {:?}", ids);
     }
 
@@ -102,7 +101,6 @@ Resources:
               SSEAlgorithm: AES256
 "#,
         );
-        // Well-formed template — no errors expected
         assert!(!ids.iter().any(|id| id.starts_with("F0")), "No structure (fatal) errors expected, got: {:?}", ids);
     }
 
@@ -140,14 +138,13 @@ mod nested_schema_tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig};
+    use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
     static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn diags(template: &str) -> Vec<(String, String)> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV2, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV2, template.as_bytes(), ValidateConfig::default()).unwrap();
         report.diagnostics.iter().map(|d| (d.rule_id.clone(), d.message.clone())).collect()
     }
 
@@ -254,17 +251,14 @@ Resources:
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Guard rule integration tests
-// ══════════════════════════════════════════════════════════════
-
 #[cfg(test)]
 mod guard_tests {
     use cel_engine::CelEngine;
     use rules::{FilterConfig, RuleFilterConfig, Severity};
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
+    use validation_engine::guard::resolve_guard_config;
+    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
     static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
@@ -288,14 +282,12 @@ rule s3_versioning_check {
         };
         let engine = CelEngine::new(config).unwrap();
         let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-        let report = validation_engine::validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
-        // Verify the rule is registered with correct metadata
+        let report = validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
         let rules = engine.list_rules();
         let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check");
         assert!(guard_rule.is_some(), "Guard rule should appear in list_rules");
         let guard_rule = guard_rule.unwrap();
         assert_eq!(guard_rule.category.as_deref(), Some("guard:s3_versioning"));
-        // Verify any guard diagnostics have correct category/severity
         for d in report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check") {
             assert_eq!(d.severity, Severity::Error);
             assert_eq!(d.category.as_deref(), Some("guard:s3_versioning"));
@@ -304,9 +296,7 @@ rule s3_versioning_check {
 
     #[test]
     fn guard_rule_pack_loads_from_directory() {
-        let guard_rules =
-            validation_engine::guard::resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()])
-                .unwrap_or_default();
+        let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()]).unwrap_or_default();
         let config = EngineConfig { guard_rules, ..Default::default() };
         let engine = CelEngine::new(config);
         // Pack loading may fail if translated CEL has issues from wildcard let assignments.
@@ -337,7 +327,7 @@ rule s3_versioning_check {
             ),
             ..Default::default()
         };
-        let report = validation_engine::validate_bytes(&engine, &SV, template, validate_config).unwrap();
+        let report = validate_bytes(&engine, &SV, template, validate_config).unwrap();
         assert!(
             !report.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
             "Guard rule should be filtered out by category exclusion"
@@ -345,10 +335,7 @@ rule s3_versioning_check {
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Cross-engine consistency: list_rules metadata sync
-// Note: Full cross-engine tests live in cfn-validate which has both engines.
-// ══════════════════════════════════════════════════════════════
+// Full cross-engine parity tests live in cfn-validate, which has both engines available.
 
 #[cfg(test)]
 mod consistency_tests {
@@ -361,7 +348,6 @@ mod consistency_tests {
         let rules = engine.list_rules();
         let categories: std::collections::HashSet<&str> =
             rules.iter().map(|r| r.category.as_deref().unwrap_or("")).collect();
-        // Verify all expected categories are present
         for expected in [
             "Structure",
             "Intrinsic Function",
@@ -378,23 +364,18 @@ mod consistency_tests {
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Integration tests: rule category coverage via resources
-// ══════════════════════════════════════════════════════════════
-
 #[cfg(test)]
 mod rule_category_tests {
     use cel_engine::CelEngine;
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
-    use validation_engine::{EngineConfig, ValidateConfig};
+    use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
     static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report =
-            validation_engine::validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, template.as_bytes(), ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -404,7 +385,7 @@ mod rule_category_tests {
         let full = format!("../resources/templates/{}", path);
         let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("Failed to read {}: {}", full, e));
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
-        let report = validation_engine::validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
+        let report = validate_bytes(&engine, &SV, &bytes, ValidateConfig::default()).unwrap();
         let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
         ids.sort();
         ids
@@ -442,9 +423,9 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_ref() {
         let ids = validate_file("bad/refs.yaml");
-        // Refs to unknown targets are recorded as invalid refs and surfaced as
-        // F1020. Fn::Sub variables resolve through the same path but are not
-        // recorded as invalid refs, so they do not trigger F1020 here.
+        // Refs to unknown targets are recorded as invalid refs and surfaced as the
+        // invalid-reference diagnostic. Fn::Sub variables resolve through the same
+        // path but are not recorded as invalid refs, so they do not trigger it here.
         assert!(has_rule(&ids, "F1020"), "Expected F1020 for refs to unknown targets, got: {:?}", ids);
     }
 
@@ -457,8 +438,9 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_select() {
         let ids = validate_file("bad/functions_select.yaml");
-        // Parser no longer emits F1101 for malformed Select — it falls through
-        // to a plain map node. W1102 fires for non-integer index in valid 2-element Select.
+        // The parser no longer emits a structural error for a malformed Select —
+        // it falls through to a plain map node. A type warning fires instead for a
+        // non-integer index in a valid 2-element Select.
         let has_select_warning = ids.iter().any(|id| id == "W1102");
         assert!(has_select_warning, "Expected W1102 Select type warning, got: {:?}", ids);
     }
@@ -488,8 +470,6 @@ mod rule_category_tests {
         assert!(has_rule(&ids, "F3004"), "Expected E3004 for DependsOn circular, got: {:?}", ids);
     }
 
-    // ── Best practices rules ────────────────────────────────────────────
-
     #[test]
     fn best_practices_deletion_policy() {
         let ids = validate_file("bad/resources_deletionpolicy.yaml");
@@ -516,8 +496,6 @@ mod rule_category_tests {
         let ids = validate_file("good/deletion_policies.yaml");
         assert!(!ids.iter().any(|id| id.starts_with("E") || id.starts_with("F")), "No errors expected, got: {:?}", ids);
     }
-
-    // ── Resource-specific rules ─────────────────────────────────────────
 
     #[test]
     fn resources_fargate_bad_cpu_memory() {
@@ -555,8 +533,6 @@ mod rule_category_tests {
         assert!(!has_rule(&ids, "E3042"), "No E3042 expected for valid Fargate, got: {:?}", ids);
     }
 
-    // ── Condition rules ─────────────────────────────────────────────────
-
     #[test]
     fn conditions_undefined_condition() {
         let ids = validate_file("bad/undefined_condition.yaml");
@@ -593,8 +569,6 @@ mod rule_category_tests {
         let ids = validate_file("bad/unique_items.yaml");
         assert!(has_rule(&ids, "W9007"), "Expected unique items error, got: {:?}", ids);
     }
-
-    // ── Cross-category: good templates produce no errors ────────────────
 
     #[test]
     fn good_generic_no_errors() {

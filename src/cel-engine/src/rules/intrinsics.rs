@@ -1,5 +1,7 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use diagnostics::Phase;
+use rules::{Category, Severity};
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::consts::{
@@ -14,9 +16,9 @@ use template_model::{PSEUDO_PARAMETERS, SemanticModel};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(rules::Category::Intrinsic, eval_intrinsics);
-    reg.add(rules::Category::Intrinsic, eval_intrinsic_params);
-    reg.add(rules::Category::Intrinsic, eval_dynamic_references);
+    reg.add(Category::Intrinsic, eval_intrinsics);
+    reg.add(Category::Intrinsic, eval_intrinsic_params);
+    reg.add(Category::Intrinsic, eval_dynamic_references);
 }
 
 fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -47,10 +49,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Suppress ref validation when the template has parse errors — the model
     // is incomplete and refs to unparsed sections would be false positives.
-    let has_parse_errors = m
-        .diagnostics
-        .iter()
-        .any(|d| d.severity == rules::Severity::Fatal && d.phase == Some(diagnostics::Phase::Parse));
+    let has_parse_errors = m.diagnostics.iter().any(|d| d.severity == Severity::Fatal && d.phase == Some(Phase::Parse));
 
     // Load GetAtt attribute data
     let getatt_attrs = &ctx.cached_data.getatt_attrs;
@@ -106,7 +105,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             && rtype != "AWS::CloudFormation::Stack"
                             && rtype != "AWS::CloudFormation::Macro"
                         {
-                            // E9003 (return-type mismatch) is intentionally not emitted here:
+                            // The return-type-mismatch check is intentionally not emitted here:
                             // CloudFormation auto-converts non-string GetAtt return values to
                             // strings when the destination is typed as string.
                             out.push(make_resource_diagnostic(
@@ -308,7 +307,6 @@ fn eval_intrinsic_params(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        // Scan properties for intrinsic function validation
         scan_intrinsic_params(&mut out, m, name, res);
     }
 
@@ -468,10 +466,7 @@ fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     // Scan resources for dynamic references in non-Properties locations
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, res) in resources {
-            // Check DependsOn, Condition, Metadata for dynamic references
             check_dynamic_ref_in_attributes(&mut out, m, name, res);
-            // Check Properties for Secrets Manager cross-account ARN
-            check_secrets_manager_arn(&mut out, m, name, res);
         }
     }
 
@@ -527,7 +522,6 @@ fn check_dynamic_ref_in_attributes(
     resource_id: &str,
     res: &serde_json::Value,
 ) {
-    // Check DependsOn
     if let Some(deps) = res.get(FIELD_DEPENDS_ON).and_then(|d| d.as_array()) {
         for dep in deps {
             if let Some(s) = dep.as_str() {
@@ -643,48 +637,6 @@ fn scan_for_dynamic_refs_in_section(
         serde_json::Value::Object(obj) => {
             for (_, v) in obj {
                 scan_for_dynamic_refs_in_section(out, m, v, section, _sm_rule, _ssm_rule);
-            }
-        }
-        _ => {}
-    }
-}
-
-fn check_secrets_manager_arn(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    resource_id: &str,
-    res: &serde_json::Value,
-) {
-    if let Some(props) = res.get(FIELD_PROPERTIES).and_then(|p| p.as_object()) {
-        for (_, val) in props {
-            scan_for_sm_cross_account(out, m, resource_id, val);
-        }
-    }
-}
-
-fn scan_for_sm_cross_account(
-    _out: &mut Vec<Diagnostic>,
-    _m: &Arc<SemanticModel>,
-    _resource_id: &str,
-    val: &serde_json::Value,
-) {
-    match val {
-        serde_json::Value::String(s) => {
-            if s.contains("{{resolve:secretsmanager:") && !s.contains("{{resolve:secretsmanager:arn:") {
-                // Secrets Manager should use full ARN for cross-account
-                // Only warn if the reference looks like it could be cross-account (has a colon-separated secret name)
-                // The pattern {{resolve:secretsmanager:SECRET_NAME:...}} without arn: prefix
-                // is fine for same-account, but cross-account requires full ARN
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            for item in arr {
-                scan_for_sm_cross_account(_out, _m, _resource_id, item);
-            }
-        }
-        serde_json::Value::Object(obj) => {
-            for (_, v) in obj {
-                scan_for_sm_cross_account(_out, _m, _resource_id, v);
             }
         }
         _ => {}

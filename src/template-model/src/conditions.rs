@@ -536,7 +536,6 @@ impl ConditionModel {
                 return true;
             }
 
-            // Increment indices
             let mut carry = true;
             for i in (0..indices.len()).rev() {
                 if carry {
@@ -1036,6 +1035,7 @@ mod tests {
     use crate::model::PseudoParameterOverrides;
     use crate::parser;
     use crate::resolver::{extract_mappings, extract_parameters};
+    use std::fmt::Write;
 
     fn build_condition_model(input: &str) -> ConditionModel {
         let ir = parser::parse(input.as_bytes()).unwrap();
@@ -1810,7 +1810,6 @@ Resources:
     /// depends on the whole chain, so deciding `Contra` forces the solver to
     /// reason over every condition in the chain.
     fn chain_with_contradiction(chain_len: usize) -> String {
-        use std::fmt::Write;
         let mut s = String::from(
             "Parameters:\n  P0:\n    Type: String\n    AllowedValues: [yes, no]\n  \
              P1:\n    Type: String\n    AllowedValues: [yes, no]\n\
@@ -1886,7 +1885,6 @@ Resources:
     /// base — so a query over `Wide` has a dependency closure spanning all of
     /// the parameters.
     fn wide_parameter_closure(param_count: usize) -> String {
-        use std::fmt::Write;
         let mut s = String::from("Parameters:\n");
         for i in 0..param_count {
             let _ = write!(s, "  P{i:02}:\n    Type: String\n    AllowedValues: [yes, no]\n");
