@@ -17,7 +17,7 @@ pub struct Builder {
     pub arena: Arena,
     pub global_index: GlobalIndex,
     pub span_index: SourceSpanIndex,
-    pub diagnostics: Vec<diagnostics::Diagnostic>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
 impl Builder {

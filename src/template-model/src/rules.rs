@@ -262,7 +262,7 @@ fn rule_diag(rule_id: &str, message: String) -> Diagnostic {
 mod tests {
     use super::*;
     use diagnostics::UNKNOWN_SPAN;
-    use rules_crate::Severity;
+    use rules::Severity;
     use serde_json::json;
 
     #[test]

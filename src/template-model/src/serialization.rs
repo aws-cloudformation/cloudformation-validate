@@ -4,7 +4,7 @@ use crate::model::{ResolvedOutput, ResolvedResource, SemanticModel, TemplateRule
 use crate::resolved_value::collect_condition_refs_from_resolved;
 use crate::resolver::{MapEntry, RefKind, ResolvedValue};
 use diagnostics::{JsonValue, Phase};
-use rules_crate::Severity;
+use rules::Severity;
 use std::collections::HashMap;
 
 impl SemanticModel {
