@@ -1,0 +1,20 @@
+{
+  "Resources": {
+    "PromAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": "PromQLAlarm",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "EvaluationCriteria": {
+          "PromQLCriteria": {
+            "Query": "up{job=\"my-service\"}",
+            "PendingPeriod": 60,
+            "RecoveryPeriod": 60
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "ClusterEB0386A7": {
+      "Type": "AWS::EKS::Cluster",
+      "Properties": {
+        "RoleArn": "arn:aws:iam::123456789012:role/eks-cluster-role",
+        "ResourcesVpcConfig": {
+          "SubnetIds": ["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"]
+        }
+      }
+    },
+    "ClusterKubectlProviderHandler2E05C68A": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile": "def handler(event, context): return {}"
+        },
+        "Handler": "index.handler",
+        "Role": "arn:aws:iam::123456789012:role/lambda-role",
+        "Runtime": "python3.12",
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "ClusterEB0386A7",
+                "ClusterSecurityGroupId"
+              ]
+            }
+          ],
+          "SubnetIds": ["subnet-0123456789abcdef0"]
+        }
+      }
+    }
+  }
+}

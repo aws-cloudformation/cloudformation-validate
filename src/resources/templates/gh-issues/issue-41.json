@@ -1,0 +1,25 @@
+{
+  "Resources": {
+    "MyFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "my-fn",
+        "Runtime": "nodejs20.x",
+        "Handler": "index.handler",
+        "Code": { "ZipFile": "exports.handler = async () => {};" },
+        "Role": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              { "Ref": "AWS::Partition" },
+              ":iam::",
+              { "Ref": "AWS::AccountId" },
+              ":role/my-custom-role-name"
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

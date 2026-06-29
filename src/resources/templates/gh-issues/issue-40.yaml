@@ -1,0 +1,32 @@
+Resources:
+  EksCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: my-cluster
+      RoleArn: arn:aws:iam::123456789012:role/eks-role
+      ResourcesVpcConfig:
+        SubnetIds:
+          - subnet-0123456789abcdef0
+
+  # Case 1: concrete bad value (sg-1) in a SecurityGroupId-format property.
+  # This is an inspectable literal, so the format check (E1150) fires.
+  DaxConcrete:
+    Type: AWS::DAX::Cluster
+    Properties:
+      IAMRoleARN: arn:aws:iam::123456789012:role/dax
+      NodeType: dax.r4.large
+      ReplicationFactor: 1
+      SecurityGroupIds:
+        - sg-1
+
+  # Case 2: Ref to a non-SecurityGroup resource (EKS Cluster) used where a SG id
+  # is expected. This is a deploy-time value, so E1150 does NOT fire here; the
+  # deploy-time-type concern lives under the separate E1041/E1040 rules.
+  DaxRef:
+    Type: AWS::DAX::Cluster
+    Properties:
+      IAMRoleARN: arn:aws:iam::123456789012:role/dax
+      NodeType: dax.r4.large
+      ReplicationFactor: 1
+      SecurityGroupIds:
+        - !Ref EksCluster

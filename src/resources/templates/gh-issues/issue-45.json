@@ -1,0 +1,28 @@
+{
+  "Resources": {
+    "interfaceVpcEndpoint89C99945": {
+      "Type": "AWS::EC2::VPCEndpoint",
+      "Properties": {
+        "VpcEndpointType": "Interface",
+        "ServiceName": "com.amazonaws.us-east-1.ec2",
+        "VpcId": "vpc-12345678"
+      }
+    }
+  },
+  "Outputs": {
+    "ExportsOutputFnGetAttinterfaceVpcEndpoint89C99945DnsEntriesB1872F7A": {
+      "Value": {
+        "Fn::Join": [
+          "||",
+          {
+            "Fn::GetAtt": [
+              "interfaceVpcEndpoint89C99945",
+              "DnsEntries"
+            ]
+          }
+        ]
+      },
+      "Export": { "Name": "Stack1:ExportsOutputFnGetAttinterfaceVpcEndpoint89C99945DnsEntriesB1872F7A" }
+    }
+  }
+}

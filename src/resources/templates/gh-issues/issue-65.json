@@ -1,0 +1,25 @@
+{
+  "Resources": {
+    "MyLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "my-fn",
+        "Runtime": "nodejs18.x",
+        "Handler": "index.handler",
+        "Role": "arn:aws:iam::123456789012:role/lambda-role",
+        "Code": {
+          "ZipFile": "exports.handler = async () => {};"
+        }
+      }
+    },
+    "S3Permission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": { "Ref": "MyLambda" },
+        "Principal": "s3.amazonaws.com",
+        "SourceAccount": { "Ref": "AWS::AccountId" }
+      }
+    }
+  }
+}

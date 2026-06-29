@@ -1,0 +1,9 @@
+Resources:
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "prefix-{{resolve:ssm:/my/schedule}}"
+      State: ENABLED
+      Targets:
+        - Arn: "arn:aws:lambda:us-east-1:123456789012:function:my-func"
+          Id: "target1"

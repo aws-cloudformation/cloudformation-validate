@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Profile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - arn:aws:iam::012345678901:role/SameRole
+        - arn:aws:iam::012345678901:role/SameRole
