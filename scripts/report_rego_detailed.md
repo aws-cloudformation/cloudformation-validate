@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-06-29 11:45:06  
+> Generated: 2026-06-29 16:20:06  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **450**  
+> Templates compared: **474**  
 
 ## Terminology
 
@@ -22,54 +22,54 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1894 |
-| False Positives (engine bugs) | 0 |
-| Engine Extra (correct, cfn-lint gap) | 5498 |
-| False Negatives (engine misses) | 332 |
-| Precision | 100.00% |
-| Recall | 85.09% |
-| F1 | 91.94% |
-| Unique rules detected | 202 |
-| Perfect templates | 343/450 |
+| True Positives | 1944 |
+| False Positives (engine bugs) | 9 |
+| Engine Extra (correct, cfn-lint gap) | 5630 |
+| False Negatives (engine misses) | 342 |
+| Precision | 99.54% |
+| Recall | 85.04% |
+| F1 | 91.72% |
+| Unique rules detected | 204 |
+| Perfect templates | 361/474 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 390 | 0 | 63 | 108 | 100.00% | 78.31% |
-| Error | 323 | 0 | 3 | 155 | 100.00% | 67.57% |
-| Warning | 720 | 0 | 357 | 58 | 100.00% | 92.54% |
-| Info | 461 | 0 | 5075 | 11 | 100.00% | 97.67% |
+| Fatal | 402 | 7 | 65 | 113 | 98.29% | 78.06% |
+| Error | 331 | 1 | 3 | 156 | 99.70% | 67.97% |
+| Warning | 732 | 0 | 369 | 58 | 100.00% | 92.66% |
+| Info | 479 | 1 | 5193 | 15 | 99.79% | 96.96% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 19880.9742 ms |
-| Throughput | 113.93 validations/sec |
-| Templates | 453 ok, 8 failed |
+| Total wall time | 20454.9250 ms |
+| Throughput | 117.82 validations/sec |
+| Templates | 482 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 64.7253 ms |
-| Engine init (max) | 65.0265 ms |
-| Schema init (p99) | 77.5841 ms |
-| Schema init (max) | 79.0549 ms |
+| Engine init (p99) | 66.2733 ms |
+| Engine init (max) | 66.6075 ms |
+| Schema init (p99) | 58.7142 ms |
+| Schema init (max) | 59.4575 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.2081 | 0.0462 | 0.6911 | 0.8979 | 1.6244 | 2.9032 |
-| Schema Validate | 0.0000 | 2.5285 | 0.5654 | 6.5639 | 10.4734 | 24.5581 | 55.4039 |
-| Rule Evaluation | 0.9569 | 5.3746 | 2.3219 | 13.1001 | 18.9923 | 32.5913 | 94.5026 |
-| Diagnostic Finalize | 0.0003 | 0.0282 | 0.0045 | 0.0878 | 0.1319 | 0.3250 | 0.6300 |
-| Engine Internal | 0.9665 | 8.1904 | 3.1545 | 21.0341 | 32.1429 | 56.5630 | 119.0893 |
-| Wall Clock | 0.9666 | 8.1908 | 3.1548 | 21.0344 | 32.1438 | 56.5639 | 119.0898 |
+| Model Build | 0.0018 | 0.1956 | 0.0435 | 0.6140 | 0.8877 | 1.5597 | 2.7114 |
+| Schema Validate | 0.0000 | 2.4058 | 0.5643 | 6.4078 | 10.0233 | 23.3449 | 55.0399 |
+| Rule Evaluation | 0.9765 | 5.0851 | 2.1830 | 12.2517 | 18.5413 | 31.2267 | 95.3281 |
+| Diagnostic Finalize | 0.0003 | 0.0260 | 0.0039 | 0.0798 | 0.1245 | 0.3016 | 0.5670 |
+| Engine Internal | 0.9811 | 7.7683 | 3.0364 | 19.2714 | 30.5501 | 55.2177 | 117.3556 |
+| Wall Clock | 0.9813 | 7.7686 | 3.0367 | 19.2719 | 30.5505 | 55.2187 | 117.3565 |
 
-## False Negatives — 332 missed findings across 80 rules
+## False Negatives — 342 missed findings across 82 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
-### F3003 — 31 missed — Required Resource properties are missing
+### F3003 — 36 missed — Required Resource properties are missing
 
 - **F3003** (cfn-lint: E3003) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1` L46-48 in `bad_core_conditions_yaml`
   > 'DeviceName' is a required property
@@ -111,6 +111,16 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'Groups' is a required property
 - **F3003** (cfn-lint: E3003) `WildcardPolicy` → `Properties` L14 in `bad_security_issues_yaml`
   > 'Roles' is a required property
+- **F3003** (cfn-lint: E3003) `Resource` → `Properties` L3 in `gh-issues_issue-61_json`
+  > 'AvailabilityZone' is a required property
+- **F3003** (cfn-lint: E3003) `Resource` → `Properties` L3 in `gh-issues_issue-61_json`
+  > 'Size' is a required property
+- **F3003** (cfn-lint: E3003) `Resource` → `Properties` L3 in `gh-issues_issue-61_json`
+  > 'SnapshotId' is a required property
+- **F3003** (cfn-lint: E3003) `Resource` → `Properties` L3 in `gh-issues_issue-61_json`
+  > 'AvailabilityZoneId' is a required property
+- **F3003** (cfn-lint: E3003) `Resource` → `Properties` L3 in `gh-issues_issue-61_json`
+  > 'SourceVolumeId' is a required property
 - **F3003** (cfn-lint: E3003) `WithGetAtt` → `Properties` L35 in `good_both_forms_yaml`
   > 'ServiceToken' is a required property
 - **F3003** (cfn-lint: E3003) `WithJoin` → `Properties` L45 in `good_both_forms_yaml`
@@ -657,6 +667,17 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3031** (cfn-lint: E3031) `TestRole` → `Properties.RoleName` L10 in `good_functions_sub_needed_custom_excludes_yaml`
   > 'TestRole-${Stage}' does not match '^[\\w+=,.@-]+$'
 
+### I3010 — 4 missed — Resource limit
+
+- **I3010** `Memory` → `Properties.MemoryStrategies.0` L9-17 in `gh-issues_issue-38_json`
+  > 'Resources/Memory/Properties/MemoryStrategies/0' is approaching the limit of 1 properties
+- **I3010** `Memory` → `Properties.MemoryStrategies.1` L18-26 in `gh-issues_issue-38_json`
+  > 'Resources/Memory/Properties/MemoryStrategies/1' is approaching the limit of 1 properties
+- **I3010** `Memory` → `Properties.MemoryStrategies.2` L27-35 in `gh-issues_issue-38_json`
+  > 'Resources/Memory/Properties/MemoryStrategies/2' is approaching the limit of 1 properties
+- **I3010** `Memory` → `Properties.MemoryStrategies.3` L36-49 in `gh-issues_issue-38_json`
+  > 'Resources/Memory/Properties/MemoryStrategies/3' is approaching the limit of 1 properties
+
 ### W1032 — 4 missed — Validate the values that come from a Fn::Join function
 
 - **W1032** `Bucket2` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_json`
@@ -756,6 +777,13 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3019** `Project2` → `Properties.Name` L188 in `bad_resources_primary_identifiers_yaml`
   > Primary identifiers {'Name': 'myProjectName'} should have unique values across the resources {'Project2', 'Project1'}
 
+### F3006 — 2 missed — Validate the CloudFormation resource type
+
+- **F3006** (cfn-lint: E3006) `MyFunction` → `Resources.MyFunction.Type` L3 in `lsp_test-template_yaml`
+  > Resource type 'AWS::Serverless::Function' does not exist in 'us-east-1'
+- **F3006** (cfn-lint: E3006) `MyApi` → `Resources.MyApi.Type` L7 in `lsp_test-template_yaml`
+  > Resource type 'AWS::Serverless::Api' does not exist in 'us-east-1'
+
 ### E3707 — 2 missed — Validate RDS DBInstance Engine matches DBCluster Engine
 
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `bad_aurora_with_allocated_storage_yaml`
@@ -811,13 +839,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > Found an embedded parameter "${definition_substitution_1}" outside of an "Fn::Sub" at Resources/TestBadStateMachine1/Properties/DefinitionString/Fn::Join/1/5
 - **F1029** (cfn-lint: E1029) `TestBadStateMachine2` → `Properties.DefinitionString.Fn::Join.1.5` L67 in `bad_functions_sub_needed_yaml`
   > Found an embedded parameter "${definition_substitution_1}" outside of an "Fn::Sub" at Resources/TestBadStateMachine2/Properties/DefinitionString/Fn::Join/1/5
-
-### F3006 — 2 missed — Validate the CloudFormation resource type
-
-- **F3006** (cfn-lint: E3006) `MyFunction` → `Resources.MyFunction.Type` L3 in `lsp_test-template_yaml`
-  > Resource type 'AWS::Serverless::Function' does not exist in 'us-east-1'
-- **F3006** (cfn-lint: E3006) `MyApi` → `Resources.MyApi.Type` L7 in `lsp_test-template_yaml`
-  > Resource type 'AWS::Serverless::Api' does not exist in 'us-east-1'
 
 ### I2530 — 2 missed — Validate that SnapStart is configured for >= Java11 runtimes
 
@@ -923,6 +944,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3700** `TestPipeline` → `Properties.Stages.1.Actions.0.ActionTypeId.Category` L34 in `bad_resources_codepipeline_stages_second_stage_yaml`
   > 'Source' is not one of ['Build', 'Approval', 'Deploy', 'Test', 'Invoke', 'Compute']
 
+### E1041 — 1 missed — Check if Ref matches destination format
+
+- **E1041** `DaxRef` → `Properties.SecurityGroupIds.0` L32 in `gh-issues_issue-40_yaml`
+  > {'Ref': 'EksCluster'} does not match destination format of 'AWS::EC2::SecurityGroup.Id'
+
 ### E3504 — 1 missed — Check minimum 90 period is met between BackupPlan cold and delete
 
 - **E3504** `BackupPlan` → `Properties.BackupPlan.BackupPlanRule.0.Lifecycle.DeleteAfterDays` L17 in `bad_resources_backup_test_backup_plan_lifecycle_rule_yml`
@@ -973,15 +999,42 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3719** `AuroraDB` → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
   > 'BackupRetentionPeriod' is not allowed when 'DBClusterIdentifier' is specified. Set backup retention period on the DB cluster instead.
 
-## False Positives — 0 extra findings across 0 rules
+## False Positives — 9 extra findings across 3 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-## Engine Extra — 5498 correct findings across 36 rules
+### F3004 — 7 extra — Resource dependencies are not circular
+
+- **F3004** `ClusterKubectlHandlerRole94549F93` → `Resources/ClusterKubectlHandlerRole94549F93` L472 in `gh-issues_issue-53_json`
+  > Circular Dependencies for resource ClusterKubectlHandlerRole94549F93. Circular dependency with [ClusterKubectlReadyBarrier200052AF]
+- **F3004** `ClusterControlPlaneSecurityGroupD274242C` → `Resources/ClusterControlPlaneSecurityGroupD274242C` L593 in `gh-issues_issue-53_json`
+  > Circular Dependencies for resource ClusterControlPlaneSecurityGroupD274242C. Circular dependency with [ClusterKubectlReadyBarrier200052AF]
+- **F3004** `ClusterCreationRole360249B6` → `Resources/ClusterCreationRole360249B6` L614 in `gh-issues_issue-53_json`
+  > Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterKubectlHandlerRole94549F93]
+- **F3004** `ClusterCreationRole360249B6` → `Resources/ClusterCreationRole360249B6` L614 in `gh-issues_issue-53_json`
+  > Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterKubectlReadyBarrier200052AF]
+- **F3004** `Cluster9EE0221C` → `Resources/Cluster9EE0221C` L793 in `gh-issues_issue-53_json`
+  > Circular Dependencies for resource Cluster9EE0221C. Circular dependency with [ClusterControlPlaneSecurityGroupD274242C]
+- **F3004** `ClusterKubectlReadyBarrier200052AF` → `Resources/ClusterKubectlReadyBarrier200052AF` L880 in `gh-issues_issue-53_json`
+  > Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterCreationRole360249B6]
+- **F3004** `ClusterKubectlReadyBarrier200052AF` → `Resources/ClusterKubectlReadyBarrier200052AF` L880 in `gh-issues_issue-53_json`
+  > Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterCreationRoleDefaultPolicyE8BDFC7B]
+
+### I3013 — 1 extra — Check resources with auto expiring content have explicit retention period
+
+- **I3013** `Canary` (AWS::Synthetics::Canary) → `Properties.SuccessRetentionPeriod` L3 in `gh-issues_issue-62_json`
+  > 'SuccessRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+
+### E3702 — 1 extra — Validate the number of input and output artifacts in a CodePipeline
+
+- **E3702** `Pipeline` (AWS::CodePipeline::Pipeline) L3 in `gh-issues_issue-44_json`
+  > Action 'Deploy' (category 'Deploy') has 0 input artifacts, expected at least 1
+
+## Engine Extra — 5630 correct findings across 36 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 — 3606 findings
+### I9001 — 3686 findings
 
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -996,6 +1049,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `D` (AWS::S3::Bucket) → `Properties.BucketName` L19 in `bad_E3019_four_way_group_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `bad_F2002_ssm_parameter_type_invalid_yaml`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L25 in `bad_W1028_allowedvalues_excludes_literal`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Host` (AWS::EC2::Host) → `Properties.AvailabilityZone` L15 in `bad_W3010_full_coverage_yaml`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
@@ -6117,6 +6172,164 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
 - **I9001** `StepFuncApiordersGET0318ABB9` (AWS::ApiGateway::Method) → `Properties.RestApiId` L230 in `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L13 in `gh-issues_issue-34_json`
+  > Property 'ImageId' is create-only; updating it will cause resource replacement
+- **I9001** `Instance2` (AWS::EC2::Instance) → `Properties.ImageId` L20 in `gh-issues_issue-34_json`
+  > Property 'ImageId' is create-only; updating it will cause resource replacement
+- **I9001** `MyLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L4 in `gh-issues_issue-37_yaml`
+  > Property 'ImageId' is create-only; updating it will cause resource replacement
+- **I9001** `MyLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.InstanceType` L4 in `gh-issues_issue-37_yaml`
+  > Property 'InstanceType' is create-only; updating it will cause resource replacement
+- **I9001** `Memory` (AWS::BedrockAgentCore::Memory) → `Properties.Name` L3 in `gh-issues_issue-38_json`
+  > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `EksCluster` (AWS::EKS::Cluster) → `Properties.Name` L3 in `gh-issues_issue-40_yaml`
+  > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L3 in `gh-issues_issue-40_yaml`
+  > Property 'RoleArn' is create-only; updating it will cause resource replacement
+- **I9001** `DaxConcrete` (AWS::DAX::Cluster) → `Properties.IAMRoleARN` L14 in `gh-issues_issue-40_yaml`
+  > Property 'IAMRoleARN' is create-only; updating it will cause resource replacement
+- **I9001** `DaxConcrete` (AWS::DAX::Cluster) → `Properties.NodeType` L14 in `gh-issues_issue-40_yaml`
+  > Property 'NodeType' is create-only; updating it will cause resource replacement
+- **I9001** `DaxRef` (AWS::DAX::Cluster) → `Properties.IAMRoleARN` L26 in `gh-issues_issue-40_yaml`
+  > Property 'IAMRoleARN' is create-only; updating it will cause resource replacement
+- **I9001** `DaxRef` (AWS::DAX::Cluster) → `Properties.NodeType` L26 in `gh-issues_issue-40_yaml`
+  > Property 'NodeType' is create-only; updating it will cause resource replacement
+- **I9001** `MyFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L3 in `gh-issues_issue-41_json`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `gh-issues_issue-42_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Family` L4 in `gh-issues_issue-42_yaml`
+  > Property 'Family' is create-only; updating it will cause resource replacement
+- **I9001** `TargetGroup` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Port` L14 in `gh-issues_issue-42_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `TargetGroup` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Protocol` L14 in `gh-issues_issue-42_yaml`
+  > Property 'Protocol' is create-only; updating it will cause resource replacement
+- **I9001** `TargetGroup` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L14 in `gh-issues_issue-42_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Service` (AWS::ECS::Service) → `Properties.Cluster` L21 in `gh-issues_issue-42_yaml`
+  > Property 'Cluster' is create-only; updating it will cause resource replacement
+- **I9001** `MyFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L3 in `gh-issues_issue-47_json`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `DocDbInstance` (AWS::DocDB::DBInstance) → `Properties.DBClusterIdentifier` L9 in `gh-issues_issue-49_yaml`
+  > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
+- **I9001** `Ec2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L14 in `gh-issues_issue-49_yaml`
+  > Property 'ImageId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcFAC913E5` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `gh-issues_issue-53_json`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1Subnet7A3A7B5D` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L18 in `gh-issues_issue-53_json`
+  > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1Subnet7A3A7B5D` (AWS::EC2::Subnet) → `Properties.CidrBlock` L18 in `gh-issues_issue-53_json`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1Subnet7A3A7B5D` (AWS::EC2::Subnet) → `Properties.VpcId` L18 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1RouteTable5F0A6273` (AWS::EC2::RouteTable) → `Properties.VpcId` L54 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1RouteTableAssociation2AB88B08` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L72 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1RouteTableAssociation2AB88B08` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L72 in `gh-issues_issue-53_json`
+  > Property 'SubnetId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1DefaultRoute321532E0` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L83 in `gh-issues_issue-53_json`
+  > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1DefaultRoute321532E0` (AWS::EC2::Route) → `Properties.RouteTableId` L83 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1NATGateway7AFB18E6` (AWS::EC2::NatGateway) → `Properties.AllocationId` L114 in `gh-issues_issue-53_json`
+  > Property 'AllocationId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet1NATGateway7AFB18E6` (AWS::EC2::NatGateway) → `Properties.SubnetId` L114 in `gh-issues_issue-53_json`
+  > Property 'SubnetId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2Subnet42A6D42E` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L142 in `gh-issues_issue-53_json`
+  > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2Subnet42A6D42E` (AWS::EC2::Subnet) → `Properties.CidrBlock` L142 in `gh-issues_issue-53_json`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2Subnet42A6D42E` (AWS::EC2::Subnet) → `Properties.VpcId` L142 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2RouteTableEC6A2C2A` (AWS::EC2::RouteTable) → `Properties.VpcId` L178 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2RouteTableAssociationF7485C52` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L196 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2RouteTableAssociationF7485C52` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L196 in `gh-issues_issue-53_json`
+  > Property 'SubnetId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2DefaultRouteE14C718B` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L207 in `gh-issues_issue-53_json`
+  > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2DefaultRouteE14C718B` (AWS::EC2::Route) → `Properties.RouteTableId` L207 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2NATGateway5AD59565` (AWS::EC2::NatGateway) → `Properties.AllocationId` L238 in `gh-issues_issue-53_json`
+  > Property 'AllocationId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPublicSubnet2NATGateway5AD59565` (AWS::EC2::NatGateway) → `Properties.SubnetId` L238 in `gh-issues_issue-53_json`
+  > Property 'SubnetId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1Subnet0B127D2C` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L266 in `gh-issues_issue-53_json`
+  > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1Subnet0B127D2C` (AWS::EC2::Subnet) → `Properties.CidrBlock` L266 in `gh-issues_issue-53_json`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1Subnet0B127D2C` (AWS::EC2::Subnet) → `Properties.VpcId` L266 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1RouteTable886260DA` (AWS::EC2::RouteTable) → `Properties.VpcId` L302 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1RouteTableAssociation0C8C18D3` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L320 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1RouteTableAssociation0C8C18D3` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L320 in `gh-issues_issue-53_json`
+  > Property 'SubnetId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1DefaultRouteB00E5F42` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L331 in `gh-issues_issue-53_json`
+  > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet1DefaultRouteB00E5F42` (AWS::EC2::Route) → `Properties.RouteTableId` L331 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2SubnetCD612986` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L343 in `gh-issues_issue-53_json`
+  > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2SubnetCD612986` (AWS::EC2::Subnet) → `Properties.CidrBlock` L343 in `gh-issues_issue-53_json`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2SubnetCD612986` (AWS::EC2::Subnet) → `Properties.VpcId` L343 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2RouteTable1EDE83AC` (AWS::EC2::RouteTable) → `Properties.VpcId` L379 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2RouteTableAssociation1643AB72` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L397 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2RouteTableAssociation1643AB72` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L397 in `gh-issues_issue-53_json`
+  > Property 'SubnetId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2DefaultRoute99CA0CB9` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L408 in `gh-issues_issue-53_json`
+  > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcPrivateSubnet2DefaultRoute99CA0CB9` (AWS::EC2::Route) → `Properties.RouteTableId` L408 in `gh-issues_issue-53_json`
+  > Property 'RouteTableId' is create-only; updating it will cause resource replacement
+- **I9001** `UserVpcVPCGWEFD8AF3B` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L431 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `KubectlLayer600207B5` (AWS::Lambda::LayerVersion) → `Properties.Content` L459 in `gh-issues_issue-53_json`
+  > Property 'Content' is create-only; updating it will cause resource replacement
+- **I9001** `KubectlLayer600207B5` (AWS::Lambda::LayerVersion) → `Properties.Description` L459 in `gh-issues_issue-53_json`
+  > Property 'Description' is create-only; updating it will cause resource replacement
+- **I9001** `KubectlLayer600207B5` (AWS::Lambda::LayerVersion) → `Properties.LicenseInfo` L459 in `gh-issues_issue-53_json`
+  > Property 'LicenseInfo' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterControlPlaneSecurityGroupD274242C` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L593 in `gh-issues_issue-53_json`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterControlPlaneSecurityGroupD274242C` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L593 in `gh-issues_issue-53_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterNodegroupDefaultCapacityDA0920A3` (AWS::EKS::Nodegroup) → `Properties.AmiType` L954 in `gh-issues_issue-53_json`
+  > Property 'AmiType' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterNodegroupDefaultCapacityDA0920A3` (AWS::EKS::Nodegroup) → `Properties.ClusterName` L954 in `gh-issues_issue-53_json`
+  > Property 'ClusterName' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterNodegroupDefaultCapacityDA0920A3` (AWS::EKS::Nodegroup) → `Properties.InstanceTypes` L954 in `gh-issues_issue-53_json`
+  > Property 'InstanceTypes' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterNodegroupDefaultCapacityDA0920A3` (AWS::EKS::Nodegroup) → `Properties.NodeRole` L954 in `gh-issues_issue-53_json`
+  > Property 'NodeRole' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterNodegroupDefaultCapacityDA0920A3` (AWS::EKS::Nodegroup) → `Properties.Subnets` L954 in `gh-issues_issue-53_json`
+  > Property 'Subnets' is create-only; updating it will cause resource replacement
+- **I9001** `Canary` (AWS::Synthetics::Canary) → `Properties.Name` L3 in `gh-issues_issue-62_json`
+  > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `MyLambda` (AWS::Lambda::Function) → `Properties.FunctionName` L3 in `gh-issues_issue-65_json`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `S3Permission` (AWS::Lambda::Permission) → `Properties.Action` L15 in `gh-issues_issue-65_json`
+  > Property 'Action' is create-only; updating it will cause resource replacement
+- **I9001** `S3Permission` (AWS::Lambda::Permission) → `Properties.FunctionName` L15 in `gh-issues_issue-65_json`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `S3Permission` (AWS::Lambda::Permission) → `Properties.Principal` L15 in `gh-issues_issue-65_json`
+  > Property 'Principal' is create-only; updating it will cause resource replacement
+- **I9001** `S3Permission` (AWS::Lambda::Permission) → `Properties.SourceAccount` L15 in `gh-issues_issue-65_json`
+  > Property 'SourceAccount' is create-only; updating it will cause resource replacement
+- **I9001** `PromAlarm` (AWS::CloudWatch::Alarm) → `Properties.AlarmName` L3 in `gh-issues_issue-67_json`
+  > Property 'AlarmName' is create-only; updating it will cause resource replacement
+- **I9001** `MyFunc` (AWS::Lambda::Function) → `Properties.FunctionName` L4 in `gh-issues_issue-68_json`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `FutureNodeFunc` (AWS::Lambda::Function) → `Properties.FunctionName` L16 in `gh-issues_issue-68_json`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L16 in `good_E9001_aws_cdk_metadata`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L14 in `good_W3010_getazs_not_flagged`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
 - **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L14 in `good_W3010_getazs_not_flagged`
@@ -8196,7 +8409,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2113 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1467 findings
+### I9040 — 1505 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -8209,6 +8422,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9040** `D` (AWS::S3::Bucket) → `Properties.Tags` L19 in `bad_E3019_four_way_group_yaml`
   > Resource 'D' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_F2002_ssm_parameter_type_invalid_yaml`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L25 in `bad_W1028_allowedvalues_excludes_literal`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Asg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L6 in `bad_W3010_full_coverage_yaml`
   > Resource 'Asg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
@@ -10184,6 +10399,78 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'CronStateMachineEventsRoleA3F136B0' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Rule4C995B7F` (AWS::Events::Rule) → `Properties.Tags` L315 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template_json`
   > Resource 'Rule4C995B7F' of type 'AWS::Events::Rule' supports Tags but none are configured
+- **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L13 in `gh-issues_issue-34_json`
+  > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `Instance2` (AWS::EC2::Instance) → `Properties.Tags` L20 in `gh-issues_issue-34_json`
+  > Resource 'Instance2' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `MyAsg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L9 in `gh-issues_issue-37_yaml`
+  > Resource 'MyAsg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
+- **I9040** `Memory` (AWS::BedrockAgentCore::Memory) → `Properties.Tags` L3 in `gh-issues_issue-38_json`
+  > Resource 'Memory' of type 'AWS::BedrockAgentCore::Memory' supports Tags but none are configured
+- **I9040** `EksCluster` (AWS::EKS::Cluster) → `Properties.Tags` L3 in `gh-issues_issue-40_yaml`
+  > Resource 'EksCluster' of type 'AWS::EKS::Cluster' supports Tags but none are configured
+- **I9040** `DaxConcrete` (AWS::DAX::Cluster) → `Properties.Tags` L14 in `gh-issues_issue-40_yaml`
+  > Resource 'DaxConcrete' of type 'AWS::DAX::Cluster' supports Tags but none are configured
+- **I9040** `DaxRef` (AWS::DAX::Cluster) → `Properties.Tags` L26 in `gh-issues_issue-40_yaml`
+  > Resource 'DaxRef' of type 'AWS::DAX::Cluster' supports Tags but none are configured
+- **I9040** `MyFunction` (AWS::Lambda::Function) → `Properties.Tags` L3 in `gh-issues_issue-41_json`
+  > Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L4 in `gh-issues_issue-42_yaml`
+  > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `TargetGroup` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L14 in `gh-issues_issue-42_yaml`
+  > Resource 'TargetGroup' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
+- **I9040** `Service` (AWS::ECS::Service) → `Properties.Tags` L21 in `gh-issues_issue-42_yaml`
+  > Resource 'Service' of type 'AWS::ECS::Service' supports Tags but none are configured
+- **I9040** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L3 in `gh-issues_issue-44_json`
+  > Resource 'Pipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
+- **I9040** `PipelineRole` (AWS::IAM::Role) → `Properties.Tags` L47 in `gh-issues_issue-44_json`
+  > Resource 'PipelineRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `MyFunction` (AWS::Lambda::Function) → `Properties.Tags` L3 in `gh-issues_issue-47_json`
+  > Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `EsDomain` (AWS::Elasticsearch::Domain) → `Properties.Tags` L3 in `gh-issues_issue-49_yaml`
+  > Resource 'EsDomain' of type 'AWS::Elasticsearch::Domain' supports Tags but none are configured
+- **I9040** `DocDbInstance` (AWS::DocDB::DBInstance) → `Properties.Tags` L9 in `gh-issues_issue-49_yaml`
+  > Resource 'DocDbInstance' of type 'AWS::DocDB::DBInstance' supports Tags but none are configured
+- **I9040** `Ec2Instance` (AWS::EC2::Instance) → `Properties.Tags` L14 in `gh-issues_issue-49_yaml`
+  > Resource 'Ec2Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `UserRoleB7C3739B` (AWS::IAM::Role) → `Properties.Tags` L442 in `gh-issues_issue-53_json`
+  > Resource 'UserRoleB7C3739B' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `ClusterKubectlHandlerRole94549F93` (AWS::IAM::Role) → `Properties.Tags` L472 in `gh-issues_issue-53_json`
+  > Resource 'ClusterKubectlHandlerRole94549F93' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `ClusterControlPlaneSecurityGroupD274242C` (AWS::EC2::SecurityGroup) → `Properties.Tags` L593 in `gh-issues_issue-53_json`
+  > Resource 'ClusterControlPlaneSecurityGroupD274242C' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `ClusterCreationRole360249B6` (AWS::IAM::Role) → `Properties.Tags` L614 in `gh-issues_issue-53_json`
+  > Resource 'ClusterCreationRole360249B6' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `ClusterKubectlReadyBarrier200052AF` (AWS::SSM::Parameter) → `Properties.Tags` L880 in `gh-issues_issue-53_json`
+  > Resource 'ClusterKubectlReadyBarrier200052AF' of type 'AWS::SSM::Parameter' supports Tags but none are configured
+- **I9040** `ClusterNodegroupDefaultCapacityNodeGroupRole55953B04` (AWS::IAM::Role) → `Properties.Tags` L894 in `gh-issues_issue-53_json`
+  > Resource 'ClusterNodegroupDefaultCapacityNodeGroupRole55953B04' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `ClusterNodegroupDefaultCapacityDA0920A3` (AWS::EKS::Nodegroup) → `Properties.Tags` L954 in `gh-issues_issue-53_json`
+  > Resource 'ClusterNodegroupDefaultCapacityDA0920A3' of type 'AWS::EKS::Nodegroup' supports Tags but none are configured
+- **I9040** `awscdkawseksClusterResourceProviderNestedStackawscdkawseksClusterResourceProviderNestedStackResource9827C454` (AWS::CloudFormation::Stack) → `Properties.Tags` L1033 in `gh-issues_issue-53_json`
+  > Resource 'awscdkawseksClusterResourceProviderNestedStackawscdkawseksClusterResourceProviderNestedStackResource9827C454' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `awscdkawseksKubectlProviderNestedStackawscdkawseksKubectlProviderNestedStackResourceA7AEBA6B` (AWS::CloudFormation::Stack) → `Properties.Tags` L1056 in `gh-issues_issue-53_json`
+  > Resource 'awscdkawseksKubectlProviderNestedStackawscdkawseksKubectlProviderNestedStackResourceA7AEBA6B' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L3 in `gh-issues_issue-54_json`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Resource` (AWS::EC2::Volume) → `Properties.Tags` L3 in `gh-issues_issue-61_json`
+  > Resource 'Resource' of type 'AWS::EC2::Volume' supports Tags but none are configured
+- **I9040** `Canary` (AWS::Synthetics::Canary) → `Properties.Tags` L3 in `gh-issues_issue-62_json`
+  > Resource 'Canary' of type 'AWS::Synthetics::Canary' supports Tags but none are configured
+- **I9040** `Topic` (AWS::SNS::Topic) → `Properties.Tags` L27 in `gh-issues_issue-63_json`
+  > Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `MyLambda` (AWS::Lambda::Function) → `Properties.Tags` L3 in `gh-issues_issue-65_json`
+  > Resource 'MyLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PromAlarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L3 in `gh-issues_issue-67_json`
+  > Resource 'PromAlarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
+- **I9040** `MyFunc` (AWS::Lambda::Function) → `Properties.Tags` L4 in `gh-issues_issue-68_json`
+  > Resource 'MyFunc' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `FutureNodeFunc` (AWS::Lambda::Function) → `Properties.Tags` L16 in `gh-issues_issue-68_json`
+  > Resource 'FutureNodeFunc' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L16 in `good_E9001_aws_cdk_metadata`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `KubectlHandlerRole` (AWS::IAM::Role) → `Properties.Tags` L19 in `good_W1028_pseudo_param_branches_reachable`
+  > Resource 'KubectlHandlerRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L6 in `good_W3010_getazs_not_flagged`
   > Resource 'Elb' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured
 - **I9040** `Subnet` (AWS::EC2::Subnet) → `Properties.Tags` L14 in `good_W3010_getazs_not_flagged`
@@ -10870,6 +11157,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Bucket6' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket7` (AWS::S3::Bucket) → `Properties.Tags` L62 in `lsp_parameter_usage_yaml`
   > Resource 'Bucket7' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `MyS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `lsp_simple`
+  > Resource 'MyS3Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `MyFunction` (AWS::Serverless::Function) → `Properties.Tags` L3 in `lsp_test-template_yaml`
   > Resource 'MyFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `MyApi` (AWS::Serverless::Api) → `Properties.Tags` L7 in `lsp_test-template_yaml`
@@ -11454,7 +11743,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9003** `NATInstanceSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L2093 in `quickstart_vpc_json`
   > '65535' is not of type 'integer' — automatically coerced (string → integer)
 
-### W9013 — 51 findings
+### W9013 — 60 findings
 
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_codepipeline_bad_artifact_counts_yaml`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
@@ -11519,6 +11808,24 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9013** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) L58 in `cdk_lambda-manage-s3-event-notification--BStack.template`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) L490 in `cdk_py-url-shortener--urlshort-app.template_json`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `EksCluster` (AWS::EKS::Cluster) L3 in `gh-issues_issue-40_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `DaxConcrete` (AWS::DAX::Cluster) L14 in `gh-issues_issue-40_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `DaxRef` (AWS::DAX::Cluster) L26 in `gh-issues_issue-40_yaml`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `MyFunction` (AWS::Lambda::Function) L3 in `gh-issues_issue-41_json`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `MyFunction` (AWS::Lambda::Function) L3 in `gh-issues_issue-47_json`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `Canary` (AWS::Synthetics::Canary) L3 in `gh-issues_issue-62_json`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `MyLambda` (AWS::Lambda::Function) L3 in `gh-issues_issue-65_json`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `MyFunc` (AWS::Lambda::Function) L4 in `gh-issues_issue-68_json`
+  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+- **W9013** `FutureNodeFunc` (AWS::Lambda::Function) L16 in `gh-issues_issue-68_json`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `good_codepipeline_artifact_counts`
   > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
@@ -11638,7 +11945,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9008** `Database` (AWS::RDS::DBInstance) L92 in `lsp_condition-usage_yaml`
   > RDS instance should have StorageEncrypted set to true
 
-### W9010 — 30 findings
+### W9010 — 31 findings
 
 - **W9010** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Hardcoded AMI ID — use a parameter or mapping for portability
@@ -11667,6 +11974,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9010** `AnotherInstance` (AWS::EC2::Instance) → `Properties.ImageId` L24 in `bad_refs_yaml`
   > Hardcoded AMI ID — use a parameter or mapping for portability
 - **W9010** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_schema_format_violation_yaml`
+  > Hardcoded AMI ID — use a parameter or mapping for portability
+- **W9010** `Ec2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L14 in `gh-issues_issue-49_yaml`
   > Hardcoded AMI ID — use a parameter or mapping for portability
 - **W9010** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `good_conditions`
   > Hardcoded AMI ID — use a parameter or mapping for portability
@@ -11701,7 +12010,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9010** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.ImageId` L280 in `quickstart_openshift_yaml`
   > Hardcoded AMI ID — use a parameter or mapping for portability
 
-### F0001 — 21 findings
+### F0001 — 22 findings
 
 - **F0001** L24 in `bad_conditions_and_yaml`
   > Resources section must exist and be non-empty
@@ -11729,6 +12038,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resources section must exist and be non-empty
 - **F0001** L5 in `bad_templates_base_yaml`
   > Resources section must exist and be non-empty
+- **F0001** L12 in `good_core_config_cfn_lint`
+  > Resources section must exist and be non-empty
 - **F0001** L9 in `good_core_config_only_i1002`
   > Resources section must exist and be non-empty
 - **F0001** L9 in `good_core_config_only_i1003`
@@ -11746,7 +12057,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F0001** L22 in `integration_metdata_yaml`
   > Resources section must exist and be non-empty
 
-### W9002 — 19 findings
+### W9002 — 21 findings
 
 - **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifact_counts_yaml`
   > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
@@ -11776,6 +12087,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'S3BucketArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
 - **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L490 in `cdk_py-url-shortener--urlshort-app.template_json`
   > Property 'RegionalCertificateArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L3 in `gh-issues_issue-40_yaml`
+  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
+- **W9002** `Canary` (AWS::Synthetics::Canary) → `Properties.ExecutionRoleArn` L3 in `gh-issues_issue-62_json`
+  > Property 'ExecutionRoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
 - **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `good_codepipeline_artifact_counts`
   > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
 - **W9002** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L138 in `good_functions_sub_needed_yaml`
@@ -11857,7 +12172,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9009** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L41 in `integration_ref-no-value_yaml`
   > Property 'DistributionConfig' is deprecated
 
-### F3003 — 8 findings — Required Resource properties are missing
+### F3003 — 9 findings — Required Resource properties are missing
 
 - **F3003** `BadListener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties` L20 in `bad_cross_resource_task10_yaml`
   > 'Certificates' is a required property (from extension)
@@ -11873,6 +12188,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 'OwnershipControls' is a required property (from extension)
 - **F3003** `DataTable` (AWS::DynamoDB::Table) → `Properties` L72 in `cdk_DemoStack.template_json`
   > 'ProvisionedThroughput' is a required property (from extension)
+- **F3003** `Bucket` (AWS::S3::Bucket) → `Properties` L5 in `gh-issues_issue-54_json`
+  > 'OwnershipControls' is a required property (from extension)
 - **F3003** `rArchiveLogsBucket` (AWS::S3::Bucket) → `Properties` L44 in `quickstart_nist_logging_yaml`
   > 'OwnershipControls' is a required property (from extension)
 
@@ -12085,7 +12402,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F8610** in `lsp_comprehensive_yaml`
   > Rule 'ValidateParameterCombinations' Assertions[1] Assert must be a condition function (object), not array
 
-## Per-Template Breakdown — 107 templates with mismatches
+## Per-Template Breakdown — 113 templates with mismatches
 
 ### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 5 EE, 18 FN)
 
@@ -12135,6 +12452,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3003` ×7
 - EE: `I9040` ×2, `I9001`
+
+### `gh-issues_issue-53_json` — 7 mismatches (18 TP, 7 FP, 57 EE, 0 FN)
+
+- FP: `F3004` ×7
+- EE: `I9001` ×48, `I9040` ×9
 
 ### `good_functions_sub_needed_custom_excludes_yaml` — 7 mismatches (2 TP, 0 FP, 2 EE, 7 FN)
 
@@ -12205,6 +12527,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3026` ×5
 - EE: `I9001` ×11, `I9040` ×7
 
+### `gh-issues_issue-61_json` — 5 mismatches (3 TP, 0 FP, 1 EE, 5 FN)
+
+- FN: `F3003` ×5
+- EE: `I9040`
+
 ### `lsp_constants_json` — 5 mismatches (1 TP, 0 FP, 3 EE, 5 FN)
 
 - FN: `F1018` ×2, `F1020` ×2, `E3024`
@@ -12224,6 +12551,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3513` ×4
 - EE: `I9040` ×2
+
+### `gh-issues_issue-38_json` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
+
+- FN: `I3010` ×4
+- EE: `I9001`, `I9040`
 
 ### `good_transform_applications_location_yaml` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
@@ -12573,6 +12905,21 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W3691`
 - EE: `I9001` ×6, `I9040` ×4, `W9007`, `W9008`
 
+### `gh-issues_issue-40_yaml` — 1 mismatches (1 TP, 0 FP, 13 EE, 1 FN)
+
+- FN: `E1041`
+- EE: `I9001` ×6, `W9013` ×3, `I9040` ×3, `W9002`
+
+### `gh-issues_issue-44_json` — 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
+
+- FP: `E3702`
+- EE: `I9040` ×2
+
+### `gh-issues_issue-62_json` — 1 mismatches (2 TP, 1 FP, 4 EE, 0 FN)
+
+- FP: `I3013`
+- EE: `W9002`, `W9013`, `I9001`, `I9040`
+
 ### `good_custom_is-not-defined_yaml` — 1 mismatches (8 TP, 0 FP, 6 EE, 1 FN)
 
 - FN: `E9004`
@@ -12615,7 +12962,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ## Coverage Gaps
 
-16 cfn-lint templates with no engine report:
+27 cfn-lint templates with no engine report:
 
 - `bad_core_config_invalid_json_json` (1 expected diagnostics)
 - `bad_core_config_invalid_yaml_yaml` (1 expected diagnostics)
@@ -12624,6 +12971,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - `bad_json_parse_json` (1 expected diagnostics)
 - `bad_string_yaml` (1 expected diagnostics)
 - `bad_template_yaml` (1 expected diagnostics)
+- `gh-issues_issue-35` (0 expected diagnostics)
+- `gh-issues_issue-36` (0 expected diagnostics)
+- `gh-issues_issue-39` (0 expected diagnostics)
+- `gh-issues_issue-45` (0 expected diagnostics)
+- `gh-issues_issue-46` (0 expected diagnostics)
+- `gh-issues_issue-48` (0 expected diagnostics)
+- `gh-issues_issue-50` (0 expected diagnostics)
+- `gh-issues_issue-52` (0 expected diagnostics)
+- `gh-issues_issue-55` (0 expected diagnostics)
+- `gh-issues_issue-56` (0 expected diagnostics)
+- `gh-issues_issue-57` (0 expected diagnostics)
 - `good_core_config_cfn_lint.json` (0 expected diagnostics)
 - `good_core_config_cfn_lint.yaml` (0 expected diagnostics)
 - `good_functions_get_stack_output` (0 expected diagnostics)
@@ -12640,14 +12998,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 126 | 37.95% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 96 | 28.92% | E3001, E3016, E3019, E3022, E3023, E3024, E3025, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3671, E3673, E3678, E3682, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 58 | 17.47% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Intrinsic function validation | 41 | 12.35% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1150, E1152, E1161, E1701 |
-| Informational checks | 11 | 3.31% | I2530, I3011, I3510 |
+| Other | 131 | 38.30% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 96 | 28.07% | E3001, E3016, E3019, E3022, E3023, E3024, E3025, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3671, E3673, E3678, E3682, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 58 | 16.96% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Intrinsic function validation | 42 | 12.28% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 15 | 4.39% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
+| Other | 7 | 77.78% | F3004 |
+| Extra informational findings | 1 | 11.11% | I3013 |
+| Over-reporting property/intrinsic errors | 1 | 11.11% | E3702 |
 
