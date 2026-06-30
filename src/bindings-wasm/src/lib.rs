@@ -40,15 +40,19 @@ pub struct ValidateConfig {
     #[serde(default)]
     pub exclude: RuleFilterConfig,
     #[serde(default)]
+    #[tsify(optional)]
     pub severity_level: Option<Severity>,
     #[serde(default)]
-    #[tsify(type = "Record<string, string> | undefined")]
+    #[tsify(optional, type = "Record<string, string>")]
     pub parameter_overrides: Option<std::collections::HashMap<String, String>>,
     #[serde(default)]
+    #[tsify(optional)]
     pub pseudo_parameter_overrides: Option<PseudoParameterOverrides>,
     #[serde(default)]
+    #[tsify(optional)]
     pub strict: Option<bool>,
     #[serde(default)]
+    #[tsify(optional)]
     pub disable_builtin_rules: Option<bool>,
 }
 

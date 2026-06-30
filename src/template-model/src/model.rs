@@ -165,18 +165,25 @@ pub struct SemanticModel {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct PseudoParameterOverrides {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub account_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub notification_arns: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub partition: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub region: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub stack_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub stack_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub url_suffix: Option<String>,
 }
