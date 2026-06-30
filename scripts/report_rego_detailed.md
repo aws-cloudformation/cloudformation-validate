@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-06-29 16:20:06  
+> Generated: 2026-06-29 19:32:06  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,12 +22,12 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1944 |
-| False Positives (engine bugs) | 9 |
-| Engine Extra (correct, cfn-lint gap) | 5630 |
-| False Negatives (engine misses) | 342 |
-| Precision | 99.54% |
-| Recall | 85.04% |
+| True Positives | 1943 |
+| False Positives (engine bugs) | 8 |
+| Engine Extra (correct, cfn-lint gap) | 5631 |
+| False Negatives (engine misses) | 343 |
+| Precision | 99.59% |
+| Recall | 85.00% |
 | F1 | 91.72% |
 | Unique rules detected | 204 |
 | Perfect templates | 361/474 |
@@ -36,40 +36,40 @@
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 402 | 7 | 65 | 113 | 98.29% | 78.06% |
-| Error | 331 | 1 | 3 | 156 | 99.70% | 67.97% |
+| Fatal | 401 | 7 | 65 | 114 | 98.28% | 77.86% |
+| Error | 331 | 0 | 3 | 156 | 100.00% | 67.97% |
 | Warning | 732 | 0 | 369 | 58 | 100.00% | 92.66% |
-| Info | 479 | 1 | 5193 | 15 | 99.79% | 96.96% |
+| Info | 479 | 1 | 5194 | 15 | 99.79% | 96.96% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 20454.9250 ms |
-| Throughput | 117.82 validations/sec |
+| Total wall time | 19450.5963 ms |
+| Throughput | 123.90 validations/sec |
 | Templates | 482 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 66.2733 ms |
-| Engine init (max) | 66.6075 ms |
-| Schema init (p99) | 58.7142 ms |
-| Schema init (max) | 59.4575 ms |
+| Engine init (p99) | 64.7477 ms |
+| Engine init (max) | 65.0228 ms |
+| Schema init (p99) | 85.8586 ms |
+| Schema init (max) | 87.6740 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.1956 | 0.0435 | 0.6140 | 0.8877 | 1.5597 | 2.7114 |
-| Schema Validate | 0.0000 | 2.4058 | 0.5643 | 6.4078 | 10.0233 | 23.3449 | 55.0399 |
-| Rule Evaluation | 0.9765 | 5.0851 | 2.1830 | 12.2517 | 18.5413 | 31.2267 | 95.3281 |
-| Diagnostic Finalize | 0.0003 | 0.0260 | 0.0039 | 0.0798 | 0.1245 | 0.3016 | 0.5670 |
-| Engine Internal | 0.9811 | 7.7683 | 3.0364 | 19.2714 | 30.5501 | 55.2177 | 117.3556 |
-| Wall Clock | 0.9813 | 7.7686 | 3.0367 | 19.2719 | 30.5505 | 55.2187 | 117.3565 |
+| Model Build | 0.0018 | 0.1902 | 0.0423 | 0.6033 | 0.8328 | 1.5065 | 2.6724 |
+| Schema Validate | 0.0000 | 2.3574 | 0.5499 | 6.3563 | 9.4364 | 22.7348 | 55.6579 |
+| Rule Evaluation | 0.9706 | 4.9947 | 2.1819 | 11.4805 | 17.8788 | 31.0659 | 95.4816 |
+| Diagnostic Finalize | 0.0003 | 0.0254 | 0.0036 | 0.0824 | 0.1298 | 0.3068 | 0.5573 |
+| Engine Internal | 0.9737 | 7.6110 | 2.9419 | 19.2144 | 29.5763 | 53.5682 | 118.6313 |
+| Wall Clock | 0.9738 | 7.6112 | 2.9421 | 19.2149 | 29.5765 | 53.5687 | 118.6318 |
 
-## False Negatives — 342 missed findings across 82 rules
+## False Negatives — 343 missed findings across 82 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
-### F3003 — 36 missed — Required Resource properties are missing
+### F3003 — 37 missed — Required Resource properties are missing
 
 - **F3003** (cfn-lint: E3003) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1` L46-48 in `bad_core_conditions_yaml`
   > 'DeviceName' is a required property
@@ -91,6 +91,8 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'Groups' is a required property
 - **F3003** (cfn-lint: E3003) `myPolicy2` → `Properties.Fn::If.1` L19-21 in `bad_resources_properties_atleastone_yaml`
   > 'Roles' is a required property
+- **F3003** (cfn-lint: E3003) `Cluster` → `Properties.RestrictedInstanceGroups.0` L48-49 in `bad_sagemaker_instance_types_yaml`
+  > 'EnvironmentConfig' is a required property
 - **F3003** (cfn-lint: E3003) `NoImage` → `Properties` L6 in `bad_schema_composition_yaml`
   > 'ImageName' is a required property
 - **F3003** (cfn-lint: E3003) `NoImage` → `Properties` L6 in `bad_schema_composition_yaml`
@@ -999,7 +1001,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3719** `AuroraDB` → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
   > 'BackupRetentionPeriod' is not allowed when 'DBClusterIdentifier' is specified. Set backup retention period on the DB cluster instead.
 
-## False Positives — 9 extra findings across 3 rules
+## False Positives — 8 extra findings across 2 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -1025,12 +1027,7 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **I3013** `Canary` (AWS::Synthetics::Canary) → `Properties.SuccessRetentionPeriod` L3 in `gh-issues_issue-62_json`
   > 'SuccessRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
 
-### E3702 — 1 extra — Validate the number of input and output artifacts in a CodePipeline
-
-- **E3702** `Pipeline` (AWS::CodePipeline::Pipeline) L3 in `gh-issues_issue-44_json`
-  > Action 'Deploy' (category 'Deploy') has 0 input artifacts, expected at least 1
-
-## Engine Extra — 5630 correct findings across 36 rules
+## Engine Extra — 5631 correct findings across 36 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -8409,7 +8406,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2113 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1505 findings
+### I9040 — 1506 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -10357,6 +10354,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'exampleBucketAP' of type 'AWS::S3::AccessPoint' supports Tags but none are configured
 - **I9040** `TimeWriterDocument` (AWS::SSM::Document) → `Properties.Tags` L3 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json`
   > Resource 'TimeWriterDocument' of type 'AWS::SSM::Document' supports Tags but none are configured
+- **I9040** `DocumentAssociation` (AWS::SSM::Association) → `Properties.Tags` L43 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json`
+  > Resource 'DocumentAssociation' of type 'AWS::SSM::Association' supports Tags but none are configured
 - **I9040** `CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0` (AWS::IAM::Role) → `Properties.Tags` L223 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json`
   > Resource 'CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E` (AWS::Lambda::Function) → `Properties.Tags` L295 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json`
@@ -12865,6 +12864,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3678`
 - EE: `W9013` ×3, `I9040` ×3, `I9001`, `F3003`
 
+### `bad_sagemaker_instance_types_yaml` — 1 mismatches (41 TP, 0 FP, 7 EE, 1 FN)
+
+- FN: `F3003`
+- EE: `I9040` ×5, `I9001` ×2
+
 ### `bad_schema_property_constraints_yaml` — 1 mismatches (1 TP, 0 FP, 11 EE, 1 FN)
 
 - FN: `E1161`
@@ -12909,11 +12913,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E1041`
 - EE: `I9001` ×6, `W9013` ×3, `I9040` ×3, `W9002`
-
-### `gh-issues_issue-44_json` — 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `E3702`
-- EE: `I9040` ×2
 
 ### `gh-issues_issue-62_json` — 1 mismatches (2 TP, 1 FP, 4 EE, 0 FN)
 
@@ -12998,17 +12997,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 131 | 38.30% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 96 | 28.07% | E3001, E3016, E3019, E3022, E3023, E3024, E3025, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3671, E3673, E3678, E3682, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 58 | 16.96% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
-| Intrinsic function validation | 42 | 12.28% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 15 | 4.39% | I2530, I3010, I3011, I3510 |
+| Other | 132 | 38.48% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 96 | 27.99% | E3001, E3016, E3019, E3022, E3023, E3024, E3025, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3671, E3673, E3678, E3682, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 58 | 16.91% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W8001 |
+| Intrinsic function validation | 42 | 12.24% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 15 | 4.37% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 7 | 77.78% | F3004 |
-| Extra informational findings | 1 | 11.11% | I3013 |
-| Over-reporting property/intrinsic errors | 1 | 11.11% | E3702 |
+| Other | 7 | 87.50% | F3004 |
+| Extra informational findings | 1 | 12.50% | I3013 |
 

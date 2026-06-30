@@ -216,6 +216,10 @@
       "status": "sunset",
       "date": "2025-11-13"
     },
+    "AWS::NimbleStudio::Studio": {
+      "status": "shutdown",
+      "date": "2024-06-30"
+    },
     "AWS::OpsWorks::App": {
       "status": "shutdown",
       "date": "2024-05-01"

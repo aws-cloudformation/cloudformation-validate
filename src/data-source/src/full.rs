@@ -53,7 +53,7 @@ fn print_usage() {
 Full pipeline: sync upstream sources then generate all outputs.
 
 Options:
-  --cfn-lint-root <DIR>         Path to cfn-lint repo (enables patches/extensions/regions sync)
+  --cfn-lint-root <DIR>         Path to cfn-lint repo (enables extensions/additional-specs sync)
   -h, --help                    Show this help"
     );
 }

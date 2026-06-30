@@ -1,32 +1,85 @@
 use crate::SyncStats;
 use log::{debug, info};
 use serde_json::{Map, Value};
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-const CFN_SCHEMA_ZIP_URL: &str = "https://schema.cloudformation.us-east-1.amazonaws.com/CloudformationSchema.zip";
+/// Enhanced CloudFormation provider schemas, the same artifact cfn-lint consumes.
+/// The archive is fully assembled: every provider/extension patch is already
+/// applied to each resource schema, so no separate patch pass is needed. It is
+/// laid out as `providers/{region}.json` (resource-type → content hash) plus
+/// `resources/{hash}.json` (the schema bodies).
+const CFN_SCHEMA_ZIP_URL: &str = "https://github.com/aws-cloudformation/resource-provider-enhanced-schemas/releases/download/latest/schemas-cfn-lint.zip";
 const SAM_SCHEMA_URL: &str = "https://raw.githubusercontent.com/aws/serverless-application-model/refs/heads/develop/samtranslator/schema/schema.json";
 
-/// Download CloudFormation schemas into `output_dir`.
-pub fn download_schemas(output_dir: &Path) -> anyhow::Result<SyncStats> {
+/// Download and assemble CloudFormation schemas into `upstream_dir`.
+///
+/// Writes one schema file per resource type to `upstream/schemas/` (keyed by
+/// type name, preferring the us-east-1 variant when a type appears in multiple
+/// regions) and the per-region type→hash maps to `upstream/providers/`, then
+/// appends the region-independent SAM resource schemas.
+pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<SyncStats> {
     let mut stats = SyncStats::default();
-    fs::create_dir_all(output_dir)?;
+    let schemas_out = schema_dir(upstream_dir);
+    let providers_out = providers_dir(upstream_dir);
+    fs::create_dir_all(&schemas_out)?;
+    fs::create_dir_all(&providers_out)?;
 
-    info!("Downloading schemas from {} to {}", CFN_SCHEMA_ZIP_URL, output_dir.display());
+    info!("Downloading enhanced schemas from {}", CFN_SCHEMA_ZIP_URL);
     let resp = ureq::get(CFN_SCHEMA_ZIP_URL).call()?;
     let bytes = resp.into_body().read_to_vec()?;
-    info!("Downloaded {} bytes, extracting", bytes.len());
+    info!("Downloaded {} bytes, reading archive", bytes.len());
 
-    let cursor = Cursor::new(bytes);
-    let mut archive = zip::ZipArchive::new(cursor)?;
-    let file_count = archive.len();
-    archive.extract(output_dir)?;
-    stats.files_written = file_count;
-    info!("Extracted {} schema files", file_count);
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
 
-    let sam_count = download_sam_schemas(output_dir)?;
+    // Pass 1: read every provider map (region → {type_name: content_hash}) and
+    // persist it for the region-resource-type sync. Build a single type→hash map,
+    // preferring us-east-1 so multi-region types resolve deterministically.
+    // `providers/sam.json` is the region-independent SAM type→hash pointer, not a
+    // region map. SAM resource schemas are sourced from the SAM model below
+    // (download_sam_schemas), so exclude it from both the region maps and the
+    // type→hash set the resource schemas are written from.
+    let mut region_files: Vec<String> = archive
+        .file_names()
+        .filter(|n| n.starts_with("providers/") && n.ends_with(".json") && *n != "providers/sam.json")
+        .map(String::from)
+        .collect();
+    // Read us-east-1 first so its hash wins for any type present in several regions.
+    region_files.sort_by_key(|n| (!n.ends_with("/us-east-1.json"), n.clone()));
+
+    let mut type_to_hash: BTreeMap<String, String> = BTreeMap::new();
+    for name in &region_files {
+        let mut entry = archive.by_name(name)?;
+        let map: BTreeMap<String, String> = serde_json::from_reader(&mut entry)?;
+        drop(entry);
+        for (type_name, hash) in &map {
+            type_to_hash.entry(type_name.clone()).or_insert_with(|| hash.clone());
+        }
+        let region = Path::new(name).file_name().and_then(|f| f.to_str()).unwrap_or(name);
+        fs::write(providers_out.join(region), serde_json::to_string_pretty(&map)?)?;
+    }
+    info!("Read {} region provider maps, {} distinct resource types", region_files.len(), type_to_hash.len());
+
+    // Pass 2: write one schema file per resource type, looked up by content hash.
+    // A provider map that references a hash absent from the archive is a corrupt
+    // or truncated download — fail rather than silently dropping the type.
+    for (type_name, hash) in &type_to_hash {
+        let resource_path = format!("resources/{hash}.json");
+        let mut entry = archive.by_name(&resource_path).map_err(|e| {
+            anyhow::anyhow!("provider maps reference {} but {} is absent: {}", type_name, resource_path, e)
+        })?;
+        let schema: Value = serde_json::from_reader(&mut entry)
+            .map_err(|e| anyhow::anyhow!("failed to parse {} for {}: {}", resource_path, type_name, e))?;
+        drop(entry);
+        let filename = type_name.replace("::", "-").to_lowercase();
+        fs::write(schemas_out.join(format!("{filename}.json")), serde_json::to_string_pretty(&schema)?)?;
+        stats.files_written += 1;
+    }
+    info!("Wrote {} resource type schemas to {}", stats.files_written, schemas_out.display());
+
+    let sam_count = download_sam_schemas(&schemas_out)?;
     stats.files_written += sam_count;
     info!("Wrote {} SAM resource type schemas", sam_count);
 
@@ -134,4 +187,9 @@ fn collect_referenced_defs(
 /// Schema directory path within the upstream output.
 pub(crate) fn schema_dir(upstream_dir: &Path) -> PathBuf {
     upstream_dir.join("schemas")
+}
+
+/// Per-region provider-map directory within the upstream output.
+pub(crate) fn providers_dir(upstream_dir: &Path) -> PathBuf {
+    upstream_dir.join("providers")
 }

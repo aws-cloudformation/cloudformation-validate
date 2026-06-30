@@ -178,17 +178,17 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
         if p.extension().and_then(|e| e.to_str()) != Some("json") {
             continue;
         }
-        let Ok(content) = fs::read_to_string(&p) else {
-            continue;
-        };
-        let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
-            continue;
-        };
+        // These are schemas this pipeline just wrote to patched_schemas/, so a
+        // read/parse failure or missing typeName is corruption — fail loudly.
+        let content = fs::read_to_string(&p).map_err(|e| anyhow::anyhow!("failed to read {}: {}", p.display(), e))?;
+        let json: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| anyhow::anyhow!("failed to parse {}: {}", p.display(), e))?;
         let Some(tn) = json.get("typeName").and_then(|v| v.as_str()) else {
-            continue;
+            anyhow::bail!("patched schema {} has no 'typeName'", p.display());
         };
         raw.insert(tn.to_string(), json);
     }
+    anyhow::ensure!(!raw.is_empty(), "no patched schemas found in {}", schema_dir.display());
 
     let mut compiled: BTreeMap<String, CompiledSchema> = BTreeMap::new();
     for (tn, schema) in &raw {

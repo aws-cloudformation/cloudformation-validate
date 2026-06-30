@@ -1,0 +1,118 @@
+{
+  "codepipeline_action_artifact_counts": {
+    "AWS/Approval/Manual": {
+      "max_input": 0,
+      "max_output": 0,
+      "min_input": 0,
+      "min_output": 0
+    },
+    "AWS/Build/CodeBuild": {
+      "max_input": 5,
+      "max_output": 5,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Deploy/CloudFormation": {
+      "max_input": 10,
+      "max_output": 1,
+      "min_input": 0,
+      "min_output": 0
+    },
+    "AWS/Deploy/CodeDeploy": {
+      "max_input": 1,
+      "max_output": 0,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Deploy/ECS": {
+      "max_input": 1,
+      "max_output": 0,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Deploy/ElasticBeanstalk": {
+      "max_input": 1,
+      "max_output": 0,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Deploy/OpsWorks": {
+      "max_input": 1,
+      "max_output": 0,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Deploy/S3": {
+      "max_input": 1,
+      "max_output": 0,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Deploy/ServiceCatalog": {
+      "max_input": 1,
+      "max_output": 0,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Invoke/Lambda": {
+      "max_input": 5,
+      "max_output": 5,
+      "min_input": 0,
+      "min_output": 0
+    },
+    "AWS/Source/CodeCommit": {
+      "max_input": 0,
+      "max_output": 1,
+      "min_input": 0,
+      "min_output": 1
+    },
+    "AWS/Source/ECR": {
+      "max_input": 0,
+      "max_output": 1,
+      "min_input": 0,
+      "min_output": 1
+    },
+    "AWS/Source/S3": {
+      "max_input": 0,
+      "max_output": 1,
+      "min_input": 0,
+      "min_output": 1
+    },
+    "AWS/Test/CodeBuild": {
+      "max_input": 5,
+      "max_output": 5,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "AWS/Test/DeviceFarm": {
+      "max_input": 1,
+      "max_output": 0,
+      "min_input": 1,
+      "min_output": 0
+    },
+    "Custom/Build/Jenkins": {
+      "max_input": 5,
+      "max_output": 5,
+      "min_input": 0,
+      "min_output": 0
+    },
+    "Custom/Test/Jenkins": {
+      "max_input": 5,
+      "max_output": 5,
+      "min_input": 0,
+      "min_output": 0
+    },
+    "ThirdParty/Deploy/AlexaSkillsKit": {
+      "max_input": 2,
+      "max_output": 0,
+      "min_input": 0,
+      "min_output": 0
+    },
+    "ThirdParty/Source/GitHub": {
+      "max_input": 0,
+      "max_output": 1,
+      "min_input": 0,
+      "min_output": 1
+    }
+  }
+}

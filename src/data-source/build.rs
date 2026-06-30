@@ -21,6 +21,9 @@ const GENERATED_JSON: &[(&str, &str)] = &[
     ("getatt_attributes", "GETATT_ATTRIBUTES"),
     ("known_resource_types", "KNOWN_RESOURCE_TYPES"),
     ("stateful_resource_types", "STATEFUL_RESOURCE_TYPES"),
+    // Tables extracted from cfn-lint rule code during sync
+    ("retention_period_requirements", "RETENTION_PERIOD_REQUIREMENTS"),
+    ("codepipeline_action_artifact_counts", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),
     ("aws_rds_dbinstance_dbinstanceclass_enum", "AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM"),
     ("aws_ec2_instance_instancetype_enum", "AWS_EC2_INSTANCE_INSTANCETYPE_ENUM"),
     ("aws_emr_cluster_instancetypeconfig_instancetype_enum", "AWS_EMR_CLUSTER_INSTANCETYPECONFIG_INSTANCETYPE_ENUM"),
@@ -52,13 +55,12 @@ const GENERATED_JSON: &[(&str, &str)] = &[
     ),
 ];
 
-/// Handwritten JSON data files (from data-source/handwritten/).
-const HANDWRITTEN_JSON: &[(&str, &str)] = &[
-    ("codepipeline_action_artifact_counts", "CODEPIPELINE_ACTION_ARTIFACT_COUNTS"),
-    ("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"),
-    ("retention_period_requirements", "RETENTION_PERIOD_REQUIREMENTS"),
-    ("sensitive_ports", "SENSITIVE_PORTS"),
-];
+/// Handwritten JSON data files (from data-source/handwritten/). These have no
+/// faithful cfn-lint source: deprecated_resource_types and sensitive_ports are
+/// engine-specific, getatt_return_type_overrides corrects CloudFormation's
+/// GetAtt stringification (consumed at generate time, not embedded).
+const HANDWRITTEN_JSON: &[(&str, &str)] =
+    &[("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"), ("sensitive_ports", "SENSITIVE_PORTS")];
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());

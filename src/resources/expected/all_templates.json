@@ -1737,7 +1737,7 @@
       {
         "ruleId": "E3702",
         "severity": "ERROR",
-        "message": "Action 'BuildAction' (category 'Build') has 0 input artifacts, expected at least 1",
+        "message": "Action 'BuildAction' (AWS/Build/CodeBuild) has 0 input artifacts, expected at least 1",
         "source": "CFN_LINT",
         "resourceId": "Pipeline",
         "resourceType": "AWS::CodePipeline::Pipeline",
@@ -12576,6 +12576,7 @@
         "startColumn": 3,
         "endLine": 111,
         "endColumn": 22,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Ref/GetAtt target must exist",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -12594,6 +12595,7 @@
         "startColumn": 3,
         "endLine": 111,
         "endColumn": 22,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Ref/GetAtt target must exist",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -12611,6 +12613,7 @@
         "startColumn": 3,
         "endLine": 111,
         "endColumn": 22,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Additional properties are not allowed",
         "phase": "SCHEMA",
         "section": "Resources",
@@ -12628,7 +12631,6 @@
               "CrossZone",
               "DNSName",
               "HealthCheck",
-              "Id",
               "Instances",
               "LBCookieStickinessPolicy",
               "Listeners",
@@ -12656,6 +12658,7 @@
         "startColumn": 3,
         "endLine": 111,
         "endColumn": 22,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -12917,6 +12920,7 @@
         "conditionScenario": {
           "IsProduction": true
         },
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -12937,6 +12941,7 @@
         "conditionScenario": {
           "IsProduction": true
         },
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -12957,6 +12962,7 @@
         "conditionScenario": {
           "IsProduction": true
         },
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -23786,7 +23792,7 @@
           "extra": {
             "actual_length": 148,
             "max_length": 128,
-            "min_length": 1
+            "min_length": 0
           }
         }
       },
@@ -23901,7 +23907,7 @@
           "extra": {
             "actual_length": 280,
             "max_length": 256,
-            "min_length": 1
+            "min_length": 0
           }
         }
       },
@@ -30562,7 +30568,7 @@
       "rulesEvaluated": 273,
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 37,
+        "fatal": 36,
         "errors": 5,
         "warnings": 0,
         "informational": 7,
@@ -31350,24 +31356,6 @@
         "resourceType": "AWS::SageMaker::Cluster",
         "propertyPath": "Properties.InstanceGroups.0",
         "suggestedFix": "Add the required property 'InstanceGroupName'",
-        "category": "Schema",
-        "startLine": 43,
-        "startColumn": 3,
-        "endLine": 43,
-        "endColumn": 10,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'EnvironmentConfig' is a required property",
-        "source": "SCHEMA",
-        "resourceId": "Cluster",
-        "resourceType": "AWS::SageMaker::Cluster",
-        "propertyPath": "Properties.RestrictedInstanceGroups.0",
-        "suggestedFix": "Add the required property 'EnvironmentConfig'",
         "category": "Schema",
         "startLine": 43,
         "startColumn": 3,
@@ -53321,6 +53309,7 @@
         "startColumn": 3,
         "endLine": 663,
         "endColumn": 14,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Value not in allowed enum",
         "phase": "SCHEMA",
         "section": "Resources",
@@ -53341,6 +53330,7 @@
         "startColumn": 3,
         "endLine": 663,
         "endColumn": 14,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "section": "Resources",
@@ -107138,7 +107128,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 21,
+        "informational": 22,
         "debug": 0
       },
       "suppressed": 0,
@@ -107225,6 +107215,24 @@
         "startColumn": 3,
         "endLine": 3,
         "endColumn": 22,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DocumentAssociation' of type 'AWS::SSM::Association' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "DocumentAssociation",
+        "resourceType": "AWS::SSM::Association",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 3,
+        "endLine": 43,
+        "endColumn": 23,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
@@ -109941,7 +109949,7 @@
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
-        "errors": 1,
+        "errors": 0,
         "warnings": 0,
         "informational": 2,
         "debug": 0
@@ -109974,22 +109982,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "E3702",
-        "severity": "ERROR",
-        "message": "Action 'Deploy' (category 'Deploy') has 0 input artifacts, expected at least 1",
-        "source": "CFN_LINT",
-        "resourceId": "Pipeline",
-        "resourceType": "AWS::CodePipeline::Pipeline",
-        "category": "Resource",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 14,
-        "ruleDescription": "Validate the number of input and output artifacts in a CodePipeline",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -150597,6 +150589,7 @@
         "startColumn": 3,
         "endLine": 723,
         "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -150614,6 +150607,7 @@
         "startColumn": 3,
         "endLine": 723,
         "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -150631,6 +150625,7 @@
         "startColumn": 3,
         "endLine": 723,
         "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "section": "Resources",
@@ -150687,6 +150682,7 @@
         "startColumn": 3,
         "endLine": 759,
         "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -150704,6 +150700,7 @@
         "startColumn": 3,
         "endLine": 759,
         "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "section": "Resources"
@@ -161773,6 +161770,7 @@
         "startColumn": 3,
         "endLine": 1317,
         "endColumn": 29,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "section": "Resources",
@@ -161828,6 +161826,7 @@
         "startColumn": 3,
         "endLine": 1370,
         "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "section": "Resources",

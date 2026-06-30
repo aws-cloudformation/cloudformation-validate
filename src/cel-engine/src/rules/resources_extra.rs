@@ -1107,13 +1107,21 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for stage in &stages {
                 if let Some(actions) = stage.get("Actions").and_then(|a| a.as_array()) {
                     for action in actions {
-                        let cat = action
-                            .get("ActionTypeId")
-                            .and_then(|a| a.get("Category"))
-                            .and_then(|c| c.as_str())
-                            .unwrap_or("");
+                        let action_type_id = action.get("ActionTypeId");
+                        let owner = action_type_id.and_then(|a| a.get("Owner")).and_then(|c| c.as_str());
+                        let category = action_type_id.and_then(|a| a.get("Category")).and_then(|c| c.as_str());
+                        let provider = action_type_id.and_then(|a| a.get("Provider")).and_then(|c| c.as_str());
+                        // Artifact-count constraints are keyed on the full
+                        // Owner/Category/Provider tuple — the same key cfn-lint
+                        // uses. A category alone is ambiguous (e.g. AWS/Deploy/
+                        // CloudFormation allows 0 input artifacts while AWS/Deploy/
+                        // CodeDeploy requires 1). Skip when the tuple is unknown.
+                        let (Some(owner), Some(category), Some(provider)) = (owner, category, provider) else {
+                            continue;
+                        };
                         let aname = action.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
-                        if let Some(counts) = ctx.cached_data.codepipeline_artifact_counts.get(cat) {
+                        let key = format!("{owner}/{category}/{provider}");
+                        if let Some(counts) = ctx.cached_data.codepipeline_artifact_counts.get(&key) {
                             let actual_in =
                                 action.get("InputArtifacts").and_then(|i| i.as_array()).map(|a| a.len()).unwrap_or(0);
                             let actual_out =
@@ -1122,8 +1130,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 out.push(make_resource_diagnostic(
                                     "E3702",
                                     &format!(
-                                        "Action '{}' (category '{}') has {} input artifacts, expected at least {}",
-                                        aname, cat, actual_in, counts.min_input
+                                        "Action '{}' ({}) has {} input artifacts, expected at least {}",
+                                        aname, key, actual_in, counts.min_input
                                     ),
                                     m,
                                     name,
@@ -1135,8 +1143,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 out.push(make_resource_diagnostic(
                                     "E3702",
                                     &format!(
-                                        "Action '{}' (category '{}') has {} input artifacts, expected at most {}",
-                                        aname, cat, actual_in, counts.max_input
+                                        "Action '{}' ({}) has {} input artifacts, expected at most {}",
+                                        aname, key, actual_in, counts.max_input
                                     ),
                                     m,
                                     name,
@@ -1148,8 +1156,21 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 out.push(make_resource_diagnostic(
                                     "E3702",
                                     &format!(
-                                        "Action '{}' (category '{}') has {} output artifacts, expected at least {}",
-                                        aname, cat, actual_out, counts.min_output
+                                        "Action '{}' ({}) has {} output artifacts, expected at least {}",
+                                        aname, key, actual_out, counts.min_output
+                                    ),
+                                    m,
+                                    name,
+                                    "",
+                                    None,
+                                ));
+                            }
+                            if actual_out > counts.max_output {
+                                out.push(make_resource_diagnostic(
+                                    "E3702",
+                                    &format!(
+                                        "Action '{}' ({}) has {} output artifacts, expected at most {}",
+                                        aname, key, actual_out, counts.max_output
                                     ),
                                     m,
                                     name,
