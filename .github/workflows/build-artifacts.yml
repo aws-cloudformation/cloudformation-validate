@@ -74,6 +74,7 @@ jobs:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -203,6 +204,7 @@ jobs:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: windows-latest, platform: win32, arch: x64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
