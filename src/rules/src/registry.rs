@@ -1768,6 +1768,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "VirtualName is ignored when Ebs is specified",
         origin: RuleOrigin::CfnLint,
     },
+    RuleDefinition {
+        id: "W9100",
+        category: Category::BestPractice,
+        description: "Template has no Metadata.Context block at the template level or on any resource",
+        origin: RuleOrigin::Engine,
+    },
 ];
 
 #[cfg(test)]

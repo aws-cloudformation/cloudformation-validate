@@ -4,6 +4,7 @@ uniffi::setup_scaffolding!();
 pub mod engine;
 pub mod guard;
 pub(crate) mod step_functions;
+pub mod context_check;
 
 pub use engine::{
     EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,

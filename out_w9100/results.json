@@ -1,0 +1,524 @@
+[
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/add-dlq-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "add-dlq",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/add-dlq-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "add-dlq",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/api-rate-limit-sharing-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "api-rate-limit-sharing",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/api-rate-limit-sharing-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "api-rate-limit-sharing",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/canary-percentage-cap-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "canary-percentage-cap",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/canary-percentage-cap-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "canary-percentage-cap",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/cfn-hook-awareness-nocontext.yaml",
+    "resources_scanned": 1,
+    "scenario": "cfn-hook-awareness",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/cfn-hook-awareness-context.yaml",
+    "resources_scanned": 1,
+    "scenario": "cfn-hook-awareness",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/circular-dependency-prevention-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "circular-dependency-prevention",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/circular-dependency-prevention-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "circular-dependency-prevention",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/conditional-resource-coupling-nocontext.yaml",
+    "resources_scanned": 5,
+    "scenario": "conditional-resource-coupling",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/conditional-resource-coupling-context.yaml",
+    "resources_scanned": 5,
+    "scenario": "conditional-resource-coupling",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/cost-allocation-team-budget-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "cost-allocation-team-budget",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/cost-allocation-team-budget-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "cost-allocation-team-budget",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/cross-stack-reference-safety-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "cross-stack-reference-safety",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/cross-stack-reference-safety-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "cross-stack-reference-safety",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/custom-naming-convention-violation-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "custom-naming-convention-violation",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/custom-naming-convention-violation-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "custom-naming-convention-violation",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/deployment-window-restriction-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "deployment-window-restriction",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/deployment-window-restriction-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "deployment-window-restriction",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/drift-detection-annotation-nocontext.yaml",
+    "resources_scanned": 1,
+    "scenario": "drift-detection-annotation",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/drift-detection-annotation-context.yaml",
+    "resources_scanned": 1,
+    "scenario": "drift-detection-annotation",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/environment-parameter-propagation-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "environment-parameter-propagation",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/environment-parameter-propagation-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "environment-parameter-propagation",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/failover-primary-designation-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "failover-primary-designation",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/failover-primary-designation-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "failover-primary-designation",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/flag-unmanaged-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "flag-unmanaged",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/flag-unmanaged-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "flag-unmanaged",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/iam-permission-boundary-respect-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "iam-permission-boundary-respect",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/iam-permission-boundary-respect-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "iam-permission-boundary-respect",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/inter-stack-ordering-dependency-nocontext.yaml",
+    "resources_scanned": 4,
+    "scenario": "inter-stack-ordering-dependency",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/inter-stack-ordering-dependency-context.yaml",
+    "resources_scanned": 4,
+    "scenario": "inter-stack-ordering-dependency",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/internal-sla-timeout-coupling-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "internal-sla-timeout-coupling",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/internal-sla-timeout-coupling-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "internal-sla-timeout-coupling",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/lambda-layer-version-pinning-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "lambda-layer-version-pinning",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/lambda-layer-version-pinning-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "lambda-layer-version-pinning",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/max-memory-budget-constraint-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "max-memory-budget-constraint",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/max-memory-budget-constraint-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "max-memory-budget-constraint",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/persist-context-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "persist-context",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/persist-context-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "persist-context",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/reserved-cidr-block-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "reserved-cidr-block",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/reserved-cidr-block-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "reserved-cidr-block",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/resource-limit-awareness-nocontext.yaml",
+    "resources_scanned": 6,
+    "scenario": "resource-limit-awareness",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/resource-limit-awareness-context.yaml",
+    "resources_scanned": 6,
+    "scenario": "resource-limit-awareness",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/respect-constraint-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "respect-constraint",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/respect-constraint-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "respect-constraint",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/retain-deletion-policy-nocontext.yaml",
+    "resources_scanned": 3,
+    "scenario": "retain-deletion-policy",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/retain-deletion-policy-context.yaml",
+    "resources_scanned": 3,
+    "scenario": "retain-deletion-policy",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/security-group-blast-radius-nocontext.yaml",
+    "resources_scanned": 5,
+    "scenario": "security-group-blast-radius",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/security-group-blast-radius-context.yaml",
+    "resources_scanned": 5,
+    "scenario": "security-group-blast-radius",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/stack-output-dependency-chain-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "stack-output-dependency-chain",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/stack-output-dependency-chain-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "stack-output-dependency-chain",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/tag-propagation-compliance-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "tag-propagation-compliance",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/tag-propagation-compliance-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "tag-propagation-compliance",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/update-policy-respect-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "update-policy-respect",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/update-policy-respect-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "update-policy-respect",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/update-replacement-warning-nocontext.yaml",
+    "resources_scanned": 2,
+    "scenario": "update-replacement-warning",
+    "status": "ok",
+    "variant": "nocontext",
+    "w9100_count": 1
+  },
+  {
+    "error_message": "",
+    "fixture_path": "/Volumes/workplace/context/src/CfnCloudContextPOCs/fixtures/update-replacement-warning-context.yaml",
+    "resources_scanned": 2,
+    "scenario": "update-replacement-warning",
+    "status": "ok",
+    "variant": "context",
+    "w9100_count": 0
+  }
+]

@@ -189,6 +189,7 @@ pub(crate) fn validate(
     let t_post = Instant::now();
     if !config.disable_builtin_rules {
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
+        all_diagnostics.extend(crate::context_check::check_missing_context(&model));
         all_diagnostics.extend(model.diagnostics.iter().cloned());
     }
 
