@@ -80,6 +80,10 @@ export interface DiagnosticModel {
     samImplicitResources: string[];
     globalsParamRefs: string[];
     isCdk: boolean;
+    fnIfConditions: string[];
+    findInMapNames: string[];
+    paramsReferencedInDefinitions: string[];
+    hasDynamicFindinmapName: boolean;
     hasParseErrors: boolean;
     parsedRules: DiagnosticRule[];
     resolutionSources: ResolutionSource[];
@@ -231,13 +235,13 @@ export interface PhaseMetric {
 }
 
 export interface PseudoParameterOverrides {
-    accountId: string | undefined;
-    notificationArns: string | undefined;
-    partition: string | undefined;
-    region: string | undefined;
-    stackId: string | undefined;
-    stackName: string | undefined;
-    urlSuffix: string | undefined;
+    accountId?: string;
+    notificationArns?: string;
+    partition?: string;
+    region?: string;
+    stackId?: string;
+    stackName?: string;
+    urlSuffix?: string;
 }
 
 export interface ReferenceEdge {
@@ -288,6 +292,7 @@ export interface ResolvedResource {
     creationPolicy: JsonValue | undefined;
     metadata: JsonValue | undefined;
     properties: Record<string, ResolvedValue>;
+    propertiesDynamic: boolean;
     diagnostics: ResourceDiagnostics;
 }
 
@@ -381,11 +386,11 @@ export interface Summary {
 export interface ValidateConfig {
     include?: RuleFilterConfig;
     exclude?: RuleFilterConfig;
-    severityLevel?: Severity | undefined;
-    parameterOverrides?: Record<string, string> | undefined;
-    pseudoParameterOverrides?: PseudoParameterOverrides | undefined;
-    strict?: boolean | undefined;
-    disableBuiltinRules?: boolean | undefined;
+    severityLevel?: Severity;
+    parameterOverrides?: Record<string, string>;
+    pseudoParameterOverrides?: PseudoParameterOverrides;
+    strict?: boolean;
+    disableBuiltinRules?: boolean;
 }
 
 export interface ViolationContext {
