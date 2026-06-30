@@ -518,10 +518,16 @@ impl<'a> Resolver<'a> {
                     _ => ResolvedValue::Dynamic { reason: "Base64 with unresolvable argument".into() },
                 }
             }
-            IntrinsicFn::ImportValue(_) => ResolvedValue::TypedDynamic {
-                reason: "cross-stack import".into(),
-                param_type: PARAM_TYPE_STRING.into(),
-            },
+            IntrinsicFn::ImportValue(arg) => {
+                let reason = match self.resolve_node(*arg) {
+                    ResolvedValue::Concrete { value } => match value.as_str() {
+                        Some(export) => format!("cross-stack import: {export}"),
+                        None => "cross-stack import".into(),
+                    },
+                    _ => "cross-stack import".into(),
+                };
+                ResolvedValue::TypedDynamic { reason, param_type: PARAM_TYPE_STRING.into() }
+            }
             IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
             IntrinsicFn::GetAZs(region_ref) => {
                 if let Some(ref rid) = self.current_resource {
@@ -835,6 +841,11 @@ impl<'a> Resolver<'a> {
         if PSEUDO_PARAMETERS.contains(&target) {
             if target == PSEUDO_NO_VALUE {
                 return Some(ResolvedValue::Concrete { value: serde_json::Value::Null.into() });
+            }
+            if let Some(ref rid) = self.current_resource {
+                self.resolution_source_map
+                    .entry((rid.clone(), self.current_path.clone()))
+                    .or_insert_with(|| format!("Intrinsic/{}", TAG_REF));
             }
             if let Some(val) = self.pseudo_parameter_overrides.get(target) {
                 return Some(ResolvedValue::Concrete { value: serde_json::Value::String(val).into() });
@@ -1387,6 +1398,11 @@ impl<'a> Resolver<'a> {
 }
 
 fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
+    if param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || param_type.starts_with("List<") {
+        return serde_json::Value::Array(
+            value.split(',').map(|v| serde_json::Value::String(v.trim().to_string())).collect(),
+        );
+    }
     match param_type {
         PARAM_TYPE_NUMBER => value
             .parse::<f64>()
@@ -2380,8 +2396,47 @@ mod tests {
         let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::ImportValue":"StackExport"}}}}}"#;
         let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
         match model.resolve("R", "Properties.V") {
-            Some(ResolvedValue::TypedDynamic { reason: _, param_type: t }) => assert_eq!(t, "String"),
+            Some(ResolvedValue::TypedDynamic { reason, param_type: t }) => {
+                assert_eq!(t, "String");
+                // The export name is carried so distinct imports stay distinct.
+                assert!(reason.contains("StackExport"), "reason should carry the export name, got {reason:?}");
+            }
             other => panic!("Expected TypedDynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_import_value_distinct_exports_differ() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{
+            "A":{"Fn::ImportValue":"ExportOne"},
+            "B":{"Fn::ImportValue":"ExportTwo"}
+        }}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let a = model.resolve("R", "Properties.A").cloned();
+        let b = model.resolve("R", "Properties.B").cloned();
+        match (a, b) {
+            (
+                Some(ResolvedValue::TypedDynamic { reason: ra, .. }),
+                Some(ResolvedValue::TypedDynamic { reason: rb, .. }),
+            ) => assert_ne!(ra, rb, "distinct exports must produce distinct symbolic values"),
+            other => panic!("Expected two TypedDynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn comma_delimited_list_default_resolves_to_array() {
+        let input = r#"{"Parameters":{"P":{"Type":"CommaDelimitedList","Default":"GET, PUT ,POST"}},
+            "Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"P"}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::Concrete { value }) => {
+                assert_eq!(
+                    **value,
+                    serde_json::json!(["GET", "PUT", "POST"]),
+                    "default must split into a trimmed array"
+                );
+            }
+            other => panic!("Expected Concrete array, got {:?}", other),
         }
     }
 

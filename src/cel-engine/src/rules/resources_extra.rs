@@ -25,7 +25,7 @@ static RATE_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
 });
 
 static ARN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]|aws-us-gov):iam::[0-9]{12}:role/.*$")
+    regex::Regex::new(r"^arn:(aws[a-zA-Z-]*)?:iam::[0-9]{12}:role/[a-zA-Z_0-9+=,.@\-_/]+$")
         .expect("Invalid ARN_RE pattern")
 });
 
@@ -114,6 +114,19 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     // properties by name still see per-branch values.
     let scenarios = m.resolve_scenarios_json(rid, path);
     scenarios.into_iter().next().map(|(v, _)| v)
+}
+
+/// Whether an S3 bucket has an *effective* OwnershipControls configuration: the
+/// `OwnershipControls.Rules` array is present with at least one entry. An absent
+/// `OwnershipControls`, an absent `Rules`, or an empty `Rules: []` is not
+/// effective (S3 Object Ownership defaults to BucketOwnerEnforced, which disables
+/// ACLs, so an `AccessControl` value would be ignored). Mirrors the reference
+/// linter's `minItems: 1` requirement on `Rules`.
+fn has_effective_ownership_controls(m: &SemanticModel, rid: &str) -> bool {
+    resolve_concrete(m, rid, "Properties.OwnershipControls.Rules")
+        .as_ref()
+        .and_then(|v| v.as_array().map(|rules| !rules.is_empty()))
+        .unwrap_or(false)
 }
 
 fn is_valid_cidr_strict(s: &str) -> bool {
@@ -399,11 +412,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::CloudFront::Distribution") {
         if let Some(dist) = resolve_concrete(m, name, "Properties.DistributionConfig") {
-            let origin_ids: HashSet<&str> = dist
+            // A TargetOriginId is valid if it matches the Id of any Origin or any
+            // OriginGroup item. Only the DefaultCacheBehavior is validated.
+            let mut origin_ids: HashSet<&str> = dist
                 .get("Origins")
                 .and_then(|o| o.as_array())
                 .map(|arr| arr.iter().filter_map(|o| o.get("Id").and_then(|i| i.as_str())).collect())
                 .unwrap_or_default();
+            if let Some(items) = dist.get("OriginGroups").and_then(|g| g.get("Items")).and_then(|i| i.as_array()) {
+                origin_ids.extend(items.iter().filter_map(|g| g.get("Id").and_then(|i| i.as_str())));
+            }
             if let Some(target) =
                 dist.get("DefaultCacheBehavior").and_then(|d| d.get("TargetOriginId")).and_then(|t| t.as_str())
                 && !origin_ids.contains(target)
@@ -751,11 +769,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::S3::Bucket") {
         if let Some(res) = m.resources.get(name.as_str())
             && res.properties.contains_key("AccessControl")
-            && !res.properties.contains_key("OwnershipControls")
             && let Some(serde_json::Value::String(ac)) = resolve_concrete(m, name, "Properties.AccessControl")
             // OwnershipControls is only required for ACLs that grant access to
             // other accounts. These owner-scoped ACLs need no OwnershipControl.
             && !matches!(ac.as_str(), "Private" | "BucketOwnerFullControl" | "BucketOwnerRead")
+            && !has_effective_ownership_controls(m, name)
         {
             out.push(make_resource_diagnostic(
                 "E3045",
@@ -1325,13 +1343,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     let role_arn_props = [
+        ("AWS::Backup::BackupSelection", "Properties.BackupSelection.IamRoleArn"),
+        ("AWS::Batch::ComputeEnvironment", "Properties.ComputeResources.SpotIamFleetRole"),
+        ("AWS::Batch::ComputeEnvironment", "Properties.ServiceRole"),
+        ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.IamFleetRole"),
         ("AWS::ECS::TaskDefinition", "Properties.ExecutionRoleArn"),
         ("AWS::S3::Bucket", "Properties.ReplicationConfiguration.Role"),
     ];
     for (rtype, path) in &role_arn_props {
         for name in m.resources_of_type(rtype) {
             if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path)
-                && val.starts_with("arn:")
                 && !ARN_RE.is_match(&val)
             {
                 out.push(make_resource_diagnostic(

@@ -185,10 +185,14 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
-        for val in res.properties.values() {
+        for (key, val) in &res.properties {
+            // Skip intrinsic-built values (e.g. an ARN assembled with Fn::Join +
+            // Ref AWS::AccountId): the account segment is a pseudo-parameter
+            // stand-in, not a literal the author typed.
             if let ResolvedValue::Concrete { value: v } = val
                 && let Some(s) = v.as_str()
                 && ACCT_RE.is_match(s)
+                && !m.is_from_intrinsic(name, &format!("Properties.{}", key))
             {
                 out.push(make_resource_diagnostic(
                     "W9013",

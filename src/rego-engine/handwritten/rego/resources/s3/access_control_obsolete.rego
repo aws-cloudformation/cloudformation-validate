@@ -25,5 +25,15 @@ violation contains make_diag_full("E3045", "ERROR", name,
     # OwnershipControls is only required for ACLs that grant access to other
     # accounts. These owner-scoped ACLs need no OwnershipControl.
     not ac in {"Private", "BucketOwnerFullControl", "BucketOwnerRead"}
-    not has_property(name, "OwnershipControls")
+    not _has_effective_ownership_controls(name)
+}
+
+# Effective OwnershipControls means OwnershipControls.Rules is present with at
+# least one entry. An absent OwnershipControls, an absent Rules, or an empty
+# Rules array is not effective (S3 Object Ownership defaults to
+# BucketOwnerEnforced, which disables ACLs, so AccessControl would be ignored).
+_has_effective_ownership_controls(name) if {
+    rules := resolve(name, "Properties.OwnershipControls.Rules")
+    is_array(rules)
+    count(rules) > 0
 }

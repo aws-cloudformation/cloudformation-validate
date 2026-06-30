@@ -703,17 +703,18 @@ fn resource_without_policies_has_none() {
 }
 
 #[test]
-fn select_on_non_list_gives_correct_message() {
+fn select_on_comma_delimited_list_resolves_element() {
     let m = load("lsp/comprehensive.yaml");
-    // SubnetCidrs is CommaDelimitedList → resolves to a string, not an array
-    // !Select [0, !Ref SubnetCidrs] should produce "Select on non-list value"
+    // SubnetCidrs is a CommaDelimitedList (default "10.0.1.0/24,10.0.2.0/24"),
+    // so it resolves to an array and `!Select [0, !Ref SubnetCidrs]` yields the
+    // first element — a concrete value, just as CloudFormation would.
     let subnet = m.resource("PublicSubnet").unwrap();
     let cidr = &subnet.properties["CidrBlock"];
     match cidr {
-        ResolvedValue::Dynamic { reason: msg } => {
-            assert!(msg.contains("non-list"), "expected 'non-list' in message, got: {}", msg);
+        ResolvedValue::Concrete { value } => {
+            assert_eq!(value.as_str(), Some("10.0.1.0/24"), "Select should pick the first list element");
         }
-        other => panic!("expected Dynamic, got {:?}", other),
+        other => panic!("expected Concrete, got {:?}", other),
     }
 }
 
