@@ -593,6 +593,90 @@ fn issue_65_no_f3031_f3033_on_accountid_ref() {
 }
 
 // ---------------------------------------------------------------------------
+// Pseudo-parameter override validation (W9012).
+//
+// A caller can pin pseudo-parameter values through `PseudoParameterOverrides`.
+// Only the account-id and partition values have a well-defined shape; when a
+// provided value cannot correspond to a real AWS value, the validator surfaces
+// exactly one config-level warning (not a per-occurrence template diagnostic).
+// ---------------------------------------------------------------------------
+
+/// One invalid override (a non-12-digit account id) yields exactly one W9012 in
+/// both engines, and it carries no resource location since it is a config concern.
+#[test]
+fn invalid_account_id_override_emits_single_w9012() {
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            account_id: Some("unknown-account".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let diags = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
+        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+    ];
+    assert_count(&diags, "W9012", 1);
+    for (engine, d) in &diags {
+        let w = d.iter().find(|x| x.rule_id == "W9012").expect("W9012 expected");
+        assert!(w.resource.is_none(), "[{engine}] W9012 is a config warning with no resource");
+        assert!(w.message.contains("unknown-account"), "[{engine}] message names the bad value: {}", w.message);
+    }
+}
+
+/// Multiple invalid overrides (account id + partition) still collapse into a
+/// single W9012 whose message names every offending value, in both engines.
+#[test]
+fn multiple_invalid_overrides_collapse_into_one_w9012() {
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            account_id: Some("nope".to_string()),
+            partition: Some("gcp".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let diags = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
+        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+    ];
+    assert_count(&diags, "W9012", 1);
+    for (engine, d) in &diags {
+        let w = d.iter().find(|x| x.rule_id == "W9012").expect("W9012 expected");
+        assert!(w.message.contains("nope"), "[{engine}] message names the bad account id");
+        assert!(w.message.contains("gcp"), "[{engine}] message names the bad partition");
+    }
+}
+
+/// Valid (and absent) overrides never emit W9012.
+#[test]
+fn valid_overrides_emit_no_w9012() {
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        pseudo_parameter_overrides: PseudoParameterOverrides {
+            account_id: Some("210987654321".to_string()),
+            partition: Some("aws-us-gov".to_string()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let diags = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", config.clone())),
+        ("cel", validate_with(&*CEL, "issue-65.json", config)),
+    ];
+    assert_absent(&diags, "W9012");
+
+    // No overrides at all: also clean.
+    let bare = vec![
+        ("rego", validate_with(&*REGO, "issue-65.json", debug_config())),
+        ("cel", validate_with(&*CEL, "issue-65.json", debug_config())),
+    ];
+    assert_absent(&bare, "W9012");
+}
+
+// ---------------------------------------------------------------------------
 // FATAL rules are suppressible.
 //
 // FATAL diagnostics are filtered by the same include/exclude mechanism as every

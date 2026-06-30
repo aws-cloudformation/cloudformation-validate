@@ -181,6 +181,14 @@ pub struct PseudoParameterOverrides {
     pub url_suffix: Option<String>,
 }
 
+fn is_account_id_shaped(value: &str) -> bool {
+    value.len() == 12 && value.bytes().all(|b| b.is_ascii_digit())
+}
+
+fn is_partition_shaped(value: &str) -> bool {
+    value.starts_with("aws")
+}
+
 impl PseudoParameterOverrides {
     pub fn region(&self) -> &str {
         self.region.as_deref().unwrap_or(DEFAULT_REGION)
@@ -212,6 +220,25 @@ impl PseudoParameterOverrides {
             }
             _ => None,
         }
+    }
+
+    #[must_use]
+    pub fn invalid_overrides(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        if let Some(account_id) = self.account_id.as_deref()
+            && !is_account_id_shaped(account_id)
+        {
+            problems.push(format!("{PSEUDO_ACCOUNT_ID} override '{account_id}' is not a 12-digit AWS account ID"));
+        }
+        if let Some(partition) = self.partition.as_deref()
+            && !is_partition_shaped(partition)
+        {
+            problems.push(format!(
+                "{PSEUDO_PARTITION} override '{partition}' is not a valid partition \
+                 (expected an 'aws'-family value such as aws, aws-cn, or aws-us-gov)"
+            ));
+        }
+        problems
     }
 
     /// Returns the user-supplied override for `name` only when the caller
@@ -1148,6 +1175,55 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn invalid_overrides_reports_nothing_when_unset_or_valid() {
+        assert!(PseudoParameterOverrides::default().invalid_overrides().is_empty(), "unset overrides are valid");
+        let valid = PseudoParameterOverrides {
+            account_id: Some("123456789012".to_string()),
+            partition: Some("aws-cn".to_string()),
+            ..Default::default()
+        };
+        assert!(valid.invalid_overrides().is_empty(), "well-formed overrides produce no warnings");
+    }
+
+    #[test]
+    fn invalid_overrides_reports_each_malformed_provided_value() {
+        let bad = PseudoParameterOverrides {
+            account_id: Some("unknown-account".to_string()),
+            partition: Some("gcp".to_string()),
+            ..Default::default()
+        };
+        let problems = bad.invalid_overrides();
+        assert_eq!(problems.len(), 2, "one entry per invalid provided field");
+        assert!(problems.iter().any(|p| p.contains("AccountId") && p.contains("unknown-account")));
+        assert!(problems.iter().any(|p| p.contains("Partition") && p.contains("gcp")));
+    }
+
+    #[test]
+    fn invalid_overrides_only_checks_account_id_and_partition() {
+        let only_region = PseudoParameterOverrides { region: Some("not a region".to_string()), ..Default::default() };
+        assert!(only_region.invalid_overrides().is_empty());
+    }
+
+    #[test]
+    fn account_id_shape_requires_exactly_twelve_digits() {
+        assert!(is_account_id_shaped("123456789012"));
+        assert!(!is_account_id_shaped("12345678901"));
+        assert!(!is_account_id_shaped("1234567890123"));
+        assert!(!is_account_id_shaped("12345678901a"));
+        assert!(!is_account_id_shaped(""));
+    }
+
+    #[test]
+    fn partition_shape_accepts_aws_family_and_rejects_others() {
+        for ok in ["aws", "aws-cn", "aws-us-gov", "aws-iso", "aws-iso-b"] {
+            assert!(is_partition_shaped(ok), "{ok} should be accepted");
+        }
+        for bad in ["gcp", "AWS", "azure", ""] {
+            assert!(!is_partition_shaped(bad), "{bad} should be rejected");
+        }
+    }
 
     #[test]
     fn model_from_simple_template() {

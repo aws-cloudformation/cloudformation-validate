@@ -182,6 +182,14 @@ pub(crate) fn validate(
     };
     let mut all_diagnostics = schema_result.diagnostics;
 
+    if !config.disable_builtin_rules {
+        let invalid = config.pseudo_parameter_overrides.invalid_overrides();
+        if !invalid.is_empty() {
+            let message = format!("Invalid pseudo-parameter override(s): {}", invalid.join("; "));
+            all_diagnostics.push(RegisteredDiagnostic::new("W9012", message).build());
+        }
+    }
+
     let t_eval = Instant::now();
     let engine_diags = engine.evaluate_rules(&model, &config)?;
     all_diagnostics.extend(engine_diags);

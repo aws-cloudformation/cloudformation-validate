@@ -24,10 +24,8 @@ static RATE_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^rate\(\s*\d+(\.\d+)?\s+(minutes?|hours?|days?)\s*\)$").expect("Invalid RATE_RE pattern")
 });
 
-static ARN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^arn:(aws[a-zA-Z-]*)?:iam::[0-9]{12}:role/[a-zA-Z_0-9+=,.@\-_/]+$")
-        .expect("Invalid ARN_RE pattern")
-});
+static ARN_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$").expect("Invalid ARN_RE pattern"));
 
 static SG_NAME_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r#"^[a-zA-Z0-9 \._\-:/()#,@\[\]+=&;\{\}!\$\*]+$"#).expect("Invalid SG_NAME_RE pattern")
