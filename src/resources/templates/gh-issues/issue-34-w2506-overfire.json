@@ -1,0 +1,14 @@
+{
+  "Parameters": {
+    "AmiParam": { "Type": "String" }
+  },
+  "Resources": {
+    "NotAnImageSlot": {
+      "Type": "Custom::Thing",
+      "Properties": {
+        "ServiceToken": "arn:aws:lambda:us-east-1:123456789012:function:f",
+        "ImageId": { "Ref": "AmiParam" }
+      }
+    }
+  }
+}

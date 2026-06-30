@@ -13,7 +13,9 @@ violation contains make_diag_at("W9010", "WARN", name,
     regex.match(`^ami-[0-9a-f]{8,17}$`, val)
 }
 
-# W9013: Hardcoded account ID in ARN
+# W9013: Hardcoded account ID in ARN. Skips intrinsic-built values (e.g. an ARN
+# assembled with Fn::Join + Ref AWS::AccountId): the account segment is a
+# pseudo-parameter stand-in, not a literal the author typed.
 violation contains make_diag("W9013", "WARN", name,
     "Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter") if {
     some name, res in input.resources
@@ -21,6 +23,7 @@ violation contains make_diag("W9013", "WARN", name,
     val := res.properties[key]
     is_string(val)
     regex.match(`arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:`, val)
+    not is_from_intrinsic(name, sprintf("Properties.%s", [key]))
 }
 
 # I3042: Hardcoded partition in Fn::Sub template (only fires inside Fn::Sub, skips SAM)

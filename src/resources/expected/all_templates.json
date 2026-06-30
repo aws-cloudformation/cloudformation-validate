@@ -4,7 +4,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -167,7 +167,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -431,7 +431,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -496,7 +496,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -588,7 +588,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -671,7 +671,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -1348,7 +1348,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1498,7 +1498,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1597,7 +1597,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -1697,12 +1697,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
         "errors": 1,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 1,
         "debug": 0
       },
@@ -1768,22 +1768,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "Pipeline",
-        "resourceType": "AWS::CodePipeline::Pipeline",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Pipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured",
@@ -1826,7 +1810,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -1955,7 +1939,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 10,
@@ -2562,7 +2546,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 9,
@@ -2748,7 +2732,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 17,
@@ -3159,7 +3143,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 9,
@@ -3401,7 +3385,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -3540,7 +3524,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -3676,7 +3660,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 3,
@@ -4333,7 +4317,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -4391,7 +4375,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -4463,7 +4447,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -4672,7 +4656,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -4730,7 +4714,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -5114,7 +5098,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -5498,7 +5482,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -5674,12 +5658,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 2,
         "errors": 6,
-        "warnings": 5,
+        "warnings": 3,
         "informational": 27,
         "debug": 0
       },
@@ -6011,22 +5995,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "BadEnvLambda",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 40,
-        "startColumn": 3,
-        "endLine": 40,
-        "endColumn": 15,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I3042",
         "severity": "INFO",
         "message": "ARN in Resource BadEnvLambda contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters",
@@ -6095,22 +6063,6 @@
         "endLine": 53,
         "endColumn": 17,
         "ruleDescription": "Container image functions cannot use Handler, Runtime, or Layers",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "BadImageLambda",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 53,
-        "startColumn": 3,
-        "endLine": 53,
-        "endColumn": 17,
-        "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -6458,7 +6410,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -6554,7 +6506,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -6681,7 +6633,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -6787,7 +6739,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -6941,7 +6893,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -7063,7 +7015,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7195,7 +7147,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7275,7 +7227,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -7407,7 +7359,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7487,7 +7439,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -7609,7 +7561,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -7840,7 +7792,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -8045,7 +7997,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -8208,7 +8160,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -8363,7 +8315,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -8448,7 +8400,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -8660,7 +8612,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -8965,7 +8917,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -9045,7 +8997,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -9194,7 +9146,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -9254,7 +9206,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -9381,7 +9333,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -9669,7 +9621,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 5,
@@ -10022,7 +9974,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 3,
@@ -10148,7 +10100,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -10588,7 +10540,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -10752,7 +10704,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 5,
@@ -11360,7 +11312,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -11739,7 +11691,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 22,
@@ -13226,7 +13178,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -13420,7 +13372,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -13557,7 +13509,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -13619,7 +13571,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -13738,7 +13690,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -13834,7 +13786,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -13941,7 +13893,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -14035,7 +13987,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -14120,7 +14072,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -14214,7 +14166,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -14415,12 +14367,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 3,
         "debug": 0
       },
@@ -14452,22 +14404,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "Func",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 7,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I2530",
         "severity": "INFO",
@@ -14532,7 +14468,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -14648,12 +14584,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 1,
         "debug": 0
       },
@@ -14704,22 +14640,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "Func",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 7,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Func' of type 'AWS::Lambda::Function' supports Tags but none are configured",
@@ -14744,12 +14664,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
         "errors": 1,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 7,
         "debug": 0
       },
@@ -14872,22 +14792,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "Func",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 7,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Func' of type 'AWS::Lambda::Function' supports Tags but none are configured",
@@ -14951,12 +14855,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 2,
         "debug": 0
       },
@@ -15007,22 +14911,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "Func",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 7,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
@@ -15067,7 +14955,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15200,7 +15088,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -15272,7 +15160,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15408,7 +15296,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15469,7 +15357,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15530,7 +15418,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15591,7 +15479,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15652,7 +15540,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -15695,7 +15583,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -15811,7 +15699,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -15874,7 +15762,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -16035,7 +15923,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -16270,7 +16158,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -16368,7 +16256,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -16541,7 +16429,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -16624,7 +16512,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -16806,7 +16694,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 4,
@@ -16920,7 +16808,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -17387,7 +17275,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 10,
@@ -17703,7 +17591,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -17879,7 +17767,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -17997,7 +17885,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 1,
@@ -18502,7 +18390,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -18892,7 +18780,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -19404,7 +19292,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 2,
@@ -19802,7 +19690,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 2,
@@ -20653,7 +20541,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -20841,7 +20729,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -21151,7 +21039,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 3,
@@ -21487,7 +21375,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -21599,7 +21487,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -21642,7 +21530,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -21728,7 +21616,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -21906,7 +21794,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -22068,7 +21956,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -22180,7 +22068,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -22274,7 +22162,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -22368,7 +22256,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -22966,7 +22854,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -23163,7 +23051,7 @@
       {
         "ruleId": "F3017",
         "severity": "FATAL",
-        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy",
+        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy \u2014 specify one of the following property sets: ['Users'] or ['Groups'] or ['Roles']",
         "source": "SCHEMA",
         "resourceId": "rIamPolicy",
         "resourceType": "AWS::IAM::Policy",
@@ -23201,7 +23089,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -23266,7 +23154,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -23543,7 +23431,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -23623,7 +23511,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 6,
@@ -23991,7 +23879,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -24247,7 +24135,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -24361,7 +24249,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -25036,7 +24924,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -25094,7 +24982,7 @@
       {
         "ruleId": "F3017",
         "severity": "FATAL",
-        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy",
+        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy \u2014 specify one of the following property sets: ['Users'] or ['Groups'] or ['Roles']",
         "source": "SCHEMA",
         "resourceId": "myPolicy",
         "resourceType": "AWS::IAM::Policy",
@@ -25130,7 +25018,7 @@
       {
         "ruleId": "F3017",
         "severity": "FATAL",
-        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy",
+        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy \u2014 specify one of the following property sets: ['Users'] or ['Groups'] or ['Roles']",
         "source": "SCHEMA",
         "resourceId": "myPolicy2",
         "resourceType": "AWS::IAM::Policy",
@@ -25155,7 +25043,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -25198,7 +25086,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -25269,7 +25157,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -25417,7 +25305,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 2,
@@ -25557,7 +25445,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -25696,7 +25584,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -26396,7 +26284,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -26518,7 +26406,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -26626,7 +26514,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -26719,7 +26607,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 6,
@@ -27796,7 +27684,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 9,
@@ -28146,7 +28034,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -28258,7 +28146,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -28476,7 +28364,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -28583,7 +28471,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -29020,7 +28908,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -29088,7 +28976,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 2,
@@ -29557,7 +29445,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -30485,7 +30373,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -30565,7 +30453,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 36,
@@ -31478,7 +31366,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -31668,7 +31556,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -31813,7 +31701,7 @@
       {
         "ruleId": "F3017",
         "severity": "FATAL",
-        "message": "Value is not valid under any of the given schemas for AWS::EC2::Volume",
+        "message": "Value is not valid under any of the given schemas for AWS::EC2::Volume \u2014 specify one of the following property sets: ['AvailabilityZone', 'Size'] or ['AvailabilityZone', 'SnapshotId'] or ['AvailabilityZoneId', 'Size'] or ['AvailabilityZoneId', 'SnapshotId'] or ['SourceVolumeId']",
         "source": "SCHEMA",
         "resourceId": "NoAZ",
         "resourceType": "AWS::EC2::Volume",
@@ -31835,7 +31723,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -31941,7 +31829,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -32112,7 +32000,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -32254,7 +32142,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 1,
@@ -32605,7 +32493,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -32762,7 +32650,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -33042,7 +32930,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -33140,7 +33028,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 6,
@@ -33502,7 +33390,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -33644,7 +33532,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -33735,7 +33623,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -33854,7 +33742,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -33950,7 +33838,7 @@
       {
         "ruleId": "F3017",
         "severity": "FATAL",
-        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy",
+        "message": "Value is not valid under any of the given schemas for AWS::IAM::Policy \u2014 specify one of the following property sets: ['Users'] or ['Groups'] or ['Roles']",
         "source": "SCHEMA",
         "resourceId": "WildcardPolicy",
         "resourceType": "AWS::IAM::Policy",
@@ -33972,7 +33860,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -34082,7 +33970,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -34182,7 +34070,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -34265,7 +34153,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -34348,7 +34236,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -34824,7 +34712,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -35017,7 +34905,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -35275,7 +35163,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -35375,12 +35263,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 1,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 1,
         "debug": 0
       },
@@ -35447,22 +35335,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "SM",
-        "resourceType": "AWS::StepFunctions::StateMachine",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 5,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'SM' of type 'AWS::StepFunctions::StateMachine' supports Tags but none are configured",
@@ -35487,12 +35359,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 2,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 1,
         "debug": 0
       },
@@ -35572,22 +35444,6 @@
         "endLine": 4,
         "endColumn": 15,
         "ruleDescription": "Hardcoded ARN property",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "StateMachine",
-        "resourceType": "AWS::StepFunctions::StateMachine",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 15,
-        "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -35673,7 +35529,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -35787,7 +35643,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -35888,7 +35744,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -36046,7 +35902,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -36357,7 +36213,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -37004,7 +36860,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -37077,7 +36933,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
@@ -37150,7 +37006,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -37208,7 +37064,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -37284,7 +37140,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -37346,7 +37202,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -37406,7 +37262,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -37498,7 +37354,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -37576,7 +37432,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -37662,7 +37518,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -37819,7 +37675,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 2,
@@ -38299,7 +38155,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 27,
       "counts": {
         "fatal": 0,
@@ -39239,7 +39095,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -39362,7 +39218,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 41,
       "counts": {
         "fatal": 0,
@@ -41328,7 +41184,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 0,
@@ -42079,7 +41935,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 20,
       "counts": {
         "fatal": 0,
@@ -42820,7 +42676,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 27,
       "counts": {
         "fatal": 0,
@@ -43803,7 +43659,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -44510,7 +44366,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 22,
       "counts": {
         "fatal": 0,
@@ -45025,7 +44881,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 36,
       "counts": {
         "fatal": 0,
@@ -46614,7 +46470,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 15,
       "counts": {
         "fatal": 0,
@@ -47067,7 +46923,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -47450,7 +47306,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -47853,7 +47709,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -48185,7 +48041,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -48288,7 +48144,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 29,
       "counts": {
         "fatal": 0,
@@ -49431,7 +49287,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 29,
       "counts": {
         "fatal": 0,
@@ -50574,7 +50430,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -50721,7 +50577,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 41,
       "counts": {
         "fatal": 0,
@@ -51989,7 +51845,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 1,
@@ -53363,7 +53219,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -53638,7 +53494,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 74,
       "counts": {
         "fatal": 0,
@@ -55975,7 +55831,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 14,
       "counts": {
         "fatal": 0,
@@ -56526,7 +56382,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -56606,7 +56462,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -56797,7 +56653,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -57042,12 +56898,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 16,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 5,
+        "warnings": 4,
         "informational": 18,
         "debug": 0
       },
@@ -57079,22 +56935,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "ddbstreamtopic7821AF6E",
-        "resourceType": "AWS::SNS::Topic",
-        "category": "Security",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 26,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -57513,7 +57353,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 28,
       "counts": {
         "fatal": 0,
@@ -58379,7 +58219,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 29,
       "counts": {
         "fatal": 0,
@@ -59156,7 +58996,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 0,
@@ -60276,7 +60116,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 25,
       "counts": {
         "fatal": 0,
@@ -61171,12 +61011,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 6,
         "debug": 0
       },
@@ -61208,23 +61048,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W9007",
-        "severity": "WARN",
-        "message": "Array property 'Subnets' contains duplicate values",
-        "source": "ENGINE",
-        "resourceId": "LoadBalancerBE9EEC3A",
-        "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-        "propertyPath": "Properties.Subnets",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 24,
-        "ruleDescription": "Array items must be unique when required",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -61323,7 +61146,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
         }
       },
       {
@@ -61351,7 +61174,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -61590,7 +61413,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefClusterEB0386A796A0E3FE' (type String)"
         }
       },
       {
@@ -61667,7 +61490,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
         }
       },
       {
@@ -61771,7 +61594,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: SplitAtListener-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
         }
       },
       {
@@ -61857,7 +61680,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: SplitAtListener-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
         }
       },
       {
@@ -61921,7 +61744,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: SplitAtListener-LBStack:ExportsOutputRefLoadBalancerBE9EEC3A2EF8C31C' (type String)"
         }
       },
       {
@@ -62002,7 +61825,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
         }
       },
       {
@@ -62030,12 +61853,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 12,
         "debug": 0
       },
@@ -62067,23 +61890,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W9007",
-        "severity": "WARN",
-        "message": "Array property 'Subnets' contains duplicate values",
-        "source": "ENGINE",
-        "resourceId": "LoadBalancerBE9EEC3A",
-        "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-        "propertyPath": "Properties.Subnets",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 24,
-        "ruleDescription": "Array items must be unique when required",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -62182,7 +61988,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
         }
       },
       {
@@ -62303,7 +62109,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
         }
       },
       {
@@ -62331,7 +62137,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -62570,7 +62376,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefClusterEB0386A796A0E3FE' (type String)"
         }
       },
       {
@@ -62629,7 +62435,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
         }
       },
       {
@@ -62733,7 +62539,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: SplitAtTargetGroup-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
         }
       },
       {
@@ -62819,7 +62625,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: SplitAtTargetGroup-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
         }
       },
       {
@@ -62871,7 +62677,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 46,
       "counts": {
         "fatal": 0,
@@ -64395,7 +64201,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 44,
       "counts": {
         "fatal": 0,
@@ -65920,7 +65726,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 43,
       "counts": {
         "fatal": 0,
@@ -67386,7 +67192,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 38,
       "counts": {
         "fatal": 0,
@@ -69093,12 +68899,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 37,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 70,
         "debug": 0
       },
@@ -70521,22 +70327,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "sampleappServiceTaskCountTargetE827DC30",
-        "resourceType": "AWS::ApplicationAutoScaling::ScalableTarget",
-        "category": "Security",
-        "startLine": 749,
-        "startColumn": 3,
-        "endLine": 749,
-        "endColumn": 43,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
@@ -70650,7 +70440,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 32,
       "counts": {
         "fatal": 0,
@@ -71885,7 +71675,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -72184,7 +71974,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -72542,7 +72332,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -73210,7 +73000,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -73380,7 +73170,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -73478,7 +73268,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 14,
       "counts": {
         "fatal": 0,
@@ -73920,7 +73710,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -74129,7 +73919,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -74345,7 +74135,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -74506,12 +74296,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 3,
         "debug": 0
       },
@@ -74579,22 +74369,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "SampleBucketNotification",
-        "resourceType": "AWS::CloudFormation::CustomResource",
-        "category": "Security",
-        "startLine": 66,
-        "startColumn": 3,
-        "endLine": 66,
-        "endColumn": 28,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'ServiceToken' is create-only; updating it will cause resource replacement",
@@ -74621,12 +74395,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 2,
         "debug": 0
       },
@@ -74677,22 +74451,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "SampleBucketNotification",
-        "resourceType": "AWS::CloudFormation::CustomResource",
-        "category": "Security",
-        "startLine": 58,
-        "startColumn": 3,
-        "endLine": 58,
-        "endColumn": 28,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'ServiceToken' is create-only; updating it will cause resource replacement",
@@ -74719,7 +74477,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -74873,7 +74631,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 23,
       "counts": {
         "fatal": 0,
@@ -76107,7 +75865,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 27,
       "counts": {
         "fatal": 0,
@@ -77106,7 +76864,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 20,
       "counts": {
         "fatal": 0,
@@ -77659,7 +77417,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 28,
       "counts": {
         "fatal": 0,
@@ -78775,7 +78533,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 0,
@@ -79377,7 +79135,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 28,
       "counts": {
         "fatal": 0,
@@ -80679,7 +80437,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 22,
       "counts": {
         "fatal": 0,
@@ -81655,7 +81413,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 57,
       "counts": {
         "fatal": 0,
@@ -83668,7 +83426,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 10,
       "counts": {
         "fatal": 0,
@@ -84041,7 +83799,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 44,
       "counts": {
         "fatal": 0,
@@ -85461,7 +85219,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 22,
       "counts": {
         "fatal": 0,
@@ -86443,7 +86201,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -86691,7 +86449,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 22,
       "counts": {
         "fatal": 0,
@@ -87508,7 +87266,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 10,
       "counts": {
         "fatal": 0,
@@ -87881,7 +87639,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -88247,7 +88005,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -88790,7 +88548,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -88917,7 +88675,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -89123,7 +88881,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -89188,7 +88946,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -89212,7 +88970,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -89400,7 +89158,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -89465,7 +89223,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -89489,7 +89247,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -89744,7 +89502,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -89809,7 +89567,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -89944,7 +89702,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -90150,7 +89908,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -90215,7 +89973,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
         }
       },
       {
@@ -90458,7 +90216,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 14,
       "counts": {
         "fatal": 0,
@@ -90980,7 +90738,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -91574,7 +91332,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 28,
       "counts": {
         "fatal": 0,
@@ -92537,7 +92295,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 15,
       "counts": {
         "fatal": 0,
@@ -93041,7 +92799,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 21,
       "counts": {
         "fatal": 0,
@@ -93632,7 +93390,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -93838,7 +93596,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -94056,12 +93814,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 35,
         "debug": 0
       },
@@ -94131,7 +93889,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
         }
       },
       {
@@ -94443,7 +94201,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
         }
       },
       {
@@ -94629,7 +94387,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
         }
       },
       {
@@ -94647,23 +94405,6 @@
         "endLine": 218,
         "endColumn": 17,
         "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9007",
-        "severity": "WARN",
-        "message": "Array property 'Subnets' contains duplicate values",
-        "source": "ENGINE",
-        "resourceId": "ALBAEE750D2",
-        "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-        "propertyPath": "Properties.Subnets",
-        "category": "Best Practice",
-        "startLine": 247,
-        "startColumn": 3,
-        "endLine": 247,
-        "endColumn": 15,
-        "ruleDescription": "Array items must be unique when required",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -94827,7 +94568,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
         }
       },
       {
@@ -94855,7 +94596,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 22,
       "counts": {
         "fatal": 0,
@@ -95690,12 +95431,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
         "errors": 1,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 11,
         "debug": 0
       },
@@ -95785,7 +95526,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
         }
       },
       {
@@ -95803,23 +95544,6 @@
         "endLine": 3,
         "endColumn": 17,
         "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9007",
-        "severity": "WARN",
-        "message": "Array property 'SubnetIds' contains duplicate values",
-        "source": "ENGINE",
-        "resourceId": "RDSSubnetGroup3527AC04",
-        "resourceType": "AWS::RDS::DBSubnetGroup",
-        "propertyPath": "Properties.SubnetIds",
-        "category": "Best Practice",
-        "startLine": 32,
-        "startColumn": 3,
-        "endLine": 32,
-        "endColumn": 26,
-        "ruleDescription": "Array items must be unique when required",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -96000,7 +95724,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -96148,7 +95872,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
         }
       },
       {
@@ -96176,7 +95900,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -96564,7 +96288,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 43,
       "counts": {
         "fatal": 0,
@@ -98060,7 +97784,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 29,
       "counts": {
         "fatal": 0,
@@ -99027,7 +98751,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -99203,7 +98927,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 20,
       "counts": {
         "fatal": 0,
@@ -100398,7 +100122,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 16,
       "counts": {
         "fatal": 0,
@@ -101106,7 +100830,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 0,
@@ -101678,7 +101402,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -101876,7 +101600,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -102014,7 +101738,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -102193,7 +101917,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -102435,7 +102159,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 20,
       "counts": {
         "fatal": 0,
@@ -103345,7 +103069,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -103728,7 +103452,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -104446,7 +104170,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 15,
       "counts": {
         "fatal": 0,
@@ -104808,7 +104532,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 21,
       "counts": {
         "fatal": 2,
@@ -105592,7 +105316,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 31,
       "counts": {
         "fatal": 0,
@@ -106783,7 +106507,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -107122,7 +106846,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 0,
@@ -107642,7 +107366,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -107857,7 +107581,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -108264,7 +107988,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
@@ -108537,12 +108261,72 @@
       }
     ]
   },
+  "gh-issues/issue-34-w2506-overfire.json": {
+    "filePath": "gh-issues/issue-34-w2506-overfire.json",
+    "status": "OK",
+    "engineVersion": "1.3.0",
+    "metadata": {
+      "rulesEvaluated": 274,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "resourceId": "NotAnImageSlot",
+        "resourceType": "Custom::Thing",
+        "category": "Security",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 20,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "gh-issues/issue-34.json": {
     "filePath": "gh-issues/issue-34.json",
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -108678,7 +108462,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -108757,11 +108541,11 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 0,
         "warnings": 2,
         "informational": 2,
         "debug": 0
@@ -108794,27 +108578,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "E1156",
-        "severity": "ERROR",
-        "message": "'arn:aws-iso:iam::123456789012:role/my-task-role' does not match format 'AWS::IAM::Role.Arn'",
-        "source": "CFN_LINT",
-        "resourceId": "TaskDef",
-        "resourceType": "AWS::ECS::TaskDefinition",
-        "propertyPath": "Properties.ExecutionRoleArn",
-        "category": "Intrinsic Function",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Validate IAM role ARN format",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "actualValue": "arn:aws-iso:iam::123456789012:role/my-task-role"
-        }
-      },
       {
         "ruleId": "W9002",
         "severity": "WARN",
@@ -108894,7 +108657,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -109032,7 +108795,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -109114,7 +108877,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -109255,7 +109018,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -109560,12 +109323,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 3,
         "debug": 0
       },
@@ -109613,22 +109376,6 @@
         "endColumn": 16,
         "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
         "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "MyFunction",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 16,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
         "section": "Resources"
       },
       {
@@ -109693,7 +109440,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -109945,7 +109692,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -110043,7 +109790,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -110165,7 +109912,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -110315,7 +110062,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -110494,94 +110241,12 @@
       }
     ]
   },
-  "gh-issues/issue-48.json": {
-    "filePath": "gh-issues/issue-48.json",
-    "status": "OK",
-    "engineVersion": "1.3.0",
-    "metadata": {
-      "rulesEvaluated": 273,
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "performance": {
-      "schemaInit": {
-        "durationMs": 0.0
-      },
-      "engineInit": {
-        "durationMs": 0.0
-      },
-      "modelBuild": {
-        "durationMs": 0.0
-      },
-      "schemaValidate": {
-        "durationMs": 0.0
-      },
-      "ruleEvaluation": {
-        "durationMs": 0.0
-      },
-      "diagnosticFinalize": {
-        "durationMs": 0.0
-      },
-      "validateTotal": {
-        "durationMs": 0.0
-      }
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "resourceId": "MyBucket",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.BucketName",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 14,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "resourceId": "MyBucket",
-        "resourceType": "AWS::S3::Bucket",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 14,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      }
-    ]
-  },
   "gh-issues/issue-49.yaml": {
     "filePath": "gh-issues/issue-49.yaml",
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -110835,7 +110500,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -110897,12 +110562,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 4,
         "debug": 0
       },
@@ -110934,23 +110599,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W9007",
-        "severity": "WARN",
-        "message": "Array property 'Subnets' contains duplicate values",
-        "source": "ENGINE",
-        "resourceId": "Nodegroup",
-        "resourceType": "AWS::EKS::Nodegroup",
-        "propertyPath": "Properties.Subnets",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 15,
-        "ruleDescription": "Array items must be unique when required",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "W9013",
         "severity": "WARN",
@@ -111055,7 +110703,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 37,
       "counts": {
         "fatal": 9,
@@ -112722,12 +112370,157 @@
       }
     ]
   },
+  "gh-issues/issue-54-bare.json": {
+    "filePath": "gh-issues/issue-54-bare.json",
+    "status": "OK",
+    "engineVersion": "1.3.0",
+    "metadata": {
+      "rulesEvaluated": 274,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 12,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "gh-issues/issue-54-with-ownership.json": {
+    "filePath": "gh-issues/issue-54-with-ownership.json",
+    "status": "OK",
+    "engineVersion": "1.3.0",
+    "metadata": {
+      "rulesEvaluated": 274,
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "performance": {
+      "schemaInit": {
+        "durationMs": 0.0
+      },
+      "engineInit": {
+        "durationMs": 0.0
+      },
+      "modelBuild": {
+        "durationMs": 0.0
+      },
+      "schemaValidate": {
+        "durationMs": 0.0
+      },
+      "ruleEvaluation": {
+        "durationMs": 0.0
+      },
+      "diagnosticFinalize": {
+        "durationMs": 0.0
+      },
+      "validateTotal": {
+        "durationMs": 0.0
+      }
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3045",
+        "severity": "WARN",
+        "message": "AccessControl property is deprecated. Use bucket policies instead",
+        "source": "CFN_LINT",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.AccessControl",
+        "suggestedFix": "Remove AccessControl and use an AWS::S3::BucketPolicy resource",
+        "category": "Deprecation",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 12,
+        "ruleDescription": "Controlling access to an S3 bucket should be done with bucket policies",
+        "phase": "LINT",
+        "section": "Resources",
+        "context": {
+          "actualValue": "PublicRead"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 12,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "gh-issues/issue-54.json": {
     "filePath": "gh-issues/issue-54.json",
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -112846,7 +112639,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -112908,7 +112701,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -112991,11 +112784,11 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 0,
         "warnings": 1,
         "informational": 1,
         "debug": 0
@@ -113028,24 +112821,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "E3057",
-        "severity": "ERROR",
-        "message": "TargetOriginId 'hanTheOneHundredAndTwentyEightCharacterLimitAReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForgetOriginGroup1B5CE3FE6' does not match any Origin Id in the distribution",
-        "source": "CFN_LINT",
-        "resourceId": "AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig.DefaultCacheBehavior.TargetOriginId",
-        "suggestedFix": "Set TargetOriginId to match one of the Origin Ids defined in Origins",
-        "category": "Resource",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 78,
-        "ruleDescription": "Validate that CloudFront TargetOriginId is a specified Origin",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "W9009",
         "severity": "WARN",
@@ -113091,7 +112866,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -113131,7 +112906,7 @@
       {
         "ruleId": "F3017",
         "severity": "FATAL",
-        "message": "Value is not valid under any of the given schemas for AWS::EC2::Volume",
+        "message": "Value is not valid under any of the given schemas for AWS::EC2::Volume \u2014 specify one of the following property sets: ['AvailabilityZone', 'Size'] or ['AvailabilityZone', 'SnapshotId'] or ['AvailabilityZoneId', 'Size'] or ['AvailabilityZoneId', 'SnapshotId'] or ['SourceVolumeId']",
         "source": "SCHEMA",
         "resourceId": "Resource",
         "resourceType": "AWS::EC2::Volume",
@@ -113203,7 +112978,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -113378,7 +113153,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -113450,7 +113225,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -113647,7 +113422,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -113748,7 +113523,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 2,
@@ -114056,7 +113831,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -114147,7 +113922,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -114229,7 +114004,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -114291,7 +114066,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -114431,7 +114206,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -114581,7 +114356,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -114681,7 +114456,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -114743,7 +114518,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -114825,12 +114600,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 1,
         "debug": 0
       },
@@ -114880,22 +114655,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "Pipeline",
-        "resourceType": "AWS::CodePipeline::Pipeline",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Pipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured",
@@ -114920,7 +114679,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -115164,7 +114923,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -115285,7 +115044,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -115328,7 +115087,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 1,
@@ -115800,7 +115559,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -115858,7 +115617,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -115916,7 +115675,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -116015,7 +115774,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -116073,7 +115832,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -116131,7 +115890,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -116189,7 +115948,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -116283,7 +116042,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 2,
@@ -116711,7 +116470,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -117006,7 +116765,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -117212,7 +116971,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -117418,7 +117177,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -117490,7 +117249,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -117673,7 +117432,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -117787,7 +117546,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -117901,7 +117660,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -118005,7 +117764,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -118211,7 +117970,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -118399,7 +118158,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -118442,7 +118201,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -118485,7 +118244,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
@@ -118645,7 +118404,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -118765,7 +118524,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 3,
@@ -119244,7 +119003,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 3,
@@ -119584,7 +119343,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -119700,7 +119459,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -119743,7 +119502,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -119907,7 +119666,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 9,
       "counts": {
         "fatal": 0,
@@ -120373,7 +120132,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -120771,7 +120530,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -121176,7 +120935,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -121238,7 +120997,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -121354,12 +121113,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 3,
         "debug": 0
       },
@@ -121391,22 +121150,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "LambdaFn",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I3042",
         "severity": "INFO",
@@ -121469,7 +121212,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -121541,7 +121284,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -121664,7 +121407,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -121740,7 +121483,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -121802,7 +121545,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -121864,12 +121607,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 4,
+        "warnings": 2,
         "informational": 8,
         "debug": 0
       },
@@ -121971,39 +121714,6 @@
           "lifecycle": "create-only",
           "resolutionSource": "parameter 'parameter pDBParameterGroupFamily value unknown' (type String)"
         }
-      },
-      {
-        "ruleId": "W9007",
-        "severity": "WARN",
-        "message": "Array property 'SubnetIds' contains duplicate values",
-        "source": "ENGINE",
-        "resourceId": "rDBSubnetGroup",
-        "resourceType": "AWS::RDS::DBSubnetGroup",
-        "propertyPath": "Properties.SubnetIds",
-        "category": "Best Practice",
-        "startLine": 69,
-        "startColumn": 5,
-        "endLine": 69,
-        "endColumn": 19,
-        "ruleDescription": "Array items must be unique when required",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "rDBPassword",
-        "resourceType": "Custom::Secret",
-        "category": "Security",
-        "startLine": 83,
-        "startColumn": 5,
-        "endLine": 83,
-        "endColumn": 16,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "I9040",
@@ -122127,7 +121837,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -122315,7 +122025,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -122491,7 +122201,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -122573,7 +122283,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -122663,7 +122373,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 3,
@@ -122945,7 +122655,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -123127,7 +122837,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -123185,7 +122895,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -123247,7 +122957,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -123429,7 +123139,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -123825,7 +123535,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -124139,7 +123849,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -124470,7 +124180,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -124513,7 +124223,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -124575,7 +124285,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -124661,7 +124371,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -125006,7 +124716,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -125088,7 +124798,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -125232,7 +124942,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 10,
       "counts": {
         "fatal": 0,
@@ -126151,7 +125861,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -126295,7 +126005,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -126360,7 +126070,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -126425,7 +126135,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -126684,7 +126394,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -126746,7 +126456,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -126930,7 +126640,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -127034,7 +126744,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -127414,7 +127124,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -127518,7 +127228,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -127657,7 +127367,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -127700,7 +127410,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -127888,12 +127598,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 3,
         "debug": 0
       },
@@ -127925,22 +127635,6 @@
       }
     },
     "diagnostics": [
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "Authorizer",
-        "resourceType": "AWS::ApiGateway::Authorizer",
-        "category": "Security",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 13,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -128007,7 +127701,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -128201,7 +127895,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -128383,7 +128077,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -128535,7 +128229,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -129021,7 +128715,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -129083,7 +128777,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -129166,7 +128860,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -129228,7 +128922,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -129760,7 +129454,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -129881,12 +129575,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 2,
         "debug": 0
       },
@@ -129936,22 +129630,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "TestPipeline",
-        "resourceType": "AWS::CodePipeline::Pipeline",
-        "category": "Security",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 15,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Name' is create-only; updating it will cause resource replacement",
@@ -129997,7 +129675,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -130073,7 +129751,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -130187,7 +129865,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -130301,7 +129979,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
@@ -130366,7 +130044,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -130466,7 +130144,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -130549,7 +130227,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 0,
@@ -131025,7 +130703,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -131178,7 +130856,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -131261,7 +130939,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -131344,12 +131022,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 1,
         "debug": 0
       },
@@ -131399,22 +131077,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "SM",
-        "resourceType": "AWS::StepFunctions::StateMachine",
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 5,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'SM' of type 'AWS::StepFunctions::StateMachine' supports Tags but none are configured",
@@ -131439,7 +131101,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -131522,7 +131184,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -131602,7 +131264,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -131682,7 +131344,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -131762,7 +131424,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -131824,7 +131486,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -131886,7 +131548,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -131948,7 +131610,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -132184,8 +131846,7 @@
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Select on non-list value)"
+          "lifecycle": "create-only"
         }
       },
       {
@@ -132254,7 +131915,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -132316,7 +131977,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -132378,7 +132039,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -132456,7 +132117,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -132518,7 +132179,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -132598,7 +132259,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -132678,7 +132339,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -132776,7 +132437,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -132856,7 +132517,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -133171,7 +132832,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -133353,7 +133014,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 2,
@@ -133572,7 +133233,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 4,
@@ -133781,7 +133442,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 5,
@@ -133943,7 +133604,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
@@ -134069,7 +133730,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 5,
@@ -134541,7 +134202,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -134621,12 +134282,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 0,
         "errors": 7,
-        "warnings": 3,
+        "warnings": 2,
         "informational": 50,
         "debug": 0
       },
@@ -135450,22 +135111,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "FifoProcessor",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Security",
-        "startLine": 92,
-        "startColumn": 3,
-        "endLine": 92,
-        "endColumn": 16,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
         "ruleId": "I3042",
         "severity": "INFO",
         "message": "ARN in Resource FifoProcessor contains hardcoded Partition in ARN or incorrectly placed Pseudo Parameters",
@@ -135788,7 +135433,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -135888,7 +135533,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
@@ -136111,7 +135756,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 1,
@@ -136407,7 +136052,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -136777,7 +136422,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 5,
@@ -137254,7 +136899,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
@@ -137326,7 +136971,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -137570,7 +137215,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 13,
       "counts": {
         "fatal": 0,
@@ -138452,7 +138097,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -138566,7 +138211,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 17,
       "counts": {
         "fatal": 0,
@@ -139297,7 +138942,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 3,
@@ -139442,8 +139087,7 @@
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Select on non-list value)"
+          "lifecycle": "create-only"
         }
       },
       {
@@ -139994,7 +139638,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 4,
@@ -140149,8 +139793,7 @@
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (Select on non-list value)"
+          "lifecycle": "create-only"
         }
       },
       {
@@ -140718,7 +140361,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -141047,7 +140690,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 8,
       "counts": {
         "fatal": 1,
@@ -141563,7 +141206,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -141675,7 +141318,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 1,
@@ -141787,7 +141430,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -142063,7 +141706,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -142415,7 +142058,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -142477,7 +142120,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -142539,7 +142182,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -142651,7 +142294,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -142891,7 +142534,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -143131,7 +142774,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
@@ -143302,7 +142945,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -143992,7 +143635,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 79,
       "counts": {
         "fatal": 0,
@@ -148220,7 +147863,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -148705,7 +148348,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -148989,7 +148632,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
@@ -149307,7 +148950,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 28,
       "counts": {
         "fatal": 0,
@@ -151966,7 +151609,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 12,
       "counts": {
         "fatal": 0,
@@ -152451,7 +152094,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 6,
       "counts": {
         "fatal": 0,
@@ -153520,7 +153163,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 18,
       "counts": {
         "fatal": 0,
@@ -153804,7 +153447,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 24,
       "counts": {
         "fatal": 1,
@@ -155296,7 +154939,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 0,
@@ -157310,7 +156953,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 46,
       "counts": {
         "fatal": 0,
@@ -160565,12 +160208,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 19,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 40,
+        "warnings": 39,
         "informational": 58,
         "debug": 0
       },
@@ -160838,22 +160481,6 @@
         "endLine": 747,
         "endColumn": 21,
         "ruleDescription": "Resource should have Tags",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "GetRSA",
-        "resourceType": "Custom::GenerateKeys",
-        "category": "Security",
-        "startLine": 774,
-        "startColumn": 3,
-        "endLine": 774,
-        "endColumn": 9,
-        "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -162449,7 +162076,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
@@ -162593,12 +162220,12 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 0,
         "informational": 8,
         "debug": 0
       },
@@ -162672,39 +162299,6 @@
           "lifecycle": "create-only",
           "resolutionSource": "parameter 'parameter pDBParameterGroupFamily value unknown' (type String)"
         }
-      },
-      {
-        "ruleId": "W9007",
-        "severity": "WARN",
-        "message": "Array property 'SubnetIds' contains duplicate values",
-        "source": "ENGINE",
-        "resourceId": "rDBSubnetGroup",
-        "resourceType": "AWS::RDS::DBSubnetGroup",
-        "propertyPath": "Properties.SubnetIds",
-        "category": "Best Practice",
-        "startLine": 69,
-        "startColumn": 5,
-        "endLine": 69,
-        "endColumn": 19,
-        "ruleDescription": "Array items must be unique when required",
-        "phase": "LINT",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN \u2014 use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "resourceId": "rDBPassword",
-        "resourceType": "Custom::Secret",
-        "category": "Security",
-        "startLine": 83,
-        "startColumn": 5,
-        "endLine": 83,
-        "endColumn": 16,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "I9040",
@@ -162828,7 +162422,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 33,
       "counts": {
         "fatal": 0,
@@ -164856,7 +164450,7 @@
     "status": "OK",
     "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 273,
+      "rulesEvaluated": 274,
       "resourcesScanned": 77,
       "counts": {
         "fatal": 0,

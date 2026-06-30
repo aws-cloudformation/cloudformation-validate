@@ -783,16 +783,16 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut flagged_image_params = HashSet::new();
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_name, res) in resources {
+            let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
             if let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) {
                 for edge in edges {
                     let kind = edge.get(FIELD_KIND).and_then(|k| k.as_str()).unwrap_or("");
                     let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                     let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
                     if kind == EDGE_KIND_REF
-                        && sp.ends_with("ImageId")
+                        && is_image_id_slot(rtype, sp)
                         && let Some(param) = m.parameters.get(target)
-                        && param.param_type != "AWS::EC2::Image::Id"
-                        && !param.param_type.contains("AWS::EC2::Image::Id")
+                        && !APPROPRIATE_IMAGE_ID_PARAM_TYPES.contains(&param.param_type.as_str())
                         && flagged_image_params.insert(target)
                     {
                         out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' — consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
@@ -1098,6 +1098,38 @@ fn is_valid_parameter_type(ptype: &str) -> bool {
             | "List<AWS::Route53::HostedZone::Id>"
     ) || ptype.starts_with("AWS::SSM::Parameter::Value<")
 }
+
+/// The exact `AWS::EC2::Image::Id`-typed property slots the ImageId-parameter-type
+/// check (W2506) applies to: a fixed set of `(resource type, property path)` pairs.
+/// The path is relative to the resource (it always starts with `Properties.`); the
+/// `*` in the SpotFleet path matches a single array-index segment.
+fn is_image_id_slot(resource_type: &str, source_path: &str) -> bool {
+    const IMAGE_ID_SLOTS: &[(&str, &str)] = &[
+        ("AWS::AutoScaling::LaunchConfiguration", "Properties.ImageId"),
+        ("AWS::Batch::ComputeEnvironment", "Properties.ComputeResources.ImageId"),
+        ("AWS::Cloud9::EnvironmentEC2", "Properties.ImageId"),
+        ("AWS::EC2::Instance", "Properties.ImageId"),
+        ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.ImageId"),
+        ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications.*.ImageId"),
+        ("AWS::ImageBuilder::Image", "Properties.ImageId"),
+    ];
+    IMAGE_ID_SLOTS
+        .iter()
+        .filter(|(rtype, _)| *rtype == resource_type)
+        .any(|(_, slot)| path_matches_slot(source_path, slot))
+}
+
+/// Match a concrete source path against a slot pattern whose only wildcard is a
+/// `*` segment standing for a single array index.
+fn path_matches_slot(path: &str, slot: &str) -> bool {
+    let (path_segs, slot_segs): (Vec<&str>, Vec<&str>) = (path.split('.').collect(), slot.split('.').collect());
+    path_segs.len() == slot_segs.len() && slot_segs.iter().zip(&path_segs).all(|(s, p)| *s == "*" || s == p)
+}
+
+/// The two parameter types that are appropriate for an ImageId property; any
+/// other type used for an ImageId Ref triggers W2506.
+const APPROPRIATE_IMAGE_ID_PARAM_TYPES: &[&str] =
+    &["AWS::EC2::Image::Id", "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"];
 
 #[cfg(test)]
 mod tests {

@@ -654,14 +654,28 @@ fn validate_object_keys_inner(
             tmp.is_empty()
         });
         if !any_valid {
-            out.push(build_diagnostic(
-                "F3017",
-                &format!("Value is not valid under any of the given schemas for {}", rtype),
-                m,
-                rid,
-                base_path,
-                None,
-            ));
+            // Surface which property combinations would satisfy the schema, drawn
+            // from each branch's required set, so the bare "not valid under any
+            // schema" message is actionable. Branches with no required list (a
+            // shape constraint rather than a required-property one) are omitted.
+            let option_sets: Vec<String> = any_of
+                .iter()
+                .filter(|sub| !sub.required.is_empty())
+                .map(|sub| {
+                    let props = sub.required.iter().map(|p| format!("'{}'", p)).collect::<Vec<_>>().join(", ");
+                    format!("[{}]", props)
+                })
+                .collect();
+            let message = if option_sets.is_empty() {
+                format!("Value is not valid under any of the given schemas for {}", rtype)
+            } else {
+                format!(
+                    "Value is not valid under any of the given schemas for {} — specify one of the following property sets: {}",
+                    rtype,
+                    option_sets.join(" or ")
+                )
+            };
+            out.push(build_diagnostic("F3017", &message, m, rid, base_path, None));
         }
     }
 
@@ -1119,7 +1133,7 @@ fn validate_prop(
     }
 
     if schema.min_length.is_some() || schema.max_length.is_some() {
-        let from_param = m.is_from_parameter(rid, prop_path);
+        let from_param = m.is_from_parameter(rid, prop_path) || m.is_from_intrinsic(rid, prop_path);
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
@@ -1745,7 +1759,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
         "AWS::EC2::Subnet.Id" => Some(r"^subnet-[a-f0-9]{8,17}$"),
         "AWS::EC2::SecurityGroup.Id" => Some(r"^sg-[a-f0-9]{8,17}$"),
         "AWS::EC2::Image.Id" => Some(r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
-        "AWS::IAM::Role.Arn" => Some(r"^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role/.+"),
+        "AWS::IAM::Role.Arn" => Some(r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$"),
         "AWS::Logs::LogGroup.Name" => Some(r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
         "AWS::EC2::SecurityGroup.Name" => Some(r"^[\s\S]+$"),
         "AWS::EC2::KeyPair.KeyName" => Some(r"^[\x20-\x7E]{1,255}$"),

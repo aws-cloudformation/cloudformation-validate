@@ -98,13 +98,27 @@ violation contains make_diag("F3016", "FATAL", name,
 # W2506: ImageId parameters should use AWS::EC2::Image::Id type
 _image_id_param_types := {"AWS::EC2::Image::Id", "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"}
 
+# The exact AWS::EC2::Image::Id-typed property slots W2506 applies to, keyed by
+# resource type. Each value is a set of source-path patterns (relative to the
+# resource); the `[0-9]+` in the SpotFleet pattern matches a single array index.
+_image_id_slots := {
+    "AWS::AutoScaling::LaunchConfiguration": {`^Properties\.ImageId$`},
+    "AWS::Batch::ComputeEnvironment": {`^Properties\.ComputeResources\.ImageId$`},
+    "AWS::Cloud9::EnvironmentEC2": {`^Properties\.ImageId$`},
+    "AWS::EC2::Instance": {`^Properties\.ImageId$`},
+    "AWS::EC2::LaunchTemplate": {`^Properties\.LaunchTemplateData\.ImageId$`},
+    "AWS::EC2::SpotFleet": {`^Properties\.SpotFleetRequestConfigData\.LaunchSpecifications\.[0-9]+\.ImageId$`},
+    "AWS::ImageBuilder::Image": {`^Properties\.ImageId$`},
+}
+
 violation contains make_diag("W2506", "WARN", "",
     sprintf("Parameter '%s' is used as an ImageId but has Type '%s' — consider using 'AWS::EC2::Image::Id'", [pname, ptype])) if {
     some name, res in input.resources
-    res.resourceType in {"AWS::EC2::Instance", "AWS::AutoScaling::LaunchConfiguration", "AWS::EC2::LaunchTemplate"}
+    patterns := _image_id_slots[res.resourceType]
     some edge in res.outgoingRefs
     edge.kind == "Ref"
-    endswith(edge.sourcePath, "ImageId")
+    some pattern in patterns
+    regex.match(pattern, edge.sourcePath)
     pname := edge.target
     pname in object.keys(input.parameters)
     ptype := input.parameters[pname].type

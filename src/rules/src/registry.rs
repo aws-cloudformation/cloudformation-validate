@@ -773,6 +773,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "W9012",
+        category: Category::BestPractice,
+        description: "Provided pseudo-parameter override value is not a valid AWS value",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "F3006",
         category: Category::Schema,
         description: "Resource type must be recognized",
