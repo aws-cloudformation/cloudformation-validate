@@ -204,16 +204,17 @@ fn issue_42_e3049_omitted_healthcheckport_with_hostport_zero() {
     assert_count(&diags, "E3049", 1);
 }
 
-/// Issue #44: E3702 false positive — it fires on an `AWS/Deploy/CloudFormation`
-/// action that legitimately has 0 input artifacts (`CHANGE_SET_EXECUTE`), because
-/// the artifact-count table keys on Category only and ignores Owner/Provider.
+/// Issue #44: E3702 must NOT fire on an `AWS/Deploy/CloudFormation` action that
+/// legitimately has 0 input artifacts (`CHANGE_SET_EXECUTE`). The artifact-count
+/// table is keyed on the full Owner/Category/Provider tuple, so this action's
+/// real bound (0–10 inputs) applies instead of a collapsed category-only bound.
+/// cfn-lint reports nothing here.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/44
 #[test]
-fn issue_44_e3702_false_positive_on_changeset_execute() {
+fn issue_44_no_e3702_false_positive_on_changeset_execute() {
     let diags = validate_both("issue-44.json");
-    assert_fires_with_severity(&diags, "E3702", Severity::Error);
-    assert_fires_on_resource(&diags, "E3702", "Pipeline");
-    assert_count(&diags, "E3702", 1);
+    assert_absent(&diags, "E3702");
+    assert_count(&diags, "E3702", 0);
 }
 
 /// Issue #45: F6101 must not fire when an array-returning `Fn::GetAtt` is wrapped
