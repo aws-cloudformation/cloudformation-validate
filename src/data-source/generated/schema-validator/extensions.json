@@ -167,6 +167,59 @@
   ],
   "Aws::Apigateway::Stage": [
     {
+      "if": {
+        "anyOf": [
+          {
+            "required": [
+              "CacheDataEncrypted"
+            ]
+          },
+          {
+            "required": [
+              "CacheTtlInSeconds"
+            ]
+          },
+          {
+            "required": [
+              "CachingEnabled"
+            ]
+          },
+          {
+            "required": [
+              "DataTraceEnabled"
+            ]
+          },
+          {
+            "required": [
+              "LoggingLevel"
+            ]
+          },
+          {
+            "required": [
+              "MetricsEnabled"
+            ]
+          },
+          {
+            "required": [
+              "ThrottlingBurstLimit"
+            ]
+          },
+          {
+            "required": [
+              "ThrottlingRateLimit"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "ResourcePath": {
+            "pattern": "^/.*$"
+          }
+        }
+      }
+    },
+    {
       "cfnGather": {
         "gather": {
           "deployment": {
@@ -290,6 +343,35 @@
           }
         }
       }
+    }
+  ],
+  "Aws::Cloudfront::Distribution": [
+    {
+      "else": {
+        "properties": {
+          "ForwardedValues": {
+            "properties": {
+              "Cookies": {
+                "properties": {
+                  "Forward": {
+                    "enum": [
+                      "all",
+                      "none",
+                      "whitelist"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "required": [
+          "CachePolicyId"
+        ]
+      },
+      "then": true
     }
   ],
   "Aws::Cloudwatch::Alarm": [
@@ -2187,6 +2269,27 @@
               "SystemLogLevel": false
             }
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "PackageType": {
+            "const": "Image"
+          }
+        },
+        "required": [
+          "PackageType"
+        ]
+      },
+      "then": {
+        "dependentExcluded": {
+          "PackageType": [
+            "Handler",
+            "Runtime",
+            "Layers"
+          ]
         }
       }
     },

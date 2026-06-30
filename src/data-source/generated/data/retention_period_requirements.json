@@ -1,0 +1,26 @@
+{
+  "retention_period_requirements": {
+    "AWS::DocDB::DBCluster": [
+      "BackupRetentionPeriod"
+    ],
+    "AWS::Kinesis::Stream": [
+      "RetentionPeriodHours"
+    ],
+    "AWS::RDS::DBCluster": [
+      "BackupRetentionPeriod"
+    ],
+    "AWS::RDS::DBInstance": [
+      "BackupRetentionPeriod"
+    ],
+    "AWS::Redshift::Cluster": [
+      "AutomatedSnapshotRetentionPeriod"
+    ],
+    "AWS::SQS::Queue": [
+      "MessageRetentionPeriod"
+    ],
+    "AWS::Synthetics::Canary": [
+      "SuccessRetentionPeriod",
+      "FailureRetentionPeriod"
+    ]
+  }
+}

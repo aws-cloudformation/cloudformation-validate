@@ -191,6 +191,9 @@
     "AWS::CloudWatch::Dashboard": [
       "DashboardName"
     ],
+    "AWS::CloudWatch::LogAlarm": [
+      "AlarmName"
+    ],
     "AWS::CloudWatch::MetricStream": [
       "Name"
     ],
@@ -235,6 +238,13 @@
       "UserPoolId",
       "ProviderName"
     ],
+    "AWS::Cognito::UserPoolRegionalConfigurationAttachment": [
+      "UserPoolId"
+    ],
+    "AWS::Cognito::UserPoolReplica": [
+      "UserPoolId",
+      "RegionName"
+    ],
     "AWS::Cognito::UserPoolResourceServer": [
       "UserPoolId",
       "Identifier"
@@ -272,6 +282,9 @@
     "AWS::Config::OrganizationConformancePack": [
       "OrganizationConformancePackName"
     ],
+    "AWS::Config::RemediationConfiguration": [
+      "ConfigRuleName"
+    ],
     "AWS::Config::StoredQuery": [
       "QueryName"
     ],
@@ -298,6 +311,10 @@
     ],
     "AWS::CustomerProfiles::Domain": [
       "DomainName"
+    ],
+    "AWS::CustomerProfiles::DomainObjectType": [
+      "DomainName",
+      "ObjectTypeName"
     ],
     "AWS::CustomerProfiles::EventStream": [
       "DomainName",
@@ -538,6 +555,9 @@
     "AWS::ElasticBeanstalk::Environment": [
       "EnvironmentName"
     ],
+    "AWS::ElasticLoadBalancing::LoadBalancer": [
+      "LoadBalancerName"
+    ],
     "AWS::EntityResolution::IdMappingWorkflow": [
       "WorkflowName"
     ],
@@ -600,6 +620,9 @@
     ],
     "AWS::Glue::Crawler": [
       "Name"
+    ],
+    "AWS::Glue::DataCatalogEncryptionSettings": [
+      "CatalogId"
     ],
     "AWS::Glue::Database": [
       "DatabaseName"
@@ -837,6 +860,9 @@
     "AWS::Lambda::Function": [
       "FunctionName"
     ],
+    "AWS::Lambda::ResourcePolicy": [
+      "ResourceArn"
+    ],
     "AWS::Lightsail::Alarm": [
       "AlarmName"
     ],
@@ -1048,6 +1074,9 @@
     ],
     "AWS::Neptune::EventSubscription": [
       "SubscriptionName"
+    ],
+    "AWS::Neptune::GlobalCluster": [
+      "GlobalClusterIdentifier"
     ],
     "AWS::NetworkFirewall::LoggingConfiguration": [
       "FirewallArn"

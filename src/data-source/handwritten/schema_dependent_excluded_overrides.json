@@ -1,0 +1,6 @@
+{
+  "_comment": "Per resource type, dependentExcluded trigger properties to strip from the downloaded schema because a dedicated engine rule already enforces the same mutual exclusion. Without this, the schema validator's generic mutually-exclusive-properties check and the cfn-lint-sourced rule would both fire on the same property — a duplicate finding cfn-lint never emits. The reference tool's own loaded schema strips these for the same reason.",
+  "remove_dependent_excluded": {
+    "AWS::Lambda::Function": ["PackageType"]
+  }
+}

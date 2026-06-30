@@ -15,129 +15,6 @@ pub(crate) struct SchemaTop {
     pub definitions: Option<HashMap<String, serde_json::Value>>,
 }
 
-fn unescape_json_pointer(seg: &str) -> String {
-    seg.replace("~1", "/").replace("~0", "~")
-}
-
-/// Navigate a JSON Pointer path, returning the parent value and the final key.
-fn navigate_to_parent<'a>(root: &'a mut serde_json::Value, path: &str) -> Option<(&'a mut serde_json::Value, String)> {
-    let segments: Vec<String> = path.trim_start_matches('/').split('/').map(unescape_json_pointer).collect();
-    if segments.is_empty() {
-        return None;
-    }
-    let (parent_segs, last) = segments.split_at(segments.len() - 1);
-    let mut current = root;
-    for seg in parent_segs {
-        current = match current {
-            serde_json::Value::Object(m) => m.get_mut(seg.as_str())?,
-            serde_json::Value::Array(a) => a.get_mut(seg.parse::<usize>().ok()?)?,
-            _ => return None,
-        };
-    }
-    Some((current, last[0].clone()))
-}
-
-fn json_pointer_get<'a>(root: &'a serde_json::Value, path: &str) -> Option<&'a serde_json::Value> {
-    if path == "/" || path.is_empty() {
-        return Some(root);
-    }
-    let segments: Vec<String> = path.trim_start_matches('/').split('/').map(unescape_json_pointer).collect();
-    let mut current = root;
-    for seg in &segments {
-        current = match current {
-            serde_json::Value::Object(m) => m.get(seg.as_str())?,
-            serde_json::Value::Array(a) => a.get(seg.parse::<usize>().ok()?)?,
-            _ => return None,
-        };
-    }
-    Some(current)
-}
-
-fn apply_patch_batch(schema_json: &mut serde_json::Value, ops: &[serde_json::Value]) -> bool {
-    for patch in ops {
-        let op = patch["op"].as_str().unwrap_or("");
-        let path = patch["path"].as_str().unwrap_or("");
-        let value = patch.get("value").cloned().unwrap_or(serde_json::Value::Null);
-        match op {
-            "test" => match json_pointer_get(schema_json, path) {
-                Some(actual) if *actual == value => {}
-                _ => return false,
-            },
-            "add" => {
-                if path == "/" || path.is_empty() {
-                    if let (Some(target), Some(source)) = (schema_json.as_object_mut(), value.as_object()) {
-                        for (k, v) in source {
-                            target.insert(k.clone(), v.clone());
-                        }
-                    }
-                } else if let Some((parent, key)) = navigate_to_parent(schema_json, path) {
-                    match parent {
-                        serde_json::Value::Object(m) => {
-                            m.insert(key, value);
-                        }
-                        serde_json::Value::Array(a) => {
-                            if key == "-" {
-                                a.push(value);
-                            } else if let Ok(idx) = key.parse::<usize>() {
-                                if idx <= a.len() {
-                                    a.insert(idx, value);
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            "remove" => {
-                if let Some((parent, key)) = navigate_to_parent(schema_json, path) {
-                    match parent {
-                        serde_json::Value::Object(m) => {
-                            m.remove(&key);
-                        }
-                        serde_json::Value::Array(a) => {
-                            if let Ok(idx) = key.parse::<usize>() {
-                                if idx < a.len() {
-                                    a.remove(idx);
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            "replace" => {
-                if let Some((parent, key)) = navigate_to_parent(schema_json, path) {
-                    match parent {
-                        serde_json::Value::Object(m) => {
-                            m.insert(key, value);
-                        }
-                        serde_json::Value::Array(a) => {
-                            if let Ok(idx) = key.parse::<usize>() {
-                                if idx < a.len() {
-                                    a[idx] = value;
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            other => {
-                warn!("Unknown JSON Patch operation '{}' at path '{}'", other, path);
-            }
-        }
-    }
-    true
-}
-
-pub(crate) fn apply_patches(schema_json: &mut serde_json::Value, patch_groups: &[serde_json::Value]) {
-    for group in patch_groups {
-        if let Some(ops) = group.as_array() {
-            apply_patch_batch(schema_json, ops);
-        }
-    }
-}
-
 pub(crate) fn resolve_schema(
     schema: &serde_json::Value,
     defs: Option<&HashMap<String, serde_json::Value>>,
@@ -175,8 +52,8 @@ fn extract_primary_type(v: &serde_json::Value) -> Option<String> {
     }
 }
 
-/// Process schemas: load raw schemas, apply patches and extensions, then generate
-/// shared metadata files consumed by all engine crates.
+/// Process schemas: load the (already-patched) raw schemas, apply extension
+/// fragments, then generate shared metadata files consumed by all engine crates.
 pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<SyncStats> {
     let mut stats = SyncStats::default();
     let schema_source = crate::schema::schema_dir(upstream_dir);
@@ -194,33 +71,23 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
             continue;
         }
         let content = fs::read_to_string(&path)?;
-        let json: serde_json::Value = match serde_json::from_str(&content) {
-            Ok(v) => v,
-            Err(_) => continue,
-        };
+        // These are our own downloaded schema files — a parse failure means a
+        // corrupt download, not an optional file, so surface it rather than
+        // silently dropping a resource type.
+        let json: serde_json::Value = serde_json::from_str(&content)
+            .map_err(|e| anyhow::anyhow!("failed to parse schema {}: {}", path.display(), e))?;
         let Some(type_name) = json.get("typeName").and_then(|v| v.as_str()) else {
-            continue;
+            anyhow::bail!("schema {} has no 'typeName'", path.display());
         };
         raw_schemas.insert(type_name.to_string(), json);
     }
+    anyhow::ensure!(!raw_schemas.is_empty(), "no schemas loaded from {}", schema_source.display());
     info!("Loaded {} raw schemas", raw_schemas.len());
 
-    let patches_dir = upstream_dir.join("patches");
-    let mut patch_count = 0;
-    if patches_dir.exists() {
-        for (type_name, schema_json) in &mut raw_schemas {
-            let patch_name = type_name.replace("::", "-").to_lowercase();
-            let patch_file = patches_dir.join(format!("{}.patch.json", patch_name));
-            if !patch_file.exists() {
-                continue;
-            }
-            let patch_groups: Vec<serde_json::Value> = serde_json::from_str(&fs::read_to_string(&patch_file)?)?;
-            apply_patches(schema_json, &patch_groups);
-            patch_count += 1;
-        }
-    }
-    info!("Applied patches to {} schemas", patch_count);
-
+    // The downloaded schemas are already fully patched (provider + extension
+    // patches are baked into the enhanced archive), so no patch pass runs here.
+    // The extension fragments below are the separately-synced enum/constraint
+    // documents the engines query at runtime, not schema patches.
     let extensions_dir = upstream_dir.join("extensions");
     let mut ext_count = 0;
     if extensions_dir.exists() {
@@ -247,19 +114,20 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
     }
     info!("Applied extensions to {} schemas", ext_count);
 
+    // Run after the extension merge: some dependentExcluded constraints arrive as
+    // extension fragments (the same fragments that back a dedicated engine rule),
+    // so stripping them earlier would miss them and leave a duplicate finding.
+    let stripped = strip_superseded_dependent_excluded(&mut raw_schemas, handwritten_dir)?;
+    if stripped > 0 {
+        info!("Stripped {} dependentExcluded entries superseded by dedicated engine rules", stripped);
+    }
+
     let mut schemas: HashMap<String, (String, SchemaTop)> = HashMap::new();
-    let mut skipped = 0;
     for (type_name, json) in &raw_schemas {
         let content = serde_json::to_string(json)?;
-        let schema: SchemaTop = serde_json::from_value(json.clone()).unwrap_or_default();
-        if schema.type_name.is_none() {
-            skipped += 1;
-            continue;
-        }
+        let schema: SchemaTop = serde_json::from_value(json.clone())
+            .map_err(|e| anyhow::anyhow!("failed to deserialize schema for {}: {}", type_name, e))?;
         schemas.insert(type_name.clone(), (content, schema));
-    }
-    if skipped > 0 {
-        warn!("Skipped {} schemas with no typeName", skipped);
     }
     info!("Parsed {} schemas for metadata generation", schemas.len());
 
@@ -273,7 +141,10 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
     info!("Wrote {} patched schemas to patched_schemas/", raw_schemas.len());
 
     fs::write(data_dir.join("schema_metadata.json"), generate_schema_metadata(&schemas, &raw_schemas))?;
-    let getatt_additions = read_getatt_additions(handwritten_dir)?;
+    // getatt_additions is extracted from cfn-lint during sync (into data_dir);
+    // getatt_return_type_overrides is a hand-maintained correction (CloudFormation
+    // stringifies some GetAtt values) that has no cfn-lint equivalent.
+    let getatt_additions = read_getatt_additions(&data_dir)?;
     let getatt_return_overrides = read_getatt_return_type_overrides(handwritten_dir)?;
     fs::write(
         data_dir.join("getatt_attributes.json"),
@@ -567,15 +438,73 @@ fn generate_getatt_data(
         .unwrap()
 }
 
-/// Reads the hand-maintained GetAtt attribute additions that extend the
-/// schema-derived readOnly attributes with the full set CloudFormation exposes
-/// for Fn::GetAtt on each resource type.
-fn read_getatt_additions(handwritten_dir: &Path) -> anyhow::Result<BTreeMap<String, Vec<String>>> {
+/// Reads the GetAtt attribute additions (extracted from cfn-lint during sync)
+/// Removes `dependentExcluded` trigger properties that a dedicated engine rule
+/// already enforces, so the schema validator's generic mutually-exclusive check
+/// does not duplicate the rule's finding. Returns the number of trigger entries
+/// removed. The reference tool strips the same entries from its loaded schema.
+fn strip_superseded_dependent_excluded(
+    raw_schemas: &mut HashMap<String, serde_json::Value>,
+    handwritten_dir: &Path,
+) -> anyhow::Result<usize> {
+    #[derive(Deserialize)]
+    struct Overrides {
+        remove_dependent_excluded: BTreeMap<String, Vec<String>>,
+    }
+    let path = handwritten_dir.join("schema_dependent_excluded_overrides.json");
+    if !path.exists() {
+        return Ok(0);
+    }
+    let contents =
+        fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
+    let parsed: Overrides = serde_json::from_str(&contents)
+        .map_err(|source| anyhow::anyhow!("failed to parse {}: {}", path.display(), source))?;
+
+    let mut removed = 0;
+    for (type_name, triggers) in &parsed.remove_dependent_excluded {
+        let Some(schema) = raw_schemas.get_mut(type_name) else {
+            continue;
+        };
+        for trigger in triggers {
+            removed += remove_dependent_excluded_trigger(schema, trigger);
+        }
+    }
+    Ok(removed)
+}
+
+/// Recursively removes `dependentExcluded.<trigger>` wherever it appears in a
+/// schema value, returning the count removed.
+fn remove_dependent_excluded_trigger(value: &mut serde_json::Value, trigger: &str) -> usize {
+    let mut removed = 0;
+    match value {
+        serde_json::Value::Object(map) => {
+            if let Some(de) = map.get_mut("dependentExcluded").and_then(|v| v.as_object_mut()) {
+                if de.remove(trigger).is_some() {
+                    removed += 1;
+                }
+            }
+            for v in map.values_mut() {
+                removed += remove_dependent_excluded_trigger(v, trigger);
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                removed += remove_dependent_excluded_trigger(v, trigger);
+            }
+        }
+        _ => {}
+    }
+    removed
+}
+
+/// that extend the schema-derived readOnly attributes with the full set
+/// CloudFormation exposes for Fn::GetAtt on each resource type.
+fn read_getatt_additions(data_dir: &Path) -> anyhow::Result<BTreeMap<String, Vec<String>>> {
     #[derive(Deserialize)]
     struct GetAttAdditions {
         getatt_additions: BTreeMap<String, Vec<String>>,
     }
-    let path = handwritten_dir.join("getatt_additions.json");
+    let path = data_dir.join("getatt_additions.json");
     let contents =
         fs::read_to_string(&path).map_err(|source| anyhow::anyhow!("failed to read {}: {}", path.display(), source))?;
     let parsed: GetAttAdditions = serde_json::from_str(&contents)
@@ -711,45 +640,6 @@ mod tests {
     }
 
     #[test]
-    fn apply_patches_add_replace_remove() {
-        let mut schema = json!({"typeName": "AWS::Test::Resource", "properties": {"A": {"type": "string"}}});
-        let patches = vec![
-            json!([{"op": "add", "path": "/properties/B", "value": {"type": "integer"}}]),
-            json!([{"op": "replace", "path": "/properties/A/type", "value": "number"}]),
-        ];
-        apply_patches(&mut schema, &patches);
-        assert_eq!(schema["properties"]["B"]["type"], "integer");
-        assert_eq!(schema["properties"]["A"]["type"], "number");
-
-        let remove_patch = vec![json!([{"op": "remove", "path": "/properties/B"}])];
-        apply_patches(&mut schema, &remove_patch);
-        assert_eq!(schema["properties"].get("B"), None, "read-only property B should be removed");
-    }
-
-    #[test]
-    fn apply_patches_test_op_gates_subsequent_ops() {
-        let mut schema = json!({"properties": {"A": {"type": "string"}}});
-        // test fails → entire batch is skipped
-        let patches = vec![json!([
-            {"op": "test", "path": "/properties/A/type", "value": "integer"},
-            {"op": "add", "path": "/properties/B", "value": {"type": "boolean"}}
-        ])];
-        apply_patches(&mut schema, &patches);
-        assert_eq!(schema["properties"].get("B"), None, "read-only property B should be removed");
-    }
-
-    #[test]
-    fn apply_patches_test_op_passes() {
-        let mut schema = json!({"properties": {"A": {"type": "string"}}});
-        let patches = vec![json!([
-            {"op": "test", "path": "/properties/A/type", "value": "string"},
-            {"op": "add", "path": "/properties/B", "value": {"type": "boolean"}}
-        ])];
-        apply_patches(&mut schema, &patches);
-        assert_eq!(schema["properties"]["B"]["type"], "boolean");
-    }
-
-    #[test]
     fn extract_primary_type_simple_string() {
         assert_eq!(extract_primary_type(&json!("string")), Some("string".to_string()));
     }
@@ -870,11 +760,18 @@ mod tests {
         // Copy schemas into temp upstream dir
         let tmp_schemas = tmp_upstream.join("schemas");
         copy_dir(&upstream_dir.join("schemas"), &tmp_schemas);
-        if upstream_dir.join("patches").exists() {
-            copy_dir(&upstream_dir.join("patches"), &tmp_upstream.join("patches"));
-        }
         if upstream_dir.join("extensions").exists() {
             copy_dir(&upstream_dir.join("extensions"), &tmp_upstream.join("extensions"));
+        }
+        // getatt_additions is a sync output (extracted from cfn-lint) read from
+        // the generated data dir; seed it from the real one if present.
+        let tmp_data = tmp.join("data");
+        fs::create_dir_all(&tmp_data).unwrap();
+        let real_additions = manifest.join("generated").join("data").join("getatt_additions.json");
+        if real_additions.exists() {
+            fs::copy(&real_additions, tmp_data.join("getatt_additions.json")).unwrap();
+        } else {
+            fs::write(tmp_data.join("getatt_additions.json"), r#"{"getatt_additions":{}}"#).unwrap();
         }
 
         let result = process_schemas(&tmp_upstream, &tmp, &manifest.join("handwritten"));

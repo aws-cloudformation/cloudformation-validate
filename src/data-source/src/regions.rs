@@ -4,15 +4,15 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-pub fn sync_regions(rule_source_dir: &Path, data_output_dir: &Path) -> anyhow::Result<SyncStats> {
+/// Build `region_resource_types.json` from the per-region provider maps written
+/// by the schema download (`upstream/providers/{region}.json`). Each provider
+/// map is `{ resource_type: content_hash }`; we only need the set of type names
+/// valid in each region, so the hashes are discarded here.
+pub fn sync_regions(providers_dir: &Path, data_output_dir: &Path) -> anyhow::Result<SyncStats> {
     let mut stats = SyncStats::default();
-    let providers_dir = rule_source_dir.join("src/cfnlint/data/schemas/providers");
 
     if !providers_dir.exists() {
-        anyhow::bail!(
-            "Rule-source providers not found at: {}\nExpected: <rule-source-root>/src/cfnlint/data/schemas/providers/",
-            providers_dir.display()
-        );
+        anyhow::bail!("Provider maps not found at: {}\nRun the schema download first.", providers_dir.display());
     }
 
     info!("Syncing regions: source={} output={}", providers_dir.display(), data_output_dir.display());
@@ -20,19 +20,17 @@ pub fn sync_regions(rule_source_dir: &Path, data_output_dir: &Path) -> anyhow::R
 
     let mut region_map: HashMap<String, serde_json::Map<String, serde_json::Value>> = HashMap::new();
 
-    let mut files: Vec<_> = fs::read_dir(&providers_dir)?
+    let mut files: Vec<_> = fs::read_dir(providers_dir)?
         .filter_map(|e| e.ok())
         .filter(|e| {
             let p = e.path();
-            if !p.is_file() {
+            if !p.is_file() || p.extension().and_then(|x| x.to_str()) != Some("json") {
                 return false;
             }
-            let name = p.file_name().unwrap().to_string_lossy().to_string();
-            if name == "__init__.py" {
-                return false;
-            }
-            let ext = p.extension().and_then(|x| x.to_str()).unwrap_or("");
-            ext == "py" || ext == "json"
+            // `sam.json` is the region-independent SAM type→hash pointer, not a
+            // region. SAM types are added globally elsewhere, so skip it here to
+            // avoid inventing a bogus "sam" region.
+            p.file_stem().and_then(|s| s.to_str()) != Some("sam")
         })
         .collect();
     files.sort_by_key(|e| e.file_name());
@@ -40,28 +38,15 @@ pub fn sync_regions(rule_source_dir: &Path, data_output_dir: &Path) -> anyhow::R
 
     for entry in files {
         let path = entry.path();
-        let file_stem = path.file_stem().unwrap().to_string_lossy().to_string();
-        let region = file_stem.replace('_', "-");
-        let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("");
+        let region = path.file_stem().unwrap().to_string_lossy().to_string();
 
-        let types = match ext {
-            "py" => match parse_provider_py(&path) {
-                Ok(t) => t,
-                Err(e) => {
-                    error!("Failed to parse provider file {}: {}", file_stem, e);
-                    stats.errors.push(format!("{}: {}", file_stem, e));
-                    continue;
-                }
-            },
-            "json" => match parse_provider_json(&path) {
-                Ok(t) => t,
-                Err(e) => {
-                    error!("Failed to parse provider file {}: {}", file_stem, e);
-                    stats.errors.push(format!("{}: {}", file_stem, e));
-                    continue;
-                }
-            },
-            _ => continue,
+        let types = match parse_provider_map(&path) {
+            Ok(t) => t,
+            Err(e) => {
+                error!("Failed to parse provider file {}: {}", region, e);
+                stats.errors.push(format!("{}: {}", region, e));
+                continue;
+            }
         };
 
         if types.is_empty() {
@@ -93,35 +78,9 @@ pub fn sync_regions(rule_source_dir: &Path, data_output_dir: &Path) -> anyhow::R
     Ok(stats)
 }
 
-fn parse_provider_py(path: &Path) -> anyhow::Result<Vec<String>> {
-    let content = fs::read_to_string(path)?;
-    let mut types = Vec::new();
-    let mut in_dict = false;
-    for line in content.lines() {
-        if line.contains("types: dict[str, str] = {") || line.contains("types: dict[str, str]= {") {
-            in_dict = true;
-            continue;
-        }
-        if in_dict {
-            let trimmed = line.trim();
-            if trimmed == "}" {
-                break;
-            }
-            if let Some(start) = trimmed.find('"') {
-                if let Some(end) = trimmed[start + 1..].find('"') {
-                    let type_name = &trimmed[start + 1..start + 1 + end];
-                    if type_name.starts_with("AWS::") || type_name.starts_with("Alexa::") {
-                        types.push(type_name.to_string());
-                    }
-                }
-            }
-        }
-    }
-    types.sort();
-    Ok(types)
-}
-
-fn parse_provider_json(path: &Path) -> anyhow::Result<Vec<String>> {
+/// Parse a `{ resource_type: content_hash }` provider map, returning the sorted
+/// list of CloudFormation/Alexa resource type names it contains.
+fn parse_provider_map(path: &Path) -> anyhow::Result<Vec<String>> {
     let content = fs::read_to_string(path)?;
     let val: serde_json::Value = serde_json::from_str(&content)?;
     let mut types = Vec::new();

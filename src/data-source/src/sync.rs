@@ -46,11 +46,11 @@ fn print_usage() {
     eprintln!(
         "Usage: cargo run -p data-source --example sync [-- OPTIONS]
 
-Downloads CloudFormation schemas and syncs rule-source upstream data.
-Output goes to data-source/upstream/.
+Downloads enhanced CloudFormation schemas (with per-region maps) and syncs
+rule-source upstream data. Output goes to data-source/upstream/.
 
 Options:
-  --cfn-lint-root <DIR>         Path to cfn-lint repo (enables patches/extensions/regions sync)
+  --cfn-lint-root <DIR>         Path to cfn-lint repo (enables extensions/additional-specs sync)
   -h, --help                    Show this help"
     );
 }

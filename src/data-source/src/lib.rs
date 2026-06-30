@@ -5,13 +5,13 @@ pub mod embedded {
 #[cfg(feature = "full")]
 pub mod additional_specs;
 #[cfg(feature = "full")]
+pub mod cfnlint_tables;
+#[cfg(feature = "full")]
 pub mod codegen_cel;
 #[cfg(feature = "full")]
 pub mod codegen_schema_validator;
 #[cfg(feature = "full")]
 pub mod extensions;
-#[cfg(feature = "full")]
-pub mod patches;
 #[cfg(feature = "full")]
 pub mod process;
 #[cfg(feature = "full")]
@@ -79,32 +79,33 @@ impl SyncStats {
 pub fn sync_upstream(upstream_dir: &Path, rule_source_root: Option<&str>) -> anyhow::Result<()> {
     info!("=== Sync phase ===");
 
-    info!("Step 1: Downloading CloudFormation schemas");
-    schema::download_schemas(&schema::schema_dir(upstream_dir))?.fail_on_errors("Download")?;
+    info!("Step 1: Downloading enhanced CloudFormation schemas (fully patched, with region maps)");
+    schema::download_schemas(upstream_dir)?.fail_on_errors("Download")?;
+
+    let generated_data = upstream_dir.parent().unwrap().join("generated").join("data");
+    fs::create_dir_all(&generated_data)?;
+
+    info!("Step 2: Building region resource types from downloaded provider maps");
+    regions::sync_regions(&schema::providers_dir(upstream_dir), &generated_data)?.fail_on_errors("Regions")?;
 
     if let Some(root) = rule_source_root {
         let rule_source_dir = resolve_rule_source_dir(Some(root))?;
 
-        info!("Step 2: Syncing patches from {}", rule_source_dir.display());
-        patches::sync_patches(&rule_source_dir, &upstream_dir.join("patches"))?.fail_on_errors("Patches")?;
-
         info!("Step 3: Syncing extensions from {}", rule_source_dir.display());
-        let generated_data = upstream_dir.parent().unwrap().join("generated").join("data");
-        fs::create_dir_all(&generated_data)?;
         extensions::sync_extensions(&rule_source_dir, &upstream_dir.join("extensions"), &generated_data)?
             .fail_on_errors("Extensions")?;
 
-        info!("Step 4: Syncing regions from {}", rule_source_dir.display());
-        regions::sync_regions(&rule_source_dir, &generated_data)?.fail_on_errors("Regions")?;
-
-        info!("Step 5: Syncing additional specs from {}", rule_source_dir.display());
+        info!("Step 4: Syncing additional specs from {}", rule_source_dir.display());
         additional_specs::sync_additional_specs(&rule_source_dir, &generated_data, upstream_dir)?
             .fail_on_errors("AdditionalSpecs")?;
+
+        info!("Step 5: Extracting data tables embedded in cfn-lint rule code");
+        cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?.fail_on_errors("CfnLintTables")?;
 
         info!("Step 6: Verifying sync produced expected data files");
         verify_sync_outputs(&generated_data)?;
     } else {
-        info!("Skipping rule-source sync (no --cfn-lint-root provided)");
+        info!("Skipping rule-source sync (no --cfn-lint-root provided); region types still built from schema download");
     }
 
     Ok(())
@@ -114,7 +115,7 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: Option<&str>) -> any
 pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     info!("=== Generate phase ===");
 
-    info!("Step 1: Processing schemas (patches, extensions, metadata)");
+    info!("Step 1: Processing schemas (extensions, metadata)");
     process::process_schemas(upstream_dir, generated_dir, handwritten_dir)?.fail_on_errors("Process")?;
 
     info!("Step 2: Generating CEL rules");
@@ -163,6 +164,10 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
     "lambda_runtimes",
     "region_resource_types",
     "stateful_resource_types",
+    // Tables extracted from cfn-lint rule code
+    "getatt_additions",
+    "retention_period_requirements",
+    "codepipeline_action_artifact_counts",
 ];
 
 /// Files produced by generate_all (schema processing, codegen).
@@ -181,9 +186,9 @@ const REQUIRED_GENERATE_FILES: &[&str] = &[
 
 #[cfg(feature = "full")]
 const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
-    "codepipeline_action_artifact_counts",
     "deprecated_resource_types",
-    "retention_period_requirements",
+    "getatt_return_type_overrides",
+    "schema_dependent_excluded_overrides",
     "sensitive_ports",
 ];
 
