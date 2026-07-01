@@ -6,6 +6,9 @@ with auto-generated Kotlin bindings, packaged as a JAR with bundled natives.
 
 All types live in `com.amazonaws.cloudformation.validation`.
 
+For a complete, runnable example, see
+[examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-jvm/examples).
+
 ## Engine
 
 `RegoEngine` and `CelEngine` both implement the `Engine` interface. They are interchangeable — both produce identical

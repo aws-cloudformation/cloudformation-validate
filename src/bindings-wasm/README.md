@@ -6,6 +6,9 @@ template parser, schema validator, Rego engine, and CEL engine — into a single
 
 All WASM objects must be explicitly freed via `.free()` to release memory.
 
+For a complete, runnable example, see
+[examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-wasm/examples).
+
 ## Engine
 
 `RegoEngine` and `CelEngine` both implement the `Engine` interface. They are interchangeable — both produce identical

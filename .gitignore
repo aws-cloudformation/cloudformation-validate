@@ -6,15 +6,16 @@
 **/.gradle/
 **/.kotlin/
 **/build/
-src/bindings-jvm/tests/kotlin/generated/
 META-INF/
 org.eclipse*
 .classpath
+src/bindings-jvm/tests/kotlin/generated/
 src/bindings-jvm/generated/**/*
 !src/bindings-jvm/generated/*.jar
 
 # Node / WASM
 **/node_modules/
+src/bindings-wasm/examples/package-lock.json
 
 # Output (regenerable)
 **/output/**
