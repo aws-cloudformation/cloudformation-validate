@@ -245,16 +245,18 @@ fn issue_46_no_false_positive_on_eks_securitygroupid_getatt() {
     assert_fires_on_resource(&diags, "W9002", "ClusterEB0386A7");
 }
 
-/// Issue #47: an open-world service-enum mismatch (Lambda Runtime `node99.x`) is
-/// emitted as a FATAL F3030. Pins the current FATAL classification the issue
-/// disputes; note the diagnostic is suppressible (see suppressibility tests).
+/// Issue #47: an open-world service-enum mismatch (Lambda Runtime `node99.x`)
+/// is a Warning (W3030), not a Fatal. Enum sets are point-in-time snapshots of
+/// what a service accepts; AWS adds new values over time, so a value absent from
+/// the compiled schema may still deploy. Warning severity keeps the finding
+/// non-blocking and suppressible.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/47
 #[test]
-fn issue_47_f3030_enum_mismatch_is_fatal() {
+fn issue_47_enum_mismatch_is_warning() {
     let diags = validate_both("issue-47.json");
-    assert_fires_with_severity(&diags, "F3030", Severity::Fatal);
-    assert_fires_on_resource(&diags, "F3030", "MyFunction");
-    assert_count(&diags, "F3030", 1);
+    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
+    assert_fires_on_resource(&diags, "W3030", "MyFunction");
+    assert_count(&diags, "W3030", 1);
     assert_fires_with_severity(&diags, "E3677", Severity::Error);
 }
 
@@ -475,8 +477,8 @@ fn issue_67_f3014_false_positive_on_promql_alarm() {
 
 /// Issue #68: the Lambda ZipFile runtime rule (E3677) already uses a
 /// forward-looking `nodejs`/`python` prefix — it fires on `node99.x` but not on
-/// `nodejs99.x`. The genuinely non-future-proof check is the baked-in Runtime
-/// enum (F3030), which FATAL-rejects both unknown runtimes.
+/// `nodejs99.x`. The baked-in Runtime enum (W3030) warns on both unknown
+/// runtimes without blocking, since the enum is a point-in-time snapshot.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/68
 #[test]
 fn issue_68_zipfile_runtime_forward_looking_vs_enum_snapshot() {
@@ -484,8 +486,8 @@ fn issue_68_zipfile_runtime_forward_looking_vs_enum_snapshot() {
     assert_fires_with_severity(&diags, "E3677", Severity::Error);
     assert_fires_on_resource(&diags, "E3677", "FutureNodeFunc");
     assert_count(&diags, "E3677", 1);
-    assert_fires_with_severity(&diags, "F3030", Severity::Fatal);
-    assert_count(&diags, "F3030", 2);
+    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
+    assert_count(&diags, "W3030", 2);
 }
 
 /// Issue #69: the FATAL-classification debate. Service-content schema constraints

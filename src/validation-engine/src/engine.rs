@@ -626,8 +626,8 @@ pub(crate) fn build_context(
                 actual_value = resolve_val(property_path).map(Into::into);
             }
         }
-        "F3030" | "E3030" | "F3031" | "E3031" | "F3034" | "E3034" | "F3037" | "W3045" | "E1103" | "E1150" | "E1151"
-        | "E1152" | "E1153" | "E1154" | "E1155" | "E1156" => {
+        "F3030" | "W3030" | "E3030" | "F3031" | "E3031" | "F3034" | "E3034" | "F3037" | "W3045" | "E1103" | "E1150"
+        | "E1151" | "E1152" | "E1153" | "E1154" | "E1155" | "E1156" => {
             actual_value = resolve_val(property_path).map(Into::into);
         }
         "F3033" | "W9006" => {

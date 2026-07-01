@@ -177,7 +177,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
                     ensure_ctx!(d).expected_constraint = Some(pt.primary().unwrap_or("unknown").to_string());
                 }
             }
-            "F3030" => {
+            "F3030" | "W3030" => {
                 if let Some(ps) = prop_schema
                     && !ps.enum_values.is_empty()
                 {
@@ -987,13 +987,18 @@ fn validate_prop(
                 enum_matches(val, &schema.enum_values)
             };
             if !matches {
+                // Enum sets are snapshots of what a service accepts today; AWS adds
+                // new values over time, so a value absent from the compiled schema may
+                // still deploy successfully. Reporting this as a Warning (rather than a
+                // guaranteed-failure Fatal) lets templates using a newer value proceed
+                // and stay suppressible.
                 let enum_desc = if regional.is_some() {
                     format!("allowed values for region '{}'", region)
                 } else {
-                    format!("{:?}", schema.enum_values)
+                    format_allowed_values(&schema.enum_values)
                 };
                 out.push(build_diagnostic_conditional(
-                    "F3030",
+                    "W3030",
                     &format!("{}{} is not one of {}", format_value(val), res_suffix, enum_desc),
                     m,
                     rid,
@@ -1571,6 +1576,10 @@ fn format_value(val: &serde_json::Value) -> String {
         serde_json::Value::String(s) => format!("'{}'", s),
         o => o.to_string(),
     }
+}
+
+fn format_allowed_values(values: &[serde_json::Value]) -> String {
+    format!("[{}]", values.iter().map(format_value).collect::<Vec<_>>().join(", "))
 }
 
 fn condition_matches(
