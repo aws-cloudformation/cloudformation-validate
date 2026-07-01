@@ -1583,6 +1583,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E1033",
+        category: Category::Intrinsic,
+        description: "GetStackOutput validation of parameters",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E1051",
         category: Category::Intrinsic,
         description: "Validate dynamic references to secrets manager are only in resource properties",

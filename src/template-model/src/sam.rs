@@ -151,6 +151,11 @@ fn collect_arena_param_refs(arena: &Arena, node_ref: NodeRef, out: &mut Vec<Stri
             IntrinsicFn::ImportValue(v) | IntrinsicFn::Base64(v) => {
                 collect_arena_param_refs(arena, *v, out);
             }
+            IntrinsicFn::GetStackOutput(args) => {
+                for (_, v) in args {
+                    collect_arena_param_refs(arena, *v, out);
+                }
+            }
             _ => {}
         },
         Node::List(items) => {

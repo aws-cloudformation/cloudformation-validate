@@ -80,6 +80,13 @@ pub const KEY_CONSTRAINT_DESCRIPTION: &str = "ConstraintDescription";
 /// Optional fourth element of `Fn::FindInMap`: `{ "DefaultValue": ... }`.
 pub const KEY_DEFAULT_VALUE: &str = "DefaultValue";
 
+/// Argument keys of `Fn::GetStackOutput`: `StackName` and `OutputName` are
+/// required; `Region` and `RoleArn` are optional. No other keys are permitted.
+pub const KEY_STACK_NAME: &str = "StackName";
+pub const KEY_OUTPUT_NAME: &str = "OutputName";
+pub const KEY_REGION: &str = "Region";
+pub const KEY_ROLE_ARN: &str = "RoleArn";
+
 pub const SAM_TRANSFORM_MARKER: &str = "Serverless";
 pub const SAM_SERVERLESS_TYPE_PREFIX: &str = "AWS::Serverless::";
 pub const SAM_FUNCTION_TYPE: &str = "AWS::Serverless::Function";
@@ -254,6 +261,7 @@ pub const FN_SPLIT: &str = "Fn::Split";
 pub const FN_BASE64: &str = "Fn::Base64";
 pub const FN_CIDR: &str = "Fn::Cidr";
 pub const FN_GET_AZS: &str = "Fn::GetAZs";
+pub const FN_GET_STACK_OUTPUT: &str = "Fn::GetStackOutput";
 pub const FN_IMPORT_VALUE: &str = "Fn::ImportValue";
 pub const FN_TRANSFORM: &str = "Fn::Transform";
 pub const FN_AND: &str = "Fn::And";
@@ -288,6 +296,7 @@ pub const TAG_SPLIT: &str = "Split";
 pub const TAG_BASE64: &str = "Base64";
 pub const TAG_CIDR: &str = "Cidr";
 pub const TAG_GET_AZS: &str = "GetAZs";
+pub const TAG_GET_STACK_OUTPUT: &str = "GetStackOutput";
 pub const TAG_IMPORT_VALUE: &str = "ImportValue";
 pub const TAG_TRANSFORM: &str = "Transform";
 pub const TAG_AND: &str = "And";
@@ -324,6 +333,7 @@ pub const SHORT_TAG_TO_FN_KEY: &[(&str, &str)] = &[
     (TAG_BASE64, FN_BASE64),
     (TAG_CIDR, FN_CIDR),
     (TAG_GET_AZS, FN_GET_AZS),
+    (TAG_GET_STACK_OUTPUT, FN_GET_STACK_OUTPUT),
     (TAG_IMPORT_VALUE, FN_IMPORT_VALUE),
     (TAG_TRANSFORM, FN_TRANSFORM),
     (TAG_AND, FN_AND),

@@ -510,4 +510,152 @@ mod tests {
             ir.diagnostics
         );
     }
+
+    /// Collects the E1033 messages a parsed template produced, in source order.
+    fn e1033_messages(ir: &TemplateIR) -> Vec<&str> {
+        ir.diagnostics.iter().filter(|d| d.rule_id == "E1033").map(|d| d.message.as_str()).collect()
+    }
+
+    #[test]
+    fn parse_get_stack_output_full_form_builds_intrinsic() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName:\n        Fn::GetStackOutput:\n          StackName: s\n          OutputName: o\n          Region: us-east-1\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let props = ir.arena.map_get(res[0].1, "Properties").unwrap();
+        let name = ir.arena.map_get(props, "DisplayName").unwrap();
+        match ir.arena.node(name) {
+            Node::Intrinsic(IntrinsicFn::GetStackOutput(args)) => {
+                let keys: Vec<&str> = args.iter().map(|(k, _)| k.as_str()).collect();
+                assert_eq!(keys, ["StackName", "OutputName", "Region"]);
+            }
+            o => panic!("Expected GetStackOutput, got {:?}", o),
+        }
+        assert!(e1033_messages(&ir).is_empty(), "well-formed call must not emit E1033");
+    }
+
+    /// The YAML-only `!GetStackOutput` shorthand tag with a block-mapping argument
+    /// must build the same intrinsic as the full `Fn::GetStackOutput` form.
+    #[test]
+    fn parse_get_stack_output_short_tag_block_mapping() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !GetStackOutput\n        StackName: s\n        OutputName: o\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let props = ir.arena.map_get(res[0].1, "Properties").unwrap();
+        let name = ir.arena.map_get(props, "DisplayName").unwrap();
+        match ir.arena.node(name) {
+            Node::Intrinsic(IntrinsicFn::GetStackOutput(args)) => {
+                let keys: Vec<&str> = args.iter().map(|(k, _)| k.as_str()).collect();
+                assert_eq!(keys, ["StackName", "OutputName"]);
+            }
+            o => panic!("Expected GetStackOutput from short tag, got {:?}", o),
+        }
+        assert!(e1033_messages(&ir).is_empty(), "well-formed short-tag call must not emit E1033");
+    }
+
+    /// The `!GetStackOutput` shorthand with a flow-mapping argument (`{...}`).
+    #[test]
+    fn parse_get_stack_output_short_tag_flow_mapping() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !GetStackOutput {StackName: s, OutputName: o}\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let props = ir.arena.map_get(res[0].1, "Properties").unwrap();
+        let name = ir.arena.map_get(props, "DisplayName").unwrap();
+        assert!(
+            matches!(ir.arena.node(name), Node::Intrinsic(IntrinsicFn::GetStackOutput(_))),
+            "flow-mapping short tag should build GetStackOutput, got {:?}",
+            ir.arena.node(name)
+        );
+        assert!(e1033_messages(&ir).is_empty(), "well-formed flow-mapping call must not emit E1033");
+    }
+
+    #[test]
+    fn parse_get_stack_output_full_form_missing_required_emits_e1033() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName:\n        Fn::GetStackOutput:\n          StackName: s\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(e1033_messages(&ir), ["'OutputName' is a required property"]);
+    }
+
+    #[test]
+    fn parse_get_stack_output_short_tag_missing_required_emits_e1033() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !GetStackOutput\n        OutputName: o\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(e1033_messages(&ir), ["'StackName' is a required property"]);
+    }
+
+    #[test]
+    fn parse_get_stack_output_short_tag_additional_property_emits_e1033() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !GetStackOutput\n        StackName: s\n        OutputName: o\n        Bad: v\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(e1033_messages(&ir), ["Additional properties are not allowed ('Bad' was unexpected)"]);
+    }
+
+    #[test]
+    fn parse_get_stack_output_short_tag_non_object_emits_e1033_and_falls_through() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !GetStackOutput invalid\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(e1033_messages(&ir), ["'invalid' is not of type 'object'"]);
+        // A malformed (non-object) argument cannot form the intrinsic, so the node
+        // stays a plain scalar rather than becoming an IntrinsicFn::GetStackOutput.
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let props = ir.arena.map_get(res[0].1, "Properties").unwrap();
+        let name = ir.arena.map_get(props, "DisplayName").unwrap();
+        assert!(
+            !matches!(ir.arena.node(name), Node::Intrinsic(_)),
+            "non-object arg should not build an intrinsic, got {:?}",
+            ir.arena.node(name)
+        );
+    }
+
+    #[test]
+    fn parse_get_stack_output_in_resource_metadata_emits_e1033() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: ok\n    Metadata:\n      M:\n        Fn::GetStackOutput:\n          StackName: s\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(e1033_messages(&ir), ["'OutputName' is a required property"]);
+    }
+
+    #[test]
+    fn parse_get_stack_output_in_parameter_default_does_not_emit_e1033() {
+        // As with JSON: CloudFormation never evaluates intrinsics in a parameter
+        // Default, so E1033 must not fire there (E2001 covers it instead).
+        let input = "Parameters:\n  P:\n    Type: String\n    Default: !GetStackOutput\n      StackName: s\nResources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !Ref P\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert!(e1033_messages(&ir).is_empty(), "E1033 must not fire for a call in a parameter Default");
+    }
+
+    #[test]
+    fn parse_get_stack_output_nested_in_join_does_not_emit_e1033() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !Join\n        - '-'\n        - - x\n          - !GetStackOutput\n            StackName: s\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert!(e1033_messages(&ir).is_empty(), "E1033 must not fire for a call nested inside another function");
+    }
+
+    /// The full `Fn::GetStackOutput` form and the `!GetStackOutput` shorthand must
+    /// build the identical IR — the shared builder guarantees JSON/YAML parity, and
+    /// this pins that the YAML tag path funnels through it too.
+    #[test]
+    fn parse_get_stack_output_short_tag_matches_full_form() {
+        let tag = parse_yaml(
+            "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName: !GetStackOutput\n        StackName: s\n        OutputName: o\n"
+                .as_bytes(),
+        )
+        .unwrap();
+        let full = parse_yaml(
+            "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      DisplayName:\n        Fn::GetStackOutput:\n          StackName: s\n          OutputName: o\n"
+                .as_bytes(),
+        )
+        .unwrap();
+        for ir in [&tag, &full] {
+            let res = ir.arena.as_map(ir.resources).unwrap();
+            let props = ir.arena.map_get(res[0].1, "Properties").unwrap();
+            let name = ir.arena.map_get(props, "DisplayName").unwrap();
+            match ir.arena.node(name) {
+                Node::Intrinsic(IntrinsicFn::GetStackOutput(args)) => {
+                    let keys: Vec<&str> = args.iter().map(|(k, _)| k.as_str()).collect();
+                    assert_eq!(keys, ["StackName", "OutputName"]);
+                }
+                o => panic!("Expected GetStackOutput, got {:?}", o),
+            }
+            assert!(e1033_messages(ir).is_empty());
+        }
+    }
 }
