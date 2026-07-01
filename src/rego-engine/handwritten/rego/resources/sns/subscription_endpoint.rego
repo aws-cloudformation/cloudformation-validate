@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# W3694: SNS Subscription — Endpoint should match Protocol
+# W3694: SNS Subscription - Endpoint should match Protocol
 violation contains make_diag_at("W3694", "WARN", name,
     "Properties.Endpoint",
     sprintf("Endpoint references '%s' (type '%s') but Protocol 'sqs' expects an SQS Queue", [target, target_type])) if {

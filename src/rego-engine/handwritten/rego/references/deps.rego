@@ -15,7 +15,7 @@ violation contains make_diag("E3005", "ERROR", name,
 
 # E3005: DependsOn target is conditional and may not exist
 # If resource A has DependsOn: B, and B has a condition, then A's condition
-# must imply B's condition — otherwise B may not exist when A is created.
+# must imply B's condition - otherwise B may not exist when A is created.
 violation contains make_diag_full("E3005", "ERROR", name, "DependsOn",
     sprintf("'%s' will not exist when condition '%s' is False", [dep, dep_cond]),
     sprintf("Add a Condition to '%s' that implies '%s'", [name, dep_cond]),

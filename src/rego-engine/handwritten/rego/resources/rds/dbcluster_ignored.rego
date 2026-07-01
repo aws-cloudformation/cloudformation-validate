@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# W3688: RDS DBCluster — MasterUsername ignored when SnapshotIdentifier is present
+# W3688: RDS DBCluster - MasterUsername ignored when SnapshotIdentifier is present
 violation contains make_diag_at("W3688", "WARN", name,
     "Properties.MasterUsername",
     "MasterUsername is ignored when SnapshotIdentifier is present") if {
@@ -13,7 +13,7 @@ violation contains make_diag_at("W3688", "WARN", name,
     mu != null
 }
 
-# W3689: RDS DBCluster — properties ignored when SourceDBClusterIdentifier is present
+# W3689: RDS DBCluster - properties ignored when SourceDBClusterIdentifier is present
 violation contains make_diag_at("W3689", "WARN", name,
     sprintf("Properties.%s", [prop]),
     sprintf("'%s' is ignored when SourceDBClusterIdentifier is present", [prop])) if {
@@ -26,7 +26,7 @@ violation contains make_diag_at("W3689", "WARN", name,
     val != null
 }
 
-# W3693: RDS DBCluster — Aurora serverless ignores PerformanceInsights properties
+# W3693: RDS DBCluster - Aurora serverless ignores PerformanceInsights properties
 violation contains make_diag_at("W3693", "WARN", name,
     sprintf("Properties.%s", [prop]),
     sprintf("'%s' is ignored when EngineMode is 'serverless'", [prop])) if {

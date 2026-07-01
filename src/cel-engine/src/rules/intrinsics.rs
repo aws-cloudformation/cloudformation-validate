@@ -1,6 +1,7 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use diagnostics::Phase;
+use diagnostics::message::render_str_list;
 use rules::{Category, Severity};
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
@@ -110,7 +111,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             // strings when the destination is typed as string.
                             out.push(make_resource_diagnostic(
                                 "E9004",
-                                &format!("'{}' is not one of {:?}", attr, valid_list),
+                                &format!("'{}' is not one of {}", attr, render_str_list(valid_list)),
                                 m,
                                 name,
                                 source_path,
@@ -151,7 +152,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
                 out.push(make_resource_diagnostic(
                     "F1020",
-                    &format!("'{}' is not one of {:?}", target, valid_targets),
+                    &format!("'{}' is not one of {}", target, render_str_list(&valid_targets)),
                     m,
                     name,
                     path,

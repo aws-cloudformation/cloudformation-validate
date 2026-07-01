@@ -5,7 +5,7 @@ import rego.v1
 # W2503: Reference to conditional resource with mutually exclusive condition
 # Escalates W1001 to Warning when source and target conditions are mutex
 violation contains make_diag_related("W2503", "WARN", source, edge.sourcePath,
-    sprintf("Resource '%s' (condition '%s') references '%s' (condition '%s'), but these conditions are mutually exclusive — this reference will always fail",
+    sprintf("Resource '%s' (condition '%s') references '%s' (condition '%s'), but these conditions are mutually exclusive - this reference will always fail",
         [source, source_cond, target, target_cond]),
     [{
         "resource": target,

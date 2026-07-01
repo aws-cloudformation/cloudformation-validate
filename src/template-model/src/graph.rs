@@ -51,7 +51,7 @@ impl ReferenceGraph {
             warn!(
                 "{} circular dependencies: {}",
                 cycles.len(),
-                cycles.iter().map(|c| c.join(" → ")).collect::<Vec<_>>().join("; ")
+                cycles.iter().map(|c| c.join(" -> ")).collect::<Vec<_>>().join("; ")
             );
         }
         info!(

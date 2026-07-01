@@ -10,7 +10,7 @@ violation contains make_diag("F0050", "FATAL", "",
 }
 
 violation contains make_diag("F0050", "FATAL", "",
-    sprintf("Mapping '%s' has invalid structure — second level key '%s' must be a map", [map_name, k1])) if {
+    sprintf("Mapping '%s' has invalid structure - second level key '%s' must be a map", [map_name, k1])) if {
     some map_name in object.keys(input.mappings)
     level1 := input.mappings[map_name]
     is_object(level1)

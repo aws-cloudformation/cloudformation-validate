@@ -5,8 +5,8 @@ import rego.v1
 # W2001: Unused parameters (not referenced by any Ref/Sub). A transform can
 # reference parameters opaquely before expansion, so the check is suppressed
 # whenever any transform is present. It is also skipped when a parameter could be
-# referenced from a section the parser could not read — an unexpanded Fn::ForEach
-# key or a malformed Conditions section — since the reference graph is then
+# referenced from a section the parser could not read - an unexpanded Fn::ForEach
+# key or a malformed Conditions section - since the reference graph is then
 # incomplete.
 violation contains make_diag("W2001", "WARN", "",
     sprintf("Parameter '%s' is not referenced anywhere in the template", [pname])) if {

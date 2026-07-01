@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# E3705: Lambda EventSourceMapping with SQS FIFO queue — BatchSize must be ≤ 10
+# E3705: Lambda EventSourceMapping with SQS FIFO queue - BatchSize must be ≤ 10
 violation contains make_diag_at("E3705", "ERROR", name,
     "Properties.BatchSize",
     sprintf("BatchSize %d exceeds maximum of 10 for SQS FIFO queue event source", [batch_size])) if {
@@ -32,7 +32,7 @@ violation contains make_diag_related("E3707", "ERROR", name,
 # E3708: API Gateway Method AuthorizationType must match Authorizer Type
 violation contains make_diag_at("E3708", "ERROR", auth_id,
     "Properties.Type",
-    sprintf("'%s' is not one of %s", [authorizer_type, expected])) if {
+    sprintf("'%s' is not one of %s", [authorizer_type, render_list(expected)])) if {
     some name in resources_of_type("AWS::ApiGateway::Method")
     auth_id := follow_ref(name, "Properties.AuthorizerId")
     auth_type := resolve(name, "Properties.AuthorizationType")

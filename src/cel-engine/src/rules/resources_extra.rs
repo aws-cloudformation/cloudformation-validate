@@ -4,6 +4,7 @@ use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
 use diagnostics::SourceSpan;
+use diagnostics::message::render_str_list;
 use rules::IAM_ROLE_ARN_PATTERN;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -629,7 +630,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         {
             out.push(make_resource_diagnostic(
                 "E3677",
-                &format!("Runtime '{}' is not supported with Code.ZipFile — use nodejs or python", rt),
+                &format!("Runtime '{}' is not supported with Code.ZipFile - use nodejs or python", rt),
                 m,
                 name,
                 "",
@@ -716,7 +717,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             {
                 out.push(make_resource_diagnostic(
                     "E3022",
-                    "Subnet has multiple SubnetRouteTableAssociations — only one is allowed",
+                    "Subnet has multiple SubnetRouteTableAssociations - only one is allowed",
                     m,
                     a,
                     "Properties.SubnetId",
@@ -882,7 +883,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         {
             out.push(make_resource_diagnostic(
                 "E3050",
-                &format!("Ref to IAM role '{}' with Path '{}' — use GetAtt {}.Arn instead", target, path, target),
+                &format!("Ref to IAM role '{}' with Path '{}' - use GetAtt {}.Arn instead", target, path, target),
                 m,
                 name,
                 "Properties.ServiceRole",
@@ -996,7 +997,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             {
                 out.push(make_resource_diagnostic(
                     "I3100",
-                    &format!("Previous generation instance type '{}' — consider upgrading", val),
+                    &format!("Previous generation instance type '{}' - consider upgrading", val),
                     m,
                     name,
                     prop_path,
@@ -1061,11 +1062,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         if compat_strings.contains(&"FARGATE") {
             continue;
         }
-        let rendered = if compat_strings.is_empty() {
-            "[\"\"]".to_string()
-        } else {
-            format!("[{}]", compat_strings.iter().map(|s| format!("\"{}\"", s)).collect::<Vec<_>>().join(", "))
-        };
+        let rendered = if compat_strings.is_empty() { render_str_list([""]) } else { render_str_list(&compat_strings) };
         out.push(make_resource_diagnostic(
             "E3054",
             &format!("{} does not contain items matching 'FARGATE'", rendered),
@@ -1375,7 +1372,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             {
                 out.push(make_resource_diagnostic(
                     "W9002",
-                    &format!("Property '{}' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead", prop),
+                    &format!("Property '{}' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead", prop),
                     m,
                     name,
                     &format!("Properties.{}", prop),
@@ -2039,7 +2036,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for s in &res.diagnostics.unsubstituted_variables {
             out.push(make_resource_diagnostic(
                 "F1029",
-                &format!("Found an embedded parameter \"{}\" outside of an \"Fn::Sub\" at {}", s.value, s.path),
+                &format!("Found an embedded parameter '{}' outside of an 'Fn::Sub' at {}", s.value, s.path),
                 m,
                 name,
                 &s.path,
@@ -2177,7 +2174,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             if !expected.is_empty() && !expected.contains(&authorizer_type.as_str()) {
                 out.push(make_resource_diagnostic(
                     "E3708",
-                    &format!("'{}' is not one of {:?}", authorizer_type, expected),
+                    &format!("'{}' is not one of {}", authorizer_type, render_str_list(&expected)),
                     m,
                     auth_id,
                     "Properties.Type",
@@ -2929,7 +2926,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             {
                                 out.push(make_resource_diagnostic(
                                     "E3023",
-                                    &format!("CAA record value '{}' must match format: flag tag \"value\"", s),
+                                    &format!("CAA record value '{}' must match format: flag tag 'value'", s),
                                     m,
                                     name,
                                     &format!("Properties.ResourceRecords.{}", i),
@@ -3015,7 +3012,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     if !CAA_RECORD_RE.is_match(s) {
                                         out.push(make_resource_diagnostic(
                                             "E3023",
-                                            &format!("CAA record value '{}' must match format: flag tag \"value\"", s),
+                                            &format!("CAA record value '{}' must match format: flag tag 'value'", s),
                                             m,
                                             name,
                                             &path,
@@ -3293,7 +3290,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     out.push(make_resource_diagnostic(
                         "W3660",
                         &format!(
-                            "Resource references RestApi '{}' which has Body/BodyS3Location — mixing inline definitions with external body",
+                            "Resource references RestApi '{}' which has Body/BodyS3Location - mixing inline definitions with external body",
                             api_id
                         ),
                         m, referrer, "Properties.RestApiId", None,

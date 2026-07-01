@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# E3029: Route53 RecordSet — TTL must not be set when AliasTarget is specified
+# E3029: Route53 RecordSet - TTL must not be set when AliasTarget is specified
 violation contains make_diag_at("E3029", "ERROR", name,
     "Properties.TTL",
     "TTL must not be set when AliasTarget is specified") if {
@@ -13,7 +13,7 @@ violation contains make_diag_at("E3029", "ERROR", name,
     ttl != null
 }
 
-# E3029: Route53 RecordSet — AliasTarget only valid for A and AAAA
+# E3029: Route53 RecordSet - AliasTarget only valid for A and AAAA
 violation contains make_diag_at("E3029", "ERROR", name,
     "Properties.AliasTarget",
     sprintf("AliasTarget cannot be used with record type '%s'", [rtype])) if {

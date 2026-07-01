@@ -8,6 +8,7 @@
 use crate::consts::*;
 use crate::ir::cfn_function_name;
 use crate::ir::*;
+use diagnostics::message::{CLAUSE_SEPARATOR, render_str_list};
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic};
 
 const VALID_RULE_KEYS: &[&str] = &[KEY_RULE_CONDITION, KEY_ASSERTIONS];
@@ -60,7 +61,12 @@ fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &m
         if !VALID_RULE_KEYS.contains(&key.as_str()) {
             out.push(rule_diag(
                 "W8602",
-                format!("Rule '{}' has unknown property '{}' — expected one of {:?}", rule_name, key, VALID_RULE_KEYS),
+                format!(
+                    "Rule '{}' has unknown property '{}'{CLAUSE_SEPARATOR}expected one of {}",
+                    rule_name,
+                    key,
+                    render_str_list(VALID_RULE_KEYS)
+                ),
             ));
         }
     }
@@ -110,8 +116,12 @@ fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json
             out.push(rule_diag(
                 "W8608",
                 format!(
-                    "Rule '{}' {}[{}] has unknown property '{}' — expected one of {:?}",
-                    rule_name, KEY_ASSERTIONS, idx, key, VALID_ASSERTION_KEYS
+                    "Rule '{}' {}[{}] has unknown property '{}'{CLAUSE_SEPARATOR}expected one of {}",
+                    rule_name,
+                    KEY_ASSERTIONS,
+                    idx,
+                    key,
+                    render_str_list(VALID_ASSERTION_KEYS)
                 ),
             ));
         }
@@ -158,8 +168,9 @@ fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec
                 out.push(rule_diag(
                     "F8611",
                     format!(
-                        "'{}' is not supported in the Rules section — allowed: {:?}",
-                        fn_name, ALLOWED_RULE_FUNCTIONS
+                        "'{}' is not supported in the Rules section{CLAUSE_SEPARATOR}allowed: {}",
+                        fn_name,
+                        render_str_list(ALLOWED_RULE_FUNCTIONS)
                     ),
                 ));
             }

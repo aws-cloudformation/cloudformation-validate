@@ -4,7 +4,7 @@ import rego.v1
 
 # F2012: Parameter Default must be in AllowedValues
 violation contains make_diag("F2012", "FATAL", "",
-    sprintf("Parameter '%s' Default '%s' is not in AllowedValues %v", [name, def, avs])) if {
+    sprintf("Parameter '%s' Default '%s' is not in AllowedValues %s", [name, def, render_list(avs)])) if {
     some name, param in input.parameters
     def := object.get(param, "default", null)
     def != null
@@ -31,7 +31,7 @@ violation contains make_diag_at("F2015", "FATAL", "",
     not regex.match(anchored, def)
 }
 
-# F2015: CommaDelimitedList — each element must match AllowedPattern
+# F2015: CommaDelimitedList - each element must match AllowedPattern
 violation contains make_diag_at("F2015", "FATAL", "",
     sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default does not match AllowedPattern '%s'", [name, pat])) if {

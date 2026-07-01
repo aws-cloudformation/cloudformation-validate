@@ -4,7 +4,7 @@ import rego.v1
 
 # E9004: GetAtt attribute must exist on target resource type
 violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
-    sprintf("'%s' is not one of %v", [attr, valid_attrs]),
+    sprintf("'%s' is not one of %s", [attr, render_list(valid_attrs)]),
     "Check the resource type documentation for valid GetAtt attributes",
     "") if {
     some name, res in input.resources
@@ -21,7 +21,7 @@ violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
     not attr in valid_attrs
 }
 
-# E9003 is disabled — CloudFormation auto-converts non-string GetAtt return values
+# E9003 is disabled - CloudFormation auto-converts non-string GetAtt return values
 # to strings when the destination property is typed as string.
 
 # E1020: GetAtt resource must exist in template

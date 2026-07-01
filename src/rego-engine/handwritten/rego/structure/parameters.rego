@@ -112,7 +112,7 @@ _image_id_slots := {
 }
 
 violation contains make_diag("W2506", "WARN", "",
-    sprintf("Parameter '%s' is used as an ImageId but has Type '%s' — consider using 'AWS::EC2::Image::Id'", [pname, ptype])) if {
+    sprintf("Parameter '%s' is used as an ImageId but has Type '%s' - consider using 'AWS::EC2::Image::Id'", [pname, ptype])) if {
     some name, res in input.resources
     patterns := _image_id_slots[res.resourceType]
     some edge in res.outgoingRefs

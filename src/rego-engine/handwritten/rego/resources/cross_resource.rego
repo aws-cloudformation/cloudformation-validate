@@ -5,7 +5,7 @@ import rego.v1
 # E3022: Only one SubnetRouteTableAssociation per subnet
 violation contains make_diag_related("E3022", "ERROR", name1,
     "Properties.SubnetId",
-    sprintf("Subnet '%s' has multiple SubnetRouteTableAssociations — only one is allowed", [subnet_val]),
+    sprintf("Subnet '%s' has multiple SubnetRouteTableAssociations - only one is allowed", [subnet_val]),
     [{"resource": name2, "path": "Properties.SubnetId", "message": "conflicting association"}]) if {
     ids := resources_of_type("AWS::EC2::SubnetRouteTableAssociation")
     some i, name1 in ids

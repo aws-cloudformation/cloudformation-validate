@@ -19,7 +19,7 @@ instance_type_checks := {
 
 violation contains make_diag_full("I3100", "INFO", name,
     check.path,
-    sprintf("Previous generation instance type '%s' — consider upgrading", [val]),
+    sprintf("Previous generation instance type '%s' - consider upgrading", [val]),
     "Upgrade to a current generation instance type",
     "") if {
     some check in instance_type_checks
@@ -43,7 +43,7 @@ nested_instance_type_checks := {
 
 violation contains make_diag_full("I3100", "INFO", name,
     check.path,
-    sprintf("Previous generation instance type '%s' — consider upgrading", [val]),
+    sprintf("Previous generation instance type '%s' - consider upgrading", [val]),
     "Upgrade to a current generation instance type",
     "") if {
     some check in nested_instance_type_checks
