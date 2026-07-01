@@ -7982,9 +7982,7 @@
   "bad/functions/get_stack_output.json": {
     "filePath": "bad/functions/get_stack_output.json",
     "status": "OK",
-    "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 275,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -7996,29 +7994,6 @@
       "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
-    },
-    "performance": {
-      "schemaInit": {
-        "durationMs": 0.0
-      },
-      "engineInit": {
-        "durationMs": 0.0
-      },
-      "modelBuild": {
-        "durationMs": 0.0
-      },
-      "schemaValidate": {
-        "durationMs": 0.0
-      },
-      "ruleEvaluation": {
-        "durationMs": 0.0
-      },
-      "diagnosticFinalize": {
-        "durationMs": 0.0
-      },
-      "validateTotal": {
-        "durationMs": 0.0
-      }
     },
     "diagnostics": [
       {
@@ -8146,9 +8121,7 @@
   "bad/functions/get_stack_output.yaml": {
     "filePath": "bad/functions/get_stack_output.yaml",
     "status": "OK",
-    "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 275,
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
@@ -8160,29 +8133,6 @@
       "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
-    },
-    "performance": {
-      "schemaInit": {
-        "durationMs": 0.0
-      },
-      "engineInit": {
-        "durationMs": 0.0
-      },
-      "modelBuild": {
-        "durationMs": 0.0
-      },
-      "schemaValidate": {
-        "durationMs": 0.0
-      },
-      "ruleEvaluation": {
-        "durationMs": 0.0
-      },
-      "diagnosticFinalize": {
-        "durationMs": 0.0
-      },
-      "validateTotal": {
-        "durationMs": 0.0
-      }
     },
     "diagnostics": [
       {
@@ -109759,9 +109709,7 @@
   "good/functions/get_stack_output.yaml": {
     "filePath": "good/functions/get_stack_output.yaml",
     "status": "OK",
-    "engineVersion": "1.3.0",
     "metadata": {
-      "rulesEvaluated": 275,
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
@@ -109773,29 +109721,6 @@
       "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
-    },
-    "performance": {
-      "schemaInit": {
-        "durationMs": 0.0
-      },
-      "engineInit": {
-        "durationMs": 0.0
-      },
-      "modelBuild": {
-        "durationMs": 0.0
-      },
-      "schemaValidate": {
-        "durationMs": 0.0
-      },
-      "ruleEvaluation": {
-        "durationMs": 0.0
-      },
-      "diagnosticFinalize": {
-        "durationMs": 0.0
-      },
-      "validateTotal": {
-        "durationMs": 0.0
-      }
     },
     "diagnostics": [
       {
