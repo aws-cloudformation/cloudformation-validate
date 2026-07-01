@@ -45,7 +45,10 @@ pub(crate) fn make_parse_diagnostic_at(
 ) -> Diagnostic {
     let mut builder = RegisteredDiagnostic::new(rule_id, message).location(span).phase(Phase::Parse);
     let segments: Vec<&str> = build_path.split('/').collect();
-    if segments.len() >= 4 && segments[0] == "Resources" && segments[2] == "Properties" {
+    if segments.len() >= 4
+        && segments[0] == consts::SECTION_RESOURCES
+        && matches!(segments[2], consts::KEY_PROPERTIES | consts::SECTION_METADATA)
+    {
         builder = builder.resource(segments[1], None);
         builder = builder.property_path(segments[2..].join("."));
     }

@@ -67,6 +67,14 @@ impl Builder {
         ));
     }
 
+    /// A malformed `Fn::GetStackOutput` argument (error). No function-name prefix —
+    /// the message mirrors the JSON-Schema wording the reference tooling emits.
+    /// Anchored at `at_path` (the function node, or a specific offending key) so it
+    /// lands exactly where the offending value is written.
+    fn get_stack_output_error(&mut self, message: String, at_path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at("E1033", message, UNKNOWN_SPAN, at_path));
+    }
+
     /// A malformed `Fn::If` (fatal). Anchored at the `Fn::If` node.
     fn fn_if_error(&mut self, reason: &str, path: &str) {
         self.diagnostics.push(crate::make_parse_diagnostic_at(
@@ -138,6 +146,7 @@ impl Builder {
             FN_CIDR => self.build_cidr(val, path)?,
             FN_GET_AZS => IntrinsicFn::GetAZs(self.build(val, &format!("{}/{}", path, FN_GET_AZS))),
             FN_IMPORT_VALUE => IntrinsicFn::ImportValue(self.build(val, &format!("{}/{}", path, FN_IMPORT_VALUE))),
+            FN_GET_STACK_OUTPUT => self.build_get_stack_output(val, path)?,
             FN_TRANSFORM => self.build_transform(val, path)?,
             FN_AND => self.build_bool_list(val, path, FN_AND, 2, 10, IntrinsicFn::And)?,
             FN_OR => self.build_bool_list(val, path, FN_OR, 2, 10, IntrinsicFn::Or)?,
@@ -463,6 +472,70 @@ impl Builder {
             })
             .unwrap_or_default();
         Some(IntrinsicFn::Transform(name, params))
+    }
+
+    /// `Fn::GetStackOutput`: an object argument `{ StackName*, OutputName*,
+    /// Region?, RoleArn? }`. The intrinsic node is built regardless so nested
+    /// references still resolve; argument-shape violations (E1033) are reported
+    /// only where the call is itself evaluated (see
+    /// [`Self::is_get_stack_output_validation_position`]) — reporting elsewhere
+    /// (e.g. inside another function, or in a parameter `Default`) would be a
+    /// false positive.
+    fn build_get_stack_output<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
+        let fn_path = format!("{}/{}", path, FN_GET_STACK_OUTPUT);
+        let report = self.is_get_stack_output_validation_position(path);
+
+        let Some(entries) = val.as_object() else {
+            // A non-object argument (string/number/…) cannot form the function; fall
+            // through to a plain map, reporting the type mismatch where evaluated.
+            if report {
+                self.get_stack_output_error(format!("{} is not of type 'object'", val.describe()), &fn_path);
+            }
+            return None;
+        };
+
+        if report {
+            for required in [KEY_STACK_NAME, KEY_OUTPUT_NAME] {
+                if !entries.iter().any(|(k, _)| k == required) {
+                    self.get_stack_output_error(format!("'{}' is a required property", required), &fn_path);
+                }
+            }
+            for (key, _) in &entries {
+                if ![KEY_STACK_NAME, KEY_OUTPUT_NAME, KEY_REGION, KEY_ROLE_ARN].contains(&key.as_str()) {
+                    self.get_stack_output_error(
+                        format!("Additional properties are not allowed ('{}' was unexpected)", key),
+                        &format!("{}/{}", fn_path, key),
+                    );
+                }
+            }
+        }
+
+        let args = entries.iter().map(|(k, v)| (k.clone(), self.build(v, &format!("{}/{}", fn_path, k)))).collect();
+        Some(IntrinsicFn::GetStackOutput(args))
+    }
+
+    /// Whether `path` addresses a value written directly under a resource's
+    /// `Properties` or `Metadata` (e.g. `Resources/R/Properties/Foo`, or a deeper
+    /// property such as `Resources/R/Properties/Foo/0/Bar`), and is not nested
+    /// inside another intrinsic. These are the positions where `Fn::GetStackOutput`
+    /// has its argument shape validated; a use in a parameter `Default`, a
+    /// condition, or as an argument to another function is validated (or coerced)
+    /// by the surrounding construct instead, so E1033 must not fire there.
+    fn is_get_stack_output_validation_position(&self, path: &str) -> bool {
+        let mut segments = path.split('/');
+        if segments.next() != Some(SECTION_RESOURCES) {
+            return false;
+        }
+        // Skip the logical id.
+        if segments.next().is_none() {
+            return false;
+        }
+        if !matches!(segments.next(), Some(KEY_PROPERTIES | SECTION_METADATA)) {
+            return false;
+        }
+        // No remaining segment may itself be an intrinsic key — that would mean the
+        // call is an argument to another function, which owns the validation.
+        !segments.any(|seg| seg.starts_with(FN_PREFIX) || seg == FN_REF || seg == FN_CONDITION)
     }
 
     /// `Fn::And` / `Fn::Or`: a bounded list of boolean condition expressions.

@@ -390,6 +390,92 @@ mod tests {
     }
 
     #[test]
+    fn parse_get_stack_output_builds_intrinsic() {
+        let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"DisplayName":{"Fn::GetStackOutput":{"StackName":"s","OutputName":"o","Region":"us-east-1"}}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let props_ref = ir.arena.map_get(res[0].1, "Properties").unwrap();
+        let name_ref = ir.arena.map_get(props_ref, "DisplayName").unwrap();
+        match ir.arena.node(name_ref) {
+            Node::Intrinsic(IntrinsicFn::GetStackOutput(args)) => {
+                let keys: Vec<&str> = args.iter().map(|(k, _)| k.as_str()).collect();
+                assert_eq!(keys, ["StackName", "OutputName", "Region"]);
+            }
+            other => panic!("Expected GetStackOutput, got {:?}", other),
+        }
+        assert!(ir.diagnostics.iter().all(|d| d.rule_id != "E1033"), "well-formed call must not emit E1033");
+    }
+
+    #[test]
+    fn parse_get_stack_output_missing_required_emits_e1033() {
+        let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"DisplayName":{"Fn::GetStackOutput":{"StackName":"s"}}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let e1033: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "E1033").map(|d| d.message.as_str()).collect();
+        assert_eq!(e1033, ["'OutputName' is a required property"]);
+    }
+
+    #[test]
+    fn parse_get_stack_output_additional_property_emits_e1033() {
+        let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"DisplayName":{"Fn::GetStackOutput":{"StackName":"s","OutputName":"o","Bad":"v"}}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let e1033: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "E1033").map(|d| d.message.as_str()).collect();
+        assert_eq!(e1033, ["Additional properties are not allowed ('Bad' was unexpected)"]);
+    }
+
+    #[test]
+    fn parse_get_stack_output_non_object_emits_e1033_and_falls_through() {
+        let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"DisplayName":{"Fn::GetStackOutput":"invalid"}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let e1033: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "E1033").map(|d| d.message.as_str()).collect();
+        assert_eq!(e1033, ["'invalid' is not of type 'object'"]);
+        // A malformed (non-object) argument cannot form the intrinsic, so the node
+        // stays a plain map rather than becoming an IntrinsicFn::GetStackOutput.
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let props_ref = ir.arena.map_get(res[0].1, "Properties").unwrap();
+        let name_ref = ir.arena.map_get(props_ref, "DisplayName").unwrap();
+        assert!(matches!(ir.arena.node(name_ref), Node::Map(_)), "non-object arg should remain a plain map");
+    }
+
+    #[test]
+    fn parse_get_stack_output_in_parameter_default_does_not_emit_e1033() {
+        // CloudFormation never evaluates intrinsics in a parameter Default, so a
+        // malformed call there is reported by the Default-must-be-a-string check
+        // (E2001), not by the function's own argument validation.
+        let input = r#"{"Parameters":{"P":{"Type":"String","Default":{"Fn::GetStackOutput":{"StackName":"s"}}}},"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"DisplayName":{"Ref":"P"}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "E1033"),
+            "E1033 must not fire for a function used in a parameter Default"
+        );
+    }
+
+    #[test]
+    fn parse_get_stack_output_in_resource_metadata_emits_e1033() {
+        // CloudFormation evaluates intrinsics in a resource's Metadata block too, so
+        // a malformed call there is validated exactly as in Properties.
+        let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Metadata":{"M":{"Fn::GetStackOutput":{"StackName":"s"}}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let e1033: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "E1033").map(|d| d.message.as_str()).collect();
+        assert_eq!(e1033, ["'OutputName' is a required property"]);
+    }
+
+    #[test]
+    fn parse_get_stack_output_nested_in_join_does_not_emit_e1033() {
+        // Nested inside another function, the argument shape is the enclosing
+        // function's concern; E1033 only fires at a direct property position.
+        let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"DisplayName":{"Fn::Join":["-",["x",{"Fn::GetStackOutput":{"StackName":"s"}}]]}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "E1033"),
+            "E1033 must not fire for a call nested inside another function"
+        );
+    }
+
+    #[test]
     fn parse_empty_resources() {
         let input = r#"{"Resources":{}}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
