@@ -528,6 +528,15 @@ impl<'a> Resolver<'a> {
                 };
                 ResolvedValue::TypedDynamic { reason, param_type: PARAM_TYPE_STRING.into() }
             }
+            IntrinsicFn::GetStackOutput(args) => {
+                let saved = self.current_path.clone();
+                for (key, arg) in args {
+                    self.current_path = format!("{}.{}", saved, key);
+                    let _ = self.resolve_node(*arg);
+                }
+                self.current_path = saved;
+                ResolvedValue::Dynamic { reason: "cross-stack output".into() }
+            }
             IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
             IntrinsicFn::GetAZs(region_ref) => {
                 if let Some(ref rid) = self.current_resource {
@@ -2067,6 +2076,7 @@ fn intrinsic_name(intrinsic: &IntrinsicFn) -> &'static str {
         IntrinsicFn::Split(_, _) => TAG_SPLIT,
         IntrinsicFn::Base64(_) => TAG_BASE64,
         IntrinsicFn::ImportValue(_) => TAG_IMPORT_VALUE,
+        IntrinsicFn::GetStackOutput(_) => TAG_GET_STACK_OUTPUT,
         IntrinsicFn::Transform(_, _) => TAG_TRANSFORM,
         IntrinsicFn::GetAZs(_) => TAG_GET_AZS,
         IntrinsicFn::Cidr(_, _, _) => TAG_CIDR,

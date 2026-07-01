@@ -230,7 +230,7 @@ fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, out: &mut Vec
         IntrinsicFn::And(nodes) | IntrinsicFn::Or(nodes) => {
             children.extend(nodes.iter().copied());
         }
-        IntrinsicFn::Transform(_, params) => {
+        IntrinsicFn::Transform(_, params) | IntrinsicFn::GetStackOutput(params) => {
             children.extend(params.iter().map(|(_, r)| *r));
         }
         IntrinsicFn::ForEach(_, _, collection, body) => {
