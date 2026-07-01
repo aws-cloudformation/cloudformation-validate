@@ -1,12 +1,12 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
-use rules::format_rule_for_format;
+use rules::{IAM_ROLE_ARN_PATTERN, format_rule_for_format};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
 use template_model::coercion::{CoerceResult, cfn_coerce_to_number, cfn_coerce_to_string, cfn_coerce_value};
-use template_model::consts::{FN_IF, KEY_PROPERTIES};
+use template_model::consts::{FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES};
 use template_model::model::ResolvedResource;
 use template_model::resolver::{RefKind, ResolvedValue};
 
@@ -42,7 +42,7 @@ fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
         return false;
     }
     let key = obj.keys().next().unwrap();
-    key.starts_with("Fn::") || key == "Ref" || key == "Condition"
+    key.starts_with(FN_PREFIX) || key == FN_REF || key == FN_CONDITION
 }
 
 pub fn validate_all_resources(
@@ -343,7 +343,7 @@ fn validate_resource(
     schema: &CompiledSchema,
     region: &str,
 ) {
-    let base = "Properties";
+    let base = KEY_PROPERTIES;
     let defs = &schema.definitions;
 
     // The read-only-property check is intentionally not emitted here: a resource's
@@ -547,7 +547,7 @@ fn validate_object_keys_inner(
                 base_path,
                 Some(&format!("Add the required property '{}'", req)),
             ));
-        } else if base_path == "Properties" {
+        } else if base_path == KEY_PROPERTIES {
             check_required_not_null(out, m, rid, base_path, req);
         }
     }
@@ -1759,7 +1759,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
         "AWS::EC2::Subnet.Id" => Some(r"^subnet-[a-f0-9]{8,17}$"),
         "AWS::EC2::SecurityGroup.Id" => Some(r"^sg-[a-f0-9]{8,17}$"),
         "AWS::EC2::Image.Id" => Some(r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
-        "AWS::IAM::Role.Arn" => Some(r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$"),
+        "AWS::IAM::Role.Arn" => Some(IAM_ROLE_ARN_PATTERN),
         "AWS::Logs::LogGroup.Name" => Some(r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
         "AWS::EC2::SecurityGroup.Name" => Some(r"^[\s\S]+$"),
         "AWS::EC2::KeyPair.KeyName" => Some(r"^[\x20-\x7E]{1,255}$"),
@@ -2014,7 +2014,7 @@ fn validate_extension_if_then_else(
                     &format!("'{}' is a required property (from extension)", prop_name),
                     model,
                     rid,
-                    "Properties",
+                    KEY_PROPERTIES,
                     Some(&format!("Add '{}'", prop_name)),
                 ));
             }
@@ -2344,7 +2344,7 @@ fn check_gather_property_constraints(
                     ),
                     model,
                     rid,
-                    "Properties",
+                    KEY_PROPERTIES,
                     None,
                 ));
             }

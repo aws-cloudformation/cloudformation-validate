@@ -1,3 +1,4 @@
+use super::patterns::AMI_ID_RE;
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
 use rules::Category;
@@ -10,9 +11,6 @@ use template_model::consts::{
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
-
-static AMI_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^ami-[0-9a-f]{8,17}$").expect("Invalid AMI_RE pattern"));
 
 static ACCT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:").expect("Invalid ACCT_RE pattern"));
@@ -166,7 +164,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
             let Some(s) = val.as_str() else {
                 continue;
             };
-            if !AMI_RE.is_match(s) {
+            if !AMI_ID_RE.is_match(s) {
                 continue;
             }
             if !seen.insert(s.to_string()) {

@@ -7,18 +7,25 @@ use template_model::FORMAT_VERSION;
 use template_model::consts::{
     EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND,
     FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS, FIELD_UPDATE_REPLACE_POLICY, POLICY_DELETE, POLICY_RETAIN,
-    POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
-    SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
-    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS, FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH,
+    FN_FOR_EACH_KEY_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, POLICY_DELETE,
+    POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION,
+    SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS,
+    SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
 };
 use validation_engine::make_resource_diagnostic;
 
+/// Alphanumeric-only string: CloudFormation logical IDs, output names, and
+/// second-level mapping keys.
 static ALPHANUM_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9]+$").expect("Invalid ALPHANUM_RE pattern"));
 
 static NUM_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^-?[0-9]+(\.[0-9]+)?$").expect("Invalid NUM_RE pattern"));
+
+/// First-level mapping keys additionally allow `.` and `-`.
+static MAPPING_TOP_KEY_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9.\-]+$").expect("Invalid MAPPING_TOP_KEY_RE pattern"));
 
 pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(Category::Structure, eval_structure);
@@ -217,7 +224,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         for oname in outputs_obj.keys() {
             if !ALPHANUM_RE.is_match(oname) {
                 // Fn::ForEach:: prefixed keys are ForEach constructs, not literal output names
-                if oname.starts_with("Fn::ForEach::") {
+                if oname.starts_with(FN_FOR_EACH_KEY_PREFIX) {
                     continue;
                 }
                 out.push(make_resource_diagnostic(
@@ -340,7 +347,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     let has_lang_ext = m.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     for name in m.resources.keys() {
-        if !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with("Fn::ForEach::"))) {
+        if !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with(FN_FOR_EACH_KEY_PREFIX))) {
             out.push(make_resource_diagnostic(
                 "F0006",
                 &format!("Logical ID '{}' must be alphanumeric (A-Za-z0-9)", name),
@@ -392,35 +399,28 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    {
-        let key1_re = regex::Regex::new(r"^[a-zA-Z0-9.\-]+$").unwrap();
-        let key2_re = regex::Regex::new(r"^[a-zA-Z0-9]+$").unwrap();
-        for (map_name, level1) in &m.mappings {
-            for (k1, level2) in level1 {
-                if !key1_re.is_match(k1) {
+    for (map_name, level1) in &m.mappings {
+        for (k1, level2) in level1 {
+            if !MAPPING_TOP_KEY_RE.is_match(k1) {
+                out.push(make_resource_diagnostic(
+                    "E7001",
+                    &format!("Mapping '{}' key '{}' does not match format '^[a-zA-Z0-9.-]+$'", map_name, k1),
+                    m,
+                    "",
+                    "",
+                    None,
+                ));
+            }
+            for k2 in level2.keys() {
+                if !ALPHANUM_RE.is_match(k2) {
                     out.push(make_resource_diagnostic(
                         "E7001",
-                        &format!("Mapping '{}' key '{}' does not match format '^[a-zA-Z0-9.-]+$'", map_name, k1),
+                        &format!("Mapping '{}'.'{}' key '{}' does not match format '^[a-zA-Z0-9]+$'", map_name, k1, k2),
                         m,
                         "",
                         "",
                         None,
                     ));
-                }
-                for k2 in level2.keys() {
-                    if !key2_re.is_match(k2) {
-                        out.push(make_resource_diagnostic(
-                            "E7001",
-                            &format!(
-                                "Mapping '{}'.'{}' key '{}' does not match format '^[a-zA-Z0-9]+$'",
-                                map_name, k1, k2
-                            ),
-                            m,
-                            "",
-                            "",
-                            None,
-                        ));
-                    }
                 }
             }
         }
@@ -517,7 +517,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     // check is skipped rather than reporting a parameter as unused when the
     // reference simply could not be seen.
     let resources_obj = input.get(FIELD_RESOURCES).and_then(|r| r.as_object());
-    let has_unexpanded_foreach = resources_obj.is_some_and(|r| r.keys().any(|k| k.contains("Fn::ForEach")));
+    let has_unexpanded_foreach = resources_obj.is_some_and(|r| r.keys().any(|k| k.contains(FN_FOR_EACH)));
     let conditions_malformed = input
         .get("template")
         .and_then(|t| t.get("rawTopLevelKeys"))
@@ -729,7 +729,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, param) in &m.parameters {
-        if param.param_type == "Number"
+        if param.param_type == PARAM_TYPE_NUMBER
             && let Some(ref def) = param.default
             && !NUM_RE.is_match(def)
         {
@@ -745,7 +745,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, param) in &m.parameters {
-        if param.param_type == "Number"
+        if param.param_type == PARAM_TYPE_NUMBER
             && let Some(ref avs) = param.allowed_values
         {
             for val in avs {
@@ -806,7 +806,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, param) in &m.parameters {
         let lower = name.to_lowercase();
         if (lower.contains("password") || lower.contains("passphrase") || lower.contains("secret"))
-            && param.param_type == "String"
+            && param.param_type == PARAM_TYPE_STRING
             && !param.no_echo
         {
             out.push(make_resource_diagnostic(
@@ -841,7 +841,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 format!("^{}$", pat)
             };
             if let Ok(re) = regex::Regex::new(&anchored) {
-                let is_cdl = info.param_type == "CommaDelimitedList" || info.param_type.starts_with("List<");
+                let is_cdl = info.param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || info.param_type.starts_with("List<");
                 if is_cdl {
                     for elem_raw in def.split(',') {
                         let elem = elem_raw.trim();
@@ -895,7 +895,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
         // MinValue / MaxValue (for Number type)
-        if info.param_type == "Number"
+        if info.param_type == PARAM_TYPE_NUMBER
             && let Ok(num) = def.parse::<i64>()
         {
             if let Some(min) = info.min_value
