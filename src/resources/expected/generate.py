@@ -25,9 +25,12 @@ EXPECTED_DIR = Path(__file__).resolve().parent
 OUTPUT_FILE = EXPECTED_DIR / "all_templates.json"
 CFN_VALIDATE = WORKSPACE_ROOT / "target" / "release" / "cfn-validate"
 
-# Fields that differ between engines (timing, engine name, internal counts) — stripped before comparison
+# Stripped before the rego-vs-cel parity comparison — legitimately differ between engines.
+# `rulesEvaluated` and `engineVersion` are intentionally NOT here: they must match across engines.
 IGNORED_FIELDS = {"engine", "performance", "benchmarkMetrics", "suppressed"}
 
+OUTPUT_ONLY_TOP_LEVEL_FIELDS = {"performance", "engineVersion"}
+OUTPUT_ONLY_METADATA_FIELDS = {"rulesEvaluated"}
 
 def discover_templates() -> list[str]:
     templates = []
@@ -63,6 +66,17 @@ def strip_engine_fields(obj):
     if isinstance(obj, list):
         return [strip_engine_fields(item) for item in obj]
     return obj
+
+
+def strip_output_only_fields(report: OrderedDict) -> OrderedDict:
+    """Remove fields that are compared across engines but not persisted to the golden file."""
+    trimmed = OrderedDict((k, v) for k, v in report.items() if k not in OUTPUT_ONLY_TOP_LEVEL_FIELDS)
+    metadata = trimmed.get("metadata")
+    if isinstance(metadata, dict):
+        trimmed["metadata"] = OrderedDict(
+            (k, v) for k, v in metadata.items() if k not in OUTPUT_ONLY_METADATA_FIELDS
+        )
+    return trimmed
 
 
 def run_cfn_validate(template_rel: str, engine: str) -> OrderedDict:
@@ -118,7 +132,7 @@ def main():
             print(f"    !! PARITY FAILURE", file=sys.stderr)
             continue
 
-        all_data[template] = rego_report
+        all_data[template] = strip_output_only_fields(rego_report)
 
     if parity_failures:
         print(f"\nFATAL: {len(parity_failures)} template(s) have engine parity failures:\n", file=sys.stderr)

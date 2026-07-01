@@ -365,8 +365,8 @@ class SmokeTest {
                 @Suppress("UNCHECKED_CAST")
                 val expected = COMBINED_GOLDEN[rel] as Map<String, Any?>
                 assertEquals(
-                    zeroPerformanceDurations(expected),
-                    zeroPerformanceDurations(actual, rel),
+                    stripGoldenExcludedFields(expected),
+                    stripGoldenExcludedFields(actual, rel),
                     "$engineName detailed output for $rel differs from golden"
                 )
             }
@@ -380,8 +380,8 @@ class SmokeTest {
                 @Suppress("UNCHECKED_CAST")
                 val expected = stripDetailedOnlyFields(COMBINED_GOLDEN[rel] as Map<String, Any?>)
                 assertEquals(
-                    zeroPerformanceDurations(expected),
-                    zeroPerformanceDurations(actual, rel),
+                    stripGoldenExcludedFields(expected),
+                    stripGoldenExcludedFields(actual, rel),
                     "$engineName standard output for $rel differs from golden"
                 )
             }
@@ -419,19 +419,52 @@ class SmokeTest {
         return JsonParser(text).parseValue() as Map<String, Any?>
     }
 
-    private fun zeroPerformanceDurations(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
+    @Suppress("UNCHECKED_CAST")
+    private fun stripGoldenExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
         if (filePath != null) out["filePath"] = filePath
-        // engineVersion bumps with every release and is not a behavioral signal.
         out.remove("engineVersion")
-        @Suppress("UNCHECKED_CAST")
-        val perf = (out["performance"] as? Map<String, Any?>) ?: return out
-        out["performance"] = perf.mapValues { (_, phase) ->
-            @Suppress("UNCHECKED_CAST")
-            val phaseMap = (phase as? Map<String, Any?>) ?: return@mapValues phase
-            phaseMap.mapValues { (key, value) -> if (key == "durationMs") 0.0 else value }
+        out.remove("performance")
+        val metadata = out["metadata"] as? Map<String, Any?>
+        if (metadata != null) {
+            val trimmed = LinkedHashMap(metadata)
+            trimmed.remove("rulesEvaluated")
+            out["metadata"] = trimmed
         }
         return out
+    }
+
+    @Test
+    fun rulesEvaluatedIsFullRuleCount() {
+        // The full built-in rule set is fixed and evaluated by both engines with no category filters.
+        val expected = 274u
+        assertEquals(expected, CEL.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "cel: rulesEvaluated")
+        assertEquals(expected, REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "rego: rulesEvaluated")
+    }
+
+    @Test
+    fun engineVersionMatchesWorkspaceVersion() {
+        val expected = "1.3.0"
+        assertEquals(expected, readWorkspaceVersion(), "expected version must match workspace Cargo.toml")
+        assertEquals(expected, CEL.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).engineVersion, "cel: engineVersion")
+        assertEquals(expected, REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).engineVersion, "rego: engineVersion")
+    }
+
+    @Test
+    fun performanceIsPresentWithTimingPerPhase() {
+        val performance = REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).performance
+        val phases = listOf(
+            performance.schemaInit,
+            performance.engineInit,
+            performance.modelBuild,
+            performance.schemaValidate,
+            performance.ruleEvaluation,
+            performance.diagnosticFinalize,
+            performance.validateTotal,
+        )
+        for (phase in phases) {
+            assertTrue(phase.durationMs >= 0.0, "phase durationMs must be present and non-negative")
+        }
     }
 }
 
