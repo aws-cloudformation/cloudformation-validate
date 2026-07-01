@@ -12,3 +12,5 @@ invalid enum values, pattern failures, constraint violations, lifecycle issues, 
 | `validate(model, region)` | Run all schema checks, returns diagnostics + timing metric |
 | `schema_count()`          | Number of loaded resource type schemas                     |
 | `list_rules()`            | All schema rule definitions                                |
+| `init_metric()`           | Timing metric for one-time schema initialization           |
+| `enrich_context(diagnostics, model)` | Attach resolved schema context to existing diagnostics |

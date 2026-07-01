@@ -39,6 +39,8 @@ Both engines take a single `EngineConfig` and return `anyhow::Result`:
 
 ```rust
 use validation_engine::{EngineConfig, ExternalRuleSource};
+use rego_engine::RegoEngine;
+use cel_engine::CelEngine;
 
 // No custom rules â€” built-in rules only
 let engine = RegoEngine::new(EngineConfig::default())?;
@@ -63,7 +65,8 @@ Both engines parse and translate `guard_rules` from raw Guard DSL source text â€
 
 ```rust
 use validation_engine::ValidateConfig;
-use rules::{FilterConfig, DetailLevel, Severity};
+use diagnostics::DetailLevel;
+use rules::{FilterConfig, Severity};
 
 let config = ValidateConfig {
     filters: FilterConfig::default(),                    // include/exclude rules
@@ -134,7 +137,7 @@ For engines that produce JSON diagnostics:
 
 | Function                                                                                   | Description                                                                                                                                                                |
 |--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `extract_diagnostics(json_str, model, registry_metadata, out, source_override)`            | Parse a JSON array string into diagnostics, appending to `out`. `source_override: Option<&RuleOrigin>` allows overriding the origin for custom/guard rules.                |
+| `extract_diagnostics(json_str, model, out, source_override)`                               | Parse a JSON array string into diagnostics, appending to `out`. `source_override: Option<&RuleOrigin>` allows overriding the origin for custom/guard rules.                |
 | `make_resource_diagnostic(rule_id, message, model, resource_id, prop_path, suggested_fix)` | Build a `Diagnostic` for a known rule ID with auto-resolved span and severity. Panics if `rule_id` is not in the registry.                                                |
 
 ## Guard Rule Loading

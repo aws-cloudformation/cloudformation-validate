@@ -36,7 +36,7 @@ Kotlin bindings is built from the workspace as part of the JVM binding build.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-`src/rust-toolchain.toml` pins the channel to `1.93.1` and declares the `rustfmt` component and the
+`src/rust-toolchain.toml` pins the channel to `1.96.0` and declares the `rustfmt` component and the
 `wasm32-unknown-unknown` target. rustup installs the correct toolchain, component, and target automatically the first
 time you run a cargo command inside `src/`.
 

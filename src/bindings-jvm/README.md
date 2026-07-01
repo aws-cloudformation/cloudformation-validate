@@ -81,7 +81,7 @@ val report = engine.validateStandard(File("template.yaml"), config)
 | `parameterOverrides`       | `emptyMap()`             | Override template parameter values during resolution. Keys are parameter logical IDs.                                    |
 | `pseudoParameterOverrides` | all `null`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                       |
 | `strict`                   | `false`                  | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                        |
-| `includeEngineRules`       | `true`                   | When `false`, diagnostics with `source = ENGINE` are suppressed.                                                         |
+| `disableBuiltinRules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated. |
 
 ### RuleFilterConfig
 

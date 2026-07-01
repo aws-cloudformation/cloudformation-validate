@@ -77,7 +77,7 @@ Supported pseudo-parameters: `AWS::AccountId`, `AWS::NotificationARNs`, `AWS::Pa
 
 | Option              | Description                                               |
 |---------------------|-----------------------------------------------------------|
-| `--strict`          | Upgrade Warning-severity diagnostics to Error             |
+| `--strict`          | Upgrade Warn-severity diagnostics to Error                |
 | `--disable-builtin-rules` | Disable all built-in rules; only evaluate custom and guard rules |
 | `--list-rules`      | List all available rules and exit                         |
 | `--help`, `-h`      | Print usage and exit                                      |
