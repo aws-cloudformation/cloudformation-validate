@@ -1,4 +1,4 @@
-# bindings-jvm
+# CloudFormation Validate JVM Bindings
 
 JVM bindings for [`cloudformation-validate`](https://github.com/aws-cloudformation/cloudformation-validate)
 via [UniFFI](https://mozilla.github.io/uniffi-rs/). Compiles the full validation pipeline into a native shared library
