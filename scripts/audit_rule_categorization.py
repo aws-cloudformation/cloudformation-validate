@@ -406,10 +406,10 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
                 and any(k in diag.get("message", "")
                         for k in ("'BadKey'", "'BadValue'"))):
             return True
-        # W3030 on directive-suppressed resources or unresolvable Fn::If values:
+        # F3030 on directive-suppressed resources or unresolvable Fn::If values:
         # engine validates enum even when Fn::If can't be resolved (invalid condition)
         # or when cfn-lint suppresses via directive.
-        if (diag.get("rule_id") == "W3030"
+        if (diag.get("rule_id") == "F3030"
                 and (diag.get("resource_id") == "myBucketFirstAndLastPass"
                      or "Fn::If" in diag.get("message", ""))):
             return True
