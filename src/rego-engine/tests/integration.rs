@@ -278,8 +278,8 @@ Resources:
 "#;
     let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input.as_bytes(), ValidateConfig::default()).unwrap();
     assert!(
-        report.diagnostics.iter().any(|d| d.rule_id == "F3030"),
-        "Expected F3030 for invalid enum, got: {:?}",
+        report.diagnostics.iter().any(|d| d.rule_id == "W3030"),
+        "Expected W3030 for invalid enum, got: {:?}",
         report.diagnostics
     );
 }

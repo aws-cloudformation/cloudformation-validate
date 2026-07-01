@@ -35,7 +35,7 @@ fn schema_store_loads_schemas() {
 fn list_rules_returns_known_rule_ids() {
     let rules = SV.list_rules();
     let ids: Vec<&str> = rules.iter().map(|r| r.id.as_str()).collect();
-    for expected in ["F3002", "F3003", "F3012", "F3030", "F3034"] {
+    for expected in ["F3002", "F3003", "F3012", "W3030", "F3034"] {
         assert!(ids.contains(&expected), "missing rule {}", expected);
     }
 }
@@ -85,8 +85,8 @@ fn type_mismatch_boolean_for_string() {
 #[test]
 fn enum_violation_invalid_access_control() {
     let diags = validate_fixture("bad/schema_enum_violation.yaml");
-    let enum_diags = diags_for(&diags, "F3030");
-    assert!(!enum_diags.is_empty(), "expected F3030 for invalid AccessControl");
+    let enum_diags = diags_for(&diags, "W3030");
+    assert!(!enum_diags.is_empty(), "expected W3030 for invalid AccessControl");
     assert!(
         enum_diags.iter().any(|d| d.message.contains("InvalidAccessControl")),
         "expected message mentioning InvalidAccessControl, got: {:?}",
@@ -236,8 +236,8 @@ fn enrich_context_adds_documentation_url() {
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
     let mut result = SV.validate(&model, "us-east-1");
     SV.enrich_context(&mut result.diagnostics, &model);
-    let f3030 = result.diagnostics.iter().find(|d| d.rule_id == "F3030");
-    assert!(f3030.is_some(), "expected F3030 diagnostic after enrichment");
+    let enum_diag = result.diagnostics.iter().find(|d| d.rule_id == "W3030");
+    assert!(enum_diag.is_some(), "expected W3030 diagnostic after enrichment");
 }
 
 #[test]
@@ -247,13 +247,13 @@ fn enrich_context_adds_allowed_values_for_enum() {
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
     let mut result = SV.validate(&model, "us-east-1");
     SV.enrich_context(&mut result.diagnostics, &model);
-    let f3030 = result.diagnostics.iter().find(|d| d.rule_id == "F3030");
-    if let Some(d) = f3030
+    let enum_diag = result.diagnostics.iter().find(|d| d.rule_id == "W3030");
+    if let Some(d) = enum_diag
         && let Some(ref ctx) = d.context
     {
         assert!(
             ctx.extra.as_ref().is_some_and(|e| e.contains_key("allowed_values")),
-            "expected allowed_values in context for F3030"
+            "expected allowed_values in context for W3030"
         );
     }
 }

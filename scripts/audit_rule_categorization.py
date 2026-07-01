@@ -266,6 +266,12 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     _link("E9006", "E3690", "E3691")
     # Type coercion: cfn-lint strict E3012 ↔ engine Fatal F3012 or soft W9003.
     _link("F3012", "E3012", "W9003")
+    # Enum value: cfn-lint's E3030 covers both the enum check and the const
+    # check. The engine splits it — the open-world enum check is a soft W3030
+    # (a value absent from the point-in-time enum snapshot may still deploy) and
+    # the fixed-const check stays Fatal F3030. Both alias E3030 so a cfn-lint
+    # E3030 finding matches whichever the engine emits.
+    _link("E3030", "F3030", "W3030")
     # E3001 (Basic Resource Check) parents several engine structural rules.
     _link("E3001", "F0006", "E5001", "F6004")
     # E1001 (Base template schema) parents top-level structural rules. Engine

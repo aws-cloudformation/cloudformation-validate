@@ -1471,6 +1471,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "F3030",
         category: Category::Schema,
+        description: "Value does not match the required constant",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "W3030",
+        category: Category::Schema,
         description: "Value not in allowed enum",
         origin: RuleOrigin::Schema,
     },
