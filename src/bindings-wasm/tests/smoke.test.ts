@@ -51,19 +51,15 @@ function loadGolden(rel: string): unknown {
   return COMBINED_GOLDEN[rel];
 }
 
-function zeroPerformanceDurations(report: any, filePath?: string): unknown {
+function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
   const clone = JSON.parse(JSON.stringify(report));
   if (filePath !== undefined) {
     clone.filePath = filePath;
   }
-  // engineVersion bumps with every release and is not a behavioral signal.
   delete clone.engineVersion;
-  if (clone.performance) {
-    for (const phase of Object.values(clone.performance) as any[]) {
-      if (phase && typeof phase === "object" && "durationMs" in phase) {
-        phase.durationMs = 0;
-      }
-    }
+  delete clone.performance;
+  if (clone.metadata && typeof clone.metadata === "object") {
+    delete clone.metadata.rulesEvaluated;
   }
   return clone;
 }
@@ -388,7 +384,7 @@ describe("golden file validation", () => {
       for (const rel of EXPECTED_TEMPLATES) {
         it(rel, () => {
           const actual = engine.validateDetailed(loadTemplate(rel), { severityLevel: "DEBUG" });
-          expect(zeroPerformanceDurations(actual, rel)).toEqual(zeroPerformanceDurations(loadGolden(rel)));
+          expect(stripGoldenExcludedFields(actual, rel)).toEqual(stripGoldenExcludedFields(loadGolden(rel)));
         });
       }
     });
@@ -399,7 +395,7 @@ describe("golden file validation", () => {
       for (const rel of EXPECTED_TEMPLATES) {
         it(rel, () => {
           const actual = engine.validateStandard(loadTemplate(rel), { severityLevel: "DEBUG" });
-          expect(zeroPerformanceDurations(actual, rel)).toEqual(zeroPerformanceDurations(stripDetailedOnlyFields(loadGolden(rel))));
+          expect(stripGoldenExcludedFields(actual, rel)).toEqual(stripGoldenExcludedFields(stripDetailedOnlyFields(loadGolden(rel))));
         });
       }
     });
@@ -409,4 +405,44 @@ describe("golden file validation", () => {
   standardTests("rego", REGO);
   detailedTests("cel", CEL);
   standardTests("cel", CEL);
+});
+
+describe("report fields excluded from golden", () => {
+  const REPORT_TEMPLATE = "good/generic.yaml";
+
+  // The full built-in rule set is fixed and evaluated by both engines with no category filters.
+  const EXPECTED_RULES_EVALUATED = 274;
+  const EXPECTED_ENGINE_VERSION = "1.3.0";
+
+  it("rulesEvaluated is the full built-in rule count under both engines", () => {
+    for (const [name, engine] of [["cel", CEL], ["rego", REGO]] as const) {
+      const report = (engine as any).validateDetailed(loadTemplate(REPORT_TEMPLATE), { severityLevel: "DEBUG" });
+      expect(report.metadata.rulesEvaluated, `${name}: rulesEvaluated`).toBe(EXPECTED_RULES_EVALUATED);
+    }
+  });
+
+  it("engineVersion is the workspace crate version under both engines", () => {
+    expect(EXPECTED_ENGINE_VERSION, "expected version must match workspace Cargo.toml").toBe(readWorkspaceVersion());
+    for (const [name, engine] of [["cel", CEL], ["rego", REGO]] as const) {
+      const report = (engine as any).validateDetailed(loadTemplate(REPORT_TEMPLATE), { severityLevel: "DEBUG" });
+      expect(report.engineVersion, `${name}: engineVersion`).toBe(EXPECTED_ENGINE_VERSION);
+    }
+  });
+
+  it("performance is present with a timing metric per phase", () => {
+    const report = REGO.validateDetailed(loadTemplate(REPORT_TEMPLATE), { severityLevel: "DEBUG" });
+    const phases = [
+      "schemaInit",
+      "engineInit",
+      "modelBuild",
+      "schemaValidate",
+      "ruleEvaluation",
+      "diagnosticFinalize",
+      "validateTotal",
+    ];
+    expect(report.performance).toBeDefined();
+    for (const phase of phases) {
+      expect(typeof report.performance[phase].durationMs, `performance.${phase}.durationMs`).toBe("number");
+    }
+  });
 });

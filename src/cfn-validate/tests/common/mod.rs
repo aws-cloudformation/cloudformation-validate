@@ -78,32 +78,14 @@ pub fn load_combined_golden() -> serde_json::Map<String, Value> {
     val.as_object().cloned().unwrap_or_default()
 }
 
-/// Zeroes `durationMs` in each phase under the top-level `performance` object.
-pub fn zero_durations(val: &mut Value) {
-    let Some(performance) = val.as_object_mut().and_then(|o| o.get_mut("performance")).and_then(|p| p.as_object_mut())
-    else {
-        return;
-    };
-    for phase in performance.values_mut() {
-        if let Some(dur) = phase.as_object_mut().and_then(|o| o.get_mut("durationMs")) {
-            *dur = Value::from(0.0);
-        }
-    }
-}
-
 /// Deep-compares `actual` against `expected`, collecting every path where they
 /// differ. Returns the list of mismatch descriptions (empty = identical).
 pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
-    // Fields excluded from golden comparison:
-    // - `suppressed`: can legitimately differ between engines due to internal dedup timing
-    // - `engineVersion`: bumps with every release and is not a behavioral signal
-    const SKIP_FIELDS: &[&str] = &["suppressed", "engineVersion"];
-
     let mut diffs = Vec::new();
     match (expected, actual) {
         (Value::Object(exp), Value::Object(act)) => {
             for key in exp.keys() {
-                if SKIP_FIELDS.contains(&key.as_str()) {
+                if GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     continue;
                 }
                 let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
@@ -113,7 +95,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
                 }
             }
             for key in act.keys() {
-                if !exp.contains_key(key) {
+                if !exp.contains_key(key) && !GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
                     diffs.push(format!("{child_path}: unexpected in actual"));
                 }
@@ -142,3 +124,5 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
 
 pub const DETAILED_ONLY_DIAGNOSTIC_FIELDS: &[&str] =
     &["documentationUrl", "context", "ruleDescription", "phase", "section"];
+
+pub const GOLDEN_EXCLUDED_FIELDS: &[&str] = &["performance", "engineVersion", "rulesEvaluated", "suppressed"];
