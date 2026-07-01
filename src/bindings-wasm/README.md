@@ -1,4 +1,4 @@
-# bindings-wasm
+# CloudFormation Validate WASM Bindings
 
 WASM bindings for [`cloudformation-validate`](https://github.com/aws-cloudformation/cloudformation-validate). Compiles
 the full validation pipeline —
