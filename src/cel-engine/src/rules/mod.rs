@@ -12,6 +12,7 @@ use template_model::SemanticModel;
 pub mod best_practices;
 pub mod conditions;
 pub mod intrinsics;
+mod patterns;
 pub mod references;
 pub mod resources;
 pub mod resources_extra;

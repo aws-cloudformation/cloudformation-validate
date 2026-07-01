@@ -241,6 +241,8 @@ pub const KEY_ASSERTIONS: &str = "Assertions";
 pub const KEY_ASSERT: &str = "Assert";
 pub const KEY_ASSERT_DESCRIPTION: &str = "AssertDescription";
 
+pub const FN_PREFIX: &str = "Fn::";
+
 pub const FN_REF: &str = "Ref";
 pub const FN_GET_ATT: &str = "Fn::GetAtt";
 pub const FN_SUB: &str = "Fn::Sub";
@@ -269,6 +271,8 @@ pub const FN_REF_ALL: &str = "Fn::RefAll";
 pub const FN_CONTAINS: &str = "Fn::Contains";
 pub const FN_EACH_MEMBER_EQUALS: &str = "Fn::EachMemberEquals";
 pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
+
+pub const FN_FOR_EACH_KEY_PREFIX: &str = "Fn::ForEach::";
 
 // Short (bare) intrinsic names — the suffix after the `Fn::` prefix that appears in
 // YAML shorthand tags (`!GetAtt`) and in the serialized reference graph. `Ref` and

@@ -48,6 +48,12 @@ pub fn category_for_rule_id(rule_id: &str) -> Category {
     Category::Resource
 }
 
+/// Regex for a valid IAM Role ARN (`arn:<partition>:iam::<account>:role/<name>`),
+/// allowing the `aws`, `aws-cn`, and `aws-us-gov` partitions. Shared by the schema
+/// `AWS::IAM::Role.Arn` format check and the resource-property role-ARN check so the
+/// two stay in lockstep.
+pub const IAM_ROLE_ARN_PATTERN: &str = r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$";
+
 /// Map a CloudFormation schema format string to the rule ID that validates it.
 /// Returns `None` for formats without a dedicated rule.
 pub fn format_rule_for_format(format: &str) -> Option<&'static str> {

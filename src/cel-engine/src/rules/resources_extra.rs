@@ -1,8 +1,10 @@
 use super::EvalContext;
+use super::patterns::AMI_ID_RE;
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
 use diagnostics::SourceSpan;
+use rules::IAM_ROLE_ARN_PATTERN;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
@@ -10,7 +12,7 @@ use template_model::SemanticModel;
 use template_model::consts::{
     DEFAULT_REGION, EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS,
     FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FN_REF, KEY_PROPERTIES, TRANSFORM_SERVERLESS,
+    FN_REF, KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
@@ -25,7 +27,7 @@ static RATE_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
 });
 
 static ARN_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$").expect("Invalid ARN_RE pattern"));
+    LazyLock::new(|| regex::Regex::new(IAM_ROLE_ARN_PATTERN).expect("Invalid ARN_RE pattern"));
 
 static SG_NAME_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r#"^[a-zA-Z0-9 \._\-:/()#,@\[\]+=&;\{\}!\$\*]+$"#).expect("Invalid SG_NAME_RE pattern")
@@ -33,9 +35,6 @@ static SG_NAME_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
 
 static AZ_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^[a-z]{2}-[a-z]+-\d[a-z]$").expect("Invalid AZ_RE pattern"));
-
-static W1030_AMI_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^ami-[0-9a-f]{8,17}$").expect("Invalid W1030_AMI_RE pattern"));
 
 static W1030_VPC_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$").expect("Invalid W1030_VPC_RE pattern")
@@ -1562,8 +1561,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             if let Some(ref def) = param.default {
                                 // ImageId: only fire if Default fails AMI pattern
                                 if sp.ends_with("ImageId")
-                                    && param.param_type == "String"
-                                    && !W1030_AMI_RE.is_match(def)
+                                    && param.param_type == PARAM_TYPE_STRING
+                                    && !AMI_ID_RE.is_match(def)
                                 {
                                     out.push(make_resource_diagnostic(
                                         "W1030",
@@ -1579,7 +1578,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 }
                                 // CidrBlock: fire if Default fails strict CIDR validation (host bits set)
                                 if (sp.ends_with("CidrBlock") || sp.ends_with("DestinationCidrBlock"))
-                                    && param.param_type == "String"
+                                    && param.param_type == PARAM_TYPE_STRING
                                     && !is_valid_cidr_strict(def)
                                 {
                                     out.push(make_resource_diagnostic(
@@ -3967,7 +3966,7 @@ fn check_iam_action_resources(
                         all_resources.push(s.as_str());
                     }
                     serde_json::Value::Object(obj) => {
-                        if let Some(ref_target) = obj.get("Ref").and_then(|v| v.as_str())
+                        if let Some(ref_target) = obj.get(FN_REF).and_then(|v| v.as_str())
                             && m.parameters.contains_key(ref_target)
                         {
                             skip_statement = true;
