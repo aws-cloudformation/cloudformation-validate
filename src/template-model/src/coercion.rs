@@ -104,7 +104,7 @@ pub enum CoerceResult {
     /// Value already matches the expected type — no coercion needed.
     AlreadyCorrect,
     /// Value was coerced to the expected type. Contains the coerced value and
-    /// a human-readable description of the conversion (e.g. "string → integer").
+    /// a human-readable description of the conversion (e.g. "string to integer").
     Coerced(Value, String),
     /// Value cannot be coerced to the expected type.
     Failed,
@@ -136,7 +136,7 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
         "string" => cfn_coerce_to_string(val)
             .map(|s| {
                 let from = if val.is_boolean() { "boolean" } else { "number" };
-                CoerceResult::Coerced(Value::String(s), format!("{} \u{2192} string", from))
+                CoerceResult::Coerced(Value::String(s), format!("{from} to string"))
             })
             .unwrap_or(CoerceResult::Failed),
         "integer" => {
@@ -144,7 +144,7 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
                 return CoerceResult::Failed;
             }
             cfn_coerce_to_integer(val)
-                .map(|i| CoerceResult::Coerced(Value::Number(i.into()), "string \u{2192} integer".into()))
+                .map(|i| CoerceResult::Coerced(Value::Number(i.into()), "string to integer".into()))
                 .unwrap_or(CoerceResult::Failed)
         }
         "number" | "double" | "float" => {
@@ -154,12 +154,12 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
             cfn_coerce_to_number(val)
                 .and_then(|f| {
                     serde_json::Number::from_f64(f)
-                        .map(|n| CoerceResult::Coerced(Value::Number(n), "string \u{2192} number".into()))
+                        .map(|n| CoerceResult::Coerced(Value::Number(n), "string to number".into()))
                 })
                 .unwrap_or(CoerceResult::Failed)
         }
         "boolean" => cfn_coerce_to_bool(val)
-            .map(|b| CoerceResult::Coerced(Value::Bool(b), "string \u{2192} boolean".into()))
+            .map(|b| CoerceResult::Coerced(Value::Bool(b), "string to boolean".into()))
             .unwrap_or(CoerceResult::Failed),
         _ => CoerceResult::Failed,
     }

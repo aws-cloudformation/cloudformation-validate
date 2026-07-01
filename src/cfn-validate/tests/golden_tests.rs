@@ -175,6 +175,80 @@ fn engine_version_matches_workspace_version() {
     }
 }
 
+fn message_defect(text: &str) -> Option<String> {
+    for (idx, ch) in text.char_indices() {
+        if !ch.is_ascii() {
+            return Some(format!("non-ASCII U+{:04X} '{ch}' at byte {idx}", ch as u32));
+        }
+        if ch.is_ascii_control() {
+            return Some(format!("control char U+{:04X} at byte {idx}", ch as u32));
+        }
+    }
+    if text.contains("\\u") {
+        return Some("literal unicode escape".to_string());
+    }
+    None
+}
+
+#[test]
+fn message_defect_flags_bad_text_and_accepts_clean_text() {
+    // Each of these must be reported as a defect.
+    let bad = [
+        ("em dash", "Hardcoded AMI ID \u{2014} use a parameter"),
+        ("arrow", "coerced (number \u{2192} string)"),
+        ("literal unicode escape", "trailing \\u2014 escape"),
+        ("tab control char", "value\tinjected"),
+    ];
+    for (label, text) in bad {
+        assert!(message_defect(text).is_some(), "message_defect must flag {label}: {text:?}");
+    }
+
+    let clean = [
+        "Hardcoded AMI ID - use a parameter or mapping for portability",
+        "'X' is not of type 'string' - automatically coerced (number to string)",
+        "'X' is not one of ['TOKEN', 'REQUEST']",
+        "TXT record value '\"aaaa\"' must be enclosed in double quotes",
+    ];
+    for text in clean {
+        assert_eq!(message_defect(text), None, "message_defect must accept clean text: {text:?}");
+    }
+}
+
+#[test]
+fn golden_messages_are_clean_ascii_text() {
+    let combined = load_combined_golden();
+
+    let mut violations = Vec::new();
+    let mut messages_checked = 0usize;
+
+    for (template, report) in &combined {
+        let Some(diagnostics) = report.get("diagnostics").and_then(|d| d.as_array()) else {
+            continue;
+        };
+        for diag in diagnostics {
+            let rule_id = diag.get("ruleId").and_then(|r| r.as_str()).expect("every diagnostic must have a ruleId");
+            for field in ["message", "ruleDescription", "suggestedFix"] {
+                let Some(text) = diag.get(field).and_then(|m| m.as_str()) else {
+                    continue;
+                };
+                messages_checked += 1;
+                if let Some(defect) = message_defect(text) {
+                    violations.push(format!("{template} [{rule_id}/{field}] {defect}: {text}"));
+                }
+            }
+        }
+    }
+
+    assert!(messages_checked > 0, "no diagnostic messages were scanned across {} templates", combined.len());
+
+    assert!(
+        violations.is_empty(),
+        "{} golden message(s) contain non-ASCII, control chars, or unicode escapes:\n{}",
+        violations.len(),
+        violations.iter().take(30).cloned().collect::<Vec<_>>().join("\n")
+    );
+}
+
 #[test]
 fn performance_is_present_in_report() {
     let rego = RegoEngine::new(EngineConfig::default()).expect("rego engine");

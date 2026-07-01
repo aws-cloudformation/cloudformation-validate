@@ -7,6 +7,7 @@ pub mod diagnostic;
 pub mod filter;
 pub mod helpers;
 pub mod json_value;
+pub mod message;
 pub mod metrics;
 pub mod phase;
 pub mod span;
@@ -23,6 +24,7 @@ pub use helpers::{
     source_for_rule,
 };
 pub use json_value::JsonValue;
+pub use message::{quote, render_str_list, render_value, render_value_list};
 pub use metrics::{PhaseMetric, phase_metric};
 pub use phase::Phase;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};

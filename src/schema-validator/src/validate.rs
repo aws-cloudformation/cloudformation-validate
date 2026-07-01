@@ -1,5 +1,6 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
+use diagnostics::message::{render_str_list, render_value, render_value_list};
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
 use rules::{IAM_ROLE_ARN_PATTERN, format_rule_for_format};
 use std::collections::{HashMap, HashSet};
@@ -670,8 +671,7 @@ fn validate_object_keys_inner(
                 format!("Value is not valid under any of the given schemas for {}", rtype)
             } else {
                 format!(
-                    "Value is not valid under any of the given schemas for {} — specify one of the following property sets: {}",
-                    rtype,
+                    "Value is not valid under any of the given schemas for {rtype} - specify one of the following property sets: {}",
                     option_sets.join(" or ")
                 )
             };
@@ -941,7 +941,7 @@ fn validate_prop(
                             out.push(build_diagnostic_conditional(
                                 "W9003",
                                 &format!(
-                                    "{}{} is not of type '{}' — automatically coerced ({})",
+                                    "{}{} is not of type '{}' - automatically coerced ({})",
                                     format_value(val),
                                     res_suffix,
                                     expected,
@@ -1572,14 +1572,11 @@ fn levenshtein_distance(a: &str, b: &str) -> usize {
 }
 
 fn format_value(val: &serde_json::Value) -> String {
-    match val {
-        serde_json::Value::String(s) => format!("'{}'", s),
-        o => o.to_string(),
-    }
+    render_value(val)
 }
 
 fn format_allowed_values(values: &[serde_json::Value]) -> String {
-    format!("[{}]", values.iter().map(format_value).collect::<Vec<_>>().join(", "))
+    render_value_list(values)
 }
 
 fn condition_matches(
@@ -2069,10 +2066,10 @@ fn validate_extension_if_then_else(
                         || e.as_str().zip(val.as_str()).is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
                 });
                 if !matches_enum {
-                    let allowed: Vec<String> = enum_vals.iter().filter_map(|v| v.as_str().map(String::from)).collect();
+                    let allowed = render_str_list(enum_vals.iter().filter_map(|v| v.as_str()));
                     out.push(build_diagnostic(
                         "E9006",
-                        &format!("'{}' is not one of {:?}", cfn_coerce_to_string(val).unwrap_or_default(), allowed),
+                        &format!("'{}' is not one of {}", cfn_coerce_to_string(val).unwrap_or_default(), allowed),
                         model,
                         rid,
                         &format!("Properties.{}", prop_name),

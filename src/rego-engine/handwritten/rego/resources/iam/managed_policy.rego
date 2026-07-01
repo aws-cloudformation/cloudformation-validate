@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# W3037: IAM ManagedPolicy — Statement should have Resource when Action is present
+# W3037: IAM ManagedPolicy - Statement should have Resource when Action is present
 violation contains make_diag_at("W3037", "WARN", name,
     "Properties.PolicyDocument",
     "IAM policy statement has Action but no Resource") if {

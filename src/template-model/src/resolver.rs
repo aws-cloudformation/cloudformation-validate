@@ -2,6 +2,7 @@ use crate::consts::*;
 use crate::ir::*;
 use base64::Engine as _;
 use diagnostics::JsonValue;
+use diagnostics::message::render_str_list;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -1785,7 +1786,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
 
             if !VALID_KEYS.contains(&key.as_str()) {
                 diags.push(e2001(
-                    format!("Parameter '{}': '{}' is not one of {:?}", name, key, VALID_KEYS),
+                    format!("Parameter '{}': '{}' is not one of {}", name, key, render_str_list(VALID_KEYS)),
                     name,
                     Some(key),
                     val_span,

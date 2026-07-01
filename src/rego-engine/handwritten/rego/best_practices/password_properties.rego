@@ -38,7 +38,7 @@ violation contains make_diag_at("W2501", "WARN", name,
 # W2501: Hardcoded string password (not a Ref to parameter, not a dynamic reference)
 violation contains make_diag_at("W2501", "WARN", name,
     sprintf("Properties.%s", [prop]),
-    sprintf("Property '%s' should not be a hardcoded string — use a parameter with NoEcho or a dynamic reference", [prop])) if {
+    sprintf("Property '%s' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference", [prop])) if {
     some name, res in input.resources
     some prop in _password_properties
     val := resolve(name, sprintf("Properties.%s", [prop]))
@@ -48,7 +48,7 @@ violation contains make_diag_at("W2501", "WARN", name,
     not _is_ref_to_param(name, prop)
 }
 
-# W2501: Parameter used as password without NoEcho — emit at parameter location
+# W2501: Parameter used as password without NoEcho - emit at parameter location
 violation contains make_diag_at("W2501", "WARN", "",
     sprintf("Parameters.%s", [pname]),
     sprintf("Parameter %s used as %s, therefore NoEcho should be True", [pname, prop])) if {

@@ -1,7 +1,7 @@
 use crate::engine::{SharedModel, SharedRegion};
 use data_source::embedded::{GETATT_ATTRIBUTES_BYTES, SCHEMA_METADATA_BYTES};
 use data_source::types::GetattData;
-use diagnostics::{SourceSpan, UNKNOWN_SPAN};
+use diagnostics::{SourceSpan, UNKNOWN_SPAN, render_value_list};
 use regorus::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
@@ -72,6 +72,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_ensure_list(rego);
     register_input_region(rego, region_holder.clone());
     register_effective_region(rego, region_holder);
+    register_render_list(rego);
     register_coerce_to_number(rego);
     register_coerce_to_string(rego);
     register_cfn_type_compatible(rego);
@@ -838,6 +839,21 @@ fn register_ensure_list(rego: &mut regorus::Engine) {
         }),
     );
 }
+
+fn register_render_list(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "render_list".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let items = match rego_to_json(&params[0]) {
+                serde_json::Value::Array(items) => items,
+                other => vec![other],
+            };
+            Ok(Value::from(render_value_list(&items)))
+        }),
+    );
+}
+
 fn rego_to_json(v: &Value) -> serde_json::Value {
     match v.to_json_str() {
         Ok(s) => serde_json::from_str(&s).unwrap_or(serde_json::Value::Null),

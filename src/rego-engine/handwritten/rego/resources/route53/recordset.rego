@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# E3023: Route53 RecordSet — A record must have valid IPv4
+# E3023: Route53 RecordSet - A record must have valid IPv4
 violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
     sprintf("'%s' is not a valid IPv4 address for record type 'A'", [rec])) if {
@@ -16,7 +16,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     not regex.match(`^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$`, rec)
 }
 
-# E3023: Route53 RecordSet — AAAA record must have valid IPv6
+# E3023: Route53 RecordSet - AAAA record must have valid IPv6
 # Use a structural check: must have hex groups separated by colons, 
 # with proper :: handling. Reject if it doesn't match basic IPv6 structure.
 violation contains make_diag_at("E3023", "ERROR", name,
@@ -65,7 +65,7 @@ _ends_with_single_colon(addr) if {
     not endswith(addr, "::")
 }
 
-# E3023: Route53 RecordSet — CNAME Name must not match HostedZoneName exactly
+# E3023: Route53 RecordSet - CNAME Name must not match HostedZoneName exactly
 violation contains make_diag_at("E3023", "ERROR", name,
     "Properties.Name",
     sprintf("CNAME record Name '%s' must not match HostedZoneName '%s' exactly", [rec_name, hz_name])) if {
@@ -108,7 +108,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
 # E3023: CAA record format (flag tag "value")
 violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.ResourceRecords.%d", [i]),
-    sprintf("CAA record value '%s' must match format: flag tag \"value\"", [rec])) if {
+    sprintf("CAA record value '%s' must match format: flag tag 'value'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSet")
     rtype := resolve(name, "Properties.Type")
     rtype == "CAA"
@@ -133,7 +133,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
     not regex.match(`^\d+\s+\S+$`, rec)
 }
 
-# E3023: RecordSetGroup — validate records within RecordSetGroup.RecordSets[]
+# E3023: RecordSetGroup - validate records within RecordSetGroup.RecordSets[]
 # A record in RecordSetGroup
 violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
@@ -185,7 +185,7 @@ violation contains make_diag_at("E3023", "ERROR", name,
 # CAA record in RecordSetGroup
 violation contains make_diag_at("E3023", "ERROR", name,
     sprintf("Properties.RecordSets.%d.ResourceRecords.%d", [si, ri]),
-    sprintf("CAA record value '%s' must match format: flag tag \"value\"", [rec])) if {
+    sprintf("CAA record value '%s' must match format: flag tag 'value'", [rec])) if {
     some name in resources_of_type("AWS::Route53::RecordSetGroup")
     rsets := resolve(name, "Properties.RecordSets")
     is_array(rsets)

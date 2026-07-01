@@ -5,7 +5,7 @@ import rego.v1
 # W9010: Hardcoded AMI ID
 violation contains make_diag_at("W9010", "WARN", name,
     "Properties.ImageId",
-    "Hardcoded AMI ID — use a parameter or mapping for portability") if {
+    "Hardcoded AMI ID - use a parameter or mapping for portability") if {
     some name in resources_of_type("AWS::EC2::Instance")
     val := resolve(name, "Properties.ImageId")
     is_string(val)
@@ -17,7 +17,7 @@ violation contains make_diag_at("W9010", "WARN", name,
 # assembled with Fn::Join + Ref AWS::AccountId): the account segment is a
 # pseudo-parameter stand-in, not a literal the author typed.
 violation contains make_diag("W9013", "WARN", name,
-    "Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter") if {
+    "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter") if {
     some name, res in input.resources
     some key in object.keys(res.properties)
     val := res.properties[key]

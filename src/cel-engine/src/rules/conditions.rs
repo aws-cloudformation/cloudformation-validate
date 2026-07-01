@@ -56,7 +56,7 @@ fn eval_condition_dependencies(ctx: &EvalContext) -> Vec<Diagnostic> {
             let mut d = make_resource_diagnostic(
                 "W2503",
                 &format!(
-                    "Resource '{}' (condition '{}') references '{}' (condition '{}'), but these conditions are mutually exclusive — this reference will always fail",
+                    "Resource '{}' (condition '{}') references '{}' (condition '{}'), but these conditions are mutually exclusive - this reference will always fail",
                     source, source_cond, target, target_cond
                 ),
                 m,

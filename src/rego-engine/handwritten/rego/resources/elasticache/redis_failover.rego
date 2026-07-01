@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# E3026: ElastiCache Redis — AutomaticFailoverEnabled required when NumCacheClusters > 1
+# E3026: ElastiCache Redis - AutomaticFailoverEnabled required when NumCacheClusters > 1
 # NumCacheClusters is ignored when NumNodeGroups is specified
 violation contains make_diag_at("E3026", "ERROR", name,
     "Properties.AutomaticFailoverEnabled",

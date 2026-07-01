@@ -13,7 +13,7 @@ violation contains make_diag_full("W9008", "WARN", name, "",
 
 # W9011: RDS instance PubliclyAccessible is true
 violation contains make_diag_full("W9011", "WARN", name, "Properties.PubliclyAccessible",
-    "RDS instance has PubliclyAccessible set to true — consider restricting access",
+    "RDS instance has PubliclyAccessible set to true - consider restricting access",
     "Set PubliclyAccessible to false",
     "") if {
     some name in resources_of_type("AWS::RDS::DBInstance")

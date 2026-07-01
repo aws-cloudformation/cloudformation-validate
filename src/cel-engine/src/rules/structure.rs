@@ -1,5 +1,6 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
+use diagnostics::message::render_str_list;
 use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
@@ -497,7 +498,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         if name.len() > 200 {
             out.push(make_resource_diagnostic(
                 "I3012",
-                &format!("Logical ID '{}' is {} characters — approaching the 256 character limit", name, name.len()),
+                &format!("Logical ID '{}' is {} characters - approaching the 256 character limit", name, name.len()),
                 m,
                 name,
                 "",
@@ -683,7 +684,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         {
             out.push(make_resource_diagnostic(
                 "F2012",
-                &format!("Parameter '{}' Default '{}' is not in AllowedValues {:?}", name, default, allowed),
+                &format!(
+                    "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                    name,
+                    default,
+                    render_str_list(allowed)
+                ),
                 m,
                 "",
                 "",
@@ -795,7 +801,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         && !APPROPRIATE_IMAGE_ID_PARAM_TYPES.contains(&param.param_type.as_str())
                         && flagged_image_params.insert(target)
                     {
-                        out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' — consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
+                        out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' - consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
             None));
                     }
                 }

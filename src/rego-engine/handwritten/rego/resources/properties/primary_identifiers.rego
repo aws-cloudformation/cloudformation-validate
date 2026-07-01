@@ -4,7 +4,7 @@ import rego.v1
 
 # E3019: Primary identifier uniqueness. Two resources collide only when a
 # satisfiable deploy-time condition assignment gives them the same primary
-# identifier simultaneously — comparing per scenario rather than collapsing all
+# identifier simultaneously - comparing per scenario rather than collapsing all
 # Fn::If branches to a single representative value (which would invent
 # duplicates that can never coexist).
 
@@ -57,7 +57,7 @@ _id_scenarios(rid, id_props) := scenarios if {
         s.value != null
         # Drop scenarios whose Fn::If branch condition contradicts the resource's
         # own Condition (e.g. a false-branch requiring IsProduction=false on a
-        # resource that only exists when IsProduction=true) — they never occur.
+        # resource that only exists when IsProduction=true) - they never occur.
         not _conflicting_maps(base, s.conditions)
         val := _to_str(s.value)
     }

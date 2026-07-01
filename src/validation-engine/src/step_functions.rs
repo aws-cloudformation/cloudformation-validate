@@ -1,5 +1,6 @@
 use crate::make_resource_diagnostic;
 use diagnostics::Diagnostic;
+use diagnostics::message::render_str_list;
 use std::sync::Arc;
 use template_model::SemanticModel;
 use template_model::consts::KEY_TYPE;
@@ -150,7 +151,7 @@ fn validate_state(
             model,
             rid,
             prop_key,
-            &format!("State '{}' has invalid Type '{}'. Must be one of {:?}", name, stype, valid_types),
+            &format!("State '{}' has invalid Type '{}'. Must be one of {}", name, stype, render_str_list(valid_types)),
         ));
         return;
     }

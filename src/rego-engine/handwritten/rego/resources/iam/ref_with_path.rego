@@ -7,7 +7,7 @@ import rego.v1
 # If the IAM role has a non-default Path, the name alone won't resolve correctly.
 violation contains make_diag_full("E3050", "ERROR", name,
     "Properties.ServiceRole",
-    sprintf("Ref to IAM role '%s' with Path '%s' — use GetAtt %s.Arn instead", [target, iam_path, target]),
+    sprintf("Ref to IAM role '%s' with Path '%s' - use GetAtt %s.Arn instead", [target, iam_path, target]),
     "Switch from Ref to !GetAtt <Role>.Arn when Path is not '/'",
     "") if {
     some name in resources_of_type("AWS::CodeBuild::Project")

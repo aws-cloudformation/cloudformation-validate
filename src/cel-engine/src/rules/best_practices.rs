@@ -172,7 +172,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             out.push(make_resource_diagnostic(
                 "W9010",
-                "Hardcoded AMI ID — use a parameter or mapping for portability",
+                "Hardcoded AMI ID - use a parameter or mapping for portability",
                 m,
                 name,
                 "Properties.ImageId",
@@ -194,7 +194,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
             {
                 out.push(make_resource_diagnostic(
                     "W9013",
-                    "Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter",
+                    "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
                     m,
                     name,
                     "",
@@ -321,7 +321,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                         value: scenarios.0.clone().into(),
                     }) {
                         out.push(make_resource_diagnostic("W2501",
-                                &format!("Property '{}' should not be a hardcoded string — use a parameter with NoEcho or a dynamic reference", prop),
+                                &format!("Property '{}' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference", prop),
                                 m, rname, &path, None,
                             ));
                     }
@@ -466,7 +466,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(|v| v.as_bool()) == Some(true) {
             out.push(make_resource_diagnostic(
                 "W9011",
-                "RDS instance has PubliclyAccessible set to true — consider restricting access",
+                "RDS instance has PubliclyAccessible set to true - consider restricting access",
                 m,
                 name,
                 "Properties.PubliclyAccessible",
@@ -531,7 +531,7 @@ fn check_notaction_policy(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, nam
             }
             if stmt.get("NotAction").is_some() {
                 out.push(make_resource_diagnostic("W2512",
-"IAM policy uses NotAction which grants all actions except those listed — consider using Action instead",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
 m,
 name,
 "",
@@ -548,7 +548,7 @@ fn eval_deprecated_resource_types(ctx: &EvalContext) -> Vec<Diagnostic> {
         if ctx.cached_data.deprecated_resource_types.contains(&res.resource_type) {
             out.push(make_resource_diagnostic(
                 "W9009",
-                &format!("Resource type '{}' is deprecated — consider using a newer alternative", res.resource_type),
+                &format!("Resource type '{}' is deprecated - consider using a newer alternative", res.resource_type),
                 ctx.model,
                 name,
                 "",
@@ -625,7 +625,7 @@ fn check_sg_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, 
         for port in ports {
             out.push(make_resource_diagnostic(
                 "W2508",
-                &format!("Security group allows all traffic from {} — sensitive port {} is exposed", open_cidr, port),
+                &format!("Security group allows all traffic from {} - sensitive port {} is exposed", open_cidr, port),
                 m,
                 name,
                 diag_path,
