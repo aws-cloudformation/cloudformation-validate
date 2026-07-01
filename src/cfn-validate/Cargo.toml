@@ -1,5 +1,6 @@
 [package]
 name = "cfn-validate"
+default-run = "cfn-validate"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -24,7 +24,7 @@ All CloudFormation intrinsic functions are resolved:
 `Fn::Split`, `Fn::Base64`, `Fn::Cidr`, `Fn::GetAZs`, `Fn::ImportValue`, `Fn::Transform`, `Fn::And`, `Fn::Or`,
 `Fn::Not`, `Fn::Equals`, `Fn::ToJsonString`, `Fn::Length`, `Fn::ForEach`.
 
-Rules-section intrinsics: `Fn::ValueOf`, `Fn::ValueOfAll`, `Ref::All`, `Fn::Contains`, `Fn::EachMemberEquals`,
+Rules-section intrinsics: `Fn::ValueOf`, `Fn::ValueOfAll`, `Fn::RefAll`, `Fn::Contains`, `Fn::EachMemberEquals`,
 `Fn::EachMemberIn`.
 
 ## ResolvedValue
@@ -48,24 +48,25 @@ Each property resolves to one of these variants:
 
 ```rust
 let bytes = std::fs::read("template.yaml").unwrap();
-let model = SemanticModel::from_bytes( & bytes).unwrap();
+let model = SemanticModel::from_bytes(&bytes).unwrap();
 ```
 
 With configuration:
 
 ```rust
+use std::collections::HashMap;
 use template_model::{SemanticModel, ParseConfig, PseudoParameterOverrides};
 
 let config = ParseConfig {
-parameters: HashMap::from([("Environment".into(), "Production".into())]),
-pseudo_parameters: PseudoParameterOverrides {
-region: Some("eu-west-1".into()),
-account_id: Some("123456789012".into()),
-..Default::default ()
-},
+  parameters: HashMap::from([("Environment".into(), "Production".into())]),
+  pseudo_parameters: PseudoParameterOverrides {
+    region: Some("eu-west-1".into()),
+    account_id: Some("123456789012".into()),
+    ..Default::default()
+  },
 };
 
-let result = SemanticModel::parse( & bytes, config).unwrap();
+let result = SemanticModel::parse(&bytes, config).unwrap();
 let model = result.model;
 ```
 

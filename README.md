@@ -159,6 +159,7 @@ This is a Cargo workspace. The main crates:
 | [guard-translator](src/guard-translator/README.md)   | Parses Guard DSL into an engine-agnostic intermediate representation        |
 | [bindings-wasm](src/bindings-wasm/README.md)         | WASM bindings for Node.js                                                   |
 | [bindings-jvm](src/bindings-jvm/README.md)           | JVM bindings (Kotlin/Java) via UniFFI                                       |
+| [data-source](src/data-source/README.md)             | Build-time pipeline: downloads and processes CloudFormation schemas, generates the validation artifacts baked into the binary |
 
 ## Security
 

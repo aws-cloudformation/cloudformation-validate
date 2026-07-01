@@ -19,7 +19,7 @@ Severity is derived from the first character of a rule ID: `F`→Fatal, `E`→Er
 `RULE_REGISTRY` is the single source of truth for all rule IDs. Each entry has an `id`, `category`, `description`,
 and `origin`.
 
-`RuleInfo` is the serializable representation returned by `list_rules()`:
+`RuleInfo` is the serializable representation of a rule, produced from a `RuleDefinition` via `to_rule_info()` (e.g. by iterating `RULE_REGISTRY`):
 
 ```rust
 pub struct RuleInfo {

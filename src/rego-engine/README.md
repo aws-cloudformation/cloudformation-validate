@@ -66,7 +66,7 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 
 | Builtin                   | Signature                                       | Purpose                                          |
 |---------------------------|-------------------------------------------------|--------------------------------------------------|
-| `conditions_compatible`   | `(cond_a, cond_b) → bool`                       | Can both conditions be true simultaneously?      |
+| `conditions_compatible`   | `(resource_a, resource_b) → bool`               | Can both resources' conditions be true simultaneously? |
 | `condition_implies`       | `(cond_a, cond_b) → bool`                       | Does cond_a=true force cond_b=true?              |
 | `conjunction_implies`     | `(guard1, guard2, target) → bool`               | Does the conjunction of two guards imply target? |
 | `resource_condition`      | `(resource_id) → condition_name`                | Get the Condition on a resource                  |
@@ -92,6 +92,7 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | `attribute_type`       | `(resource_type, property) → type_string`  | Get schema attribute type      |
 | `getatt_return_type`   | `(resource_type, attribute) → type_string` | Get GetAtt return type         |
 | `schema_string_length` | `(resource_type, property) → {min, max}`   | Get string length constraints  |
+| `schema_requires_unique_items` | `(resource_type, property) → bool` | True when a property's schema sets `uniqueItems` |
 
 ### Diagnostic Construction
 
@@ -113,6 +114,7 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | `is_valid_cidr_strict`   | `(cidr) → bool`                 | Validate CIDR notation                        |
 | `ensure_list`            | `(value) → [value]`             | Wrap scalar in array, pass arrays through     |
 | `input_region`           | `() → region_string`            | Get the configured AWS region                 |
+| `effective_region`       | `() → region_string`            | Configured AWS region, or the platform default when unset |
 | `coerce_to_number`       | `(value) → number`              | CloudFormation-style number coercion          |
 | `coerce_to_string`       | `(value) → string`              | CloudFormation-style string coercion          |
 | `cfn_type_compatible`    | `(value, expected_type) → bool` | Check CFN type compatibility with coercion    |
