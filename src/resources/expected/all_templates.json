@@ -1665,9 +1665,9 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 10,
+        "fatal": 9,
         "errors": 0,
-        "warnings": 7,
+        "warnings": 9,
         "informational": 8,
         "debug": 0
       },
@@ -1692,6 +1692,15 @@
         "source": "SCHEMA",
         "category": "Structure",
         "ruleDescription": "Duplicate logical ID in template",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "W1103",
+        "severity": "WARN",
+        "message": "'Fn::Of' is not a supported function",
+        "source": "ENGINE",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Unknown intrinsic function name",
         "phase": "PARSE"
       },
       {
@@ -2170,9 +2179,9 @@
         }
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "[\"whitelist\"] is not one of [String(\"blacklist\"), String(\"none\"), String(\"whitelist\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "[\"whitelist\"] is not one of ['blacklist', 'none', 'whitelist']",
         "source": "SCHEMA",
         "resourceId": "CloudFrontDistribution",
         "resourceType": "AWS::CloudFront::Distribution",
@@ -4117,9 +4126,9 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 6,
+        "fatal": 4,
         "errors": 0,
-        "warnings": 0,
+        "warnings": 2,
         "informational": 4,
         "debug": 0
       },
@@ -4327,9 +4336,9 @@
         }
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'Enabled1' is not one of [String(\"Enabled\"), String(\"Suspended\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'Enabled1' is not one of ['Enabled', 'Suspended']",
         "source": "SCHEMA",
         "resourceId": "myBucketFirstAndLastPass",
         "resourceType": "AWS::S3::Bucket",
@@ -4425,9 +4434,9 @@
         }
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'Enabled1' is not one of [String(\"Enabled\"), String(\"Suspended\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'Enabled1' is not one of ['Enabled', 'Suspended']",
         "source": "SCHEMA",
         "resourceId": "myBucketFirstAndLastFail",
         "resourceType": "AWS::S3::Bucket",
@@ -4476,9 +4485,9 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 6,
+        "fatal": 4,
         "errors": 0,
-        "warnings": 0,
+        "warnings": 2,
         "informational": 4,
         "debug": 0
       },
@@ -4686,9 +4695,9 @@
         }
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'Enabled1' is not one of [String(\"Enabled\"), String(\"Suspended\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'Enabled1' is not one of ['Enabled', 'Suspended']",
         "source": "SCHEMA",
         "resourceId": "myBucketFirstAndLastPass",
         "resourceType": "AWS::S3::Bucket",
@@ -4784,9 +4793,9 @@
         }
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'Enabled1' is not one of [String(\"Enabled\"), String(\"Suspended\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'Enabled1' is not one of ['Enabled', 'Suspended']",
         "source": "SCHEMA",
         "resourceId": "myBucketFirstAndLastFail",
         "resourceType": "AWS::S3::Bucket",
@@ -16273,9 +16282,9 @@
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
-        "fatal": 2,
+        "fatal": 1,
         "errors": 1,
-        "warnings": 5,
+        "warnings": 6,
         "informational": 10,
         "debug": 0
       },
@@ -16285,9 +16294,9 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'magnetic' is not one of [String(\"gp2\"), String(\"gp3\"), String(\"io1\"), String(\"io2\"), String(\"sc1\"), String(\"st1\"), String(\"standard\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'magnetic' is not one of ['gp2', 'gp3', 'io1', 'io2', 'sc1', 'st1', 'standard']",
         "source": "SCHEMA",
         "resourceId": "MyEC2Instance",
         "resourceType": "AWS::EC2::Instance",
@@ -28512,9 +28521,9 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 2,
+        "fatal": 1,
         "errors": 1,
-        "warnings": 1,
+        "warnings": 2,
         "informational": 2,
         "debug": 0
       },
@@ -28524,9 +28533,9 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'InvalidAccessControl' is not one of [String(\"AuthenticatedRead\"), String(\"AwsExecRead\"), String(\"BucketOwnerFullControl\"), String(\"BucketOwnerRead\"), String(\"LogDeliveryWrite\"), String(\"Private\"), String(\"PublicRead\"), String(\"PublicReadWrite\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'InvalidAccessControl' is not one of ['AuthenticatedRead', 'AwsExecRead', 'BucketOwnerFullControl', 'BucketOwnerRead', 'LogDeliveryWrite', 'Private', 'PublicRead', 'PublicReadWrite']",
         "source": "SCHEMA",
         "resourceId": "Bucket",
         "resourceType": "AWS::S3::Bucket",
@@ -29898,9 +29907,9 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 3,
         "informational": 2,
         "debug": 0
       },
@@ -29910,9 +29919,9 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "true is not one of [String(\"Enabled\"), String(\"Suspended\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "true is not one of ['Enabled', 'Suspended']",
         "source": "SCHEMA",
         "resourceId": "Bucket",
         "resourceType": "AWS::S3::Bucket",
@@ -47105,9 +47114,9 @@
     "metadata": {
       "resourcesScanned": 33,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 2,
         "informational": 60,
         "debug": 0
       },
@@ -48387,9 +48396,9 @@
         }
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'http' is not one of [String(\"HTTP\"), String(\"HTTPS\"), String(\"TCP\"), String(\"SSL\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'http' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']",
         "source": "SCHEMA",
         "resourceId": "LB8A12904C",
         "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer",
@@ -102797,9 +102806,9 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 1,
-        "warnings": 1,
+        "warnings": 2,
         "informational": 2,
         "debug": 0
       },
@@ -102809,9 +102818,25 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'node99.x' is not one of [String(\"dotnet10\"), String(\"dotnet6\"), String(\"dotnet8\"), String(\"dotnetcore1.0\"), String(\"dotnetcore2.0\"), String(\"dotnetcore2.1\"), String(\"dotnetcore3.1\"), String(\"go1.x\"), String(\"java11\"), String(\"java17\"), String(\"java21\"), String(\"java25\"), String(\"java8\"), String(\"java8.al2\"), String(\"nodejs\"), String(\"nodejs10.x\"), String(\"nodejs12.x\"), String(\"nodejs14.x\"), String(\"nodejs16.x\"), String(\"nodejs18.x\"), String(\"nodejs20.x\"), String(\"nodejs22.x\"), String(\"nodejs24.x\"), String(\"nodejs4.3\"), String(\"nodejs4.3-edge\"), String(\"nodejs6.10\"), String(\"nodejs8.10\"), String(\"provided\"), String(\"provided.al2\"), String(\"provided.al2023\"), String(\"python2.7\"), String(\"python3.10\"), String(\"python3.11\"), String(\"python3.12\"), String(\"python3.13\"), String(\"python3.14\"), String(\"python3.6\"), String(\"python3.7\"), String(\"python3.8\"), String(\"python3.9\"), String(\"ruby2.5\"), String(\"ruby2.7\"), String(\"ruby3.2\"), String(\"ruby3.3\"), String(\"ruby3.4\"), String(\"ruby4.0\")]",
+        "ruleId": "E3677",
+        "severity": "ERROR",
+        "message": "Runtime 'node99.x' is not supported with Code.ZipFile \u2014 use nodejs or python",
+        "source": "CFN_LINT",
+        "resourceId": "MyFunction",
+        "resourceType": "AWS::Lambda::Function",
+        "category": "Resource",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 16,
+        "ruleDescription": "Lambda ZipFile requires nodejs or python runtime",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java17', 'java21', 'java25', 'java8', 'java8.al2', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "SCHEMA",
         "resourceId": "MyFunction",
         "resourceType": "AWS::Lambda::Function",
@@ -102877,22 +102902,6 @@
             ]
           }
         }
-      },
-      {
-        "ruleId": "E3677",
-        "severity": "ERROR",
-        "message": "Runtime 'node99.x' is not supported with Code.ZipFile \u2014 use nodejs or python",
-        "source": "CFN_LINT",
-        "resourceId": "MyFunction",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Resource",
-        "startLine": 3,
-        "startColumn": 5,
-        "endLine": 3,
-        "endColumn": 16,
-        "ruleDescription": "Lambda ZipFile requires nodejs or python runtime",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "W9013",
@@ -105859,9 +105868,9 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 2,
+        "fatal": 0,
         "errors": 1,
-        "warnings": 2,
+        "warnings": 4,
         "informational": 4,
         "debug": 0
       },
@@ -105871,9 +105880,9 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'nodejs99.x' is not one of [String(\"dotnet10\"), String(\"dotnet6\"), String(\"dotnet8\"), String(\"dotnetcore1.0\"), String(\"dotnetcore2.0\"), String(\"dotnetcore2.1\"), String(\"dotnetcore3.1\"), String(\"go1.x\"), String(\"java11\"), String(\"java17\"), String(\"java21\"), String(\"java25\"), String(\"java8\"), String(\"java8.al2\"), String(\"nodejs\"), String(\"nodejs10.x\"), String(\"nodejs12.x\"), String(\"nodejs14.x\"), String(\"nodejs16.x\"), String(\"nodejs18.x\"), String(\"nodejs20.x\"), String(\"nodejs22.x\"), String(\"nodejs24.x\"), String(\"nodejs4.3\"), String(\"nodejs4.3-edge\"), String(\"nodejs6.10\"), String(\"nodejs8.10\"), String(\"provided\"), String(\"provided.al2\"), String(\"provided.al2023\"), String(\"python2.7\"), String(\"python3.10\"), String(\"python3.11\"), String(\"python3.12\"), String(\"python3.13\"), String(\"python3.14\"), String(\"python3.6\"), String(\"python3.7\"), String(\"python3.8\"), String(\"python3.9\"), String(\"ruby2.5\"), String(\"ruby2.7\"), String(\"ruby3.2\"), String(\"ruby3.3\"), String(\"ruby3.4\"), String(\"ruby4.0\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'nodejs99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java17', 'java21', 'java25', 'java8', 'java8.al2', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "SCHEMA",
         "resourceId": "MyFunc",
         "resourceType": "AWS::Lambda::Function",
@@ -105995,9 +106004,25 @@
         "section": "Resources"
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'node99.x' is not one of [String(\"dotnet10\"), String(\"dotnet6\"), String(\"dotnet8\"), String(\"dotnetcore1.0\"), String(\"dotnetcore2.0\"), String(\"dotnetcore2.1\"), String(\"dotnetcore3.1\"), String(\"go1.x\"), String(\"java11\"), String(\"java17\"), String(\"java21\"), String(\"java25\"), String(\"java8\"), String(\"java8.al2\"), String(\"nodejs\"), String(\"nodejs10.x\"), String(\"nodejs12.x\"), String(\"nodejs14.x\"), String(\"nodejs16.x\"), String(\"nodejs18.x\"), String(\"nodejs20.x\"), String(\"nodejs22.x\"), String(\"nodejs24.x\"), String(\"nodejs4.3\"), String(\"nodejs4.3-edge\"), String(\"nodejs6.10\"), String(\"nodejs8.10\"), String(\"provided\"), String(\"provided.al2\"), String(\"provided.al2023\"), String(\"python2.7\"), String(\"python3.10\"), String(\"python3.11\"), String(\"python3.12\"), String(\"python3.13\"), String(\"python3.14\"), String(\"python3.6\"), String(\"python3.7\"), String(\"python3.8\"), String(\"python3.9\"), String(\"ruby2.5\"), String(\"ruby2.7\"), String(\"ruby3.2\"), String(\"ruby3.3\"), String(\"ruby3.4\"), String(\"ruby4.0\")]",
+        "ruleId": "E3677",
+        "severity": "ERROR",
+        "message": "Runtime 'node99.x' is not supported with Code.ZipFile \u2014 use nodejs or python",
+        "source": "CFN_LINT",
+        "resourceId": "FutureNodeFunc",
+        "resourceType": "AWS::Lambda::Function",
+        "category": "Resource",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 20,
+        "ruleDescription": "Lambda ZipFile requires nodejs or python runtime",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java17', 'java21', 'java25', 'java8', 'java8.al2', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "SCHEMA",
         "resourceId": "FutureNodeFunc",
         "resourceType": "AWS::Lambda::Function",
@@ -106063,22 +106088,6 @@
             ]
           }
         }
-      },
-      {
-        "ruleId": "E3677",
-        "severity": "ERROR",
-        "message": "Runtime 'node99.x' is not supported with Code.ZipFile \u2014 use nodejs or python",
-        "source": "CFN_LINT",
-        "resourceId": "FutureNodeFunc",
-        "resourceType": "AWS::Lambda::Function",
-        "category": "Resource",
-        "startLine": 16,
-        "startColumn": 5,
-        "endLine": 16,
-        "endColumn": 20,
-        "ruleDescription": "Lambda ZipFile requires nodejs or python runtime",
-        "phase": "LINT",
-        "section": "Resources"
       },
       {
         "ruleId": "W9013",
@@ -122395,9 +122404,9 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 2,
+        "fatal": 1,
         "errors": 0,
-        "warnings": 0,
+        "warnings": 1,
         "informational": 7,
         "debug": 0
       },
@@ -122481,9 +122490,9 @@
         "section": "Resources"
       },
       {
-        "ruleId": "F3030",
-        "severity": "FATAL",
-        "message": "'AES256' is not one of [String(\"KMS\")]",
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'AES256' is not one of ['KMS']",
         "source": "SCHEMA",
         "resourceId": "Table2",
         "resourceType": "AWS::DynamoDB::Table",
@@ -127900,7 +127909,7 @@
       "counts": {
         "fatal": 3,
         "errors": 1,
-        "warnings": 7,
+        "warnings": 8,
         "informational": 23,
         "debug": 0
       },
@@ -127930,6 +127939,15 @@
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "W1103",
+        "severity": "WARN",
+        "message": "'Fn::Implies' is not a supported function",
+        "source": "ENGINE",
+        "category": "Intrinsic Function",
+        "ruleDescription": "Unknown intrinsic function name",
+        "phase": "PARSE"
       },
       {
         "ruleId": "W8001",

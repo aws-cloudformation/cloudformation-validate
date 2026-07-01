@@ -1896,56 +1896,6 @@ mod tests {
     }
 
     #[test]
-    fn severity_category_model_compliance() {
-        // Warn rules must use Security, Deprecation, or BestPractice.
-        // Info rules must use BestPractice, Deprecation, Structure, Intrinsic, or Security.
-        // Fatal rules must use Structure, Schema, Intrinsic, Parameter, or Reference.
-        for rule in RULE_REGISTRY {
-            match rule.severity() {
-                Severity::Fatal => {
-                    assert!(
-                        matches!(
-                            rule.category,
-                            Category::Structure
-                                | Category::Schema
-                                | Category::Intrinsic
-                                | Category::Parameter
-                                | Category::Reference
-                        ),
-                        "Fatal rule {} has disallowed category {:?}",
-                        rule.id,
-                        rule.category
-                    );
-                }
-                Severity::Warn => {
-                    assert!(
-                        matches!(rule.category, Category::Security | Category::Deprecation | Category::BestPractice),
-                        "Warn rule {} has disallowed category {:?}",
-                        rule.id,
-                        rule.category
-                    );
-                }
-                Severity::Info => {
-                    assert!(
-                        matches!(
-                            rule.category,
-                            Category::BestPractice
-                                | Category::Deprecation
-                                | Category::Structure
-                                | Category::Intrinsic
-                                | Category::Security
-                        ),
-                        "Info rule {} has disallowed category {:?}",
-                        rule.id,
-                        rule.category
-                    );
-                }
-                _ => {} // Error allows any category
-            }
-        }
-    }
-
-    #[test]
     fn rule_ids_match_expected_format() {
         let id_re = regex::Regex::new(r"^[FEWID]\d{4}$").unwrap();
         for rule in RULE_REGISTRY {

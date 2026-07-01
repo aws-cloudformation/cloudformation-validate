@@ -437,7 +437,7 @@ class SmokeTest {
     @Test
     fun rulesEvaluatedIsFullRuleCount() {
         // The full built-in rule set is fixed and evaluated by both engines with no category filters.
-        val expected = 275u
+        val expected = 277u
         assertEquals(expected, CEL.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "cel: rulesEvaluated")
         assertEquals(expected, REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "rego: rulesEvaluated")
     }
