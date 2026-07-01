@@ -39,7 +39,8 @@ pub fn load_security_rule(filename: &str) -> String {
 }
 
 /// All template directories covered by golden-file tests.
-const GOLDEN_DIRS: &[&str] = &["good", "bad", "integration", "issues", "gh-issues", "lsp", "quickstart", "public"];
+const GOLDEN_DIRS: &[&str] =
+    &["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"];
 
 /// Discover all templates under the given subdirectories of templates_dir().
 pub fn discover_all_templates() -> Vec<String> {
@@ -71,11 +72,20 @@ fn walk_collect(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<Str
     }
 }
 
+pub const MIN_GOLDEN_TEMPLATES: usize = 400;
+
 pub fn load_combined_golden() -> serde_json::Map<String, Value> {
     let path = resources_root().join("expected").join("all_templates.json");
     let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read golden {}: {e}", path.display()));
     let val: Value = serde_json::from_slice(&bytes).unwrap_or_else(|e| panic!("parse golden {}: {e}", path.display()));
-    val.as_object().cloned().unwrap_or_default()
+    let map = val.as_object().cloned().unwrap_or_default();
+    assert!(
+        map.len() > MIN_GOLDEN_TEMPLATES,
+        "golden {} must contain more than {MIN_GOLDEN_TEMPLATES} templates, found {} - the file is missing, empty, or truncated",
+        path.display(),
+        map.len()
+    );
+    map
 }
 
 /// Deep-compares `actual` against `expected`, collecting every path where they
