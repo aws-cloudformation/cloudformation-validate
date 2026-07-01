@@ -658,4 +658,23 @@ mod tests {
             assert!(e1033_messages(ir).is_empty());
         }
     }
+
+    #[test]
+    fn unknown_fn_long_form_emits_w1103() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName:\n        Fn::Bogus: hello\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+    }
+
+    #[test]
+    fn unknown_fn_short_tag_form_not_reachable() {
+        // Short-form tags like `!Bogus` are NOT recognized by the YAML parser
+        // (not in SHORT_TAG_TO_FN_KEY), so they never become a `{Fn::Bogus: ...}`
+        // map and thus cannot reach the unknown-function check. Verify no W1103.
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !Bogus hello\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert!(ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "An unrecognized YAML tag must not trigger W1103");
+    }
 }

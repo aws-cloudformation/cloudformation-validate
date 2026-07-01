@@ -581,6 +581,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "W1103",
+        category: Category::Intrinsic,
+        description: "Unknown intrinsic function name",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "E1103",
         category: Category::Intrinsic,
         description: "Validate the format of a value",

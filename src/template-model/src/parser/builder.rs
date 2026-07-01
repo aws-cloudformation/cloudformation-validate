@@ -166,7 +166,17 @@ impl Builder {
             FN_CONDITION => {
                 IntrinsicFn::Ref(format!("{}{}", CONDITION_REF_PREFIX, self.required_string(val, FN_CONDITION)?))
             }
-            _ => return None,
+            _ => {
+                if key.starts_with(FN_PREFIX) && !key.starts_with(FN_FOR_EACH_KEY_PREFIX) {
+                    self.diagnostics.push(crate::make_parse_diagnostic_at(
+                        "W1103",
+                        format!("'{}' is not a supported function", key),
+                        UNKNOWN_SPAN,
+                        &format!("{}/{}", path, key),
+                    ));
+                }
+                return None;
+            }
         };
         Some(self.alloc(Node::Intrinsic(intrinsic), path))
     }
