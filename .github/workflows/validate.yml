@@ -116,7 +116,7 @@ jobs:
 
     - name: Test
       working-directory: ${{ needs.get-configs.outputs.working-dir }}
-      run: cargo test --locked --release --workspace
+      run: cargo test --locked --release --workspace --no-fail-fast
 
   test-jvm:
     needs: [ format, lint, audit, get-configs ]

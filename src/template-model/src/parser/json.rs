@@ -607,4 +607,45 @@ mod tests {
             ir.diagnostics
         );
     }
+
+    #[test]
+    fn unknown_fn_prefix_emits_w1103() {
+        let input =
+            r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+    }
+
+    #[test]
+    fn unknown_fn_typo_emits_w1103() {
+        let input =
+            r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::GetAttt":["R","Arn"]}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function"]);
+    }
+
+    #[test]
+    fn fn_foreach_iterator_key_does_not_emit_w1103() {
+        let input =
+            r#"{"Resources":{"Fn::ForEach::Buckets":[["Id",["a","b"],{"Bucket${Id}":{"Type":"AWS::S3::Bucket"}}]]}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "W1103"),
+            "Fn::ForEach::<id> must not trigger W1103, got: {:?}",
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn non_fn_prefix_single_key_object_does_not_emit_w1103() {
+        // A single-key object whose key doesn't start with "Fn::" is a normal map
+        // (e.g. a tag value), not an intrinsic attempt — must not trigger W1103.
+        let input = r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"NotAnFn":"val"}}}}}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        assert!(ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "Non-Fn:: single-key map must not trigger W1103");
+    }
 }
