@@ -290,6 +290,13 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # UNMATCHED firing of any of them is a FALSE POSITIVE, never engine-extra.
     cfnlint_equivalent = {eid for eid in cfnlint_to_engine.values() if eid in reg_ids}
     cfnlint_equivalent.add("E9003")  # second half of the cfn-lint E1010 GetAtt split
+    # Open-world half of the enum split: the const check stays Fatal (its ID is
+    # already a mapping target and thus cfnlint_equivalent), while the soft enum
+    # Warning downgrade carries no mapping-target status and would otherwise be
+    # waved through via a bare number-collision. It has a real cfn-lint equivalent
+    # (the enum Error it was downgraded from), so it must PARTICIPATE in parity —
+    # an unmatched firing is a false positive, not blanket engine-extra.
+    cfnlint_equivalent.add("W3030")
     # Top-level structural rules cfn-lint covers under its parent E1001/E3001
     # (F0001 omitted on purpose — cfn-lint never flags an empty Resources section):
     cfnlint_equivalent.update({"F0002", "F0005", "F0006"})
@@ -406,10 +413,13 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
                 and any(k in diag.get("message", "")
                         for k in ("'BadKey'", "'BadValue'"))):
             return True
-        # F3030 on directive-suppressed resources or unresolvable Fn::If values:
-        # engine validates enum even when Fn::If can't be resolved (invalid condition)
-        # or when cfn-lint suppresses via directive.
-        if (diag.get("rule_id") == "F3030"
+        # Enum Warning on directive-suppressed resources or unresolvable Fn::If
+        # values: the engine validates the enum even when Fn::If can't be resolved
+        # (invalid condition) or when cfn-lint suppresses the resource via a
+        # directive. The enum diagnostic is the soft-Warning half of the enum
+        # split (the const half stays Fatal), so match on that ID here — this is
+        # the sole narrow excuse now that the rule participates in parity matching.
+        if (diag.get("rule_id") == "W3030"
                 and (diag.get("resource_id") == "myBucketFirstAndLastPass"
                      or "Fn::If" in diag.get("message", ""))):
             return True
