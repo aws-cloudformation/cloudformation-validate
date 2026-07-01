@@ -24,7 +24,7 @@ pub use helpers::{
     source_for_rule,
 };
 pub use json_value::JsonValue;
-pub use message::{CLAUSE_SEPARATOR, COERCION_ARROW, quote, render_str_list, render_value, render_value_list};
+pub use message::{quote, render_str_list, render_value, render_value_list};
 pub use metrics::{PhaseMetric, phase_metric};
 pub use phase::Phase;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};

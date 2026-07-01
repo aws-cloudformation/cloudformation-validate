@@ -1,6 +1,6 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
-use diagnostics::message::{CLAUSE_SEPARATOR, render_value, render_value_list, render_str_list};
+use diagnostics::message::{render_str_list, render_value, render_value_list};
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
 use rules::{IAM_ROLE_ARN_PATTERN, format_rule_for_format};
 use std::collections::{HashMap, HashSet};
@@ -671,7 +671,7 @@ fn validate_object_keys_inner(
                 format!("Value is not valid under any of the given schemas for {}", rtype)
             } else {
                 format!(
-                    "Value is not valid under any of the given schemas for {rtype}{CLAUSE_SEPARATOR}specify one of the following property sets: {}",
+                    "Value is not valid under any of the given schemas for {rtype} - specify one of the following property sets: {}",
                     option_sets.join(" or ")
                 )
             };
@@ -941,7 +941,7 @@ fn validate_prop(
                             out.push(build_diagnostic_conditional(
                                 "W9003",
                                 &format!(
-                                    "{}{} is not of type '{}'{CLAUSE_SEPARATOR}automatically coerced ({})",
+                                    "{}{} is not of type '{}' - automatically coerced ({})",
                                     format_value(val),
                                     res_suffix,
                                     expected,

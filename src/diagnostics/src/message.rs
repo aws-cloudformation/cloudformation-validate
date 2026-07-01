@@ -1,13 +1,5 @@
 use serde_json::Value;
 
-/// Joins a finding with the advice that follows it, e.g.
-/// `"Hardcoded AMI ID - use a parameter or mapping for portability"`.
-pub const CLAUSE_SEPARATOR: &str = " - ";
-
-/// Joins the two sides of a type conversion inside a coercion message, e.g.
-/// `"automatically coerced (number to string)"`.
-pub const COERCION_ARROW: &str = " to ";
-
 /// Wraps `value` in single quotes: `foo` becomes `'foo'`.
 ///
 /// This is the single convention for surfacing an identifier, property name, or
@@ -109,11 +101,5 @@ mod tests {
     fn render_str_list_single_quotes_each_item() {
         assert_eq!(render_str_list(["Enabled", "Suspended"]), "['Enabled', 'Suspended']");
         assert_eq!(render_str_list(Vec::<String>::new()), "[]");
-    }
-
-    #[test]
-    fn separators_are_ascii() {
-        assert!(CLAUSE_SEPARATOR.is_ascii());
-        assert!(COERCION_ARROW.is_ascii());
     }
 }
