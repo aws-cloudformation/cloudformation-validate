@@ -335,7 +335,7 @@ fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, r
                     continue;
                 }
                 if let Some(s) = cfn_coerce_to_string(val) {
-                    if s.contains("{{resolve:") || s.contains("${") {
+                    if s.contains("${") {
                         continue;
                     }
                     if !re.is_match(&s) {

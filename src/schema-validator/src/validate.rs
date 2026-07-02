@@ -1044,13 +1044,9 @@ fn validate_prop(
                 continue;
             }
             if let Some(s) = cfn_coerce_to_string(val) {
-                if s.contains("{{resolve:") || s.contains("${") {
+                if s.contains("${") {
                     continue;
                 }
-                // Malformed dynamic reference (e.g. "{{ resolve:ssm:... }}" with
-                // spaces) — the pattern-mismatch warning reports this. Skip the Fatal
-                // to avoid double-flagging; the downstream API (not CFN itself)
-                // is what rejects the unresolved literal.
                 if s.contains("{{") && s.contains("resolve") {
                     continue;
                 }
@@ -1146,7 +1142,7 @@ fn validate_prop(
             let Some(s) = cfn_coerce_to_string(val) else {
                 continue;
             };
-            if s.contains("{{resolve:") || s.contains("${") {
+            if s.contains("${") {
                 continue;
             }
             if from_param {
@@ -1786,7 +1782,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
             continue;
         }
         if let Some(s) = cfn_coerce_to_string(val) {
-            if s.contains("{{resolve:") || s.contains("${") {
+            if s.contains("${") {
                 continue;
             }
             if m.is_from_parameter(rid, prop_path) {

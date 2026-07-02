@@ -262,9 +262,12 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
             for prop in PASSWORD_PROPS {
                 let path = format!("Properties.{}", prop);
 
-                // Check for non-secure dynamic references via raw property
+                // Check for non-secure dynamic references via raw property. Both
+                // deploy-time-opaque variants carry the reference literal in `reason`
+                // (an embedded reference resolves to `TypedDynamic`).
                 if let Some(res) = m.resources.get(rname.as_str())
-                    && let Some(ResolvedValue::Dynamic { reason }) = res.properties.get(*prop)
+                    && let Some(ResolvedValue::Dynamic { reason } | ResolvedValue::TypedDynamic { reason, .. }) =
+                        res.properties.get(*prop)
                 {
                     if reason.contains("{{resolve:")
                         && !reason.contains("{{resolve:ssm-secure:")

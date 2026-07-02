@@ -175,7 +175,7 @@ impl<'a> Resolver<'a> {
         self.depth += 1;
         let result = self.resolve_node_inner(node_ref);
         self.depth -= 1;
-        result
+        opaque_if_dynamic_reference(result)
     }
 
     fn resolve_node_inner(&mut self, node_ref: NodeRef) -> ResolvedValue {
@@ -187,12 +187,11 @@ impl<'a> Resolver<'a> {
             Node::Int(i) => ResolvedValue::Concrete { value: serde_json::json!(*i).into() },
             Node::Float(f) => ResolvedValue::Concrete { value: serde_json::json!(*f).into() },
             Node::String(s) => {
-                if s.starts_with("{{resolve:") {
-                    ResolvedValue::Dynamic { reason: format!("dynamic reference: {}", s) }
-                } else {
-                    self.detect_unsubstituted_variables(s);
-                    ResolvedValue::Concrete { value: serde_json::Value::String(s.clone()).into() }
-                }
+                // Embedded dynamic references (`{{resolve:...}}`, even mid-string or
+                // produced by Sub/Join/Select) are collapsed to a deploy-time-opaque
+                // value centrally in `resolve_node`, so no per-node guard is needed here.
+                self.detect_unsubstituted_variables(s);
+                ResolvedValue::Concrete { value: serde_json::Value::String(s.clone()).into() }
             }
             Node::List(items) => {
                 let items = items.clone(); // clone Vec<NodeRef> (cheap: Vec of u32)
@@ -1466,6 +1465,22 @@ fn calculate_cidr_blocks(ip_block: &str, count: u64, cidr_bits: u64) -> Option<V
     Some(results)
 }
 
+/// Collapses a resolved concrete string that embeds a dynamic reference
+/// (`{{resolve:ssm:...}}`, `{{resolve:ssm-secure:...}}`, `{{resolve:secretsmanager:...}}`)
+/// into a deploy-time-opaque value, mirroring how `Fn::ImportValue` resolves.
+fn opaque_if_dynamic_reference(value: ResolvedValue) -> ResolvedValue {
+    if let ResolvedValue::Concrete { value: ref json } = value
+        && let Some(s) = json.as_str()
+        && s.contains("{{resolve:")
+    {
+        return ResolvedValue::TypedDynamic {
+            reason: format!("dynamic reference: {}", s),
+            param_type: PARAM_TYPE_STRING.into(),
+        };
+    }
+    value
+}
+
 fn join_resolved(delim: &str, values: &ResolvedValue) -> ResolvedValue {
     match values {
         ResolvedValue::Concrete { value: v } => {
@@ -2431,6 +2446,110 @@ mod tests {
                 Some(ResolvedValue::TypedDynamic { reason: rb, .. }),
             ) => assert_ne!(ra, rb, "distinct exports must produce distinct symbolic values"),
             other => panic!("Expected two TypedDynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn embedded_dynamic_reference_is_opaque() {
+        // A dynamic reference embedded mid-string resolves at deploy time, so it
+        // must become opaque even though it does not start with `{{resolve:`.
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"prefix-{{resolve:ssm:/my/param}}"}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::TypedDynamic { reason, param_type: t }) => {
+                assert_eq!(t, "String");
+                assert!(
+                    reason.contains("{{resolve:ssm:/my/param}}"),
+                    "reason should carry the literal, got {reason:?}"
+                );
+            }
+            other => panic!("Expected TypedDynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn sub_producing_dynamic_reference_is_opaque() {
+        // Fn::Sub passes `{{resolve:...}}` through literally; the concatenated
+        // result still embeds a dynamic reference and must be opaque.
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Sub":"${AWS::Region}-{{resolve:ssm:/my/param}}"}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::TypedDynamic { reason, .. }) => {
+                assert!(
+                    reason.contains("{{resolve:ssm:/my/param}}"),
+                    "reason should carry the literal, got {reason:?}"
+                );
+            }
+            other => panic!("Expected TypedDynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn join_producing_dynamic_reference_is_opaque() {
+        // Fn::Join over a list whose element is a dynamic reference: the element
+        // is made opaque before the join runs, so the join sees a non-concrete
+        // argument and yields an opaque value the value-format rules skip.
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Join":["-",["prefix","{{resolve:ssm:/my/param}}"]]}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let resolved = model.resolve("R", "Properties.V").expect("V should resolve");
+        assert!(
+            crate::resolved_value::contains_dynamic_resolved(resolved),
+            "Fn::Join embedding a dynamic reference must be opaque, got {resolved:?}"
+        );
+        assert!(
+            !matches!(resolved, ResolvedValue::Concrete { .. }),
+            "the join result must not be a concrete literal, got {resolved:?}"
+        );
+    }
+
+    #[test]
+    fn select_producing_dynamic_reference_is_opaque() {
+        // Fn::Select picking a dynamic-reference element must be opaque.
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::Select":[1,["a","{{resolve:ssm:/my/param}}"]]}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::TypedDynamic { reason, .. }) => {
+                assert!(
+                    reason.contains("{{resolve:ssm:/my/param}}"),
+                    "reason should carry the literal, got {reason:?}"
+                );
+            }
+            other => panic!("Expected TypedDynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn nested_dynamic_reference_stays_inside_list() {
+        // A dynamic reference nested in a list element becomes opaque without
+        // collapsing the parent list, so the list is preserved with an opaque entry.
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":["plain","{{resolve:ssm:/my/param}}"]}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::List { items }) => {
+                assert_eq!(items.len(), 2);
+                assert!(matches!(items[0], ResolvedValue::Concrete { .. }));
+                assert!(
+                    matches!(items[1], ResolvedValue::TypedDynamic { .. }),
+                    "the embedded reference element must be opaque, got {:?}",
+                    items[1]
+                );
+            }
+            other => panic!("Expected List with an opaque element, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn malformed_dynamic_reference_with_space_stays_concrete() {
+        // `{{ resolve:...}}` (a space after `{{`) is not a valid dynamic reference
+        // and CloudFormation will not resolve it, so it must stay concrete for the
+        // spaces-in-dynamic-reference warning to inspect.
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"{{ resolve:ssm:/my/param}}"}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::Concrete { value: v }) => {
+                assert_eq!(v.as_str().unwrap(), "{{ resolve:ssm:/my/param}}");
+            }
+            other => panic!("Expected Concrete, got {:?}", other),
         }
     }
 
