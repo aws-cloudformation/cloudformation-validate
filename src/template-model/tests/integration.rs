@@ -341,14 +341,16 @@ fn sam_globals_param_refs_collected() {
 }
 
 #[test]
-fn dynamic_reference_resolves_to_dynamic() {
+fn dynamic_reference_resolves_to_typed_dynamic() {
     let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":"{{resolve:ssm:my-param}}"}}}}"#;
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     match model.resolve("R", "Properties.V") {
-        Some(ResolvedValue::Dynamic { reason: msg }) => {
+        Some(ResolvedValue::TypedDynamic { reason: msg, param_type: t }) => {
+            assert_eq!(t, "String");
             assert!(msg.contains("dynamic reference"));
+            assert!(msg.contains("{{resolve:ssm:my-param}}"), "reason should carry the literal, got {msg:?}");
         }
-        other => panic!("Expected Dynamic, got {:?}", other),
+        other => panic!("Expected TypedDynamic, got {:?}", other),
     }
 }
 

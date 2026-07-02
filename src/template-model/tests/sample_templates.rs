@@ -449,7 +449,7 @@ fn dynamic_references_resolve_to_dynamic() {
     let has_dynamic = m.resources.values().any(|r| {
         r.properties
             .values()
-            .any(|v| matches!(v, ResolvedValue::Dynamic { reason: s } if s.contains("dynamic reference")))
+            .any(|v| matches!(v, ResolvedValue::TypedDynamic { reason: s, .. } if s.contains("dynamic reference")))
     });
     assert!(has_dynamic, "expected dynamic reference resolution");
 }

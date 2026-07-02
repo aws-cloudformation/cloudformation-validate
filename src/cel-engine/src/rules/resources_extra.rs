@@ -1453,7 +1453,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
         if let Some(serde_json::Value::String(gn)) = resolve_concrete(m, name, "Properties.GroupName")
-            && !gn.starts_with("{{")
             && !SG_NAME_RE.is_match(&gn)
         {
             out.push(make_resource_diagnostic(

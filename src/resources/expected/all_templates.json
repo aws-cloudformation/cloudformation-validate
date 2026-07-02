@@ -17879,7 +17879,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:mysubnet}})"
+          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:mysubnet}}' (type String)"
         }
       },
       {
@@ -101482,7 +101482,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 0,
         "warnings": 0,
         "informational": 1,
         "debug": 0
@@ -101492,23 +101492,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "E3027",
-        "severity": "ERROR",
-        "message": "ScheduleExpression 'prefix-{{resolve:ssm:/my/schedule}}' must be a rate() or cron() expression",
-        "source": "CFN_LINT",
-        "resourceId": "ScheduledRule",
-        "resourceType": "AWS::Events::Rule",
-        "propertyPath": "Properties.ScheduleExpression",
-        "category": "Resource",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 16,
-        "ruleDescription": "Validate AWS Event ScheduleExpression format",
-        "phase": "LINT",
-        "section": "Resources"
-      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -109691,6 +109674,145 @@
         "startColumn": 3,
         "endLine": 4,
         "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/functions/dynamic_reference_embedded.yaml": {
+    "filePath": "good/functions/dynamic_reference_embedded.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Sg",
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 5,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Sg",
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "propertyPath": "Properties.GroupName",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 5,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'dynamic reference: prefix-{{resolve:ssm:/network/sg-name}}' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 17,
+        "startColumn": 3,
+        "endLine": 17,
+        "endColumn": 9,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/config/bucket-name}}' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ScheduledRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "ScheduledRule",
+        "resourceType": "AWS::Events::Rule",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 3,
+        "endLine": 24,
+        "endColumn": 16,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Instance",
+        "resourceType": "AWS::EC2::Instance",
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 3,
+        "endLine": 32,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'dynamic reference: prefix-{{resolve:ssm:/ec2/ami-id}}' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Instance",
+        "resourceType": "AWS::EC2::Instance",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 3,
+        "endLine": 32,
+        "endColumn": 11,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
@@ -118951,7 +119073,8 @@
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
-          "lifecycle": "create-only"
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'dynamic reference: Dev-{{resolve:ssm:MyUsername:1}}' (type String)"
         }
       },
       {
@@ -124950,7 +125073,7 @@
         "section": "Resources",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/SQS_Queue/SQS_ARN}})"
+          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/SQS_Queue/SQS_ARN}}' (type String)"
         }
       },
       {

@@ -121,16 +121,16 @@ fn issue_34_w2506_does_not_overfire_on_non_image_slot() {
     assert_count(&diags, "W2506", 0);
 }
 
-/// Issue #35: a dynamic reference embedded mid-string is not treated as a
-/// deploy-time-opaque value, so the schedule-expression format check E3027 still
-/// fires (false positive) in both engines. Pins the current buggy behavior.
+/// Issue #35: a dynamic reference embedded mid-string
+/// (`prefix-{{resolve:ssm:/my/schedule}}`) resolves at deploy time, so it is now
+/// treated as a deploy-time-opaque value and the schedule-expression format check
+/// E3027 must not fire on it in either engine. Handled centrally in the resolver,
+/// so no per-rule guard is needed.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/35
 #[test]
-fn issue_35_e3027_fires_on_embedded_dynamic_reference() {
+fn issue_35_e3027_absent_on_embedded_dynamic_reference() {
     let diags = validate_both("issue-35.yaml");
-    assert_fires_with_severity(&diags, "E3027", Severity::Error);
-    assert_fires_on_resource(&diags, "E3027", "ScheduledRule");
-    assert_count(&diags, "E3027", 1);
+    assert_absent(&diags, "E3027");
 }
 
 // issue #36 is tested below in a dedicated test that also pins the rego/cel divergence.
