@@ -15,7 +15,7 @@ src/bindings-jvm/generated/**/*
 
 # Node / WASM
 **/node_modules/
-src/bindings-wasm/examples/package-lock.json
+**/package-lock.json
 
 # Output (regenerable)
 **/output/**

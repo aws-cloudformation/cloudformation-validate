@@ -49,6 +49,18 @@ fn validate_both(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
     ]
 }
 
+/// Like [`validate_both`] but for an inline template. Used by the companion tests
+/// that guard the positive boundary of a false-positive fix (the rule must still
+/// fire on a genuine violation): these adversarial templates are not golden
+/// fixtures, so they live inline rather than under `gh-issues/`.
+fn validate_both_bytes(template: &[u8]) -> Vec<(&'static str, Vec<Diagnostic>)> {
+    let sv = SchemaValidator::new();
+    vec![
+        ("rego", validate_bytes(&*REGO, &sv, template, debug_config()).unwrap().diagnostics),
+        ("cel", validate_bytes(&*CEL, &sv, template, debug_config()).unwrap().diagnostics),
+    ]
+}
+
 fn count(diags: &[Diagnostic], rule_id: &str) -> usize {
     diags.iter().filter(|d| d.rule_id == rule_id).count()
 }
@@ -295,6 +307,55 @@ fn issue_52_no_w9007_on_distinct_importvalue() {
     assert_count(&diags, "W9007", 0);
 }
 
+/// Issue #52 (positive boundary): the fix that distinguishes distinct imports
+/// must not silence W9007 on genuine duplicates. Two literal-equal entries in a
+/// `uniqueItems` array still fire W9007.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
+#[test]
+fn issue_52_w9007_still_fires_on_literal_duplicates() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "Nodegroup": {
+      "Type": "AWS::EKS::Nodegroup",
+      "Properties": {
+        "ClusterName": "MyCluster",
+        "NodeRole": "arn:aws:iam::123456789012:role/NodeRole",
+        "Subnets": ["subnet-aaaa", "subnet-aaaa"]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
+/// Issue #52 (positive boundary): the SAME export imported twice resolves to one
+/// identical symbolic value, so W9007 must still flag it as a duplicate — only
+/// *distinct* export names are treated as distinct.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
+#[test]
+fn issue_52_w9007_still_fires_on_repeated_import_of_same_export() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "Nodegroup": {
+      "Type": "AWS::EKS::Nodegroup",
+      "Properties": {
+        "ClusterName": "MyCluster",
+        "NodeRole": "arn:aws:iam::123456789012:role/NodeRole",
+        "Subnets": [
+          { "Fn::ImportValue": "SameExport" },
+          { "Fn::ImportValue": "SameExport" }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
 /// Issue #53: F3004 correctly fires on a genuine bidirectional `DependsOn`
 /// circular dependency (a cycle invisible to Ref/GetAtt-only graph tools).
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/53
@@ -422,6 +483,42 @@ fn issue_57_no_e3057_on_valid_origin_group_id() {
     let diags = validate_both("issue-57.json");
     assert_absent(&diags, "E3057");
     assert_count(&diags, "E3057", 0);
+}
+
+/// Issue #57 (positive boundary): widening the valid-target set to include
+/// OriginGroup ids must not silence E3057 on a genuinely dangling
+/// `TargetOriginId` that matches neither an Origin nor an OriginGroup. Matches
+/// the reference linter, which validates only `DefaultCacheBehavior`.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/57
+#[test]
+fn issue_57_e3057_still_fires_on_dangling_target_origin_id() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "Dist": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "does-not-exist",
+            "ViewerProtocolPolicy": "allow-all"
+          },
+          "Enabled": true,
+          "Origins": [
+            {
+              "CustomOriginConfig": { "OriginProtocolPolicy": "https-only" },
+              "DomainName": "www.example.com",
+              "Id": "realOrigin"
+            }
+          ]
+        }
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "E3057", Severity::Error);
+    assert_fires_on_resource(&diags, "E3057", "Dist");
+    assert_count(&diags, "E3057", 1);
 }
 
 /// Issue #61: a bare `AWS::EC2::Volume` with no Properties fires FATAL F3017
