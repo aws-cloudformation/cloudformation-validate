@@ -87,6 +87,8 @@ pub struct ParameterInfo {
     pub max_value: Option<i64>,
     pub description: Option<String>,
     pub no_echo: bool,
+    pub allowed_pattern_valid: Option<bool>,
+    pub default_matches_allowed_pattern: Option<bool>,
 }
 
 pub type MappingData = HashMap<String, HashMap<String, HashMap<String, serde_json::Value>>>;
@@ -1986,6 +1988,13 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
             _ => None,
         });
 
+        let allowed_pattern_valid = allowed_pattern.as_deref().map(rules::is_service_valid);
+        let is_comma_delimited = param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || param_type.starts_with("List<");
+        let default_matches_allowed_pattern = match (&allowed_pattern, &default) {
+            (Some(pattern), Some(value)) => rules::default_matches_pattern(pattern, value, is_comma_delimited),
+            _ => None,
+        };
+
         params.insert(
             name.clone(),
             ParameterInfo {
@@ -1999,6 +2008,8 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                 max_value,
                 description,
                 no_echo,
+                allowed_pattern_valid,
+                default_matches_allowed_pattern,
             },
         );
     }

@@ -19,6 +19,7 @@ uniffi-bindings = ["dep:uniffi"]
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 regex = "1"
+fancy-regex = "0.18"
 log = "0.4"
 tsify = { version = "0.4", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }

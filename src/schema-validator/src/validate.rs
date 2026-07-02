@@ -2,9 +2,11 @@ use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, Sub
 use crate::store::CompiledSchemaStore;
 use diagnostics::message::{render_str_list, render_value, render_value_list};
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
-use rules::{IAM_ROLE_ARN_PATTERN, format_rule_for_format};
+use rules::{
+    CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, compile_pattern, format_rule_for_format,
+};
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{CoerceResult, cfn_coerce_to_number, cfn_coerce_to_string, cfn_coerce_value};
 use template_model::consts::{FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES};
@@ -300,7 +302,7 @@ fn find_prop_schema<'a>(
         };
     }
     for (pat, ps) in props.iter() {
-        if regex::Regex::new(pat).ok().map(|re| re.is_match(top)).unwrap_or(false) {
+        if compile_pattern(pat).is_some_and(|re| re.is_match(top)) {
             let resolved = ps.resolve(defs);
             return match rest {
                 Some(r) => find_prop_schema(r, &resolved.properties, defs),
@@ -558,12 +560,16 @@ fn validate_object_keys_inner(
         && rtype != "AWS::CloudFormation::CustomResource"
     {
         let known: HashSet<&str> = schema_props.keys().map(|s| s.as_str()).collect();
-        let pat_regexes: Vec<regex::Regex> = pattern_props.keys().filter_map(|p| regex::Regex::new(p).ok()).collect();
+
+        let pattern_matchers: Vec<Option<std::sync::Arc<CompiledPattern>>> =
+            pattern_props.keys().map(|p| compile_pattern(p)).collect();
         for key in actual_keys {
             if known.contains(key.as_str()) {
                 continue;
             }
-            if pat_regexes.iter().any(|re| re.is_match(key)) {
+            let allowed_by_pattern =
+                pattern_matchers.iter().any(|matcher| matcher.as_ref().is_none_or(|re| re.is_match(key)));
+            if allowed_by_pattern {
                 continue;
             }
             let suggestion = find_similar(key, &known);
@@ -1030,7 +1036,7 @@ fn validate_prop(
     }
 
     if let Some(ref pat) = schema.pattern
-        && let Ok(re) = regex::Regex::new(pat)
+        && let Some(re) = compile_pattern(pat)
     {
         // A value computed by an intrinsic (Fn::Sub/Fn::Join building, say, an S3
         // bucket name from AWS::Region) can't be pattern-checked the way a written
@@ -1618,9 +1624,9 @@ fn condition_matches(
             }
             continue;
         }
-        let compiled_pattern = resolved.pattern.as_ref().and_then(|pat| regex::Regex::new(pat).ok());
-        // If the schema has a pattern but it failed to compile (e.g. lookahead),
-        // we cannot verify the constraint — treat as non-matching.
+        let compiled_pattern = resolved.pattern.as_ref().and_then(|pat| compile_pattern(pat));
+        // If the schema has a pattern that could not be compiled by any strategy, the constraint
+        // cannot be verified; treat the branch as non-matching rather than guessing.
         let pattern_uncompilable = resolved.pattern.is_some() && compiled_pattern.is_none();
         if pattern_uncompilable {
             return false;
@@ -1755,25 +1761,27 @@ fn single_type_compatible(source: &str, expected: &str) -> bool {
     }
 }
 
+static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
+    let sources: [(&str, &str); 13] = [
+        ("AWS::EC2::VPC.Id", r"^vpc-[a-f0-9]{8,17}$"),
+        ("AWS::EC2::Subnet.Id", r"^subnet-[a-f0-9]{8,17}$"),
+        ("AWS::EC2::SecurityGroup.Id", r"^sg-[a-f0-9]{8,17}$"),
+        ("AWS::EC2::Image.Id", r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
+        ("AWS::IAM::Role.Arn", IAM_ROLE_ARN_PATTERN),
+        ("AWS::Logs::LogGroup.Name", r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
+        ("AWS::EC2::SecurityGroup.Name", SECURITY_GROUP_NAME_PATTERN),
+        ("AWS::EC2::KeyPair.KeyName", r"^[\x20-\x7E]{1,255}$"),
+        ("AWS::EC2::AvailabilityZone.Name", r"^[a-z]{2}(-gov|-iso[a-z]*)?-[a-z]+-\d[a-z]$"),
+        ("AWS::Route53::HostedZone.Id", r"^Z[A-Z0-9]{1,32}$"),
+        ("AWS::EC2::Volume.Id", r"^vol-[a-f0-9]{8,17}$"),
+        ("AWS::EC2::NetworkInterface.Id", r"^eni-[a-f0-9]{8,17}$"),
+        ("AWS::SSM::Parameter.Name", r"^[a-zA-Z0-9_./-]{1,2048}$"),
+    ];
+    sources.into_iter().filter_map(|(fmt, pat)| compile_pattern(pat).map(|re| (fmt, re))).collect()
+});
+
 fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, prop_path: &str, format: &str) {
-    let re_pattern = match format {
-        "AWS::EC2::VPC.Id" => Some(r"^vpc-[a-f0-9]{8,17}$"),
-        "AWS::EC2::Subnet.Id" => Some(r"^subnet-[a-f0-9]{8,17}$"),
-        "AWS::EC2::SecurityGroup.Id" => Some(r"^sg-[a-f0-9]{8,17}$"),
-        "AWS::EC2::Image.Id" => Some(r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
-        "AWS::IAM::Role.Arn" => Some(IAM_ROLE_ARN_PATTERN),
-        "AWS::Logs::LogGroup.Name" => Some(r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
-        "AWS::EC2::SecurityGroup.Name" => Some(r"^[\s\S]+$"),
-        "AWS::EC2::KeyPair.KeyName" => Some(r"^[\x20-\x7E]{1,255}$"),
-        "AWS::EC2::AvailabilityZone.Name" => Some(r"^[a-z]{2}(-gov|-iso[a-z]*)?-[a-z]+-\d[a-z]$"),
-        "AWS::Route53::HostedZone.Id" => Some(r"^Z[A-Z0-9]{1,32}$"),
-        "AWS::EC2::Volume.Id" => Some(r"^vol-[a-f0-9]{8,17}$"),
-        "AWS::EC2::NetworkInterface.Id" => Some(r"^eni-[a-f0-9]{8,17}$"),
-        "AWS::SSM::Parameter.Name" => Some(r"^[a-zA-Z0-9_./-]{1,2048}$"),
-        _ => None,
-    };
-    let Some(pattern) = re_pattern else { return };
-    let Ok(re) = regex::Regex::new(pattern) else {
+    let Some(re) = FORMAT_PATTERNS.get(format) else {
         return;
     };
 
@@ -2088,7 +2096,7 @@ fn match_constraint_value(constraint: &serde_json::Map<String, serde_json::Value
         return val == cv || cfn_coerce_to_string(cv) == cfn_coerce_to_string(val);
     }
     if let Some(pat) = constraint.get("pattern").and_then(|v| v.as_str()) {
-        return val.as_str().and_then(|s| regex::Regex::new(pat).ok().map(|re| re.is_match(s))).unwrap_or(false);
+        return val.as_str().and_then(|s| compile_pattern(pat).map(|re| re.is_match(s))).unwrap_or(false);
     }
     true
 }

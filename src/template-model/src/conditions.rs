@@ -67,8 +67,8 @@ pub struct ConditionModel {
     /// and cumulative budgets draw down. `HashMap` key order is randomized per
     /// instance, so without a stable order the iteration charged per query — and
     /// thus which pair the budget trips at under exhaustion — would differ
-    /// between runs and between the rego and cel engines' separate model
-    /// instances. A sorted order makes search order, budget draw-down, and
+    /// between runs and between separate model instances built from the same
+    /// template. A sorted order makes search order, budget draw-down, and
     /// budget-truncated output reproducible. Computed once on first use and
     /// invalidated by `register_inline`.
     sorted_condition_names: OnceLock<Vec<String>>,
@@ -213,10 +213,10 @@ impl ConditionModel {
         // randomized per process. The satisfiability result is order-independent,
         // but the number of search steps charged to the cumulative budget before
         // a satisfying assignment is found is not. Sort so per-query budget
-        // draw-down is deterministic across runs and identical between the rego
-        // and cel engines, which build separate models with different hash seeds;
-        // otherwise budget exhaustion would trip at a different query per run and
-        // diverge the budget-truncated diagnostics.
+        // draw-down is deterministic across runs and across separate model
+        // instances built with different hash seeds; otherwise budget exhaustion
+        // would trip at a different query per run and diverge the budget-truncated
+        // diagnostics.
         relevant_indices.sort_unstable();
 
         // Enumerate only the parameters the relevant conditions actually

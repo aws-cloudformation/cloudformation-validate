@@ -5,7 +5,7 @@ use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
 use diagnostics::SourceSpan;
 use diagnostics::message::render_str_list;
-use rules::IAM_ROLE_ARN_PATTERN;
+use rules::{AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
@@ -23,19 +23,11 @@ static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
         .expect("Invalid DOMAIN_RE pattern")
 });
 
-static RATE_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^rate\(\s*\d+(\.\d+)?\s+(minutes?|hours?|days?)\s*\)$").expect("Invalid RATE_RE pattern")
-});
-
 static ARN_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(IAM_ROLE_ARN_PATTERN).expect("Invalid ARN_RE pattern"));
-
-static SG_NAME_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r#"^[a-zA-Z0-9 \._\-:/()#,@\[\]+=&;\{\}!\$\*]+$"#).expect("Invalid SG_NAME_RE pattern")
-});
+    LazyLock::new(|| regex::Regex::new(IAM_ROLE_ARN_RULE_PATTERN).expect("Invalid ARN_RE pattern"));
 
 static AZ_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^[a-z]{2}-[a-z]+-\d[a-z]$").expect("Invalid AZ_RE pattern"));
+    LazyLock::new(|| regex::Regex::new(AVAILABILITY_ZONE_PATTERN).expect("Invalid AZ_RE pattern"));
 
 static W1030_VPC_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$").expect("Invalid W1030_VPC_RE pattern")
@@ -45,10 +37,10 @@ static TXT_RECORD_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r#"^("[^"]{1,255}" *)*"[^"]{1,255}"$"#).expect("Invalid TXT_RECORD_RE pattern"));
 
 static CAA_RECORD_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r#"^(0|128)\s+[a-zA-Z0-9]+\s+".+"$"#).expect("Invalid CAA_RECORD_RE pattern"));
+    LazyLock::new(|| regex::Regex::new(CAA_RECORD_PATTERN).expect("Invalid CAA_RECORD_RE pattern"));
 
 static MX_RECORD_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"^\d+\s+\S+$").expect("Invalid MX_RECORD_RE pattern"));
+    LazyLock::new(|| regex::Regex::new(MX_RECORD_PATTERN).expect("Invalid MX_RECORD_RE pattern"));
 
 /// Whether a Lambda runtime supports SnapStart: any Python, Java, or .NET
 /// runtime qualifies except the legacy `dotnetcore*` family and an explicit
@@ -1124,10 +1116,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         let category = action_type_id.and_then(|a| a.get("Category")).and_then(|c| c.as_str());
                         let provider = action_type_id.and_then(|a| a.get("Provider")).and_then(|c| c.as_str());
                         // Artifact-count constraints are keyed on the full
-                        // Owner/Category/Provider tuple — the same key cfn-lint
-                        // uses. A category alone is ambiguous (e.g. AWS/Deploy/
-                        // CloudFormation allows 0 input artifacts while AWS/Deploy/
-                        // CodeDeploy requires 1). Skip when the tuple is unknown.
+                        // Owner/Category/Provider tuple. A category alone is
+                        // ambiguous (e.g. AWS/Deploy/CloudFormation allows 0 input
+                        // artifacts while AWS/Deploy/CodeDeploy requires 1). Skip
+                        // when the tuple is unknown.
                         let (Some(owner), Some(category), Some(provider)) = (owner, category, provider) else {
                             continue;
                         };
@@ -1448,21 +1440,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                 }
             }
-        }
-    }
-
-    for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
-        if let Some(serde_json::Value::String(gn)) = resolve_concrete(m, name, "Properties.GroupName")
-            && !SG_NAME_RE.is_match(&gn)
-        {
-            out.push(make_resource_diagnostic(
-                "E1153",
-                &format!("Value '{}' does not match Security Group Name format", gn),
-                m,
-                name,
-                "Properties.GroupName",
-                None,
-            ));
         }
     }
 
@@ -3080,37 +3057,18 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Events Rule ScheduleExpression validation
+    // Events Rule ScheduleExpression validation: a value that is invalid service-side (e.g. a plural
+    // unit with value 1, a non-integer value, or a cron pinning both day fields) is caught here. A
+    // value built from a parameter or intrinsic is only known at deploy time, so it is skipped —
+    // validating the pre-resolution literal would flag a value the service never sees.
     for name in m.resources_of_type("AWS::Events::Rule") {
-        if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, "Properties.ScheduleExpression") {
-            if !val.starts_with("rate(") && !val.starts_with("cron(") {
-                out.push(make_resource_diagnostic(
-                    "E3027",
-                    &format!("ScheduleExpression '{}' must be a rate() or cron() expression", val),
-                    m,
-                    name,
-                    "Properties.ScheduleExpression",
-                    None,
-                ));
-            } else if val.starts_with("rate(") && !RATE_RE.is_match(&val) {
-                out.push(make_resource_diagnostic(
-                    "E3027",
-                    &format!("rate() expression '{}' must have format 'rate(value unit)' where unit is minute(s)|hour(s)|day(s)", val),
-                    m, name, "Properties.ScheduleExpression", None,
-                ));
-            } else if val.starts_with("cron(") && val.ends_with(')') {
-                let inner = &val[5..val.len() - 1];
-                let fields = inner.split_whitespace().count();
-                if fields != 6 {
-                    out.push(make_resource_diagnostic(
-                        "E3027",
-                        &format!("cron() expression '{}' must have exactly 6 fields", val),
-                        m,
-                        name,
-                        "Properties.ScheduleExpression",
-                        None,
-                    ));
-                }
+        let path = "Properties.ScheduleExpression";
+        if m.is_from_parameter(name, path) || m.is_from_intrinsic(name, path) {
+            continue;
+        }
+        if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path) {
+            for message in rules::schedule_expression_errors(&val) {
+                out.push(make_resource_diagnostic("E3027", &message, m, name, path, None));
             }
         }
     }

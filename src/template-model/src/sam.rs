@@ -174,11 +174,11 @@ fn collect_arena_param_refs(arena: &Arena, node_ref: NodeRef, out: &mut Vec<Stri
 
 /// Collects SAM transform errors that require the raw template structure.
 /// A transform error means CloudFormation rejects the template before resource
-/// validation, so the engine gates downstream diagnostics on these.
+/// validation, so downstream diagnostics are gated on these.
 ///
-/// All checks are emitted from this single location so both engines inherit
-/// identical SAM transform-error diagnostics. Engine-specific evaluation is
-/// reserved for rules that require engine context (CEL/Rego expressions).
+/// All SAM transform-error checks are emitted from this single location, so the
+/// diagnostics are produced once as part of the shared model rather than during
+/// rule evaluation.
 pub fn collect_transform_errors(
     arena: &Arena,
     resources_node: NodeRef,

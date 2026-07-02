@@ -13,7 +13,7 @@ use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 static ACCT_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:").expect("Invalid ACCT_RE pattern"));
+    LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:\d{12}:").expect("Invalid ACCT_RE pattern"));
 
 /// Compile-time fallback when generated stateful_resource_types.json is absent.
 static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {

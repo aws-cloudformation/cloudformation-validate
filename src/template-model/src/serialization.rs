@@ -32,6 +32,8 @@ impl SemanticModel {
                             "default": v.default,
                             "allowedValues": v.allowed_values,
                             "allowedPattern": v.allowed_pattern,
+                            "allowedPatternValid": v.allowed_pattern_valid,
+                            "defaultMatchesAllowedPattern": v.default_matches_allowed_pattern,
                             "minLength": v.min_length,
                             "maxLength": v.max_length,
                             "minValue": v.min_value,
