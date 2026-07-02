@@ -29,3 +29,11 @@ Resources:
           StackName: producer-stack
           OutputName: TopicName
           BadKey: value
+  # Used where integer is expected (wrong return type)
+  Topic5:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds:
+        Fn::GetStackOutput:
+          StackName: producer-stack
+          OutputName: Delay

@@ -209,7 +209,28 @@ def _load_cfnlint_result_file(f, prefix, results):
         derived = tpl.replace("/", "_").replace(".yaml", "_yaml").replace(".yml", "_yml").replace(".json", "_json")
         if derived:
             key = derived
+    else:
+        # An empty result list (cfn-lint found nothing) carries no `Filename`, so
+        # the extension cannot be read from the diagnostics. Recover it by mirroring
+        # the result path into the templates tree and adopting the real template
+        # extension; otherwise the key stays suffix-less and never matches the
+        # extension-suffixed engine report, silently dropping the template from the
+        # comparison.
+        derived = _derive_key_from_template_path(f)
+        if derived:
+            key = derived
     results[key] = normalize_cfnlint_diags(data)
+
+
+def _derive_key_from_template_path(result_file):
+    """Recover the extension-suffixed key for a result file by locating the mirror
+    template under CFN_LINT_TEMPLATES. Returns None if no matching template exists."""
+    relative = result_file.relative_to(CFN_LINT_RESULTS)
+    stem_path = str(relative.with_suffix("")).replace(os.sep, "_")
+    for ext in (".yaml", ".yml", ".json"):
+        if (CFN_LINT_TEMPLATES / relative.with_suffix(ext)).exists():
+            return f"{stem_path}_{ext.lstrip('.')}"
+    return None
 
 
 def load_cfnlint_results_from_files():
