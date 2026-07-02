@@ -8,6 +8,7 @@ members = [
     "diagnostics",
     "guard-translator",
     "rego-engine",
+    "resources",
     "rules",
     "schema-validator",
     "template-model",

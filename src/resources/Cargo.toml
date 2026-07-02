@@ -1,0 +1,23 @@
+[package]
+name = "resources"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+name = "resources"
+path = "src/lib.rs"
+
+[[example]]
+name = "generate_golden"
+path = "examples/generate_golden.rs"
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[lints]
+workspace = true
