@@ -10,7 +10,7 @@ violation contains make_diag_at("W9010", "WARN", name,
     val := resolve(name, "Properties.ImageId")
     is_string(val)
     not is_dynamic(name, "Properties.ImageId")
-    regex.match(`^ami-[0-9a-f]{8,17}$`, val)
+    regex.match(`^ami-([0-9a-f]{8}|[0-9a-f]{17})$`, val)
 }
 
 # W9013: Hardcoded account ID in ARN. Skips intrinsic-built values (e.g. an ARN

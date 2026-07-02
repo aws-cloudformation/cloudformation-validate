@@ -835,45 +835,19 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             None => continue,
         };
         let path_str = format!("Parameters/{}/Default", pname);
-        // AllowedPattern (with auto-anchoring)
-        if let Some(ref pat) = info.allowed_pattern {
-            let anchored = if pat.starts_with('^') && pat.ends_with('$') {
-                pat.clone()
-            } else if pat.starts_with('^') {
-                format!("{}$", pat)
-            } else if pat.ends_with('$') {
-                format!("^{}", pat)
+        // AllowedPattern: the model precomputes the match verdict with a PCRE-aware compiler. A
+        // comma-delimited default reports the element-agnostic message; a scalar default names the
+        // value.
+        if let Some(ref pat) = info.allowed_pattern
+            && info.default_matches_allowed_pattern == Some(false)
+        {
+            let is_cdl = info.param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || info.param_type.starts_with("List<");
+            let message = if is_cdl {
+                format!("Parameter '{}' Default does not match AllowedPattern '{}'", pname, pat)
             } else {
-                format!("^{}$", pat)
+                format!("Parameter '{}' Default '{}' does not match AllowedPattern '{}'", pname, def, pat)
             };
-            if let Ok(re) = regex::Regex::new(&anchored) {
-                let is_cdl = info.param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || info.param_type.starts_with("List<");
-                if is_cdl {
-                    for elem_raw in def.split(',') {
-                        let elem = elem_raw.trim();
-                        if !re.is_match(elem) {
-                            out.push(make_resource_diagnostic(
-                                "F2015",
-                                &format!("Parameter '{}' Default does not match AllowedPattern '{}'", pname, pat),
-                                m,
-                                "",
-                                &path_str,
-                                None,
-                            ));
-                            break;
-                        }
-                    }
-                } else if !re.is_match(def) {
-                    out.push(make_resource_diagnostic(
-                        "F2015",
-                        &format!("Parameter '{}' Default '{}' does not match AllowedPattern '{}'", pname, def, pat),
-                        m,
-                        "",
-                        &path_str,
-                        None,
-                    ));
-                }
-            }
+            out.push(make_resource_diagnostic("F2015", &message, m, "", &path_str, None));
         }
         // MinLength / MaxLength
         if let Some(min) = info.min_length
@@ -990,14 +964,12 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (pname, param) in &m.parameters {
+        // CloudFormation validates AllowedPattern with a PCRE-style engine that supports
+        // lookaround, backreferences, `\Z`, POSIX classes and large Unicode classes. A pattern
+        // that only uses those constructs is still valid service-side, so report I2003 only for a
+        // pattern that no compilation strategy can accept — i.e. one that is genuinely malformed.
         if let Some(ref pattern) = param.allowed_pattern
-            && regex::Regex::new(pattern).is_err()
-            // CloudFormation validates AllowedPattern with a PCRE-style engine
-            // that supports lookaround and backreferences; Rust's `regex` crate
-            // does not. A pattern that fails ONLY because of those constructs is
-            // still valid service-side, so treat it as valid and only report
-            // genuinely-malformed regex.
-            && !uses_extended_regex_syntax(pattern)
+            && !rules::is_service_valid(pattern)
         {
             out.push(make_resource_diagnostic(
                 "I2003",
@@ -1011,19 +983,6 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     out
-}
-
-/// Whether a regex uses PCRE constructs that CloudFormation's service-side
-/// engine accepts but Rust's `regex` / RE2 reject: lookahead `(?=` `(?!`,
-/// lookbehind `(?<=` `(?<!`, atomic groups `(?>`, or backreferences `\1`.
-fn uses_extended_regex_syntax(pattern: &str) -> bool {
-    const EXTENDED_GROUP_PREFIXES: &[&str] = &["(?=", "(?!", "(?<=", "(?<!", "(?>"];
-    if EXTENDED_GROUP_PREFIXES.iter().any(|p| pattern.contains(p)) {
-        return true;
-    }
-    // Backreference: a backslash followed by a digit 1-9.
-    let bytes = pattern.as_bytes();
-    bytes.windows(2).any(|w| w[0] == b'\\' && w[1].is_ascii_digit() && w[1] != b'0')
 }
 
 fn condition_is_referenced(

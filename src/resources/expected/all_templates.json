@@ -17574,7 +17574,7 @@
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
-        "fatal": 2,
+        "fatal": 3,
         "errors": 13,
         "warnings": 7,
         "informational": 20,
@@ -17585,6 +17585,27 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3031",
+        "severity": "FATAL",
+        "message": "'Special charaters like ^ and \" are not supported' does not match pattern '^([a-z,A-Z,0-9,. _\\-:/()#,@[\\]+=&;\\{\\}!$*])*$'",
+        "source": "SCHEMA",
+        "resourceId": "mySecurityGroupNonVpc",
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Schema",
+        "startLine": 21,
+        "startColumn": 3,
+        "endLine": 21,
+        "endColumn": 24,
+        "ruleDescription": "Value does not match pattern",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "actualValue": "Special charaters like ^ and \" are not supported",
+          "expectedConstraint": "^([a-z,A-Z,0-9,. _\\-:/()#,@[\\]+=&;\\{\\}!$*])*$"
+        }
+      },
       {
         "ruleId": "E1150",
         "severity": "ERROR",
@@ -22564,7 +22585,7 @@
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
-        "fatal": 2,
+        "fatal": 3,
         "errors": 0,
         "warnings": 0,
         "informational": 3,
@@ -22592,6 +22613,27 @@
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "F3031",
+        "severity": "FATAL",
+        "message": "'' does not match pattern '^[a-zA-Z0-9._\\-]+(?<!\\.git)$'",
+        "source": "SCHEMA",
+        "resourceId": "myRepository2",
+        "resourceType": "AWS::CodeCommit::Repository",
+        "propertyPath": "Properties.RepositoryName",
+        "category": "Schema",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 16,
+        "ruleDescription": "Value does not match pattern",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "actualValue": "",
+          "expectedConstraint": "^[a-zA-Z0-9._\\-]+(?<!\\.git)$"
+        }
       },
       {
         "ruleId": "I9040",
@@ -26355,7 +26397,7 @@
       "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
-        "errors": 28,
+        "errors": 29,
         "warnings": 0,
         "informational": 20,
         "debug": 0
@@ -27198,6 +27240,23 @@
         "resourceId": "MyRecordSetGroup",
         "resourceType": "AWS::Route53::RecordSetGroup",
         "propertyPath": "Properties.RecordSets.7.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 119,
+        "startColumn": 3,
+        "endLine": 119,
+        "endColumn": 19,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "MX record value '65536 mx2.example.com' must match format: priority domain",
+        "source": "CFN_LINT",
+        "resourceId": "MyRecordSetGroup",
+        "resourceType": "AWS::Route53::RecordSetGroup",
+        "propertyPath": "Properties.RecordSets.7.ResourceRecords.1",
         "category": "Resource",
         "startLine": 119,
         "startColumn": 3,

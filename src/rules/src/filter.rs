@@ -177,26 +177,40 @@ impl FilterConfig {
         }
         cats
     }
+
+    /// Every `id_patterns` entry (from either the include or exclude filter) that is not a valid
+    /// regular expression. Callers should surface these rather than let them be silently discarded:
+    /// a dropped include pattern in particular would otherwise filter out every diagnostic, because
+    /// the include set is treated as non-empty yet matches nothing.
+    #[must_use]
+    pub fn invalid_patterns(&self) -> Vec<String> {
+        let compiled = self.compiled();
+        let mut invalid = compiled.include.invalid.clone();
+        invalid.extend(compiled.exclude.invalid.iter().cloned());
+        invalid
+    }
 }
 
 #[derive(Debug)]
 struct CompiledPatterns {
     regexes: Vec<Regex>,
+    invalid: Vec<String>,
 }
 
 impl CompiledPatterns {
     fn new(patterns: &[String]) -> Self {
-        let regexes = patterns
-            .iter()
-            .filter_map(|p| match Regex::new(p) {
-                Ok(r) => Some(r),
-                Err(e) => {
-                    warn!("Invalid regex pattern '{}': {}", p, e);
-                    None
+        let mut regexes = Vec::new();
+        let mut invalid = Vec::new();
+        for pattern in patterns {
+            match Regex::new(pattern) {
+                Ok(regex) => regexes.push(regex),
+                Err(error) => {
+                    warn!("Invalid rule-id filter pattern '{}': {}", pattern, error);
+                    invalid.push(pattern.clone());
                 }
-            })
-            .collect();
-        CompiledPatterns { regexes }
+            }
+        }
+        CompiledPatterns { regexes, invalid }
     }
 
     fn matches(&self, rule_id: &str) -> bool {
@@ -358,6 +372,28 @@ mod tests {
             ..Default::default()
         };
         assert!(f.matches_rule("E3012", Some("schema"), None, None));
+    }
+
+    #[test]
+    fn invalid_patterns_are_reported_for_include_and_exclude() {
+        let f = FilterConfig {
+            include: RuleFilterConfig { id_patterns: vec!["[bad-include".into(), "^E3".into()], ..Default::default() },
+            exclude: RuleFilterConfig { id_patterns: vec!["(bad-exclude".into()], ..Default::default() },
+            ..Default::default()
+        };
+        let invalid = f.invalid_patterns();
+        assert!(invalid.contains(&"[bad-include".to_string()));
+        assert!(invalid.contains(&"(bad-exclude".to_string()));
+        assert!(!invalid.contains(&"^E3".to_string()), "valid patterns must not be reported");
+    }
+
+    #[test]
+    fn valid_patterns_report_no_invalid() {
+        let f = FilterConfig {
+            include: RuleFilterConfig { id_patterns: vec!["^E3\\d+$".into()], ..Default::default() },
+            ..Default::default()
+        };
+        assert!(f.invalid_patterns().is_empty());
     }
 
     #[test]

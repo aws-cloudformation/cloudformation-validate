@@ -19,7 +19,7 @@ violation contains make_diag_full("W1030", "WARN", name, edge.sourcePath,
     def := object.get(param, "default", null)
     def != null
     is_string(def)
-    not regex.match(`^ami-[0-9a-f]{8,17}$`, def)
+    not regex.match(`^ami-([0-9a-f]{8}|[0-9a-f]{17})$`, def)
 }
 
 # W1030: Parameter default fails strict CIDR validation when used in CidrBlock property

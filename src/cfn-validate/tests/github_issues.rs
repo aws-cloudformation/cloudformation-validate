@@ -214,7 +214,6 @@ fn issue_42_e3049_omitted_healthcheckport_with_hostport_zero() {
 /// legitimately has 0 input artifacts (`CHANGE_SET_EXECUTE`). The artifact-count
 /// table is keyed on the full Owner/Category/Provider tuple, so this action's
 /// real bound (0–10 inputs) applies instead of a collapsed category-only bound.
-/// cfn-lint reports nothing here.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/44
 #[test]
 fn issue_44_no_e3702_false_positive_on_changeset_execute() {
