@@ -203,6 +203,8 @@ export interface ParameterInfo {
     maxValue: number | undefined;
     description: string | undefined;
     noEcho: boolean;
+    allowedPatternValid: boolean | undefined;
+    defaultMatchesAllowedPattern: boolean | undefined;
 }
 
 export interface PathTarget {
