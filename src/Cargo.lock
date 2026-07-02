@@ -490,7 +490,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -667,6 +667,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fancy-regex"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1e1dacd0d2082dfcf1351c4bdd566bbe89a2b263235a2b50058f1e130a47277"
+dependencies = [
+ "bit-set 0.8.0",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -807,18 +818,17 @@ dependencies = [
 [[package]]
 name = "guard-lang"
 version = "1.0.0"
-source = "git+https://github.com/aws-cloudformation/cloudformation-guard.git?branch=guard-lib#a4f9dd040ef27d4cc333ec3ee3a76a7f1c10b687"
+source = "git+https://github.com/aws-cloudformation/cloudformation-guard.git?branch=guard-lib#aa50f863d23a125afc7baf37186d105511de9aa9"
 dependencies = [
  "chrono",
  "colored",
  "cruet",
- "fancy-regex",
+ "fancy-regex 0.13.0",
  "indexmap 1.9.3",
  "itertools",
  "lazy_static",
  "nom",
  "nom_locate",
- "quick-xml",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -1269,15 +1279,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quick-xml"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eff6510e86862b57b210fd8cbe8ed3f0d7d600b9c2863cd4549a2e033c66e956"
-dependencies = [
- "memchr",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1430,7 +1431,7 @@ dependencies = [
 name = "rules"
 version = "1.3.0"
 dependencies = [
- "fancy-regex",
+ "fancy-regex 0.18.0",
  "log",
  "regex",
  "serde",
@@ -2298,15 +2299,6 @@ name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
-dependencies = [
- "windows-targets",
-]
-
-[[package]]
-name = "windows-sys"
-version = "0.59.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
 dependencies = [
  "windows-targets",
 ]

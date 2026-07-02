@@ -22,7 +22,7 @@ violation contains make_diag("W9013", "WARN", name,
     some key in object.keys(res.properties)
     val := res.properties[key]
     is_string(val)
-    regex.match(`arn:[^:]*:[^:]*:[^:]*:[0-9]{12}:`, val)
+    regex.match(`arn:[^:]*:[^:]*:[^:]*:\d{12}:`, val)
     not is_from_intrinsic(name, sprintf("Properties.%s", [key]))
 }
 
