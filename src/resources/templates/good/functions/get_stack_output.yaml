@@ -49,8 +49,18 @@ Resources:
               StackName: producer-stack
               OutputName: ProdName
           - "dev-topic"
-  # With Ref inside StackName
+  # Inside Fn::Select
   Topic5:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::Select:
+          - 0
+          - - Fn::GetStackOutput:
+                StackName: producer-stack
+                OutputName: TopicName
+  # With Ref inside StackName
+  Topic6:
     Type: AWS::SNS::Topic
     Properties:
       DisplayName:
@@ -59,7 +69,7 @@ Resources:
           OutputName: TopicName
           Region: !Ref AWS::Region
   # With Fn::Sub inside StackName
-  Topic6:
+  Topic7:
     Type: AWS::SNS::Topic
     Properties:
       DisplayName:
@@ -67,8 +77,31 @@ Resources:
           StackName:
             Fn::Sub: "my-stack-${AWS::Region}"
           OutputName: TopicName
+  # With Fn::Join inside StackName
+  Topic8:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::GetStackOutput:
+          StackName:
+            Fn::Join:
+              - "-"
+              - - "my"
+                - "stack"
+          OutputName: TopicName
+  # Inside Fn::Sub map
+  Topic9:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::Sub:
+          - "prefix-${Value}"
+          - Value:
+              Fn::GetStackOutput:
+                StackName: producer-stack
+                OutputName: TopicName
   # Inside Fn::Base64
-  Topic7:
+  Topic10:
     Type: AWS::SNS::Topic
     Properties:
       DisplayName:
@@ -76,3 +109,10 @@ Resources:
           Fn::GetStackOutput:
             StackName: producer-stack
             OutputName: TopicName
+Outputs:
+  # Direct Output Value
+  DirectOutput:
+    Value:
+      Fn::GetStackOutput:
+        StackName: producer-stack
+        OutputName: TopicName

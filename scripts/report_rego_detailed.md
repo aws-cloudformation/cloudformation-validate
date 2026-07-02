@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-01 15:47:53  
+> Generated: 2026-07-01 22:59:44  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **477**  
+> Templates compared: **481**  
 
 ## Terminology
 
@@ -24,13 +24,13 @@
 |--------|------:|
 | True Positives | 1948 |
 | False Positives (engine bugs) | 8 |
-| Engine Extra (correct, cfn-lint gap) | 5622 |
+| Engine Extra (correct, cfn-lint gap) | 5621 |
 | False Negatives (engine misses) | 341 |
 | Precision | 99.59% |
 | Recall | 85.10% |
 | F1 | 91.78% |
 | Unique rules detected | 207 |
-| Perfect templates | 365/477 |
+| Perfect templates | 369/481 |
 
 ### By Severity
 
@@ -38,32 +38,32 @@
 |----------|---:|---:|---:|---:|----------:|-------:|
 | Fatal | 401 | 7 | 64 | 112 | 98.28% | 78.17% |
 | Error | 335 | 0 | 3 | 156 | 100.00% | 68.23% |
-| Warning | 733 | 0 | 349 | 58 | 100.00% | 92.67% |
-| Info | 479 | 1 | 5206 | 15 | 99.79% | 96.96% |
+| Warning | 733 | 0 | 343 | 58 | 100.00% | 92.67% |
+| Info | 479 | 1 | 5211 | 15 | 99.79% | 96.96% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 20886.8211 ms |
-| Throughput | 116.58 validations/sec |
-| Templates | 487 ok, 8 failed |
+| Total wall time | 19882.3689 ms |
+| Throughput | 122.72 validations/sec |
+| Templates | 488 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 65.9044 ms |
-| Engine init (max) | 66.2843 ms |
-| Schema init (p99) | 59.4063 ms |
-| Schema init (max) | 60.1314 ms |
+| Engine init (p99) | 70.2876 ms |
+| Engine init (max) | 70.7983 ms |
+| Schema init (p99) | 66.1917 ms |
+| Schema init (max) | 67.2362 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0018 | 0.1988 | 0.0427 | 0.6414 | 0.8926 | 1.6639 | 2.8329 |
-| Schema Validate | 0.0000 | 2.4336 | 0.5152 | 6.6669 | 9.7599 | 24.8543 | 55.4051 |
-| Rule Evaluation | 0.9993 | 5.3164 | 2.3058 | 12.8585 | 19.3133 | 33.3156 | 97.2441 |
-| Diagnostic Finalize | 0.0004 | 0.0279 | 0.0043 | 0.0833 | 0.1336 | 0.3035 | 0.5880 |
-| Engine Internal | 1.0095 | 8.0359 | 3.1623 | 20.0788 | 30.8362 | 58.0320 | 119.8545 |
-| Wall Clock | 1.0097 | 8.0364 | 3.1631 | 20.0794 | 30.8371 | 58.0331 | 119.8553 |
+| Model Build | 0.0021 | 0.1923 | 0.0436 | 0.6040 | 0.8505 | 1.5185 | 2.7552 |
+| Schema Validate | 0.0000 | 2.3490 | 0.5016 | 6.3086 | 9.1897 | 23.7949 | 53.2174 |
+| Rule Evaluation | 0.9713 | 5.0830 | 2.1884 | 12.5568 | 18.4551 | 31.7534 | 93.0967 |
+| Diagnostic Finalize | 0.0004 | 0.0267 | 0.0039 | 0.0811 | 0.1246 | 0.3455 | 0.5923 |
+| Engine Internal | 0.9806 | 7.6950 | 2.9842 | 19.4691 | 29.9402 | 55.5786 | 115.2827 |
+| Wall Clock | 0.9807 | 7.6953 | 2.9843 | 19.4698 | 29.9407 | 55.5795 | 115.2836 |
 
 ## False Negatives — 341 missed findings across 81 rules
 
@@ -1020,11 +1020,11 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **I3013** `Canary` (AWS::Synthetics::Canary) → `Properties.SuccessRetentionPeriod` L3 in `gh-issues_issue-62_json`
   > 'SuccessRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
 
-## Engine Extra — 5622 correct findings across 37 rules
+## Engine Extra — 5621 correct findings across 37 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 — 3686 findings
+### I9001 — 3692 findings
 
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -1040,7 +1040,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `bad_F2002_ssm_parameter_type_invalid_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L25 in `bad_W1028_allowedvalues_excludes_literal`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L25 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Host` (AWS::EC2::Host) → `Properties.AvailabilityZone` L15 in `bad_W3010_full_coverage_yaml`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
@@ -1120,9 +1120,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
 - **I9001** `MySNSTopic` (AWS::SNS::Topic) → `Properties.TopicName` L23 in `bad_duplicate_json`
   > Property 'TopicName' is create-only; updating it will cause resource replacement
-- **I9001** `BucketA` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `bad_duplicate_primary_id_multi`
+- **I9001** `BucketA` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `bad_duplicate_primary_id_multi_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `BucketB` (AWS::S3::Bucket) → `Properties.BucketName` L13 in `bad_duplicate_primary_id_multi`
+- **I9001** `BucketB` (AWS::S3::Bucket) → `Properties.BucketName` L13 in `bad_duplicate_primary_id_multi_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `BucketA` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `bad_duplicate_primary_id_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -1156,13 +1156,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Memory' is create-only; updating it will cause resource replacement
 - **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L4 in `bad_ecs_fargate_mismatch_yaml`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L24 in `bad_ecs_role_no_boundary`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L24 in `bad_ecs_role_no_boundary_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L24 in `bad_ecs_role_no_boundary`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L24 in `bad_ecs_role_no_boundary_yaml`
   > Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L24 in `bad_ecs_role_no_boundary`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L24 in `bad_ecs_role_no_boundary_yaml`
   > Property 'TaskRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L4 in `bad_elb_http_443`
+- **I9001** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L4 in `bad_elb_http_443_yaml`
   > Property 'LoadBalancerArn' is create-only; updating it will cause resource replacement
 - **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `bad_fargate_bad_cpu_memory_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
@@ -1302,9 +1302,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Bucket' is create-only; updating it will cause resource replacement
 - **I9001** `SampleRole` (AWS::IAM::Role) → `Properties.Path` L25 in `bad_hard_coded_arn_properties_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `bad_hardcoded_partition`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `bad_hardcoded_partition_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `Topic` (AWS::SNS::Topic) → `Properties.TopicName` L8 in `bad_hardcoded_partition`
+- **I9001** `Topic` (AWS::SNS::Topic) → `Properties.TopicName` L8 in `bad_hardcoded_partition_yaml`
   > Property 'TopicName' is create-only; updating it will cause resource replacement
 - **I9001** `Role` (AWS::IAM::Role) → `Properties.Path` L4 in `bad_iam_ref_with_path_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
@@ -1424,21 +1424,21 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
 - **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L4 in `bad_rds_public_yaml`
   > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L4 in `bad_redshift_internet_accessible`
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L4 in `bad_redshift_internet_accessible_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L4 in `bad_redshift_internet_accessible`
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L4 in `bad_redshift_internet_accessible_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L9 in `bad_redshift_internet_accessible`
+- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L9 in `bad_redshift_internet_accessible_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.VpcId` L19 in `bad_redshift_internet_accessible`
+- **I9001** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.VpcId` L19 in `bad_redshift_internet_accessible_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L23 in `bad_redshift_internet_accessible`
+- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L23 in `bad_redshift_internet_accessible_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L23 in `bad_redshift_internet_accessible`
+- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L23 in `bad_redshift_internet_accessible_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `Route1` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L31 in `bad_redshift_internet_accessible`
+- **I9001** `Route1` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L31 in `bad_redshift_internet_accessible_yaml`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `Route1` (AWS::EC2::Route) → `Properties.RouteTableId` L31 in `bad_redshift_internet_accessible`
+- **I9001** `Route1` (AWS::EC2::Route) → `Properties.RouteTableId` L31 in `bad_redshift_internet_accessible_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
 - **I9001** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L5 in `bad_refs_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -1516,7 +1516,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Port' is create-only; updating it will cause resource replacement
 - **I9001** `rIamRole` (AWS::IAM::Role) → `Properties.RoleName` L7 in `bad_resources_iam_iam_policy_yaml`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L5 in `bad_resources_iam_managed_policy_description`
+- **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L5 in `bad_resources_iam_managed_policy_description_yaml`
   > Property 'Description' is create-only; updating it will cause resource replacement
 - **I9001** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Path` L34 in `bad_resources_iam_ref_with_path_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
@@ -1620,7 +1620,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `NoImage` (AWS::AppStream::ImageBuilder) → `Properties.Name` L5 in `bad_schema_composition_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L10 in `bad_schema_conditional_type`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L10 in `bad_schema_conditional_type_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `bad_schema_enum_violation_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -1652,7 +1652,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Validity' is create-only; updating it will cause resource replacement
 - **I9001** `DeprecatedProp` (AWS::Athena::WorkGroup) → `Properties.Name` L20 in `bad_schema_property_constraints_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `Lambda` (AWS::Lambda::Function) → `Properties.FunctionName` L4 in `bad_schema_string_length`
+- **I9001** `Lambda` (AWS::Lambda::Function) → `Properties.FunctionName` L4 in `bad_schema_string_length_yaml`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `SubnetNoCidr` (AWS::EC2::Subnet) → `Properties.VpcId` L18 in `bad_schema_structural_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
@@ -1676,13 +1676,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'CertificateAuthorityArn' is create-only; updating it will cause resource replacement
 - **I9001** `OpenSSH` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L4 in `bad_security_issues_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `SG` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L4 in `bad_sg_bad_port_range`
+- **I9001** `SG` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L4 in `bad_sg_bad_port_range_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
 - **I9001** `OpenSG` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L4 in `bad_sg_open_egress_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_simple_sub_param`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_simple_sub_param_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `Topic` (AWS::SNS::Topic) → `Properties.TopicName` L4 in `bad_sns_cross_account`
+- **I9001** `Topic` (AWS::SNS::Topic) → `Properties.TopicName` L4 in `bad_sns_cross_account_yaml`
   > Property 'TopicName' is create-only; updating it will cause resource replacement
 - **I9001** `FunctionALogGroup` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L23 in `bad_some_logs_stream_lambda_yaml`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
@@ -1780,9 +1780,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
 - **I9001** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterCRAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FFB2C1A86` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L1074 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json`
   > Property 'ServiceToken' is create-only; updating it will cause resource replacement
-- **I9001** `MasterBranch` (AWS::Amplify::Branch) → `Properties.AppId` L14 in `cdk_amplify-console-app--AmplifyConsoleApp.template`
+- **I9001** `MasterBranch` (AWS::Amplify::Branch) → `Properties.AppId` L14 in `cdk_amplify-console-app--AmplifyConsoleApp.template_json`
   > Property 'AppId' is create-only; updating it will cause resource replacement
-- **I9001** `MasterBranch` (AWS::Amplify::Branch) → `Properties.BranchName` L14 in `cdk_amplify-console-app--AmplifyConsoleApp.template`
+- **I9001** `MasterBranch` (AWS::Amplify::Branch) → `Properties.BranchName` L14 in `cdk_amplify-console-app--AmplifyConsoleApp.template_json`
   > Property 'BranchName' is create-only; updating it will cause resource replacement
 - **I9001** `items07D08F4B` (AWS::DynamoDB::Table) → `Properties.TableName` L3 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template_json`
   > Property 'TableName' is create-only; updating it will cause resource replacement
@@ -2052,65 +2052,65 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
 - **I9001** `myapimessagesGETE09B1C35` (AWS::ApiGateway::Method) → `Properties.RestApiId` L923 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpc4488A7AF` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpc4488A7AF` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1RouteTable518786D0` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1RouteTable518786D0` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1RouteTableAssociationE08618B5` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1RouteTableAssociationE08618B5` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1RouteTableAssociationE08618B5` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1RouteTableAssociationE08618B5` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1DefaultRouteA3ABB16E` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1DefaultRouteA3ABB16E` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet1DefaultRouteA3ABB16E` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet1DefaultRouteA3ABB16E` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L105 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L105 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L105 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L105 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA` (AWS::EC2::Subnet) → `Properties.VpcId` L105 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2Subnet778CFACA` (AWS::EC2::Subnet) → `Properties.VpcId` L105 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2RouteTableF3884194` (AWS::EC2::RouteTable) → `Properties.VpcId` L140 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2RouteTableF3884194` (AWS::EC2::RouteTable) → `Properties.VpcId` L140 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2RouteTableAssociation432D9A37` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L157 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2RouteTableAssociation432D9A37` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L157 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2RouteTableAssociation432D9A37` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L157 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2RouteTableAssociation432D9A37` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L157 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2DefaultRouteC44F12D1` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L171 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2DefaultRouteC44F12D1` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L171 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcpublicsubnet1Subnet2DefaultRouteC44F12D1` (AWS::EC2::Route) → `Properties.RouteTableId` L171 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcpublicsubnet1Subnet2DefaultRouteC44F12D1` (AWS::EC2::Route) → `Properties.RouteTableId` L171 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L189 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L189 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E` (AWS::EC2::Subnet) → `Properties.CidrBlock` L189 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E` (AWS::EC2::Subnet) → `Properties.CidrBlock` L189 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E` (AWS::EC2::Subnet) → `Properties.VpcId` L189 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1Subnet46C8720E` (AWS::EC2::Subnet) → `Properties.VpcId` L189 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1RouteTable5302591F` (AWS::EC2::RouteTable) → `Properties.VpcId` L224 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1RouteTable5302591F` (AWS::EC2::RouteTable) → `Properties.VpcId` L224 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1RouteTableAssociation6C6975EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L241 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1RouteTableAssociation6C6975EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L241 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1RouteTableAssociation6C6975EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L241 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet1RouteTableAssociation6C6975EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L241 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L255 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L255 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F` (AWS::EC2::Subnet) → `Properties.CidrBlock` L255 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F` (AWS::EC2::Subnet) → `Properties.CidrBlock` L255 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F` (AWS::EC2::Subnet) → `Properties.VpcId` L255 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2Subnet89BFE59F` (AWS::EC2::Subnet) → `Properties.VpcId` L255 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableEA03EC80` (AWS::EC2::RouteTable) → `Properties.VpcId` L290 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableEA03EC80` (AWS::EC2::RouteTable) → `Properties.VpcId` L290 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableAssociation61E13F31` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L307 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableAssociation61E13F31` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L307 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableAssociation61E13F31` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L307 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcprivateisolatedsubnet1Subnet2RouteTableAssociation61E13F31` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L307 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `nestedstackvpcVPCGWA39BF2BE` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L335 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template`
+- **I9001** `nestedstackvpcVPCGWA39BF2BE` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L335 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `chatappapi` (AWS::ApiGatewayV2::Api) → `Properties.ProtocolType` L3 in `cdk_api-websocket-lambda-dynamodb--chat-app.template_json`
   > Property 'ProtocolType' is create-only; updating it will cause resource replacement
@@ -2264,35 +2264,35 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'TargetType' is create-only; updating it will cause resource replacement
 - **I9001** `LBListenerTargetGroupF04FCF6D` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L799 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `CarTableA597893A` (AWS::DynamoDB::Table) → `Properties.TableName` L3 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `CarTableA597893A` (AWS::DynamoDB::Table) → `Properties.TableName` L3 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'TableName' is create-only; updating it will cause resource replacement
-- **I9001** `DefectsTable2A57950B` (AWS::DynamoDB::Table) → `Properties.TableName` L30 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `DefectsTable2A57950B` (AWS::DynamoDB::Table) → `Properties.TableName` L30 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'TableName' is create-only; updating it will cause resource replacement
-- **I9001** `CarApiSchema8E4784D9` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L90 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `CarApiSchema8E4784D9` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L90 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `CarApiCarsDataSourceD8C35DA8` (AWS::AppSync::DataSource) → `Properties.ApiId` L167 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `CarApiCarsDataSourceD8C35DA8` (AWS::AppSync::DataSource) → `Properties.ApiId` L167 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `CarApiCarsDataSourceD8C35DA8` (AWS::AppSync::DataSource) → `Properties.Name` L167 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `CarApiCarsDataSourceD8C35DA8` (AWS::AppSync::DataSource) → `Properties.Name` L167 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `CarApiDefectsDataSourceEBF3B13F` (AWS::AppSync::DataSource) → `Properties.ApiId` L273 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `CarApiDefectsDataSourceEBF3B13F` (AWS::AppSync::DataSource) → `Properties.ApiId` L273 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `CarApiDefectsDataSourceEBF3B13F` (AWS::AppSync::DataSource) → `Properties.Name` L273 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `CarApiDefectsDataSourceEBF3B13F` (AWS::AppSync::DataSource) → `Properties.Name` L273 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `CarsFunction7C2F2ED2` (AWS::AppSync::FunctionConfiguration) → `Properties.ApiId` L301 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `CarsFunction7C2F2ED2` (AWS::AppSync::FunctionConfiguration) → `Properties.ApiId` L301 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `DefectsFunction929174B7` (AWS::AppSync::FunctionConfiguration) → `Properties.ApiId` L329 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `DefectsFunction929174B7` (AWS::AppSync::FunctionConfiguration) → `Properties.ApiId` L329 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `PipelineResolverGetCars2DDF5816` (AWS::AppSync::Resolver) → `Properties.ApiId` L357 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `PipelineResolverGetCars2DDF5816` (AWS::AppSync::Resolver) → `Properties.ApiId` L357 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `PipelineResolverGetCars2DDF5816` (AWS::AppSync::Resolver) → `Properties.FieldName` L357 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `PipelineResolverGetCars2DDF5816` (AWS::AppSync::Resolver) → `Properties.FieldName` L357 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'FieldName' is create-only; updating it will cause resource replacement
-- **I9001** `PipelineResolverGetCars2DDF5816` (AWS::AppSync::Resolver) → `Properties.TypeName` L357 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `PipelineResolverGetCars2DDF5816` (AWS::AppSync::Resolver) → `Properties.TypeName` L357 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'TypeName' is create-only; updating it will cause resource replacement
-- **I9001** `PipelineResolverGetDefects032EF131` (AWS::AppSync::Resolver) → `Properties.ApiId` L394 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `PipelineResolverGetDefects032EF131` (AWS::AppSync::Resolver) → `Properties.ApiId` L394 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `PipelineResolverGetDefects032EF131` (AWS::AppSync::Resolver) → `Properties.FieldName` L394 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `PipelineResolverGetDefects032EF131` (AWS::AppSync::Resolver) → `Properties.FieldName` L394 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'FieldName' is create-only; updating it will cause resource replacement
-- **I9001** `PipelineResolverGetDefects032EF131` (AWS::AppSync::Resolver) → `Properties.TypeName` L394 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9001** `PipelineResolverGetDefects032EF131` (AWS::AppSync::Resolver) → `Properties.TypeName` L394 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'TypeName' is create-only; updating it will cause resource replacement
 - **I9001** `AppSync2EventBridgeApiKey` (AWS::AppSync::ApiKey) → `Properties.ApiId` L13 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
@@ -2316,217 +2316,217 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Principal' is create-only; updating it will cause resource replacement
 - **I9001** `AppSyncEventBridgeRleAllowEventRuleAppSyncEventBridgeechoFunction7F06E48E35535C50` (AWS::Lambda::Permission) → `Properties.SourceArn` L234 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
   > Property 'SourceArn' is create-only; updating it will cause resource replacement
-- **I9001** `PostsApiKey` (AWS::AppSync::ApiKey) → `Properties.ApiId` L13 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `PostsApiKey` (AWS::AppSync::ApiKey) → `Properties.ApiId` L13 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `PostsSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L27 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `PostsSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L27 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `PostsDataSource` (AWS::AppSync::DataSource) → `Properties.ApiId` L42 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `PostsDataSource` (AWS::AppSync::DataSource) → `Properties.ApiId` L42 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `PostsDataSource` (AWS::AppSync::DataSource) → `Properties.Name` L42 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `PostsDataSource` (AWS::AppSync::DataSource) → `Properties.Name` L42 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `GetOneQueryResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L61 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `GetOneQueryResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L61 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `GetOneQueryResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L61 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `GetOneQueryResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L61 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'FieldName' is create-only; updating it will cause resource replacement
-- **I9001** `GetOneQueryResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L61 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `GetOneQueryResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L61 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'TypeName' is create-only; updating it will cause resource replacement
-- **I9001** `GetAllQueryResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L86 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `GetAllQueryResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L86 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `GetAllQueryResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L86 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `GetAllQueryResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L86 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'FieldName' is create-only; updating it will cause resource replacement
-- **I9001** `GetAllQueryResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L86 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `GetAllQueryResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L86 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'TypeName' is create-only; updating it will cause resource replacement
-- **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L111 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L111 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L111 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L111 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'FieldName' is create-only; updating it will cause resource replacement
-- **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L111 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L111 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'TypeName' is create-only; updating it will cause resource replacement
-- **I9001** `DeleteMutationResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L136 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `DeleteMutationResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L136 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `DeleteMutationResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L136 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `DeleteMutationResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L136 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'FieldName' is create-only; updating it will cause resource replacement
-- **I9001** `DeleteMutationResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L136 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9001** `DeleteMutationResolver` (AWS::AppSync::Resolver) → `Properties.TypeName` L136 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'TypeName' is create-only; updating it will cause resource replacement
-- **I9001** `IncomingDataBucket3554D835` (AWS::S3::Bucket) → `Properties.BucketName` L3 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template`
+- **I9001** `IncomingDataBucket3554D835` (AWS::S3::Bucket) → `Properties.BucketName` L3 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template_json`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `IncomingDataBucketPolicyCA22042A` (AWS::S3::BucketPolicy) → `Properties.Bucket` L29 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template`
+- **I9001** `IncomingDataBucketPolicyCA22042A` (AWS::S3::BucketPolicy) → `Properties.Bucket` L29 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template_json`
   > Property 'Bucket' is create-only; updating it will cause resource replacement
-- **I9001** `VPCB9E5F0B4` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCB9E5F0B4` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1RouteTableFEE4B781` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1RouteTableFEE4B781` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.CidrBlock` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.CidrBlock` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.VpcId` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.VpcId` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2RouteTable6F1A15F1` (AWS::EC2::RouteTable) → `Properties.VpcId` L140 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2RouteTable6F1A15F1` (AWS::EC2::RouteTable) → `Properties.VpcId` L140 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.RouteTableId` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.RouteTableId` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.CidrBlock` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.CidrBlock` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.VpcId` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.VpcId` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1RouteTableEB156210` (AWS::EC2::RouteTable) → `Properties.VpcId` L224 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet1RouteTableEB156210` (AWS::EC2::RouteTable) → `Properties.VpcId` L224 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.VpcId` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.VpcId` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2RouteTable9B4F78DC` (AWS::EC2::RouteTable) → `Properties.VpcId` L290 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet2RouteTable9B4F78DC` (AWS::EC2::RouteTable) → `Properties.VpcId` L290 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCVPCGW99B986DC` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L335 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `VPCVPCGW99B986DC` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L335 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'GroupName' is create-only; updating it will cause resource replacement
-- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SFTPServer` (AWS::Transfer::Server) → `Properties.Domain` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SFTPServer` (AWS::Transfer::Server) → `Properties.Domain` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'Domain' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Description` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Description` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'Description' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.ManagedPolicyName` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.ManagedPolicyName` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'ManagedPolicyName' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Path` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Path` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.RoleName` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.RoleName` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.ServerId` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.ServerId` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'ServerId' is create-only; updating it will cause resource replacement
-- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.UserName` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.UserName` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'UserName' is create-only; updating it will cause resource replacement
-- **I9001** `MetricFilter1B93B6E5` (AWS::Logs::MetricFilter) → `Properties.LogGroupName` L637 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9001** `MetricFilter1B93B6E5` (AWS::Logs::MetricFilter) → `Properties.LogGroupName` L637 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `VPCB9E5F0B4` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCB9E5F0B4` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1SubnetB4246D30` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1RouteTableFEE4B781` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1RouteTableFEE4B781` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1RouteTableAssociation0B0896DC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet1DefaultRoute91CEF279` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.CidrBlock` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.CidrBlock` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.VpcId` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2Subnet74179F39` (AWS::EC2::Subnet) → `Properties.VpcId` L105 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2RouteTable6F1A15F1` (AWS::EC2::RouteTable) → `Properties.VpcId` L140 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2RouteTable6F1A15F1` (AWS::EC2::RouteTable) → `Properties.VpcId` L140 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2RouteTableAssociation5A808732` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L157 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.RouteTableId` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCPublicSubnet2DefaultRouteB7481BBA` (AWS::EC2::Route) → `Properties.RouteTableId` L171 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.CidrBlock` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.CidrBlock` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.VpcId` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet1SubnetEBD00FC6` (AWS::EC2::Subnet) → `Properties.VpcId` L189 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1RouteTableEB156210` (AWS::EC2::RouteTable) → `Properties.VpcId` L224 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet1RouteTableEB156210` (AWS::EC2::RouteTable) → `Properties.VpcId` L224 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet1RouteTableAssociationA2D18F7C` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L241 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.VpcId` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet2Subnet4B1C8CAA` (AWS::EC2::Subnet) → `Properties.VpcId` L255 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2RouteTable9B4F78DC` (AWS::EC2::RouteTable) → `Properties.VpcId` L290 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet2RouteTable9B4F78DC` (AWS::EC2::RouteTable) → `Properties.VpcId` L290 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCIsolatedSubnet2RouteTableAssociation7BF8E0EB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L307 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VPCVPCGW99B986DC` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L335 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `VPCVPCGW99B986DC` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L335 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'GroupName' is create-only; updating it will cause resource replacement
-- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SFTPServer` (AWS::Transfer::Server) → `Properties.Domain` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SFTPServer` (AWS::Transfer::Server) → `Properties.Domain` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'Domain' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Description` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Description` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'Description' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.ManagedPolicyName` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.ManagedPolicyName` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'ManagedPolicyName' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Path` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpAccessPolicy6C559C82` (AWS::IAM::ManagedPolicy) → `Properties.Path` L505 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.RoleName` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.RoleName` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.ServerId` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.ServerId` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'ServerId' is create-only; updating it will cause resource replacement
-- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.UserName` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `SFTPUser` (AWS::Transfer::User) → `Properties.UserName` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'UserName' is create-only; updating it will cause resource replacement
-- **I9001** `MetricFilter1B93B6E5` (AWS::Logs::MetricFilter) → `Properties.LogGroupName` L637 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9001** `MetricFilter1B93B6E5` (AWS::Logs::MetricFilter) → `Properties.LogGroupName` L637 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `testBucketPolicy47484917` (AWS::S3::BucketPolicy) → `Properties.Bucket` L37 in `cdk_backup-s3--AwsBackupS3Stack.template`
+- **I9001** `testBucketPolicy47484917` (AWS::S3::BucketPolicy) → `Properties.Bucket` L37 in `cdk_backup-s3--AwsBackupS3Stack.template_json`
   > Property 'Bucket' is create-only; updating it will cause resource replacement
-- **I9001** `Vault23237E5B` (AWS::Backup::BackupVault) → `Properties.BackupVaultName` L213 in `cdk_backup-s3--AwsBackupS3Stack.template`
+- **I9001** `Vault23237E5B` (AWS::Backup::BackupVault) → `Properties.BackupVaultName` L213 in `cdk_backup-s3--AwsBackupS3Stack.template_json`
   > Property 'BackupVaultName' is create-only; updating it will cause resource replacement
-- **I9001** `demobackupplanSelectionF4B47C20` (AWS::Backup::BackupSelection) → `Properties.BackupPlanId` L250 in `cdk_backup-s3--AwsBackupS3Stack.template`
+- **I9001** `demobackupplanSelectionF4B47C20` (AWS::Backup::BackupSelection) → `Properties.BackupPlanId` L250 in `cdk_backup-s3--AwsBackupS3Stack.template_json`
   > Property 'BackupPlanId' is create-only; updating it will cause resource replacement
-- **I9001** `demobackupplanSelectionF4B47C20` (AWS::Backup::BackupSelection) → `Properties.BackupSelection` L250 in `cdk_backup-s3--AwsBackupS3Stack.template`
+- **I9001** `demobackupplanSelectionF4B47C20` (AWS::Backup::BackupSelection) → `Properties.BackupSelection` L250 in `cdk_backup-s3--AwsBackupS3Stack.template_json`
   > Property 'BackupSelection' is create-only; updating it will cause resource replacement
 - **I9001** `OpenMPRepositoryAB8BB3BC` (AWS::ECR::Repository) → `Properties.RepositoryName` L3 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
   > Property 'RepositoryName' is create-only; updating it will cause resource replacement
@@ -3130,89 +3130,89 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Cluster' is create-only; updating it will cause resource replacement
 - **I9001** `AsgCapacityProvider760D11D9` (AWS::ECS::CapacityProvider) → `Properties.AutoScalingGroupProvider` L687 in `cdk_ecs-cluster--MyFirstEcsCluster.template_json`
   > Property 'AutoScalingGroupProvider' is create-only; updating it will cause resource replacement
-- **I9001** `Vpc8378EB38` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `Vpc8378EB38` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1RouteTable6C95E38E` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1RouteTable6C95E38E` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'AllocationId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2RouteTable94F7E489` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2RouteTable94F7E489` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.AllocationId` L246 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.AllocationId` L246 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'AllocationId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.SubnetId` L246 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.SubnetId` L246 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L273 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L273 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.CidrBlock` L273 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.CidrBlock` L273 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.VpcId` L273 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.VpcId` L273 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1RouteTableB2C5B500` (AWS::EC2::RouteTable) → `Properties.VpcId` L308 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1RouteTableB2C5B500` (AWS::EC2::RouteTable) → `Properties.VpcId` L308 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L325 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L325 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L325 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L325 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L339 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L339 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.RouteTableId` L339 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.RouteTableId` L339 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L354 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L354 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L354 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L354 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.VpcId` L354 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.VpcId` L354 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2RouteTableA678073B` (AWS::EC2::RouteTable) → `Properties.VpcId` L389 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2RouteTableA678073B` (AWS::EC2::RouteTable) → `Properties.VpcId` L389 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L406 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L406 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L406 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L406 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L420 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L420 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.RouteTableId` L420 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.RouteTableId` L420 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcVPCGWBF912B6E` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L449 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9001** `VpcVPCGWBF912B6E` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L449 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Scheme` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template`
+- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Scheme` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
   > Property 'Scheme' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template`
+- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
   > Property 'Type' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template`
+- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template`
+- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
@@ -3264,63 +3264,63 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'TargetType' is create-only; updating it will cause resource replacement
 - **I9001** `ListenerECSGroup2EA4A011` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L210 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Scheme` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Scheme` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'Scheme' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'Type' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `LoadBalancerListenerE1A099B9` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L56 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `LoadBalancerListenerE1A099B9` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L56 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'LoadBalancerArn' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Port` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Port` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'Port' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Protocol` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Protocol` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'Protocol' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.TargetType` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.TargetType` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'TargetType' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'Cpu' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Family` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Family` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'Family' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Memory` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Memory` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'Memory' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'TaskRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceD69D759B` (AWS::ECS::Service) → `Properties.Cluster` L58 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceD69D759B` (AWS::ECS::Service) → `Properties.Cluster` L58 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'Cluster' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupC96ED6A7` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L117 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupC96ED6A7` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L117 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupC96ED6A7` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L117 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupC96ED6A7` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L117 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.FromPort` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.FromPort` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'FromPort' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.GroupId` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.GroupId` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'GroupId' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'IpProtocol' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.SourceSecurityGroupId` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.SourceSecurityGroupId` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'SourceSecurityGroupId' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.ToPort` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupfromSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580953EC485` (AWS::EC2::SecurityGroupIngress) → `Properties.ToPort` L139 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'ToPort' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.DestinationSecurityGroupId` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.DestinationSecurityGroupId` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'DestinationSecurityGroupId' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.FromPort` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.FromPort` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'FromPort' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.GroupId` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.GroupId` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'GroupId' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.IpProtocol` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.IpProtocol` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'IpProtocol' is create-only; updating it will cause resource replacement
-- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.ToPort` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9001** `ServiceSecurityGroupSplitAtTargetGroupLBStackLoadBalancerSecurityGroupAC48AF9580from6A874A07` (AWS::EC2::SecurityGroupEgress) → `Properties.ToPort` L163 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Property 'ToPort' is create-only; updating it will cause resource replacement
 - **I9001** `MyVpcF9F0CA6F` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_ecs-ecs-service-with-logging--Willkommen.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
@@ -3946,103 +3946,103 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'PolicyName' is create-only; updating it will cause resource replacement
 - **I9001** `sampleappServiceTaskCountTargetCpuScalingF4452F80` (AWS::ApplicationAutoScaling::ScalingPolicy) → `Properties.ScalingTargetId` L798 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
   > Property 'ScalingTargetId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcF9F0CA6F` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcF9F0CA6F` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1SubnetF6608456` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1SubnetF6608456` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1SubnetF6608456` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1SubnetF6608456` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1SubnetF6608456` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1SubnetF6608456` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1RouteTableC46AB2F4` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1RouteTableC46AB2F4` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1RouteTableAssociation2ECEE1CB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1RouteTableAssociation2ECEE1CB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1RouteTableAssociation2ECEE1CB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1RouteTableAssociation2ECEE1CB` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1DefaultRoute95FDF9EB` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1DefaultRoute95FDF9EB` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1DefaultRoute95FDF9EB` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1DefaultRoute95FDF9EB` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1NATGatewayAD3400C1` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1NATGatewayAD3400C1` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'AllocationId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet1NATGatewayAD3400C1` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet1NATGatewayAD3400C1` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2Subnet492B6BFB` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2Subnet492B6BFB` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2Subnet492B6BFB` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2Subnet492B6BFB` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2Subnet492B6BFB` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2Subnet492B6BFB` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2RouteTable1DF17386` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2RouteTable1DF17386` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2RouteTableAssociation227DE78D` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2RouteTableAssociation227DE78D` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2RouteTableAssociation227DE78D` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2RouteTableAssociation227DE78D` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2DefaultRoute052936F6` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2DefaultRoute052936F6` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2DefaultRoute052936F6` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2DefaultRoute052936F6` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2NATGateway91BFBEC9` (AWS::EC2::NatGateway) → `Properties.AllocationId` L246 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2NATGateway91BFBEC9` (AWS::EC2::NatGateway) → `Properties.AllocationId` L246 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'AllocationId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPublicSubnet2NATGateway91BFBEC9` (AWS::EC2::NatGateway) → `Properties.SubnetId` L246 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPublicSubnet2NATGateway91BFBEC9` (AWS::EC2::NatGateway) → `Properties.SubnetId` L246 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1Subnet5057CF7E` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L273 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1Subnet5057CF7E` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L273 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1Subnet5057CF7E` (AWS::EC2::Subnet) → `Properties.CidrBlock` L273 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1Subnet5057CF7E` (AWS::EC2::Subnet) → `Properties.CidrBlock` L273 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1Subnet5057CF7E` (AWS::EC2::Subnet) → `Properties.VpcId` L273 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1Subnet5057CF7E` (AWS::EC2::Subnet) → `Properties.VpcId` L273 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1RouteTable8819E6E2` (AWS::EC2::RouteTable) → `Properties.VpcId` L308 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1RouteTable8819E6E2` (AWS::EC2::RouteTable) → `Properties.VpcId` L308 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1RouteTableAssociation56D38C7E` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L325 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1RouteTableAssociation56D38C7E` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L325 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1RouteTableAssociation56D38C7E` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L325 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1RouteTableAssociation56D38C7E` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L325 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1DefaultRouteA8CDE2FA` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L339 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1DefaultRouteA8CDE2FA` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L339 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet1DefaultRouteA8CDE2FA` (AWS::EC2::Route) → `Properties.RouteTableId` L339 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet1DefaultRouteA8CDE2FA` (AWS::EC2::Route) → `Properties.RouteTableId` L339 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2Subnet0040C983` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L354 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2Subnet0040C983` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L354 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2Subnet0040C983` (AWS::EC2::Subnet) → `Properties.CidrBlock` L354 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2Subnet0040C983` (AWS::EC2::Subnet) → `Properties.CidrBlock` L354 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2Subnet0040C983` (AWS::EC2::Subnet) → `Properties.VpcId` L354 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2Subnet0040C983` (AWS::EC2::Subnet) → `Properties.VpcId` L354 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2RouteTableCEDCEECE` (AWS::EC2::RouteTable) → `Properties.VpcId` L389 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2RouteTableCEDCEECE` (AWS::EC2::RouteTable) → `Properties.VpcId` L389 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2RouteTableAssociation86A610DA` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L406 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2RouteTableAssociation86A610DA` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L406 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2RouteTableAssociation86A610DA` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L406 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2RouteTableAssociation86A610DA` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L406 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2DefaultRoute9CE96294` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L420 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2DefaultRoute9CE96294` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L420 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcPrivateSubnet2DefaultRoute9CE96294` (AWS::EC2::Route) → `Properties.RouteTableId` L420 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcPrivateSubnet2DefaultRoute9CE96294` (AWS::EC2::Route) → `Properties.RouteTableId` L420 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `MyVpcVPCGW488ACE0D` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L449 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyVpcVPCGW488ACE0D` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L449 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'Cpu' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Family` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Family` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'Family' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Memory` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Memory` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'Memory' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
-- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'TaskRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `FargateServiceAC2B3B85` (AWS::ECS::Service) → `Properties.Cluster` L595 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `FargateServiceAC2B3B85` (AWS::ECS::Service) → `Properties.Cluster` L595 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'Cluster' is create-only; updating it will cause resource replacement
-- **I9001** `FargateServiceSecurityGroup0A0E79CB` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L644 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `FargateServiceSecurityGroup0A0E79CB` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L644 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `FargateServiceSecurityGroup0A0E79CB` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L644 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9001** `FargateServiceSecurityGroup0A0E79CB` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L644 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `TopicTokenSubscription178F3F75E` (AWS::SNS::Subscription) → `Properties.Endpoint` L12 in `cdk_eventbridge-lambda--EventBridgeLambdaStack.template_json`
   > Property 'Endpoint' is create-only; updating it will cause resource replacement
@@ -4058,73 +4058,73 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Principal' is create-only; updating it will cause resource replacement
 - **I9001** `RuleAllowEventRuleEventBridgeLambdaStackSingleton0D05990EAAD8CFB9` (AWS::Lambda::Permission) → `Properties.SourceArn` L137 in `cdk_eventbridge-lambda--EventBridgeLambdaStack.template_json`
   > Property 'SourceArn' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyAPIDeployment0905F2A51149e52ed55821cdb6db0214e7f00a2c` (AWS::ApiGateway::Deployment) → `Properties.RestApiId` L72 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyAPIDeployment0905F2A51149e52ed55821cdb6db0214e7f00a2c` (AWS::ApiGateway::Deployment) → `Properties.RestApiId` L72 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyAPIDeploymentStageprodBE6BE99F` (AWS::ApiGateway::Stage) → `Properties.RestApiId` L90 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyAPIDeploymentStageprodBE6BE99F` (AWS::ApiGateway::Stage) → `Properties.RestApiId` L90 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyAPIDeploymentStageprodBE6BE99F` (AWS::ApiGateway::Stage) → `Properties.StageName` L90 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyAPIDeploymentStageprodBE6BE99F` (AWS::ApiGateway::Stage) → `Properties.StageName` L90 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'StageName' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyAPIaws4558A94F` (AWS::ApiGateway::Resource) → `Properties.ParentId` L108 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyAPIaws4558A94F` (AWS::ApiGateway::Resource) → `Properties.ParentId` L108 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'ParentId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyAPIaws4558A94F` (AWS::ApiGateway::Resource) → `Properties.PathPart` L108 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyAPIaws4558A94F` (AWS::ApiGateway::Resource) → `Properties.PathPart` L108 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'PathPart' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyAPIaws4558A94F` (AWS::ApiGateway::Resource) → `Properties.RestApiId` L108 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyAPIaws4558A94F` (AWS::ApiGateway::Resource) → `Properties.RestApiId` L108 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyProxyResourceGETawsB89410CC` (AWS::ApiGateway::Resource) → `Properties.ParentId` L126 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyProxyResourceGETawsB89410CC` (AWS::ApiGateway::Resource) → `Properties.ParentId` L126 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'ParentId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyProxyResourceGETawsB89410CC` (AWS::ApiGateway::Resource) → `Properties.PathPart` L126 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyProxyResourceGETawsB89410CC` (AWS::ApiGateway::Resource) → `Properties.PathPart` L126 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'PathPart' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyProxyResourceGETawsB89410CC` (AWS::ApiGateway::Resource) → `Properties.RestApiId` L126 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyProxyResourceGETawsB89410CC` (AWS::ApiGateway::Resource) → `Properties.RestApiId` L126 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyProxyResourceGETawsGET6AEDAC86` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L141 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyProxyResourceGETawsGET6AEDAC86` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L141 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'HttpMethod' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyProxyResourceGETawsGET6AEDAC86` (AWS::ApiGateway::Method) → `Properties.ResourceId` L141 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyProxyResourceGETawsGET6AEDAC86` (AWS::ApiGateway::Method) → `Properties.ResourceId` L141 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxyProxyResourceGETawsGET6AEDAC86` (AWS::ApiGateway::Method) → `Properties.RestApiId` L141 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9001** `ProxyProxyResourceGETawsGET6AEDAC86` (AWS::ApiGateway::Method) → `Properties.RestApiId` L141 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Data` L3 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Data` L3 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Data' is create-only; updating it will cause resource replacement
-- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Name` L3 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Name` L3 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Platform` L3 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Platform` L3 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Platform' is create-only; updating it will cause resource replacement
-- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Version` L3 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Version` L3 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Version' is create-only; updating it will cause resource replacement
-- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Data` L15 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Data` L15 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Data' is create-only; updating it will cause resource replacement
-- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Name` L15 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Name` L15 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Platform` L15 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Platform` L15 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Platform' is create-only; updating it will cause resource replacement
-- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Version` L15 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Version` L15 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Version' is create-only; updating it will cause resource replacement
-- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Data` L27 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Data` L27 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Data' is create-only; updating it will cause resource replacement
-- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Name` L27 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Name` L27 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Platform` L27 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Platform` L27 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Platform' is create-only; updating it will cause resource replacement
-- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Version` L27 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Version` L27 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Version' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Components` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Components` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Components' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.ContainerType` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.ContainerType` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'ContainerType' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.DockerfileTemplateData` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.DockerfileTemplateData` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'DockerfileTemplateData' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Name` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Name` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.ParentImage` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.ParentImage` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'ParentImage' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.TargetRepository` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.TargetRepository` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'TargetRepository' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Version` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Version` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Version' is create-only; updating it will cause resource replacement
-- **I9001** `ImageBuilderInfraConfig` (AWS::ImageBuilder::InfrastructureConfiguration) → `Properties.Name` L182 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `ImageBuilderInfraConfig` (AWS::ImageBuilder::InfrastructureConfiguration) → `Properties.Name` L182 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `ImageBuilderDistConfig` (AWS::ImageBuilder::DistributionConfiguration) → `Properties.Name` L194 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `ImageBuilderDistConfig` (AWS::ImageBuilder::DistributionConfiguration) → `Properties.Name` L194 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `AmazonLinux2023WithGitPipeline` (AWS::ImageBuilder::ImagePipeline) → `Properties.Name` L218 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9001** `AmazonLinux2023WithGitPipeline` (AWS::ImageBuilder::ImagePipeline) → `Properties.Name` L218 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `Inspector2MonitoringinitialScanRuleAllowEventRuleInspector2MonitoringStackInspector2InitialScanHandler1F2D84B66EB326AF` (AWS::Lambda::Permission) → `Properties.Action` L37 in `cdk_inspector2--Inspector2MonitoringStack.template_json`
   > Property 'Action' is create-only; updating it will cause resource replacement
@@ -4160,7 +4160,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Description' is create-only; updating it will cause resource replacement
 - **I9001** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L66 in `cdk_lambda-manage-s3-event-notification--AStack.template_json`
   > Property 'ServiceToken' is create-only; updating it will cause resource replacement
-- **I9001** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L58 in `cdk_lambda-manage-s3-event-notification--BStack.template`
+- **I9001** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L58 in `cdk_lambda-manage-s3-event-notification--BStack.template_json`
   > Property 'ServiceToken' is create-only; updating it will cause resource replacement
 - **I9001** `S3EventNotificationsLambda20F17D80` (AWS::Lambda::Function) → `Properties.FunctionName` L78 in `cdk_lambda-manage-s3-event-notification--SharedStack.template_json`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
@@ -4954,11 +4954,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
 - **I9001** `WafGatewayAPIhelloworldGET802399FF` (AWS::ApiGateway::Method) → `Properties.RestApiId` L309 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `WebACL` (AWS::WAFv2::WebACL) → `Properties.Scope` L3 in `cdk_pat-the-waf-apigateway--TheWafStack.template`
+- **I9001** `WebACL` (AWS::WAFv2::WebACL) → `Properties.Scope` L3 in `cdk_pat-the-waf-apigateway--TheWafStack.template_json`
   > Property 'Scope' is create-only; updating it will cause resource replacement
-- **I9001** `WebACLAssociation` (AWS::WAFv2::WebACLAssociation) → `Properties.ResourceArn` L102 in `cdk_pat-the-waf-apigateway--TheWafStack.template`
+- **I9001** `WebACLAssociation` (AWS::WAFv2::WebACLAssociation) → `Properties.ResourceArn` L102 in `cdk_pat-the-waf-apigateway--TheWafStack.template_json`
   > Property 'ResourceArn' is create-only; updating it will cause resource replacement
-- **I9001** `WebACLAssociation` (AWS::WAFv2::WebACLAssociation) → `Properties.WebACLArn` L102 in `cdk_pat-the-waf-apigateway--TheWafStack.template`
+- **I9001** `WebACLAssociation` (AWS::WAFv2::WebACLAssociation) → `Properties.WebACLArn` L102 in `cdk_pat-the-waf-apigateway--TheWafStack.template_json`
   > Property 'WebACLArn' is create-only; updating it will cause resource replacement
 - **I9001** `DynamoLambdaHandlerAllowInvokeTheXrayDynamoFlowSNSTopicCD4F86C04F3B929A` (AWS::Lambda::Permission) → `Properties.Action` L186 in `cdk_pat-the-xray-tracer--TheXrayDynamoFlow.template_json`
   > Property 'Action' is create-only; updating it will cause resource replacement
@@ -5032,41 +5032,41 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Protocol' is create-only; updating it will cause resource replacement
 - **I9001** `snsSubscriptionLambdaHandlerTheXRayTracerSnsTopic6FDB75DD` (AWS::SNS::Subscription) → `Properties.TopicArn` L343 in `cdk_pat-the-xray-tracer--TheXraySnsFlow.template_json`
   > Property 'TopicArn' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIDeploymentB3CB89A0a689bf68bef2302d0715c2d1a50794fc` (AWS::ApiGateway::Deployment) → `Properties.RestApiId` L72 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIDeploymentB3CB89A0a689bf68bef2302d0715c2d1a50794fc` (AWS::ApiGateway::Deployment) → `Properties.RestApiId` L72 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIDeploymentStageprod85442A48` (AWS::ApiGateway::Stage) → `Properties.RestApiId` L91 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIDeploymentStageprod85442A48` (AWS::ApiGateway::Stage) → `Properties.RestApiId` L91 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIDeploymentStageprod85442A48` (AWS::ApiGateway::Stage) → `Properties.StageName` L91 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIDeploymentStageprod85442A48` (AWS::ApiGateway::Stage) → `Properties.StageName` L91 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'StageName' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIGET7490A366` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L116 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIGET7490A366` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L116 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'HttpMethod' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIGET7490A366` (AWS::ApiGateway::Method) → `Properties.ResourceId` L116 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIGET7490A366` (AWS::ApiGateway::Method) → `Properties.ResourceId` L116 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIGET7490A366` (AWS::ApiGateway::Method) → `Properties.RestApiId` L116 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIGET7490A366` (AWS::ApiGateway::Method) → `Properties.RestApiId` L116 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIproxy719DA214` (AWS::ApiGateway::Resource) → `Properties.ParentId` L212 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIproxy719DA214` (AWS::ApiGateway::Resource) → `Properties.ParentId` L212 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'ParentId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIproxy719DA214` (AWS::ApiGateway::Resource) → `Properties.PathPart` L212 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIproxy719DA214` (AWS::ApiGateway::Resource) → `Properties.PathPart` L212 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'PathPart' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIproxy719DA214` (AWS::ApiGateway::Resource) → `Properties.RestApiId` L212 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIproxy719DA214` (AWS::ApiGateway::Resource) → `Properties.RestApiId` L212 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIproxyGET4E348609` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L230 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIproxyGET4E348609` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L230 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'HttpMethod' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIproxyGET4E348609` (AWS::ApiGateway::Method) → `Properties.ResourceId` L230 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIproxyGET4E348609` (AWS::ApiGateway::Method) → `Properties.ResourceId` L230 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIproxyGET4E348609` (AWS::ApiGateway::Method) → `Properties.RestApiId` L230 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIproxyGET4E348609` (AWS::ApiGateway::Method) → `Properties.RestApiId` L230 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIResponseModel2591E14E` (AWS::ApiGateway::Model) → `Properties.ContentType` L323 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIResponseModel2591E14E` (AWS::ApiGateway::Model) → `Properties.ContentType` L323 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'ContentType' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIResponseModel2591E14E` (AWS::ApiGateway::Model) → `Properties.Name` L323 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIResponseModel2591E14E` (AWS::ApiGateway::Model) → `Properties.Name` L323 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIResponseModel2591E14E` (AWS::ApiGateway::Model) → `Properties.RestApiId` L323 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIResponseModel2591E14E` (AWS::ApiGateway::Model) → `Properties.RestApiId` L323 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIErrorResponseModel24719E91` (AWS::ApiGateway::Model) → `Properties.ContentType` L346 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIErrorResponseModel24719E91` (AWS::ApiGateway::Model) → `Properties.ContentType` L346 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'ContentType' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIErrorResponseModel24719E91` (AWS::ApiGateway::Model) → `Properties.Name` L346 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIErrorResponseModel24719E91` (AWS::ApiGateway::Model) → `Properties.Name` L346 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `xrayTracerAPIErrorResponseModel24719E91` (AWS::ApiGateway::Model) → `Properties.RestApiId` L346 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9001** `xrayTracerAPIErrorResponseModel24719E91` (AWS::ApiGateway::Model) → `Properties.RestApiId` L346 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
 - **I9001** `ApiGatewayWithCorsDeployment248C0700a88c9b4f7fb5eae343fa3265f3ea5ffe` (AWS::ApiGateway::Deployment) → `Properties.RestApiId` L129 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
@@ -5226,25 +5226,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'QueryString' is create-only; updating it will cause resource replacement
 - **I9001** `alleventsbyuserIdquery` (AWS::Athena::NamedQuery) → `Properties.WorkGroup` L678 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template_json`
   > Property 'WorkGroup' is create-only; updating it will cause resource replacement
-- **I9001** `CDKDataSyncS3AccessRole0C49AEBFA` (AWS::IAM::Role) → `Properties.RoleName` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9001** `CDKDataSyncS3AccessRole0C49AEBFA` (AWS::IAM::Role) → `Properties.RoleName` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.Description` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9001** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.Description` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Property 'Description' is create-only; updating it will cause resource replacement
-- **I9001** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.Path` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9001** `CDKDataSyncS3Policy034C77CD2` (AWS::IAM::ManagedPolicy) → `Properties.Path` L25 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `CDKDataSyncS3AccessRole18E349368` (AWS::IAM::Role) → `Properties.RoleName` L67 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9001** `CDKDataSyncS3AccessRole18E349368` (AWS::IAM::Role) → `Properties.RoleName` L67 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.Description` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9001** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.Description` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Property 'Description' is create-only; updating it will cause resource replacement
-- **I9001** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.Path` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9001** `CDKDataSyncS3Policy1E7D7BFA5` (AWS::IAM::ManagedPolicy) → `Properties.Path` L89 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+- **I9001** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
   > Property 'S3BucketArn' is create-only; updating it will cause resource replacement
-- **I9001** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+- **I9001** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
   > Property 'S3BucketArn' is create-only; updating it will cause resource replacement
-- **I9001** `DataSyncS3toS3Task` (AWS::DataSync::Task) → `Properties.DestinationLocationArn` L34 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+- **I9001** `DataSyncS3toS3Task` (AWS::DataSync::Task) → `Properties.DestinationLocationArn` L34 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
   > Property 'DestinationLocationArn' is create-only; updating it will cause resource replacement
-- **I9001** `DataSyncS3toS3Task` (AWS::DataSync::Task) → `Properties.SourceLocationArn` L34 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+- **I9001** `DataSyncS3toS3Task` (AWS::DataSync::Task) → `Properties.SourceLocationArn` L34 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
   > Property 'SourceLocationArn' is create-only; updating it will cause resource replacement
 - **I9001** `appasgInstanceSecurityGroup8B8185FA` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L3 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
@@ -5308,77 +5308,77 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'TargetType' is create-only; updating it will cause resource replacement
 - **I9001** `ALBListenerTargetGroupD5D64FBA` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L300 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPC92636AB0` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPC92636AB0` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1Subnet770D4FF2` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1Subnet770D4FF2` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1Subnet770D4FF2` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1Subnet770D4FF2` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1Subnet770D4FF2` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1Subnet770D4FF2` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1RouteTable17DA183D` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1RouteTable17DA183D` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1RouteTableAssociationE5186D77` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1RouteTableAssociationE5186D77` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1RouteTableAssociationE5186D77` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1RouteTableAssociationE5186D77` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1DefaultRoute6D26543F` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1DefaultRoute6D26543F` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1DefaultRoute6D26543F` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1DefaultRoute6D26543F` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1NATGatewayC61D892B` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1NATGatewayC61D892B` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'AllocationId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet1NATGatewayC61D892B` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet1NATGatewayC61D892B` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2Subnet73F96DA9` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2Subnet73F96DA9` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2Subnet73F96DA9` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2Subnet73F96DA9` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2Subnet73F96DA9` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2Subnet73F96DA9` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2RouteTable3609F42C` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2RouteTable3609F42C` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2RouteTableAssociationB4B0A733` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2RouteTableAssociationB4B0A733` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2RouteTableAssociationB4B0A733` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2RouteTableAssociationB4B0A733` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2DefaultRouteFEB062B2` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2DefaultRouteFEB062B2` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPublicSubnet2DefaultRouteFEB062B2` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPublicSubnet2DefaultRouteFEB062B2` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1Subnet571D3690` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L231 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1Subnet571D3690` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L231 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1Subnet571D3690` (AWS::EC2::Subnet) → `Properties.CidrBlock` L231 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1Subnet571D3690` (AWS::EC2::Subnet) → `Properties.CidrBlock` L231 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1Subnet571D3690` (AWS::EC2::Subnet) → `Properties.VpcId` L231 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1Subnet571D3690` (AWS::EC2::Subnet) → `Properties.VpcId` L231 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1RouteTableF6513BC2` (AWS::EC2::RouteTable) → `Properties.VpcId` L266 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1RouteTableF6513BC2` (AWS::EC2::RouteTable) → `Properties.VpcId` L266 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1RouteTableAssociation46F1FFFC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L283 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1RouteTableAssociation46F1FFFC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L283 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1RouteTableAssociation46F1FFFC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L283 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1RouteTableAssociation46F1FFFC` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L283 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1DefaultRouteD1B9E467` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L297 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1DefaultRouteD1B9E467` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L297 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet1DefaultRouteD1B9E467` (AWS::EC2::Route) → `Properties.RouteTableId` L297 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet1DefaultRouteD1B9E467` (AWS::EC2::Route) → `Properties.RouteTableId` L297 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2SubnetCC3D7013` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L312 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2SubnetCC3D7013` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L312 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2SubnetCC3D7013` (AWS::EC2::Subnet) → `Properties.CidrBlock` L312 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2SubnetCC3D7013` (AWS::EC2::Subnet) → `Properties.CidrBlock` L312 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2SubnetCC3D7013` (AWS::EC2::Subnet) → `Properties.VpcId` L312 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2SubnetCC3D7013` (AWS::EC2::Subnet) → `Properties.VpcId` L312 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2RouteTable9AC81FAC` (AWS::EC2::RouteTable) → `Properties.VpcId` L347 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2RouteTable9AC81FAC` (AWS::EC2::RouteTable) → `Properties.VpcId` L347 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2RouteTableAssociation336D47D1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L364 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2RouteTableAssociation336D47D1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L364 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2RouteTableAssociation336D47D1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L364 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2RouteTableAssociation336D47D1` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L364 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2DefaultRoute52A1F245` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L378 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2DefaultRoute52A1F245` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L378 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCPrivateSubnet2DefaultRoute52A1F245` (AWS::EC2::Route) → `Properties.RouteTableId` L378 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCPrivateSubnet2DefaultRoute52A1F245` (AWS::EC2::Route) → `Properties.RouteTableId` L378 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TheVPCVPCGWC9B93E30` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L407 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template`
+- **I9001** `TheVPCVPCGWC9B93E30` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L407 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `sgrds6871B7A8` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L3 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
@@ -5616,89 +5616,89 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'RepositoryName' is create-only; updating it will cause resource replacement
 - **I9001** `BackendDataRepositoryD361813E` (AWS::ECR::Repository) → `Properties.RepositoryName` L14 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template_json`
   > Property 'RepositoryName' is create-only; updating it will cause resource replacement
-- **I9001** `ECSCluster7D463CD4` (AWS::ECS::Cluster) → `Properties.ClusterName` L3 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSCluster7D463CD4` (AWS::ECS::Cluster) → `Properties.ClusterName` L3 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ClusterName' is create-only; updating it will cause resource replacement
-- **I9001** `ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE` (AWS::ServiceDiscovery::PrivateDnsNamespace) → `Properties.Name` L26 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE` (AWS::ServiceDiscovery::PrivateDnsNamespace) → `Properties.Name` L26 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE` (AWS::ServiceDiscovery::PrivateDnsNamespace) → `Properties.Vpc` L26 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE` (AWS::ServiceDiscovery::PrivateDnsNamespace) → `Properties.Vpc` L26 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Vpc' is create-only; updating it will cause resource replacement
-- **I9001** `ECSServiceLogGroupD961AA4E` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L38 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSServiceLogGroupD961AA4E` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L38 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `ECSSecurityGroupA14DBE7D` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L216 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSSecurityGroupA14DBE7D` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L216 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `ECSSecurityGroupA14DBE7D` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L216 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSSecurityGroupA14DBE7D` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L216 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.FromPort` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.FromPort` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'FromPort' is create-only; updating it will cause resource replacement
-- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.GroupId` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.GroupId` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'GroupId' is create-only; updating it will cause resource replacement
-- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'IpProtocol' is create-only; updating it will cause resource replacement
-- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.SourceSecurityGroupId` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.SourceSecurityGroupId` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'SourceSecurityGroupId' is create-only; updating it will cause resource replacement
-- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.ToPort` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ECSSecurityGroupfromCdkExamplesServiceConnectStackEcsStackPublicLBSG6A107D2A50006E3540BF` (AWS::EC2::SecurityGroupIngress) → `Properties.ToPort` L246 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ToPort' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Cpu' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Family` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Family` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Family' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Memory` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Memory` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Memory' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'TaskRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Cpu' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Family` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Family` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Family' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Memory` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Memory` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Memory' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
-- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'TaskRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendServiceBC94BA93` (AWS::ECS::Service) → `Properties.Cluster` L398 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendServiceBC94BA93` (AWS::ECS::Service) → `Properties.Cluster` L398 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Cluster' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendServiceBC94BA93` (AWS::ECS::Service) → `Properties.ServiceName` L398 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendServiceBC94BA93` (AWS::ECS::Service) → `Properties.ServiceName` L398 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ServiceName' is create-only; updating it will cause resource replacement
-- **I9001** `BackendService7A4224EE` (AWS::ECS::Service) → `Properties.Cluster` L470 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendService7A4224EE` (AWS::ECS::Service) → `Properties.Cluster` L470 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Cluster' is create-only; updating it will cause resource replacement
-- **I9001** `BackendService7A4224EE` (AWS::ECS::Service) → `Properties.ServiceName` L470 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `BackendService7A4224EE` (AWS::ECS::Service) → `Properties.ServiceName` L470 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ServiceName' is create-only; updating it will cause resource replacement
-- **I9001** `PublicLBSG963B1ACE` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L530 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `PublicLBSG963B1ACE` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L530 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `PublicLBSG963B1ACE` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L530 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `PublicLBSG963B1ACE` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L530 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Name` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Name` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Port` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Port` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Port' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Protocol` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Protocol` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Protocol' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.TargetType` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.TargetType` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'TargetType' is create-only; updating it will cause resource replacement
-- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendLB2FA80AC2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Scheme` L589 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendLB2FA80AC2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Scheme` L589 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Scheme' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendLB2FA80AC2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L589 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendLB2FA80AC2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L589 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'Type' is create-only; updating it will cause resource replacement
-- **I9001** `FrontendLBListener230479D8` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L625 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `FrontendLBListener230479D8` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L625 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'LoadBalancerArn' is create-only; updating it will cause resource replacement
-- **I9001** `ListenerRule73F9AC5E` (AWS::ElasticLoadBalancingV2::ListenerRule) → `Properties.ListenerArn` L646 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9001** `ListenerRule73F9AC5E` (AWS::ElasticLoadBalancingV2::ListenerRule) → `Properties.ListenerArn` L646 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Property 'ListenerArn' is create-only; updating it will cause resource replacement
 - **I9001** `vpcA2121C38` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_py-emr--emr-cluster.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
@@ -5856,27 +5856,27 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'HostedZoneId' is create-only; updating it will cause resource replacement
 - **I9001** `UrlShortenerDomain9F16453F` (AWS::Route53::RecordSet) → `Properties.Name` L522 in `cdk_py-url-shortener--urlshort-app.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'Cpu' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Family` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Family` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'Family' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Memory` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Memory` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'Memory' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
-- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.TaskRoleArn` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'TaskRoleArn' is create-only; updating it will cause resource replacement
-- **I9001** `generatorserviceServiceA6AC5079` (AWS::ECS::Service) → `Properties.Cluster` L135 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorserviceServiceA6AC5079` (AWS::ECS::Service) → `Properties.Cluster` L135 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'Cluster' is create-only; updating it will cause resource replacement
-- **I9001** `generatorserviceSecurityGroup3D8BECF8` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L182 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorserviceSecurityGroup3D8BECF8` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L182 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `generatorserviceSecurityGroup3D8BECF8` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L182 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9001** `generatorserviceSecurityGroup3D8BECF8` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L182 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `R53ResolverTestVPC9B993306` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_r53-resolver--R53ResolverStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
@@ -5988,101 +5988,101 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'SecurityGroups' is create-only; updating it will cause resource replacement
 - **I9001** `ASGLaunchConfigC00AF12B` (AWS::AutoScaling::LaunchConfiguration) → `Properties.UserData` L397 in `cdk_resource-overrides--resource-overrides.template_json`
   > Property 'UserData' is create-only; updating it will cause resource replacement
-- **I9001** `Vpc8378EB38` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `Vpc8378EB38` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.CidrBlock` L21 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1RouteTable6C95E38E` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1RouteTable6C95E38E` (AWS::EC2::RouteTable) → `Properties.VpcId` L56 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L73 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1RouteTableAssociation97140677` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L73 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L87 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1DefaultRoute3DA9E72A` (AWS::EC2::Route) → `Properties.RouteTableId` L87 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.AllocationId` L120 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'AllocationId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet1NATGateway4D7517AA` (AWS::EC2::NatGateway) → `Properties.SubnetId` L120 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L147 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.CidrBlock` L147 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2Subnet691E08A3` (AWS::EC2::Subnet) → `Properties.VpcId` L147 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2RouteTable94F7E489` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2RouteTable94F7E489` (AWS::EC2::RouteTable) → `Properties.VpcId` L182 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L199 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2RouteTableAssociationDD5762D8` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L199 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L213 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2DefaultRoute97F91067` (AWS::EC2::Route) → `Properties.RouteTableId` L213 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.AllocationId` L246 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.AllocationId` L246 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'AllocationId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.SubnetId` L246 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPublicSubnet2NATGateway9182C01D` (AWS::EC2::NatGateway) → `Properties.SubnetId` L246 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L273 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L273 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.CidrBlock` L273 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.CidrBlock` L273 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.VpcId` L273 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1Subnet536B997A` (AWS::EC2::Subnet) → `Properties.VpcId` L273 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1RouteTableB2C5B500` (AWS::EC2::RouteTable) → `Properties.VpcId` L308 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1RouteTableB2C5B500` (AWS::EC2::RouteTable) → `Properties.VpcId` L308 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L325 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L325 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L325 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1RouteTableAssociation70C59FA6` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L325 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L339 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L339 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.RouteTableId` L339 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet1DefaultRouteBE02A9ED` (AWS::EC2::Route) → `Properties.RouteTableId` L339 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L354 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L354 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L354 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L354 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.VpcId` L354 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2Subnet3788AAA1` (AWS::EC2::Subnet) → `Properties.VpcId` L354 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2RouteTableA678073B` (AWS::EC2::RouteTable) → `Properties.VpcId` L389 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2RouteTableA678073B` (AWS::EC2::RouteTable) → `Properties.VpcId` L389 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L406 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L406 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L406 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2RouteTableAssociationA89CAD56` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L406 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L420 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L420 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.RouteTableId` L420 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcPrivateSubnet2DefaultRoute060D2087` (AWS::EC2::Route) → `Properties.RouteTableId` L420 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `VpcVPCGWBF912B6E` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L449 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `VpcVPCGWBF912B6E` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L449 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `DNSFirewallLogGroupF0EEB7D4` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L463 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `DNSFirewallLogGroupF0EEB7D4` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L463 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `DNSLogsConfig` (AWS::Route53Resolver::ResolverQueryLoggingConfig) → `Properties.DestinationArn` L475 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `DNSLogsConfig` (AWS::Route53Resolver::ResolverQueryLoggingConfig) → `Properties.DestinationArn` L475 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'DestinationArn' is create-only; updating it will cause resource replacement
-- **I9001** `DNSLogsConfig` (AWS::Route53Resolver::ResolverQueryLoggingConfig) → `Properties.Name` L475 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `DNSLogsConfig` (AWS::Route53Resolver::ResolverQueryLoggingConfig) → `Properties.Name` L475 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `DNSLogAssoc` (AWS::Route53Resolver::ResolverQueryLoggingConfigAssociation) → `Properties.ResolverQueryLogConfigId` L490 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `DNSLogAssoc` (AWS::Route53Resolver::ResolverQueryLoggingConfigAssociation) → `Properties.ResolverQueryLogConfigId` L490 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'ResolverQueryLogConfigId' is create-only; updating it will cause resource replacement
-- **I9001** `DNSLogAssoc` (AWS::Route53Resolver::ResolverQueryLoggingConfigAssociation) → `Properties.ResourceId` L490 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `DNSLogAssoc` (AWS::Route53Resolver::ResolverQueryLoggingConfigAssociation) → `Properties.ResourceId` L490 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
-- **I9001** `AllowedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Name` L504 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `AllowedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Name` L504 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `BlockedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Name` L516 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `BlockedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Name` L516 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `DNSRuleGroup` (AWS::Route53Resolver::FirewallRuleGroup) → `Properties.Name` L529 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `DNSRuleGroup` (AWS::Route53Resolver::FirewallRuleGroup) → `Properties.Name` L529 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `FirewallRuleGroupAssociation` (AWS::Route53Resolver::FirewallRuleGroupAssociation) → `Properties.FirewallRuleGroupId` L555 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `FirewallRuleGroupAssociation` (AWS::Route53Resolver::FirewallRuleGroupAssociation) → `Properties.FirewallRuleGroupId` L555 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'FirewallRuleGroupId' is create-only; updating it will cause resource replacement
-- **I9001** `FirewallRuleGroupAssociation` (AWS::Route53Resolver::FirewallRuleGroupAssociation) → `Properties.VpcId` L555 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9001** `FirewallRuleGroupAssociation` (AWS::Route53Resolver::FirewallRuleGroupAssociation) → `Properties.VpcId` L555 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `examplebucketPolicyE09B485E` (AWS::S3::BucketPolicy) → `Properties.Bucket` L29 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template_json`
   > Property 'Bucket' is create-only; updating it will cause resource replacement
@@ -6166,12 +6166,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Instance2` (AWS::EC2::Instance) → `Properties.ImageId` L20 in `gh-issues_issue-34_json`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L9 in `gh-issues_issue-36_yaml`
+  > Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement
 - **I9001** `MyLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L4 in `gh-issues_issue-37_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `MyLaunchConfig` (AWS::AutoScaling::LaunchConfiguration) → `Properties.InstanceType` L4 in `gh-issues_issue-37_yaml`
   > Property 'InstanceType' is create-only; updating it will cause resource replacement
 - **I9001** `Memory` (AWS::BedrockAgentCore::Memory) → `Properties.Name` L3 in `gh-issues_issue-38_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `VPCB9E5F0B4` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `gh-issues_issue-39_json`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `VPCEcrEndpointSecurityGroup50ED8BA4` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L9 in `gh-issues_issue-39_json`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `VPCEcrEndpointSecurityGroup50ED8BA4` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L9 in `gh-issues_issue-39_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `EksCluster` (AWS::EKS::Cluster) → `Properties.Name` L3 in `gh-issues_issue-40_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L3 in `gh-issues_issue-40_yaml`
@@ -6198,12 +6206,26 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `Service` (AWS::ECS::Service) → `Properties.Cluster` L21 in `gh-issues_issue-42_yaml`
   > Property 'Cluster' is create-only; updating it will cause resource replacement
+- **I9001** `interfaceVpcEndpoint89C99945` (AWS::EC2::VPCEndpoint) → `Properties.ServiceName` L3 in `gh-issues_issue-45_json`
+  > Property 'ServiceName' is create-only; updating it will cause resource replacement
+- **I9001** `interfaceVpcEndpoint89C99945` (AWS::EC2::VPCEndpoint) → `Properties.VpcEndpointType` L3 in `gh-issues_issue-45_json`
+  > Property 'VpcEndpointType' is create-only; updating it will cause resource replacement
+- **I9001** `interfaceVpcEndpoint89C99945` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L3 in `gh-issues_issue-45_json`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterEB0386A7` (AWS::EKS::Cluster) → `Properties.RoleArn` L4 in `gh-issues_issue-46_json`
+  > Property 'RoleArn' is create-only; updating it will cause resource replacement
 - **I9001** `MyFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L3 in `gh-issues_issue-47_json`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `DocDbInstance` (AWS::DocDB::DBInstance) → `Properties.DBClusterIdentifier` L9 in `gh-issues_issue-49_yaml`
   > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
 - **I9001** `Ec2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L14 in `gh-issues_issue-49_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
+- **I9001** `Nodegroup` (AWS::EKS::Nodegroup) → `Properties.ClusterName` L3 in `gh-issues_issue-52_json`
+  > Property 'ClusterName' is create-only; updating it will cause resource replacement
+- **I9001** `Nodegroup` (AWS::EKS::Nodegroup) → `Properties.NodeRole` L3 in `gh-issues_issue-52_json`
+  > Property 'NodeRole' is create-only; updating it will cause resource replacement
+- **I9001** `Nodegroup` (AWS::EKS::Nodegroup) → `Properties.Subnets` L3 in `gh-issues_issue-52_json`
+  > Property 'Subnets' is create-only; updating it will cause resource replacement
 - **I9001** `UserVpcFAC913E5` (AWS::EC2::VPC) → `Properties.CidrBlock` L3 in `gh-issues_issue-53_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `UserVpcPublicSubnet1Subnet7A3A7B5D` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L18 in `gh-issues_issue-53_json`
@@ -6300,6 +6322,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'NodeRole' is create-only; updating it will cause resource replacement
 - **I9001** `ClusterNodegroupDefaultCapacityDA0920A3` (AWS::EKS::Nodegroup) → `Properties.Subnets` L954 in `gh-issues_issue-53_json`
   > Property 'Subnets' is create-only; updating it will cause resource replacement
+- **I9001** `WeakConsumer` (AWS::SNS::Topic) → `Properties.TopicName` L3 in `gh-issues_issue-56_json`
+  > Property 'TopicName' is create-only; updating it will cause resource replacement
 - **I9001** `Canary` (AWS::Synthetics::Canary) → `Properties.Name` L3 in `gh-issues_issue-62_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyLambda` (AWS::Lambda::Function) → `Properties.FunctionName` L3 in `gh-issues_issue-65_json`
@@ -6318,13 +6342,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `FutureNodeFunc` (AWS::Lambda::Function) → `Properties.FunctionName` L16 in `gh-issues_issue-68_json`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L16 in `good_E9001_aws_cdk_metadata`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L16 in `good_E9001_aws_cdk_metadata_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L14 in `good_W3010_getazs_not_flagged`
+- **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L14 in `good_W3010_getazs_not_flagged_yaml`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L14 in `good_W3010_getazs_not_flagged`
+- **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L14 in `good_W3010_getazs_not_flagged_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.VpcId` L14 in `good_W3010_getazs_not_flagged`
+- **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.VpcId` L14 in `good_W3010_getazs_not_flagged_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.DBClusterIdentifier` L4 in `good_aurora_dbinstance_yaml`
   > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
@@ -6340,8 +6364,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
 - **I9001** `DevBucket` (AWS::S3::Bucket) → `Properties.BucketName` L43 in `good_complex_conditions_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `good_conditions`
-  > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `good_conditions_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `mySubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L22 in `good_core_conditions_yaml`
@@ -6360,7 +6382,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Path' is create-only; updating it will cause resource replacement
 - **I9001** `InstanceProfile` (AWS::IAM::InstanceProfile) → `Properties.Path` L93 in `good_core_conditions_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `myTable` (AWS::DynamoDB::Table) → `Properties.TableName` L7 in `good_core_config_default_e3012`
+- **I9001** `myTable` (AWS::DynamoDB::Table) → `Properties.TableName` L7 in `good_core_config_default_e3012_yaml`
   > Property 'TableName' is create-only; updating it will cause resource replacement
 - **I9001** `LambdaExecutionRole` (AWS::IAM::Role) → `Properties.Path` L9 in `good_custom_is-defined_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
@@ -6376,34 +6398,42 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'TableName' is create-only; updating it will cause resource replacement
 - **I9001** `GoodTable` (AWS::DynamoDB::Table) → `Properties.TableName` L4 in `good_dynamodb_valid_attributes_yaml`
   > Property 'TableName' is create-only; updating it will cause resource replacement
-- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `good_ecs_awsvpc_valid`
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `good_ecs_awsvpc_valid_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L4 in `good_ecs_awsvpc_valid`
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L4 in `good_ecs_awsvpc_valid_yaml`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `good_ecs_fargate`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `good_ecs_fargate_valid_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L4 in `good_ecs_fargate`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L4 in `good_ecs_fargate_valid_yaml`
   > Property 'Cpu' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Family` L4 in `good_ecs_fargate`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Family` L4 in `good_ecs_fargate_valid_yaml`
   > Property 'Family' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Memory` L4 in `good_ecs_fargate`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Memory` L4 in `good_ecs_fargate_valid_yaml`
   > Property 'Memory' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L4 in `good_ecs_fargate`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L4 in `good_ecs_fargate_valid_yaml`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L4 in `good_ecs_fargate`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L4 in `good_ecs_fargate_valid_yaml`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `good_ecs_fargate_valid`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L4 in `good_ecs_fargate_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L4 in `good_ecs_fargate_valid`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L4 in `good_ecs_fargate_yaml`
   > Property 'Cpu' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Family` L4 in `good_ecs_fargate_valid`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Family` L4 in `good_ecs_fargate_yaml`
   > Property 'Family' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Memory` L4 in `good_ecs_fargate_valid`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Memory` L4 in `good_ecs_fargate_yaml`
   > Property 'Memory' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L4 in `good_ecs_fargate_valid`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L4 in `good_ecs_fargate_yaml`
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
-- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L4 in `good_ecs_fargate_valid`
+- **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L4 in `good_ecs_fargate_yaml`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `Sg` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L9 in `good_functions_dynamic_reference_embedded_yaml`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `Sg` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L9 in `good_functions_dynamic_reference_embedded_yaml`
+  > Property 'GroupName' is create-only; updating it will cause resource replacement
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L17 in `good_functions_dynamic_reference_embedded_yaml`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L32 in `good_functions_dynamic_reference_embedded_yaml`
+  > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Cluster0` (AWS::ECS::Cluster) → `Properties.ClusterName` L12 in `good_functions_findinmap_default_value_yaml`
   > Property 'ClusterName' is create-only; updating it will cause resource replacement
 - **I9001** `Cluster1` (AWS::ECS::Cluster) → `Properties.ClusterName` L20 in `good_functions_findinmap_default_value_yaml`
@@ -6440,7 +6470,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `myInstance3` (AWS::EC2::Instance) → `Properties.ImageId` L24 in `good_functions_findinmap_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
-- **I9001** `ConfigEnvironment` (AWS::AppConfig::Environment) → `Properties.ApplicationId` L28 in `good_functions_relationship_conditions_sam`
+- **I9001** `ConfigEnvironment` (AWS::AppConfig::Environment) → `Properties.ApplicationId` L28 in `good_functions_relationship_conditions_sam_yaml`
   > Property 'ApplicationId' is create-only; updating it will cause resource replacement
 - **I9001** `LambdaExecutionRole` (AWS::IAM::Role) → `Properties.Path` L12 in `good_functions_relationship_conditions_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
@@ -6468,22 +6498,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'UserData' is create-only; updating it will cause resource replacement
 - **I9001** `myVPc2` (AWS::EC2::VPC) → `Properties.CidrBlock` L70 in `good_functions_sub_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `RootRole` (AWS::IAM::Role) → `Properties.Path` L34 in `good_generic`
-  > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `RootInstanceProfile` (AWS::IAM::InstanceProfile) → `Properties.Path` L67 in `good_generic`
-  > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L73 in `good_generic`
-  > Property 'ImageId' is create-only; updating it will cause resource replacement
-- **I9001** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.KeyName` L73 in `good_generic`
-  > Property 'KeyName' is create-only; updating it will cause resource replacement
-- **I9001** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.NetworkInterfaces` L73 in `good_generic`
-  > Property 'NetworkInterfaces' is create-only; updating it will cause resource replacement
-- **I9001** `MyEC2Instance1` (AWS::EC2::Instance) → `Properties.ImageId` L93 in `good_generic`
-  > Property 'ImageId' is create-only; updating it will cause resource replacement
-- **I9001** `MyEC2Instance1` (AWS::EC2::Instance) → `Properties.KeyName` L93 in `good_generic`
-  > Property 'KeyName' is create-only; updating it will cause resource replacement
-- **I9001** `MyEC2Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces` L93 in `good_generic`
-  > Property 'NetworkInterfaces' is create-only; updating it will cause resource replacement
 - **I9001** `RootRole` (AWS::IAM::Role) → `Properties.Path` L34 in `good_generic_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
 - **I9001** `RootInstanceProfile` (AWS::IAM::InstanceProfile) → `Properties.Path` L67 in `good_generic_yaml`
@@ -6524,13 +6538,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
 - **I9001** `Cluster` (AWS::DocDB::DBCluster) → `Properties.MasterUsername` L7 in `good_no_w3010_on_unlisted_type_yaml`
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
-- **I9001** `myS3Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_override_complete`
+- **I9001** `myS3Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_override_complete_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `untaggedInstance` (AWS::EC2::Instance) → `Properties.ImageId` L11 in `good_override_complete`
+- **I9001** `untaggedInstance` (AWS::EC2::Instance) → `Properties.ImageId` L11 in `good_override_complete_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
-- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L15 in `good_override_complete`
+- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L15 in `good_override_complete_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `myS3Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_override_required`
+- **I9001** `myS3Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_override_required_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `LaunchConfiguration` (AWS::AutoScaling::LaunchConfiguration) → `Properties.ImageId` L18 in `good_parameters_not_used_parameters_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -6562,48 +6576,46 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `mySubnet22` (AWS::EC2::Subnet) → `Properties.VpcId` L63 in `good_properties_ec2_vpc_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `AppSubnetPublicRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L28 in `good_properties_rt_association`
+- **I9001** `AppSubnetPublicRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L28 in `good_properties_rt_association_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `AppSubnetPublicRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L28 in `good_properties_rt_association`
+- **I9001** `AppSubnetPublicRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L28 in `good_properties_rt_association_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `AppSubnetPrivateRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L37 in `good_properties_rt_association`
+- **I9001** `AppSubnetPrivateRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L37 in `good_properties_rt_association_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `AppSubnetPrivateRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L37 in `good_properties_rt_association`
+- **I9001** `AppSubnetPrivateRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L37 in `good_properties_rt_association_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L46 in `good_properties_rt_association`
+- **I9001** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L46 in `good_properties_rt_association_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L46 in `good_properties_rt_association`
+- **I9001** `ProxySubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L46 in `good_properties_rt_association_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L54 in `good_properties_rt_association`
+- **I9001** `PublicSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L54 in `good_properties_rt_association_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `PublicSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L54 in `good_properties_rt_association`
+- **I9001** `PublicSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L54 in `good_properties_rt_association_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `CustomResource` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L62 in `good_properties_rt_association`
+- **I9001** `CustomResource` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L62 in `good_properties_rt_association_yaml`
   > Property 'ServiceToken' is create-only; updating it will cause resource replacement
-- **I9001** `CustomSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L67 in `good_properties_rt_association`
+- **I9001** `CustomSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L67 in `good_properties_rt_association_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `CustomSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L67 in `good_properties_rt_association`
+- **I9001** `CustomSubnetRouteTableAssociation` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L67 in `good_properties_rt_association_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L4 in `good_redshift_private`
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L4 in `good_redshift_private_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L4 in `good_redshift_private`
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L4 in `good_redshift_private_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L9 in `good_redshift_private`
+- **I9001** `VPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L9 in `good_redshift_private_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.VpcId` L19 in `good_redshift_private`
+- **I9001** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.VpcId` L19 in `good_redshift_private_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L23 in `good_redshift_private`
+- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.RouteTableId` L23 in `good_redshift_private_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L23 in `good_redshift_private`
+- **I9001** `SubnetRTAssoc` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L23 in `good_redshift_private_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `NatGW` (AWS::EC2::NatGateway) → `Properties.SubnetId` L28 in `good_redshift_private`
+- **I9001** `NatGW` (AWS::EC2::NatGateway) → `Properties.SubnetId` L28 in `good_redshift_private_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
-- **I9001** `Route1` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L32 in `good_redshift_private`
+- **I9001** `Route1` (AWS::EC2::Route) → `Properties.DestinationCidrBlock` L32 in `good_redshift_private_yaml`
   > Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `Route1` (AWS::EC2::Route) → `Properties.RouteTableId` L32 in `good_redshift_private`
+- **I9001** `Route1` (AWS::EC2::Route) → `Properties.RouteTableId` L32 in `good_redshift_private_yaml`
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
-- **I9001** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Name` L6 in `good_resources_codepipeline`
-  > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Name` L6 in `good_resources_codepipeline_yaml`
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `MyParameterGroup` (AWS::ElastiCache::ParameterGroup) → `Properties.CacheParameterGroupFamily` L16 in `good_resources_elasticache_cache_cluster_failover_yaml`
@@ -6638,55 +6650,55 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'AtRestEncryptionEnabled' is create-only; updating it will cause resource replacement
 - **I9001** `SixthReplicationGroup` (AWS::ElastiCache::ReplicationGroup) → `Properties.CacheSubnetGroupName` L140 in `good_resources_elasticache_cache_cluster_failover_yaml`
   > Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement
-- **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L5 in `good_resources_iam_managed_policy_description`
+- **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L5 in `good_resources_iam_managed_policy_description_yaml`
   > Property 'Description' is create-only; updating it will cause resource replacement
 - **I9001** `SomeManagedPolicy` (AWS::IAM::ManagedPolicy) → `Properties.Description` L12 in `good_resources_iam_policy_yaml`
   > Property 'Description' is create-only; updating it will cause resource replacement
-- **I9001** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Path` L34 in `good_resources_iam_ref_with_path`
+- **I9001** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Path` L34 in `good_resources_iam_ref_with_path_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `CodeBuildVPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L62 in `good_resources_iam_ref_with_path`
+- **I9001** `CodeBuildVPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L62 in `good_resources_iam_ref_with_path_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L71 in `good_resources_iam_ref_with_path`
+- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L71 in `good_resources_iam_ref_with_path_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L71 in `good_resources_iam_ref_with_path`
+- **I9001** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L71 in `good_resources_iam_ref_with_path_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L77 in `good_resources_iam_ref_with_path`
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L77 in `good_resources_iam_ref_with_path_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
-- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L77 in `good_resources_iam_ref_with_path`
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L77 in `good_resources_iam_ref_with_path_yaml`
   > Property 'GroupName' is create-only; updating it will cause resource replacement
-- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L77 in `good_resources_iam_ref_with_path`
+- **I9001** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L77 in `good_resources_iam_ref_with_path_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 - **I9001** `Function3` (AWS::Lambda::Function) → `Properties.PackageType` L24 in `good_resources_lambda_required_properties_yaml`
   > Property 'PackageType' is create-only; updating it will cause resource replacement
 - **I9001** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `good_resources_name_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
-- **I9001** `RootRole` (AWS::IAM::Role) → `Properties.Path` L6 in `good_resources_primary_identifiers`
+- **I9001** `RootRole` (AWS::IAM::Role) → `Properties.Path` L6 in `good_resources_primary_identifiers_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `RootRole` (AWS::IAM::Role) → `Properties.RoleName` L6 in `good_resources_primary_identifiers`
+- **I9001** `RootRole` (AWS::IAM::Role) → `Properties.RoleName` L6 in `good_resources_primary_identifiers_yaml`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `RootRole3` (AWS::IAM::Role) → `Properties.Path` L28 in `good_resources_primary_identifiers`
+- **I9001** `RootRole3` (AWS::IAM::Role) → `Properties.Path` L28 in `good_resources_primary_identifiers_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `RootRole3` (AWS::IAM::Role) → `Properties.RoleName` L28 in `good_resources_primary_identifiers`
+- **I9001** `RootRole3` (AWS::IAM::Role) → `Properties.RoleName` L28 in `good_resources_primary_identifiers_yaml`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `RootRole4` (AWS::IAM::Role) → `Properties.Path` L51 in `good_resources_primary_identifiers`
+- **I9001** `RootRole4` (AWS::IAM::Role) → `Properties.Path` L51 in `good_resources_primary_identifiers_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `RootRole4` (AWS::IAM::Role) → `Properties.RoleName` L51 in `good_resources_primary_identifiers`
+- **I9001** `RootRole4` (AWS::IAM::Role) → `Properties.RoleName` L51 in `good_resources_primary_identifiers_yaml`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
-- **I9001** `FunctionPermission1` (AWS::Lambda::Permission) → `Properties.Action` L89 in `good_resources_primary_identifiers`
+- **I9001** `FunctionPermission1` (AWS::Lambda::Permission) → `Properties.Action` L89 in `good_resources_primary_identifiers_yaml`
   > Property 'Action' is create-only; updating it will cause resource replacement
-- **I9001** `FunctionPermission1` (AWS::Lambda::Permission) → `Properties.FunctionName` L89 in `good_resources_primary_identifiers`
+- **I9001** `FunctionPermission1` (AWS::Lambda::Permission) → `Properties.FunctionName` L89 in `good_resources_primary_identifiers_yaml`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
-- **I9001** `FunctionPermission1` (AWS::Lambda::Permission) → `Properties.Principal` L89 in `good_resources_primary_identifiers`
+- **I9001** `FunctionPermission1` (AWS::Lambda::Permission) → `Properties.Principal` L89 in `good_resources_primary_identifiers_yaml`
   > Property 'Principal' is create-only; updating it will cause resource replacement
-- **I9001** `FunctionPermission2` (AWS::Lambda::Permission) → `Properties.Action` L95 in `good_resources_primary_identifiers`
+- **I9001** `FunctionPermission2` (AWS::Lambda::Permission) → `Properties.Action` L95 in `good_resources_primary_identifiers_yaml`
   > Property 'Action' is create-only; updating it will cause resource replacement
-- **I9001** `FunctionPermission2` (AWS::Lambda::Permission) → `Properties.FunctionName` L95 in `good_resources_primary_identifiers`
+- **I9001** `FunctionPermission2` (AWS::Lambda::Permission) → `Properties.FunctionName` L95 in `good_resources_primary_identifiers_yaml`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
-- **I9001** `FunctionPermission2` (AWS::Lambda::Permission) → `Properties.Principal` L95 in `good_resources_primary_identifiers`
+- **I9001** `FunctionPermission2` (AWS::Lambda::Permission) → `Properties.Principal` L95 in `good_resources_primary_identifiers_yaml`
   > Property 'Principal' is create-only; updating it will cause resource replacement
-- **I9001** `TESTROLE` (AWS::IAM::Role) → `Properties.Path` L6 in `good_resources_properties_allowed_pattern`
+- **I9001** `TESTROLE` (AWS::IAM::Role) → `Properties.Path` L6 in `good_resources_properties_allowed_pattern_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
-- **I9001** `TESTROLE` (AWS::IAM::Role) → `Properties.RoleName` L6 in `good_resources_properties_allowed_pattern`
+- **I9001** `TESTROLE` (AWS::IAM::Role) → `Properties.RoleName` L6 in `good_resources_properties_allowed_pattern_yaml`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L5 in `good_resources_properties_az_cdk_yaml`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
@@ -6702,10 +6714,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'SourceSecurityGroupId' is create-only; updating it will cause resource replacement
 - **I9001** `Alarm` (AWS::CloudWatch::Alarm) → `Properties.AlarmName` L10 in `good_resources_properties_exclusive_yaml`
   > Property 'AlarmName' is create-only; updating it will cause resource replacement
-- **I9001** `Authorizer` (AWS::ApiGateway::Authorizer) → `Properties.RestApiId` L3 in `good_resources_properties_hard_coded_arn_properties`
-  > Property 'RestApiId' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::BucketPolicy) → `Properties.Bucket` L18 in `good_resources_properties_hard_coded_arn_properties`
-  > Property 'Bucket' is create-only; updating it will cause resource replacement
 - **I9001** `SampleBadBucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L16 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
   > Property 'Bucket' is create-only; updating it will cause resource replacement
 - **I9001** `SampleRole` (AWS::IAM::Role) → `Properties.Path` L28 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
@@ -6716,6 +6724,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Path' is create-only; updating it will cause resource replacement
 - **I9001** `IngestionPipeline` (AWS::OSIS::Pipeline) → `Properties.PipelineName` L87 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
   > Property 'PipelineName' is create-only; updating it will cause resource replacement
+- **I9001** `Authorizer` (AWS::ApiGateway::Authorizer) → `Properties.RestApiId` L3 in `good_resources_properties_hard_coded_arn_properties_yaml`
+  > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Bucket` (AWS::S3::BucketPolicy) → `Properties.Bucket` L18 in `good_resources_properties_hard_coded_arn_properties_yaml`
+  > Property 'Bucket' is create-only; updating it will cause resource replacement
 - **I9001** `MyDB` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L16 in `good_resources_properties_password_yaml`
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
 - **I9001** `myNewDb` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L25 in `good_resources_properties_password_yaml`
@@ -6724,15 +6736,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
 - **I9001** `MyIAMUser` (AWS::IAM::User) → `Properties.UserName` L43 in `good_resources_properties_password_yaml`
   > Property 'UserName' is create-only; updating it will cause resource replacement
-- **I9001** `AppSyncSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L8 in `good_resources_properties_templated_code`
+- **I9001** `AppSyncSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L8 in `good_resources_properties_templated_code_yaml`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket2` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_resources_s3_access-control-obsolete`
+- **I9001** `Bucket2` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_resources_s3_access-control-obsolete_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `BucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L11 in `good_resources_s3_access-control-obsolete`
+- **I9001** `BucketPolicy` (AWS::S3::BucketPolicy) → `Properties.Bucket` L11 in `good_resources_s3_access-control-obsolete_yaml`
   > Property 'Bucket' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `good_schema_valid_resources`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `good_schema_valid_resources_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_simple_sub_prefix`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_simple_sub_prefix_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `FunctionALogGroup` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L23 in `good_some_logs_stream_lambda_yaml`
   > Property 'LogGroupName' is create-only; updating it will cause resource replacement
@@ -6746,11 +6758,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'FifoQueue' is create-only; updating it will cause resource replacement
 - **I9001** `FifoQueue` (AWS::SQS::Queue) → `Properties.QueueName` L4 in `good_sqs_fifo_valid_yaml`
   > Property 'QueueName' is create-only; updating it will cause resource replacement
-- **I9001** `Doc` (AWS::SSM::Document) → `Properties.DocumentType` L4 in `good_ssm_document_valid`
+- **I9001** `Doc` (AWS::SSM::Document) → `Properties.DocumentType` L4 in `good_ssm_document_valid_yaml`
   > Property 'DocumentType' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `good_ssm_parameter_name_type`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `good_ssm_parameter_name_type_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_sub_not_needed`
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_sub_not_needed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L85 in `good_transform_language_extension_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
@@ -6870,17 +6882,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
 - **I9001** `CustomResource` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L9 in `integration_custom-resources_yaml`
   > Property 'ServiceToken' is create-only; updating it will cause resource replacement
-- **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L22 in `integration_deployment-file-template`
+- **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L22 in `integration_deployment-file-template_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L26 in `integration_deployment-file-template`
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L26 in `integration_deployment-file-template_yaml`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L26 in `integration_deployment-file-template`
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L26 in `integration_deployment-file-template_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
-- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L26 in `integration_deployment-file-template`
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L26 in `integration_deployment-file-template_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `MyInstance` (AWS::EC2::Instance) → `Properties.ImageId` L32 in `integration_deployment-file-template`
+- **I9001** `MyInstance` (AWS::EC2::Instance) → `Properties.ImageId` L32 in `integration_deployment-file-template_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
-- **I9001** `MyInstance` (AWS::EC2::Instance) → `Properties.SubnetId` L32 in `integration_deployment-file-template`
+- **I9001** `MyInstance` (AWS::EC2::Instance) → `Properties.SubnetId` L32 in `integration_deployment-file-template_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
 - **I9001** `SESEventSourceMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L5 in `integration_dynamic-references_yaml`
   > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
@@ -6986,7 +6998,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'InstanceType' is create-only; updating it will cause resource replacement
 - **I9001** `LaunchConfiguration` (AWS::AutoScaling::LaunchConfiguration) → `Properties.SecurityGroups` L112 in `integration_ref-types_yaml`
   > Property 'SecurityGroups' is create-only; updating it will cause resource replacement
-- **I9001** `MyInstance` (AWS::EC2::Instance) → `Properties.ImageId` L10 in `integration_resources-cloudformation-init`
+- **I9001** `MyInstance` (AWS::EC2::Instance) → `Properties.ImageId` L10 in `integration_resources-cloudformation-init_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `DeniedPolicies` (AWS::IAM::ManagedPolicy) → `Properties.Description` L116 in `issues_sam_w_conditions_yaml`
   > Property 'Description' is create-only; updating it will cause resource replacement
@@ -8399,7 +8411,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2113 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1518 findings
+### I9040 — 1517 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -8413,7 +8425,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'D' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_F2002_ssm_parameter_type_invalid_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L25 in `bad_W1028_allowedvalues_excludes_literal`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L25 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Asg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L6 in `bad_W3010_full_coverage_yaml`
   > Resource 'Asg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
@@ -8503,9 +8515,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyEipNat' of type 'AWS::EC2::EIP' supports Tags but none are configured
 - **I9040** `MySNSTopic` (AWS::SNS::Topic) → `Properties.Tags` L23 in `bad_duplicate_json`
   > Resource 'MySNSTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured
-- **I9040** `BucketA` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_duplicate_primary_id_multi`
+- **I9040** `BucketA` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_duplicate_primary_id_multi_yaml`
   > Resource 'BucketA' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `BucketB` (AWS::S3::Bucket) → `Properties.Tags` L13 in `bad_duplicate_primary_id_multi`
+- **I9040** `BucketB` (AWS::S3::Bucket) → `Properties.Tags` L13 in `bad_duplicate_primary_id_multi_yaml`
   > Resource 'BucketB' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `BucketA` (AWS::S3::Bucket) → `Properties.Tags` L4 in `bad_duplicate_primary_id_yaml`
   > Resource 'BucketA' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -8533,11 +8545,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `Service` (AWS::ECS::Service) → `Properties.Tags` L15 in `bad_ecs_fargate_mismatch_yaml`
   > Resource 'Service' of type 'AWS::ECS::Service' supports Tags but none are configured
-- **I9040** `TaskRole` (AWS::IAM::Role) → `Properties.Tags` L4 in `bad_ecs_role_no_boundary`
+- **I9040** `TaskRole` (AWS::IAM::Role) → `Properties.Tags` L4 in `bad_ecs_role_no_boundary_yaml`
   > Resource 'TaskRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `ExecRole` (AWS::IAM::Role) → `Properties.Tags` L14 in `bad_ecs_role_no_boundary`
+- **I9040** `ExecRole` (AWS::IAM::Role) → `Properties.Tags` L14 in `bad_ecs_role_no_boundary_yaml`
   > Resource 'ExecRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L24 in `bad_ecs_role_no_boundary`
+- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L24 in `bad_ecs_role_no_boundary_yaml`
   > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `R` (AWS::S3::Bucket) → `Properties.Tags` L10 in `bad_equals_wrong_arity_yaml`
   > Resource 'R' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -8635,17 +8647,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'S3BadBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `SampleRole` (AWS::IAM::Role) → `Properties.Tags` L25 in `bad_hard_coded_arn_properties_yaml`
   > Resource 'SampleRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `bad_hardcoded_partition`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `bad_hardcoded_partition_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `Topic` (AWS::SNS::Topic) → `Properties.Tags` L8 in `bad_hardcoded_partition`
+- **I9040** `Topic` (AWS::SNS::Topic) → `Properties.Tags` L8 in `bad_hardcoded_partition_yaml`
   > Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L4 in `bad_iam_ref_with_path_yaml`
   > Resource 'Role' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Project` (AWS::CodeBuild::Project) → `Properties.Tags` L15 in `bad_iam_ref_with_path_yaml`
   > Resource 'Project' of type 'AWS::CodeBuild::Project' supports Tags but none are configured
-- **I9040** `WildcardUser` (AWS::IAM::User) → `Properties.Tags` L4 in `bad_iam_wildcard_all_types`
+- **I9040** `WildcardUser` (AWS::IAM::User) → `Properties.Tags` L4 in `bad_iam_wildcard_all_types_yaml`
   > Resource 'WildcardUser' of type 'AWS::IAM::User' supports Tags but none are configured
-- **I9040** `NotActionUser` (AWS::IAM::User) → `Properties.Tags` L35 in `bad_iam_wildcard_all_types`
+- **I9040** `NotActionUser` (AWS::IAM::User) → `Properties.Tags` L35 in `bad_iam_wildcard_all_types_yaml`
   > Resource 'NotActionUser' of type 'AWS::IAM::User' supports Tags but none are configured
 - **I9040** `R` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_if_wrong_arity_yaml`
   > Resource 'R' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -8721,15 +8733,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'myInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Database` (AWS::RDS::DBInstance) → `Properties.Tags` L4 in `bad_rds_public_yaml`
   > Resource 'Database' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `Subnet1` (AWS::EC2::Subnet) → `Properties.Tags` L4 in `bad_redshift_internet_accessible`
+- **I9040** `Subnet1` (AWS::EC2::Subnet) → `Properties.Tags` L4 in `bad_redshift_internet_accessible_yaml`
   > Resource 'Subnet1' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `VPC` (AWS::EC2::VPC) → `Properties.Tags` L9 in `bad_redshift_internet_accessible`
+- **I9040** `VPC` (AWS::EC2::VPC) → `Properties.Tags` L9 in `bad_redshift_internet_accessible_yaml`
   > Resource 'VPC' of type 'AWS::EC2::VPC' supports Tags but none are configured
-- **I9040** `RedshiftSubnetGroup` (AWS::Redshift::ClusterSubnetGroup) → `Properties.Tags` L13 in `bad_redshift_internet_accessible`
+- **I9040** `RedshiftSubnetGroup` (AWS::Redshift::ClusterSubnetGroup) → `Properties.Tags` L13 in `bad_redshift_internet_accessible_yaml`
   > Resource 'RedshiftSubnetGroup' of type 'AWS::Redshift::ClusterSubnetGroup' supports Tags but none are configured
-- **I9040** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.Tags` L19 in `bad_redshift_internet_accessible`
+- **I9040** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.Tags` L19 in `bad_redshift_internet_accessible_yaml`
   > Resource 'RouteTable1' of type 'AWS::EC2::RouteTable' supports Tags but none are configured
-- **I9040** `IGW` (AWS::EC2::InternetGateway) → `Properties.Tags` L28 in `bad_redshift_internet_accessible`
+- **I9040** `IGW` (AWS::EC2::InternetGateway) → `Properties.Tags` L28 in `bad_redshift_internet_accessible_yaml`
   > Resource 'IGW' of type 'AWS::EC2::InternetGateway' supports Tags but none are configured
 - **I9040** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.Tags` L5 in `bad_refs_yaml`
   > Resource 'MyEC2Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -8925,7 +8937,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'NoImage' of type 'AWS::AppStream::ImageBuilder' supports Tags but none are configured
 - **I9040** `NoAZ` (AWS::EC2::Volume) → `Properties.Tags` L12 in `bad_schema_composition_yaml`
   > Resource 'NoAZ' of type 'AWS::EC2::Volume' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `bad_schema_conditional_type`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `bad_schema_conditional_type_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `bad_schema_enum_violation_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -8943,7 +8955,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'PatternBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `DeprecatedProp` (AWS::Athena::WorkGroup) → `Properties.Tags` L20 in `bad_schema_property_constraints_yaml`
   > Resource 'DeprecatedProp' of type 'AWS::Athena::WorkGroup' supports Tags but none are configured
-- **I9040** `Lambda` (AWS::Lambda::Function) → `Properties.Tags` L4 in `bad_schema_string_length`
+- **I9040** `Lambda` (AWS::Lambda::Function) → `Properties.Tags` L4 in `bad_schema_string_length_yaml`
   > Resource 'Lambda' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `AlarmBothStats` (AWS::CloudWatch::Alarm) → `Properties.Tags` L5 in `bad_schema_structural_yaml`
   > Resource 'AlarmBothStats' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
@@ -8953,13 +8965,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `OpenSSH` (AWS::EC2::SecurityGroup) → `Properties.Tags` L4 in `bad_security_issues_yaml`
   > Resource 'OpenSSH' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `SG` (AWS::EC2::SecurityGroup) → `Properties.Tags` L4 in `bad_sg_bad_port_range`
+- **I9040** `SG` (AWS::EC2::SecurityGroup) → `Properties.Tags` L4 in `bad_sg_bad_port_range_yaml`
   > Resource 'SG' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `OpenSG` (AWS::EC2::SecurityGroup) → `Properties.Tags` L4 in `bad_sg_open_egress_yaml`
   > Resource 'OpenSG' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `bad_simple_sub_param`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `bad_simple_sub_param_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `Topic` (AWS::SNS::Topic) → `Properties.Tags` L4 in `bad_sns_cross_account`
+- **I9040** `Topic` (AWS::SNS::Topic) → `Properties.Tags` L4 in `bad_sns_cross_account_yaml`
   > Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `FunctionA` (AWS::Serverless::Function) → `Properties.Tags` L17 in `bad_some_logs_stream_lambda_yaml`
   > Resource 'FunctionA' of type 'AWS::Serverless::Function' supports Tags but none are configured
@@ -9071,9 +9083,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLamb
 - **I9040** `consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2Fwaiterstatema2520C928` (AWS::StepFunctions::StateMachine) → `Properties.Tags` L1034 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json`
   > Resource 'consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLamb
-- **I9040** `testapp` (AWS::Amplify::App) → `Properties.Tags` L3 in `cdk_amplify-console-app--AmplifyConsoleApp.template`
+- **I9040** `testapp` (AWS::Amplify::App) → `Properties.Tags` L3 in `cdk_amplify-console-app--AmplifyConsoleApp.template_json`
   > Resource 'testapp' of type 'AWS::Amplify::App' supports Tags but none are configured
-- **I9040** `MasterBranch` (AWS::Amplify::Branch) → `Properties.Tags` L14 in `cdk_amplify-console-app--AmplifyConsoleApp.template`
+- **I9040** `MasterBranch` (AWS::Amplify::Branch) → `Properties.Tags` L14 in `cdk_amplify-console-app--AmplifyConsoleApp.template_json`
   > Resource 'MasterBranch' of type 'AWS::Amplify::Branch' supports Tags but none are configured
 - **I9040** `items07D08F4B` (AWS::DynamoDB::Table) → `Properties.Tags` L3 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template_json`
   > Resource 'items07D08F4B' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
@@ -9195,15 +9207,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LBSecurityGroup8A41EA2B' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `LBListenerTargetGroupF04FCF6D` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L799 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
   > Resource 'LBListenerTargetGroupF04FCF6D' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
-- **I9040** `CarTableA597893A` (AWS::DynamoDB::Table) → `Properties.Tags` L3 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9040** `CarTableA597893A` (AWS::DynamoDB::Table) → `Properties.Tags` L3 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Resource 'CarTableA597893A' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
-- **I9040** `DefectsTable2A57950B` (AWS::DynamoDB::Table) → `Properties.Tags` L30 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9040** `DefectsTable2A57950B` (AWS::DynamoDB::Table) → `Properties.Tags` L30 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Resource 'DefectsTable2A57950B' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
-- **I9040** `CarApiE5E7ACF5` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L79 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9040** `CarApiE5E7ACF5` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L79 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Resource 'CarApiE5E7ACF5' of type 'AWS::AppSync::GraphQLApi' supports Tags but none are configured
-- **I9040** `CarApiCarsDataSourceServiceRole82F3FC8A` (AWS::IAM::Role) → `Properties.Tags` L105 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9040** `CarApiCarsDataSourceServiceRole82F3FC8A` (AWS::IAM::Role) → `Properties.Tags` L105 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Resource 'CarApiCarsDataSourceServiceRole82F3FC8A' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `CarApiDefectsDataSourceServiceRole7EDF6907` (AWS::IAM::Role) → `Properties.Tags` L195 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template`
+- **I9040** `CarApiDefectsDataSourceServiceRole7EDF6907` (AWS::IAM::Role) → `Properties.Tags` L195 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Resource 'CarApiDefectsDataSourceServiceRole7EDF6907' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `AppSync2EventBridgeApi` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L3 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
   > Resource 'AppSync2EventBridgeApi' of type 'AWS::AppSync::GraphQLApi' supports Tags but none are configured
@@ -9215,7 +9227,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'echoFunction5207BE9B' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `AppSyncEventBridgeRle2A25B9B1` (AWS::Events::Rule) → `Properties.Tags` L209 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
   > Resource 'AppSyncEventBridgeRle2A25B9B1' of type 'AWS::Events::Rule' supports Tags but none are configured
-- **I9040** `PostsApiCdk` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L3 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template`
+- **I9040** `PostsApiCdk` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L3 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Resource 'PostsApiCdk' of type 'AWS::AppSync::GraphQLApi' supports Tags but none are configured
 - **I9040** `Construct1StandardFunctionServiceRole716388BA` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_aspects--SampleStack.template_json`
   > Resource 'Construct1StandardFunctionServiceRole716388BA' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -9233,45 +9245,45 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Construct2FunctionWithReservedCEsServiceRoleB80261C4' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Construct2FunctionWithReservedCEs89864BB2` (AWS::Lambda::Function) → `Properties.Tags` L207 in `cdk_aspects--SampleStack.template_json`
   > Resource 'Construct2FunctionWithReservedCEs89864BB2' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `IncomingDataBucket3554D835` (AWS::S3::Bucket) → `Properties.Tags` L3 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template`
+- **I9040** `IncomingDataBucket3554D835` (AWS::S3::Bucket) → `Properties.Tags` L3 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template_json`
   > Resource 'IncomingDataBucket3554D835' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Tags` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Tags` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'CloudWatchLoggingRole8E23D1D4' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.Tags` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.Tags` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'SftpServerSG79C38856' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `SftpEIP1` (AWS::EC2::EIP) → `Properties.Tags` L432 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `SftpEIP1` (AWS::EC2::EIP) → `Properties.Tags` L432 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'SftpEIP1' of type 'AWS::EC2::EIP' supports Tags but none are configured
-- **I9040** `SftpEIP2` (AWS::EC2::EIP) → `Properties.Tags` L441 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `SftpEIP2` (AWS::EC2::EIP) → `Properties.Tags` L441 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'SftpEIP2' of type 'AWS::EC2::EIP' supports Tags but none are configured
-- **I9040** `SFTPServer` (AWS::Transfer::Server) → `Properties.Tags` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `SFTPServer` (AWS::Transfer::Server) → `Properties.Tags` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'SFTPServer' of type 'AWS::Transfer::Server' supports Tags but none are configured
-- **I9040** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.Tags` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.Tags` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'SftpAccessRoleBDBB5CE1' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.Tags` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.Tags` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'SftpLogGroupC79A244B' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `SFTPUser` (AWS::Transfer::User) → `Properties.Tags` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `SFTPUser` (AWS::Transfer::User) → `Properties.Tags` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'SFTPUser' of type 'AWS::Transfer::User' supports Tags but none are configured
-- **I9040** `AlarmMetricFilter9DBA3966` (AWS::CloudWatch::Alarm) → `Properties.Tags` L657 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **I9040** `AlarmMetricFilter9DBA3966` (AWS::CloudWatch::Alarm) → `Properties.Tags` L657 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Resource 'AlarmMetricFilter9DBA3966' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
-- **I9040** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Tags` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `CloudWatchLoggingRole8E23D1D4` (AWS::IAM::Role) → `Properties.Tags` L349 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'CloudWatchLoggingRole8E23D1D4' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.Tags` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.Tags` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'SftpServerSG79C38856' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `SftpEIP1` (AWS::EC2::EIP) → `Properties.Tags` L432 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `SftpEIP1` (AWS::EC2::EIP) → `Properties.Tags` L432 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'SftpEIP1' of type 'AWS::EC2::EIP' supports Tags but none are configured
-- **I9040** `SftpEIP2` (AWS::EC2::EIP) → `Properties.Tags` L441 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `SftpEIP2` (AWS::EC2::EIP) → `Properties.Tags` L441 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'SftpEIP2' of type 'AWS::EC2::EIP' supports Tags but none are configured
-- **I9040** `SFTPServer` (AWS::Transfer::Server) → `Properties.Tags` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `SFTPServer` (AWS::Transfer::Server) → `Properties.Tags` L450 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'SFTPServer' of type 'AWS::Transfer::Server' supports Tags but none are configured
-- **I9040** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.Tags` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `SftpAccessRoleBDBB5CE1` (AWS::IAM::Role) → `Properties.Tags` L552 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'SftpAccessRoleBDBB5CE1' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.Tags` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `SftpLogGroupC79A244B` (AWS::Logs::LogGroup) → `Properties.Tags` L578 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'SftpLogGroupC79A244B' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `SFTPUser` (AWS::Transfer::User) → `Properties.Tags` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `SFTPUser` (AWS::Transfer::User) → `Properties.Tags` L603 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'SFTPUser' of type 'AWS::Transfer::User' supports Tags but none are configured
-- **I9040** `AlarmMetricFilter9DBA3966` (AWS::CloudWatch::Alarm) → `Properties.Tags` L657 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **I9040** `AlarmMetricFilter9DBA3966` (AWS::CloudWatch::Alarm) → `Properties.Tags` L657 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Resource 'AlarmMetricFilter9DBA3966' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
-- **I9040** `Role1ABCC5F0` (AWS::IAM::Role) → `Properties.Tags` L87 in `cdk_backup-s3--AwsBackupS3Stack.template`
+- **I9040** `Role1ABCC5F0` (AWS::IAM::Role) → `Properties.Tags` L87 in `cdk_backup-s3--AwsBackupS3Stack.template_json`
   > Resource 'Role1ABCC5F0' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `OpenMPRepositoryAB8BB3BC` (AWS::ECR::Repository) → `Properties.Tags` L3 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
   > Resource 'OpenMPRepositoryAB8BB3BC' of type 'AWS::ECR::Repository' supports Tags but none are configured
@@ -9391,9 +9403,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'helloWorldLambdaRestApiCloudWatchRole22367FBD' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `helloWorldLambdaRestApiDeploymentStageprod67DD79AF` (AWS::ApiGateway::Stage) → `Properties.Tags` L146 in `cdk_cognito-api-lambda--CognitoProtectedApi.template_json`
   > Resource 'helloWorldLambdaRestApiDeploymentStageprod67DD79AF' of type 'AWS::ApiGateway::Stage' supports Tags but none are configured
-- **I9040** `MyTopic86869434` (AWS::SNS::Topic) → `Properties.Tags` L3 in `cdk_custom-logical-names--MyStack.template`
+- **I9040** `MyTopic86869434` (AWS::SNS::Topic) → `Properties.Tags` L3 in `cdk_custom-logical-names--MyStack.template_json`
   > Resource 'MyTopic86869434' of type 'AWS::SNS::Topic' supports Tags but none are configured
-- **I9040** `MyBucketF68F3FF0` (AWS::S3::Bucket) → `Properties.Tags` L9 in `cdk_custom-logical-names--MyStack.template`
+- **I9040** `MyBucketF68F3FF0` (AWS::S3::Bucket) → `Properties.Tags` L9 in `cdk_custom-logical-names--MyStack.template_json`
   > Resource 'MyBucketF68F3FF0' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `DemoResourceProviderframeworkonEventServiceRoleDB88154F` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_custom-resource--CustomResourceDemoStack.template_json`
   > Resource 'DemoResourceProviderframeworkonEventServiceRoleDB88154F' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -9477,11 +9489,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'EcsCluster97242B84' of type 'AWS::ECS::Cluster' supports Tags but none are configured
 - **I9040** `AsgCapacityProvider760D11D9` (AWS::ECS::CapacityProvider) → `Properties.Tags` L687 in `cdk_ecs-cluster--MyFirstEcsCluster.template_json`
   > Resource 'AsgCapacityProvider760D11D9' of type 'AWS::ECS::CapacityProvider' supports Tags but none are configured
-- **I9040** `ClusterEB0386A7` (AWS::ECS::Cluster) → `Properties.Tags` L463 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template`
+- **I9040** `ClusterEB0386A7` (AWS::ECS::Cluster) → `Properties.Tags` L463 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Resource 'ClusterEB0386A7' of type 'AWS::ECS::Cluster' supports Tags but none are configured
-- **I9040** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template`
+- **I9040** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
   > Resource 'LoadBalancerBE9EEC3A' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
-- **I9040** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template`
+- **I9040** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
   > Resource 'LoadBalancerSecurityGroupA28D6DD7' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `TaskDefTaskRole1EDB4A67` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
   > Resource 'TaskDefTaskRole1EDB4A67' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -9493,19 +9505,19 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'ServiceSecurityGroupC96ED6A7' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `ListenerECSGroup2EA4A011` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L210 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
   > Resource 'ListenerECSGroup2EA4A011' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
-- **I9040** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9040** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Resource 'LoadBalancerBE9EEC3A' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
-- **I9040** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9040** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L35 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Resource 'LoadBalancerSecurityGroupA28D6DD7' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
+- **I9040** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L77 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Resource 'TargetGroup3D7CD9B8' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
-- **I9040** `TaskDefTaskRole1EDB4A67` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9040** `TaskDefTaskRole1EDB4A67` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Resource 'TaskDefTaskRole1EDB4A67' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Tags` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9040** `TaskDef54694570` (AWS::ECS::TaskDefinition) → `Properties.Tags` L23 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Resource 'TaskDef54694570' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `ServiceD69D759B` (AWS::ECS::Service) → `Properties.Tags` L58 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9040** `ServiceD69D759B` (AWS::ECS::Service) → `Properties.Tags` L58 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Resource 'ServiceD69D759B' of type 'AWS::ECS::Service' supports Tags but none are configured
-- **I9040** `ServiceSecurityGroupC96ED6A7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L117 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template`
+- **I9040** `ServiceSecurityGroupC96ED6A7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L117 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
   > Resource 'ServiceSecurityGroupC96ED6A7' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `Ec2ClusterEE43E89D` (AWS::ECS::Cluster) → `Properties.Tags` L463 in `cdk_ecs-ecs-service-with-logging--Willkommen.template_json`
   > Resource 'Ec2ClusterEE43E89D' of type 'AWS::ECS::Cluster' supports Tags but none are configured
@@ -9575,19 +9587,19 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'sampleappServiceE7504FDB' of type 'AWS::ECS::Service' supports Tags but none are configured
 - **I9040** `sampleappServiceSecurityGroup0ABF0D21` (AWS::EC2::SecurityGroup) → `Properties.Tags` L727 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
   > Resource 'sampleappServiceSecurityGroup0ABF0D21' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `Ec2ClusterEE43E89D` (AWS::ECS::Cluster) → `Properties.Tags` L463 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9040** `Ec2ClusterEE43E89D` (AWS::ECS::Cluster) → `Properties.Tags` L463 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Resource 'Ec2ClusterEE43E89D' of type 'AWS::ECS::Cluster' supports Tags but none are configured
-- **I9040** `MyTaskDefinitionTaskRole93FBB305` (AWS::IAM::Role) → `Properties.Tags` L469 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9040** `MyTaskDefinitionTaskRole93FBB305` (AWS::IAM::Role) → `Properties.Tags` L469 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Resource 'MyTaskDefinitionTaskRole93FBB305' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Tags` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9040** `MyTaskDefinitionF5B350B4` (AWS::ECS::TaskDefinition) → `Properties.Tags` L489 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Resource 'MyTaskDefinitionF5B350B4' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `MyTaskDefinitionAppContainerLogGroupA24DD1B6` (AWS::Logs::LogGroup) → `Properties.Tags` L535 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9040** `MyTaskDefinitionAppContainerLogGroupA24DD1B6` (AWS::Logs::LogGroup) → `Properties.Tags` L535 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Resource 'MyTaskDefinitionAppContainerLogGroupA24DD1B6' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `MyTaskDefinitionExecutionRole3D88C23D` (AWS::IAM::Role) → `Properties.Tags` L543 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9040** `MyTaskDefinitionExecutionRole3D88C23D` (AWS::IAM::Role) → `Properties.Tags` L543 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Resource 'MyTaskDefinitionExecutionRole3D88C23D' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `FargateServiceAC2B3B85` (AWS::ECS::Service) → `Properties.Tags` L595 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9040** `FargateServiceAC2B3B85` (AWS::ECS::Service) → `Properties.Tags` L595 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Resource 'FargateServiceAC2B3B85' of type 'AWS::ECS::Service' supports Tags but none are configured
-- **I9040** `FargateServiceSecurityGroup0A0E79CB` (AWS::EC2::SecurityGroup) → `Properties.Tags` L644 in `cdk_ecs-fargate-service-with-logging--Willkommen.template`
+- **I9040** `FargateServiceSecurityGroup0A0E79CB` (AWS::EC2::SecurityGroup) → `Properties.Tags` L644 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
   > Resource 'FargateServiceSecurityGroup0A0E79CB' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `TopicBFC7AF6E` (AWS::SNS::Topic) → `Properties.Tags` L3 in `cdk_eventbridge-lambda--EventBridgeLambdaStack.template_json`
   > Resource 'TopicBFC7AF6E' of type 'AWS::SNS::Topic' supports Tags but none are configured
@@ -9597,29 +9609,29 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Singleton8C7B99F3' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `Rule4C995B7F` (AWS::Events::Rule) → `Properties.Tags` L116 in `cdk_eventbridge-lambda--EventBridgeLambdaStack.template_json`
   > Resource 'Rule4C995B7F' of type 'AWS::Events::Rule' supports Tags but none are configured
-- **I9040** `ProxyAPI32755B5A` (AWS::ApiGateway::RestApi) → `Properties.Tags` L3 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9040** `ProxyAPI32755B5A` (AWS::ApiGateway::RestApi) → `Properties.Tags` L3 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Resource 'ProxyAPI32755B5A' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured
-- **I9040** `ProxyAPICloudWatchRoleB8A087D1` (AWS::IAM::Role) → `Properties.Tags` L17 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9040** `ProxyAPICloudWatchRoleB8A087D1` (AWS::IAM::Role) → `Properties.Tags` L17 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Resource 'ProxyAPICloudWatchRoleB8A087D1' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `ProxyAPIDeploymentStageprodBE6BE99F` (AWS::ApiGateway::Stage) → `Properties.Tags` L90 in `cdk_http-proxy-apigateway--HttpProxy.template`
+- **I9040** `ProxyAPIDeploymentStageprodBE6BE99F` (AWS::ApiGateway::Stage) → `Properties.Tags` L90 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
   > Resource 'ProxyAPIDeploymentStageprodBE6BE99F' of type 'AWS::ApiGateway::Stage' supports Tags but none are configured
-- **I9040** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Tags` L3 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `GitComponenet` (AWS::ImageBuilder::Component) → `Properties.Tags` L3 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'GitComponenet' of type 'AWS::ImageBuilder::Component' supports Tags but none are configured
-- **I9040** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Tags` L15 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `NodejsComponenet` (AWS::ImageBuilder::Component) → `Properties.Tags` L15 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'NodejsComponenet' of type 'AWS::ImageBuilder::Component' supports Tags but none are configured
-- **I9040** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Tags` L27 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `DockerComponenet` (AWS::ImageBuilder::Component) → `Properties.Tags` L27 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'DockerComponenet' of type 'AWS::ImageBuilder::Component' supports Tags but none are configured
-- **I9040** `EcrRepoForImageBuilderCodeCatalystBF634BA6` (AWS::ECR::Repository) → `Properties.Tags` L39 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `EcrRepoForImageBuilderCodeCatalystBF634BA6` (AWS::ECR::Repository) → `Properties.Tags` L39 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'EcrRepoForImageBuilderCodeCatalystBF634BA6' of type 'AWS::ECR::Repository' supports Tags but none are configured
-- **I9040** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Tags` L47 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `AmazonLinux2023withGitAndNodeRecipe` (AWS::ImageBuilder::ContainerRecipe) → `Properties.Tags` L47 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'AmazonLinux2023withGitAndNodeRecipe' of type 'AWS::ImageBuilder::ContainerRecipe' supports Tags but none are configured
-- **I9040** `EC2InstanceProfileForImageBuilderA043DE9F` (AWS::IAM::Role) → `Properties.Tags` L103 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `EC2InstanceProfileForImageBuilderA043DE9F` (AWS::IAM::Role) → `Properties.Tags` L103 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'EC2InstanceProfileForImageBuilderA043DE9F' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `ImageBuilderInfraConfig` (AWS::ImageBuilder::InfrastructureConfiguration) → `Properties.Tags` L182 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `ImageBuilderInfraConfig` (AWS::ImageBuilder::InfrastructureConfiguration) → `Properties.Tags` L182 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'ImageBuilderInfraConfig' of type 'AWS::ImageBuilder::InfrastructureConfiguration' supports Tags but none are configured
-- **I9040** `ImageBuilderDistConfig` (AWS::ImageBuilder::DistributionConfiguration) → `Properties.Tags` L194 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `ImageBuilderDistConfig` (AWS::ImageBuilder::DistributionConfiguration) → `Properties.Tags` L194 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'ImageBuilderDistConfig' of type 'AWS::ImageBuilder::DistributionConfiguration' supports Tags but none are configured
-- **I9040** `AmazonLinux2023WithGitPipeline` (AWS::ImageBuilder::ImagePipeline) → `Properties.Tags` L218 in `cdk_imagebuilder--ImagebuilderStack.template`
+- **I9040** `AmazonLinux2023WithGitPipeline` (AWS::ImageBuilder::ImagePipeline) → `Properties.Tags` L218 in `cdk_imagebuilder--ImagebuilderStack.template_json`
   > Resource 'AmazonLinux2023WithGitPipeline' of type 'AWS::ImageBuilder::ImagePipeline' supports Tags but none are configured
 - **I9040** `Inspector2EnableDelegatedAdminAccountResourceInspector2EnableDelegatedAdminResourceRoleC8FD65F6` (AWS::IAM::Role) → `Properties.Tags` L4 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template_json`
   > Resource 'Inspector2EnableDelegatedAdminAccountResourceInspector2EnableDelegatedAdminResourceRoleC8FD65F6' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -9673,7 +9685,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LambdaFunctionBF21E41F' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `SampleQueue49AAAEFF` (AWS::SQS::Queue) → `Properties.Tags` L4 in `cdk_lambda-manage-s3-event-notification--AStack.template_json`
   > Resource 'SampleQueue49AAAEFF' of type 'AWS::SQS::Queue' supports Tags but none are configured
-- **I9040** `SampleTopic5FE9B5DC` (AWS::SNS::Topic) → `Properties.Tags` L4 in `cdk_lambda-manage-s3-event-notification--BStack.template`
+- **I9040** `SampleTopic5FE9B5DC` (AWS::SNS::Topic) → `Properties.Tags` L4 in `cdk_lambda-manage-s3-event-notification--BStack.template_json`
   > Resource 'SampleTopic5FE9B5DC' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `SampleBucket7F6F8160` (AWS::S3::Bucket) → `Properties.Tags` L4 in `cdk_lambda-manage-s3-event-notification--SharedStack.template_json`
   > Resource 'SampleBucket7F6F8160' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -10017,7 +10029,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'WafGatewayAPICloudWatchRoleEE79D232' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `WafGatewayAPIDeploymentStageprodEF5FA49F` (AWS::ApiGateway::Stage) → `Properties.Tags` L177 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template_json`
   > Resource 'WafGatewayAPIDeploymentStageprodEF5FA49F' of type 'AWS::ApiGateway::Stage' supports Tags but none are configured
-- **I9040** `WebACL` (AWS::WAFv2::WebACL) → `Properties.Tags` L3 in `cdk_pat-the-waf-apigateway--TheWafStack.template`
+- **I9040** `WebACL` (AWS::WAFv2::WebACL) → `Properties.Tags` L3 in `cdk_pat-the-waf-apigateway--TheWafStack.template_json`
   > Resource 'WebACL' of type 'AWS::WAFv2::WebACL' supports Tags but none are configured
 - **I9040** `HitsFF5AF8CD` (AWS::DynamoDB::Table) → `Properties.Tags` L3 in `cdk_pat-the-xray-tracer--TheXrayDynamoFlow.template_json`
   > Resource 'HitsFF5AF8CD' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
@@ -10051,15 +10063,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'snsSubscriptionLambdaHandlerServiceRole215E543C' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `snsSubscriptionLambdaHandler68619CD8` (AWS::Lambda::Function) → `Properties.Tags` L261 in `cdk_pat-the-xray-tracer--TheXraySnsFlow.template_json`
   > Resource 'snsSubscriptionLambdaHandler68619CD8' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `TheXRayTracerSnsFanOutTopicDE7E70F8` (AWS::SNS::Topic) → `Properties.Tags` L3 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9040** `TheXRayTracerSnsFanOutTopicDE7E70F8` (AWS::SNS::Topic) → `Properties.Tags` L3 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Resource 'TheXRayTracerSnsFanOutTopicDE7E70F8' of type 'AWS::SNS::Topic' supports Tags but none are configured
-- **I9040** `xrayTracerAPIA84CAE80` (AWS::ApiGateway::RestApi) → `Properties.Tags` L12 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9040** `xrayTracerAPIA84CAE80` (AWS::ApiGateway::RestApi) → `Properties.Tags` L12 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Resource 'xrayTracerAPIA84CAE80' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured
-- **I9040** `xrayTracerAPICloudWatchRoleCCB113F4` (AWS::IAM::Role) → `Properties.Tags` L21 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9040** `xrayTracerAPICloudWatchRoleCCB113F4` (AWS::IAM::Role) → `Properties.Tags` L21 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Resource 'xrayTracerAPICloudWatchRoleCCB113F4' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `xrayTracerAPIDeploymentStageprod85442A48` (AWS::ApiGateway::Stage) → `Properties.Tags` L91 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9040** `xrayTracerAPIDeploymentStageprod85442A48` (AWS::ApiGateway::Stage) → `Properties.Tags` L91 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Resource 'xrayTracerAPIDeploymentStageprod85442A48' of type 'AWS::ApiGateway::Stage' supports Tags but none are configured
-- **I9040** `ApiGatewaySNSRole1BAAAE75` (AWS::IAM::Role) → `Properties.Tags` L372 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template`
+- **I9040** `ApiGatewaySNSRole1BAAAE75` (AWS::IAM::Role) → `Properties.Tags` L372 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
   > Resource 'ApiGatewaySNSRole1BAAAE75' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `ApiCorsLambdaServiceRole0DB39061` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template_json`
   > Resource 'ApiCorsLambdaServiceRole0DB39061' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -10123,15 +10135,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F` (AWS::Lambda::Function) → `Properties.Tags` L140 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template_json`
   > Resource 'CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `CDKDataSyncS3AccessRole0C49AEBFA` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9040** `CDKDataSyncS3AccessRole0C49AEBFA` (AWS::IAM::Role) → `Properties.Tags` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Resource 'CDKDataSyncS3AccessRole0C49AEBFA' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `CDKDataSyncS3AccessRole18E349368` (AWS::IAM::Role) → `Properties.Tags` L67 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template`
+- **I9040** `CDKDataSyncS3AccessRole18E349368` (AWS::IAM::Role) → `Properties.Tags` L67 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
   > Resource 'CDKDataSyncS3AccessRole18E349368' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.Tags` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+- **I9040** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.Tags` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
   > Resource 'DataSyncS3Location0' of type 'AWS::DataSync::LocationS3' supports Tags but none are configured
-- **I9040** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.Tags` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+- **I9040** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.Tags` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
   > Resource 'DataSyncS3Location1' of type 'AWS::DataSync::LocationS3' supports Tags but none are configured
-- **I9040** `DataSyncS3toS3Task` (AWS::DataSync::Task) → `Properties.Tags` L34 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
+- **I9040** `DataSyncS3toS3Task` (AWS::DataSync::Task) → `Properties.Tags` L34 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
   > Resource 'DataSyncS3toS3Task' of type 'AWS::DataSync::Task' supports Tags but none are configured
 - **I9040** `sgnextcloud40AB2A88` (AWS::EC2::SecurityGroup) → `Properties.Tags` L165 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
   > Resource 'sgnextcloud40AB2A88' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
@@ -10189,35 +10201,35 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'CustomCDKECRDeploymentbd07c930edb94112a20f03f096f53666512MiBServiceRole8C8B0491' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `CustomCDKECRDeploymentbd07c930edb94112a20f03f096f53666512MiB28EAD8E4` (AWS::Lambda::Function) → `Properties.Tags` L142 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template_json`
   > Resource 'CustomCDKECRDeploymentbd07c930edb94112a20f03f096f53666512MiB28EAD8E4' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `ECSCluster7D463CD4` (AWS::ECS::Cluster) → `Properties.Tags` L3 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `ECSCluster7D463CD4` (AWS::ECS::Cluster) → `Properties.Tags` L3 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'ECSCluster7D463CD4' of type 'AWS::ECS::Cluster' supports Tags but none are configured
-- **I9040** `ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE` (AWS::ServiceDiscovery::PrivateDnsNamespace) → `Properties.Tags` L26 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE` (AWS::ServiceDiscovery::PrivateDnsNamespace) → `Properties.Tags` L26 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE' of type 'AWS::ServiceDiscovery::PrivateDnsNamespace' supports Tags but none are configured
-- **I9040** `ECSServiceLogGroupD961AA4E` (AWS::Logs::LogGroup) → `Properties.Tags` L38 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `ECSServiceLogGroupD961AA4E` (AWS::Logs::LogGroup) → `Properties.Tags` L38 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'ECSServiceLogGroupD961AA4E' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `ECSTaskIamRole84EB0A02` (AWS::IAM::Role) → `Properties.Tags` L60 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `ECSTaskIamRole84EB0A02` (AWS::IAM::Role) → `Properties.Tags` L60 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'ECSTaskIamRole84EB0A02' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `TaskexecutionRole978012CD` (AWS::IAM::Role) → `Properties.Tags` L170 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `TaskexecutionRole978012CD` (AWS::IAM::Role) → `Properties.Tags` L170 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'TaskexecutionRole978012CD' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `ECSSecurityGroupA14DBE7D` (AWS::EC2::SecurityGroup) → `Properties.Tags` L216 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `ECSSecurityGroupA14DBE7D` (AWS::EC2::SecurityGroup) → `Properties.Tags` L216 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'ECSSecurityGroupA14DBE7D' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Tags` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `FrontendTaskDefinition6CBC2B00` (AWS::ECS::TaskDefinition) → `Properties.Tags` L270 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'FrontendTaskDefinition6CBC2B00' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `FrontendTaskDefinitionFrontendContainerLogGroup994ED50C` (AWS::Logs::LogGroup) → `Properties.Tags` L326 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `FrontendTaskDefinitionFrontendContainerLogGroup994ED50C` (AWS::Logs::LogGroup) → `Properties.Tags` L326 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'FrontendTaskDefinitionFrontendContainerLogGroup994ED50C' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Tags` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `BackendTaskDefinitionEC224DE6` (AWS::ECS::TaskDefinition) → `Properties.Tags` L334 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'BackendTaskDefinitionEC224DE6' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `BackendTaskDefinitionBackendContainerLogGroup5E30F6E8` (AWS::Logs::LogGroup) → `Properties.Tags` L390 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `BackendTaskDefinitionBackendContainerLogGroup5E30F6E8` (AWS::Logs::LogGroup) → `Properties.Tags` L390 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'BackendTaskDefinitionBackendContainerLogGroup5E30F6E8' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `FrontendServiceBC94BA93` (AWS::ECS::Service) → `Properties.Tags` L398 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `FrontendServiceBC94BA93` (AWS::ECS::Service) → `Properties.Tags` L398 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'FrontendServiceBC94BA93' of type 'AWS::ECS::Service' supports Tags but none are configured
-- **I9040** `BackendService7A4224EE` (AWS::ECS::Service) → `Properties.Tags` L470 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `BackendService7A4224EE` (AWS::ECS::Service) → `Properties.Tags` L470 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'BackendService7A4224EE' of type 'AWS::ECS::Service' supports Tags but none are configured
-- **I9040** `PublicLBSG963B1ACE` (AWS::EC2::SecurityGroup) → `Properties.Tags` L530 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `PublicLBSG963B1ACE` (AWS::EC2::SecurityGroup) → `Properties.Tags` L530 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'PublicLBSG963B1ACE' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L558 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'TargetGroup3D7CD9B8' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
-- **I9040** `FrontendLB2FA80AC2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L589 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template`
+- **I9040** `FrontendLB2FA80AC2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L589 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'FrontendLB2FA80AC2' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
 - **I9040** `emrservicerole3BE5EDAF` (AWS::IAM::Role) → `Properties.Tags` L217 in `cdk_py-emr--emr-cluster.template_json`
   > Resource 'emrservicerole3BE5EDAF' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -10285,17 +10297,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'UrlShortenerApiDeploymentStageprod9A3CCA44' of type 'AWS::ApiGateway::Stage' supports Tags but none are configured
 - **I9040** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.Tags` L490 in `cdk_py-url-shortener--urlshort-app.template_json`
   > Resource 'UrlShortenerApiDomain85D0CE65' of type 'AWS::ApiGateway::DomainName' supports Tags but none are configured
-- **I9040** `generatorcluster9804CB70` (AWS::ECS::Cluster) → `Properties.Tags` L3 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9040** `generatorcluster9804CB70` (AWS::ECS::Cluster) → `Properties.Tags` L3 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Resource 'generatorcluster9804CB70' of type 'AWS::ECS::Cluster' supports Tags but none are configured
-- **I9040** `generatorPingTaskTaskRoleA4886BE8` (AWS::IAM::Role) → `Properties.Tags` L9 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9040** `generatorPingTaskTaskRoleA4886BE8` (AWS::IAM::Role) → `Properties.Tags` L9 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Resource 'generatorPingTaskTaskRoleA4886BE8' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Tags` L29 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9040** `generatorPingTask1D3C2E79` (AWS::ECS::TaskDefinition) → `Properties.Tags` L29 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Resource 'generatorPingTask1D3C2E79' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `generatorPingTaskExecutionRoleA7BE7F8B` (AWS::IAM::Role) → `Properties.Tags` L71 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9040** `generatorPingTaskExecutionRoleA7BE7F8B` (AWS::IAM::Role) → `Properties.Tags` L71 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Resource 'generatorPingTaskExecutionRoleA7BE7F8B' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `generatorserviceServiceA6AC5079` (AWS::ECS::Service) → `Properties.Tags` L135 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9040** `generatorserviceServiceA6AC5079` (AWS::ECS::Service) → `Properties.Tags` L135 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Resource 'generatorserviceServiceA6AC5079' of type 'AWS::ECS::Service' supports Tags but none are configured
-- **I9040** `generatorserviceSecurityGroup3D8BECF8` (AWS::EC2::SecurityGroup) → `Properties.Tags` L182 in `cdk_py-url-shortener--urlshort-load-test.template`
+- **I9040** `generatorserviceSecurityGroup3D8BECF8` (AWS::EC2::SecurityGroup) → `Properties.Tags` L182 in `cdk_py-url-shortener--urlshort-load-test.template_json`
   > Resource 'generatorserviceSecurityGroup3D8BECF8' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0` (AWS::IAM::Role) → `Properties.Tags` L178 in `cdk_r53-resolver--R53ResolverStack.template_json`
   > Resource 'CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -10333,17 +10345,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `Other34654A52` (AWS::S3::Bucket) → `Properties.Tags` L3 in `cdk_resource-overrides--resource-overrides.template_json`
   > Resource 'Other34654A52' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `DNSFirewallLogGroupF0EEB7D4` (AWS::Logs::LogGroup) → `Properties.Tags` L463 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9040** `DNSFirewallLogGroupF0EEB7D4` (AWS::Logs::LogGroup) → `Properties.Tags` L463 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Resource 'DNSFirewallLogGroupF0EEB7D4' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
-- **I9040** `DNSLogsConfig` (AWS::Route53Resolver::ResolverQueryLoggingConfig) → `Properties.Tags` L475 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9040** `DNSLogsConfig` (AWS::Route53Resolver::ResolverQueryLoggingConfig) → `Properties.Tags` L475 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Resource 'DNSLogsConfig' of type 'AWS::Route53Resolver::ResolverQueryLoggingConfig' supports Tags but none are configured
-- **I9040** `AllowedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Tags` L504 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9040** `AllowedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Tags` L504 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Resource 'AllowedDomainList' of type 'AWS::Route53Resolver::FirewallDomainList' supports Tags but none are configured
-- **I9040** `BlockedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Tags` L516 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9040** `BlockedDomainList` (AWS::Route53Resolver::FirewallDomainList) → `Properties.Tags` L516 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Resource 'BlockedDomainList' of type 'AWS::Route53Resolver::FirewallDomainList' supports Tags but none are configured
-- **I9040** `DNSRuleGroup` (AWS::Route53Resolver::FirewallRuleGroup) → `Properties.Tags` L529 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9040** `DNSRuleGroup` (AWS::Route53Resolver::FirewallRuleGroup) → `Properties.Tags` L529 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Resource 'DNSRuleGroup' of type 'AWS::Route53Resolver::FirewallRuleGroup' supports Tags but none are configured
-- **I9040** `FirewallRuleGroupAssociation` (AWS::Route53Resolver::FirewallRuleGroupAssociation) → `Properties.Tags` L555 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template`
+- **I9040** `FirewallRuleGroupAssociation` (AWS::Route53Resolver::FirewallRuleGroupAssociation) → `Properties.Tags` L555 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
   > Resource 'FirewallRuleGroupAssociation' of type 'AWS::Route53Resolver::FirewallRuleGroupAssociation' supports Tags but none are configured
 - **I9040** `examplebucketC9DFA43E` (AWS::S3::Bucket) → `Properties.Tags` L3 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template_json`
   > Resource 'examplebucketC9DFA43E' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -10403,10 +10415,18 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Instance2` (AWS::EC2::Instance) → `Properties.Tags` L20 in `gh-issues_issue-34_json`
   > Resource 'Instance2' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `ScheduledRule` (AWS::Events::Rule) → `Properties.Tags` L3 in `gh-issues_issue-35_yaml`
+  > Resource 'ScheduledRule' of type 'AWS::Events::Rule' supports Tags but none are configured
+- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L9 in `gh-issues_issue-36_yaml`
+  > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `MyAsg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L9 in `gh-issues_issue-37_yaml`
   > Resource 'MyAsg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
 - **I9040** `Memory` (AWS::BedrockAgentCore::Memory) → `Properties.Tags` L3 in `gh-issues_issue-38_json`
   > Resource 'Memory' of type 'AWS::BedrockAgentCore::Memory' supports Tags but none are configured
+- **I9040** `VPCB9E5F0B4` (AWS::EC2::VPC) → `Properties.Tags` L3 in `gh-issues_issue-39_json`
+  > Resource 'VPCB9E5F0B4' of type 'AWS::EC2::VPC' supports Tags but none are configured
+- **I9040** `VPCEcrEndpointSecurityGroup50ED8BA4` (AWS::EC2::SecurityGroup) → `Properties.Tags` L9 in `gh-issues_issue-39_json`
+  > Resource 'VPCEcrEndpointSecurityGroup50ED8BA4' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `EksCluster` (AWS::EKS::Cluster) → `Properties.Tags` L3 in `gh-issues_issue-40_yaml`
   > Resource 'EksCluster' of type 'AWS::EKS::Cluster' supports Tags but none are configured
 - **I9040** `DaxConcrete` (AWS::DAX::Cluster) → `Properties.Tags` L14 in `gh-issues_issue-40_yaml`
@@ -10425,6 +10445,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Pipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `PipelineRole` (AWS::IAM::Role) → `Properties.Tags` L47 in `gh-issues_issue-44_json`
   > Resource 'PipelineRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `interfaceVpcEndpoint89C99945` (AWS::EC2::VPCEndpoint) → `Properties.Tags` L3 in `gh-issues_issue-45_json`
+  > Resource 'interfaceVpcEndpoint89C99945' of type 'AWS::EC2::VPCEndpoint' supports Tags but none are configured
+- **I9040** `ClusterEB0386A7` (AWS::EKS::Cluster) → `Properties.Tags` L4 in `gh-issues_issue-46_json`
+  > Resource 'ClusterEB0386A7' of type 'AWS::EKS::Cluster' supports Tags but none are configured
+- **I9040** `ClusterKubectlProviderHandler2E05C68A` (AWS::Lambda::Function) → `Properties.Tags` L13 in `gh-issues_issue-46_json`
+  > Resource 'ClusterKubectlProviderHandler2E05C68A' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `MyFunction` (AWS::Lambda::Function) → `Properties.Tags` L3 in `gh-issues_issue-47_json`
   > Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `EsDomain` (AWS::Elasticsearch::Domain) → `Properties.Tags` L3 in `gh-issues_issue-49_yaml`
@@ -10433,6 +10459,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'DocDbInstance' of type 'AWS::DocDB::DBInstance' supports Tags but none are configured
 - **I9040** `Ec2Instance` (AWS::EC2::Instance) → `Properties.Tags` L14 in `gh-issues_issue-49_yaml`
   > Resource 'Ec2Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `MyFunctionServiceRole` (AWS::IAM::Role) → `Properties.Tags` L6 in `gh-issues_issue-50_json`
+  > Resource 'MyFunctionServiceRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `Nodegroup` (AWS::EKS::Nodegroup) → `Properties.Tags` L3 in `gh-issues_issue-52_json`
+  > Resource 'Nodegroup' of type 'AWS::EKS::Nodegroup' supports Tags but none are configured
 - **I9040** `UserRoleB7C3739B` (AWS::IAM::Role) → `Properties.Tags` L442 in `gh-issues_issue-53_json`
   > Resource 'UserRoleB7C3739B' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `ClusterKubectlHandlerRole94549F93` (AWS::IAM::Role) → `Properties.Tags` L472 in `gh-issues_issue-53_json`
@@ -10451,10 +10481,18 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'awscdkawseksClusterResourceProviderNestedStackawscdkawseksClusterResourceProviderNestedStackResource9827C454' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `awscdkawseksKubectlProviderNestedStackawscdkawseksKubectlProviderNestedStackResourceA7AEBA6B` (AWS::CloudFormation::Stack) → `Properties.Tags` L1056 in `gh-issues_issue-53_json`
   > Resource 'awscdkawseksKubectlProviderNestedStackawscdkawseksKubectlProviderNestedStackResourceA7AEBA6B' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L3 in `gh-issues_issue-54-bare_json`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L3 in `gh-issues_issue-54-with-ownership_json`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L3 in `gh-issues_issue-54_json`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `gh-issues_issue-55_json`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `WeakConsumer` (AWS::SNS::Topic) → `Properties.Tags` L3 in `gh-issues_issue-56_json`
+  > Resource 'WeakConsumer' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9` (AWS::CloudFront::Distribution) → `Properties.Tags` L3 in `gh-issues_issue-57_json`
+  > Resource 'AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
 - **I9040** `Resource` (AWS::EC2::Volume) → `Properties.Tags` L3 in `gh-issues_issue-61_json`
   > Resource 'Resource' of type 'AWS::EC2::Volume' supports Tags but none are configured
 - **I9040** `Canary` (AWS::Synthetics::Canary) → `Properties.Tags` L3 in `gh-issues_issue-62_json`
@@ -10469,21 +10507,21 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyFunc' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `FutureNodeFunc` (AWS::Lambda::Function) → `Properties.Tags` L16 in `gh-issues_issue-68_json`
   > Resource 'FutureNodeFunc' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L16 in `good_E9001_aws_cdk_metadata`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L16 in `good_E9001_aws_cdk_metadata_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `KubectlHandlerRole` (AWS::IAM::Role) → `Properties.Tags` L19 in `good_W1028_pseudo_param_branches_reachable`
+- **I9040** `KubectlHandlerRole` (AWS::IAM::Role) → `Properties.Tags` L19 in `good_W1028_pseudo_param_branches_reachable_yaml`
   > Resource 'KubectlHandlerRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L6 in `good_W3010_getazs_not_flagged`
+- **I9040** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L6 in `good_W3010_getazs_not_flagged_yaml`
   > Resource 'Elb' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured
-- **I9040** `Subnet` (AWS::EC2::Subnet) → `Properties.Tags` L14 in `good_W3010_getazs_not_flagged`
+- **I9040** `Subnet` (AWS::EC2::Subnet) → `Properties.Tags` L14 in `good_W3010_getazs_not_flagged_yaml`
   > Resource 'Subnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.Tags` L4 in `good_aurora_dbinstance_yaml`
   > Resource 'AuroraDB' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L11 in `good_cdk_bootstrap_version_rule`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L11 in `good_cdk_bootstrap_version_rule_json`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `Distribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L4 in `good_cloudfront_valid`
+- **I9040** `Distribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L4 in `good_cloudfront_valid_yaml`
   > Resource 'Distribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
-- **I9040** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L4 in `good_codepipeline_artifact_counts`
+- **I9040** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L4 in `good_codepipeline_artifact_counts_yaml`
   > Resource 'Pipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L24 in `good_complex_conditions_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -10491,8 +10529,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Database' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `DevBucket` (AWS::S3::Bucket) → `Properties.Tags` L43 in `good_complex_conditions_yaml`
   > Resource 'DevBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L40 in `good_conditions`
-  > Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
 - **I9040** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L40 in `good_conditions_yaml`
   > Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
 - **I9040** `mySubnet` (AWS::EC2::Subnet) → `Properties.Tags` L22 in `good_core_conditions_yaml`
@@ -10509,7 +10545,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LambdaExecutionRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `AMIIDLookup` (AWS::Lambda::Function) → `Properties.Tags` L100 in `good_core_conditions_yaml`
   > Resource 'AMIIDLookup' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `myTable` (AWS::DynamoDB::Table) → `Properties.Tags` L7 in `good_core_config_default_e3012`
+- **I9040** `myTable` (AWS::DynamoDB::Table) → `Properties.Tags` L7 in `good_core_config_default_e3012_yaml`
   > Resource 'myTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
 - **I9040** `MyKey` (AWS::KMS::Key) → `Properties.Tags` L5 in `good_core_directives_yaml`
   > Resource 'MyKey' of type 'AWS::KMS::Key' supports Tags but none are configured
@@ -10557,14 +10593,18 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'DDBTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
 - **I9040** `GoodTable` (AWS::DynamoDB::Table) → `Properties.Tags` L4 in `good_dynamodb_valid_attributes_yaml`
   > Resource 'GoodTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
-- **I9040** `Task` (AWS::ECS::TaskDefinition) → `Properties.Tags` L4 in `good_ecs_awsvpc_valid`
+- **I9040** `Task` (AWS::ECS::TaskDefinition) → `Properties.Tags` L4 in `good_ecs_awsvpc_valid_yaml`
   > Resource 'Task' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L4 in `good_ecs_fargate`
+- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L4 in `good_ecs_fargate_valid_yaml`
   > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `Service` (AWS::ECS::Service) → `Properties.Tags` L17 in `good_ecs_fargate`
+- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L4 in `good_ecs_fargate_yaml`
+  > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `Service` (AWS::ECS::Service) → `Properties.Tags` L17 in `good_ecs_fargate_yaml`
   > Resource 'Service' of type 'AWS::ECS::Service' supports Tags but none are configured
-- **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L4 in `good_ecs_fargate_valid`
-  > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `ScheduledRule` (AWS::Events::Rule) → `Properties.Tags` L24 in `good_functions_dynamic_reference_embedded_yaml`
+  > Resource 'ScheduledRule' of type 'AWS::Events::Rule' supports Tags but none are configured
+- **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L32 in `good_functions_dynamic_reference_embedded_yaml`
+  > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Cluster0` (AWS::ECS::Cluster) → `Properties.Tags` L12 in `good_functions_findinmap_default_value_yaml`
   > Resource 'Cluster0' of type 'AWS::ECS::Cluster' supports Tags but none are configured
 - **I9040** `Cluster1` (AWS::ECS::Cluster) → `Properties.Tags` L20 in `good_functions_findinmap_default_value_yaml`
@@ -10611,15 +10651,21 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Topic4' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `Topic5` (AWS::SNS::Topic) → `Properties.Tags` L54 in `good_functions_get_stack_output_yaml`
   > Resource 'Topic5' of type 'AWS::SNS::Topic' supports Tags but none are configured
-- **I9040** `Topic6` (AWS::SNS::Topic) → `Properties.Tags` L63 in `good_functions_get_stack_output_yaml`
+- **I9040** `Topic6` (AWS::SNS::Topic) → `Properties.Tags` L64 in `good_functions_get_stack_output_yaml`
   > Resource 'Topic6' of type 'AWS::SNS::Topic' supports Tags but none are configured
-- **I9040** `Topic7` (AWS::SNS::Topic) → `Properties.Tags` L72 in `good_functions_get_stack_output_yaml`
+- **I9040** `Topic7` (AWS::SNS::Topic) → `Properties.Tags` L73 in `good_functions_get_stack_output_yaml`
   > Resource 'Topic7' of type 'AWS::SNS::Topic' supports Tags but none are configured
-- **I9040** `ConfigApplication` (AWS::AppConfig::Application) → `Properties.Tags` L24 in `good_functions_relationship_conditions_sam`
+- **I9040** `Topic8` (AWS::SNS::Topic) → `Properties.Tags` L82 in `good_functions_get_stack_output_yaml`
+  > Resource 'Topic8' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `Topic9` (AWS::SNS::Topic) → `Properties.Tags` L94 in `good_functions_get_stack_output_yaml`
+  > Resource 'Topic9' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `Topic10` (AWS::SNS::Topic) → `Properties.Tags` L105 in `good_functions_get_stack_output_yaml`
+  > Resource 'Topic10' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `ConfigApplication` (AWS::AppConfig::Application) → `Properties.Tags` L24 in `good_functions_relationship_conditions_sam_yaml`
   > Resource 'ConfigApplication' of type 'AWS::AppConfig::Application' supports Tags but none are configured
-- **I9040** `ConfigEnvironment` (AWS::AppConfig::Environment) → `Properties.Tags` L28 in `good_functions_relationship_conditions_sam`
+- **I9040** `ConfigEnvironment` (AWS::AppConfig::Environment) → `Properties.Tags` L28 in `good_functions_relationship_conditions_sam_yaml`
   > Resource 'ConfigEnvironment' of type 'AWS::AppConfig::Environment' supports Tags but none are configured
-- **I9040** `FunctionC` (AWS::Serverless::Function) → `Properties.Tags` L34 in `good_functions_relationship_conditions_sam`
+- **I9040** `FunctionC` (AWS::Serverless::Function) → `Properties.Tags` L34 in `good_functions_relationship_conditions_sam_yaml`
   > Resource 'FunctionC' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `LambdaExecutionRole` (AWS::IAM::Role) → `Properties.Tags` L12 in `good_functions_relationship_conditions_yaml`
   > Resource 'LambdaExecutionRole' of type 'AWS::IAM::Role' supports Tags but none are configured
@@ -10643,22 +10689,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyStack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `myVPc2` (AWS::EC2::VPC) → `Properties.Tags` L70 in `good_functions_sub_yaml`
   > Resource 'myVPc2' of type 'AWS::EC2::VPC' supports Tags but none are configured
-- **I9040** `RootRole` (AWS::IAM::Role) → `Properties.Tags` L34 in `good_generic`
-  > Resource 'RootRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.Tags` L73 in `good_generic`
-  > Resource 'MyEC2Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
-- **I9040** `mySnsTopic` (AWS::SNS::Topic) → `Properties.Tags` L91 in `good_generic`
-  > Resource 'mySnsTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured
-- **I9040** `MyEC2Instance1` (AWS::EC2::Instance) → `Properties.Tags` L93 in `good_generic`
-  > Resource 'MyEC2Instance1' of type 'AWS::EC2::Instance' supports Tags but none are configured
-- **I9040** `ElasticIP` (AWS::EC2::EIP) → `Properties.Tags` L118 in `good_generic`
-  > Resource 'ElasticIP' of type 'AWS::EC2::EIP' supports Tags but none are configured
-- **I9040** `ElasticLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L122 in `good_generic`
-  > Resource 'ElasticLoadBalancer' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured
-- **I9040** `IamPipeline` (AWS::CloudFormation::Stack) → `Properties.Tags` L141 in `good_generic`
-  > Resource 'IamPipeline' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
-- **I9040** `LambdaFunction` (AWS::Lambda::Function) → `Properties.Tags` L161 in `good_generic`
-  > Resource 'LambdaFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `RootRole` (AWS::IAM::Role) → `Properties.Tags` L34 in `good_generic_yaml`
   > Resource 'RootRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.Tags` L73 in `good_generic_yaml`
@@ -10675,7 +10705,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'IamPipeline' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `LambdaFunction` (AWS::Lambda::Function) → `Properties.Tags` L161 in `good_generic_yaml`
   > Resource 'LambdaFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L17 in `good_iam_valid`
+- **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L17 in `good_iam_valid_yaml`
   > Resource 'Role' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `SnapStartFunc` (AWS::Lambda::Function) → `Properties.Tags` L4 in `good_lambda_snapstart_yaml`
   > Resource 'SnapStartFunc' of type 'AWS::Lambda::Function' supports Tags but none are configured
@@ -10685,29 +10715,27 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'mySubnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `R` (AWS::S3::Bucket) → `Properties.Tags` L10 in `good_mappings_valid_yaml`
   > Resource 'R' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `IamPipeline` (AWS::CloudFormation::Stack) → `Properties.Tags` L6 in `good_minimal`
-  > Resource 'IamPipeline' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `IamPipeline` (AWS::CloudFormation::Stack) → `Properties.Tags` L6 in `good_minimal_yaml`
   > Resource 'IamPipeline' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
-- **I9040** `OtherResource` (AWS::S3::Bucket) → `Properties.Tags` L9 in `good_modules_minimal`
+- **I9040** `OtherResource` (AWS::S3::Bucket) → `Properties.Tags` L9 in `good_modules_minimal_yaml`
   > Resource 'OtherResource' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `rDBMonitoringRole` (AWS::IAM::Role) → `Properties.Tags` L94 in `good_no_value_yaml`
   > Resource 'rDBMonitoringRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Cluster` (AWS::DocDB::DBCluster) → `Properties.Tags` L7 in `good_no_w3010_on_unlisted_type_yaml`
   > Resource 'Cluster' of type 'AWS::DocDB::DBCluster' supports Tags but none are configured
-- **I9040** `myS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_override_complete`
+- **I9040** `myS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_override_complete_yaml`
   > Resource 'myS3Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `untaggedInstance` (AWS::EC2::Instance) → `Properties.Tags` L11 in `good_override_complete`
+- **I9040** `untaggedInstance` (AWS::EC2::Instance) → `Properties.Tags` L11 in `good_override_complete_yaml`
   > Resource 'untaggedInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured
-- **I9040** `VPC` (AWS::EC2::VPC) → `Properties.Tags` L15 in `good_override_complete`
+- **I9040** `VPC` (AWS::EC2::VPC) → `Properties.Tags` L15 in `good_override_complete_yaml`
   > Resource 'VPC' of type 'AWS::EC2::VPC' supports Tags but none are configured
-- **I9040** `myS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_override_required`
+- **I9040** `myS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_override_required_yaml`
   > Resource 'myS3Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L16 in `good_param_constraints_valid_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `SomeLambda` (AWS::Serverless::Function) → `Properties.Tags` L9 in `good_parameters_not_used_parameters_yaml`
   > Resource 'SomeLambda' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `MyAPI` (AWS::Serverless::Api) → `Properties.Tags` L14 in `good_parameters_used_transform_removed`
+- **I9040** `MyAPI` (AWS::Serverless::Api) → `Properties.Tags` L14 in `good_parameters_used_transform_removed_yaml`
   > Resource 'MyAPI' of type 'AWS::Serverless::Api' supports Tags but none are configured
 - **I9040** `SomeLambda` (AWS::Serverless::Function) → `Properties.Tags` L15 in `good_parameters_used_transforms_yaml`
   > Resource 'SomeLambda' of type 'AWS::Serverless::Function' supports Tags but none are configured
@@ -10725,17 +10753,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'mySubnet21' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `mySubnet22` (AWS::EC2::Subnet) → `Properties.Tags` L63 in `good_properties_ec2_vpc_yaml`
   > Resource 'mySubnet22' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `Subnet1` (AWS::EC2::Subnet) → `Properties.Tags` L4 in `good_redshift_private`
+- **I9040** `Subnet1` (AWS::EC2::Subnet) → `Properties.Tags` L4 in `good_redshift_private_yaml`
   > Resource 'Subnet1' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `VPC` (AWS::EC2::VPC) → `Properties.Tags` L9 in `good_redshift_private`
+- **I9040** `VPC` (AWS::EC2::VPC) → `Properties.Tags` L9 in `good_redshift_private_yaml`
   > Resource 'VPC' of type 'AWS::EC2::VPC' supports Tags but none are configured
-- **I9040** `RedshiftSubnetGroup` (AWS::Redshift::ClusterSubnetGroup) → `Properties.Tags` L13 in `good_redshift_private`
+- **I9040** `RedshiftSubnetGroup` (AWS::Redshift::ClusterSubnetGroup) → `Properties.Tags` L13 in `good_redshift_private_yaml`
   > Resource 'RedshiftSubnetGroup' of type 'AWS::Redshift::ClusterSubnetGroup' supports Tags but none are configured
-- **I9040** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.Tags` L19 in `good_redshift_private`
+- **I9040** `RouteTable1` (AWS::EC2::RouteTable) → `Properties.Tags` L19 in `good_redshift_private_yaml`
   > Resource 'RouteTable1' of type 'AWS::EC2::RouteTable' supports Tags but none are configured
-- **I9040** `NatGW` (AWS::EC2::NatGateway) → `Properties.Tags` L28 in `good_redshift_private`
+- **I9040** `NatGW` (AWS::EC2::NatGateway) → `Properties.Tags` L28 in `good_redshift_private_yaml`
   > Resource 'NatGW' of type 'AWS::EC2::NatGateway' supports Tags but none are configured
-- **I9040** `NestedStack` (AWS::CloudFormation::Stack) → `Properties.Tags` L5 in `good_resources_cloudformation_nested_stack_dynamic`
+- **I9040** `NestedStack` (AWS::CloudFormation::Stack) → `Properties.Tags` L5 in `good_resources_cloudformation_nested_stack_dynamic_yaml`
   > Resource 'NestedStack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `StackNormal` (AWS::CloudFormation::Stack) → `Properties.Tags` L6 in `good_resources_cloudformation_stacks_yaml`
   > Resource 'StackNormal' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
@@ -10747,10 +10775,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'StackInvalidPath' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `Stack3` (AWS::CloudFormation::Stack) → `Properties.Tags` L38 in `good_resources_cloudformation_stacks_yaml`
   > Resource 'Stack3' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
-- **I9040** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L4 in `good_resources_cloudfront_aliases`
+- **I9040** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.Tags` L4 in `good_resources_cloudfront_aliases_yaml`
   > Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured
-- **I9040** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L6 in `good_resources_codepipeline`
-  > Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Tags` L6 in `good_resources_codepipeline_yaml`
   > Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured
 - **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L27 in `good_resources_deletionpolicy_yaml`
@@ -10783,15 +10809,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'IAMInstanceProfile' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `Instance` (AWS::CloudFormation::Stack) → `Properties.Tags` L8 in `good_resources_iam_instance_profile_yaml`
   > Resource 'Instance' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
-- **I9040** `CodeBuildProject` (AWS::CodeBuild::Project) → `Properties.Tags` L5 in `good_resources_iam_ref_with_path`
+- **I9040** `CodeBuildProject` (AWS::CodeBuild::Project) → `Properties.Tags` L5 in `good_resources_iam_ref_with_path_yaml`
   > Resource 'CodeBuildProject' of type 'AWS::CodeBuild::Project' supports Tags but none are configured
-- **I9040** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Tags` L34 in `good_resources_iam_ref_with_path`
+- **I9040** `CodeBuildRole` (AWS::IAM::Role) → `Properties.Tags` L34 in `good_resources_iam_ref_with_path_yaml`
   > Resource 'CodeBuildRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.Tags` L71 in `good_resources_iam_ref_with_path`
+- **I9040** `CodeBuildSubnet` (AWS::EC2::Subnet) → `Properties.Tags` L71 in `good_resources_iam_ref_with_path_yaml`
   > Resource 'CodeBuildSubnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L77 in `good_resources_iam_ref_with_path`
+- **I9040** `CodeBuildSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L77 in `good_resources_iam_ref_with_path_yaml`
   > Resource 'CodeBuildSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
-- **I9040** `Ecr` (AWS::ECR::Repository) → `Properties.Tags` L5 in `good_resources_iam_resource_policy`
+- **I9040** `Ecr` (AWS::ECR::Repository) → `Properties.Tags` L5 in `good_resources_iam_resource_policy_yaml`
   > Resource 'Ecr' of type 'AWS::ECR::Repository' supports Tags but none are configured
 - **I9040** `Function1` (AWS::Lambda::Function) → `Properties.Tags` L5 in `good_resources_lambda_required_properties_yaml`
   > Resource 'Function1' of type 'AWS::Lambda::Function' supports Tags but none are configured
@@ -10801,24 +10827,22 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Function3' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `myInstance` (AWS::EC2::Instance) → `Properties.Tags` L4 in `good_resources_name_yaml`
   > Resource 'myInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured
-- **I9040** `RootRole` (AWS::IAM::Role) → `Properties.Tags` L6 in `good_resources_primary_identifiers`
+- **I9040** `RootRole` (AWS::IAM::Role) → `Properties.Tags` L6 in `good_resources_primary_identifiers_yaml`
   > Resource 'RootRole' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `RootRole3` (AWS::IAM::Role) → `Properties.Tags` L28 in `good_resources_primary_identifiers`
+- **I9040** `RootRole3` (AWS::IAM::Role) → `Properties.Tags` L28 in `good_resources_primary_identifiers_yaml`
   > Resource 'RootRole3' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `RootRole4` (AWS::IAM::Role) → `Properties.Tags` L51 in `good_resources_primary_identifiers`
+- **I9040** `RootRole4` (AWS::IAM::Role) → `Properties.Tags` L51 in `good_resources_primary_identifiers_yaml`
   > Resource 'RootRole4' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `Bucket1` (AWS::S3::Bucket) → `Properties.Tags` L75 in `good_resources_primary_identifiers`
+- **I9040** `Bucket1` (AWS::S3::Bucket) → `Properties.Tags` L75 in `good_resources_primary_identifiers_yaml`
   > Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `Bucket2` (AWS::S3::Bucket) → `Properties.Tags` L82 in `good_resources_primary_identifiers`
+- **I9040** `Bucket2` (AWS::S3::Bucket) → `Properties.Tags` L82 in `good_resources_primary_identifiers_yaml`
   > Resource 'Bucket2' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `TESTROLE` (AWS::IAM::Role) → `Properties.Tags` L6 in `good_resources_properties_allowed_pattern`
+- **I9040** `TESTROLE` (AWS::IAM::Role) → `Properties.Tags` L6 in `good_resources_properties_allowed_pattern_yaml`
   > Resource 'TESTROLE' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Instance` (AWS::EC2::Subnet) → `Properties.Tags` L5 in `good_resources_properties_az_cdk_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `Alarm` (AWS::CloudWatch::Alarm) → `Properties.Tags` L10 in `good_resources_properties_exclusive_yaml`
   > Resource 'Alarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured
-- **I9040** `Stack` (AWS::CloudFormation::Stack) → `Properties.Tags` L10 in `good_resources_properties_hard_coded_arn_properties`
-  > Resource 'Stack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `S3BadBucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
   > Resource 'S3BadBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `SampleRole` (AWS::IAM::Role) → `Properties.Tags` L28 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
@@ -10829,6 +10853,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SampleRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `IngestionPipeline` (AWS::OSIS::Pipeline) → `Properties.Tags` L87 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
   > Resource 'IngestionPipeline' of type 'AWS::OSIS::Pipeline' supports Tags but none are configured
+- **I9040** `Stack` (AWS::CloudFormation::Stack) → `Properties.Tags` L10 in `good_resources_properties_hard_coded_arn_properties_yaml`
+  > Resource 'Stack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `IamRole` (AWS::IAM::Role) → `Properties.Tags` L14 in `good_resources_properties_list_duplicates_yaml`
   > Resource 'IamRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `IamRoleWithConditions` (AWS::IAM::Role) → `Properties.Tags` L23 in `good_resources_properties_list_duplicates_yaml`
@@ -10843,12 +10869,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'myThirdDb' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `MyIAMUser` (AWS::IAM::User) → `Properties.Tags` L43 in `good_resources_properties_password_yaml`
   > Resource 'MyIAMUser' of type 'AWS::IAM::User' supports Tags but none are configured
-- **I9040** `myRepository` (AWS::CodeCommit::Repository) → `Properties.Tags` L5 in `good_resources_properties_string_size`
+- **I9040** `myRepository` (AWS::CodeCommit::Repository) → `Properties.Tags` L5 in `good_resources_properties_string_size_yaml`
   > Resource 'myRepository' of type 'AWS::CodeCommit::Repository' supports Tags but none are configured
-- **I9040** `AppSync` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L3 in `good_resources_properties_templated_code`
-  > Resource 'AppSync' of type 'AWS::AppSync::GraphQLApi' supports Tags but none are configured
 - **I9040** `Function` (AWS::Serverless::Application) → `Properties.Tags` L4 in `good_resources_properties_templated_code_sam_yaml`
   > Resource 'Function' of type 'AWS::Serverless::Application' supports Tags but none are configured
+- **I9040** `AppSync` (AWS::AppSync::GraphQLApi) → `Properties.Tags` L3 in `good_resources_properties_templated_code_yaml`
+  > Resource 'AppSync' of type 'AWS::AppSync::GraphQLApi' supports Tags but none are configured
 - **I9040** `DBInstance1` (AWS::RDS::DBInstance) → `Properties.Tags` L11 in `good_resources_rds_instance_sizes_yaml`
   > Resource 'DBInstance1' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `DBInstance2` (AWS::RDS::DBInstance) → `Properties.Tags` L17 in `good_resources_rds_instance_sizes_yaml`
@@ -10861,17 +10887,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'DBInstance5' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `DBInstance6` (AWS::RDS::DBInstance) → `Properties.Tags` L43 in `good_resources_rds_instance_sizes_yaml`
   > Resource 'DBInstance6' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `Bucket1` (AWS::S3::Bucket) → `Properties.Tags` L4 in `good_resources_s3_access-control-obsolete`
+- **I9040** `Bucket1` (AWS::S3::Bucket) → `Properties.Tags` L4 in `good_resources_s3_access-control-obsolete_yaml`
   > Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `Bucket2` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_resources_s3_access-control-obsolete`
+- **I9040** `Bucket2` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_resources_s3_access-control-obsolete_yaml`
   > Resource 'Bucket2' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L27 in `good_resources_updatereplacepolicy_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `good_schema_valid_resources`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `good_schema_valid_resources_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L8 in `good_schema_valid_resources`
+- **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L8 in `good_schema_valid_resources_yaml`
   > Resource 'Role' of type 'AWS::IAM::Role' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_simple_sub_prefix`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_simple_sub_prefix_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `FunctionA` (AWS::Serverless::Function) → `Properties.Tags` L17 in `good_some_logs_stream_lambda_yaml`
   > Resource 'FunctionA' of type 'AWS::Serverless::Function' supports Tags but none are configured
@@ -10891,27 +10917,27 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LogSubscriptionFunctionLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
 - **I9040** `FifoQueue` (AWS::SQS::Queue) → `Properties.Tags` L4 in `good_sqs_fifo_valid_yaml`
   > Resource 'FifoQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
-- **I9040** `Doc` (AWS::SSM::Document) → `Properties.Tags` L4 in `good_ssm_document_valid`
+- **I9040** `Doc` (AWS::SSM::Document) → `Properties.Tags` L4 in `good_ssm_document_valid_yaml`
   > Resource 'Doc' of type 'AWS::SSM::Document' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L9 in `good_ssm_parameter_name_type`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L9 in `good_ssm_parameter_name_type_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `SM` (AWS::StepFunctions::StateMachine) → `Properties.Tags` L4 in `good_stepfunctions_valid`
+- **I9040** `SM` (AWS::StepFunctions::StateMachine) → `Properties.Tags` L4 in `good_stepfunctions_valid_yaml`
   > Resource 'SM' of type 'AWS::StepFunctions::StateMachine' supports Tags but none are configured
-- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_sub_not_needed`
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L7 in `good_sub_not_needed_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `App1` (AWS::Serverless::Application) → `Properties.Tags` L4 in `good_transform_applications_location_yaml`
   > Resource 'App1' of type 'AWS::Serverless::Application' supports Tags but none are configured
 - **I9040** `App2` (AWS::Serverless::Application) → `Properties.Tags` L8 in `good_transform_applications_location_yaml`
   > Resource 'App2' of type 'AWS::Serverless::Application' supports Tags but none are configured
-- **I9040** `SkillFunction` (AWS::Serverless::Function) → `Properties.Tags` L21 in `good_transform_auto_publish_alias`
+- **I9040** `SkillFunction` (AWS::Serverless::Function) → `Properties.Tags` L21 in `good_transform_auto_publish_alias_yaml`
   > Resource 'SkillFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `SkillFunction2` (AWS::Serverless::Function) → `Properties.Tags` L30 in `good_transform_auto_publish_alias`
+- **I9040** `SkillFunction2` (AWS::Serverless::Function) → `Properties.Tags` L30 in `good_transform_auto_publish_alias_yaml`
   > Resource 'SkillFunction2' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `LambdaFunction` (AWS::Serverless::Function) → `Properties.Tags` L11 in `good_transform_auto_publish_code_sha256`
+- **I9040** `LambdaFunction` (AWS::Serverless::Function) → `Properties.Tags` L11 in `good_transform_auto_publish_code_sha256_yaml`
   > Resource 'LambdaFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `Function` (AWS::Serverless::Function) → `Properties.Tags` L17 in `good_transform_function_use_s3_uri`
+- **I9040** `Function` (AWS::Serverless::Function) → `Properties.Tags` L17 in `good_transform_function_use_s3_uri_yaml`
   > Resource 'Function' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `HelloWorldFunction` (AWS::Serverless::Function) → `Properties.Tags` L5 in `good_transform_function_using_image`
+- **I9040** `HelloWorldFunction` (AWS::Serverless::Function) → `Properties.Tags` L5 in `good_transform_function_using_image_yaml`
   > Resource 'HelloWorldFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `PolicyList` (AWS::RDS::DBInstance) → `Properties.Tags` L50 in `good_transform_language_extension_yaml`
   > Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
@@ -10923,36 +10949,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SecurityGroups' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `MySubnet` (AWS::EC2::Subnet) → `Properties.Tags` L91 in `good_transform_language_extension_yaml`
   > Resource 'MySubnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `SkillFunction` (AWS::Serverless::Function) → `Properties.Tags` L16 in `good_transform_list_transform`
-  > Resource 'SkillFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `Function` (AWS::Serverless::Function) → `Properties.Tags` L15 in `good_transform_list_transform_many`
-  > Resource 'Function' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `Function` (AWS::Serverless::Function) → `Properties.Tags` L15 in `good_transform_list_transform_many_yaml`
   > Resource 'Function' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `SkillFunction` (AWS::Lambda::Function) → `Properties.Tags` L8 in `good_transform_list_transform_not_sam`
-  > Resource 'SkillFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `SkillFunction` (AWS::Lambda::Function) → `Properties.Tags` L8 in `good_transform_list_transform_not_sam_yaml`
   > Resource 'SkillFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `SkillFunction` (AWS::Serverless::Function) → `Properties.Tags` L16 in `good_transform_list_transform_yaml`
   > Resource 'SkillFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `myFunction` (AWS::Serverless::Function) → `Properties.Tags` L6 in `good_transform_serverless_api`
-  > Resource 'myFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `myApi` (AWS::Serverless::Api) → `Properties.Tags` L22 in `good_transform_serverless_api`
-  > Resource 'myApi' of type 'AWS::Serverless::Api' supports Tags but none are configured
 - **I9040** `myFunction` (AWS::Serverless::Function) → `Properties.Tags` L6 in `good_transform_serverless_api_yaml`
   > Resource 'myFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `myApi` (AWS::Serverless::Api) → `Properties.Tags` L22 in `good_transform_serverless_api_yaml`
   > Resource 'myApi' of type 'AWS::Serverless::Api' supports Tags but none are configured
-- **I9040** `LiteralAliasFunction` (AWS::Serverless::Function) → `Properties.Tags` L9 in `good_transform_serverless_auto_publish_alias`
+- **I9040** `LiteralAliasFunction` (AWS::Serverless::Function) → `Properties.Tags` L9 in `good_transform_serverless_auto_publish_alias_yaml`
   > Resource 'LiteralAliasFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `ParameterAliasFunction` (AWS::Serverless::Function) → `Properties.Tags` L16 in `good_transform_serverless_auto_publish_alias`
+- **I9040** `ParameterAliasFunction` (AWS::Serverless::Function) → `Properties.Tags` L16 in `good_transform_serverless_auto_publish_alias_yaml`
   > Resource 'ParameterAliasFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `myApi` (AWS::Serverless::Api) → `Properties.Tags` L6 in `good_transform_serverless_function`
-  > Resource 'myApi' of type 'AWS::Serverless::Api' supports Tags but none are configured
-- **I9040** `myFunction` (AWS::Serverless::Function) → `Properties.Tags` L10 in `good_transform_serverless_function`
-  > Resource 'myFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `myBucket` (AWS::S3::Bucket) → `Properties.Tags` L72 in `good_transform_serverless_function`
-  > Resource 'myBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `myApi` (AWS::Serverless::Api) → `Properties.Tags` L6 in `good_transform_serverless_function_yaml`
   > Resource 'myApi' of type 'AWS::Serverless::Api' supports Tags but none are configured
 - **I9040** `myFunction` (AWS::Serverless::Function) → `Properties.Tags` L10 in `good_transform_serverless_function_yaml`
@@ -10961,7 +10971,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'myBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `myFunction` (AWS::Serverless::Function) → `Properties.Tags` L11 in `good_transform_serverless_globals_yaml`
   > Resource 'myFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `StateMachine` (AWS::Serverless::StateMachine) → `Properties.Tags` L4 in `good_transform_step_function_local_definition`
+- **I9040** `StateMachine` (AWS::Serverless::StateMachine) → `Properties.Tags` L4 in `good_transform_step_function_local_definition_yaml`
   > Resource 'StateMachine' of type 'AWS::Serverless::StateMachine' supports Tags but none are configured
 - **I9040** `MyServerlessFunctionLogicalID` (AWS::Serverless::Function) → `Properties.Tags` L6 in `good_transform_yaml`
   > Resource 'MyServerlessFunctionLogicalID' of type 'AWS::Serverless::Function' supports Tags but none are configured
@@ -10997,9 +11007,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Subnet4' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `Subnet5` (AWS::EC2::Subnet) → `Properties.Tags` L27 in `integration_aws-ec2-subnet_yaml`
   > Resource 'Subnet5' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `Function` (AWS::Lambda::Function) → `Properties.Tags` L3 in `integration_aws-lambda-function`
+- **I9040** `Function` (AWS::Lambda::Function) → `Properties.Tags` L3 in `integration_aws-lambda-function_yaml`
   > Resource 'Function' of type 'AWS::Lambda::Function' supports Tags but none are configured
-- **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L9 in `integration_aws-lambda-function`
+- **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L9 in `integration_aws-lambda-function_yaml`
   > Resource 'Role' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `integration_cfn-gather_yaml`
   > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
@@ -11031,11 +11041,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'BadEngineInstance' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `KmsKey` (AWS::KMS::Key) → `Properties.Tags` L3 in `integration_custom-resources_yaml`
   > Resource 'KmsKey' of type 'AWS::KMS::Key' supports Tags but none are configured
-- **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L22 in `integration_deployment-file-template`
+- **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L22 in `integration_deployment-file-template_yaml`
   > Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
-- **I9040** `Subnet1` (AWS::EC2::Subnet) → `Properties.Tags` L26 in `integration_deployment-file-template`
+- **I9040** `Subnet1` (AWS::EC2::Subnet) → `Properties.Tags` L26 in `integration_deployment-file-template_yaml`
   > Resource 'Subnet1' of type 'AWS::EC2::Subnet' supports Tags but none are configured
-- **I9040** `MyInstance` (AWS::EC2::Instance) → `Properties.Tags` L32 in `integration_deployment-file-template`
+- **I9040** `MyInstance` (AWS::EC2::Instance) → `Properties.Tags` L32 in `integration_deployment-file-template_yaml`
   > Resource 'MyInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `SESEventSourceMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L5 in `integration_dynamic-references_yaml`
   > Resource 'SESEventSourceMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
@@ -11097,7 +11107,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'TaskDefinitionWithRefToResource' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `TaskDefinitionWithRefToParameter` (AWS::ECS::TaskDefinition) → `Properties.Tags` L91 in `integration_ref-types_yaml`
   > Resource 'TaskDefinitionWithRefToParameter' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
-- **I9040** `MyInstance` (AWS::EC2::Instance) → `Properties.Tags` L10 in `integration_resources-cloudformation-init`
+- **I9040** `MyInstance` (AWS::EC2::Instance) → `Properties.Tags` L10 in `integration_resources-cloudformation-init_yaml`
   > Resource 'MyInstance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `VmdEventsLambda` (AWS::Serverless::Function) → `Properties.Tags` L169 in `issues_sam_w_conditions_yaml`
   > Resource 'VmdEventsLambda' of type 'AWS::Serverless::Function' supports Tags but none are configured
@@ -11173,7 +11183,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Bucket6' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket7` (AWS::S3::Bucket) → `Properties.Tags` L62 in `lsp_parameter_usage_yaml`
   > Resource 'Bucket7' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `MyS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `lsp_simple`
+- **I9040** `MyS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `lsp_simple_yaml`
   > Resource 'MyS3Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `MyFunction` (AWS::Serverless::Function) → `Properties.Tags` L3 in `lsp_test-template_yaml`
   > Resource 'MyFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
@@ -11441,408 +11451,404 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### W9003 — 159 findings
 
 - **W9003** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L4 in `bad_aurora_with_allocated_storage_yaml`
-  > 100 is not of type 'string' — automatically coerced (number → string)
+  > 100 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `BadASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MaxSize` L6 in `bad_cross_resource_task10_yaml`
-  > 5 is not of type 'string' — automatically coerced (number → string)
+  > 5 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `BadASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MinSize` L6 in `bad_cross_resource_task10_yaml`
-  > 10 is not of type 'string' — automatically coerced (number → string)
+  > 10 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `myTable` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput.WriteCapacityUnits` L7 in `bad_formatters_yaml`
-  > '5' is not of type 'integer' — automatically coerced (string → integer)
+  > '5' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `mySecurityGroupVpc1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.IpProtocol` L9 in `bad_functions_ref_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.IpProtocol` L9 in `bad_functions_ref_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc2` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.IpProtocol` L21 in `bad_functions_ref_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.KeyName` L41 in `bad_generic_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `ElasticLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.HealthCheck.UnhealthyThreshold` L111 in `bad_generic_yaml`
-  > 5 is not of type 'string' — automatically coerced (number → string)
+  > 5 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.ConnectionDrainingPolicy.Enabled` L149 in `bad_generic_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.ConnectionDrainingPolicy.Timeout` L149 in `bad_generic_yaml`
-  > '60' is not of type 'integer' — automatically coerced (string → integer)
+  > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags.{}.Value` L149 in `bad_generic_yaml`
-  > true is not of type 'string' — automatically coerced (boolean → string)
+  > true is not of type 'string' - automatically coerced (boolean to string)
 - **W9003** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.KeyName` L7 in `bad_properties_ebs_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupNonVpc` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.IpProtocol` L21 in `bad_properties_sg_ingress_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.IpProtocol` L29 in `bad_properties_sg_ingress_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.IpProtocol` L29 in `bad_properties_sg_ingress_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.3.IpProtocol` L29 in `bad_properties_sg_ingress_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.4.IpProtocol` L29 in `bad_properties_sg_ingress_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupIngress` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L60 in `bad_properties_sg_ingress_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupIngress2` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L66 in `bad_properties_sg_ingress_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.IpProtocol` L24 in `bad_resources_circular_dependency_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc1` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.IpProtocol` L24 in `bad_resources_circular_dependency_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc2` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.IpProtocol` L34 in `bad_resources_circular_dependency_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `mySecurityGroupVpc3` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.IpProtocol` L42 in `bad_resources_circular_dependency_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `myInstance` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeviceIndex` L50 in `bad_resources_circular_dependency_yaml`
-  > 0 is not of type 'string' — automatically coerced (number → string)
-- **W9003** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L10 in `bad_schema_conditional_type`
-  > 12345 (from Fn::If on condition 'IsProd') is not of type 'string' — automatically coerced (number → string)
+  > 0 is not of type 'string' - automatically coerced (number to string)
+- **W9003** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L10 in `bad_schema_conditional_type_yaml`
+  > 12345 (from Fn::If on condition 'IsProd') is not of type 'string' - automatically coerced (number to string)
 - **W9003** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L4 in `bad_schema_type_mismatch_yaml`
-  > 12345 is not of type 'string' — automatically coerced (number → string)
+  > 12345 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `Bucket` (AWS::S3::Bucket) → `Properties.VersioningConfiguration.Status` L4 in `bad_schema_type_mismatch_yaml`
-  > true is not of type 'string' — automatically coerced (boolean → string)
+  > true is not of type 'string' - automatically coerced (boolean to string)
 - **W9003** `WebInstanceF774E10D` (AWS::EC2::Instance) → `Properties.BlockDeviceMappings.0.Ebs.DeleteOnTermination` L731 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `WebInstanceF774E10D` (AWS::EC2::Instance) → `Properties.BlockDeviceMappings.0.Ebs.VolumeSize` L731 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template_json`
-  > '30' is not of type 'integer' — automatically coerced (string → integer)
-- **W9003** `myTable` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput.WriteCapacityUnits` L7 in `good_core_config_default_e3012`
-  > '5' is not of type 'integer' — automatically coerced (string → integer)
+  > '30' is not of type 'integer' - automatically coerced (string to integer)
+- **W9003** `myTable` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput.WriteCapacityUnits` L7 in `good_core_config_default_e3012_yaml`
+  > '5' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `TimeoutInStringFunction` (AWS::Lambda::Function) → `Properties.Timeout` L30 in `good_custom_numeric-inequalities-large_yaml`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `TimeoutInStringFunction` (AWS::Lambda::Function) → `Properties.Timeout` L30 in `good_custom_numeric-inequalities-small_yaml`
-  > '9' is not of type 'integer' — automatically coerced (string → integer)
+  > '9' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeviceIndex` L26 in `integration_formats_yaml`
-  > 0 is not of type 'string' — automatically coerced (number → string)
+  > 0 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.1.DeviceIndex` L26 in `integration_formats_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `Instance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.2.DeviceIndex` L26 in `integration_formats_yaml`
-  > 2 is not of type 'string' — automatically coerced (number → string)
+  > 2 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `WebSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.IpProtocol` L174 in `lsp_comprehensive_yaml`
-  > -1 is not of type 'string' — automatically coerced (number → string)
+  > -1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `UnauthorizedAttemptsCloudWatchFilter` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1646 in `quickstart_cis_benchmark_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `IAMRootActivityCloudWatchMetric` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1680 in `quickstart_cis_benchmark_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `ConsoleSigninWithoutMfaCloudWatchMetric` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1717 in `quickstart_cis_benchmark_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `ConsoleLoginFailureCloudWatchMetric` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1755 in `quickstart_cis_benchmark_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `KMSCustomerKeyDeletionCloudWatchMetric` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L1792 in `quickstart_cis_benchmark_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `BillingChangesCloudWatchFilter` (AWS::Logs::MetricFilter) → `Properties.MetricTransformations.0.MetricValue` L2182 in `quickstart_cis_benchmark_yaml`
-  > 1 is not of type 'string' — automatically coerced (number → string)
+  > 1 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `rAMIComplianceFunction` (AWS::Lambda::Function) → `Properties.Timeout` L139 in `quickstart_config-rules_json`
-  > '30' is not of type 'integer' — automatically coerced (string → integer)
+  > '30' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCloudTrailValidationFunction` (AWS::Lambda::Function) → `Properties.Timeout` L237 in `quickstart_config-rules_json`
-  > '30' is not of type 'integer' — automatically coerced (string → integer)
+  > '30' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rAutoScalingConfigWeb` (AWS::AutoScaling::LaunchConfiguration) → `Properties.AssociatePublicIpAddress` L417 in `quickstart_nist_application_yaml`
-  > 'True' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'True' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rAutoScalingDownApp` (AWS::AutoScaling::ScalingPolicy) → `Properties.ScalingAdjustment` L561 in `quickstart_nist_application_yaml`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rAutoScalingDownWeb` (AWS::AutoScaling::ScalingPolicy) → `Properties.ScalingAdjustment` L569 in `quickstart_nist_application_yaml`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rAutoScalingGroupApp` (AWS::AutoScaling::AutoScalingGroup) → `Properties.HealthCheckGracePeriod` L577 in `quickstart_nist_application_yaml`
-  > '300' is not of type 'integer' — automatically coerced (string → integer)
+  > '300' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rAutoScalingGroupApp` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.PropagateAtLaunch` L577 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rAutoScalingGroupApp` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.1.PropagateAtLaunch` L577 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rAutoScalingGroupWeb` (AWS::AutoScaling::AutoScalingGroup) → `Properties.HealthCheckGracePeriod` L603 in `quickstart_nist_application_yaml`
-  > '300' is not of type 'integer' — automatically coerced (string → integer)
+  > '300' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rAutoScalingGroupWeb` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.0.PropagateAtLaunch` L603 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rAutoScalingGroupWeb` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.1.PropagateAtLaunch` L603 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rAutoScalingUpApp` (AWS::AutoScaling::ScalingPolicy) → `Properties.ScalingAdjustment` L629 in `quickstart_nist_application_yaml`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rAutoScalingUpWeb` (AWS::AutoScaling::ScalingPolicy) → `Properties.ScalingAdjustment` L637 in `quickstart_nist_application_yaml`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmHighCPUApp` (AWS::CloudWatch::Alarm) → `Properties.EvaluationPeriods` L645 in `quickstart_nist_application_yaml`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmHighCPUApp` (AWS::CloudWatch::Alarm) → `Properties.Period` L645 in `quickstart_nist_application_yaml`
-  > '60' is not of type 'integer' — automatically coerced (string → integer)
+  > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmHighCPUApp` (AWS::CloudWatch::Alarm) → `Properties.Threshold` L645 in `quickstart_nist_application_yaml`
-  > '50' is not of type 'number' — automatically coerced (string → number)
+  > '50' is not of type 'number' - automatically coerced (string to number)
 - **W9003** `rCWAlarmHighCPUWeb` (AWS::CloudWatch::Alarm) → `Properties.EvaluationPeriods` L663 in `quickstart_nist_application_yaml`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmHighCPUWeb` (AWS::CloudWatch::Alarm) → `Properties.Period` L663 in `quickstart_nist_application_yaml`
-  > '60' is not of type 'integer' — automatically coerced (string → integer)
+  > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmHighCPUWeb` (AWS::CloudWatch::Alarm) → `Properties.Threshold` L663 in `quickstart_nist_application_yaml`
-  > '50' is not of type 'number' — automatically coerced (string → number)
+  > '50' is not of type 'number' - automatically coerced (string to number)
 - **W9003** `rCWAlarmLowCPUApp` (AWS::CloudWatch::Alarm) → `Properties.EvaluationPeriods` L681 in `quickstart_nist_application_yaml`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmLowCPUApp` (AWS::CloudWatch::Alarm) → `Properties.Period` L681 in `quickstart_nist_application_yaml`
-  > '60' is not of type 'integer' — automatically coerced (string → integer)
+  > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmLowCPUApp` (AWS::CloudWatch::Alarm) → `Properties.Threshold` L681 in `quickstart_nist_application_yaml`
-  > '10' is not of type 'number' — automatically coerced (string → number)
+  > '10' is not of type 'number' - automatically coerced (string to number)
 - **W9003** `rCWAlarmLowCPUWeb` (AWS::CloudWatch::Alarm) → `Properties.EvaluationPeriods` L698 in `quickstart_nist_application_yaml`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmLowCPUWeb` (AWS::CloudWatch::Alarm) → `Properties.Period` L698 in `quickstart_nist_application_yaml`
-  > '60' is not of type 'integer' — automatically coerced (string → integer)
+  > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rCWAlarmLowCPUWeb` (AWS::CloudWatch::Alarm) → `Properties.Threshold` L698 in `quickstart_nist_application_yaml`
-  > '10' is not of type 'number' — automatically coerced (string → number)
+  > '10' is not of type 'number' - automatically coerced (string to number)
 - **W9003** `rELBApp` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.AccessLoggingPolicy.EmitInterval` L723 in `quickstart_nist_application_yaml`
-  > '60' is not of type 'integer' — automatically coerced (string → integer)
+  > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rELBApp` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.AccessLoggingPolicy.Enabled` L723 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rELBWeb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.AccessLoggingPolicy.EmitInterval` L759 in `quickstart_nist_application_yaml`
-  > '60' is not of type 'integer' — automatically coerced (string → integer)
+  > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rELBWeb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.AccessLoggingPolicy.Enabled` L759 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rRDSInstanceMySQL` (AWS::RDS::DBInstance) → `Properties.MultiAZ` L1003 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rRDSInstanceMySQL` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L1003 in `quickstart_nist_application_yaml`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rSecurityGroupApp` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.FromPort` L1066 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupApp` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.ToPort` L1066 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupApp` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.1.FromPort` L1066 in `quickstart_nist_application_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupApp` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.1.ToPort` L1066 in `quickstart_nist_application_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupApp` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L1066 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupApp` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L1066 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupAppInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L1093 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupAppInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L1093 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupAppInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.FromPort` L1093 in `quickstart_nist_application_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupAppInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.ToPort` L1093 in `quickstart_nist_application_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupAppInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.FromPort` L1093 in `quickstart_nist_application_yaml`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupAppInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.ToPort` L1093 in `quickstart_nist_application_yaml`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupRDS` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L1121 in `quickstart_nist_application_yaml`
-  > '3306' is not of type 'integer' — automatically coerced (string → integer)
+  > '3306' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupRDS` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L1121 in `quickstart_nist_application_yaml`
-  > '3306' is not of type 'integer' — automatically coerced (string → integer)
+  > '3306' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWeb` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L1139 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWeb` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L1139 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWebInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L1150 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWebInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L1150 in `quickstart_nist_application_yaml`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWebInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.FromPort` L1150 in `quickstart_nist_application_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWebInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.ToPort` L1150 in `quickstart_nist_application_yaml`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWebInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.FromPort` L1150 in `quickstart_nist_application_yaml`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupWebInstance` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.2.ToPort` L1150 in `quickstart_nist_application_yaml`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rWebContentBucket` (AWS::S3::Bucket) → `Properties.LifecycleConfiguration.Rules.0.ExpirationInDays` L1178 in `quickstart_nist_application_yaml`
-  > '2555' is not of type 'integer' — automatically coerced (string → integer)
+  > '2555' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rWebContentBucket` (AWS::S3::Bucket) → `Properties.LifecycleConfiguration.Rules.0.Transition.TransitionInDays` L1178 in `quickstart_nist_application_yaml`
-  > '90' is not of type 'integer' — automatically coerced (string → integer)
+  > '90' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `ApplicationTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L277 in `quickstart_nist_high_main_yaml`
-  > '30' is not of type 'integer' — automatically coerced (string → integer)
+  > '30' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `ConfigRulesTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L387 in `quickstart_nist_high_main_yaml`
-  > '20' is not of type 'integer' — automatically coerced (string → integer)
+  > '20' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `IamTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L411 in `quickstart_nist_high_main_yaml`
-  > '20' is not of type 'integer' — automatically coerced (string → integer)
+  > '20' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `LoggingTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L424 in `quickstart_nist_high_main_yaml`
-  > '20' is not of type 'integer' — automatically coerced (string → integer)
+  > '20' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `ManagementVpcTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L445 in `quickstart_nist_high_main_yaml`
-  > '20' is not of type 'integer' — automatically coerced (string → integer)
+  > '20' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `ProductionVpcTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L526 in `quickstart_nist_high_main_yaml`
-  > '20' is not of type 'integer' — automatically coerced (string → integer)
+  > '20' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rVPCManagement` (AWS::EC2::VPC) → `Properties.EnableDnsHostnames` L339 in `quickstart_vpc-management_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rVPCManagement` (AWS::EC2::VPC) → `Properties.EnableDnsSupport` L339 in `quickstart_vpc-management_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `rNatInstanceTemplate` (AWS::CloudFormation::Stack) → `Properties.TimeoutInMinutes` L377 in `quickstart_vpc-management_json`
-  > '20' is not of type 'integer' — automatically coerced (string → integer)
+  > '20' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupPeered` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L418 in `quickstart_vpc-management_json`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupPeered` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L418 in `quickstart_vpc-management_json`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupVpcNat` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L437 in `quickstart_vpc-management_json`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupVpcNat` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L437 in `quickstart_vpc-management_json`
-  > '80' is not of type 'integer' — automatically coerced (string → integer)
+  > '80' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupVpcNat` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.FromPort` L437 in `quickstart_vpc-management_json`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupVpcNat` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.1.ToPort` L437 in `quickstart_vpc-management_json`
-  > '443' is not of type 'integer' — automatically coerced (string → integer)
+  > '443' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupSSHFromMgmt` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L742 in `quickstart_vpc-management_json`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupSSHFromMgmt` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L742 in `quickstart_vpc-management_json`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.FromPort` L801 in `quickstart_vpc-management_json`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupEgress.0.ToPort` L801 in `quickstart_vpc-management_json`
-  > '65535' is not of type 'integer' — automatically coerced (string → integer)
+  > '65535' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L801 in `quickstart_vpc-management_json`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L801 in `quickstart_vpc-management_json`
-  > '22' is not of type 'integer' — automatically coerced (string → integer)
+  > '22' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `VPC` (AWS::EC2::VPC) → `Properties.EnableDnsHostnames` L506 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `VPC` (AWS::EC2::VPC) → `Properties.EnableDnsSupport` L506 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet1BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1262 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet1BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1262 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet1BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1262 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet1BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1276 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet1BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1276 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet1BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1276 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet2BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1384 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet2BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1384 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet2BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1384 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet2BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1398 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet2BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1398 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet2BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1398 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet3BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1506 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet3BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1506 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet3BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1506 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet3BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1520 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet3BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1520 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet3BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1520 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet4BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1628 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet4BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1628 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet4BNetworkAclEntryInbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1628 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet4BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Egress` L1642 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `PrivateSubnet4BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.Protocol` L1642 in `quickstart_vpc_json`
-  > '-1' is not of type 'integer' — automatically coerced (string → integer)
+  > '-1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `PrivateSubnet4BNetworkAclEntryOutbound` (AWS::EC2::NetworkAclEntry) → `Properties.RuleNumber` L1642 in `quickstart_vpc_json`
-  > '100' is not of type 'integer' — automatically coerced (string → integer)
+  > '100' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `NATInstance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.AssociatePublicIpAddress` L1885 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance1` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeleteOnTermination` L1885 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance1` (AWS::EC2::Instance) → `Properties.SourceDestCheck` L1885 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance2` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.AssociatePublicIpAddress` L1937 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance2` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeleteOnTermination` L1937 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance2` (AWS::EC2::Instance) → `Properties.SourceDestCheck` L1937 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance3` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.AssociatePublicIpAddress` L1989 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance3` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeleteOnTermination` L1989 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance3` (AWS::EC2::Instance) → `Properties.SourceDestCheck` L1989 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance4` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.AssociatePublicIpAddress` L2041 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance4` (AWS::EC2::Instance) → `Properties.NetworkInterfaces.0.DeleteOnTermination` L2041 in `quickstart_vpc_json`
-  > 'true' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstance4` (AWS::EC2::Instance) → `Properties.SourceDestCheck` L2041 in `quickstart_vpc_json`
-  > 'false' is not of type 'boolean' — automatically coerced (string → boolean)
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
 - **W9003** `NATInstanceSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.FromPort` L2093 in `quickstart_vpc_json`
-  > '1' is not of type 'integer' — automatically coerced (string → integer)
+  > '1' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `NATInstanceSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0.ToPort` L2093 in `quickstart_vpc_json`
-  > '65535' is not of type 'integer' — automatically coerced (string → integer)
+  > '65535' is not of type 'integer' - automatically coerced (string to integer)
 
-### W9013 — 41 findings
+### W9013 — 39 findings
 
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_codepipeline_bad_artifacts_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `Listener` (AWS::ElasticLoadBalancingV2::Listener) L4 in `bad_elb_http_443`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `Listener` (AWS::ElasticLoadBalancingV2::Listener) L4 in `bad_elb_http_443_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) L36 in `bad_functions_sub_needed_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) L57 in `bad_functions_sub_needed_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `Topic` (AWS::SNS::Topic) L8 in `bad_hardcoded_partition`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `Topic` (AWS::SNS::Topic) L8 in `bad_hardcoded_partition_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `SnapStartFunc` (AWS::Lambda::Function) L4 in `bad_lambda_snapstart_bad_runtime_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `LambdaFn` (AWS::Lambda::Function) L4 in `bad_lambda_zipfile_java_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `bad_pipeline_no_source_first_stage_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Function1` (AWS::Lambda::Function) L5 in `bad_resources_lambda_required_properties_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Function2` (AWS::Lambda::Function) L14 in `bad_resources_lambda_required_properties_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Function3` (AWS::Lambda::Function) L24 in `bad_resources_lambda_required_properties_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `ExampleLambda` (AWS::Lambda::Function) L6 in `bad_resources_properties_primitive_types_map_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `ExampleLambda1` (AWS::Lambda::Function) L23 in `bad_resources_properties_primitive_types_map_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `EolLambda` (AWS::Lambda::Function) L24 in `bad_schema_lifecycle_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `DeprecatedLambda` (AWS::Lambda::Function) L35 in `bad_schema_lifecycle_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `ReadOnlyProp` (AWS::ACMPCA::Certificate) L9 in `bad_schema_property_constraints_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `Lambda` (AWS::Lambda::Function) L4 in `bad_schema_string_length`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `Lambda` (AWS::Lambda::Function) L4 in `bad_schema_string_length_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) L5 in `bad_schema_write_only_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `SampleBucketNotification` (AWS::CloudFormation::CustomResource) L58 in `cdk_lambda-manage-s3-event-notification--BStack.template`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) L490 in `cdk_py-url-shortener--urlshort-app.template_json`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `NotAnImageSlot` (Custom::Thing) L6 in `gh-issues_issue-34-w2506-overfire_json`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `TaskDef` (AWS::ECS::TaskDefinition) L9 in `gh-issues_issue-36_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `EksCluster` (AWS::EKS::Cluster) L3 in `gh-issues_issue-40_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `DaxConcrete` (AWS::DAX::Cluster) L14 in `gh-issues_issue-40_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `DaxRef` (AWS::DAX::Cluster) L26 in `gh-issues_issue-40_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `ClusterEB0386A7` (AWS::EKS::Cluster) L4 in `gh-issues_issue-46_json`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `ClusterKubectlProviderHandler2E05C68A` (AWS::Lambda::Function) L13 in `gh-issues_issue-46_json`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `MyFunction` (AWS::Lambda::Function) L3 in `gh-issues_issue-47_json`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `Nodegroup` (AWS::EKS::Nodegroup) L3 in `gh-issues_issue-52_json`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Canary` (AWS::Synthetics::Canary) L3 in `gh-issues_issue-62_json`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `MyLambda` (AWS::Lambda::Function) L3 in `gh-issues_issue-65_json`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `MyFunc` (AWS::Lambda::Function) L4 in `gh-issues_issue-68_json`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `FutureNodeFunc` (AWS::Lambda::Function) L16 in `gh-issues_issue-68_json`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L4 in `good_codepipeline_artifact_counts`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) L138 in `good_functions_sub_needed_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `LambdaFunction` (AWS::Lambda::Function) L161 in `good_generic`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `LambdaFunction` (AWS::Lambda::Function) L161 in `good_generic_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `SnapStartFunc` (AWS::Lambda::Function) L4 in `good_lambda_snapstart_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `TestPipeline` (AWS::CodePipeline::Pipeline) L6 in `good_resources_codepipeline`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Function1` (AWS::Lambda::Function) L5 in `good_resources_lambda_required_properties_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Function2` (AWS::Lambda::Function) L14 in `good_resources_lambda_required_properties_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Function3` (AWS::Lambda::Function) L24 in `good_resources_lambda_required_properties_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `Authorizer` (AWS::ApiGateway::Authorizer) L3 in `good_resources_properties_hard_coded_arn_properties`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `SM` (AWS::StepFunctions::StateMachine) L4 in `good_stepfunctions_valid`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
-- **W9013** `SkillFunction` (AWS::Lambda::Function) L8 in `good_transform_list_transform_not_sam`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `SkillFunction` (AWS::Lambda::Function) L8 in `good_transform_list_transform_not_sam_yaml`
-  > Hardcoded account ID in ARN — use AWS::AccountId pseudo-parameter
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 
 ### W9008 — 38 findings
 
@@ -11923,70 +11929,111 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9008** `Database` (AWS::RDS::DBInstance) L92 in `lsp_condition-usage_yaml`
   > RDS instance should have StorageEncrypted set to true
 
-### W9010 — 31 findings
+### W9010 — 28 findings
 
 - **W9010** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_E1150_network_interfaces_groupset_multi_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L20 in `bad_W3010_full_coverage_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `EC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L54 in `bad_conditions_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L30 in `bad_functions_ref_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `AnotherInstance` (AWS::EC2::Instance) → `Properties.ImageId` L49 in `bad_functions_ref_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L41 in `bad_generic_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance3` (AWS::EC2::Instance) → `Properties.ImageId` L61 in `bad_generic_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEc2BlockDevice` (AWS::EC2::Instance) → `Properties.ImageId` L217 in `bad_generic_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_previous_gen_instance_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L7 in `bad_properties_ebs_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance3` (AWS::EC2::Instance) → `Properties.ImageId` L30 in `bad_properties_ebs_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L5 in `bad_refs_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `AnotherInstance` (AWS::EC2::Instance) → `Properties.ImageId` L24 in `bad_refs_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L4 in `bad_schema_format_violation_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `Ec2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L14 in `gh-issues_issue-49_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
-- **W9010** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `good_conditions`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `good_conditions_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `myInstance1` (AWS::EC2::Instance) → `Properties.ImageId` L28 in `good_core_conditions_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `myInstance2` (AWS::EC2::Instance) → `Properties.ImageId` L33 in `good_core_conditions_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `myInstance3` (AWS::EC2::Instance) → `Properties.ImageId` L52 in `good_core_conditions_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `myInstance4` (AWS::EC2::Instance) → `Properties.ImageId` L65 in `good_core_conditions_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
-- **W9010** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L73 in `good_generic`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
-- **W9010** `MyEC2Instance1` (AWS::EC2::Instance) → `Properties.ImageId` L93 in `good_generic`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L73 in `good_generic_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `MyEC2Instance1` (AWS::EC2::Instance) → `Properties.ImageId` L93 in `good_generic_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
-- **W9010** `untaggedInstance` (AWS::EC2::Instance) → `Properties.ImageId` L11 in `good_override_complete`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
+- **W9010** `untaggedInstance` (AWS::EC2::Instance) → `Properties.ImageId` L11 in `good_override_complete_yaml`
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `Instance1` (AWS::EC2::Instance) → `Properties.ImageId` L26 in `integration_formats_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
-- **W9010** `MyInstance` (AWS::EC2::Instance) → `Properties.ImageId` L10 in `integration_resources-cloudformation-init`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
+- **W9010** `MyInstance` (AWS::EC2::Instance) → `Properties.ImageId` L10 in `integration_resources-cloudformation-init_yaml`
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `ConditionalResource` (AWS::EC2::Instance) → `Properties.ImageId` L101 in `lsp_condition-usage_json`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `ConditionalResource` (AWS::EC2::Instance) → `Properties.ImageId` L102 in `lsp_condition-usage_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.ImageId` L280 in `quickstart_openshift_yaml`
-  > Hardcoded AMI ID — use a parameter or mapping for portability
+  > Hardcoded AMI ID - use a parameter or mapping for portability
+
+### W9002 — 22 findings
+
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifact_counts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifacts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L4 in `bad_elb_http_443_yaml`
+  > Property 'LoadBalancerArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L36 in `bad_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L57 in `bad_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_pipeline_no_source_first_stage_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_resources_codepipeline_stages_second_stage_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.CertificateAuthorityArn` L9 in `bad_schema_property_constraints_yaml`
+  > Property 'CertificateAuthorityArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.CertificateAuthorityArn` L5 in `bad_schema_write_only_yaml`
+  > Property 'CertificateAuthorityArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_bad_start_at_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `StateMachine` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_invalid_state_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
+  > Property 'S3BucketArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
+  > Property 'S3BucketArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L490 in `cdk_py-url-shortener--urlshort-app.template_json`
+  > Property 'RegionalCertificateArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L9 in `gh-issues_issue-36_yaml`
+  > Property 'ExecutionRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L3 in `gh-issues_issue-40_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `ClusterEB0386A7` (AWS::EKS::Cluster) → `Properties.RoleArn` L4 in `gh-issues_issue-46_json`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Canary` (AWS::Synthetics::Canary) → `Properties.ExecutionRoleArn` L3 in `gh-issues_issue-62_json`
+  > Property 'ExecutionRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `good_codepipeline_artifact_counts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L138 in `good_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `good_stepfunctions_valid_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 
 ### F0001 — 22 findings
 
@@ -12016,13 +12063,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resources section must exist and be non-empty
 - **F0001** L5 in `bad_templates_base_yaml`
   > Resources section must exist and be non-empty
-- **F0001** L12 in `good_core_config_cfn_lint`
+- **F0001** L12 in `good_core_config_cfn_lint_yaml`
   > Resources section must exist and be non-empty
-- **F0001** L9 in `good_core_config_only_i1002`
+- **F0001** L9 in `good_core_config_only_i1002_yaml`
   > Resources section must exist and be non-empty
-- **F0001** L9 in `good_core_config_only_i1003`
+- **F0001** L9 in `good_core_config_only_i1003_yaml`
   > Resources section must exist and be non-empty
-- **F0001** L9 in `good_core_config_parameters`
+- **F0001** L9 in `good_core_config_parameters_yaml`
   > Resources section must exist and be non-empty
 - **F0001** L8 in `good_decode_parsing_json`
   > Resources section must exist and be non-empty
@@ -12035,60 +12082,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F0001** L22 in `integration_metdata_yaml`
   > Resources section must exist and be non-empty
 
-### W9002 — 21 findings
-
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifact_counts_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_codepipeline_bad_artifacts_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L4 in `bad_elb_http_443`
-  > Property 'LoadBalancerArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L36 in `bad_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L57 in `bad_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `bad_pipeline_no_source_first_stage_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_resources_codepipeline_stages_second_stage_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.CertificateAuthorityArn` L9 in `bad_schema_property_constraints_yaml`
-  > Property 'CertificateAuthorityArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.CertificateAuthorityArn` L5 in `bad_schema_write_only_yaml`
-  > Property 'CertificateAuthorityArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_bad_start_at_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `StateMachine` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `bad_stepfunctions_invalid_state_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
-  > Property 'S3BucketArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L18 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template`
-  > Property 'S3BucketArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L490 in `cdk_py-url-shortener--urlshort-app.template_json`
-  > Property 'RegionalCertificateArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L3 in `gh-issues_issue-40_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Canary` (AWS::Synthetics::Canary) → `Properties.ExecutionRoleArn` L3 in `gh-issues_issue-62_json`
-  > Property 'ExecutionRoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L4 in `good_codepipeline_artifact_counts`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L138 in `good_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_resources_codepipeline_yaml`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L4 in `good_stepfunctions_valid`
-  > Property 'RoleArn' has a hardcoded ARN — use Ref, GetAtt, or a parameter instead
-
 ### W2508 — 19 findings
 
 - **W2508** `OpenSSH` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L4 in `bad_security_issues_yaml`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `AppSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L92 in `cdk_DemoStack.template_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
-- **W2508** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template`
+- **W2508** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
-- **W2508** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template`
+- **W2508** `SftpServerSG79C38856` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L401 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `VPCSSHSecurityGroup0495A24F` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L218 in `cdk_ec2-instance--EC2Example.template_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
@@ -12103,19 +12105,19 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2508** `rSecurityGroupMgmtBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L618 in `quickstart_nist_vpc_production_yaml`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `OpenShiftInternalSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L1055 in `quickstart_openshift_yaml`
-  > Security group allows all traffic from 0.0.0.0/0 — sensitive port 1433 is exposed
+  > Security group allows all traffic from 0.0.0.0/0 - sensitive port 1433 is exposed
 - **W2508** `OpenShiftInternalSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L1055 in `quickstart_openshift_yaml`
-  > Security group allows all traffic from 0.0.0.0/0 — sensitive port 22 is exposed
+  > Security group allows all traffic from 0.0.0.0/0 - sensitive port 22 is exposed
 - **W2508** `OpenShiftInternalSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L1055 in `quickstart_openshift_yaml`
-  > Security group allows all traffic from 0.0.0.0/0 — sensitive port 27017 is exposed
+  > Security group allows all traffic from 0.0.0.0/0 - sensitive port 27017 is exposed
 - **W2508** `OpenShiftInternalSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L1055 in `quickstart_openshift_yaml`
-  > Security group allows all traffic from 0.0.0.0/0 — sensitive port 3306 is exposed
+  > Security group allows all traffic from 0.0.0.0/0 - sensitive port 3306 is exposed
 - **W2508** `OpenShiftInternalSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L1055 in `quickstart_openshift_yaml`
-  > Security group allows all traffic from 0.0.0.0/0 — sensitive port 3389 is exposed
+  > Security group allows all traffic from 0.0.0.0/0 - sensitive port 3389 is exposed
 - **W2508** `OpenShiftInternalSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L1055 in `quickstart_openshift_yaml`
-  > Security group allows all traffic from 0.0.0.0/0 — sensitive port 5432 is exposed
+  > Security group allows all traffic from 0.0.0.0/0 - sensitive port 5432 is exposed
 - **W2508** `OpenShiftInternalSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L1055 in `quickstart_openshift_yaml`
-  > Security group allows all traffic from 0.0.0.0/0 — sensitive port 6379 is exposed
+  > Security group allows all traffic from 0.0.0.0/0 - sensitive port 6379 is exposed
 - **W2508** `rSecurityGroupPeered` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L418 in `quickstart_vpc-management_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L801 in `quickstart_vpc-management_json`
@@ -12130,7 +12132,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L83 in `bad_conditions_yaml`
   > Property 'DistributionConfig' is deprecated
 - **W9009** `Domain` (AWS::SDB::Domain) L4 in `bad_deprecated_type_yaml`
-  > Resource type 'AWS::SDB::Domain' is deprecated — consider using a newer alternative
+  > Resource type 'AWS::SDB::Domain' is deprecated - consider using a newer alternative
 - **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L4 in `bad_resources_cloudfront_invalid_aliases_yaml`
   > Property 'DistributionConfig' is deprecated
 - **W9009** `DeprecatedProp` (AWS::Athena::WorkGroup) → `Properties.WorkGroupConfigurationUpdates` L20 in `bad_schema_property_constraints_yaml`
@@ -12139,13 +12141,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'DistributionConfig' is deprecated
 - **W9009** `CdkIoTCoreRule` (AWS::IoT::TopicRule) → `Properties.TopicRulePayload` L526 in `cdk_py-iotcore--CdkIotThingStack.template_json`
   > Property 'TopicRulePayload' is deprecated
-- **W9009** `Distribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L4 in `good_cloudfront_valid`
+- **W9009** `AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L3 in `gh-issues_issue-57_json`
   > Property 'DistributionConfig' is deprecated
-- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L40 in `good_conditions`
+- **W9009** `Distribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L4 in `good_cloudfront_valid_yaml`
   > Property 'DistributionConfig' is deprecated
 - **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L40 in `good_conditions_yaml`
   > Property 'DistributionConfig' is deprecated
-- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L4 in `good_resources_cloudfront_aliases`
+- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L4 in `good_resources_cloudfront_aliases_yaml`
   > Property 'DistributionConfig' is deprecated
 - **W9009** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L41 in `integration_ref-no-value_yaml`
   > Property 'DistributionConfig' is deprecated
@@ -12191,30 +12193,30 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### F2012 — 6 findings
 
 - **F2012** L3 in `bad_param_number_default_yaml`
-  > Parameter 'Port' Default 'not-a-number' is not in AllowedValues ["abc", "def"]
+  > Parameter 'Port' Default 'not-a-number' is not in AllowedValues ['abc', 'def']
 - **F2012** L4 in `bad_parameters_default_yaml`
-  > Parameter 'CDLAllowedValues' Default 'three' is not in AllowedValues ["one", "two", "three,four"]
+  > Parameter 'CDLAllowedValues' Default 'three' is not in AllowedValues ['one', 'two', 'three,four']
 - **F2012** L4 in `bad_parameters_default_yaml`
-  > Parameter 'CDLAllowedValuesWithSpaces' Default 'three,four' is not in AllowedValues ["one", "two", "three, four"]
+  > Parameter 'CDLAllowedValuesWithSpaces' Default 'three,four' is not in AllowedValues ['one', 'two', 'three, four']
 - **F2012** L4 in `bad_parameters_default_yaml`
-  > Parameter 'myAllowedValue' Default 'us-east-1a' is not in AllowedValues ["us-east-1b", "us-east-1c", "us-east-1d"]
+  > Parameter 'myAllowedValue' Default 'us-east-1a' is not in AllowedValues ['us-east-1b', 'us-east-1c', 'us-east-1d']
 - **F2012** L4 in `good_parameters_default_yaml`
-  > Parameter 'CDLAllowedPatternWithSpaceInDefault' Default 'one, two' is not in AllowedValues ["one", "two", "three,four"]
+  > Parameter 'CDLAllowedPatternWithSpaceInDefault' Default 'one, two' is not in AllowedValues ['one', 'two', 'three,four']
 - **F2012** L4 in `good_parameters_default_yaml`
-  > Parameter 'CDLAllowedValuesWithSpaceInDefault' Default 'one, two' is not in AllowedValues ["one", "two", "three,four"]
+  > Parameter 'CDLAllowedValuesWithSpaceInDefault' Default 'one, two' is not in AllowedValues ['one', 'two', 'three,four']
 
 ### F1020 — 5 findings — Ref validation of value
 
 - **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) L3 in `bad_core_parse_invalid_map_yaml`
   > Fn::GetAtt references non-existent resource 'NodeLaunchTemplate'
 - **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.DesiredCapacity` L3 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeAutoScalingGroupDesiredCapacity' is not one of ["AWS::AccountId", "AWS::NoValue", "AWS::NotificationARNs", "AWS::Partition", "AWS::Region", "AWS::StackId", "AWS::StackName", "AWS::URLSuffix", "No
+  > 'NodeAutoScalingGroupDesiredCapacity' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'No
 - **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchTemplate.LaunchTemplateId` L3 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeLaunchTemplate' is not one of ["AWS::AccountId", "AWS::NoValue", "AWS::NotificationARNs", "AWS::Partition", "AWS::Region", "AWS::StackId", "AWS::StackName", "AWS::URLSuffix", "NodeGroup"]
+  > 'NodeLaunchTemplate' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']
 - **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MaxSize` L3 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeAutoScalingGroupMaxSize' is not one of ["AWS::AccountId", "AWS::NoValue", "AWS::NotificationARNs", "AWS::Partition", "AWS::Region", "AWS::StackId", "AWS::StackName", "AWS::URLSuffix", "NodeGroup"
+  > 'NodeAutoScalingGroupMaxSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup'
 - **F1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.MinSize` L3 in `bad_core_parse_invalid_map_yaml`
-  > 'NodeAutoScalingGroupMinSize' is not one of ["AWS::AccountId", "AWS::NoValue", "AWS::NotificationARNs", "AWS::Partition", "AWS::Region", "AWS::StackId", "AWS::StackName", "AWS::URLSuffix", "NodeGroup"
+  > 'NodeAutoScalingGroupMinSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup'
 
 ### F3002 — 4 findings — Resource properties are invalid
 
@@ -12229,14 +12231,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### W2512 — 4 findings
 
-- **W2512** `NotActionUser` (AWS::IAM::User) L35 in `bad_iam_wildcard_all_types`
-  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+- **W2512** `NotActionUser` (AWS::IAM::User) L35 in `bad_iam_wildcard_all_types_yaml`
+  > IAM policy uses NotAction which grants all actions except those listed - consider using Action instead
 - **W2512** `rIamPolicyExtraThings` (AWS::IAM::Policy) L44 in `bad_resources_iam_iam_policy_yaml`
-  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+  > IAM policy uses NotAction which grants all actions except those listed - consider using Action instead
 - **W2512** `rSysAdminPolicy` (AWS::IAM::ManagedPolicy) L61 in `quickstart_iam_json`
-  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+  > IAM policy uses NotAction which grants all actions except those listed - consider using Action instead
 - **W2512** `rSysAdminPolicy` (AWS::IAM::ManagedPolicy) L276 in `quickstart_nist_iam_yaml`
-  > IAM policy uses NotAction which grants all actions except those listed — consider using Action instead
+  > IAM policy uses NotAction which grants all actions except those listed - consider using Action instead
 
 ### F1104 — 3 findings
 
@@ -12271,17 +12273,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Parameter 'MyNewPassword' appears to be a password but does not have NoEcho set to true
 - **W2509** L6 in `bad_properties_password_yaml`
   > Parameter 'MyPassword' appears to be a password but does not have NoEcho set to true
-- **W2509** L2 in `integration_resources-cloudformation-init`
+- **W2509** L2 in `integration_resources-cloudformation-init_yaml`
   > Parameter 'DBPassword' appears to be a password but does not have NoEcho set to true
-
-### W9007 — 3 findings
-
-- **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L4 in `bad_unique_items_yaml`
-  > Array property 'AvailabilityZones' contains duplicate values
-- **W9007** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Subnets` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template`
-  > Array property 'Subnets' contains duplicate values
-- **W9007** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Subnets` L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template`
-  > Array property 'Subnets' contains duplicate values
 
 ### W1103 — 2 findings
 
@@ -12327,7 +12320,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### E9002 — 2 findings
 
-- **E9002** `SG` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L4 in `bad_sg_bad_port_range`
+- **E9002** `SG` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L4 in `bad_sg_bad_port_range_yaml`
   > FromPort 443 is greater than ToPort 80
 - **E9002** `AppSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L92 in `cdk_DemoStack.template_json`
   > FromPort 443 is greater than ToPort 80
@@ -12335,9 +12328,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### F8611 — 2 findings
 
 - **F8611** in `lsp_comprehensive_json`
-  > 'Fn::FindInMap' is not supported in the Rules section — allowed: ["Ref", "Fn::ValueOf", "Fn::ValueOfAll", "Fn::RefAll", "Fn::Contains", "Fn::EachMemberEquals", "Fn::EachMemberIn", "Fn::Equals", "Fn::A
+  > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
 - **F8611** in `lsp_comprehensive_yaml`
-  > 'Fn::FindInMap' is not supported in the Rules section — allowed: ["Ref", "Fn::ValueOf", "Fn::ValueOfAll", "Fn::RefAll", "Fn::Contains", "Fn::EachMemberEquals", "Fn::EachMemberIn", "Fn::Equals", "Fn::A
+  > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
 
 ### W3030 — 1 findings
 
@@ -12362,7 +12355,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### W9011 — 1 findings
 
 - **W9011** `Database` (AWS::RDS::DBInstance) → `Properties.PubliclyAccessible` L4 in `bad_rds_public_yaml`
-  > RDS instance has PubliclyAccessible set to true — consider restricting access
+  > RDS instance has PubliclyAccessible set to true - consider restricting access
 
 ### W3041 — 1 findings
 
@@ -12373,6 +12366,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - **E2504** `FifoQueue` (AWS::SQS::Queue) → `Properties.QueueName` L4 in `bad_sqs_fifo_no_suffix_yaml`
   > FIFO queue name 'my-queue' must end with '.fifo'
+
+### W9007 — 1 findings
+
+- **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L4 in `bad_unique_items_yaml`
+  > Array property 'AvailabilityZones' contains duplicate values
 
 ### F8610 — 1 findings
 
@@ -12934,7 +12932,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ## Coverage Gaps
 
-27 cfn-lint templates with no engine report:
+14 cfn-lint templates with no engine report:
 
 - `bad_core_config_invalid_json_json` (1 expected diagnostics)
 - `bad_core_config_invalid_yaml_yaml` (1 expected diagnostics)
@@ -12942,25 +12940,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - `bad_json_parse_json` (1 expected diagnostics)
 - `bad_string_yaml` (1 expected diagnostics)
 - `bad_template_yaml` (1 expected diagnostics)
-- `gh-issues_issue-34-w2506-overfire` (0 expected diagnostics)
-- `gh-issues_issue-35` (0 expected diagnostics)
-- `gh-issues_issue-36` (0 expected diagnostics)
-- `gh-issues_issue-39` (0 expected diagnostics)
-- `gh-issues_issue-45` (0 expected diagnostics)
-- `gh-issues_issue-46` (0 expected diagnostics)
-- `gh-issues_issue-48` (0 expected diagnostics)
-- `gh-issues_issue-50` (0 expected diagnostics)
-- `gh-issues_issue-52` (0 expected diagnostics)
-- `gh-issues_issue-54-bare` (0 expected diagnostics)
-- `gh-issues_issue-55` (0 expected diagnostics)
-- `gh-issues_issue-56` (0 expected diagnostics)
-- `gh-issues_issue-57` (0 expected diagnostics)
+- `gh-issues_issue-48_json` (0 expected diagnostics)
 - `good_core_config_cfn_lint.json` (0 expected diagnostics)
 - `good_core_config_cfn_lint.yaml` (0 expected diagnostics)
-- `good_functions_get_stack_output` (0 expected diagnostics)
 - `good_resources_dynamodb_attributes_transform_yaml` (6 expected diagnostics)
 - `integration_get-stack-output_yaml` (2 expected diagnostics)
-- `integration_module-sub-resources` (0 expected diagnostics)
+- `integration_module-sub-resources_yaml` (0 expected diagnostics)
 - `lsp_simple.json` (0 expected diagnostics)
 - `lsp_simple.yaml` (0 expected diagnostics)
 
