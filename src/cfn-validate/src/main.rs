@@ -191,7 +191,6 @@ fn main() {
 
     if list_rules {
         let mut rules = engine.list_rules();
-        rules.extend(schema_validator.list_rules());
         rules.sort_by(|a, b| a.id.cmp(&b.id));
         for r in &rules {
             println!(

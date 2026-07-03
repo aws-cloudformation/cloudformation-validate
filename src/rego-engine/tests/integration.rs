@@ -1,6 +1,6 @@
 use diagnostics::{Diagnostic, ValidationReport};
 use rego_engine::RegoEngine;
-use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity};
+use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity, rule_number};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
 use template_model::{PseudoParameterOverrides, SemanticModel};
@@ -192,13 +192,17 @@ fn e2e_json_output() {
 fn e2e_diagnostics_sorted() {
     let report = validate_fixture("good/generic.yaml");
     for w in report.diagnostics.windows(2) {
-        // Engine sort contract: (line ASC, col ASC, severity DESC, rule_id ASC).
+        // Engine sort contract: severity DESC (Fatal..Debug), then rule number ASC,
+        // then rule_id ASC, then location and the remaining fields.
         let key = |d: &Diagnostic| {
             (
+                std::cmp::Reverse(d.severity),
+                rule_number(&d.rule_id),
+                d.rule_id.clone(),
                 d.location.as_ref().map_or(0, |l| l.start_line),
                 d.location.as_ref().map_or(0, |l| l.start_column),
-                std::cmp::Reverse(d.severity),
-                d.rule_id.clone(),
+                d.property_path.clone(),
+                d.message.clone(),
             )
         };
         assert!(key(&w[0]) <= key(&w[1]), "Diagnostics not sorted: {:?} > {:?}", w[0], w[1]);

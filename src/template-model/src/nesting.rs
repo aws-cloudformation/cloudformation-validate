@@ -30,10 +30,14 @@ pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<D
                 let child_name = cfn_function_name(child_fn);
                 if !allowlist.contains(&child_name) {
                     let parent_name = cfn_function_name(intrinsic);
-                    out.push(crate::make_parse_diagnostic(
+                    // Anchor at the offending child node's build path so that when its
+                    // own byte span is unassigned, span resolution walks up to the
+                    // nearest enclosing element rather than leaving it unlocated.
+                    out.push(crate::make_parse_diagnostic_at(
                         "F1105",
                         format!("'{}' is not allowed inside '{}'", child_name, parent_name),
                         arena.span(child_ref),
+                        &arena.get(child_ref).path,
                     ));
                 }
             }
