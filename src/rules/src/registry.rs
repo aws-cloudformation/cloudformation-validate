@@ -845,9 +845,15 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "E3049",
-        category: Category::Resource,
-        description: "Validate ECS tasks with dynamic host port have traffic-port ELB target groups",
+        id: "W3049",
+        category: Category::BestPractice,
+        description: "ELB target group health check uses a fixed port that will not follow an ECS dynamic host port",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "I3049",
+        category: Category::BestPractice,
+        description: "ELB target group relies on the default traffic-port health check for an ECS dynamic host port",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {

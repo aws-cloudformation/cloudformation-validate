@@ -197,17 +197,54 @@ fn issue_41_no_w9013_on_join_ref_accountid() {
     assert_count(&diags, "W9013", 0);
 }
 
-/// Issue #42: E3049 still fires on an ECS dynamic-port (HostPort 0) TargetGroup
-/// when HealthCheckPort is omitted — the absent value is treated as `""` rather
-/// than the documented `traffic-port` default. Pins the current behavior, which
-/// matches the reference linter baseline.
+/// Issue #42: an omitted `HealthCheckPort` on an ECS dynamic-port (HostPort 0)
+/// TargetGroup defaults to `traffic-port` — the correct setting — so the finding
+/// is advisory (I3049 INFO), not an Error. The ECS dynamic-port health-check
+/// check is severity-split from the reference linter's single Error: an omitted
+/// port is informational (I3049), a concrete non-`traffic-port` value is a
+/// warning (W3049, exercised by the `bad/` corpus). The template deploys and
+/// works in the omitted case, so no Error is warranted.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
-fn issue_42_e3049_omitted_healthcheckport_with_hostport_zero() {
+fn issue_42_omitted_healthcheckport_is_info_not_error() {
     let diags = validate_both("issue-42.yaml");
-    assert_fires_with_severity(&diags, "E3049", Severity::Error);
-    assert_fires_on_resource(&diags, "E3049", "TargetGroup");
-    assert_count(&diags, "E3049", 1);
+    assert_absent(&diags, "E3049");
+    assert_fires_with_severity(&diags, "I3049", Severity::Info);
+    assert_fires_on_resource(&diags, "I3049", "TargetGroup");
+    assert_count(&diags, "I3049", 1);
+    assert_count(&diags, "W3049", 0);
+}
+
+/// Issue #42 (counter-example): a `HealthCheckPort` that is a deploy-time value
+/// (a `Ref` to a no-default parameter) is unknowable at validation time, so the
+/// dynamic-port health-check rule must stay silent in both engines — neither the
+/// advisory I3049 nor the warning W3049 fires. Guards the false-positive fix: an
+/// opaque value must not be treated like a fixed non-`traffic-port` port. This
+/// matches the reference linter, which is also silent here.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
+#[test]
+fn issue_42_no_finding_on_deploy_time_healthcheckport() {
+    let diags = validate_both("issue-42-ref.yaml");
+    assert_absent(&diags, "E3049");
+    assert_absent(&diags, "I3049");
+    assert_absent(&diags, "W3049");
+}
+
+/// Issue #42 (conditional case): an `Fn::If` HealthCheckPort must be classified
+/// across ALL its branches, in both engines identically. One branch pins a fixed
+/// `8080` (wrong for dynamic port mapping) and the other is `traffic-port`, so the
+/// warning W3049 fires (on the fixed branch) and the omitted-default advisory
+/// I3049 does not (the property is present). Guards engine parity on conditionals
+/// — a divergence here (one engine reading only a single branch) is a bug.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
+#[test]
+fn issue_42_conditional_healthcheckport_warns_on_wrong_branch() {
+    let diags = validate_both("issue-42-if.yaml");
+    assert_absent(&diags, "E3049");
+    assert_absent(&diags, "I3049");
+    assert_fires_with_severity(&diags, "W3049", Severity::Warn);
+    assert_fires_on_resource(&diags, "W3049", "TargetGroup");
+    assert_count(&diags, "W3049", 1);
 }
 
 /// Issue #44: E3702 must NOT fire on an `AWS/Deploy/CloudFormation` action that
