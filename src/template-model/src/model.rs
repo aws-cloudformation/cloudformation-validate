@@ -825,6 +825,68 @@ impl SemanticModel {
         self.source_location(&specific).or_else(|| self.source_location(&fallback)).copied().unwrap_or(UNKNOWN_SPAN)
     }
 
+    /// Walks up `key` (a `/`-separated span-index path), trimming one trailing
+    /// segment at a time, and returns the first ancestor with a known span. This
+    /// anchors a diagnostic as close to the offending node as the index allows —
+    /// an unindexed leaf (e.g. an `Fn::If` branch index) falls back to its parent
+    /// property, then the resource, then the section.
+    fn walk_up_span(&self, key: &str) -> Option<SourceSpan> {
+        let mut current = key;
+        loop {
+            // A key can be present in the index but mapped to UNKNOWN_SPAN (an
+            // interior node whose byte span was never assigned). Treat that as
+            // "not found" and keep walking up to the nearest ancestor that does
+            // have a real span, rather than returning the unusable UNKNOWN.
+            match self.span_index.get(current) {
+                Some(&span) if span != UNKNOWN_SPAN => return Some(span),
+                _ => match current.rfind('/') {
+                    Some(cut) => current = &current[..cut],
+                    None => return None,
+                },
+            }
+        }
+    }
+
+    /// Best-effort span for a diagnostic identified by its optional resource and
+    /// property path, walking up to the nearest indexed ancestor.
+    ///
+    /// The path form disambiguates how to root it, which matters because a segment
+    /// like `Metadata` names both a top-level section and a resource property:
+    /// * A **slash** form (`Outputs/X/Value`, `Conditions/C/Fn::And`) is already an
+    ///   absolute, section-rooted span-index key and is resolved as written.
+    /// * A **dotted** or bare form (`Properties.Foo`, `Metadata`) is relative to the
+    ///   resource, so it is rooted at `Resources/<rid>` before lookup — never
+    ///   matched against a same-named top-level section.
+    ///
+    /// Returns `None` when nothing along the chosen candidate is indexed, so callers
+    /// can fall back to a section span.
+    pub fn diagnostic_span(&self, resource_id: Option<&str>, property_path: &str) -> Option<SourceSpan> {
+        let rid = resource_id.filter(|r| !r.is_empty());
+
+        if property_path.contains('/') {
+            // Absolute, section-rooted path: resolve directly.
+            if let Some(span) = self.walk_up_span(property_path) {
+                return Some(span);
+            }
+        } else if let Some(rid) = rid {
+            // Resource-relative path (dotted or bare): root at the resource so a
+            // property named after a top-level section cannot mislocate onto it.
+            let key = if property_path.is_empty() {
+                format!("Resources/{}", rid)
+            } else {
+                format!("Resources/{}/{}", rid, property_path.replace('.', "/"))
+            };
+            if let Some(span) = self.walk_up_span(&key) {
+                return Some(span);
+            }
+        }
+
+        // Last resort: the bare resource span, when a resource id is known.
+        rid.and_then(|rid| self.span_index.get(&format!("Resources/{}", rid)))
+            .filter(|span| **span != UNKNOWN_SPAN)
+            .copied()
+    }
+
     pub fn estimate_string_length(&self, resource_id: &str, path: &str) -> Option<usize> {
         let val = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
         estimate_resolved_string_length(&val)
@@ -1250,6 +1312,97 @@ Resources:
         assert_eq!(model.resources.len(), 2);
         assert_eq!(model.resources_of_type("AWS::S3::Bucket").len(), 2);
         assert_eq!(model.resources_of_type("AWS::Fake::Thing").len(), 0);
+    }
+
+    #[test]
+    fn diagnostic_span_resolves_dotted_resource_property_path() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // A dotted, resource-relative path is normalized to the slash-keyed index
+        // entry and resolves to the specific property span (the BucketName value).
+        let via_diag = model.diagnostic_span(Some("MyBucket"), "Properties.BucketName").expect("should resolve");
+        let expected = model.source_location("Resources/MyBucket/Properties/BucketName").copied().expect("indexed");
+        assert_eq!(via_diag, expected, "dotted path should resolve to the exact property span");
+    }
+
+    #[test]
+    fn diagnostic_span_resource_relative_path_never_matches_top_level_section() {
+        // A resource property named after a top-level section (Metadata) must anchor
+        // at the resource's own Metadata, not the unrelated top-level Metadata block.
+        let input = r#"
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups: []
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      cfn_nag: skip
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let via_diag = model.diagnostic_span(Some("MyBucket"), "Metadata").expect("should resolve");
+        let resource_meta = model.source_location("Resources/MyBucket/Metadata").copied().expect("indexed");
+        let top_level_meta = model.source_location("Metadata").copied().expect("indexed");
+        assert_eq!(via_diag, resource_meta, "resource-relative Metadata must anchor at the resource");
+        assert_ne!(via_diag, top_level_meta, "must not mislocate onto the top-level Metadata section");
+    }
+
+    #[test]
+    fn diagnostic_span_resolves_absolute_section_rooted_path() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+Outputs:
+  BucketRef:
+    Value: !Ref MyBucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // An output-anchored path cannot be reached via resource_span (it only roots
+        // at Resources/), but diagnostic_span resolves it directly from the index.
+        let span = model.diagnostic_span(Some("BucketRef"), "Outputs/BucketRef/Value");
+        assert!(span.is_some() && span != Some(UNKNOWN_SPAN), "output path should resolve to a real span");
+    }
+
+    #[test]
+    fn diagnostic_span_walks_up_when_leaf_node_is_unindexed() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // A deeper path that was never indexed falls back to the nearest indexed
+        // ancestor (the property, then the resource) rather than UNKNOWN.
+        let span = model.diagnostic_span(Some("MyBucket"), "Properties.BucketName.DoesNotExist.Deeper");
+        assert!(span.is_some() && span != Some(UNKNOWN_SPAN), "unindexed leaf should walk up to a real span");
+    }
+
+    #[test]
+    fn diagnostic_span_returns_none_when_nothing_resolvable() {
+        let input = r#"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+"#;
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // No resource and no property path: there is no candidate key to resolve.
+        assert_eq!(model.diagnostic_span(None, ""), None, "no resource and no path yields no span");
+        // A property path whose every ancestor is unindexed (no matching section)
+        // resolves to nothing.
+        assert_eq!(
+            model.diagnostic_span(None, "NoSuchSection/Deep/Path"),
+            None,
+            "an unindexed absolute path yields no span"
+        );
     }
 
     #[test]

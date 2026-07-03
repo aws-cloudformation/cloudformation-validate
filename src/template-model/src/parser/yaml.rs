@@ -57,10 +57,22 @@ impl CfnYamlLoader {
         }
     }
 
-    fn load(text: &str) -> Result<LoadedYaml, String> {
+    fn load(text: &str) -> Result<LoadedYaml, ParseError> {
         let mut loader = Self::new();
         let mut parser = Parser::new_from_str(text);
-        parser.load(&mut loader, true).map_err(|e| format!("{}", e))?;
+        // The scanner error carries a Marker locating the failure; surface it so the
+        // resulting F1101 diagnostic is anchored at the offending position instead of
+        // being left without a location.
+        parser.load(&mut loader, true).map_err(|e| {
+            // The scanner Marker reports line 1-based but column 0-based, so only the
+            // column is shifted to the 1-based column every other diagnostic reports.
+            let marker = e.marker();
+            ParseError {
+                message: format!("YAML parse error: {}", e),
+                line: Some(marker.line() as u32),
+                column: Some(marker.col() as u32 + 1),
+            }
+        })?;
         Ok(LoadedYaml { docs: loader.docs, span_map: loader.span_map, dup_key_diagnostics: loader.dup_key_diagnostics })
     }
 
@@ -330,8 +342,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         column: None,
     })?;
 
-    let LoadedYaml { docs, span_map: raw_spans, dup_key_diagnostics } = CfnYamlLoader::load(text)
-        .map_err(|e| ParseError { message: format!("YAML parse error: {}", e), line: None, column: None })?;
+    let LoadedYaml { docs, span_map: raw_spans, dup_key_diagnostics } = CfnYamlLoader::load(text)?;
 
     if docs.is_empty() {
         return Err(ParseError { message: "Empty YAML document".into(), line: Some(1), column: Some(1) });

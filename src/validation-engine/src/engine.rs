@@ -3,7 +3,9 @@ use diagnostics::{
     ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext,
     apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
 };
-use rules::{FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, section_for_rule_id};
+use rules::{
+    FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, rule_number, section_for_rule_id,
+};
 use schema_validator::{SchemaValidationResult, SchemaValidator};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -203,6 +205,8 @@ pub(crate) fn validate(
 
     gate_sam_transform_errors(&mut all_diagnostics);
     gate_cdk_suppressed_rules(&mut all_diagnostics, &model);
+
+    backfill_locations(&mut all_diagnostics, &model);
 
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
@@ -565,29 +569,29 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
     // Filter by minimum severity. Debug is the lowest severity so it acts as "no filter".
     diagnostics.retain(|d| d.severity >= config.severity_level);
 
-    // Sort key MUST be a superset of the dedup key below. If two diagnostics share the
-    // dedup key but are separated by a sibling that compares equal on the sort key,
+    // Order by severity first (Fatal, Error, Warn, Info, Debug), then by rule number,
+    // then by location and the remaining fields. The severity and rule-number keys are
+    // both functionally determined by `rule_id` (the prefix letter fixes the severity,
+    // the digits fix the number), so they add grouping without ever splitting two
+    // diagnostics that are otherwise identical.
+    //
+    // The sort key MUST stay a superset of the dedup key below. If two diagnostics share
+    // the dedup key but are separated by a sibling that compares equal on the sort key,
     // stable sort leaves them non-adjacent and dedup_by silently misses them.
     // Seen in the wild: the same rule fired twice for the same parameter (two distinct usages)
     // with a sibling diagnostic for a different parameter at the same line/col in between —
     // native HashMap iteration order put them in [A, B, A] layout, dedup skipped.
+    let line = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_line).unwrap_or(0);
+    let column = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_column).unwrap_or(0);
     diagnostics.sort_by(|a, b| {
-        a.location
-            .as_ref()
-            .map(|l| l.start_line)
-            .unwrap_or(0)
-            .cmp(&b.location.as_ref().map(|l| l.start_line).unwrap_or(0))
-            .then(
-                a.location
-                    .as_ref()
-                    .map(|l| l.start_column)
-                    .unwrap_or(0)
-                    .cmp(&b.location.as_ref().map(|l| l.start_column).unwrap_or(0)),
-            )
-            .then(b.severity.cmp(&a.severity))
-            .then(a.rule_id.cmp(&b.rule_id))
-            .then(a.property_path.cmp(&b.property_path))
-            .then(a.message.cmp(&b.message))
+        b.severity
+            .cmp(&a.severity)
+            .then_with(|| rule_number(&a.rule_id).cmp(&rule_number(&b.rule_id)))
+            .then_with(|| a.rule_id.cmp(&b.rule_id))
+            .then_with(|| line(a).cmp(&line(b)))
+            .then_with(|| column(a).cmp(&column(b)))
+            .then_with(|| a.property_path.cmp(&b.property_path))
+            .then_with(|| a.message.cmp(&b.message))
     });
     diagnostics.dedup_by(|a, b| {
         a.location.as_ref().map(|l| l.start_line).unwrap_or(0) == b.location.as_ref().map(|l| l.start_line).unwrap_or(0)
@@ -613,6 +617,18 @@ pub(crate) fn build_context(
     let resolve_val = |path: &str| -> Option<serde_json::Value> {
         let scenarios = model.resolve_scenarios_json(rid, path);
         scenarios.into_iter().next().map(|(v, _)| v)
+    };
+
+    // Resolves a value only when every condition scenario agrees on it. A property
+    // driven by `Fn::If` resolves to a different value per branch, and each branch
+    // yields its own diagnostic (with a branch-specific message); attaching the
+    // first branch's value to all of them would contradict the other messages. When
+    // the branches disagree this returns `None`, leaving the message as the sole,
+    // correct carrier of the offending value.
+    let unambiguous_val = |path: &str| -> Option<serde_json::Value> {
+        let mut scenarios = model.resolve_scenarios_json(rid, path).into_iter().map(|(v, _)| v);
+        let first = scenarios.next()?;
+        if scenarios.all(|v| v == first) { Some(first) } else { None }
     };
 
     let mut actual_value: Option<JsonValue> = None;
@@ -705,6 +721,28 @@ pub(crate) fn build_context(
         "W3041" => {
             lifecycle = Some("write-only".into());
         }
+        // Lambda runtime lifecycle: surface the offending runtime string and the
+        // stage of its lifecycle, mirroring how resource-type deprecation (W9009)
+        // and property lifecycle (I9001/W3041) carry a lifecycle marker. The runtime
+        // is emitted once per condition branch, so only attach the value when every
+        // branch agrees — otherwise the message alone names the branch's runtime.
+        "E2533" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
+            lifecycle = Some("end-of-life".into());
+        }
+        "E2531" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
+            lifecycle = Some("create-blocked".into());
+        }
+        "W2531" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
+            lifecycle = Some("deprecated".into());
+        }
+        // RDS instance exposed to the public internet: surface the offending
+        // PubliclyAccessible value against the expected safe setting.
+        "W9011" => {
+            actual_value = unambiguous_val(property_path).map(Into::into);
+        }
         "W2503" | "W2502" => {
             if let Some(res) = model.resources.get(rid)
                 && let Some(ref c) = res.condition
@@ -753,6 +791,33 @@ fn gate_cdk_suppressed_rules(diagnostics: &mut Vec<Diagnostic>, model: &Semantic
         return;
     }
     diagnostics.retain(|d| !CDK_SUPPRESSED_RULE_IDS.contains(&d.rule_id.as_str()));
+}
+
+/// Attaches a source span to any diagnostic still missing one. Location is part of
+/// both the standard and detailed reports, so this runs regardless of detail level
+/// and independently of the engine, keeping the two engines at parity.
+///
+/// Most diagnostics are located at construction (via `resource_span` /
+/// `resolve_section_span`), but some emission paths cannot reach a span there:
+/// parse-time findings built before byte spans are assigned, findings anchored on
+/// an output/parameter path that `resource_span` cannot resolve (it only roots at
+/// `Resources/`), and template-model findings that never pass through
+/// `parse_diagnostic`'s section fallback. This is the single place that repairs
+/// them. The resolution is best-effort and monotonic — it only ever fills a `None`
+/// location, never overrides an existing one — so it cannot move a diagnostic that
+/// already points at the right place.
+fn backfill_locations(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
+    for d in diagnostics.iter_mut() {
+        if d.location.is_some() {
+            continue;
+        }
+        let resource_id = d.resource.as_ref().and_then(|r| r.id.as_deref());
+        let property_path = d.property_path.as_deref().unwrap_or("");
+        let span = model
+            .diagnostic_span(resource_id, property_path)
+            .unwrap_or_else(|| resolve_section_span(&d.rule_id, model));
+        d.location = span_to_option(span);
+    }
 }
 
 pub(crate) fn enrich_diagnostics(
@@ -1329,7 +1394,7 @@ Resources:
     }
 
     #[test]
-    fn finalize_sorts_by_location_then_severity() {
+    fn finalize_sorts_by_severity_then_rule_number_then_location() {
         let config = ValidateConfig::default();
         let mut diags = vec![
             make_diag("W3045", Severity::Warn, 10, 1),
@@ -1338,9 +1403,20 @@ Resources:
         ];
         finalize_diagnostics(&mut diags, &config);
         assert_eq!(diags.len(), 3);
+        // Severity orders first: Fatal, then Error, then Warn — regardless of location.
         assert_eq!(diags[0].rule_id, "F3012");
         assert_eq!(diags[1].rule_id, "E3012");
-        assert_eq!(diags[2].location.as_ref().unwrap().start_line, 10);
+        assert_eq!(diags[2].rule_id, "W3045");
+    }
+
+    #[test]
+    fn finalize_orders_same_severity_by_rule_number() {
+        let config = ValidateConfig::default();
+        // Higher-numbered rule appears earlier in the file; rule number must still win.
+        let mut diags = vec![make_diag("E3999", Severity::Error, 1, 1), make_diag("E3012", Severity::Error, 50, 1)];
+        finalize_diagnostics(&mut diags, &config);
+        assert_eq!(diags[0].rule_id, "E3012", "lower rule number sorts first within a severity");
+        assert_eq!(diags[1].rule_id, "E3999");
     }
 
     #[test]
@@ -1428,9 +1504,10 @@ Resources:
             make_diag("F3012", Severity::Fatal, 3, 1),
         ];
         finalize_diagnostics(&mut diags, &config);
-        assert_eq!(diags[0].severity, Severity::Error, "Warn should be upgraded to Error");
-        assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
-        assert_eq!(diags[2].severity, Severity::Fatal, "Fatal should stay Fatal");
+        let severity_of = |id: &str| diags.iter().find(|d| d.rule_id == id).map(|d| d.severity);
+        assert_eq!(severity_of("W3045"), Some(Severity::Error), "Warn should be upgraded to Error");
+        assert_eq!(severity_of("E3012"), Some(Severity::Error), "Error should stay Error");
+        assert_eq!(severity_of("F3012"), Some(Severity::Fatal), "Fatal should stay Fatal");
     }
 
     #[test]
@@ -1438,8 +1515,9 @@ Resources:
         let config = ValidateConfig { strict: false, ..Default::default() };
         let mut diags = vec![make_diag("W3045", Severity::Warn, 1, 1), make_diag("E3012", Severity::Error, 2, 1)];
         finalize_diagnostics(&mut diags, &config);
-        assert_eq!(diags[0].severity, Severity::Warn, "Warn should be preserved");
-        assert_eq!(diags[1].severity, Severity::Error, "Error should stay Error");
+        let severity_of = |id: &str| diags.iter().find(|d| d.rule_id == id).map(|d| d.severity);
+        assert_eq!(severity_of("W3045"), Some(Severity::Warn), "Warn should be preserved");
+        assert_eq!(severity_of("E3012"), Some(Severity::Error), "Error should stay Error");
     }
 
     #[test]
@@ -1602,6 +1680,95 @@ Resources:
         let ctx = build_context("E3012", Some("Bucket"), "Properties.BucketName", &model)
             .expect("E3012 with property path should return context");
         assert!(ctx.actual_value.is_some(), "context should have actual_value");
+    }
+
+    #[test]
+    fn build_context_runtime_rules_carry_actual_value_and_lifecycle() {
+        let yaml = br#"
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs4.3
+"#;
+        let model = SemanticModel::from_bytes(yaml).expect("model with lambda runtime");
+        for (rule_id, expected_lifecycle) in
+            [("E2533", "end-of-life"), ("E2531", "create-blocked"), ("W2531", "deprecated")]
+        {
+            let ctx = build_context(rule_id, Some("Fn"), "Properties.Runtime", &model)
+                .unwrap_or_else(|| panic!("{rule_id} should return context"));
+            assert_eq!(
+                ctx.actual_value.as_ref().and_then(|v| v.as_str()),
+                Some("nodejs4.3"),
+                "{rule_id} context should carry the offending runtime string"
+            );
+            assert_eq!(ctx.lifecycle.as_deref(), Some(expected_lifecycle), "{rule_id} lifecycle marker");
+        }
+    }
+
+    #[test]
+    fn build_context_runtime_omits_actual_value_when_branches_disagree() {
+        // Runtime driven by Fn::If resolves to a different value per branch, and the
+        // emitter produces one diagnostic per branch. Attaching one branch's value to
+        // all would contradict the sibling messages, so no actual_value is set; the
+        // lifecycle marker is still safe to attach.
+        let yaml = br#"
+Parameters:
+  Env:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: !If [IsProd, dotnetcore2.1, nodejs4.3]
+"#;
+        let model = SemanticModel::from_bytes(yaml).expect("model with conditional runtime");
+        let ctx = build_context("E2533", Some("Fn"), "Properties.Runtime", &model)
+            .expect("E2533 should still return context (lifecycle)");
+        assert_eq!(ctx.lifecycle.as_deref(), Some("end-of-life"), "lifecycle is unconditionally safe");
+        assert!(
+            ctx.actual_value.is_none(),
+            "actual_value must be omitted when branches resolve to different runtimes, got {:?}",
+            ctx.actual_value
+        );
+    }
+
+    #[test]
+    fn backfill_locations_only_fills_missing_and_resolves_resource_property() {
+        let yaml = br#"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket
+"#;
+        let model = SemanticModel::from_bytes(yaml).expect("model");
+        let existing = SourceSpan { start_line: 999, start_column: 1, end_line: 999, end_column: 2 };
+        let mut diags = vec![
+            // Missing location: should be backfilled from the resource property span.
+            Diagnostic {
+                rule_id: "E3012".into(),
+                severity: Severity::Error,
+                message: "x".into(),
+                resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: None }),
+                property_path: Some("Properties.BucketName".into()),
+                ..default_diag()
+            },
+            // Already located: must be left untouched.
+            Diagnostic {
+                rule_id: "E3013".into(),
+                severity: Severity::Error,
+                message: "y".into(),
+                location: Some(existing),
+                ..default_diag()
+            },
+        ];
+        backfill_locations(&mut diags, &model);
+        assert!(diags[0].location.is_some(), "missing location should be backfilled");
+        assert_ne!(diags[0].location, Some(UNKNOWN_SPAN), "backfilled location must be a real span");
+        assert_eq!(diags[1].location, Some(existing), "existing location must be preserved");
     }
 
     #[test]

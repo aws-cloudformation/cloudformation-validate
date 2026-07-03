@@ -31,12 +31,14 @@ pub(crate) fn make_parse_diagnostic(rule_id: &str, message: String, span: Source
     RegisteredDiagnostic::new(rule_id, message).location(span).phase(Phase::Parse).build()
 }
 
-/// Like [`make_parse_diagnostic`], but attaches the resource and property path
-/// derived from a builder path such as `Resources/R/Properties/X/Fn::If`. A
-/// structural defect anchored at a resource property carries the logical ID and
-/// a dotted property path so it lands at the same location consumers expect;
-/// paths outside `Resources/<id>/Properties/...` (e.g. `Conditions/...`) keep
-/// the bare parse diagnostic.
+/// Like [`make_parse_diagnostic`], but attaches a locating anchor derived from a
+/// builder path such as `Resources/R/Properties/X/Fn::If` or
+/// `Conditions/C/Fn::And`. A resource-property defect carries the logical ID and a
+/// dotted property path so it lands where consumers expect. Defects in other
+/// sections (`Conditions`, `Outputs`, …) carry the build path itself as the
+/// property path, so that when the exact node has no byte span yet, downstream
+/// span resolution can walk up to the nearest enclosing element (the named
+/// condition/output) instead of leaving the diagnostic unlocated.
 pub(crate) fn make_parse_diagnostic_at(
     rule_id: &str,
     message: String,
@@ -51,6 +53,10 @@ pub(crate) fn make_parse_diagnostic_at(
     {
         builder = builder.resource(segments[1], None);
         builder = builder.property_path(segments[2..].join("."));
+    } else if segments.len() >= 2 {
+        // Non-resource section (e.g. Conditions/<name>/Fn::And): keep the full
+        // slash path so span resolution can walk up to the enclosing element.
+        builder = builder.property_path(build_path);
     }
     builder.build()
 }

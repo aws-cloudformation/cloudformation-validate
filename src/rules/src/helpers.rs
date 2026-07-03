@@ -5,6 +5,14 @@ pub fn is_fatal_rule(rule_id: &str) -> bool {
     rule_id.starts_with('F')
 }
 
+/// Extracts the numeric part of a rule ID (the digits after the severity-prefix
+/// letter), used to order diagnostics by rule number within a severity. A rule ID
+/// that does not follow the `[FEWID]\d+` convention (e.g. a custom rule) yields
+/// `u32::MAX` so it sorts after the well-formed built-in rules.
+pub fn rule_number(rule_id: &str) -> u32 {
+    rule_id.get(1..).and_then(|digits| digits.parse::<u32>().ok()).unwrap_or(u32::MAX)
+}
+
 /// Map a rule ID to its diagnostic category based on the ID prefix convention.
 pub fn category_for_rule_id(rule_id: &str) -> Category {
     if let Some(prefix3) = rule_id.get(..3) {
@@ -106,12 +114,13 @@ pub fn section_for_rule_id(resource_id: Option<&str>, rule_id: &str) -> Option<&
         return Some("Resources");
     }
     match rule_id {
-        "F0040" | "F6005" | "F6101" => Some("Outputs"),
+        "F0040" | "F6005" | "F6101" | "F6004" | "F6011" | "I6011" | "I6010" => Some("Outputs"),
         "W8001" => Some("Conditions"),
-        "F0008" | "F0050" | "W7001" => Some("Mappings"),
+        "F0008" | "F0050" | "W7001" | "F0017" | "E7001" | "F7002" | "I7002" | "I7010" => Some("Mappings"),
         "F0009" => Some("Conditions"),
-        "F0003" | "F0015" | "F0016" | "F2012" | "W2506" | "W2509" | "W2001" => Some("Parameters"),
-        "F0001" | "F0007" | "F0011" | "E0001" => Some("Resources"),
+        "F0003" | "F0015" | "F0016" | "F2012" | "W2506" | "W2509" | "W2001" | "E2001" | "F2002" | "F2003" | "F2011"
+        | "I2011" | "F2015" | "W2501" | "I2010" => Some("Parameters"),
+        "F0001" | "F0007" | "F0011" | "E0001" | "F0005" | "F1104" => Some("Resources"),
         "F0002" => Some("AWSTemplateFormatVersion"),
         "F0004" => Some("Outputs"),
         "F8600" | "F8601" | "W8602" | "F8603" | "F8604" | "F8605" | "F8606" | "F8607" | "W8608" | "F8609" | "F8610"
@@ -137,6 +146,22 @@ mod tests {
         assert!(!is_fatal_rule("E3002"));
         assert!(!is_fatal_rule("W1001"));
         assert!(!is_fatal_rule("I3011"));
+    }
+
+    #[test]
+    fn rule_number_extracts_numeric_suffix_ignoring_prefix() {
+        assert_eq!(rule_number("F0001"), 1);
+        assert_eq!(rule_number("E3012"), 3012);
+        assert_eq!(rule_number("W9012"), 9012);
+        // The severity prefix is irrelevant to the number, so same-numbered rules of
+        // different severities share a number and are ordered by severity first.
+        assert_eq!(rule_number("F3012"), rule_number("E3012"));
+    }
+
+    #[test]
+    fn rule_number_returns_max_for_ids_without_a_numeric_suffix() {
+        assert_eq!(rule_number("CUSTOM"), u32::MAX);
+        assert_eq!(rule_number(""), u32::MAX);
     }
 
     #[test]
