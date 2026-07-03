@@ -92,6 +92,18 @@ fn collect_concrete_values(rv: &ResolvedValue) -> Vec<serde_json::Value> {
     }
 }
 
+/// A concrete HealthCheckPort value as a comparable string, or `None` when the
+/// value is not a scalar (an opaque Ref/dynamic reference renders as an object
+/// or null and must not be treated as a fixed port). Numbers stringify so an
+/// unquoted `8080` and a quoted `"8080"` compare equal.
+fn health_check_port_scalar(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::String(s) => Some(s.clone()),
+        serde_json::Value::Number(n) => Some(n.to_string()),
+        _ => None,
+    }
+}
+
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
     if let Some(resolved) = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
         return match resolved {
@@ -1829,28 +1841,34 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
             let tg_path = format!("Properties.LoadBalancers.{}.TargetGroupArn", i);
             if let Some(tg_id) = m.follow_ref(svc_name, &tg_path) {
-                let hp_rv = m
-                    .resolve_deep(tg_id, "Properties.HealthCheckPort")
-                    .or_else(|| m.resolve(tg_id, "Properties.HealthCheckPort").cloned());
-                let hp_str = match hp_rv.as_ref() {
-                    Some(ResolvedValue::Concrete { value: v }) => v.as_str().unwrap_or("").to_string(),
-                    _ => String::new(),
-                };
-                if hp_str != "traffic-port" {
-                    // The finding is anchored on the target group's HealthCheckPort
-                    // (the property that must be 'traffic-port'), with the service
-                    // as a related location.
-                    let mut diag = make_resource_diagnostic(
-                        "E3049",
-                        &format!(
-                            "Container '{}' has HostPort 0 but TargetGroup '{}' HealthCheckPort is '{}', must be 'traffic-port'",
-                            cn, tg_id, hp_str
+                let present = m.resources.get(tg_id).is_some_and(|tg| tg.properties.contains_key("HealthCheckPort"));
+                let wrong_ports: BTreeSet<String> = resolve_all_json(m, tg_id, "Properties.HealthCheckPort")
+                    .iter()
+                    .filter_map(health_check_port_scalar)
+                    .filter(|p| p != "traffic-port")
+                    .collect();
+                let mut findings: Vec<(&str, String)> = wrong_ports
+                    .into_iter()
+                    .map(|p| {
+                        (
+                            "W3049",
+                            format!(
+                                "Container '{cn}' uses dynamic host port 0, so each task registers on an ephemeral port, but TargetGroup '{tg_id}' health-checks the fixed port '{p}'. The health check will not follow the traffic port unless '{p}' is separately served on every target. Use HealthCheckPort 'traffic-port' to health-check the port each target actually receives traffic on"
+                            ),
+                        )
+                    })
+                    .collect();
+                if findings.is_empty() && !present {
+                    findings.push((
+                        "I3049",
+                        format!(
+                            "Container '{cn}' uses dynamic host port 0; TargetGroup '{tg_id}' omits HealthCheckPort, which defaults to 'traffic-port', so the health check follows each task's ephemeral port - the correct behavior for dynamic port mapping"
                         ),
-                        m,
-                        tg_id,
-                        "Properties.HealthCheckPort",
-                        None,
-                    );
+                    ));
+                }
+                for (rule_id, message) in findings {
+                    let mut diag =
+                        make_resource_diagnostic(rule_id, &message, m, tg_id, "Properties.HealthCheckPort", None);
                     let svc_span = m.resource_span(svc_name, "Properties.LoadBalancers");
                     diag.related_resources.get_or_insert_with(Vec::new).push(RelatedResource {
                         resource: Some(ResourceRef {

@@ -6624,8 +6624,8 @@
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
-        "errors": 2,
-        "warnings": 0,
+        "errors": 1,
+        "warnings": 1,
         "informational": 7,
         "debug": 0
       },
@@ -6694,14 +6694,14 @@
         }
       },
       {
-        "ruleId": "E3049",
-        "severity": "ERROR",
-        "message": "Container 'app' has HostPort 0 but TargetGroup 'TargetGroup' HealthCheckPort is '8080', must be 'traffic-port'",
+        "ruleId": "W3049",
+        "severity": "WARN",
+        "message": "Container 'app' uses dynamic host port 0, so each task registers on an ephemeral port, but TargetGroup 'TargetGroup' health-checks the fixed port '8080'. The health check will not follow the traffic port unless '8080' is separately served on every target. Use HealthCheckPort 'traffic-port' to health-check the port each target actually receives traffic on",
         "source": "CFN_LINT",
         "resourceId": "TargetGroup",
         "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "propertyPath": "Properties.HealthCheckPort",
-        "category": "Resource",
+        "category": "Best Practice",
         "startLine": 13,
         "startColumn": 3,
         "endLine": 13,
@@ -6721,7 +6721,7 @@
             "message": "Dynamic host port defined here"
           }
         ],
-        "ruleDescription": "Validate ECS tasks with dynamic host port have traffic-port ELB target groups",
+        "ruleDescription": "ELB target group health check uses a fixed port that will not follow an ECS dynamic host port",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -102387,6 +102387,428 @@
       }
     ]
   },
+  "gh-issues/issue-42-if.yaml": {
+    "filePath": "gh-issues/issue-42-if.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 9,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TaskDef",
+        "resourceType": "AWS::ECS::TaskDefinition",
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TaskDef",
+        "resourceType": "AWS::ECS::TaskDefinition",
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "TaskDef",
+        "resourceType": "AWS::ECS::TaskDefinition",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W3049",
+        "severity": "WARN",
+        "message": "Container 'web' uses dynamic host port 0, so each task registers on an ephemeral port, but TargetGroup 'TargetGroup' health-checks the fixed port '8080'. The health check will not follow the traffic port unless '8080' is separately served on every target. Use HealthCheckPort 'traffic-port' to health-check the port each target actually receives traffic on",
+        "source": "CFN_LINT",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.HealthCheckPort",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 3,
+        "endLine": 26,
+        "endColumn": 14,
+        "relatedResources": [
+          {
+            "resource": {
+              "id": "Service",
+              "resourceType": "AWS::ECS::Service"
+            },
+            "location": {
+              "startLine": 33,
+              "startColumn": 3,
+              "endLine": 33,
+              "endColumn": 10
+            },
+            "message": "Dynamic host port defined here"
+          }
+        ],
+        "ruleDescription": "ELB target group health check uses a fixed port that will not follow an ECS dynamic host port",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Port' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.Port",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 3,
+        "endLine": 26,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Protocol' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.Protocol",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 3,
+        "endLine": 26,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 3,
+        "endLine": 26,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TargetGroup' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 3,
+        "endLine": 26,
+        "endColumn": 14,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cluster' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Service",
+        "resourceType": "AWS::ECS::Service",
+        "propertyPath": "Properties.Cluster",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 3,
+        "endLine": 33,
+        "endColumn": 10,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Service' of type 'AWS::ECS::Service' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Service",
+        "resourceType": "AWS::ECS::Service",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 3,
+        "endLine": 33,
+        "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "gh-issues/issue-42-ref.yaml": {
+    "filePath": "gh-issues/issue-42-ref.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 9,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TaskDef",
+        "resourceType": "AWS::ECS::TaskDefinition",
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 3,
+        "endLine": 11,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TaskDef",
+        "resourceType": "AWS::ECS::TaskDefinition",
+        "propertyPath": "Properties.Family",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 3,
+        "endLine": 11,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "TaskDef",
+        "resourceType": "AWS::ECS::TaskDefinition",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 3,
+        "endLine": 11,
+        "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Port' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.Port",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 3,
+        "endLine": 21,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Protocol' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.Protocol",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 3,
+        "endLine": 21,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 3,
+        "endLine": 21,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TargetGroup' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "TargetGroup",
+        "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 3,
+        "endLine": 21,
+        "endColumn": 14,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cluster' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Service",
+        "resourceType": "AWS::ECS::Service",
+        "propertyPath": "Properties.Cluster",
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 3,
+        "endLine": 28,
+        "endColumn": 10,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Service' of type 'AWS::ECS::Service' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Service",
+        "resourceType": "AWS::ECS::Service",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 3,
+        "endLine": 28,
+        "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "gh-issues/issue-42.yaml": {
     "filePath": "gh-issues/issue-42.yaml",
     "status": "OK",
@@ -102394,9 +102816,9 @@
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 0,
         "warnings": 0,
-        "informational": 9,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -102465,14 +102887,14 @@
         "section": "Resources"
       },
       {
-        "ruleId": "E3049",
-        "severity": "ERROR",
-        "message": "Container 'web' has HostPort 0 but TargetGroup 'TargetGroup' HealthCheckPort is '', must be 'traffic-port'",
+        "ruleId": "I3049",
+        "severity": "INFO",
+        "message": "Container 'web' uses dynamic host port 0; TargetGroup 'TargetGroup' omits HealthCheckPort, which defaults to 'traffic-port', so the health check follows each task's ephemeral port - the correct behavior for dynamic port mapping",
         "source": "CFN_LINT",
         "resourceId": "TargetGroup",
         "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
         "propertyPath": "Properties.HealthCheckPort",
-        "category": "Resource",
+        "category": "Best Practice",
         "startLine": 14,
         "startColumn": 3,
         "endLine": 14,
@@ -102492,7 +102914,7 @@
             "message": "Dynamic host port defined here"
           }
         ],
-        "ruleDescription": "Validate ECS tasks with dynamic host port have traffic-port ELB target groups",
+        "ruleDescription": "ELB target group relies on the default traffic-port health check for an ECS dynamic host port",
         "phase": "LINT",
         "section": "Resources"
       },

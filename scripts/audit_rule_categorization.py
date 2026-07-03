@@ -228,6 +228,13 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         # for any conditional-extension enum.
         "E3690": "E9006",
         "E3691": "E9006",
+        # ECS dynamic-port health check — cfn-lint's single E3049 (Error) is
+        # split by the engine on resolvability of HealthCheckPort: a concrete
+        # port other than 'traffic-port' is a likely-broken health check (W3049),
+        # while an omitted HealthCheckPort merely relies on the 'traffic-port'
+        # default and is advisory (I3049). The template deploys in both cases, so
+        # neither half keeps cfn-lint's Error severity.
+        "E3049": "W3049",
     }
     # Keep only mappings whose cfn-lint key exists in this checkout (identity
     # mappings such as E0001→E0001 are always kept).
@@ -272,6 +279,11 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # the fixed-const check stays Fatal F3030. Both alias E3030 so a cfn-lint
     # E3030 finding matches whichever the engine emits.
     _link("E3030", "F3030", "W3030")
+    # ECS dynamic-port health check: cfn-lint's single E3049 is split by the
+    # engine on resolvability of HealthCheckPort — a concrete non-'traffic-port'
+    # value warns (W3049), an omitted value is advisory (I3049). Both alias E3049
+    # so a cfn-lint E3049 finding matches whichever half the engine emits.
+    _link("E3049", "W3049", "I3049")
     # E3001 (Basic Resource Check) parents several engine structural rules.
     _link("E3001", "F0006", "E5001", "F6004")
     # E1001 (Base template schema) parents top-level structural rules. Engine
@@ -297,6 +309,11 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # (the enum Error it was downgraded from), so it must PARTICIPATE in parity —
     # an unmatched firing is a false positive, not blanket engine-extra.
     cfnlint_equivalent.add("W3030")
+    # Both halves of the ECS dynamic-port split alias cfn-lint's E3049. W3049 is
+    # already a mapping target; I3049 (the omitted-HealthCheckPort advisory) is
+    # not, so add it explicitly. Both participate in parity — an unmatched firing
+    # of either is a false positive, not engine-extra.
+    cfnlint_equivalent.add("I3049")
     # Top-level structural rules cfn-lint covers under its parent E1001/E3001
     # (F0001 omitted on purpose — cfn-lint never flags an empty Resources section):
     cfnlint_equivalent.update({"F0002", "F0005", "F0006"})
