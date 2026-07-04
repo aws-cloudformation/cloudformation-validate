@@ -45,6 +45,12 @@ on:
       cargo-audit-version:
         description: "cargo-audit version"
         value: ${{ jobs.get-configs.outputs.cargo-audit-version }}
+      cargo-llvm-cov-version:
+        description: "cargo-llvm-cov version"
+        value: ${{ jobs.get-configs.outputs.cargo-llvm-cov-version }}
+      jacoco-version:
+        description: "JaCoCo version for the JVM binding coverage report"
+        value: ${{ jobs.get-configs.outputs.jacoco-version }}
 
 permissions:
   contents: read
@@ -67,6 +73,8 @@ jobs:
       WASM_PACK_VERSION: '0.14.0'
       CARGO_ABOUT_VERSION: '0.9.0'
       CARGO_AUDIT_VERSION: '0.22.2'
+      CARGO_LLVM_COV_VERSION: '0.8.7'
+      JACOCO_VERSION: '0.8.13'          # keep in sync with bindings-jvm/tests/kotlin/build.gradle.kts
     outputs:
       app-name: ${{ env.APP_NAME }}
       working-dir: ${{ env.WORKING_DIR }}
@@ -82,6 +90,8 @@ jobs:
       wasm-pack-version: ${{ env.WASM_PACK_VERSION }}
       cargo-about-version: ${{ env.CARGO_ABOUT_VERSION }}
       cargo-audit-version: ${{ env.CARGO_AUDIT_VERSION }}
+      cargo-llvm-cov-version: ${{ env.CARGO_LLVM_COV_VERSION }}
+      jacoco-version: ${{ env.JACOCO_VERSION }}
     steps:
       - name: Provide configs
         run: |
@@ -99,3 +109,5 @@ jobs:
           echo "wasm-pack-version   = ${{ env.WASM_PACK_VERSION }}"
           echo "cargo-about-version = ${{ env.CARGO_ABOUT_VERSION }}"
           echo "cargo-audit-version = ${{ env.CARGO_AUDIT_VERSION }}"
+          echo "cargo-llvm-cov-version = ${{ env.CARGO_LLVM_COV_VERSION }}"
+          echo "jacoco-version      = ${{ env.JACOCO_VERSION }}"

@@ -1,10 +1,12 @@
 {
     "private": true,
     "scripts": {
-        "test": "vitest run"
+        "test": "vitest run",
+        "test:coverage": "vitest run --coverage"
     },
     "devDependencies": {
         "vitest": "4.1.8",
+        "@vitest/coverage-v8": "4.1.8",
         "@types/node": "25.9.3"
     }
 }
