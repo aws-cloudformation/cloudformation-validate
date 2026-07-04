@@ -16,7 +16,7 @@ BUILD_DIR="$SCRIPT_DIR/build"
 RELEASE_DIR="$WORKSPACE/target/release"
 KOTLIN_SRC="$SCRIPT_DIR/src/main/kotlin"
 
-JNA_VERSION="5.18.1"
+JNA_VERSION="5.19.1"
 JNA_MAVEN_URL="https://repo1.maven.org/maven2/net/java/dev/jna/jna/${JNA_VERSION}/jna-${JNA_VERSION}.jar"
 
 GSON_VERSION="2.14.0"

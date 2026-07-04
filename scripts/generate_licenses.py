@@ -26,9 +26,19 @@ SEPARATOR = "\n\n******************************\n\n"
 
 # Workspace crates — exclude from third-party license files.
 WORKSPACE_CRATES = {
-    "bindings-jvm", "bindings-wasm", "cel-engine", "cfn-validate",
-    "data-source", "diagnostics", "guard-translator", "rego-engine",
-    "rules", "schema-validator", "template-model", "validation-engine",
+    "bindings-jvm",
+    "bindings-wasm",
+    "cel-engine",
+    "cfn-validate",
+    "data-source",
+    "diagnostics",
+    "guard-translator",
+    "rego-engine",
+    "resources",
+    "rules",
+    "schema-validator",
+    "template-model",
+    "validation-engine",
 }
 
 # Maven runtime dependencies the JVM JAR consumers need on their classpath.
