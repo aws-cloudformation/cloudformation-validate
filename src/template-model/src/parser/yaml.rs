@@ -35,6 +35,16 @@ struct CfnYamlLoader {
     /// Source position of the key currently awaiting its value, one entry per open
     /// mapping (parallel to `key_stack`). Used to anchor duplicate-key diagnostics.
     key_marks: Vec<Option<(u32, u32)>>,
+    /// Duplicate-key diagnostics found while a mapping is still open, one buffer per
+    /// open mapping (parallel to `key_stack`). Flushed to `dup_key_diagnostics` when
+    /// the mapping closes — unless that mapping used a YAML merge key (`<<`), in which
+    /// case the buffer is dropped. A mapping that merges is not required to have unique
+    /// keys, so its duplicate check is suppressed for the whole mapping.
+    pending_dup_diagnostics: Vec<Vec<diagnostics::Diagnostic>>,
+    /// Whether the correspondingly-open mapping contains a `<<` merge key (parallel to
+    /// `key_stack`). Set from any position in the mapping — before or after a
+    /// duplicate — so the suppression covers every ordering.
+    mapping_uses_merge: Vec<bool>,
     /// `yaml_rust2` silently keeps the last value for a duplicate key, so duplicates
     /// are detected here at load time — matching how the JSON front-end pre-scans for
     /// them. One diagnostic per occurrence after the first, like the JSON path.
@@ -53,6 +63,8 @@ impl CfnYamlLoader {
             array_idx_stack: Vec::new(),
             span_map: HashMap::new(),
             key_marks: Vec::new(),
+            pending_dup_diagnostics: Vec::new(),
+            mapping_uses_merge: Vec::new(),
             dup_key_diagnostics: Vec::new(),
         }
     }
@@ -80,24 +92,35 @@ impl CfnYamlLoader {
         self.path_stack.join("/")
     }
 
-    /// Maps a `!`-handle YAML tag to the bare intrinsic name it denotes, or `None`
-    /// for tags that are not CloudFormation intrinsics.
+    /// The bare suffix of a primary (`!`-handle) YAML tag, or `None` for
+    /// secondary-handle (`!!type`) tags and untagged nodes. Every primary tag is a
+    /// candidate intrinsic shorthand: recognized suffixes map through
+    /// [`SHORT_TAG_TO_FN_KEY`], and an unrecognized suffix is still wrapped as
+    /// `{ Fn::<suffix>: value }` by [`Self::wrap_with_tag`] so the shared builder can
+    /// flag it as an unsupported function — mirroring how a typo'd `Fn::` key is
+    /// caught in the long form and in JSON, instead of silently dropping the tag.
     fn cfn_tag_name(tag: &Option<Tag>) -> Option<String> {
         let tag = tag.as_ref()?;
         if tag.handle != "!" {
             return None;
         }
-        SHORT_TAG_TO_FN_KEY.iter().find(|(short, _)| *short == tag.suffix).map(|_| tag.suffix.clone())
+        Some(tag.suffix.clone())
     }
 
-    /// Wraps `value` in the single-key mapping `{ Fn::X: value }` that the shared
-    /// builder recognizes, given the bare intrinsic name from a `!Tag`.
+    /// Wraps `value` in the single-key mapping the shared builder recognizes, given
+    /// the bare suffix of a `!Tag`. A recognized suffix uses its canonical key from
+    /// [`SHORT_TAG_TO_FN_KEY`] (`GetAtt` → `Fn::GetAtt`, `Ref`/`Condition` map to
+    /// themselves); any other suffix becomes `{ Fn::<suffix>: value }` so a
+    /// misspelled or unknown tag surfaces as an unsupported function rather than
+    /// being silently discarded.
     fn wrap_with_tag(tag_name: &str, value: Yaml) -> Yaml {
-        let Some((_, fn_key)) = SHORT_TAG_TO_FN_KEY.iter().find(|(short, _)| *short == tag_name) else {
-            return value;
-        };
+        let fn_key = SHORT_TAG_TO_FN_KEY
+            .iter()
+            .find(|(short, _)| *short == tag_name)
+            .map(|(_, fn_key)| (*fn_key).to_string())
+            .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name));
         let mut hash = Hash::new();
-        hash.insert(Yaml::String(fn_key.to_string()), value);
+        hash.insert(Yaml::String(fn_key), value);
         Yaml::Hash(hash)
     }
 
@@ -130,9 +153,18 @@ impl CfnYamlLoader {
                 } else {
                     let key = mem::replace(cur_key, Yaml::BadValue);
                     let key_mark = self.key_marks.last_mut().and_then(|m| m.take());
+                    // A `<<` key merges the aliased mapping(s) into this one (resolved
+                    // in a post-load pass). Its presence suppresses this mapping's
+                    // duplicate-key check, matching how the resolved merge is treated.
+                    if key == Yaml::String(YAML_MERGE_KEY.to_string())
+                        && let Some(flag) = self.mapping_uses_merge.last_mut()
+                    {
+                        *flag = true;
+                    }
                     // A returned old value means this key already existed: yaml_rust2
                     // would silently overwrite it, so flag the duplicate (one per
-                    // occurrence after the first, like the JSON pre-scan).
+                    // occurrence after the first, like the JSON pre-scan). Buffered per
+                    // mapping so it can be dropped if the mapping turns out to merge.
                     if h.insert(key.clone(), node_val).is_some()
                         && let Some(name) = yaml_key_as_string(&key)
                     {
@@ -144,11 +176,11 @@ impl CfnYamlLoader {
                                 end_column: col + name.len() as u32,
                             })
                             .unwrap_or(UNKNOWN_SPAN);
-                        self.dup_key_diagnostics.push(crate::make_parse_diagnostic(
-                            "F0000",
-                            format!("Duplicate key '{}'", name),
-                            span,
-                        ));
+                        let diagnostic =
+                            crate::make_parse_diagnostic("F0000", format!("Duplicate key '{}'", name), span);
+                        if let Some(buffer) = self.pending_dup_diagnostics.last_mut() {
+                            buffer.push(diagnostic);
+                        }
                     }
                 }
             }
@@ -185,10 +217,18 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 self.doc_stack.push((Yaml::Hash(Hash::new()), aid));
                 self.key_stack.push(Yaml::BadValue);
                 self.key_marks.push(None);
+                self.pending_dup_diagnostics.push(Vec::new());
+                self.mapping_uses_merge.push(false);
             }
             Event::MappingEnd => {
                 self.key_stack.pop();
                 self.key_marks.pop();
+                // Keep this mapping's buffered duplicate diagnostics only if it did not
+                // use a merge key; a merge-bearing mapping suppresses its dup check.
+                let buffered = self.pending_dup_diagnostics.pop().unwrap_or_default();
+                if !self.mapping_uses_merge.pop().unwrap_or(false) {
+                    self.dup_key_diagnostics.extend(buffered);
+                }
                 if !self.path_stack.is_empty() {
                     let parent_is_array =
                         self.doc_stack.last().map(|(y, _)| matches!(y, Yaml::Array(_))).unwrap_or(false);
@@ -285,9 +325,27 @@ impl<'a> ParseValue for YamlValue<'a> {
     }
 
     fn as_object(&self) -> Option<Vec<(String, Self)>> {
-        self.0
-            .as_hash()
-            .map(|hash| hash.iter().filter_map(|(k, v)| yaml_key_as_string(k).map(|ks| (ks, YamlValue(v)))).collect())
+        let hash = self.0.as_hash()?;
+        // Distinct YAML scalar keys can coerce to the same string (e.g. the bare
+        // integer `1` and the quoted `"1"`). CloudFormation, JSON, and every
+        // downstream consumer treat a mapping as string-keyed with the last entry
+        // winning, so collapse such collisions here — keeping the last occurrence —
+        // rather than emit a `Node::Map` carrying two identical string keys. This is
+        // purely structural: it changes no diagnostic (duplicate-key detection runs
+        // over the raw YAML keys at load time, where `1` and `"1"` are already
+        // distinct and correctly not flagged).
+        let mut entries: Vec<(String, Self)> = Vec::with_capacity(hash.len());
+        for (k, v) in hash.iter() {
+            let Some(key) = yaml_key_as_string(k) else {
+                continue;
+            };
+            if let Some(existing) = entries.iter_mut().find(|(ek, _)| *ek == key) {
+                existing.1 = YamlValue(v);
+            } else {
+                entries.push((key, YamlValue(v)));
+            }
+        }
+        Some(entries)
     }
 
     fn as_integer(&self) -> Option<i64> {
@@ -315,7 +373,13 @@ impl<'a> ParseValue for YamlValue<'a> {
             Yaml::Null | Yaml::BadValue | Yaml::Alias(_) => Node::Null,
             Yaml::Boolean(b) => Node::Bool(*b),
             Yaml::Integer(i) => Node::Int(*i),
-            Yaml::Real(s) => Node::Float(s.parse().unwrap_or(0.0)),
+            // Reuse yaml_rust2's own float parser so the numeric value matches the
+            // source token that as_coerced_str/describe_scalar report — it maps the
+            // YAML float spellings `.inf`/`.nan`/`-.inf` that Rust's std parser
+            // rejects. A Yaml::Real is only produced when that parser accepted the
+            // string, so as_f64 is always Some here; NAN (never a silently-plausible
+            // value like 0.0) is the sentinel if that invariant were ever broken.
+            Yaml::Real(_) => Node::Float(self.0.as_f64().unwrap_or(f64::NAN)),
             Yaml::String(s) => Node::String(s.clone()),
             // Composites are built by Builder::build; unreachable for scalars.
             Yaml::Array(_) | Yaml::Hash(_) => Node::Null,
@@ -335,6 +399,78 @@ fn yaml_key_as_string(y: &Yaml) -> Option<String> {
     }
 }
 
+/// Resolves YAML 1.1 merge keys (`<<`) throughout the tree, in place.
+///
+/// `yaml_rust2` does not implement merge keys, so a `<<: <alias>` entry survives as
+/// a literal `<<` key whose value is the already-resolved aliased mapping (or a
+/// sequence of them). Left alone this both injects a spurious `<<` property and
+/// hides the aliased members. Here each `<<` entry is spliced into its enclosing
+/// mapping: explicit keys always win over merged ones, and among multiple merge
+/// sources the earlier one wins over the later (YAML 1.1). Explicit keys keep their
+/// original positions; merged-only members are appended after them.
+fn resolve_merge_keys(node: &mut Yaml) {
+    match node {
+        Yaml::Hash(hash) => {
+            let original = std::mem::take(hash);
+            let mut merge_sources: Vec<Yaml> = Vec::new();
+            let mut resolved = Hash::new();
+            for (key, value) in original {
+                if key == Yaml::String(YAML_MERGE_KEY.to_string()) {
+                    merge_sources.push(value);
+                } else {
+                    // Explicit keys win: a genuine duplicate explicit key keeps
+                    // yaml_rust2's last-wins behavior (already flagged as F0000).
+                    resolved.insert(key, value);
+                }
+            }
+            // Earlier merge sources win over later ones, so only insert a merged
+            // member when neither an explicit key nor an earlier merge supplied it.
+            // Each source is a load-time clone of the anchored mapping, so any merge
+            // key the anchor itself used is still unresolved inside it; resolve the
+            // source first so nested `<<` is flattened before its members are spliced.
+            for mut source in merge_sources {
+                resolve_merge_keys(&mut source);
+                match source {
+                    Yaml::Hash(members) => merge_members(&mut resolved, members),
+                    // A `<<: [*a, *b]` sequence merges each mapping in order.
+                    Yaml::Array(items) => {
+                        for item in items {
+                            if let Yaml::Hash(members) = item {
+                                merge_members(&mut resolved, members);
+                            }
+                        }
+                    }
+                    // A non-mapping merge value is malformed YAML; drop it (removing
+                    // the spurious `<<` property) rather than inject a bogus member.
+                    _ => {}
+                }
+            }
+            // Resolve merges nested inside the explicit values. Merged-in values were
+            // already resolved above, so re-visiting them here is a harmless no-op.
+            for (_, value) in resolved.iter_mut() {
+                resolve_merge_keys(value);
+            }
+            *hash = resolved;
+        }
+        Yaml::Array(items) => {
+            for item in items.iter_mut() {
+                resolve_merge_keys(item);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Inserts each member of a merge source into `target`, skipping keys already
+/// present so explicit keys and earlier merge sources take precedence.
+fn merge_members(target: &mut Hash, members: Hash) {
+    for (key, value) in members {
+        if !target.contains_key(&key) {
+            target.insert(key, value);
+        }
+    }
+}
+
 pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     let text = from_utf8(bytes).map_err(|e| ParseError {
         message: format!("Invalid UTF-8: {}", e),
@@ -342,7 +478,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         column: None,
     })?;
 
-    let LoadedYaml { docs, span_map: raw_spans, dup_key_diagnostics } = CfnYamlLoader::load(text)?;
+    let LoadedYaml { mut docs, span_map: raw_spans, dup_key_diagnostics } = CfnYamlLoader::load(text)?;
 
     if docs.is_empty() {
         return Err(ParseError { message: "Empty YAML document".into(), line: Some(1), column: Some(1) });
@@ -355,6 +491,10 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
             column: Some(1),
         });
     }
+
+    // Splice any YAML merge keys (`<<`) into their enclosing mappings before building
+    // the IR, so aliased members appear inline and no spurious `<<` property remains.
+    resolve_merge_keys(&mut docs[0]);
 
     let mut builder = Builder::new();
     builder.diagnostics = dup_key_diagnostics;
@@ -394,6 +534,34 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A genuine same-string-key duplicate produces the identical F0000 message in
+    /// both formats — the two duplicate detectors (JSON byte scan, YAML load-time
+    /// Hash) must agree on which duplicates fire.
+    #[test]
+    fn duplicate_string_key_matches_across_formats() {
+        let json = crate::parser::json::parse_json(b"{\n\"Resources\":{\n\"A\":{},\n\"A\":{}\n}\n}\n").unwrap();
+        let yaml = parse_yaml(b"Resources:\n  A: {}\n  A: {}\n").unwrap();
+        let messages = |ir: &TemplateIR| -> Vec<String> {
+            ir.diagnostics.iter().filter(|d| d.rule_id == "F0000").map(|d| d.message.clone()).collect()
+        };
+        assert_eq!(messages(&json), ["Duplicate key 'A'"]);
+        assert_eq!(messages(&yaml), messages(&json));
+    }
+
+    /// A bare (integer) YAML key and a quoted string key of the same digits are
+    /// distinct source keys, so — matching cfn-lint, which compares keys by value
+    /// and never flags them — no F0000 is emitted. (The two are coerced to the same
+    /// string later, but that must not manufacture a duplicate diagnostic.)
+    #[test]
+    fn integer_key_and_string_key_are_not_duplicates() {
+        let input = "Resources:\n  R:\n    Type: AWS::S3::Bucket\n    Metadata:\n      1: a\n      \"1\": b\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "F0000"),
+            "a bare int key and a quoted string key must not be flagged as duplicates"
+        );
+    }
 
     #[test]
     fn parse_minimal_yaml() {
@@ -679,13 +847,207 @@ mod tests {
         assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
     }
 
+    /// A misspelled or unknown `!`-shorthand tag (`!Bogus`) is wrapped into
+    /// `{ Fn::Bogus: ... }` exactly like the long form and JSON, so the shared
+    /// unsupported-function check fires. Silently dropping the tag (the previous
+    /// behavior) would hide a real authoring mistake.
     #[test]
-    fn unknown_fn_short_tag_form_not_reachable() {
-        // Short-form tags like `!Bogus` are NOT recognized by the YAML parser
-        // (not in SHORT_TAG_TO_FN_KEY), so they never become a `{Fn::Bogus: ...}`
-        // map and thus cannot reach the unknown-function check. Verify no W1103.
+    fn unknown_fn_short_tag_form_emits_w1103() {
         let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !Bogus hello\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
-        assert!(ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "An unrecognized YAML tag must not trigger W1103");
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+    }
+
+    /// A wrong-case shorthand tag (`!GetAttt`, a typo of `!GetAtt`) is not in the
+    /// recognized-tag table, so it is wrapped as `{ Fn::GetAttt: ... }` and flagged
+    /// as unsupported — matching both the long `Fn::GetAttt` form and JSON.
+    #[test]
+    fn wrong_case_short_tag_emits_w1103() {
+        let input =
+            "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !GetAttt [R, Arn]\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function"]);
+    }
+
+    /// The unknown-tag YAML shorthand and the equivalent JSON long form emit the
+    /// identical W1103 — the shared builder guarantees the diagnostic cannot drift
+    /// between formats once the tag is wrapped.
+    #[test]
+    fn unknown_short_tag_matches_json_long_form_w1103() {
+        let yaml = parse_yaml(
+            "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !Bogus hello\n".as_bytes(),
+        )
+        .unwrap();
+        let json = super::super::json::parse_json(
+            br#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#,
+        )
+        .unwrap();
+        let w1103 = |ir: &TemplateIR| -> Vec<String> {
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.clone()).collect()
+        };
+        assert_eq!(w1103(&yaml), w1103(&json));
+        assert_eq!(w1103(&yaml), ["'Fn::Bogus' is not a supported function"]);
+    }
+
+    /// A secondary-handle tag (`!!str`) is not a CloudFormation intrinsic shorthand
+    /// and must not be wrapped into an `Fn::` map or trigger W1103 — only primary
+    /// (`!`-handle) tags are intrinsic candidates.
+    #[test]
+    fn secondary_handle_tag_is_not_wrapped() {
+        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !!str hello\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert!(ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "a `!!`-handle tag must not trigger W1103");
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let props = ir.arena.map_get(res[0].1, "Properties").unwrap();
+        let name = ir.arena.map_get(props, "TopicName").unwrap();
+        assert_eq!(ir.arena.as_str(name), Some("hello"), "`!!str hello` must stay the plain string 'hello'");
+    }
+
+    /// Builds the scalar `Node` for a bare plain YAML scalar the way the loader
+    /// does (`Yaml::from_str`), so float-spelling handling in `scalar_node` can be
+    /// asserted directly.
+    fn scalar_node_of(token: &str) -> Node {
+        let y = Yaml::from_str(token);
+        YamlValue(&y).scalar_node()
+    }
+
+    /// The IEEE float spellings YAML accepts (`.inf`/`.nan`/`-.inf`) must map to the
+    /// real IEEE values, not a silently-wrong 0.0, and the numeric `Node` must agree
+    /// with the verbatim token `as_coerced_str` returns.
+    #[test]
+    fn scalar_node_yaml_infinity_matches_source_token() {
+        let y = Yaml::from_str(".inf");
+        assert!(matches!(y, Yaml::Real(_)), "`.inf` must scan as a Real, got {:?}", y);
+        let v = YamlValue(&y);
+        match v.scalar_node() {
+            Node::Float(f) => assert!(f.is_infinite() && f.is_sign_positive(), "expected +inf, got {}", f),
+            o => panic!("expected Node::Float(inf), got {:?}", o),
+        }
+        assert_eq!(v.as_coerced_str().as_deref(), Some(".inf"), "coerced string must be the source token");
+    }
+
+    #[test]
+    fn scalar_node_yaml_negative_infinity() {
+        match scalar_node_of("-.inf") {
+            Node::Float(f) => assert!(f.is_infinite() && f.is_sign_negative(), "expected -inf, got {}", f),
+            o => panic!("expected Node::Float(-inf), got {:?}", o),
+        }
+    }
+
+    #[test]
+    fn scalar_node_yaml_nan() {
+        let y = Yaml::from_str(".nan");
+        assert!(matches!(y, Yaml::Real(_)), "`.nan` must scan as a Real, got {:?}", y);
+        let v = YamlValue(&y);
+        match v.scalar_node() {
+            Node::Float(f) => assert!(f.is_nan(), "expected NaN, got {}", f),
+            o => panic!("expected Node::Float(NaN), got {:?}", o),
+        }
+        assert_eq!(v.as_coerced_str().as_deref(), Some(".nan"), "coerced string must be the source token");
+    }
+
+    #[test]
+    fn scalar_node_ordinary_float_unchanged() {
+        match scalar_node_of("3.14") {
+            Node::Float(f) => assert!((f - 3.14).abs() < f64::EPSILON, "expected 3.14, got {}", f),
+            o => panic!("expected Node::Float(3.14), got {:?}", o),
+        }
+    }
+
+    #[test]
+    fn scalar_node_exponent_float_unchanged() {
+        match scalar_node_of("1e6") {
+            Node::Float(f) => assert!((f - 1_000_000.0).abs() < f64::EPSILON, "expected 1e6, got {}", f),
+            o => panic!("expected Node::Float(1e6), got {:?}", o),
+        }
+    }
+
+    /// A `<<` merge key inlines the aliased mapping's members, leaves no spurious
+    /// `<<` property behind, and lets `map_get` find the merged members.
+    #[test]
+    fn yaml_merge_key_inlines_aliased_members() {
+        let input = "Resources:\n  Base: &base\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: from-base\n  Derived:\n    <<: *base\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let (_, derived) = res.iter().find(|(k, _)| k == "Derived").expect("Derived resource present");
+        // No spurious "<<" property remains.
+        assert!(ir.arena.map_get(*derived, YAML_MERGE_KEY).is_none(), "the '<<' key must not survive as a property");
+        // The merged members are visible via map_get.
+        assert_eq!(ir.arena.as_str(ir.arena.map_get(*derived, "Type").unwrap()), Some("AWS::S3::Bucket"));
+        let props = ir.arena.map_get(*derived, "Properties").unwrap();
+        assert_eq!(ir.arena.as_str(ir.arena.map_get(props, "BucketName").unwrap()), Some("from-base"));
+    }
+
+    /// An explicit key in the merging mapping wins over the merged value.
+    #[test]
+    fn yaml_merge_key_explicit_key_overrides_merged() {
+        let input = "Anchors:\n  Base: &base\n    Type: AWS::S3::Bucket\n    Foo: from-base\nResources:\n  Derived:\n    <<: *base\n    Foo: explicit\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let (_, derived) = res.iter().find(|(k, _)| k == "Derived").expect("Derived resource present");
+        assert!(ir.arena.map_get(*derived, YAML_MERGE_KEY).is_none(), "the '<<' key must not survive as a property");
+        // Explicit key wins over merged; merged-only key still present.
+        assert_eq!(ir.arena.as_str(ir.arena.map_get(*derived, "Foo").unwrap()), Some("explicit"));
+        assert_eq!(ir.arena.as_str(ir.arena.map_get(*derived, "Type").unwrap()), Some("AWS::S3::Bucket"));
+    }
+
+    /// A sequence of merge sources (`<<: [*a, *b]`) merges each in order, with the
+    /// earlier source winning over the later one (YAML 1.1).
+    #[test]
+    fn yaml_merge_key_sequence_earlier_source_wins() {
+        let input = "Anchors:\n  A: &a\n    Shared: from-a\n    OnlyA: a\n  B: &b\n    Shared: from-b\n    OnlyB: b\nResources:\n  Derived:\n    Type: AWS::S3::Bucket\n    <<: [*a, *b]\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let res = ir.arena.as_map(ir.resources).unwrap();
+        let (_, derived) = res.iter().find(|(k, _)| k == "Derived").expect("Derived resource present");
+        assert!(ir.arena.map_get(*derived, YAML_MERGE_KEY).is_none(), "the '<<' key must not survive as a property");
+        // Earlier source (*a) wins on the shared key; both sources' unique keys land.
+        assert_eq!(ir.arena.as_str(ir.arena.map_get(*derived, "Shared").unwrap()), Some("from-a"));
+        assert_eq!(ir.arena.as_str(ir.arena.map_get(*derived, "OnlyA").unwrap()), Some("a"));
+        assert_eq!(ir.arena.as_str(ir.arena.map_get(*derived, "OnlyB").unwrap()), Some("b"));
+    }
+
+    /// A merge whose aliased member collides with an explicit key must NOT emit
+    /// F0000 — the two are distinct source keys (`<<` vs the explicit name), and a
+    /// merge-bearing mapping suppresses the duplicate-key check entirely.
+    #[test]
+    fn yaml_merge_key_collision_emits_no_f0000() {
+        let input = "Anchors:\n  Base: &base\n    Foo: from-base\nResources:\n  Derived:\n    Type: AWS::S3::Bucket\n    <<: *base\n    Foo: explicit\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "F0000"),
+            "a merge-introduced collision must not be flagged as a duplicate key"
+        );
+    }
+
+    /// A literal duplicate key inside a mapping that also uses `<<` is suppressed,
+    /// matching cfn-lint's `using_merge` behavior (the whole mapping's dup check is
+    /// disabled). Ordering of the duplicate relative to `<<` must not matter.
+    #[test]
+    fn yaml_merge_key_suppresses_literal_duplicate_in_same_mapping() {
+        let input = "Anchors:\n  Base: &base\n    X: 1\nResources:\n  Derived:\n    Type: AWS::S3::Bucket\n    Dup: 1\n    Dup: 2\n    <<: *base\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "F0000"),
+            "a mapping that uses a merge key suppresses its duplicate-key check"
+        );
+    }
+
+    /// The merge fix must not weaken duplicate detection in mappings that do NOT
+    /// merge: a genuine literal duplicate elsewhere is still flagged.
+    #[test]
+    fn yaml_literal_duplicate_without_merge_still_emits_f0000() {
+        let input = "Resources:\n  R:\n    Type: AWS::S3::Bucket\n    Type: AWS::SNS::Topic\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let f0000: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "F0000").map(|d| d.message.as_str()).collect();
+        assert_eq!(
+            f0000,
+            ["Duplicate key 'Type'"],
+            "a literal duplicate in a non-merging mapping must still be flagged"
+        );
     }
 }

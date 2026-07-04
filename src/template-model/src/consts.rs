@@ -282,6 +282,11 @@ pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
 
 pub const FN_FOR_EACH_KEY_PREFIX: &str = "Fn::ForEach::";
 
+/// The YAML 1.1 merge key. A mapping entry `<<: <alias-or-list-of-aliases>` splices
+/// the referenced mapping(s) into the enclosing mapping, with explicit keys winning
+/// over merged ones and earlier merge sources winning over later ones.
+pub const YAML_MERGE_KEY: &str = "<<";
+
 // Short (bare) intrinsic names — the suffix after the `Fn::` prefix that appears in
 // YAML shorthand tags (`!GetAtt`) and in the serialized reference graph. `Ref` and
 // `Condition` have no `Fn::` form, so their short and long spellings coincide.

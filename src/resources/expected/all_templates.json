@@ -130340,9 +130340,9 @@
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
-        "fatal": 4,
+        "fatal": 3,
         "errors": 1,
-        "warnings": 8,
+        "warnings": 9,
         "informational": 23,
         "debug": 0
       },
@@ -130386,20 +130386,6 @@
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA",
         "section": "Resources"
-      },
-      {
-        "ruleId": "F8610",
-        "severity": "FATAL",
-        "message": "Rule 'ValidateParameterCombinations' Assertions[1] Assert must be a condition function (object), not array",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 110,
-        "startColumn": 1,
-        "endLine": 110,
-        "endColumn": 6,
-        "ruleDescription": "Rule assertion Assert must be a condition function",
-        "phase": "PARSE",
-        "section": "Rules"
       },
       {
         "ruleId": "F8611",
@@ -130465,6 +130451,20 @@
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "W1103",
+        "severity": "WARN",
+        "message": "'Fn::Implies' is not a supported function",
+        "source": "ENGINE",
+        "propertyPath": "Rules/ValidateParameterCombinations/Assertions/1/Assert/Fn::Implies",
+        "category": "Intrinsic Function",
+        "startLine": 124,
+        "startColumn": 5,
+        "endLine": 124,
+        "endColumn": 15,
+        "ruleDescription": "Unknown intrinsic function name",
+        "phase": "PARSE"
       },
       {
         "ruleId": "W2508",
