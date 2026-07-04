@@ -891,3 +891,118 @@ fn fatal_rule_suppressed_by_exclude_range() {
         assert_eq!(count(&diags, "F3017"), 0, "[{name}] excluding the F3000-F3099 range must suppress the FATAL rule");
     }
 }
+
+/// Engine parity for the hardcoded-ARN warning when the ARN sits behind an
+/// `Fn::If`. The Rego rule resolves the property (collapsing the conditional to
+/// its true branch), so it must fire; the native rule previously matched only a
+/// plain concrete string and silently skipped the conditional, diverging from
+/// Rego. Both engines must now flag the conditional ARN identically.
+#[test]
+fn hardcoded_arn_behind_fn_if_flagged_in_both_engines() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Env: { Type: String }
+Conditions:
+  IsProd: !Equals [!Ref Env, "prod"]
+Resources:
+  Sub:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !If [IsProd, "arn:aws:sns:us-east-1:123456789012:prod", "arn:aws:sns:us-east-1:123456789012:dev"]
+      Endpoint: x
+"#;
+    let diags = validate_both_bytes(template);
+    assert_fires_with_severity(&diags, "W9002", Severity::Warn);
+    assert_count(&diags, "W9002", 1);
+}
+
+/// Engine parity for multiple hardcoded ARNs on one resource: every `*Arn`
+/// property with a literal ARN is a separate finding. The native rule previously
+/// stopped after the first match on a resource, reporting one warning where Rego
+/// reported one per property.
+#[test]
+fn multiple_hardcoded_arns_each_flagged_in_both_engines() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Sub:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: "arn:aws:sns:us-east-1:123456789012:t1"
+      RoleArn: "arn:aws:iam::123456789012:role/r1"
+      Endpoint: x
+"#;
+    let diags = validate_both_bytes(template);
+    assert_count(&diags, "W9002", 2);
+}
+
+/// An output whose value is not a string is a guaranteed template error (F6101,
+/// the promoted form of the reference linter's output value-type check). A
+/// literal list or object, and a list-returning function (`Fn::GetAZs`,
+/// `Fn::Split`, `Fn::Cidr`), each fire; an `Fn::If` is transparent, so a list in
+/// a branch fires on that branch. Both engines must agree.
+#[test]
+fn non_string_output_values_flagged_in_both_engines() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  Always: !Equals ["a", "a"]
+Resources:
+  Q:
+    Type: AWS::SQS::Queue
+Outputs:
+  ListValue:
+    Value: [a, b]
+  ObjectValue:
+    Value: { Key: v }
+  GetAZsValue:
+    Value: !GetAZs ""
+  SplitValue:
+    Value: !Split [",", "a,b"]
+  ConditionalListBranch:
+    Value: !If [Always, ["x"], ["y"]]
+"#;
+    let diags = validate_both_bytes(template);
+    assert_fires_with_severity(&diags, "F6101", Severity::Fatal);
+    // Four whole-value violations plus both branches of the conditional.
+    assert_count(&diags, "F6101", 6);
+}
+
+/// String-valued outputs, and shapes that only look non-string, must NOT fire
+/// F6101 in either engine: scalars coerce to strings; `Ref`, `Fn::Sub`,
+/// `Fn::Join`, `Fn::Select`, and `Fn::FindInMap` produce (or are treated as)
+/// strings — including a `Fn::FindInMap` that resolves to a list, which the
+/// reference linter does not flag here. Empty containers are also accepted.
+#[test]
+fn string_output_values_not_flagged_in_either_engine() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Mappings:
+  M:
+    k:
+      list: [a, b]
+Resources:
+  Q:
+    Type: AWS::SQS::Queue
+Outputs:
+  PlainString:
+    Value: hello
+  RefValue:
+    Value: !Ref Q
+  GetAttString:
+    Value: !GetAtt Q.QueueName
+  SubValue:
+    Value: !Sub "${Q}"
+  SelectFromGetAZs:
+    Value: !Select [0, !GetAZs ""]
+  FindInMapList:
+    Value: !FindInMap [M, k, list]
+  EmptyList:
+    Value: []
+"#;
+    let diags = validate_both_bytes(template);
+    assert_absent(&diags, "F6101");
+}

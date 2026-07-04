@@ -300,6 +300,7 @@ fn build_outputs(
     for edge in &graph.edges {
         if let Some(output_name) = edge.source_resource.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX)
             && let RefKind::GetAtt { attr } = &edge.kind
+            && getatt_is_in_string_position(&edge.source_path)
         {
             output_getatt_refs.entry(output_name.to_string()).or_default().push((edge.target.clone(), attr.clone()));
         }
@@ -308,8 +309,13 @@ fn build_outputs(
     outputs
         .iter()
         .map(|(name, output)| {
+            // A GetAtt sitting directly inside a literal list/map output value is
+            // not collected for the string-type check: the enclosing container is
+            // itself a non-string value and is reported on its own, so descending
+            // into it would double-report the same defect. GetAtts reached only
+            // through Fn::If branches or string-building functions stay in scope.
             let mut getatt_refs = Vec::new();
-            collect_getatt_refs(&output.value, &mut getatt_refs);
+            collect_getatt_refs_string_position(&output.value, &mut getatt_refs);
             if let Some(edge_refs) = output_getatt_refs.get(name) {
                 for (t, a) in edge_refs {
                     if !getatt_refs.iter().any(|(rt, ra)| rt == t && ra == a) {
@@ -449,30 +455,56 @@ fn ref_kind_to_str(kind: &RefKind) -> (&'static str, Option<String>) {
     }
 }
 
-fn collect_getatt_refs(val: &ResolvedValue, out: &mut Vec<(String, String)>) {
+/// Collects GetAtt references that occupy a *string position* of an output
+/// value — the value itself, or a value reached only through `Fn::If` branches.
+/// A GetAtt nested inside a literal list or map is skipped: the container is a
+/// non-string output value reported in its own right, and CloudFormation never
+/// treats the inner GetAtt as the output's string value. `Fn::If` is transparent
+/// (a branch is a string position), mirroring the output value-type check.
+fn collect_getatt_refs_string_position(val: &ResolvedValue, out: &mut Vec<(String, String)>) {
     match val {
         ResolvedValue::Reference { target, kind: RefKind::GetAtt { attr } } => out.push((target.clone(), attr.clone())),
-        ResolvedValue::List { items } => {
-            for v in items {
-                collect_getatt_refs(v, out);
-            }
-        }
-        ResolvedValue::Map { entries } => {
-            for MapEntry { key: _, value: v } in entries {
-                collect_getatt_refs(v, out);
-            }
-        }
-        ResolvedValue::Enum { variants: vals } => {
-            for v in vals {
-                collect_getatt_refs(v, out);
-            }
-        }
         ResolvedValue::Conditional { condition: _, if_true: t, if_false: f } => {
-            collect_getatt_refs(t, out);
-            collect_getatt_refs(f, out);
+            collect_getatt_refs_string_position(t, out);
+            collect_getatt_refs_string_position(f, out);
         }
         _ => {}
     }
+}
+
+/// Whether a GetAtt reference edge whose source path is `source_path` occupies a
+/// string position of the output (see [`collect_getatt_refs_string_position`]).
+/// The path is `Value` optionally followed by segments; a GetAtt is in string
+/// position unless it sits inside a literal list/map — i.e. the path descends
+/// through a bare index or key that is not an argument of a string-building
+/// function. `Fn::If` branch segments are transparent; any other `Fn::…` segment
+/// (e.g. `Fn::Join`, `Fn::Sub`) marks a string-building consumer, so a GetAtt
+/// beneath it stays in scope.
+fn getatt_is_in_string_position(source_path: &str) -> bool {
+    // Edge source paths are section-rooted (`Outputs/<name>/Value…`); take the
+    // part after the output's `Value` node. The dotted tail (`.0`, `.Fn::If.1`)
+    // is what distinguishes a literal-container position from a string position.
+    let after_value = source_path
+        .split_once("/Value")
+        .map(|(_, tail)| tail)
+        .or_else(|| source_path.strip_prefix("Value"))
+        .unwrap_or("");
+    let mut segments = after_value.split('.').filter(|s| !s.is_empty());
+    while let Some(segment) = segments.next() {
+        if segment == FN_IF {
+            // Skip the branch selector (`1`/`2`) and keep walking transparently.
+            segments.next();
+            continue;
+        }
+        // A remaining `Fn::…` segment is a string-building function consuming the
+        // GetAtt (Join/Sub/…): the GetAtt is in string position.
+        if segment.starts_with("Fn::") {
+            return true;
+        }
+        // A bare index or key means the GetAtt is inside a literal container.
+        return false;
+    }
+    true
 }
 
 #[cfg(test)]
@@ -648,5 +680,19 @@ mod tests {
         let val = ResolvedValue::Reference { target: "R".into(), kind: RefKind::DependsOn };
         let j = resolved_value_to_json(&val);
         assert_eq!(j[MARKER_KIND], "dependson");
+    }
+
+    #[test]
+    fn getatt_string_position_paths() {
+        // Direct, whole-branch, and string-building-function positions keep the
+        // GetAtt in scope for the output value-type check; a bare index/key
+        // beneath the value (a literal container) takes it out of scope, because
+        // the container itself is reported as the non-string value.
+        assert!(getatt_is_in_string_position("Outputs/O/Value"));
+        assert!(getatt_is_in_string_position("Outputs/O/Value.Fn::If.1"));
+        assert!(getatt_is_in_string_position("Outputs/O/Value.Fn::Join.1.0"));
+        assert!(!getatt_is_in_string_position("Outputs/O/Value.0"));
+        assert!(!getatt_is_in_string_position("Outputs/O/Value.k"));
+        assert!(!getatt_is_in_string_position("Outputs/O/Value.Fn::If.2.0"));
     }
 }

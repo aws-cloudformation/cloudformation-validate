@@ -1367,12 +1367,17 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (name, res) in &m.resources {
         for (prop, val) in &res.properties {
-            if let ResolvedValue::Concrete { value: v } = val
-                && let Some(s) = v.as_str()
+            if !prop.ends_with("Arn") {
+                continue;
+            }
+            // Collapse an Fn::If-wrapped value to its resolved (true-branch) form
+            // before inspecting it, so a hardcoded ARN behind Fn::If is still
+            // flagged. Matching the raw `val` against Concrete alone would skip a
+            // Conditional. Every matching property is reported, not just the first.
+            let resolved = resolved_to_json_best_effort(val);
+            if let Some(s) = resolved.as_str()
                 && s.starts_with("arn:")
-                && s != "*"
                 && !crate::functions::contains_unresolvable_content(val)
-                && (prop.ends_with("Arn") || prop.ends_with("RoleArn") || prop.ends_with("TopicArn"))
             {
                 out.push(make_resource_diagnostic(
                     "W9002",
@@ -1382,7 +1387,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Properties.{}", prop),
                     None,
                 ));
-                break;
             }
         }
     }

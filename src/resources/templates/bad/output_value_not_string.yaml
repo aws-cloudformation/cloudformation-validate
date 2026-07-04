@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# Every output Value must resolve to a string. A literal list or object, or a
+# function whose result is a list (Fn::GetAZs, Fn::Split, Fn::Cidr), can never be
+# a string and is rejected. Fn::If is transparent: a branch that yields a list is
+# flagged on that branch. Empty containers and string-producing functions are
+# accepted (see the good/ counterpart).
+Parameters:
+  Env:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, "prod"]
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+Outputs:
+  ValueIsList:
+    Value:
+      - a
+      - b
+  ValueIsObject:
+    Value:
+      Key: val
+  ValueIsGetAZs:
+    Value: !GetAZs ""
+  ValueIsSplit:
+    Value: !Split [",", "a,b,c"]
+  ValueIsCidr:
+    Value: !Cidr ["10.0.0.0/16", 1, 8]
+  ConditionalListBranch:
+    Value: !If [IsProd, ["prod"], ["dev"]]

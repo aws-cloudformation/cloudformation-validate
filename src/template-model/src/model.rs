@@ -1215,6 +1215,76 @@ fn split_trailing_list_index(path: &str) -> Option<(String, usize, String)> {
     Some((format!("{}.", head), idx, suffix.to_string()))
 }
 
+/// An output `Value` must resolve to a string. A literal non-empty list or map,
+/// or a function whose result is a list (`Fn::GetAZs`, `Fn::Split`, `Fn::Cidr`),
+/// can never be a string and is a guaranteed template error. `Fn::If` is
+/// transparent: each branch is checked at its own location, so a conditional
+/// that picks a string in one branch and a list in the other is flagged only on
+/// the offending branch. Empty containers are accepted (they carry no members to
+/// stringify) and every other function (`Ref`, `Fn::Sub`, `Fn::Join`,
+/// `Fn::Select`, `Fn::FindInMap`, `Fn::ImportValue`, …) is treated as
+/// string-producing here — a `Fn::GetAtt` returning a non-string is caught later
+/// against the resource schema, which this parse-time shape check cannot see.
+fn check_output_value_is_string(arena: &Arena, value_ref: NodeRef, output_name: &str, resolver: &mut Resolver) {
+    let build_path = format!("Outputs/{}/Value", output_name);
+    check_output_value_node(arena, value_ref, output_name, &build_path, resolver);
+}
+
+/// Recursive worker for [`check_output_value_is_string`]. `build_path` is the
+/// slash path of the node under inspection; each `Fn::If` branch is visited with
+/// its own branch path so that a conditional with a bad value in both branches
+/// yields a separate, correctly-located diagnostic per branch rather than
+/// collapsing to one.
+fn check_output_value_node(
+    arena: &Arena,
+    value_ref: NodeRef,
+    output_name: &str,
+    build_path: &str,
+    resolver: &mut Resolver,
+) {
+    let span = arena.span(value_ref);
+    match arena.node(value_ref) {
+        Node::List(items) if !items.is_empty() => {
+            resolver.diagnostics.push(crate::make_parse_diagnostic_at(
+                "F6101",
+                format!("Output '{}' value must be a string, not a list", output_name),
+                span,
+                build_path,
+            ));
+        }
+        Node::Map(entries) if !entries.is_empty() => {
+            resolver.diagnostics.push(crate::make_parse_diagnostic_at(
+                "F6101",
+                format!("Output '{}' value must be a string, not an object", output_name),
+                span,
+                build_path,
+            ));
+        }
+        Node::Intrinsic(IntrinsicFn::If(_, if_true, if_false) | IntrinsicFn::IfExpr(_, if_true, if_false)) => {
+            let (if_true, if_false) = (*if_true, *if_false);
+            check_output_value_node(arena, if_true, output_name, &format!("{}/{}/1", build_path, FN_IF), resolver);
+            check_output_value_node(arena, if_false, output_name, &format!("{}/{}/2", build_path, FN_IF), resolver);
+        }
+        Node::Intrinsic(intrinsic) if returns_list(intrinsic) => {
+            resolver.diagnostics.push(crate::make_parse_diagnostic_at(
+                "F6101",
+                format!("Output '{}' value must be a string, not a list", output_name),
+                span,
+                build_path,
+            ));
+        }
+        _ => {}
+    }
+}
+
+/// Whether an intrinsic's result is a list value (never a string). These are the
+/// only list-returning functions that can stand as a whole output `Value`;
+/// `Fn::If` is handled separately (its branches are checked), and every other
+/// function yields a string or an opaque deploy-time value.
+fn returns_list(intrinsic: &IntrinsicFn) -> bool {
+    matches!(intrinsic, IntrinsicFn::GetAZs(_) | IntrinsicFn::Split(_, _) | IntrinsicFn::Cidr(_, _, _))
+}
+
 fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> ResolvedOutput {
     let entries = arena.as_map(node_ref).unwrap_or(&[]);
 
@@ -1233,6 +1303,12 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
                 crate::ir::UNKNOWN_SPAN,
             ));
         }
+    }
+
+    if let Some((_, value_ref)) = entries.iter().find(|(k, _)| k == KEY_VALUE) {
+        let value_ref = *value_ref;
+        let name = display_name.to_string();
+        check_output_value_is_string(arena, value_ref, &name, resolver);
     }
 
     let value = entries
@@ -1947,5 +2023,76 @@ Resources:
         let mut out = collapse_list_sibling_arn_paths(input.clone());
         out.sort();
         assert_eq!(out, input);
+    }
+
+    /// Number of output value-type diagnostics (F6101) the parse phase produced.
+    fn output_string_type_diagnostics(template: &str) -> usize {
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+        model.diagnostics.iter().filter(|d| d.rule_id == "F6101").count()
+    }
+
+    #[test]
+    fn output_literal_list_value_flagged() {
+        let template = "Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      - a\n      - b\n";
+        assert_eq!(output_string_type_diagnostics(template), 1);
+    }
+
+    #[test]
+    fn output_literal_object_value_flagged() {
+        let template = "Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Key: v\n";
+        assert_eq!(output_string_type_diagnostics(template), 1);
+    }
+
+    #[test]
+    fn output_list_returning_functions_flagged() {
+        for value in ["!GetAZs \"\"", "!Split [\",\", \"a,b\"]", "!Cidr [\"10.0.0.0/16\", 1, 8]"] {
+            let template = format!("Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: {}\n", value);
+            assert_eq!(output_string_type_diagnostics(&template), 1, "expected F6101 for output value {}", value);
+        }
+    }
+
+    #[test]
+    fn output_empty_container_value_not_flagged() {
+        // An empty list/object has no members to stringify; CloudFormation does
+        // not reject it, so neither does the parse-time check.
+        for value in ["[]", "{}"] {
+            let template = format!("Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: {}\n", value);
+            assert_eq!(output_string_type_diagnostics(&template), 0, "empty container {} must not be flagged", value);
+        }
+    }
+
+    #[test]
+    fn output_string_producing_values_not_flagged() {
+        // Scalars coerce to strings; Ref/Fn::Sub/Fn::Join/Fn::Select/Fn::ImportValue
+        // produce (or are treated as) strings. None are string-type violations.
+        for value in ["hello", "42", "true", "!Ref R", "!Sub \"${R}\"", "!Join [\",\", [\"a\"]]", "!ImportValue X"] {
+            let template = format!("Resources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: {}\n", value);
+            assert_eq!(output_string_type_diagnostics(&template), 0, "string-valued output {} must not fire", value);
+        }
+    }
+
+    #[test]
+    fn output_find_in_map_list_value_not_flagged() {
+        // Fn::FindInMap can resolve to a list, but the reference linter does not
+        // flag it here (the mapping's shape is validated elsewhere): only literal
+        // lists and list-returning functions are string-type violations. This is
+        // exactly the case a resolved-value check would get wrong, since the
+        // resolved value is indistinguishable from a literal list.
+        let template = "Mappings:\n  M:\n    k:\n      l:\n        - a\n        - b\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: !FindInMap [M, k, l]\n";
+        assert_eq!(output_string_type_diagnostics(template), 0);
+    }
+
+    #[test]
+    fn output_fn_if_flags_each_list_branch() {
+        // Fn::If is transparent: each branch is checked. Both branches are lists,
+        // so both are flagged.
+        let template = "Conditions:\n  C:\n    Fn::Equals: [\"a\", \"a\"]\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Fn::If: [C, [\"a\"], [\"b\"]]\n";
+        assert_eq!(output_string_type_diagnostics(template), 2);
+    }
+
+    #[test]
+    fn output_fn_if_string_branches_not_flagged() {
+        let template = "Conditions:\n  C:\n    Fn::Equals: [\"a\", \"a\"]\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value:\n      Fn::If: [C, \"yes\", \"no\"]\n";
+        assert_eq!(output_string_type_diagnostics(template), 0);
     }
 }
