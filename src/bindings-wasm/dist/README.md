@@ -6,6 +6,9 @@ template parser, schema validator, Rego engine, and CEL engine — into a single
 
 All WASM objects must be explicitly freed via `.free()` to release memory.
 
+For a complete, runnable example, see
+[examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-wasm/examples).
+
 ## Engine
 
 `RegoEngine` and `CelEngine` both implement the `Engine` interface. They are interchangeable — both produce identical
@@ -62,7 +65,7 @@ interface ValidateConfig {
     parameterOverrides?: Record<string, string>;
     pseudoParameterOverrides?: PseudoParameterOverrides;
     strict?: boolean;
-    includeEngineRules?: boolean;
+    disableBuiltinRules?: boolean;
 }
 ```
 
@@ -74,7 +77,7 @@ interface ValidateConfig {
 | `parameterOverrides`       | `{}`                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                    |
 | `pseudoParameterOverrides` | all `undefined`         | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                       |
 | `strict`                   | `false`                 | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                        |
-| `includeEngineRules`       | `true`                  | When `false`, diagnostics with `source: "ENGINE"` are suppressed.                                                        |
+| `disableBuiltinRules`      | `false`                 | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated. |
 
 ### RuleFilterConfig
 

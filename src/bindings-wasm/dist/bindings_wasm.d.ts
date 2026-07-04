@@ -28,7 +28,7 @@ export interface DetailedDiagnostic {
     endLine?: number;
     endColumn?: number;
     relatedResources?: RelatedResource[];
-    conditionScenario?: Record<string, boolean> | undefined;
+    conditionScenario?: Record<string, boolean>;
     documentationUrl?: string;
     ruleDescription?: string;
     phase?: Phase;
@@ -97,21 +97,21 @@ export interface DiagnosticMutexGroup {
 
 export interface DiagnosticOutput {
     value: JsonValue;
-    description: string | undefined;
-    condition: string | undefined;
-    exportName: JsonValue | undefined;
+    description?: string;
+    condition?: string;
+    exportName?: JsonValue;
     getattRefs: GetAttRef[];
     conditionRefs: string[];
 }
 
 export interface DiagnosticResource {
     resourceType: string;
-    condition: string | undefined;
+    condition?: string;
     dependsOn: string[];
-    deletionPolicy: JsonValue | undefined;
-    updateReplacePolicy: JsonValue | undefined;
-    creationPolicy: JsonValue | undefined;
-    updatePolicy: JsonValue | undefined;
+    deletionPolicy?: JsonValue;
+    updateReplacePolicy?: JsonValue;
+    creationPolicy?: JsonValue;
+    updatePolicy?: JsonValue;
     properties: Record<string, JsonValue>;
     outgoingRefs: OutgoingRef[];
     incomingRefs: IncomingRef[];
@@ -129,7 +129,7 @@ export interface DiagnosticResource {
 
 export interface DiagnosticRule {
     name: string;
-    condition: JsonValue | undefined;
+    condition?: JsonValue;
     assertions: DiagnosticRuleAssertion[];
 }
 
@@ -139,8 +139,8 @@ export interface DiagnosticRuleAssertion {
 }
 
 export interface DiagnosticTemplate {
-    formatVersion: string | undefined;
-    description: string | undefined;
+    formatVersion?: string;
+    description?: string;
     transforms: string[];
     rawTopLevelKeys: string[];
 }
@@ -194,15 +194,17 @@ export interface OutgoingRef {
 
 export interface ParameterInfo {
     paramType: string;
-    default: string | undefined;
-    allowedValues: string[] | undefined;
-    allowedPattern: string | undefined;
-    minLength: number | undefined;
-    maxLength: number | undefined;
-    minValue: number | undefined;
-    maxValue: number | undefined;
-    description: string | undefined;
+    default?: string;
+    allowedValues?: string[];
+    allowedPattern?: string;
+    minLength?: number;
+    maxLength?: number;
+    minValue?: number;
+    maxValue?: number;
+    description?: string;
     noEcho: boolean;
+    allowedPatternValid?: boolean;
+    defaultMatchesAllowedPattern?: boolean;
 }
 
 export interface PathTarget {
@@ -276,21 +278,21 @@ export interface ResolutionSource {
 
 export interface ResolvedOutput {
     value: ResolvedValue;
-    description: string | undefined;
-    condition: string | undefined;
-    exportName: ResolvedValue | undefined;
+    description?: string;
+    condition?: string;
+    exportName?: ResolvedValue;
 }
 
 export interface ResolvedResource {
     logicalId: string;
     resourceType: string;
-    condition: string | undefined;
+    condition?: string;
     dependsOn: string[];
-    deletionPolicy: ResolvedValue | undefined;
-    updateReplacePolicy: ResolvedValue | undefined;
-    updatePolicy: JsonValue | undefined;
-    creationPolicy: JsonValue | undefined;
-    metadata: JsonValue | undefined;
+    deletionPolicy?: ResolvedValue;
+    updateReplacePolicy?: ResolvedValue;
+    updatePolicy?: JsonValue;
+    creationPolicy?: JsonValue;
+    metadata?: JsonValue;
     properties: Record<string, ResolvedValue>;
     propertiesDynamic: boolean;
     diagnostics: ResourceDiagnostics;
@@ -363,7 +365,7 @@ export interface StandardDiagnostic {
     endLine?: number;
     endColumn?: number;
     relatedResources?: RelatedResource[];
-    conditionScenario?: Record<string, boolean> | undefined;
+    conditionScenario?: Record<string, boolean>;
 }
 
 export interface StandardReport {
@@ -394,7 +396,7 @@ export interface ValidateConfig {
 }
 
 export interface ViolationContext {
-    actualValue?: JsonValue | undefined;
+    actualValue?: JsonValue;
     expectedConstraint?: string;
     property?: string;
     lifecycle?: string;
