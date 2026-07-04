@@ -12,42 +12,58 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// A resource property path paired with a string value found at it, such as a substitution variable or literal.
 #[derive(Debug, Clone, Serialize, Default)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct PathValuePair {
+    /// Dot-separated property path within the resource (e.g. 'Properties.BucketName').
     pub path: String,
     pub value: String,
 }
 
+/// A property that is dropped (resolves to AWS::NoValue) in one branch of an Fn::If condition.
 #[derive(Debug, Clone, Serialize, Default)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ConditionalNullEntry {
+    /// Dot-separated property path that becomes absent in one branch.
     pub path: String,
+    /// Name of the condition governing the Fn::If that drops this property.
     pub condition: String,
+    /// True when the property is absent in the condition's true branch; false when absent in the false branch.
     pub null_in_true_branch: bool,
 }
 
+/// Per-resource observations collected while resolving intrinsics, used to drive lint checks.
 #[derive(Debug, Clone, Serialize, Default)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceDiagnostics {
+    /// Mapping names referenced by Fn::FindInMap within this resource.
     pub find_in_map_refs: Vec<String>,
+    /// Fn::Sub uses whose template is a single variable that could be a plain Ref; each pairs the property path with the variable name.
     pub simple_subs: Vec<PathValuePair>,
+    /// Property paths where Fn::Sub wraps a constant string with no variables to substitute.
     pub redundant_subs: Vec<String>,
+    /// Property paths where Fn::Join uses an empty delimiter, concatenating its elements directly.
     pub empty_joins: Vec<String>,
+    /// Names of conditions referenced by this resource's property values.
     pub condition_refs: Vec<String>,
+    /// Property paths building ARNs with a hardcoded 'aws' partition instead of AWS::Partition.
     pub hardcoded_partition_arns: Vec<String>,
     pub conditionally_null_props: Vec<ConditionalNullEntry>,
     pub foreach_expansions: Vec<ForEachExpansion>,
+    /// Occurrences of ${...} placeholders outside an Fn::Sub that will not be substituted; each pairs the property path with the placeholder text.
     pub unsubstituted_variables: Vec<PathValuePair>,
+    /// References whose target is not a defined resource, parameter, or pseudo parameter; each pairs the property path with the missing target name.
     pub invalid_refs: Vec<PathValuePair>,
 }
 
+/// A template resource with its metadata and properties after intrinsic functions have been resolved.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -77,23 +93,27 @@ pub struct ResolvedResource {
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
     /// True when the entire `Properties` block is a non-map intrinsic (e.g.
-    /// `Properties: !Ref AWS::NoValue`) whose effective property set is decided at
-    /// deploy time. Distinguishes "no properties given" from "properties are
-    /// dynamic", so required-property checks can be skipped for the latter.
+    /// `Properties: !Ref AWS::NoValue`) whose effective property set is only known
+    /// at deploy time, as distinct from a resource that simply declares no properties.
     pub properties_dynamic: bool,
     pub diagnostics: ResourceDiagnostics,
 }
 
+/// An Fn::ForEach loop within a resource that expands a property over a collection.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ForEachExpansion {
+    /// Property path within the resource where the Fn::ForEach appears.
     pub property_path: String,
+    /// Loop variable name bound to each element during expansion.
     pub identifier: String,
+    /// Human-readable description of the collection being iterated over.
     pub collection_source: String,
 }
 
+/// A template output with its value and metadata after intrinsic functions have been resolved.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -174,6 +194,8 @@ pub struct SemanticModel {
     scenario_combinations_used: AtomicU64,
 }
 
+/// Values used for AWS pseudo parameters (Ref AWS::Region, AWS::AccountId, ...) when
+/// resolving the template; any field left unset falls back to a sensible default.
 #[derive(Debug, Clone, Default, Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]

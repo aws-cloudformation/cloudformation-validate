@@ -21,11 +21,13 @@ where
     }
 }
 
+/// The template resource a diagnostic is attributed to, when it targets one.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceRef {
+    /// Logical ID of the resource as declared in the template.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub id: Option<String>,
@@ -34,33 +36,41 @@ pub struct ResourceRef {
     pub resource_type: Option<String>,
 }
 
+/// Extra detail about a specific violation, present only in the detailed report.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ViolationContext {
+    /// The resolved property value that triggered the violation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue"))]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub actual_value: Option<JsonValue>,
+    /// The constraint the value was expected to satisfy (such as the required type or allowed pattern).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub expected_constraint: Option<String>,
+    /// Name of the offending property.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub property: Option<String>,
+    /// Lifecycle marker for the flagged resource type or property, such as 'deprecated', 'create-only', or 'write-only'.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub lifecycle: Option<String>,
+    /// How the offending value was derived, such as a Ref, Fn::GetAtt, Fn::If, or parameter.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resolution_source: Option<String>,
+    /// Additional finding-specific values keyed by name.
     #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, JsonValue>"))]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub extra: Option<HashMap<String, JsonValue>>,
 }
 
+/// Another resource involved in the diagnostic, such as the target of a reference.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -69,6 +79,7 @@ pub struct RelatedResource {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource: Option<ResourceRef>,
+    /// Source location of the related resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub location: Option<SourceSpan>,
@@ -127,22 +138,27 @@ impl Filterable for Diagnostic {
 /// `resource_id`/`resource_type` and `location` into individual line/column
 /// fields. Used by `StandardDiagnostic` and `DetailedDiagnostic`.
 macro_rules! define_flattened_diagnostic {
-    ($name:ident $(, $extra_field:ident : $extra_ty:ty)*) => {
+    ($(#[$struct_meta:meta])* $name:ident $(, $(#[$extra_meta:meta])* $extra_field:ident : $extra_ty:ty)*) => {
+        $(#[$struct_meta])*
         #[derive(Debug, Clone, Serialize, Deserialize)]
         #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
         #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
+            /// Identifier of the rule that produced this finding; its leading letter encodes the severity.
             pub rule_id: String,
             pub severity: Severity,
             pub message: String,
+            /// Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
             pub source: RuleOrigin,
+            /// Logical ID of the resource this finding targets, if any.
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub resource_id: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub resource_type: Option<String>,
+            /// Path to the offending property within the resource, such as 'Properties.Name'.
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub property_path: Option<String>,
@@ -152,6 +168,7 @@ macro_rules! define_flattened_diagnostic {
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub category: Option<String>,
+            /// Line in the source template where the finding begins (1-based).
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub start_line: Option<u32>,
@@ -167,11 +184,13 @@ macro_rules! define_flattened_diagnostic {
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub related_resources: Option<Vec<RelatedResource>>,
+            /// Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
             #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
             #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, boolean>"))]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub condition_scenario: Option<HashMap<String, bool>>,
             $(
+                $(#[$extra_meta])*
                 #[serde(default, skip_serializing_if = "Option::is_none")]
                 #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
                 pub $extra_field: $extra_ty,
@@ -180,11 +199,17 @@ macro_rules! define_flattened_diagnostic {
     };
 }
 
-define_flattened_diagnostic!(StandardDiagnostic);
-define_flattened_diagnostic!(DetailedDiagnostic,
+define_flattened_diagnostic!(
+    /// A single validation finding with its resource and source location flattened into individual fields.
+    StandardDiagnostic
+);
+define_flattened_diagnostic!(
+    /// A validation finding with additional context and enrichment beyond the standard finding.
+    DetailedDiagnostic,
     documentation_url: Option<String>,
     rule_description: Option<String>,
     phase: Option<Phase>,
+    /// Top-level template section the finding falls under, such as 'Resources' or 'Parameters'.
     section: Option<String>,
     context: Option<ViolationContext>
 );
@@ -305,16 +330,21 @@ impl Diagnostic {
     }
 }
 
+/// Timing breakdown of the validation run, per pipeline phase.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct PerformanceMetrics {
+    /// Time to load the provider schemas.
     pub schema_init: PhaseMetric,
+    /// Time to initialize the rule evaluation engine.
     pub engine_init: PhaseMetric,
+    /// Time to parse the template and build its model.
     pub model_build: PhaseMetric,
     pub schema_validate: PhaseMetric,
     pub rule_evaluation: PhaseMetric,
+    /// Time spent enriching, filtering, sorting, and finalizing the diagnostics after rule evaluation.
     pub diagnostic_finalize: PhaseMetric,
     pub validate_total: PhaseMetric,
 }
@@ -324,13 +354,18 @@ pub struct PerformanceMetrics {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ReportMetadata {
+    /// Number of rules that were active for this run after any category exclusions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub rules_evaluated: Option<u32>,
     pub resources_scanned: u32,
+    /// Tally of reported diagnostics by severity.
     pub counts: Summary,
+    /// Number of diagnostics removed by filters and the severity threshold.
     pub suppressed: u32,
+    /// Whether strict mode was enabled, promoting warnings to errors.
     pub strict: bool,
+    /// Minimum severity included in the report; lower-severity findings are omitted.
     pub severity_level: Severity,
 }
 
@@ -393,6 +428,7 @@ impl ValidationReport {
     }
 }
 
+/// Standard validation result: the report plus flattened diagnostics.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -406,6 +442,7 @@ pub struct StandardReport {
     pub diagnostics: Vec<StandardDiagnostic>,
 }
 
+/// Detailed validation result: like the standard report but with per-diagnostic context and enrichment.
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]

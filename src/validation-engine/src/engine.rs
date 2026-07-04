@@ -122,7 +122,7 @@ pub struct EngineConfig {
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub custom_rules: Vec<ExternalRuleSource>,
-    /// Guard DSL rules as raw source text — each engine parses and translates internally.
+    /// Guard DSL rules as raw source text, usable regardless of the selected engine.
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub guard_rules: Vec<ExternalRuleSource>,
@@ -137,8 +137,8 @@ pub struct ValidateConfig {
     pub pseudo_parameter_overrides: PseudoParameterOverrides,
     /// When true, Warn-severity diagnostics are upgraded to Error.
     pub strict: bool,
-    /// When true, all built-in rules (schema validation, step functions, engine rules) are
-    /// skipped. Only user-provided custom rules and guard rules are evaluated.
+    /// When true, all built-in rules
+    /// Only user-provided custom rules and guard rules are evaluated.
     pub disable_builtin_rules: bool,
 }
 
