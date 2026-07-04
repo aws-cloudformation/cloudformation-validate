@@ -68,8 +68,7 @@ pub struct ServiceFilter {
     pub service: String,
 }
 
-/// Filter criteria across seven dimensions: rule IDs, categories, ID ranges, regex
-/// patterns, resource IDs, resource types, and services.
+/// A set of rule-matching criteria; a rule matches when it satisfies any one of them.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
@@ -85,6 +84,7 @@ pub struct RuleFilterConfig {
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub id_ranges: Vec<IdRange>,
+    /// Regular expressions matched against the rule ID.
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub id_patterns: Vec<String>,

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// A range in the source template. Lines and columns are 1-based.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]

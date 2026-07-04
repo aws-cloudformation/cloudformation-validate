@@ -7,40 +7,32 @@ use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+/// A property value after CloudFormation intrinsics (Ref, Fn::GetAtt, Fn::Sub, Fn::If, ...)
+/// have been resolved as far as possible. Depending on how much can be known before
+/// deployment, a value is fully concrete, a reference to another resource, one of several
+/// possible values, conditional on a template condition, or opaque until deploy time.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 pub enum ResolvedValue {
-    Concrete {
-        value: JsonValue,
-    },
+    /// A fully known literal value (string, number, boolean, list, or object).
+    Concrete { value: JsonValue },
+    /// A list whose elements are not all concrete; each element is itself a resolved value.
     #[cfg_attr(feature = "uniffi-bindings", uniffi(name = "ListValue"))]
-    List {
-        items: Vec<ResolvedValue>,
-    },
-    Map {
-        entries: Vec<MapEntry>,
-    },
+    List { items: Vec<ResolvedValue> },
+    /// A map whose entry values are not all concrete; each entry value is itself a resolved value.
+    Map { entries: Vec<MapEntry> },
+    /// One of several possible values, such as the AllowedValues of a parameter; each candidate is a resolved value.
     #[cfg_attr(feature = "uniffi-bindings", uniffi(name = "EnumValue"))]
-    Enum {
-        variants: Vec<ResolvedValue>,
-    },
-    Conditional {
-        condition: String,
-        if_true: Box<ResolvedValue>,
-        if_false: Box<ResolvedValue>,
-    },
-    Reference {
-        target: String,
-        kind: RefKind,
-    },
-    Dynamic {
-        reason: String,
-    },
-    TypedDynamic {
-        reason: String,
-        param_type: String,
-    },
+    Enum { variants: Vec<ResolvedValue> },
+    /// A value that depends on a template condition: `if_true` when the named condition holds, `if_false` otherwise.
+    Conditional { condition: String, if_true: Box<ResolvedValue>, if_false: Box<ResolvedValue> },
+    /// A reference to another resource (via Ref or Fn::GetAtt) rather than a concrete value.
+    Reference { target: String, kind: RefKind },
+    /// A value that cannot be known until deployment; `reason` is a human-readable explanation of why it is unresolved.
+    Dynamic { reason: String },
+    /// A value unknown until deployment but whose CloudFormation type is known; `param_type` is that type and `reason` explains why the value is unresolved.
+    TypedDynamic { reason: String, param_type: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,14 +43,22 @@ pub struct MapEntry {
     pub value: ResolvedValue,
 }
 
+/// How one template item refers to another: a Ref, an Fn::GetAtt attribute lookup,
+/// an Fn::Sub variable, or an explicit DependsOn.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RefKind {
     Ref,
-    GetAtt { attr: String },
-    Sub { var: String },
+    /// An Fn::GetAtt reference; `attr` is the referenced attribute name.
+    GetAtt {
+        attr: String,
+    },
+    /// An Fn::Sub reference; `var` is the substituted variable name.
+    Sub {
+        var: String,
+    },
     DependsOn,
 }
 
@@ -72,11 +72,14 @@ pub struct ResolverEdge {
     pub condition_context: Option<String>,
 }
 
+/// A template Parameter's declaration: its type, constraints (allowed values/pattern,
+/// length and value bounds), default, and description.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ParameterInfo {
+    /// The parameter's declared CloudFormation type (for example String, Number, or an AWS-specific type); defaults to String when the template omits Type.
     pub param_type: String,
     #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
@@ -102,10 +105,13 @@ pub struct ParameterInfo {
     #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub description: Option<String>,
+    /// Whether the parameter is declared with NoEcho, meaning its value is masked in CloudFormation output.
     pub no_echo: bool,
+    /// Whether the AllowedPattern is a valid, supported regular expression; absent when no AllowedPattern is declared.
     #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub allowed_pattern_valid: Option<bool>,
+    /// Whether the Default value satisfies the AllowedPattern; absent unless both a Default and an AllowedPattern are declared.
     #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub default_matches_allowed_pattern: Option<bool>,

@@ -1,10 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::ops::Deref;
 
-/// Newtype around `serde_json::Value` that provides WASM (via `tsify`) and
-/// UniFFI bindings. WASM serializes through serde into native JS values.
-/// UniFFI bridges through a recursive `JsonValueEnum` so consumers get
-/// typed data without parsing JSON strings.
+/// An arbitrary JSON value (null, boolean, number, string, array, or object).
 #[derive(Debug, Clone, PartialEq)]
 pub struct JsonValue(pub serde_json::Value);
 

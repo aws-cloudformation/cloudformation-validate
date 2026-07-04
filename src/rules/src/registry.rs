@@ -14,7 +14,7 @@ pub struct RuleDefinition {
     pub origin: RuleOrigin,
 }
 
-/// Serializable, owned representation of a rule returned by public APIs.
+/// Metadata describing a validation rule.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
@@ -37,7 +37,7 @@ pub struct RuleInfo {
 pub enum RuleOrigin {
     /// Derived from the CloudFormation resource provider schema
     Schema,
-    /// Ported from the cfn-lint
+    /// Ported from cfn-lint
     CfnLint,
     /// Implemented in this validation engine
     Engine,
