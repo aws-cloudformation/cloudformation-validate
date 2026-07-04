@@ -18,6 +18,7 @@ export type {
     IdRange,
     ResourceIdFilter,
     ResourceTypeFilter,
+    ServiceFilter,
     RuleFilterConfig,
     RuleInfo,
     SourceSpan,
