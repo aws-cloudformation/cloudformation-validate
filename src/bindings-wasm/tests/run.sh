@@ -6,5 +6,5 @@ BINDINGS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "Running smoke tests..."
 cd "$SCRIPT_DIR"
-npm ci --silent 2>/dev/null
-npm test
+npm install --silent
+npm run test:coverage

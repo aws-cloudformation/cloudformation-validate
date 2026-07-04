@@ -32,7 +32,7 @@ if [ -f "$WASM_DTS" ] && ! grep -q "^export type JsonValue" "$WASM_DTS"; then
 fi
 
 cd "$SCRIPT_DIR"
-npm ci --silent 2>/dev/null
+npm ci --silent
 npm run build:ts
 
 # ── Package metadata ──────────────────────────────────────────────────────────

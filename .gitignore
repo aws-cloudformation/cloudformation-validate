@@ -16,6 +16,7 @@ src/bindings-jvm/generated/**/*
 # Node / WASM
 **/node_modules/
 **/package-lock.json
+!src/bindings-wasm/package-lock.json
 
 # Output (regenerable)
 **/output/**
@@ -24,6 +25,7 @@ src/data-source/generated/patched_schemas/
 src/**/reports/
 **/cdk.out/
 *.pyc
+**/coverage/**
 
 # IDE
 **/*.iml
