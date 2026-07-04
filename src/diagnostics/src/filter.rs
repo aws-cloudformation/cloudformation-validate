@@ -93,7 +93,7 @@ mod tests {
             RuleFilterConfig::default(),
             RuleFilterConfig {
                 resource_types: vec![ResourceTypeFilter {
-                    rule_id: "E3012".into(),
+                    rule_id: Some("E3012".into()),
                     resource_type: "AWS::S3::Bucket".into(),
                 }],
                 ..Default::default()

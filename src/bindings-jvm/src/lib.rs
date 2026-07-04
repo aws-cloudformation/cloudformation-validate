@@ -9,7 +9,9 @@ pub use diagnostics::{
     ReportMetadata, ReportStatus, ResourceRef, SourceSpan, StandardDiagnostic, StandardReport, Summary,
     ViolationContext,
 };
-pub use rules::{IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, Severity};
+pub use rules::{
+    IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, ServiceFilter, Severity,
+};
 pub use template_model::PseudoParameterOverrides;
 pub use template_model::diagnostic::{
     ConditionalNull, DiagnosticCondition, DiagnosticForEachExpansion, DiagnosticImplication, DiagnosticModel,

@@ -31,6 +31,27 @@ fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
+/// Parses a resource-scoped filter argument of the form `TARGET` or
+/// `TARGET=RULE_ID`, returning the target and the optional rule scope.
+///
+/// The target is a logical resource ID, a resource type, or a service name
+/// depending on the flag; it is taken verbatim. The bare `TARGET` form (or a
+/// trailing `=` with nothing after it) scopes the filter to every rule on that
+/// target; `TARGET=RULE_ID` scopes it to a single rule.
+/// `=` is used as the separator because it never appears in a rule ID, a service
+/// name, or a resource type (which uses `::`), so the split is unambiguous.
+/// Returns `None` only when the target is empty.
+pub fn parse_scoped_target(s: &str) -> Option<(String, Option<String>)> {
+    let (target, rule_id) = match s.split_once('=') {
+        Some((target, rule_id)) => (target, Some(rule_id)),
+        None => (s, None),
+    };
+    if target.is_empty() {
+        return None;
+    }
+    Some((target.to_string(), rule_id.filter(|r| !r.is_empty()).map(String::from)))
+}
+
 /// Parses a rule ID range of the form `"<start>-<end>"` (a shared letter prefix
 /// followed by an inclusive numeric span) into an `IdRange`. Returns `None` if
 /// the format is invalid.
@@ -53,6 +74,42 @@ pub fn parse_range(s: &str) -> Option<IdRange> {
 mod tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    fn parse_scoped_target_bare_target_scopes_all_rules() {
+        let (target, rule_id) = parse_scoped_target("AWS::AutoScaling").unwrap();
+        assert_eq!(target, "AWS::AutoScaling");
+        assert_eq!(rule_id, None, "a bare target scopes the filter to every rule");
+    }
+
+    #[test]
+    fn parse_scoped_target_with_rule_id_splits_on_equals_not_double_colon() {
+        // A service prefix contains `::`; the split must be on `=` so the whole
+        // `AWS::AutoScaling` prefix stays intact as the target.
+        let (target, rule_id) = parse_scoped_target("AWS::AutoScaling=W3697").unwrap();
+        assert_eq!(target, "AWS::AutoScaling");
+        assert_eq!(rule_id.as_deref(), Some("W3697"));
+    }
+
+    #[test]
+    fn parse_scoped_target_handles_resource_type_with_double_colons() {
+        let (target, rule_id) = parse_scoped_target("AWS::AutoScaling::LaunchConfiguration=W3697").unwrap();
+        assert_eq!(target, "AWS::AutoScaling::LaunchConfiguration");
+        assert_eq!(rule_id.as_deref(), Some("W3697"));
+    }
+
+    #[test]
+    fn parse_scoped_target_trailing_equals_scopes_all_rules() {
+        let (target, rule_id) = parse_scoped_target("MyBucket=").unwrap();
+        assert_eq!(target, "MyBucket");
+        assert_eq!(rule_id, None, "an empty rule id after '=' scopes the filter to every rule");
+    }
+
+    #[test]
+    fn parse_scoped_target_returns_none_for_empty_target() {
+        assert!(parse_scoped_target("").is_none(), "an empty target is rejected");
+        assert!(parse_scoped_target("=W3697").is_none(), "a missing target before '=' is rejected");
+    }
 
     #[test]
     fn parse_range_returns_prefix_start_end() {

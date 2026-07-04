@@ -96,10 +96,20 @@ data class RuleFilterConfig(
     val categories: List<String> = emptyList(),                // category names, e.g. ["security", "best_practices"]
     val idRanges: List<IdRange> = emptyList(),                 // numeric ranges, e.g. IdRange("E", 3000, 3099)
     val idPatterns: List<String> = emptyList(),                // regex patterns matched against rule IDs
-    val resourceIds: List<ResourceIdFilter> = emptyList(),     // suppress rule for specific logical resource ID
-    val resourceTypes: List<ResourceTypeFilter> = emptyList(), // suppress rule for specific resource type
+    val resourceIds: List<ResourceIdFilter> = emptyList(),     // a rule (or every rule) on a logical resource ID
+    val resourceTypes: List<ResourceTypeFilter> = emptyList(), // a rule (or every rule) on a resource type
+    val services: List<ServiceFilter> = emptyList(),           // a rule (or every rule) on a service, e.g. "AWS::AutoScaling"
 )
+
+// resourceIds / resourceTypes / services each carry a nullable ruleId:
+// set it to scope the filter to one rule, or leave it null for every rule on the target.
+data class ResourceIdFilter(val ruleId: String? = null, val resourceId: String)
+data class ResourceTypeFilter(val ruleId: String? = null, val resourceType: String)
+data class ServiceFilter(val ruleId: String? = null, val service: String)
 ```
+
+The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 ### PseudoParameterOverrides
 

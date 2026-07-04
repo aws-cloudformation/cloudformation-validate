@@ -89,10 +89,20 @@ interface RuleFilterConfig {
     categories?: string[];             // category names, e.g. ["security", "best_practices"]
     idRanges?: IdRange[];              // numeric ranges, e.g. { prefix: "E", start: 3000, end: 3099 }
     idPatterns?: string[];             // regex patterns matched against rule IDs
-    resourceIds?: ResourceIdFilter[];  // suppress rule for specific logical resource ID
-    resourceTypes?: ResourceTypeFilter[]; // suppress rule for specific resource type
+    resourceIds?: ResourceIdFilter[];  // a rule (or every rule) on a logical resource ID
+    resourceTypes?: ResourceTypeFilter[]; // a rule (or every rule) on a resource type
+    services?: ServiceFilter[];        // a rule (or every rule) on a service, e.g. "AWS::AutoScaling"
 }
+
+// resourceIds / resourceTypes / services each carry an optional ruleId:
+// set it to scope the filter to one rule, or omit it for every rule on the target.
+interface ResourceIdFilter   { ruleId?: string; resourceId: string; }
+interface ResourceTypeFilter { ruleId?: string; resourceType: string; }
+interface ServiceFilter      { ruleId?: string; service: string; }
 ```
+
+The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 ### PseudoParameterOverrides
 

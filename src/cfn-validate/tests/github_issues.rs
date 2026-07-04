@@ -148,10 +148,9 @@ fn issue_35_e3027_absent_on_embedded_dynamic_reference() {
 // issue #36 is tested below in a dedicated test that also pins the rego/cel divergence.
 
 /// Issue #37: the maintenance-mode warning W3697 fires on
-/// `AWS::AutoScaling::LaunchConfiguration`. Per-service silencing is not yet a
-/// dedicated CLI flag, but the rule itself fires correctly and identically in
-/// both engines (and is suppressible via the existing exclude filters — see the
-/// suppressibility tests at the bottom of this file).
+/// `AWS::AutoScaling::LaunchConfiguration`. The rule fires correctly and
+/// identically in both engines; per-service silencing is exercised by the
+/// service-filter suppressibility tests below.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/37
 #[test]
 fn issue_37_w3697_fires_on_autoscaling_launchconfiguration() {
@@ -159,6 +158,65 @@ fn issue_37_w3697_fires_on_autoscaling_launchconfiguration() {
     assert_fires_with_severity(&diags, "W3697", Severity::Warn);
     assert_fires_on_resource(&diags, "W3697", "MyLaunchConfig");
     assert_count(&diags, "W3697", 1);
+}
+
+/// Issue #37: a per-service exclude filter silences W3697 for every AutoScaling
+/// resource — the resolution the issue asked for. The filter is applied after
+/// evaluation in both engines, so the two stay at parity. The `service` string is
+/// the fully qualified `service-provider::service-name` prefix (`AWS::AutoScaling`)
+/// matched verbatim against the resource type; the rule id scopes it to W3697,
+/// leaving the rest of the service untouched.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/37
+#[test]
+fn issue_37_w3697_suppressed_per_service_by_exclude_filter() {
+    use rules::{FilterConfig, RuleFilterConfig, ServiceFilter};
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: Some("W3697".into()), service: "AWS::AutoScaling".into() }],
+                ..Default::default()
+            },
+        ),
+        ..Default::default()
+    };
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = validate_with(engine, "issue-37.yaml", config.clone());
+        assert_eq!(count(&diags, "W3697"), 0, "[{name}] excluding W3697 for the AutoScaling service must silence it");
+    }
+}
+
+/// Issue #37 (whole-service silencing): an exclude filter with no rule id removes
+/// every diagnostic on AutoScaling resources, not just W3697, in both engines.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/37
+#[test]
+fn issue_37_service_filter_without_rule_id_silences_whole_service() {
+    use rules::{FilterConfig, RuleFilterConfig, ServiceFilter};
+    let config = ValidateConfig {
+        severity_level: Severity::Debug,
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "AWS::AutoScaling".into() }],
+                ..Default::default()
+            },
+        ),
+        ..Default::default()
+    };
+    for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
+        let diags = validate_with(engine, "issue-37.yaml", config.clone());
+        let on_autoscaling = diags.iter().any(|d| {
+            d.resource
+                .as_ref()
+                .and_then(|r| r.resource_type.as_deref())
+                .is_some_and(|t| t.starts_with("AWS::AutoScaling::"))
+        });
+        assert!(
+            !on_autoscaling,
+            "[{name}] a rule-less AutoScaling service filter must silence every AutoScaling finding"
+        );
+    }
 }
 
 /// Issue #38: E3040 must not flag a top-level property when only deeply-nested

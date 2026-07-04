@@ -60,16 +60,22 @@ Custom and guard rules use freeform category strings.
 
 ## Filtering
 
-`FilterConfig` holds `include` and `exclude` filters across 6 dimensions:
+`FilterConfig` holds `include` and `exclude` filters across 7 dimensions:
 
-| Dimension        | Match logic                                      |
-|------------------|--------------------------------------------------|
-| By ID            | Exact rule ID match                              |
-| By category      | Match all rules in a category                    |
-| By ID range      | Numeric range with prefix (e.g. `E3000`–`E3099`) |
-| By regex         | Regex against rule ID                            |
-| By resource ID   | Suppress a rule for a specific logical resource  |
-| By resource type | Suppress a rule for a resource type              |
+| Dimension        | Match logic                                              |
+|------------------|----------------------------------------------------------|
+| By ID            | Exact rule ID match                                      |
+| By category      | Match all rules in a category                            |
+| By ID range      | Numeric range with prefix (e.g. `E3000`–`E3099`)         |
+| By regex         | Regex against rule ID                                    |
+| By resource ID   | A rule (or every rule) on a specific logical resource    |
+| By resource type | A rule (or every rule) on a resource type                |
+| By service       | A rule (or every rule) on a service (provider + service) |
+
+The resource-ID, resource-type, and service dimensions each carry an optional `rule_id`: set it to scope the filter to
+a single rule, or omit it to scope the filter to every rule on that resource, type, or service. The service is matched
+verbatim against the `service-provider::service-name` prefix of the resource type — its first two `::`-delimited
+segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 Include-then-exclude: if include filters are non-empty, a diagnostic must match at least one; any diagnostic matching
 an exclude filter is removed.

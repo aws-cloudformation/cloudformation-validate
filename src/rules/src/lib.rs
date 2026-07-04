@@ -10,7 +10,7 @@ pub mod schedule;
 pub mod severity;
 
 pub use category::Category;
-pub use filter::{FilterConfig, IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig};
+pub use filter::{FilterConfig, IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter};
 pub use helpers::{
     AMI_ID_PATTERN, AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_PATTERN, IAM_ROLE_ARN_RULE_PATTERN,
     MX_RECORD_PATTERN, SECURITY_GROUP_NAME_PATTERN, category_for_rule_id, format_rule_for_format, is_fatal_rule,
