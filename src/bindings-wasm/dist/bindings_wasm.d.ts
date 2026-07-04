@@ -1,6 +1,114 @@
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * A pre-read rule file provided by the caller (custom Rego/CEL or Guard DSL).
+ *
+ * `name` identifies the rule source in error messages and logging. For a
+ * file-backed rule this is typically the filesystem path; otherwise it is
+ * whatever label the caller provides.
+ *
+ * `content` is the full source text of the rule file.
+ */
+export interface ExternalRuleSource {
+    name: string;
+    content: string;
+}
+
+/**
+ * Controls the level of detail in validation output.
+ */
+export type DetailLevel = 'STANDARD' | 'DETAILED';
+
+/**
+ * Filter criteria across seven dimensions: rule IDs, categories, ID ranges, regex
+ * patterns, resource IDs, resource types, and services.
+ */
+export interface RuleFilterConfig {
+    ids?: string[];
+    categories?: string[];
+    idRanges?: IdRange[];
+    idPatterns?: string[];
+    resourceIds?: ResourceIdFilter[];
+    resourceTypes?: ResourceTypeFilter[];
+    services?: ServiceFilter[];
+}
+
+/**
+ * Numeric range filter for rule IDs sharing a common letter prefix, matching an
+ * inclusive span of the trailing numbers.
+ */
+export interface IdRange {
+    prefix: string;
+    start: number;
+    end: number;
+}
+
+/**
+ * Outcome of a validation run. `Ok` means the engine completed; `Error` means
+ * the pipeline could not run (e.g. parse failure).
+ */
+export type ReportStatus = 'OK' | 'ERROR';
+
+/**
+ * Selects which validation engine evaluates rules.
+ */
+export type EngineType = 'REGO' | 'CEL';
+
+/**
+ * Serializable, owned representation of a rule returned by public APIs.
+ */
+export interface RuleInfo {
+    id: string;
+    severity: Severity;
+    category?: string;
+    description: string;
+    origin: RuleOrigin;
+}
+
+/**
+ * Suppress a rule for a specific logical resource ID. An absent `rule_id`
+ * scopes the filter to every rule on that resource.
+ */
+export interface ResourceIdFilter {
+    ruleId?: string;
+    resourceId: string;
+}
+
+/**
+ * Suppress a rule for a specific resource type. An absent `rule_id` scopes the
+ * filter to every rule on that type.
+ */
+export interface ResourceTypeFilter {
+    ruleId?: string;
+    resourceType: string;
+}
+
+/**
+ * Suppress a rule for every resource belonging to a service — the
+ * `service-provider::service-name` prefix of the resource type (its first two
+ * `::`-delimited segments, for example `AWS::AutoScaling` in
+ * `AWS::AutoScaling::LaunchConfiguration`, or `Alexa::ASK` in
+ * `Alexa::ASK::Skill`). An absent `rule_id` scopes the filter to every rule on
+ * that service.
+ *
+ * The service string is compared verbatim against that prefix.
+ */
+export interface ServiceFilter {
+    ruleId?: string;
+    service: string;
+}
+
+/**
+ * Validation pipeline phase a diagnostic originates from.
+ */
+export type Phase = 'PARSE' | 'SCHEMA' | 'LINT';
+
+/**
+ * Where a rule\'s logic originates.
+ */
+export type RuleOrigin = 'SCHEMA' | 'CFN_LINT' | 'ENGINE' | 'CUSTOM' | 'GUARD';
+
 export interface ConditionalNull {
     path: string;
     condition: string;
@@ -146,13 +254,14 @@ export interface DiagnosticTemplate {
 }
 
 export interface EngineConfig {
+    /**
+     * Engine-native custom rules (Rego or CEL depending on engine).
+     */
     customRules?: ExternalRuleSource[];
+    /**
+     * Guard DSL rules as raw source text — each engine parses and translates internally.
+     */
     guardRules?: ExternalRuleSource[];
-}
-
-export interface ExternalRuleSource {
-    name: string;
-    content: string;
 }
 
 export interface ForEachExpansion {
@@ -164,12 +273,6 @@ export interface ForEachExpansion {
 export interface GetAttRef {
     resource: string;
     attribute: string;
-}
-
-export interface IdRange {
-    prefix: string;
-    start: number;
-    end: number;
 }
 
 export interface IncomingRef {
@@ -294,6 +397,12 @@ export interface ResolvedResource {
     creationPolicy?: JsonValue;
     metadata?: JsonValue;
     properties: Record<string, ResolvedValue>;
+    /**
+     * True when the entire `Properties` block is a non-map intrinsic (e.g.
+     * `Properties: !Ref AWS::NoValue`) whose effective property set is decided at
+     * deploy time. Distinguishes \"no properties given\" from \"properties are
+     * dynamic\", so required-property checks can be skipped for the latter.
+     */
     propertiesDynamic: boolean;
     diagnostics: ResourceDiagnostics;
 }
@@ -311,36 +420,9 @@ export interface ResourceDiagnostics {
     invalidRefs: PathValuePair[];
 }
 
-export interface ResourceIdFilter {
-    ruleId: string;
-    resourceId: string;
-}
-
 export interface ResourceRef {
     id?: string;
     resourceType?: string;
-}
-
-export interface ResourceTypeFilter {
-    ruleId: string;
-    resourceType: string;
-}
-
-export interface RuleFilterConfig {
-    ids?: string[];
-    categories?: string[];
-    idRanges?: IdRange[];
-    idPatterns?: string[];
-    resourceIds?: ResourceIdFilter[];
-    resourceTypes?: ResourceTypeFilter[];
-}
-
-export interface RuleInfo {
-    id: string;
-    severity: Severity;
-    category?: string;
-    description: string;
-    origin: RuleOrigin;
 }
 
 export interface SourceSpan {
@@ -409,15 +491,7 @@ export interface WasmSchemaValidationResult {
     metric: PhaseMetric;
 }
 
-export type DetailLevel = 'STANDARD' | 'DETAILED';
-
-export type EngineType = 'REGO' | 'CEL';
-
-export type Phase = 'PARSE' | 'SCHEMA' | 'LINT';
-
 export type RefKind = 'REF' | { GET_ATT: { attr: string } } | { SUB: { var: string } } | 'DEPENDS_ON';
-
-export type ReportStatus = 'OK' | 'ERROR';
 
 export type ResolvedValue =
     | { Concrete: { value: JsonValue } }
@@ -428,8 +502,6 @@ export type ResolvedValue =
     | { Reference: { target: string; kind: RefKind } }
     | { Dynamic: { reason: string } }
     | { TypedDynamic: { reason: string; param_type: string } };
-
-export type RuleOrigin = 'SCHEMA' | 'CFN_LINT' | 'ENGINE' | 'CUSTOM' | 'GUARD';
 
 export type Severity = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
 
