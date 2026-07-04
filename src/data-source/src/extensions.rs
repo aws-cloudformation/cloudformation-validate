@@ -7,7 +7,7 @@ use std::path::Path;
 /// Extension files that must be extracted as data documents for engine rules
 /// (CEL/Rego) to query at runtime. These contain per-region enum data or
 /// per-engine/version compatibility data that the engines use for resolved-value
-/// checks beyond what the schema-validator handles for literal values.
+/// checks beyond static literal-value schema validation.
 ///
 /// All other extension files flow into extensions.json as schema patches.
 const DATA_DOC_STEMS: &[&str] = &[

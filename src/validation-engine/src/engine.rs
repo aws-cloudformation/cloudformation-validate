@@ -98,8 +98,9 @@ impl fmt::Display for EngineType {
 
 /// A pre-read rule file provided by the caller (custom Rego/CEL or Guard DSL).
 ///
-/// `name` identifies the rule source in error messages and logging. In the CLI
-/// this is the filesystem path; in WASM/JVM it is whatever label the caller provides.
+/// `name` identifies the rule source in error messages and logging. For a
+/// file-backed rule this is typically the filesystem path; otherwise it is
+/// whatever label the caller provides.
 ///
 /// `content` is the full source text of the rule file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -326,20 +327,20 @@ pub fn validate_bytes_with_path(
 
 /// Runs `operation`, converting any unwinding panic into an error produced by
 /// `on_panic` instead of letting it escape into the caller. Every embedding
-/// boundary — the CLI, the WASM bindings, and the JVM bindings — routes through
-/// this guard, so an internal invariant violation on adversarial input becomes a
-/// structured, catchable error rather than crashing or trapping the host.
+/// boundary routes through this guard, so an internal invariant violation on
+/// adversarial input becomes a structured, catchable error rather than crashing
+/// or trapping the host.
 ///
 /// `on_panic` receives the panic's message and maps it to the caller's own error
-/// type (a [`ValidationError`], a binding `JsValue`, a JVM error, …), keeping the
-/// guard reusable across every binding without coupling it to one error type.
+/// type (for example a [`ValidationError`] or a binding-specific error type),
+/// keeping the guard reusable across every binding without coupling it to one
+/// error type.
 ///
 /// The guard only works under the `unwind` panic strategy — [`catch_unwind`]
 /// intercepts unwinding panics, not aborts. The workspace pins `panic = "unwind"`
 /// in both the dev and release profiles (`src/Cargo.toml`), so on native targets
-/// (the CLI binary and the JVM native library) a panic is caught here before it
-/// can unwind across the FFI boundary into JNI frames — which would be undefined
-/// behavior.
+/// a panic is caught here before it can unwind across an FFI boundary — which
+/// would be undefined behavior.
 ///
 /// On `wasm32-unknown-unknown` the standard library is compiled with
 /// `panic = "abort"`: a panic traps the instance and `catch_unwind` cannot
