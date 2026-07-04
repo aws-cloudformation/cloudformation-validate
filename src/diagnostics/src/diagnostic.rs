@@ -27,8 +27,10 @@ where
 #[serde(rename_all = "camelCase")]
 pub struct ResourceRef {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource_type: Option<String>,
 }
 
@@ -38,18 +40,24 @@ pub struct ResourceRef {
 #[serde(rename_all = "camelCase")]
 pub struct ViolationContext {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
+    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub actual_value: Option<JsonValue>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub expected_constraint: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub property: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub lifecycle: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resolution_source: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, JsonValue>"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub extra: Option<HashMap<String, JsonValue>>,
 }
 
@@ -59,8 +67,10 @@ pub struct ViolationContext {
 #[serde(rename_all = "camelCase")]
 pub struct RelatedResource {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource: Option<ResourceRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub location: Option<SourceSpan>,
     pub message: String,
 }
@@ -128,33 +138,42 @@ macro_rules! define_flattened_diagnostic {
             pub message: String,
             pub source: RuleOrigin,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub resource_id: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub resource_type: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub property_path: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub suggested_fix: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub category: Option<String>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub start_line: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub start_column: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub end_line: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub end_column: Option<u32>,
             #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub related_resources: Option<Vec<RelatedResource>>,
             #[serde(default, skip_serializing_if = "Option::is_none", serialize_with = "serialize_sorted_optional_map")]
-            #[cfg_attr(
-                feature = "wasm-bindings",
-                tsify(type = "Record<string, boolean> | undefined")
-            )]
+            #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, boolean>"))]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub condition_scenario: Option<HashMap<String, bool>>,
             $(
                 #[serde(default, skip_serializing_if = "Option::is_none")]
+                #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
                 pub $extra_field: $extra_ty,
             )*
         }
@@ -306,6 +325,7 @@ pub struct PerformanceMetrics {
 #[serde(rename_all = "camelCase")]
 pub struct ReportMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub rules_evaluated: Option<u32>,
     pub resources_scanned: u32,
     pub counts: Summary,

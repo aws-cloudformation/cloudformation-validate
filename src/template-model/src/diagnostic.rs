@@ -43,7 +43,11 @@ pub struct DiagnosticModel {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticTemplate {
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub format_version: Option<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub description: Option<String>,
     pub transforms: Vec<String>,
     pub raw_top_level_keys: Vec<String>,
@@ -55,10 +59,13 @@ pub struct DiagnosticTemplate {
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticCondition {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub expression: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub deps: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub mutex_with: Option<Vec<String>>,
 }
 
@@ -91,8 +98,10 @@ pub struct ReferenceEdge {
     pub target: String,
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub attr: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition_context: Option<String>,
 }
 
@@ -105,8 +114,10 @@ pub struct OutgoingRef {
     pub target: String,
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub attr: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition_context: Option<String>,
 }
 
@@ -119,6 +130,7 @@ pub struct IncomingRef {
     pub source_path: String,
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub attr: Option<String>,
 }
 
@@ -128,11 +140,21 @@ pub struct IncomingRef {
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticResource {
     pub resource_type: String,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition: Option<String>,
     pub depends_on: Vec<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub deletion_policy: Option<JsonValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub update_replace_policy: Option<JsonValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub creation_policy: Option<JsonValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub update_policy: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, JsonValue>"))]
     pub properties: HashMap<String, JsonValue>,
@@ -200,8 +222,14 @@ pub struct GetAttRef {
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticOutput {
     pub value: JsonValue,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub description: Option<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition: Option<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub export_name: Option<JsonValue>,
     pub getatt_refs: Vec<GetAttRef>,
     pub condition_refs: Vec<String>,
@@ -213,6 +241,8 @@ pub struct DiagnosticOutput {
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticRule {
     pub name: String,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition: Option<JsonValue>,
     pub assertions: Vec<DiagnosticRuleAssertion>,
 }
@@ -224,6 +254,7 @@ pub struct DiagnosticRule {
 pub struct DiagnosticRuleAssertion {
     pub assert_expr: JsonValue,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub assert_description: Option<String>,
 }
 

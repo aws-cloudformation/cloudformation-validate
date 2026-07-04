@@ -23,6 +23,7 @@ pub struct RuleInfo {
     pub id: String,
     pub severity: Severity,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub category: Option<String>,
     pub description: String,
     pub origin: RuleOrigin,
