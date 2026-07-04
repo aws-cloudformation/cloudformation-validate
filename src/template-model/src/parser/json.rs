@@ -190,6 +190,20 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
     }
 }
 
+/// Decode a JSON string token (including its surrounding double quotes) into the
+/// string it represents, so that escaped and literal spellings of the same key
+/// compare equal. The quoted byte range is itself valid JSON, so `serde_json`
+/// performs exactly the same unescaping (`\uXXXX`, surrogate pairs, `\n`, `\"`,
+/// `\\`, …) it applies when building the parsed object — the same key identity
+/// CloudFormation sees. Falls back to a lossy view only if the token is not
+/// decodable, which cannot happen once the full document has parsed successfully.
+fn decode_json_key(quoted: &[u8]) -> String {
+    from_utf8(quoted)
+        .ok()
+        .and_then(|s| serde_json::from_str::<String>(s).ok())
+        .unwrap_or_else(|| String::from_utf8_lossy(quoted).to_string())
+}
+
 /// Pre-parse scan for duplicate keys in JSON. serde_json silently deduplicates,
 /// so we must scan raw bytes before parsing.
 fn detect_duplicate_keys(bytes: &[u8]) -> Vec<Diagnostic> {
@@ -231,7 +245,10 @@ fn detect_duplicate_keys(bytes: &[u8]) -> Vec<Diagnostic> {
                     j += 1;
                 }
                 if j < bytes.len() && bytes[j] == b':' {
-                    let key = String::from_utf8_lossy(&bytes[start + 1..end]).to_string();
+                    // Decode the quoted token (quotes included) so escaped and
+                    // literal spellings of the same key collide exactly as
+                    // serde_json deduplicates them when building the object.
+                    let key = decode_json_key(&bytes[start..=end]);
                     if let Some(current) = key_stacks.last_mut() {
                         match current.entry(key) {
                             Entry::Occupied(occupied) => {
@@ -605,6 +622,41 @@ mod tests {
             ir.diagnostics.iter().any(|d| d.rule_id == "F0014" && d.message.contains("Fn::Not")),
             "Expected F0014 for Fn::Not wrapping Fn::Sub, got: {:?}",
             ir.diagnostics
+        );
+    }
+
+    /// A literal duplicate string key yields exactly one F0000, anchored at the
+    /// second occurrence — the baseline the escaped-key case must match.
+    #[test]
+    fn literal_duplicate_string_key_emits_one_f0000() {
+        let input = r#"{"A":1,"A":2}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let f0000: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "F0000").map(|d| d.message.as_str()).collect();
+        assert_eq!(f0000, ["Duplicate key 'A'"]);
+    }
+
+    /// The `A` escape decodes to `A`, so an escaped key and its literal
+    /// twin are the same key and must collide exactly like the literal
+    /// duplicate above, anchored at the second occurrence.
+    #[test]
+    fn escaped_duplicate_string_key_emits_one_f0000() {
+        let input = r#"{"\u0041":1,"A":2}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let f0000: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "F0000").map(|d| d.message.as_str()).collect();
+        assert_eq!(f0000, ["Duplicate key 'A'"]);
+    }
+
+    /// Distinct keys that merely contain escape sequences must NOT be flagged as
+    /// duplicates — decoding must not collapse genuinely different keys.
+    #[test]
+    fn escaped_distinct_string_keys_emit_no_f0000() {
+        let input = r#"{"\u0041":1,"\u0042":2}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "F0000"),
+            "distinct escaped keys (A vs B) must not be treated as duplicates"
         );
     }
 

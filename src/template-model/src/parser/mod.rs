@@ -34,3 +34,28 @@ pub fn parse(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A non-object root is rejected in both formats. The dispatch heuristic routes
+    /// only a leading `{` to the JSON front-end, so a JSON array root is parsed as
+    /// YAML and reports the YAML-worded error; either way the outcome is the same —
+    /// a `ParseError` at 1:1 with no model.
+    #[test]
+    fn non_object_root_is_rejected_in_both_formats() {
+        let json_array = parse(br#"[{"Type":"AWS::S3::Bucket"}]"#);
+        let yaml_seq = parse(b"- Type: AWS::S3::Bucket\n");
+        assert!(json_array.is_err(), "a JSON array root must be rejected");
+        assert!(yaml_seq.is_err(), "a YAML sequence root must be rejected");
+    }
+
+    /// A leading `{` (after optional whitespace) dispatches to the JSON front-end; a
+    /// well-formed JSON object template parses successfully through it.
+    #[test]
+    fn leading_brace_dispatches_to_json() {
+        let ir = parse(b"  {\"Resources\":{\"R\":{\"Type\":\"AWS::S3::Bucket\"}}}").unwrap();
+        assert_eq!(ir.arena.as_map(ir.resources).unwrap().len(), 1);
+    }
+}
