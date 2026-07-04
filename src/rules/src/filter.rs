@@ -17,30 +17,59 @@ pub struct IdRange {
     pub end: u32,
 }
 
-/// Suppress a specific rule for a specific logical resource ID.
+/// Suppress a rule for a specific logical resource ID. An absent `rule_id`
+/// scopes the filter to every rule on that resource.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceIdFilter {
-    pub rule_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub rule_id: Option<String>,
     pub resource_id: String,
 }
 
-/// Suppress a specific rule for a specific resource type.
+/// Suppress a rule for a specific resource type. An absent `rule_id` scopes the
+/// filter to every rule on that type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceTypeFilter {
-    pub rule_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub rule_id: Option<String>,
     pub resource_type: String,
 }
 
-/// Filter criteria across six dimensions: IDs, categories, ID ranges, regex patterns,
-/// resource IDs, and resource types.
+/// Suppress a rule for every resource belonging to a service — the
+/// `service-provider::service-name` prefix of the resource type (its first two
+/// `::`-delimited segments, for example `AWS::AutoScaling` in
+/// `AWS::AutoScaling::LaunchConfiguration`, or `Alexa::ASK` in
+/// `Alexa::ASK::Skill`). An absent `rule_id` scopes the filter to every rule on
+/// that service.
+///
+/// The service string is compared verbatim against that prefix.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
+#[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceFilter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub rule_id: Option<String>,
+    pub service: String,
+}
+
+/// Filter criteria across seven dimensions: rule IDs, categories, ID ranges, regex
+/// patterns, resource IDs, resource types, and services.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
@@ -65,6 +94,9 @@ pub struct RuleFilterConfig {
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource_types: Vec<ResourceTypeFilter>,
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub services: Vec<ServiceFilter>,
 }
 
 impl RuleFilterConfig {
@@ -75,6 +107,7 @@ impl RuleFilterConfig {
             && self.id_patterns.is_empty()
             && self.resource_ids.is_empty()
             && self.resource_types.is_empty()
+            && self.services.is_empty()
     }
 
     fn matches(
@@ -100,17 +133,44 @@ impl RuleFilterConfig {
             return true;
         }
         if let Some(rid) = resource_id
-            && self.resource_ids.iter().any(|f| f.rule_id == rule_id && f.resource_id == rid)
+            && self.resource_ids.iter().any(|f| f.resource_id == rid && rule_scope_matches(&f.rule_id, rule_id))
         {
             return true;
         }
-        if let Some(rtype) = resource_type
-            && self.resource_types.iter().any(|f| f.rule_id == rule_id && f.resource_type == rtype)
-        {
-            return true;
+        if let Some(rtype) = resource_type {
+            if self.resource_types.iter().any(|f| f.resource_type == rtype && rule_scope_matches(&f.rule_id, rule_id)) {
+                return true;
+            }
+            if let Some(service) = service_prefix(rtype)
+                && self.services.iter().any(|f| f.service == service && rule_scope_matches(&f.rule_id, rule_id))
+            {
+                return true;
+            }
         }
         false
     }
+}
+
+/// A resource-scoped filter's optional `rule_id` matches a diagnostic when it is
+/// absent (scoped to every rule) or equals the diagnostic's rule ID.
+fn rule_scope_matches(scope: &Option<String>, rule_id: &str) -> bool {
+    scope.as_deref().is_none_or(|id| id == rule_id)
+}
+
+/// The `service-provider::service-name` prefix of a resource type — its first two
+/// `::`-delimited segments (for example `AWS::AutoScaling` in
+/// `AWS::AutoScaling::LaunchConfiguration`), or `None` when the type has no second
+/// segment or an empty service-name segment.
+fn service_prefix(resource_type: &str) -> Option<&str> {
+    // Resource types follow `service-provider::service-name::data-type-name`; the
+    // service is everything up to (but excluding) the second `::`.
+    let first = resource_type.find("::")?;
+    let service_name = &resource_type[first + 2..];
+    let second_relative = service_name.find("::")?;
+    if second_relative == 0 {
+        return None; // empty service-name segment (e.g. `AWS::::Widget`)
+    }
+    Some(&resource_type[..first + 2 + second_relative])
 }
 
 /// Include/exclude filter configuration for diagnostics.
@@ -313,7 +373,7 @@ mod tests {
     fn exclude_by_resource_id_suppresses_specific_resource() {
         let f = FilterConfig {
             exclude: RuleFilterConfig {
-                resource_ids: vec![ResourceIdFilter { rule_id: "E3012".into(), resource_id: "MyBucket".into() }],
+                resource_ids: vec![ResourceIdFilter { rule_id: Some("E3012".into()), resource_id: "MyBucket".into() }],
                 ..Default::default()
             },
             ..Default::default()
@@ -323,11 +383,27 @@ mod tests {
     }
 
     #[test]
+    fn exclude_by_resource_id_without_rule_id_suppresses_every_rule_on_resource() {
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                resource_ids: vec![ResourceIdFilter { rule_id: None, resource_id: "MyBucket".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        // Every rule on MyBucket is suppressed, regardless of rule id.
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("MyBucket"), Some("AWS::S3::Bucket")));
+        assert!(!f.matches_rule("W3697", Some("best-practice"), Some("MyBucket"), Some("AWS::S3::Bucket")));
+        // A different resource is untouched.
+        assert!(f.matches_rule("E3012", Some("schema"), Some("OtherBucket"), Some("AWS::S3::Bucket")));
+    }
+
+    #[test]
     fn exclude_by_resource_type_suppresses_specific_type() {
         let f = FilterConfig {
             exclude: RuleFilterConfig {
                 resource_types: vec![ResourceTypeFilter {
-                    rule_id: "E3012".into(),
+                    rule_id: Some("E3012".into()),
                     resource_type: "AWS::S3::Bucket".into(),
                 }],
                 ..Default::default()
@@ -336,6 +412,149 @@ mod tests {
         };
         assert!(!f.matches_rule("E3012", Some("schema"), Some("B"), Some("AWS::S3::Bucket")));
         assert!(f.matches_rule("E3012", Some("schema"), Some("I"), Some("AWS::EC2::Instance")));
+    }
+
+    #[test]
+    fn exclude_by_resource_type_without_rule_id_suppresses_every_rule_on_type() {
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                resource_types: vec![ResourceTypeFilter { rule_id: None, resource_type: "AWS::S3::Bucket".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("B"), Some("AWS::S3::Bucket")));
+        assert!(!f.matches_rule("W9037", Some("security"), Some("B"), Some("AWS::S3::Bucket")));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("I"), Some("AWS::EC2::Instance")));
+    }
+
+    #[test]
+    fn exclude_by_service_suppresses_one_rule_across_the_whole_service() {
+        // Issue #37: silence W3697 for every AutoScaling resource without touching
+        // the same rule on other services. The service is the fully qualified
+        // `service-provider::service-name` prefix, e.g. `AWS::AutoScaling`.
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: Some("W3697".into()), service: "AWS::AutoScaling".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule(
+            "W3697",
+            Some("best-practice"),
+            Some("Lc"),
+            Some("AWS::AutoScaling::LaunchConfiguration")
+        ));
+        assert!(!f.matches_rule(
+            "W3697",
+            Some("best-practice"),
+            Some("Asg"),
+            Some("AWS::AutoScaling::AutoScalingGroup")
+        ));
+        // A different rule on the same service still fires.
+        assert!(f.matches_rule("E3012", Some("schema"), Some("Lc"), Some("AWS::AutoScaling::LaunchConfiguration")));
+        // The same rule on a different service still fires.
+        assert!(f.matches_rule("W3697", Some("best-practice"), Some("Q"), Some("AWS::SQS::Queue")));
+    }
+
+    #[test]
+    fn exclude_by_service_without_rule_id_suppresses_every_rule_on_service() {
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "AWS::AutoScaling".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule(
+            "W3697",
+            Some("best-practice"),
+            Some("Lc"),
+            Some("AWS::AutoScaling::LaunchConfiguration")
+        ));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("Lc"), Some("AWS::AutoScaling::LaunchConfiguration")));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("Q"), Some("AWS::SQS::Queue")));
+    }
+
+    #[test]
+    fn include_by_service_accepts_matching_service_only() {
+        let f = FilterConfig {
+            include: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "AWS::AutoScaling".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(f.matches_rule(
+            "W3697",
+            Some("best-practice"),
+            Some("Lc"),
+            Some("AWS::AutoScaling::LaunchConfiguration")
+        ));
+        assert!(!f.matches_rule("W3697", Some("best-practice"), Some("Q"), Some("AWS::SQS::Queue")));
+    }
+
+    #[test]
+    fn service_filter_requires_the_full_provider_and_service_prefix() {
+        // The bare service segment does not match — the filter is the fully
+        // qualified `service-provider::service-name` prefix, so `AutoScaling`
+        // alone must not silence `AWS::AutoScaling::LaunchConfiguration`.
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "AutoScaling".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(f.matches_rule(
+            "W3697",
+            Some("best-practice"),
+            Some("Lc"),
+            Some("AWS::AutoScaling::LaunchConfiguration")
+        ));
+    }
+
+    #[test]
+    fn service_filter_matches_non_aws_provider_prefix() {
+        // The prefix includes the provider, so a non-AWS provider is matched too.
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "Alexa::ASK".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("S"), Some("Alexa::ASK::Skill")));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("Lc"), Some("AWS::AutoScaling::LaunchConfiguration")));
+    }
+
+    #[test]
+    fn service_filter_matches_by_string_equality_on_the_prefix() {
+        // Matching is pure string equality on the service prefix, so any prefix —
+        // including a custom namespace — is honored as written.
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "AWS::MadeUpService".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("R"), Some("AWS::MadeUpService::Widget")));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("R"), Some("Custom::MadeUpService::Thing")));
+    }
+
+    #[test]
+    fn service_filter_does_not_match_when_resource_type_has_no_service_prefix() {
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                services: vec![ServiceFilter { rule_id: None, service: "Bucket".into() }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        // A single-segment type has no service prefix, so the service filter never matches it.
+        assert!(f.matches_rule("E3012", Some("schema"), Some("R"), Some("Bucket")));
     }
 
     #[test]
@@ -394,6 +613,24 @@ mod tests {
             ..Default::default()
         };
         assert!(f.invalid_patterns().is_empty());
+    }
+
+    #[test]
+    fn service_prefix_extracts_provider_and_service() {
+        assert_eq!(service_prefix("AWS::AutoScaling::LaunchConfiguration"), Some("AWS::AutoScaling"));
+        assert_eq!(service_prefix("AWS::S3::Bucket"), Some("AWS::S3"));
+        assert_eq!(service_prefix("Alexa::ASK::Skill"), Some("Alexa::ASK"));
+        // A subproperty type (four segments) still resolves to the same service prefix.
+        assert_eq!(service_prefix("AWS::S3::Bucket::Tag"), Some("AWS::S3"));
+    }
+
+    #[test]
+    fn service_prefix_none_without_a_second_segment_or_empty_service_name() {
+        assert_eq!(service_prefix("Bucket"), None, "no `::` at all");
+        assert_eq!(service_prefix("Custom::MyResource"), None, "only a provider segment, no data-type segment");
+        assert_eq!(service_prefix("AWS::"), None, "provider then empty, no second `::`");
+        assert_eq!(service_prefix("AWS::::Widget"), None, "empty service-name segment");
+        assert_eq!(service_prefix(""), None);
     }
 
     #[test]

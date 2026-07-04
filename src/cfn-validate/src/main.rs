@@ -4,7 +4,7 @@ use cel_engine::CelEngine;
 use diagnostics::{DetailLevel, ValidationReport};
 use log::{error, info};
 use rego_engine::RegoEngine;
-use rules::{FilterConfig, IdRange, RuleFilterConfig, Severity};
+use rules::{FilterConfig, IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter, Severity};
 use schema_validator::SchemaValidator;
 use template_model::PseudoParameterOverrides;
 use validation_engine::{
@@ -27,6 +27,12 @@ fn main() {
     let mut exclude_categories = Vec::new();
     let mut exclude_ranges: Vec<IdRange> = Vec::new();
     let mut include_ranges: Vec<IdRange> = Vec::new();
+    let mut include_resource_ids: Vec<ResourceIdFilter> = Vec::new();
+    let mut exclude_resource_ids: Vec<ResourceIdFilter> = Vec::new();
+    let mut include_resource_types: Vec<ResourceTypeFilter> = Vec::new();
+    let mut exclude_resource_types: Vec<ResourceTypeFilter> = Vec::new();
+    let mut include_services: Vec<ServiceFilter> = Vec::new();
+    let mut exclude_services: Vec<ServiceFilter> = Vec::new();
     let mut custom_rules: Vec<ExternalRuleSource> = Vec::new();
     let mut guard_rule_source_paths: Vec<String> = Vec::new();
     let mut list_rules = false;
@@ -65,6 +71,36 @@ fn main() {
                 if let Some(r) = args.get(i).and_then(|s| cfn_validate::parse_range(s)) {
                     exclude_ranges.push(r);
                 }
+            }
+            "--include-resource-id" => {
+                i += 1;
+                let (resource_id, rule_id) = parse_scoped_arg(args.get(i), "--include-resource-id");
+                include_resource_ids.push(ResourceIdFilter { rule_id, resource_id });
+            }
+            "--exclude-resource-id" => {
+                i += 1;
+                let (resource_id, rule_id) = parse_scoped_arg(args.get(i), "--exclude-resource-id");
+                exclude_resource_ids.push(ResourceIdFilter { rule_id, resource_id });
+            }
+            "--include-resource-type" => {
+                i += 1;
+                let (resource_type, rule_id) = parse_scoped_arg(args.get(i), "--include-resource-type");
+                include_resource_types.push(ResourceTypeFilter { rule_id, resource_type });
+            }
+            "--exclude-resource-type" => {
+                i += 1;
+                let (resource_type, rule_id) = parse_scoped_arg(args.get(i), "--exclude-resource-type");
+                exclude_resource_types.push(ResourceTypeFilter { rule_id, resource_type });
+            }
+            "--include-service" => {
+                i += 1;
+                let (service, rule_id) = parse_scoped_arg(args.get(i), "--include-service");
+                include_services.push(ServiceFilter { rule_id, service });
+            }
+            "--exclude-service" => {
+                i += 1;
+                let (service, rule_id) = parse_scoped_arg(args.get(i), "--exclude-service");
+                exclude_services.push(ServiceFilter { rule_id, service });
             }
             "--rule-source" => {
                 i += 1;
@@ -226,12 +262,18 @@ fn main() {
             ids: include_ids,
             categories: include_categories,
             id_ranges: include_ranges,
+            resource_ids: include_resource_ids,
+            resource_types: include_resource_types,
+            services: include_services,
             ..Default::default()
         },
         RuleFilterConfig {
             ids: exclude_ids,
             categories: exclude_categories,
             id_ranges: exclude_ranges,
+            resource_ids: exclude_resource_ids,
+            resource_types: exclude_resource_types,
+            services: exclude_services,
             ..Default::default()
         },
     );
@@ -289,6 +331,19 @@ fn main() {
     }
 }
 
+/// Parses a resource-scoped filter argument (`TARGET` or `TARGET=RULE_ID`) for
+/// `flag`, exiting with an error when the argument is missing or the target is
+/// empty. Returns the target and its optional rule scope (`None` = every rule).
+fn parse_scoped_arg(raw: Option<&String>, flag: &str) -> (String, Option<String>) {
+    match raw.and_then(|s| cfn_validate::parse_scoped_target(s)) {
+        Some(parsed) => parsed,
+        None => {
+            error!("{flag} requires a TARGET or TARGET=RULE_ID argument with a non-empty TARGET");
+            process::exit(2);
+        }
+    }
+}
+
 fn print_report(report: &ValidationReport, format: &DetailLevel) -> Result<(), serde_json::Error> {
     let json = match format {
         DetailLevel::Standard => serde_json::to_string_pretty(&report.to_standard())?,
@@ -310,6 +365,14 @@ fn print_help() {
     eprintln!("  --exclude-categories CAT,...  Suppress these categories");
     eprintln!("  --include-range E3000-E3099   Only report rules in numeric range");
     eprintln!("  --exclude-range E3000-E3099   Suppress rules in numeric range");
+    eprintln!();
+    eprintln!("Resource-scoped filters (TARGET, or TARGET=RULE_ID for one rule; repeatable):");
+    eprintln!("  --include-resource-id ID[=RULE]      Only report rules on a logical resource ID");
+    eprintln!("  --exclude-resource-id ID[=RULE]      Suppress rules on a logical resource ID");
+    eprintln!("  --include-resource-type TYPE[=RULE]  Only report rules on a resource type");
+    eprintln!("  --exclude-resource-type TYPE[=RULE]  Suppress rules on a resource type");
+    eprintln!("  --include-service SERVICE[=RULE]     Only report rules on a service (e.g. AWS::AutoScaling)");
+    eprintln!("  --exclude-service SERVICE[=RULE]     Suppress rules on a service (e.g. AWS::AutoScaling)");
     eprintln!();
     eprintln!("Output options:");
     eprintln!("  --format standard|detailed   Detail level (default: detailed)");
