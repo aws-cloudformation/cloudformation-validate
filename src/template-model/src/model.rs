@@ -55,15 +55,24 @@ pub struct ResourceDiagnostics {
 pub struct ResolvedResource {
     pub logical_id: String,
     pub resource_type: String,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition: Option<String>,
     pub depends_on: Vec<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub deletion_policy: Option<ResolvedValue>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub update_replace_policy: Option<ResolvedValue>,
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional, type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub update_policy: Option<JsonValue>,
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional, type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub creation_policy: Option<JsonValue>,
-    #[cfg_attr(feature = "wasm-bindings", tsify(type = "JsonValue | undefined"))]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional, type = "JsonValue"))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub metadata: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
@@ -91,8 +100,14 @@ pub struct ForEachExpansion {
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedOutput {
     pub value: ResolvedValue,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub description: Option<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub condition: Option<String>,
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub export_name: Option<ResolvedValue>,
 }
 
