@@ -60,9 +60,8 @@ pub fn generate(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<
 }
 
 fn generate_data_driven_rules(_generated_dir: &Path, _handwritten_dir: &Path) -> Vec<serde_json::Value> {
-    // Deprecated resource types are handled by the native Rust rule
-    // eval_deprecated_resource_types() in cel-engine/src/rules/best_practices.rs.
-    // No data-driven CEL rules are currently needed.
+    // Deprecated resource types are handled by a native rule elsewhere in the
+    // pipeline, so no data-driven CEL rules are currently needed here.
     let rules = Vec::new();
     info!("Generated {} data-driven best practice rules", rules.len());
     rules

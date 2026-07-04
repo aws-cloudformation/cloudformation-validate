@@ -335,7 +335,8 @@ rule s3_versioning_check {
     }
 }
 
-// Full cross-engine parity tests live in cfn-validate, which has both engines available.
+// These tests cover this engine's own rule catalogue and consistency; broader
+// end-to-end behaviour is verified at the integration layer.
 
 #[cfg(test)]
 mod consistency_tests {
