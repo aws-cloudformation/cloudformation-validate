@@ -65,13 +65,13 @@ jobs:
       NODE_VERSION: '22.x'
       JAVA_VERSION: '21'
       JAVA_DISTRIBUTION: 'corretto'
-      KOTLIN_VERSION: '2.3.10'
+      KOTLIN_VERSION: '2.4.0'
       KTLINT_VERSION: '1.8.0'
       GRADLE_VERSION: '8.14'
-      JNA_VERSION: '5.18.1'           # keep in sync with bindings-jvm/build.sh
+      JNA_VERSION: '5.19.1'           # keep in sync with bindings-jvm/build.sh
       GSON_VERSION: '2.14.0'          # keep in sync with bindings-jvm/build.sh
-      WASM_PACK_VERSION: '0.14.0'
-      CARGO_ABOUT_VERSION: '0.9.0'
+      WASM_PACK_VERSION: '0.15.0'
+      CARGO_ABOUT_VERSION: '0.9.1'
       CARGO_AUDIT_VERSION: '0.22.2'
       CARGO_LLVM_COV_VERSION: '0.8.7'
       JACOCO_VERSION: '0.8.13'          # keep in sync with bindings-jvm/tests/kotlin/build.gradle.kts

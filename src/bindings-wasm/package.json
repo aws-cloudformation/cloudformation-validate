@@ -27,10 +27,6 @@
         "url": "https://github.com/aws-cloudformation/cloudformation-validate"
     },
     "homepage": "https://github.com/aws-cloudformation/cloudformation-validate#readme",
-    "publishConfig": {
-        "access": "public",
-        "provenance": true
-    },
     "files": [
         "dist/"
     ],
@@ -40,8 +36,8 @@
         "build:ts": "npx tsc -p ts/tsconfig.json"
     },
     "devDependencies": {
-        "@types/node": "25.9.3",
+        "@types/node": "26.1.0",
         "typescript": "6.0.3",
-        "prettier": "3.8.4"
+        "prettier": "3.9.4"
     }
 }

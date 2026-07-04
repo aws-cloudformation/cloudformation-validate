@@ -15,7 +15,7 @@ path = "src/lib.rs"
 [dependencies]
 guard-lang = { git = "https://github.com/aws-cloudformation/cloudformation-guard.git", branch = "guard-lib" }
 serde = { version = "1", features = ["derive"] }
-indexmap = "1.6"
+indexmap = "2"
 rules = { path = "../rules" }
 
 [lints]

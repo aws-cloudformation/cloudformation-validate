@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.3.10"
+    kotlin("jvm") version "2.4.0"
     jacoco
 }
 
@@ -15,10 +15,10 @@ val bindingsJar = file("${rootProject.projectDir}/../../generated/cloudformation
 
 dependencies {
     implementation(files(bindingsJar))
-    implementation("net.java.dev.jna:jna:5.18.1")
+    implementation("net.java.dev.jna:jna:5.19.1")
     implementation("com.google.code.gson:gson:2.14.0")
     testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
 }
 
 tasks.test {

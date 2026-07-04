@@ -2,7 +2,14 @@ import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 
-const { RegoEngine, CelEngine, SchemaValidator, TemplateModel, TemplateFile, version } = require("../");
+const {
+    RegoEngine,
+    CelEngine,
+    SchemaValidator,
+    TemplateModel,
+    TemplateFile,
+    version,
+} = require('@aws/cloudformation-validate');
 
 const TEMPLATES_ROOT = path.resolve(__dirname, "../../resources/templates");
 const RULES_DIR = path.resolve(__dirname, "../../resources/rules");

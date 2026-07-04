@@ -1,3 +1,4 @@
+use std::fmt::Write as FmtWrite;
 use std::io::Write;
 use std::path::Path;
 use std::{env, fs, panic, path::PathBuf, process, time::Instant};
@@ -726,6 +727,16 @@ fn fmt_bytes(n: usize) -> String {
     }
 }
 
+/// Lowercase, zero-padded hex of a SHA-256 digest — the standard encoding every
+/// harness (native/TS/JVM) shares, so fingerprints compare byte-for-byte.
+fn to_hex(digest: impl AsRef<[u8]>) -> String {
+    let mut hex = String::with_capacity(digest.as_ref().len() * 2);
+    for byte in digest.as_ref() {
+        write!(hex, "{byte:02x}").expect("writing to a String never fails");
+    }
+    hex
+}
+
 /// Relative paths are sorted as raw strings (not `PathBuf` component-wise) so the
 /// fingerprint matches byte-for-byte across native/TS/JVM harnesses.
 fn compute_corpus_fingerprint(root: &Path) -> (String, usize) {
@@ -746,15 +757,15 @@ fn compute_corpus_fingerprint(root: &Path) -> (String, usize) {
         let content = fs::read(abs).unwrap_or_default();
         let mut inner = Sha256::new();
         inner.update(&content);
-        let file_hash = format!("{:x}", inner.finalize());
+        let file_hash = to_hex(inner.finalize());
         outer.update(format!("{}\t{}\n", rel, file_hash).as_bytes());
     }
-    (format!("{:x}", outer.finalize()), relative_and_absolute.len())
+    (to_hex(outer.finalize()), relative_and_absolute.len())
 }
 
 /// Deterministic across bindings for the same (corpus, engine, format, iterations) tuple.
 fn run_fingerprint(corpus_fp: &str, engine: &str, format: &str, iterations: usize) -> String {
     let mut h = Sha256::new();
     h.update(format!("{}|{}|{}|{}", corpus_fp, engine, format, iterations).as_bytes());
-    format!("{:x}", h.finalize())
+    to_hex(h.finalize())
 }

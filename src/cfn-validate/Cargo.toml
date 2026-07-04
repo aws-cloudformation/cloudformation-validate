@@ -30,7 +30,7 @@ schema-validator = { path = "../schema-validator" }
 rego-engine = { path = "../rego-engine" }
 cel-engine = { path = "../cel-engine" }
 serde_json = { version = "1", features = ["preserve_order"] }
-sha2 = "0.10"
+sha2 = "0.11"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 log = "0.4"
 env_logger = "0.11"

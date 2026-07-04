@@ -6,10 +6,10 @@ import { performance } from 'perf_hooks';
 
 // Measure WASM module instantiation (V8 compiles + runs wasm_bindgen #[start]).
 const moduleLoadStart = performance.now();
-const wasmBindings = require('bindings-wasm');
+const wasmBindings = require('@aws/cloudformation-validate');
 const moduleLoadMs = performance.now() - moduleLoadStart;
 
-import type { DetailedReport, EngineConfig, ValidateConfig } from 'bindings-wasm';
+import type { DetailedReport, EngineConfig, ValidateConfig } from '@aws/cloudformation-validate';
 import type {
     WasmCelEngine as WasmCelEngineType,
     WasmRegoEngine as WasmRegoEngineType,
@@ -21,7 +21,7 @@ const { SchemaValidator } = wasmBindings;
 // Raw WASM bindings — accept Uint8Array directly, no file I/O.
 // The public package re-exports wrapper classes that read from File/TemplateFile;
 // the benchmark needs the inner classes to pass pre-read bytes.
-const wasmRaw = require('bindings-wasm/bindings_wasm');
+const wasmRaw = require('@aws/cloudformation-validate/bindings_wasm');
 const WasmSemanticModel: { parse(bytes: Uint8Array): { free(): void } } = wasmRaw.WasmSemanticModel;
 
 const args = process.argv.slice(2);

@@ -158,7 +158,7 @@ fn embed_minified_json(path: &Path, const_name: &str, out_dir: &Path, code: &mut
     code.push_str(&format!(
         "pub static {const_name}_BYTES: std::sync::LazyLock<Vec<u8>> = std::sync::LazyLock::new(|| {{\n    \
              const COMPRESSED: &[u8] = include_bytes!({:?});\n    \
-             let mut decoder = ruzstd::StreamingDecoder::new(COMPRESSED)\n        \
+             let mut decoder = ruzstd::decoding::StreamingDecoder::new(COMPRESSED)\n        \
                  .expect(\"zstd stream init {const_name}\");\n    \
              let mut out = Vec::new();\n    \
              std::io::Read::read_to_end(&mut decoder, &mut out).expect(\"zstd decode {const_name}\");\n    \
