@@ -25,7 +25,6 @@ pub struct CachedData {
     pub getatt_attr_types: HashMap<String, HashMap<String, String>>,
     schema_metadata_lazy: OnceLock<serde_json::Value>,
     pub iam_action_resource_patterns: serde_json::Value,
-    pub region_resource_types: serde_json::Value,
     pub enum_data: HashMap<String, serde_json::Value>,
     pub stateful_resource_types: HashSet<String>,
     /// Maps resource type → list of required retention properties
@@ -139,9 +138,6 @@ impl CachedData {
         let iam_action_resource_patterns: serde_json::Value =
             serde_json::from_slice(&embedded::IAM_ACTION_RESOURCE_PATTERNS_BYTES)
                 .map_err(|e| anyhow::anyhow!("Failed to parse embedded iam_action_resource_patterns data: {}", e))?;
-        let region_resource_types: serde_json::Value =
-            serde_json::from_slice(&embedded::REGION_RESOURCE_TYPES_BYTES)
-                .map_err(|e| anyhow::anyhow!("Failed to parse embedded region_resource_types data: {}", e))?;
 
         Ok(CachedData {
             known_types,
@@ -149,7 +145,6 @@ impl CachedData {
             getatt_attr_types,
             schema_metadata_lazy: OnceLock::new(),
             iam_action_resource_patterns,
-            region_resource_types,
             enum_data,
             stateful_resource_types,
             retention_period_requirements,

@@ -1,6 +1,6 @@
 use crate::consts::{
     CONDITION_REF_PREFIX, FN_AND, FN_CONDITION, FN_EQUALS, FN_NOT, FN_OR, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS,
-    MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL, PSEUDO_PREFIX,
+    MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL, PSEUDO_PREFIX, PSEUDO_REGION,
 };
 use crate::ir::*;
 use crate::model::PseudoParameterOverrides;
@@ -173,6 +173,35 @@ impl ConditionModel {
     /// valid templates resolve well within budget and are unaffected.
     #[must_use]
     pub fn is_satisfiable(&self, assumptions: &[(String, bool)]) -> bool {
+        self.is_satisfiable_with_param_overrides(assumptions, &HashMap::new())
+    }
+
+    /// Like [`Self::is_satisfiable`], but with the target region pinned as the
+    /// only candidate value for the `AWS::Region` pseudo-parameter — mirroring the
+    /// reference linter's per-region scenario evaluation (it asks whether a
+    /// condition can hold *in that region*, not whether the region could be
+    /// anything). Used by the region-availability check so a resource guarded by a
+    /// condition that cannot hold in the target region (e.g.
+    /// `!Equals [AWS::Region, other-region]`) is correctly treated as never
+    /// created there — even when no explicit `--region` override pins the
+    /// pseudo-parameter globally (where it stays a free variable to avoid
+    /// false unreachable-branch diagnostics).
+    #[must_use]
+    pub fn is_satisfiable_in_region(&self, assumptions: &[(String, bool)], region: &str) -> bool {
+        let overrides = HashMap::from([(PSEUDO_REGION.to_string(), vec![region.to_string()])]);
+        self.is_satisfiable_with_param_overrides(assumptions, &overrides)
+    }
+
+    /// Satisfiability with a set of parameter/pseudo-parameter candidate-value
+    /// overrides applied on top of the model's derived candidate values. An
+    /// override restricts a parameter to exactly the given values for this query
+    /// only; a parameter not referenced by any relevant condition is unaffected.
+    #[must_use]
+    fn is_satisfiable_with_param_overrides(
+        &self,
+        assumptions: &[(String, bool)],
+        param_overrides: &HashMap<String, Vec<String>>,
+    ) -> bool {
         // Once the cumulative search budget for this model is spent, assume
         // satisfiable instead of searching further (the conservative-`true`
         // contract documented above). Checked before any per-query setup so an
@@ -223,7 +252,16 @@ impl ConditionModel {
         // reference. Varying any other parameter cannot change a relevant
         // condition, so the satisfiability result is identical with far fewer
         // combinations.
-        let relevant_param_values = self.relevant_param_values(&relevant_indices, cond_names);
+        let mut relevant_param_values = self.relevant_param_values(&relevant_indices, cond_names);
+        // Apply per-query candidate-value overrides (e.g. AWS::Region pinned to
+        // the target region), but only for parameters this query actually
+        // references — an override for an unreferenced parameter cannot change any
+        // relevant condition and would needlessly enlarge the search.
+        for (param, values) in param_overrides {
+            if relevant_param_values.contains_key(param) {
+                relevant_param_values.insert(param.clone(), values.clone());
+            }
+        }
 
         // If even that restricted parameter space is too large to enumerate,
         // assume satisfiable instead of exploring it (the conservative-`true`
@@ -1482,6 +1520,36 @@ Resources:
         assert!(
             model.is_satisfiable(&[("IsProd".into(), false)]),
             "IsProd=false must be reachable: Env can equal 'Dev'"
+        );
+    }
+
+    #[test]
+    fn is_satisfiable_in_region_pins_aws_region() {
+        let input = r#"
+Conditions:
+  IsUsEast1:
+    Fn::Equals: [!Ref "AWS::Region", us-east-1]
+Resources:
+  R:
+    Type: T
+"#;
+        let model = build_condition_model(input);
+        // With AWS::Region left free, the region-equals condition can hold either
+        // way; pinning the region resolves it. This is what the region-availability
+        // check relies on to skip a resource whose condition cannot hold in the
+        // target region — even when no explicit --region override is set.
+        assert!(
+            model.is_satisfiable_in_region(&[("IsUsEast1".into(), true)], "us-east-1"),
+            "IsUsEast1=true must hold when the target region IS us-east-1"
+        );
+        assert!(
+            !model.is_satisfiable_in_region(&[("IsUsEast1".into(), true)], "us-west-2"),
+            "IsUsEast1=true must be unsatisfiable when the target region is us-west-2"
+        );
+        // A condition that does not reference AWS::Region is unaffected by the pin.
+        assert!(
+            model.is_satisfiable_in_region(&[("IsUsEast1".into(), false)], "us-west-2"),
+            "IsUsEast1=false must hold at us-west-2"
         );
     }
 

@@ -26,7 +26,19 @@ impl CompiledSchemaStore {
         let mut extensions = ExtensionStore::load(&EXTENSIONS_BYTES);
         extensions.remap_keys(&schemas);
         let region_enums = RegionEnumStore::load(&REGION_ENUMS_BYTES);
-        CompiledSchemaStore { schemas, region_types: HashMap::new(), ref_types, lifecycle, extensions, region_enums }
+        let mut store = CompiledSchemaStore {
+            schemas,
+            region_types: HashMap::new(),
+            ref_types,
+            lifecycle,
+            extensions,
+            region_enums,
+        };
+        // Load the embedded per-region resource-type map so region-availability
+        // (F3006) validates against the target region. Without this the region
+        // check is dormant and unavailable types slip through.
+        store.load_region_data(&REGION_RESOURCE_TYPES_BYTES);
+        store
     }
 
     pub fn load_region_data(&mut self, json_bytes: &[u8]) {
@@ -58,6 +70,14 @@ impl CompiledSchemaStore {
             return true;
         }
         self.region_types.get(region).map(|types| types.contains_key(type_name)).unwrap_or(true)
+    }
+
+    /// Whether the type appears in at least one region's availability map. Used
+    /// to distinguish a genuine regional provider type (absent only in some
+    /// regions) from a type that is region-agnostic or not a provider type at
+    /// all (SAM/transform placeholders), which must not trigger the region check.
+    pub fn is_known_in_any_region(&self, type_name: &str) -> bool {
+        self.region_types.values().any(|types| types.contains_key(type_name))
     }
 
     pub fn has_region_data(&self) -> bool {
@@ -128,6 +148,17 @@ pub struct LifecycleStore {
     deprecated_runtimes: Vec<String>,
     create_blocked_runtimes: Vec<String>,
     eol_runtimes: Vec<String>,
+    runtime_lifecycle: HashMap<String, RuntimeLifecycle>,
+}
+
+/// Per-runtime lifecycle dates used to reconstruct the reference tool's dated
+/// deprecation message.
+#[derive(Clone)]
+pub struct RuntimeLifecycle {
+    pub deprecated: String,
+    pub create_block: String,
+    pub update_block: String,
+    pub successor: Option<String>,
 }
 
 impl LifecycleStore {
@@ -166,7 +197,33 @@ impl LifecycleStore {
             .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
             .unwrap_or_default();
 
-        LifecycleStore { resource_lifecycle, deprecated_runtimes, create_blocked_runtimes, eol_runtimes }
+        let mut runtime_lifecycle = HashMap::new();
+        if let Some(obj) = rt_json.get("lambda_runtimes").and_then(|v| v.get("lifecycle")).and_then(|v| v.as_object()) {
+            for (runtime, dates) in obj {
+                let get = |k: &str| dates.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                runtime_lifecycle.insert(
+                    runtime.clone(),
+                    RuntimeLifecycle {
+                        deprecated: get("deprecated"),
+                        create_block: get("create_block"),
+                        update_block: get("update_block"),
+                        successor: dates.get("successor").and_then(|v| v.as_str()).map(String::from),
+                    },
+                );
+            }
+        }
+
+        LifecycleStore {
+            resource_lifecycle,
+            deprecated_runtimes,
+            create_blocked_runtimes,
+            eol_runtimes,
+            runtime_lifecycle,
+        }
+    }
+
+    pub fn runtime_lifecycle(&self, runtime: &str) -> Option<&RuntimeLifecycle> {
+        self.runtime_lifecycle.get(runtime)
     }
 
     pub fn resource_lifecycle(&self, type_name: &str) -> Option<&LifecycleEntry> {
@@ -275,7 +332,10 @@ mod tests {
 
     #[test]
     fn store_no_region_data_always_available() {
-        let store = CompiledSchemaStore::new();
+        // `new()` eagerly loads the embedded region map; clear it to exercise the
+        // "no region data → everything is available" fallback in isolation.
+        let mut store = CompiledSchemaStore::new();
+        store.region_types.clear();
         assert!(!store.has_region_data());
         assert!(store.is_available_in_region("AWS::S3::Bucket", "us-east-1"));
         assert!(store.is_available_in_region("AWS::Fake::Type", "us-west-2"));
@@ -311,7 +371,10 @@ mod tests {
 
     #[test]
     fn store_load_region_data_invalid_json_no_panic() {
+        // Start from an empty region map (new() preloads the embedded one) so the
+        // test verifies that malformed input adds nothing rather than panicking.
         let mut store = CompiledSchemaStore::new();
+        store.region_types.clear();
         store.load_region_data(b"not json");
         assert!(!store.has_region_data());
     }
@@ -319,6 +382,7 @@ mod tests {
     #[test]
     fn store_load_region_data_wrong_structure_no_panic() {
         let mut store = CompiledSchemaStore::new();
+        store.region_types.clear();
         store.load_region_data(b"{}");
         assert!(!store.has_region_data());
     }

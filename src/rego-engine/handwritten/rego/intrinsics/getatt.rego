@@ -19,6 +19,18 @@ violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
     valid_attrs := data.getatt_attributes[target_type]
     valid_attrs != null
     not attr in valid_attrs
+    not _is_map_member_attr(attr, target_type)
+}
+
+# A dotted attribute (e.g. Outputs.SomeKey) addresses a member of a map/list
+# attribute, which CloudFormation exposes as <Attr>.<key> for any key (the
+# reference tool models these as <Attr>\..*). Valid whenever the leading segment
+# is an object- or array-typed attribute of the type.
+_is_map_member_attr(attr, target_type) if {
+    contains(attr, ".")
+    prefix := split(attr, ".")[0]
+    attr_type := data.getatt_attribute_types[target_type][prefix]
+    attr_type in {"object", "array"}
 }
 
 # E9003 is disabled - CloudFormation auto-converts non-string GetAtt return values

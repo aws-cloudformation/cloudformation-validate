@@ -2,16 +2,19 @@ package resources
 
 import rego.v1
 
-# E3706: AutoScaling MinSize must be <= MaxSize
+# E3706: AutoScaling MaxSize must be >= MinSize.
+# MinSize/MaxSize are usually authored as strings ('10'), which CloudFormation
+# coerces to numbers, so compare on the coerced values. The finding is anchored
+# at MaxSize and reports the violated constraint (the max is below the minimum),
+# rendering the offending MaxSize value in its original form.
 violation contains make_diag_at("E3706", "ERROR", name,
-    "Properties.MinSize",
-    sprintf("MinSize (%d) must be less than or equal to MaxSize (%d)", [min_val, max_val])) if {
+    "Properties.MaxSize",
+    sprintf("%s is less than the minimum of %d", [render_value(max_raw), min_num])) if {
     some name in resources_of_type("AWS::AutoScaling::AutoScalingGroup")
-    min_val := resolve(name, "Properties.MinSize")
-    max_val := resolve(name, "Properties.MaxSize")
-    is_number(min_val)
-    is_number(max_val)
-    min_val > max_val
+    max_raw := resolve(name, "Properties.MaxSize")
+    min_num := coerce_to_number(resolve(name, "Properties.MinSize"))
+    max_num := coerce_to_number(max_raw)
+    min_num > max_num
 }
 
 # E3676: HTTPS/TLS listeners require a certificate
@@ -44,14 +47,18 @@ _lambda_reserved_env_keys := {
     "LAMBDA_RUNTIME_DIR", "TZ",
 }
 
-# E3685: Lambda PackageType Image exclusions
+# E3685: Container image Lambda functions cannot specify Handler, Runtime, or
+# Layers. A single finding is emitted with a fixed message, anchored at the
+# first offending property present (in schema order), regardless of how many are
+# set — so collapse to one diagnostic rather than one per property.
 violation contains make_diag_at("E3685", "ERROR", name,
-    sprintf("Properties.%s", [prop]),
-    sprintf("'%s' is not allowed when PackageType is 'Image'", [prop])) if {
+    sprintf("Properties.%s", [first_prop]),
+    "Container image functions cannot specify Handler, Runtime, or Layers properties") if {
     some name in resources_of_type("AWS::Lambda::Function")
     resolve(name, "Properties.PackageType") == "Image"
-    prop := _image_excluded_props[_]
-    has_property(name, prop)
+    present := [p | some p in _image_excluded_props; has_property(name, p)]
+    count(present) > 0
+    first_prop := present[0]
 }
 
 _image_excluded_props := ["Handler", "Runtime", "Layers"]

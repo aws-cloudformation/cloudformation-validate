@@ -4,12 +4,13 @@ use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
 use diagnostics::SourceSpan;
-use diagnostics::message::render_str_list;
+use diagnostics::message::{render_str_list, render_value};
 use rules::{AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
+use template_model::coercion::cfn_coerce_to_integer;
 use template_model::consts::{
     DEFAULT_REGION, EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS,
     FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
@@ -41,6 +42,111 @@ static CAA_RECORD_RE: LazyLock<regex::Regex> =
 
 static MX_RECORD_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(MX_RECORD_PATTERN).expect("Invalid MX_RECORD_RE pattern"));
+
+/// Matches an ARN that already contains a 12-digit account-id segment
+/// (`:123456789012:`). A SourceArn with such a segment pins the calling account,
+/// so no separate SourceAccount is needed (W3663).
+static ARN_HAS_ACCOUNT_RE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r":\d{12}:").expect("Invalid ARN_HAS_ACCOUNT_RE pattern"));
+
+/// Resource types that carry EBS `BlockDeviceMappings`, paired with the property
+/// prefix under which the mappings array lives. The E3671 Iops-required check
+/// applies to each `<prefix>[*].Ebs`. SpotFleet nests its mappings one array
+/// deeper (under each launch specification), so it is handled separately.
+const EBS_IOPS_BLOCK_DEVICE_PATHS: &[(&str, &str)] = &[
+    ("AWS::AutoScaling::LaunchConfiguration", "Properties.BlockDeviceMappings"),
+    ("AWS::EC2::Instance", "Properties.BlockDeviceMappings"),
+    ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.BlockDeviceMappings"),
+    ("AWS::OpsWorks::Instance", "Properties.BlockDeviceMappings"),
+];
+
+/// Renders a resolved value to JSON while preserving `Fn::If` structure as
+/// `{"Fn::If": [condition, then, else]}`, so callers can enumerate both branches
+/// of a conditional. `resolved_to_json_best_effort` collapses a conditional to
+/// its true branch, which hides the false branch from branch-sensitive checks
+/// (e.g. CodePipeline artifact counts). References/dynamics render as null.
+fn resolved_to_json_preserving_conditionals(rv: &ResolvedValue) -> serde_json::Value {
+    match rv {
+        ResolvedValue::Concrete { value: v } => v.0.clone(),
+        ResolvedValue::List { items } => {
+            serde_json::Value::Array(items.iter().map(resolved_to_json_preserving_conditionals).collect())
+        }
+        ResolvedValue::Map { entries } => {
+            let mut map = serde_json::Map::new();
+            for e in entries {
+                map.insert(e.key.clone(), resolved_to_json_preserving_conditionals(&e.value));
+            }
+            serde_json::Value::Object(map)
+        }
+        ResolvedValue::Conditional { condition, if_true, if_false } => serde_json::json!({
+            "Fn::If": [
+                condition.clone(),
+                resolved_to_json_preserving_conditionals(if_true),
+                resolved_to_json_preserving_conditionals(if_false),
+            ]
+        }),
+        ResolvedValue::Enum { variants } => {
+            for v in variants {
+                if let ResolvedValue::Concrete { value: c } = v {
+                    return c.0.clone();
+                }
+            }
+            serde_json::Value::Null
+        }
+        ResolvedValue::Reference { target, .. } => serde_json::json!({ (FN_REF): target }),
+        ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => serde_json::Value::Null,
+    }
+}
+
+/// Enumerates the possible element counts of a CodePipeline artifact list.
+/// The list may be a plain array (one count) or an `Fn::If` whose two branches
+/// each contribute a count; nested `Fn::If`s recurse. A missing/`AWS::NoValue`
+/// branch counts as 0. The result is sorted and deduped so identical branch
+/// counts are checked once. Returns `[0]` when the value is absent.
+fn artifact_count_scenarios(value: Option<&serde_json::Value>) -> Vec<usize> {
+    let mut counts = BTreeSet::new();
+    fn walk(value: Option<&serde_json::Value>, out: &mut BTreeSet<usize>) {
+        match value {
+            None => {
+                out.insert(0);
+            }
+            Some(serde_json::Value::Array(a)) => {
+                out.insert(a.len());
+            }
+            Some(serde_json::Value::Object(o)) if o.len() == 1 && o.contains_key("Fn::If") => {
+                // Fn::If: [condition, then, else] — enumerate both value branches.
+                if let Some(branches) = o.get("Fn::If").and_then(|v| v.as_array()) {
+                    walk(branches.get(1), out);
+                    walk(branches.get(2), out);
+                }
+            }
+            // AWS::NoValue (a Ref object) or any non-array scalar contributes no
+            // artifacts.
+            Some(_) => {
+                out.insert(0);
+            }
+        }
+    }
+    walk(value, &mut counts);
+    counts.into_iter().collect()
+}
+
+/// Collects `(block_device_mapping_path, ebs_object)` pairs for a resource,
+/// following the `<prefix>` array and, for SpotFleet, the nested
+/// `SpotFleetRequestConfigData.LaunchSpecifications[*].BlockDeviceMappings`. The
+/// returned path is relative to the resource so a diagnostic can anchor at the
+/// specific mapping's `Ebs.Iops`.
+fn ebs_block_device_mappings(m: &SemanticModel, rid: &str, prefix: &str) -> Vec<(String, serde_json::Value)> {
+    let mut out = Vec::new();
+    if let Some(serde_json::Value::Array(mappings)) = resolve_concrete(m, rid, prefix) {
+        for (idx, mapping) in mappings.iter().enumerate() {
+            if let Some(ebs) = mapping.get("Ebs") {
+                out.push((format!("{}.{}", prefix, idx), ebs.clone()));
+            }
+        }
+    }
+    out
+}
 
 /// Whether a Lambda runtime supports SnapStart: any Python, Java, or .NET
 /// runtime qualifies except the legacy `dotnetcore*` family and an explicit
@@ -788,17 +894,40 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
+    // W3663: a Lambda Permission needs SourceAccount when its SourceArn cannot by
+    // itself pin the calling account. That is the case when the SourceArn either
+    // references an S3 bucket (bucket ARNs carry no account id) or is a literal
+    // ARN string with no ':<12-digit-account>:' segment. The Principal is
+    // irrelevant — keying on it (e.g. "s3.amazonaws.com") both misses the string
+    // case and over-fires when SourceArn is absent entirely.
     for name in m.resources_of_type("AWS::Lambda::Permission") {
-        if resolve_concrete(m, name, "Properties.Principal").as_ref().and_then(|v| v.as_str())
-            == Some("s3.amazonaws.com")
-            && !m.resources.get(name.as_str()).map(|r| r.properties.contains_key("SourceAccount")).unwrap_or(false)
-        {
+        let source_account_set =
+            m.resources.get(name.as_str()).map(|r| r.properties.contains_key("SourceAccount")).unwrap_or(false);
+        if source_account_set {
+            continue;
+        }
+        let source_arn_is_s3_bucket = m
+            .follow_ref(name, "Properties.SourceArn")
+            .and_then(|target| m.resources.get(target))
+            .map(|r| r.resource_type == "AWS::S3::Bucket")
+            .unwrap_or(false);
+        // The string branch only tests a genuinely literal SourceArn. A value
+        // supplied via a Ref/GetAtt/Sub (even one that resolves to a concrete
+        // account-less string) is not folded into the pattern check — the
+        // reference tool only pattern-matches a literal string here.
+        let source_arn_string_without_account = !m.is_from_intrinsic(name, "Properties.SourceArn")
+            && resolve_concrete(m, name, "Properties.SourceArn")
+                .as_ref()
+                .and_then(|v| v.as_str())
+                .map(|arn| !ARN_HAS_ACCOUNT_RE.is_match(arn))
+                .unwrap_or(false);
+        if source_arn_is_s3_bucket || source_arn_string_without_account {
             out.push(make_resource_diagnostic(
                 "W3663",
-                "Lambda Permission with S3 principal should have SourceAccount to prevent confused deputy",
+                "Lambda Permission with a SourceArn that has no account id should also specify SourceAccount",
                 m,
                 name,
-                "Properties.Principal",
+                KEY_PROPERTIES,
                 Some("Add SourceAccount property"),
             ));
         }
@@ -1119,7 +1248,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::CodePipeline::Pipeline") {
-        if let Some(serde_json::Value::Array(stages)) = resolve_concrete(m, name, "Properties.Stages") {
+        // Resolve Stages preserving Fn::If so artifact lists authored behind a
+        // conditional keep both branches; the count check enumerates them.
+        let stages_json =
+            m.resolve_deep(name, "Properties.Stages").map(|rv| resolved_to_json_preserving_conditionals(&rv));
+        if let Some(serde_json::Value::Array(stages)) = stages_json {
             for stage in &stages {
                 if let Some(actions) = stage.get("Actions").and_then(|a| a.as_array()) {
                     for action in actions {
@@ -1138,61 +1271,66 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         let aname = action.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
                         let key = format!("{owner}/{category}/{provider}");
                         if let Some(counts) = ctx.cached_data.codepipeline_artifact_counts.get(&key) {
-                            let actual_in =
-                                action.get("InputArtifacts").and_then(|i| i.as_array()).map(|a| a.len()).unwrap_or(0);
-                            let actual_out =
-                                action.get("OutputArtifacts").and_then(|o| o.as_array()).map(|a| a.len()).unwrap_or(0);
-                            if actual_in < counts.min_input {
-                                out.push(make_resource_diagnostic(
-                                    "E3702",
-                                    &format!(
-                                        "Action '{}' ({}) has {} input artifacts, expected at least {}",
-                                        aname, key, actual_in, counts.min_input
-                                    ),
-                                    m,
-                                    name,
-                                    "",
-                                    None,
-                                ));
+                            // An artifact list may be authored directly or wrapped
+                            // in an Fn::If; enumerate every branch's count (like the
+                            // reference tool, which walks each path) so a violation
+                            // in ANY branch is reported, and dedupe so equal counts
+                            // are not double-reported.
+                            for actual_in in artifact_count_scenarios(action.get("InputArtifacts")) {
+                                if actual_in < counts.min_input {
+                                    out.push(make_resource_diagnostic(
+                                        "E3702",
+                                        &format!(
+                                            "Action '{}' ({}) has {} input artifacts, expected at least {}",
+                                            aname, key, actual_in, counts.min_input
+                                        ),
+                                        m,
+                                        name,
+                                        "",
+                                        None,
+                                    ));
+                                }
+                                if actual_in > counts.max_input {
+                                    out.push(make_resource_diagnostic(
+                                        "E3702",
+                                        &format!(
+                                            "Action '{}' ({}) has {} input artifacts, expected at most {}",
+                                            aname, key, actual_in, counts.max_input
+                                        ),
+                                        m,
+                                        name,
+                                        "",
+                                        None,
+                                    ));
+                                }
                             }
-                            if actual_in > counts.max_input {
-                                out.push(make_resource_diagnostic(
-                                    "E3702",
-                                    &format!(
-                                        "Action '{}' ({}) has {} input artifacts, expected at most {}",
-                                        aname, key, actual_in, counts.max_input
-                                    ),
-                                    m,
-                                    name,
-                                    "",
-                                    None,
-                                ));
-                            }
-                            if actual_out < counts.min_output {
-                                out.push(make_resource_diagnostic(
-                                    "E3702",
-                                    &format!(
-                                        "Action '{}' ({}) has {} output artifacts, expected at least {}",
-                                        aname, key, actual_out, counts.min_output
-                                    ),
-                                    m,
-                                    name,
-                                    "",
-                                    None,
-                                ));
-                            }
-                            if actual_out > counts.max_output {
-                                out.push(make_resource_diagnostic(
-                                    "E3702",
-                                    &format!(
-                                        "Action '{}' ({}) has {} output artifacts, expected at most {}",
-                                        aname, key, actual_out, counts.max_output
-                                    ),
-                                    m,
-                                    name,
-                                    "",
-                                    None,
-                                ));
+                            for actual_out in artifact_count_scenarios(action.get("OutputArtifacts")) {
+                                if actual_out < counts.min_output {
+                                    out.push(make_resource_diagnostic(
+                                        "E3702",
+                                        &format!(
+                                            "Action '{}' ({}) has {} output artifacts, expected at least {}",
+                                            aname, key, actual_out, counts.min_output
+                                        ),
+                                        m,
+                                        name,
+                                        "",
+                                        None,
+                                    ));
+                                }
+                                if actual_out > counts.max_output {
+                                    out.push(make_resource_diagnostic(
+                                        "E3702",
+                                        &format!(
+                                            "Action '{}' ({}) has {} output artifacts, expected at most {}",
+                                            aname, key, actual_out, counts.max_output
+                                        ),
+                                        m,
+                                        name,
+                                        "",
+                                        None,
+                                    ));
+                                }
                             }
                         }
                     }
@@ -2188,9 +2326,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && let Some(deploy_api) = m.follow_ref(deployment_name, "Properties.RestApiId")
             && stage_api != deploy_api
         {
+            // The reference linter reports this through a $data const constraint
+            // whose error renders the Stage's own RestApiId value as
+            // "<value> was expected".
             out.push(make_resource_diagnostic(
                 "E3698",
-                &format!("Stage RestApiId references '{}' but Deployment references '{}'", stage_api, deploy_api),
+                &format!("{{'Ref': '{}'}} was expected", stage_api),
                 m,
                 deployment_name,
                 "Properties.RestApiId",
@@ -2200,17 +2341,23 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::AutoScaling::AutoScalingGroup") {
-        if let (Some(min_val), Some(max_val)) = (
-            resolve_concrete(m, name, "Properties.MinSize").and_then(|v| v.as_u64()),
-            resolve_concrete(m, name, "Properties.MaxSize").and_then(|v| v.as_u64()),
-        ) && min_val > max_val
+        // MinSize/MaxSize are typically authored as strings ('10'), which
+        // CloudFormation coerces to numbers; compare on the coerced integers so
+        // string forms are checked too. The reference linter anchors the finding at MaxSize
+        // and renders it as the constraint that is violated (the max is below
+        // the minimum), so mirror that message and location.
+        let min_raw = resolve_concrete(m, name, "Properties.MinSize");
+        let max_raw = resolve_concrete(m, name, "Properties.MaxSize");
+        if let (Some(min_raw), Some(max_raw)) = (min_raw.as_ref(), max_raw.as_ref())
+            && let (Some(min_val), Some(max_val)) = (cfn_coerce_to_integer(min_raw), cfn_coerce_to_integer(max_raw))
+            && min_val > max_val
         {
             out.push(make_resource_diagnostic(
                 "E3706",
-                &format!("MinSize ({}) must be less than or equal to MaxSize ({})", min_val, max_val),
+                &format!("{} is less than the minimum of {}", render_value(max_raw), min_val),
                 m,
                 name,
-                "Properties.MinSize",
+                "Properties.MaxSize",
                 None,
             ));
         }
@@ -2291,17 +2438,27 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if resolve_concrete(m, name, "Properties.PackageType").as_ref().and_then(|v| v.as_str()) == Some("Image") {
-            for excluded in &["Handler", "Runtime", "Layers"] {
-                if resolve_concrete(m, name, &format!("Properties.{}", excluded)).is_some() {
-                    out.push(make_resource_diagnostic(
-                        "E3685",
-                        &format!("'{}' is not allowed when PackageType is 'Image'", excluded),
-                        m,
-                        name,
-                        &format!("Properties.{}", excluded),
-                        None,
-                    ));
-                }
+            // A container-image function must not set Handler, Runtime, or Layers.
+            // The reference linter reports this once with a fixed message, anchored at the
+            // first offending property present (schema order), no matter how many
+            // are set — so collapse to a single diagnostic. Presence is keyed on
+            // the property being SET (the reference tool's `dependentExcluded` is
+            // key-presence), not on it resolving to a concrete value — so an
+            // excluded property whose value is an unresolved Ref/intrinsic still
+            // anchors the finding.
+            let props = m.resources.get(name.as_str()).map(|r| &r.properties);
+            if let Some(first_excluded) = ["Handler", "Runtime", "Layers"]
+                .iter()
+                .find(|excluded| props.map(|p| p.contains_key(**excluded)).unwrap_or(false))
+            {
+                out.push(make_resource_diagnostic(
+                    "E3685",
+                    "Container image functions cannot specify Handler, Runtime, or Layers properties",
+                    m,
+                    name,
+                    &format!("Properties.{}", first_excluded),
+                    None,
+                ));
             }
         }
     }
@@ -2321,31 +2478,96 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for name in m.resources_of_type("AWS::EC2::Volume") {
-        if let Some(serde_json::Value::String(vtype)) = resolve_concrete(m, name, "Properties.VolumeType") {
-            let has_iops = resolve_concrete(m, name, "Properties.Iops").is_some();
-            match vtype.as_str() {
-                "io1" | "io2" if !has_iops => {
+    // E3671: an EBS block device mapping's Iops must satisfy the per-VolumeType
+    // rules. io1/io2 require Iops and bound it (io1 100..=64000, io2
+    // 100..=256000); gp3 does not require Iops but bounds it (3000..=16000).
+    // This applies to the `BlockDeviceMappings[*].Ebs` blocks of launch
+    // configurations, instances, launch templates, spot fleets, and OpsWorks
+    // instances — NOT to a standalone AWS::EC2::Volume (whose Iops rules are
+    // enforced by the resource schema directly).
+    let emit_ebs_iops = |name: &str, bdm_path: &str, ebs: &serde_json::Value, out: &mut Vec<Diagnostic>| {
+        let Some(vtype) = ebs.get("VolumeType").and_then(|v| v.as_str()) else {
+            return;
+        };
+        // (required, min, max) per volume type; None => no Iops constraints.
+        let bounds = match vtype {
+            "io1" => Some((true, 100i64, 64000i64)),
+            "io2" => Some((true, 100, 256000)),
+            "gp3" => Some((false, 3000, 16000)),
+            _ => None,
+        };
+        let Some((required, min, max)) = bounds else {
+            return;
+        };
+        let iops_path = format!("{}.Ebs.Iops", bdm_path);
+        // The numeric bounds only apply to a literal Iops. An Iops supplied via a
+        // parameter Ref (whose default happens to be out of range) or another
+        // intrinsic is not flagged — the reference tool does not fold the
+        // parameter default into the bound check. The required-when-absent check
+        // still holds regardless, since absence is unambiguous.
+        let iops_is_literal = !m.is_from_parameter(name, &iops_path) && !m.is_from_intrinsic(name, &iops_path);
+        match ebs.get("Iops").and_then(cfn_coerce_to_integer) {
+            None => {
+                if required {
                     out.push(make_resource_diagnostic(
                         "E3671",
-                        &format!("Iops is required for VolumeType '{}'", vtype),
+                        &format!("'Iops' is a required property when 'VolumeType' has a value of '{}'", vtype),
                         m,
                         name,
-                        "Properties.Iops",
+                        &iops_path,
                         None,
                     ));
                 }
-                "gp2" | "standard" | "st1" | "sc1" if has_iops => {
-                    out.push(make_resource_diagnostic(
-                        "E3671",
-                        &format!("Iops is not supported for VolumeType '{}'", vtype),
-                        m,
-                        name,
-                        "Properties.Iops",
-                        None,
-                    ));
+            }
+            Some(iops) if iops_is_literal && iops < min => {
+                out.push(make_resource_diagnostic(
+                    "E3671",
+                    &format!("{} is less than the minimum of {}", iops, min),
+                    m,
+                    name,
+                    &iops_path,
+                    None,
+                ));
+            }
+            Some(iops) if iops_is_literal && iops > max => {
+                out.push(make_resource_diagnostic(
+                    "E3671",
+                    &format!("{} is greater than the maximum of {}", iops, max),
+                    m,
+                    name,
+                    &iops_path,
+                    None,
+                ));
+            }
+            Some(_) => {}
+        }
+    };
+    for &(rtype, bdm_prefix) in EBS_IOPS_BLOCK_DEVICE_PATHS {
+        for name in m.resources_of_type(rtype) {
+            for (bdm_path, ebs) in ebs_block_device_mappings(m, name, bdm_prefix) {
+                emit_ebs_iops(name, &bdm_path, &ebs, &mut out);
+            }
+        }
+    }
+    // SpotFleet nests its block device mappings one array deeper, under each
+    // launch specification.
+    for name in m.resources_of_type("AWS::EC2::SpotFleet") {
+        if let Some(serde_json::Value::Array(specs)) =
+            resolve_concrete(m, name, "Properties.SpotFleetRequestConfigData.LaunchSpecifications")
+        {
+            for (spec_idx, spec) in specs.iter().enumerate() {
+                let Some(mappings) = spec.get("BlockDeviceMappings").and_then(|v| v.as_array()) else {
+                    continue;
+                };
+                for (idx, mapping) in mappings.iter().enumerate() {
+                    if let Some(ebs) = mapping.get("Ebs") {
+                        let path = format!(
+                            "Properties.SpotFleetRequestConfigData.LaunchSpecifications.{}.BlockDeviceMappings.{}",
+                            spec_idx, idx
+                        );
+                        emit_ebs_iops(name, &path, ebs, &mut out);
+                    }
                 }
-                _ => {}
             }
         }
     }
@@ -2434,12 +2656,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 "data/aws_neptune_dbinstance_dbinstanceclass_enum",
             ),
             ("E3667", "AWS::Redshift::Cluster", "Properties.NodeType", "data/aws_redshift_cluster_nodetype_enum"),
-            (
-                "E3694",
-                "AWS::RDS::DBCluster",
-                "Properties.DBClusterInstanceClass",
-                "data/aws_rds_dbcluster_dbclusterinstanceclass_enum",
-            ),
             (
                 "E3640",
                 "AWS::SageMaker::DataQualityJobDefinition",
@@ -2564,82 +2780,72 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .and_then(|v| v.as_object())
             .and_then(|o| o.get(region))
         {
-            let allowed = extract_enum_values(region_data);
-            if !allowed.is_empty() {
-                for name in m.resources_of_type("AWS::RDS::DBInstance") {
-                    if let Some(serde_json::Value::String(val)) =
-                        resolve_concrete(m, name, "Properties.DBInstanceClass")
-                        && !allowed.contains(val.as_str())
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E3025",
-                            &format!(
-                                "DBInstanceClass '{}' is not valid for AWS::RDS::DBInstance in region '{}'",
-                                val, region
-                            ),
-                            m,
-                            name,
-                            "Properties.DBInstanceClass",
-                            Some("Use a valid instance class for the configured region"),
-                        ));
-                    }
+            // The RDS document is a conditional schema: each allOf branch's
+            // `if.required` consts (Engine/LicenseModel) select which
+            // `then.enum` of instance classes applies. Every branch whose consts
+            // match applies, so the class must be in ALL matching branches'
+            // enums (the intersection); a dynamic or unmatched Engine leaves no
+            // matching branch and is not validated. The Engine value is matched
+            // case-insensitively, mirroring the reference linter (which lowercases
+            // Engine for DBInstance before evaluating this schema).
+            for name in m.resources_of_type("AWS::RDS::DBInstance") {
+                let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, "Properties.DBInstanceClass")
+                else {
+                    continue;
+                };
+                let branch_enums = conditional_instance_class_enums(region_data, "DBInstanceClass", true, |prop| {
+                    resolve_concrete(m, name, &format!("Properties.{}", prop)).and_then(|v| match v {
+                        serde_json::Value::String(s) => Some(s),
+                        _ => None,
+                    })
+                });
+                if let Some(sorted) = invalid_class_branch_enum(&branch_enums, val.as_str()) {
+                    out.push(make_resource_diagnostic(
+                        "E3025",
+                        &format!("'{}' is not one of {} in '{}'", val, render_str_list(&sorted), region),
+                        m,
+                        name,
+                        "Properties.DBInstanceClass",
+                        None,
+                    ));
                 }
             }
         }
 
+        // E3694: RDS DBCluster DBClusterInstanceClass. Like E3025 this is a
+        // conditional schema keyed on Engine, but the reference linter does NOT
+        // lowercase Engine for DBCluster, so match the const case-sensitively.
         if let Some(region_data) = ctx
             .cached_data
             .enum_data
-            .get("data/aws_rds_dbinstance_dbinstanceclass_enum")
+            .get("data/aws_rds_dbcluster_dbclusterinstanceclass_enum")
             .and_then(|v| v.as_object())
             .and_then(|o| o.values().next())
             .and_then(|v| v.as_object())
             .and_then(|o| o.get(region))
         {
-            let allowed = extract_enum_values(region_data);
-            if !allowed.is_empty() {
-                for name in m.resources_of_type("AWS::Neptune::DBInstance") {
-                    if let Some(serde_json::Value::String(val)) =
-                        resolve_concrete(m, name, "Properties.DBInstanceClass")
-                        && !allowed.contains(val.as_str())
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E3635",
-                            &format!("'{}' is not valid for region '{}'", val, region),
-                            m,
-                            name,
-                            "Properties.DBInstanceClass",
-                            None,
-                        ));
-                    }
-                }
-            }
-        }
-
-        if let Some(region_data) = ctx
-            .cached_data
-            .enum_data
-            .get("data/aws_rds_dbinstance_dbinstanceclass_enum")
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.values().next())
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.get(region))
-        {
-            let allowed = extract_enum_values(region_data);
-            if !allowed.is_empty() {
-                for name in m.resources_of_type("AWS::Redshift::Cluster") {
-                    if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, "Properties.NodeType")
-                        && !allowed.contains(val.as_str())
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E3667",
-                            &format!("'{}' is not valid for region '{}'", val, region),
-                            m,
-                            name,
-                            "Properties.NodeType",
-                            None,
-                        ));
-                    }
+            for name in m.resources_of_type("AWS::RDS::DBCluster") {
+                let Some(serde_json::Value::String(val)) =
+                    resolve_concrete(m, name, "Properties.DBClusterInstanceClass")
+                else {
+                    continue;
+                };
+                let branch_enums =
+                    conditional_instance_class_enums(region_data, "DBClusterInstanceClass", false, |prop| {
+                        resolve_concrete(m, name, &format!("Properties.{}", prop)).and_then(|v| match v {
+                            serde_json::Value::String(s) => Some(s),
+                            _ => None,
+                        })
+                    });
+                if let Some(sorted) = invalid_class_branch_enum(&branch_enums, val.as_str()) {
+                    out.push(make_resource_diagnostic(
+                        "E3694",
+                        &format!("'{}' is not one of {} in '{}'", val, render_str_list(&sorted), region),
+                        m,
+                        name,
+                        "Properties.DBClusterInstanceClass",
+                        None,
+                    ));
                 }
             }
         }
@@ -2789,31 +2995,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Property names must use correct casing
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
-        for (name, res) in &m.resources {
-            if let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object())
-                && let Some(serde_json::Value::Array(expected_props)) = type_meta.get("properties")
-            {
-                let expected_map: HashMap<String, &str> =
-                    expected_props.iter().filter_map(|v| v.as_str()).map(|s| (s.to_lowercase(), s)).collect();
-                for prop in res.properties.keys() {
-                    if let Some(&correct) = expected_map.get(&prop.to_lowercase())
-                        && prop != correct
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E3011",
-                            &format!("Property '{}' should be '{}'", prop, correct),
-                            m,
-                            name,
-                            &format!("Properties.{}", prop),
-                            None,
-                        ));
-                    }
-                }
-            }
-        }
-    }
+    // A mis-cased property name is already reported as an unknown property
+    // (F3002, "Additional properties are not allowed"), exactly as the reference
+    // linter reports it. A separate casing diagnostic under E3011 is both a
+    // false positive (the reference linter's E3011 is a name-length limit, not a
+    // casing check) and an engine-only finding, so it is not emitted.
 
     // Route53 RecordSet validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
@@ -3575,23 +3761,86 @@ fn check_bdm_virtualname_ignored(
     }
 }
 
-fn extract_enum_values(region_data: &serde_json::Value) -> HashSet<&str> {
-    let mut vals = HashSet::new();
-    if let Some(arr) = region_data.get("enum").and_then(|v| v.as_array()) {
-        vals.extend(arr.iter().filter_map(|v| v.as_str()));
-    }
-    if let Some(all_of) = region_data.get("allOf").and_then(|v| v.as_array()) {
-        for item in all_of {
-            if let Some(arr) = item.get("enum").and_then(|v| v.as_array()) {
-                vals.extend(arr.iter().filter_map(|v| v.as_str()));
+/// Collects every `then.<target_prop>.enum` from a conditional region document
+/// whose `allOf` branch `if.required` consts all match the resource's resolved
+/// properties (via `resolve_prop`). `target_prop` is the class property the enum
+/// constrains (`DBInstanceClass` for RDS DBInstance, `DBClusterInstanceClass` for
+/// DBCluster) and is excluded from the required-const match. Returns one enum per
+/// matching branch (the reference tool evaluates the whole conditional schema, so
+/// EVERY matching branch's enum applies), or an empty vec when no branch matches —
+/// so a resource with a dynamic or unmatched Engine is not validated.
+///
+/// The reference linter lowercases the `Engine` value before matching it against
+/// the (all-lowercase) Engine consts for RDS DBInstance but NOT for DBCluster;
+/// `normalize_engine_case` selects that behavior.
+fn conditional_instance_class_enums<'a, F>(
+    region_data: &'a serde_json::Value,
+    target_prop: &str,
+    normalize_engine_case: bool,
+    resolve_prop: F,
+) -> Vec<HashSet<&'a str>>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    let mut enums = Vec::new();
+    let Some(branches) = region_data.get("allOf").and_then(|v| v.as_array()) else {
+        return enums;
+    };
+    for branch in branches {
+        let (Some(if_clause), Some(required), Some(if_props)) = (
+            branch.get("if"),
+            branch.get("if").and_then(|c| c.get("required")).and_then(|v| v.as_array()),
+            branch.get("if").and_then(|c| c.get("properties")).and_then(|v| v.as_object()),
+        ) else {
+            continue;
+        };
+        let _ = if_clause;
+        let all_required_match = required.iter().filter_map(|r| r.as_str()).filter(|p| *p != target_prop).all(|prop| {
+            let Some(expected) = if_props.get(prop).and_then(|p| p.get("const")).and_then(|c| c.as_str()) else {
+                return false;
+            };
+            let Some(actual) = resolve_prop(prop) else {
+                return false;
+            };
+            if normalize_engine_case && prop == "Engine" {
+                actual.eq_ignore_ascii_case(expected)
+            } else {
+                actual == expected
             }
+        });
+        if all_required_match
+            && let Some(enum_vals) = branch
+                .get("then")
+                .and_then(|t| t.get("properties"))
+                .and_then(|p| p.get(target_prop))
+                .and_then(|d| d.get("enum"))
+                .and_then(|e| e.as_array())
+        {
+            enums.push(enum_vals.iter().filter_map(|v| v.as_str()).collect::<HashSet<&str>>());
         }
     }
-    vals
+    enums
+}
+
+/// Given the matching-branch enums for a conditional instance-class schema and a
+/// class value, returns the enum to render in the diagnostic when the value is
+/// invalid, or `None` when the value is valid. A value is valid only when it is
+/// in EVERY matching branch's enum (the intersection). When invalid, the
+/// reference linter reports the largest branch enum the value is missing from, so
+/// return that branch's sorted enum.
+fn invalid_class_branch_enum<'a>(branch_enums: &[HashSet<&'a str>], value: &str) -> Option<Vec<&'a str>> {
+    let failing_largest =
+        branch_enums.iter().filter(|allowed| !allowed.contains(value)).max_by_key(|allowed| allowed.len())?;
+    let mut sorted: Vec<&str> = failing_largest.iter().copied().collect();
+    sorted.sort_unstable();
+    Some(sorted)
 }
 
 /// Valid instance-type/class enum values for `region`, or `None` when the
-/// document has no entry for that region.
+/// document has no entry for that region. These documents are flat
+/// `{ "<region>": { "enum": [...] } }` maps (EC2, DocDB, Neptune, Redshift, …);
+/// the conditional `allOf` RDS DBInstance/DBCluster documents are validated
+/// separately via [`conditional_instance_class_enums`].
 fn region_instance_type_enum<'a>(
     enum_data: &'a HashMap<String, serde_json::Value>,
     enum_key: &str,
@@ -3859,16 +4108,24 @@ fn resolved_to_json_best_effort(rv: &ResolvedValue) -> serde_json::Value {
 }
 
 fn arn_matches_format(resource_arn: &str, format_arn: &str) -> bool {
-    let r_parts: Vec<&str> = resource_arn.splitn(6, ':').collect();
-    let f_parts: Vec<&str> = format_arn.splitn(6, ':').collect();
-    if r_parts.len() < 6 || f_parts.len() < 6 {
-        return false;
-    }
+    // An ARN has up to six colon-delimited parts; a shorter one is padded with
+    // "*" wildcards to six, so a truncated ARN
+    // (e.g. one missing region/account) still compares rather than being treated
+    // as a non-match (which would produce a spurious finding).
+    let pad_to_six = |arn: &str| -> Vec<String> {
+        let mut parts: Vec<String> = arn.splitn(6, ':').map(str::to_string).collect();
+        while parts.len() < 6 {
+            parts.push("*".to_string());
+        }
+        parts
+    };
+    let r_parts = pad_to_six(resource_arn);
+    let f_parts = pad_to_six(format_arn);
     for i in 0..5 {
         if r_parts[i] == "*" {
             continue;
         }
-        if matches!(f_parts[i], "${Partition}" | "${Region}" | "${Account}") {
+        if matches!(f_parts[i].as_str(), "${Partition}" | "${Region}" | "${Account}") {
             continue;
         }
         if r_parts[i] != f_parts[i] {
@@ -4237,8 +4494,16 @@ mod tests {
     }
 
     #[test]
-    fn arn_too_few_parts() {
-        assert!(!arn_matches_format("arn:aws", "arn:aws:s3:::*"));
-        assert!(!arn_matches_format("arn:aws:s3:::*", "short"));
+    fn arn_short_is_padded_with_wildcards() {
+        // A resource ARN with fewer than six parts is padded with "*", so the
+        // missing service/region/account are treated as wildcards on the
+        // resource side and the ARN still matches a format.
+        assert!(arn_matches_format("arn:aws", "arn:aws:s3:::*"));
+    }
+
+    #[test]
+    fn arn_short_still_rejects_service_mismatch() {
+        // Padding does not mask a concrete mismatch in a present part.
+        assert!(!arn_matches_format("arn:aws:ec2", "arn:aws:s3:::*"));
     }
 }

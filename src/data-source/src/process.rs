@@ -569,8 +569,21 @@ fn generate_primary_identifiers(raw: &HashMap<String, serde_json::Value>) -> Str
         }
         ids.insert(tn.clone(), props);
     }
+    // Hardcoded primary-identifier exceptions the reference tool applies on top
+    // of the schema: types whose schema primaryIdentifier is read-only (so the
+    // schema-derived pass skips them) but which have a customer-set name that
+    // must still be unique across resources.
+    for (type_name, id_props) in PRIMARY_IDENTIFIER_EXCEPTIONS {
+        ids.insert((*type_name).to_string(), id_props.iter().map(|s| s.to_string()).collect());
+    }
     serde_json::to_string_pretty(&serde_json::json!({"primary_identifiers": ids})).unwrap()
 }
+
+/// Primary-identifier overrides that do not come from the provider schema.
+/// `AWS::CodeBuild::Project`'s schema identifier is the read-only `Arn`, but its
+/// customer-supplied `Name` must be unique, so the reference tool treats `Name`
+/// as the primary identifier for uniqueness checks.
+const PRIMARY_IDENTIFIER_EXCEPTIONS: &[(&str, &[&str])] = &[("AWS::CodeBuild::Project", &["Name"])];
 
 /// Extracts lifecycle metadata (shutdown/sunset/maintenance) from patched schemas.
 fn generate_resource_lifecycle(raw_schemas: &HashMap<String, serde_json::Value>) -> String {

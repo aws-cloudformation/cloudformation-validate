@@ -451,16 +451,17 @@ fn e2e_region_restricted() {
     };
     let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, config).unwrap();
     assert!(
-        has_rule(&report, "E3001"),
-        "APS::Scraper in cn-north-1 should trigger E3001, got: {:?}",
+        has_rule(&report, "F3006"),
+        "APS::Scraper in cn-north-1 should trigger F3006 (region-availability), got: {:?}",
         report.diagnostics
     );
 }
 
 #[test]
 fn e2e_region_none_skips() {
+    // A clean template must not trigger the region-availability check (F3006).
     let report = validate_fixture("good/minimal.yaml");
-    assert!(!has_rule(&report, "E3001"));
+    assert!(!has_rule(&report, "F3006"));
 }
 
 #[test]

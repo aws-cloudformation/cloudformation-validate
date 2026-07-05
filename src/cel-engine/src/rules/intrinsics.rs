@@ -54,7 +54,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Load GetAtt attribute data
     let getatt_attrs = &ctx.cached_data.getatt_attrs;
-    let _getatt_attr_types = &ctx.cached_data.getatt_attr_types;
+    let getatt_attr_types = &ctx.cached_data.getatt_attr_types;
 
     for (name, res) in resources {
         let refs = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array());
@@ -101,6 +101,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                             && let Some(rtype) = target_res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str())
                             && let Some(valid_list) = getatt_attrs.get(rtype)
                             && !valid_list.iter().any(|a| a == attr)
+                            && !getatt_attr_is_map_member(attr, rtype, getatt_attr_types)
                             && !rtype.starts_with("Custom::")
                             && !rtype.starts_with("AWS::CloudFormation::CustomResource")
                             && rtype != "AWS::CloudFormation::Stack"
@@ -277,6 +278,22 @@ static VALID_REGIONS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 
 fn has_language_extensions(model: &SemanticModel) -> bool {
     model.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS)
+}
+
+/// Whether a dotted GetAtt attribute (e.g. `Outputs.SomeKey`) addresses a member
+/// of a map/list-typed attribute. CloudFormation exposes such container
+/// attributes as `<Attr>.<key>` for any key (the reference tool models them as
+/// `<Attr>\..*`), so `Fn::GetAtt X.Outputs.<key>` is valid whenever the type's
+/// `Outputs` attribute is an object or array — not only the bare `Outputs`.
+fn getatt_attr_is_map_member(
+    attr: &str,
+    rtype: &str,
+    getatt_attr_types: &std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+) -> bool {
+    let Some((prefix, _rest)) = attr.split_once('.') else {
+        return false;
+    };
+    getatt_attr_types.get(rtype).and_then(|attrs| attrs.get(prefix)).is_some_and(|ty| ty == "object" || ty == "array")
 }
 
 fn eval_intrinsic_params(ctx: &EvalContext) -> Vec<Diagnostic> {

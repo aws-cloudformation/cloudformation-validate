@@ -48,10 +48,11 @@ _auth_type_expected := {
     "COGNITO_USER_POOLS": ["COGNITO_USER_POOLS"],
 }
 
-# E3698: API Gateway Stage/Deployment must reference same RestApi
+# E3698: API Gateway Stage/Deployment must reference same RestApi. The finding
+# renders the Stage's own RestApiId value as "{'Ref': '<value>'} was expected".
 violation contains make_diag_at("E3698", "ERROR", deployment_name,
     "Properties.RestApiId",
-    sprintf("Stage RestApiId references '%s' but Deployment references '%s'", [stage_api, deploy_api])) if {
+    sprintf("{'Ref': '%s'} was expected", [stage_api])) if {
     some name in resources_of_type("AWS::ApiGateway::Stage")
     stage_api := follow_ref(name, "Properties.RestApiId")
     deployment_name := follow_ref(name, "Properties.DeploymentId")

@@ -1,0 +1,15 @@
+Parameters:
+  SourceArnParam:
+    Type: String
+    Default: arn:aws:s3:::my-bucket-name
+Resources:
+  # SourceArn comes from a parameter Ref. Even though the parameter default is an
+  # account-less ARN, the reference tool only pattern-tests a LITERAL SourceArn,
+  # so W3663 must NOT fire (guarding the intrinsic-derived case in both engines).
+  Perm:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: myfn
+      Principal: events.amazonaws.com
+      SourceArn: !Ref SourceArnParam
