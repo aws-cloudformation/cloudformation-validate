@@ -463,19 +463,17 @@ fn issue_53_f3004_fires_on_real_dependson_cycle() {
     assert_fires_on_resource(&diags, "F3004", "ClusterKubectlReadyBarrier200052AF");
 }
 
-/// Issue #54: STILL OPEN. F3003 falsely fires "OwnershipControls is a required
-/// property" (FATAL) on an S3 bucket with non-Private AccessControl, duplicating
-/// the E3045 finding the engine already reports for the same concern (the
-/// reference linter emits only the single Error, never a FATAL required-property
-/// finding). Pins the current false positive: F3003 fires AND E3045 fires, both
-/// engines. Flip F3003 to `assert_absent` once the duplicate is removed.
+/// Issue #54 (fixed): an S3 bucket with non-Private AccessControl and missing
+/// OwnershipControls reports only E3045 (Error), matching the reference linter.
+/// The extension's `then.required: [OwnershipControls]` used to also fire a
+/// duplicate FATAL F3003 for the same concern; that false positive is now
+/// suppressed because E3045 already covers this trigger.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
 #[test]
 fn issue_54_f3003_false_required_ownershipcontrols() {
     let diags = validate_both("issue-54.json");
-    assert_fires_with_severity(&diags, "F3003", Severity::Fatal);
-    assert_fires_on_resource(&diags, "F3003", "Bucket");
-    assert_count(&diags, "F3003", 1);
+    assert_absent(&diags, "F3003");
+    assert_count(&diags, "F3003", 0);
     assert_fires_with_severity(&diags, "E3045", Severity::Error);
     assert_fires_on_resource(&diags, "E3045", "Bucket");
 }

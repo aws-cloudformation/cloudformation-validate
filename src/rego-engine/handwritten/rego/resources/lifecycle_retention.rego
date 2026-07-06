@@ -29,7 +29,7 @@ violation contains make_diag_at("I3013", "INFO", name,
     some name in resources_of_type(rtype)
     _i3013_applies(name, rtype)
     some prop in props
-    not has_property(name, prop)
+    property_can_be_absent(name, sprintf("Properties.%s", [prop]))
 }
 
 # RDS DB instances only need an explicit backup retention period when they are a

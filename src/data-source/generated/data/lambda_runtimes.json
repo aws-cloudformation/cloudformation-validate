@@ -54,6 +54,290 @@
       "python2.7",
       "python3.6",
       "ruby2.5"
-    ]
+    ],
+    "lifecycle": {
+      "dotnet10": {
+        "deprecated": "2028-11-14",
+        "create_block": "2028-12-14",
+        "update_block": "2029-01-15",
+        "successor": null
+      },
+      "dotnet6": {
+        "deprecated": "2024-12-20",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "dotnet10"
+      },
+      "dotnet8": {
+        "deprecated": "2026-11-10",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "dotnet10"
+      },
+      "dotnet9": {
+        "deprecated": "2026-11-10",
+        "create_block": "",
+        "update_block": "",
+        "successor": "dotnet10"
+      },
+      "dotnetcore1.0": {
+        "deprecated": "2019-06-27",
+        "create_block": "2019-06-30",
+        "update_block": "2019-07-30",
+        "successor": "dotnet10"
+      },
+      "dotnetcore2.0": {
+        "deprecated": "2019-05-30",
+        "create_block": "2019-04-30",
+        "update_block": "2019-05-30",
+        "successor": "dotnet10"
+      },
+      "dotnetcore2.1": {
+        "deprecated": "2022-01-05",
+        "create_block": "2022-01-05",
+        "update_block": "2022-04-13",
+        "successor": "dotnet10"
+      },
+      "dotnetcore3.1": {
+        "deprecated": "2023-04-03",
+        "create_block": "2023-04-03",
+        "update_block": "2023-05-03",
+        "successor": "dotnet10"
+      },
+      "go1.x": {
+        "deprecated": "2024-01-08",
+        "create_block": "2024-02-08",
+        "update_block": "2027-03-03",
+        "successor": "provided.al2023"
+      },
+      "java11": {
+        "deprecated": "2027-06-30",
+        "create_block": "2027-07-31",
+        "update_block": "2027-08-31",
+        "successor": "java25"
+      },
+      "java17": {
+        "deprecated": "2027-06-30",
+        "create_block": "2027-07-31",
+        "update_block": "2027-08-31",
+        "successor": "java25"
+      },
+      "java21": {
+        "deprecated": "2029-06-30",
+        "create_block": "2029-07-31",
+        "update_block": "2029-08-31",
+        "successor": "java25"
+      },
+      "java25": {
+        "deprecated": "2029-06-30",
+        "create_block": "2029-07-31",
+        "update_block": "2029-08-31",
+        "successor": null
+      },
+      "java8": {
+        "deprecated": "2024-01-08",
+        "create_block": "2024-02-08",
+        "update_block": "2027-03-03",
+        "successor": "java25"
+      },
+      "java8.al2": {
+        "deprecated": "2027-06-30",
+        "create_block": "2027-07-31",
+        "update_block": "2027-08-31",
+        "successor": "java25"
+      },
+      "nodejs": {
+        "deprecated": "2016-08-30",
+        "create_block": "2016-09-30",
+        "update_block": "2016-10-31",
+        "successor": "nodejs24.x"
+      },
+      "nodejs10.x": {
+        "deprecated": "2021-07-30",
+        "create_block": "2021-07-30",
+        "update_block": "2022-02-14",
+        "successor": "nodejs24.x"
+      },
+      "nodejs12.x": {
+        "deprecated": "2023-03-31",
+        "create_block": "2023-03-31",
+        "update_block": "2023-04-30",
+        "successor": "nodejs24.x"
+      },
+      "nodejs14.x": {
+        "deprecated": "2023-12-04",
+        "create_block": "2024-01-09",
+        "update_block": "2027-03-03",
+        "successor": "nodejs24.x"
+      },
+      "nodejs16.x": {
+        "deprecated": "2024-06-12",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "nodejs24.x"
+      },
+      "nodejs18.x": {
+        "deprecated": "2025-09-01",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "nodejs24.x"
+      },
+      "nodejs20.x": {
+        "deprecated": "2026-04-30",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "nodejs24.x"
+      },
+      "nodejs22.x": {
+        "deprecated": "2027-04-30",
+        "create_block": "2027-06-01",
+        "update_block": "2027-07-01",
+        "successor": "nodejs24.x"
+      },
+      "nodejs24.x": {
+        "deprecated": "2028-04-30",
+        "create_block": "2028-06-01",
+        "update_block": "2028-07-01",
+        "successor": null
+      },
+      "nodejs4.3": {
+        "deprecated": "2020-03-05",
+        "create_block": "2020-02-03",
+        "update_block": "2020-03-05",
+        "successor": "nodejs24.x"
+      },
+      "nodejs4.3-edge": {
+        "deprecated": "2020-03-05",
+        "create_block": "2019-03-31",
+        "update_block": "2019-04-30",
+        "successor": "nodejs24.x"
+      },
+      "nodejs6.10": {
+        "deprecated": "2019-08-12",
+        "create_block": "2019-07-12",
+        "update_block": "2019-08-12",
+        "successor": "nodejs24.x"
+      },
+      "nodejs8.10": {
+        "deprecated": "2020-03-06",
+        "create_block": "2020-02-04",
+        "update_block": "2020-03-06",
+        "successor": "nodejs24.x"
+      },
+      "provided": {
+        "deprecated": "2024-01-08",
+        "create_block": "2024-02-08",
+        "update_block": "2027-03-03",
+        "successor": "provided.al2023"
+      },
+      "provided.al2": {
+        "deprecated": "2026-07-31",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "provided.al2023"
+      },
+      "provided.al2023": {
+        "deprecated": "2029-06-30",
+        "create_block": "2029-07-31",
+        "update_block": "2029-08-31",
+        "successor": null
+      },
+      "python2.7": {
+        "deprecated": "2021-07-15",
+        "create_block": "2021-07-15",
+        "update_block": "2022-05-30",
+        "successor": "python3.14"
+      },
+      "python3.10": {
+        "deprecated": "2026-10-31",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "python3.14"
+      },
+      "python3.11": {
+        "deprecated": "2027-06-30",
+        "create_block": "2027-07-31",
+        "update_block": "2027-08-31",
+        "successor": "python3.14"
+      },
+      "python3.12": {
+        "deprecated": "2028-10-31",
+        "create_block": "2028-11-30",
+        "update_block": "2029-01-10",
+        "successor": "python3.14"
+      },
+      "python3.13": {
+        "deprecated": "2029-06-30",
+        "create_block": "2029-07-31",
+        "update_block": "2029-08-31",
+        "successor": "python3.14"
+      },
+      "python3.14": {
+        "deprecated": "2029-06-30",
+        "create_block": "2029-07-31",
+        "update_block": "2029-08-31",
+        "successor": null
+      },
+      "python3.6": {
+        "deprecated": "2022-07-18",
+        "create_block": "2022-07-18",
+        "update_block": "2022-08-29",
+        "successor": "python3.14"
+      },
+      "python3.7": {
+        "deprecated": "2023-12-04",
+        "create_block": "2024-01-09",
+        "update_block": "2027-03-03",
+        "successor": "python3.14"
+      },
+      "python3.8": {
+        "deprecated": "2024-10-14",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "python3.14"
+      },
+      "python3.9": {
+        "deprecated": "2025-12-15",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "python3.14"
+      },
+      "ruby2.5": {
+        "deprecated": "2021-07-30",
+        "create_block": "2021-07-30",
+        "update_block": "2022-03-31",
+        "successor": "ruby4.0"
+      },
+      "ruby2.7": {
+        "deprecated": "2023-12-07",
+        "create_block": "2024-01-09",
+        "update_block": "2027-03-03",
+        "successor": "ruby4.0"
+      },
+      "ruby3.2": {
+        "deprecated": "2026-03-31",
+        "create_block": "2027-02-01",
+        "update_block": "2027-03-03",
+        "successor": "ruby4.0"
+      },
+      "ruby3.3": {
+        "deprecated": "2027-03-31",
+        "create_block": "2027-04-30",
+        "update_block": "2027-05-31",
+        "successor": "ruby4.0"
+      },
+      "ruby3.4": {
+        "deprecated": "2028-03-31",
+        "create_block": "2028-04-30",
+        "update_block": "2028-05-31",
+        "successor": "ruby4.0"
+      },
+      "ruby4.0": {
+        "deprecated": "2029-03-31",
+        "create_block": "2029-04-30",
+        "update_block": "2029-05-31",
+        "successor": null
+      }
+    }
   }
 }

@@ -25617,7 +25617,12 @@
     "write_only_properties": [
       "WorkGroupConfigurationUpdates",
       "RecursiveDeleteOption",
-      "WorkGroupConfiguration.AdditionalConfiguration"
+      "WorkGroupConfiguration.AdditionalConfiguration",
+      "WorkGroupConfiguration.EngineConfiguration.CoordinatorDpuSize",
+      "WorkGroupConfiguration.EngineConfiguration.MaxConcurrentDpus",
+      "WorkGroupConfiguration.EngineConfiguration.DefaultExecutorDpuSize",
+      "WorkGroupConfiguration.EngineConfiguration.AdditionalConfigs",
+      "WorkGroupConfiguration.EngineConfiguration.SparkProperties"
     ],
     "create_only_properties": [
       "Name"
@@ -25980,6 +25985,370 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
     "description": "An entity that defines the scope of audit evidence collected by AWS Audit Manager."
   },
+  "AWS::AuditManager::AssessmentFramework": {
+    "type_name": "AWS::AuditManager::AssessmentFramework",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:.*:auditmanager:",
+        "min_length": 20,
+        "max_length": 2048,
+        "description": "The Amazon Resource Name (ARN) of the framework."
+      },
+      "ComplianceType": {
+        "type": "string",
+        "pattern": "^[\\w\\W\\s\\S]*$",
+        "min_length": 0,
+        "max_length": 100,
+        "description": "The compliance type that the framework supports, such as CIS or HIPAA."
+      },
+      "ControlSets": {
+        "type": "array",
+        "min_items": 1,
+        "description": "The control sets that are associated with the framework.",
+        "items": {
+          "ref_name": "ControlSet"
+        }
+      },
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The time when the framework was created."
+      },
+      "CreatedBy": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9\\s-_()\\[\\]]+$",
+        "min_length": 1,
+        "max_length": 100,
+        "description": "The user or role that created the framework."
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "^[\\w\\W\\s\\S]*$",
+        "min_length": 1,
+        "max_length": 1000,
+        "description": "The description of the framework."
+      },
+      "FrameworkId": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+        "min_length": 36,
+        "max_length": 36,
+        "description": "The unique identifier for the framework."
+      },
+      "LastUpdatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The time when the framework was most recently updated."
+      },
+      "LastUpdatedBy": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9\\s-_()\\[\\]]+$",
+        "min_length": 1,
+        "max_length": 100,
+        "description": "The user or role that most recently updated the framework."
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^[^\\\\]*$",
+        "min_length": 1,
+        "max_length": 300,
+        "description": "The name of the framework."
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "description": "The tags associated with the framework.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "Type": {
+        "type": "string",
+        "enum": [
+          "Standard",
+          "Custom"
+        ],
+        "description": "The framework type, such as a standard framework or a custom framework."
+      }
+    },
+    "definitions": {
+      "ControlSet": {
+        "type": "object",
+        "description": "A control set entity that represents a collection of controls in Audit Manager.",
+        "properties": {
+          "Controls": {
+            "type": "array",
+            "min_items": 1,
+            "description": "The list of controls within the control set.",
+            "items": {
+              "ref_name": "ControlSetControl"
+            }
+          },
+          "Name": {
+            "type": "string",
+            "pattern": "^[^\\\\_]*$",
+            "min_length": 1,
+            "max_length": 300,
+            "description": "The name of the control set."
+          }
+        },
+        "required": [
+          "Name",
+          "Controls"
+        ],
+        "additional_properties": false
+      },
+      "ControlSetControl": {
+        "type": "object",
+        "description": "A reference to an existing control by ID.",
+        "properties": {
+          "Id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "min_length": 36,
+            "max_length": 36,
+            "description": "The unique identifier of the control."
+          }
+        },
+        "required": [
+          "Id"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^(?!aws:)[a-zA-Z+-=._:/]+$",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "Name",
+      "ControlSets"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "FrameworkId",
+      "Type",
+      "CreatedAt",
+      "LastUpdatedAt",
+      "CreatedBy",
+      "LastUpdatedBy"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-auditmanager",
+    "description": "Creates a custom framework in AWS Audit Manager."
+  },
+  "AWS::AuditManager::Control": {
+    "type_name": "AWS::AuditManager::Control",
+    "properties": {
+      "ActionPlanInstructions": {
+        "type": "string",
+        "description": "The recommended actions to carry out if the control isn't fulfilled."
+      },
+      "ActionPlanTitle": {
+        "type": "string",
+        "description": "The title of the action plan for remediating the control."
+      },
+      "Arn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the control."
+      },
+      "ControlMappingSources": {
+        "type": "array",
+        "description": "The data mapping sources for the control.",
+        "items": {
+          "ref_name": "ControlMappingSource"
+        }
+      },
+      "ControlSources": {
+        "type": "string",
+        "description": "The data source types that determine where Audit Manager collects evidence from for the control."
+      },
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The time when the control was created."
+      },
+      "CreatedBy": {
+        "type": "string",
+        "description": "The user or role that created the control."
+      },
+      "Description": {
+        "type": "string",
+        "description": "The description of the control."
+      },
+      "Id": {
+        "type": "string",
+        "description": "The unique identifier for the control."
+      },
+      "LastUpdatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The time when the control was most recently updated."
+      },
+      "LastUpdatedBy": {
+        "type": "string",
+        "description": "The user or role that most recently updated the control."
+      },
+      "Name": {
+        "type": "string",
+        "description": "The name of the control."
+      },
+      "Tags": {
+        "type": "array",
+        "unique_items": true,
+        "description": "The tags associated with the control.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "TestingInformation": {
+        "type": "string",
+        "description": "The steps to follow to determine if the control is satisfied."
+      },
+      "Type": {
+        "type": "string",
+        "description": "The type of control, such as a custom control or a standard control."
+      }
+    },
+    "definitions": {
+      "ControlMappingSource": {
+        "type": "object",
+        "properties": {
+          "SourceDescription": {
+            "type": "string"
+          },
+          "SourceFrequency": {
+            "type": "string",
+            "enum": [
+              "DAILY",
+              "WEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "SourceId": {
+            "type": "string"
+          },
+          "SourceKeyword": {
+            "ref_name": "SourceKeyword"
+          },
+          "SourceName": {
+            "type": "string"
+          },
+          "SourceSetUpOption": {
+            "type": "string",
+            "enum": [
+              "System_Controls_Mapping",
+              "Procedural_Controls_Mapping"
+            ]
+          },
+          "SourceType": {
+            "type": "string",
+            "enum": [
+              "AWS_Cloudtrail",
+              "AWS_Config",
+              "AWS_Security_Hub",
+              "AWS_API_Call",
+              "MANUAL",
+              "Common_Control",
+              "Core_Control"
+            ]
+          },
+          "TroubleshootingText": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "SourceKeyword": {
+        "type": "object",
+        "properties": {
+          "KeywordInputType": {
+            "type": "string",
+            "enum": [
+              "SELECT_FROM_LIST",
+              "UPLOAD_FILE",
+              "INPUT_TEXT"
+            ]
+          },
+          "KeywordValue": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag. You can specify a value that is 1 to 128 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag. You can specify a value that is 0 to 256 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "Name",
+      "ControlMappingSources"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "Id",
+      "Type",
+      "ControlSources",
+      "CreatedAt",
+      "LastUpdatedAt",
+      "CreatedBy",
+      "LastUpdatedBy",
+      "ControlMappingSources.*.SourceId"
+    ],
+    "write_only_properties": [
+      "ControlMappingSources.*.SourceSetUpOption"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+    "description": "An AWS Audit Manager Control resource for creating custom controls"
+  },
   "AWS::AutoScaling::AutoScalingGroup": {
     "type_name": "AWS::AutoScaling::AutoScalingGroup",
     "properties": {
@@ -26244,7 +26613,8 @@
             "type": "string",
             "enum": [
               "balanced-best-effort",
-              "balanced-only"
+              "balanced-only",
+              "reservations-then-balanced"
             ],
             "description": "If launches fail in an Availability Zone, the following strategies are available. The default is ``balanced-best-effort``. \n  +  ``balanced-only`` - If launches fail in an Availability Zone, Auto Scaling will continue to attempt to launch in the unhealthy zone to preserve a balanced distribution.\n  +  ``balanced-best-effort`` - If launches fail in an Availability Zone, Auto Scaling will attempt to launch in another healthy Availability Zone instead."
           }
@@ -42588,9 +42958,6 @@
             "ref_name": "ManagedKnowledgeBaseServerSideEncryptionConfiguration"
           }
         },
-        "required": [
-          "EmbeddingModelArn"
-        ],
         "additional_properties": false
       },
       "ManagedKnowledgeBaseServerSideEncryptionConfiguration": {
@@ -57810,6 +58177,417 @@
     ],
     "description": "Resource schema for AWS::CertificateManager::Account."
   },
+  "AWS::CertificateManager::AcmeDomainValidation": {
+    "type_name": "AWS::CertificateManager::AcmeDomainValidation",
+    "properties": {
+      "AcmeEndpointArn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-z-]*:acm:[a-z0-9-]+:[0-9]{12}:acme-endpoint/[a-zA-Z0-9-]+$",
+        "min_length": 1,
+        "max_length": 200,
+        "description": "The ARN of the ACME endpoint this domain validation is associated with."
+      },
+      "Arn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the domain validation."
+      },
+      "DomainName": {
+        "type": "string",
+        "pattern": "^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)*[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+        "min_length": 1,
+        "max_length": 253,
+        "description": "The domain name to validate."
+      },
+      "PrevalidationOptions": {
+        "ref_name": "PrevalidationOptions"
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 50,
+        "description": "Tags associated with the domain validation.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Key": {
+              "type": "string",
+              "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+              "min_length": 1,
+              "max_length": 128,
+              "description": "The key name of the tag."
+            },
+            "Value": {
+              "type": "string",
+              "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+              "min_length": 0,
+              "max_length": 256,
+              "description": "The value for the tag."
+            }
+          },
+          "required": [
+            "Key",
+            "Value"
+          ],
+          "additional_properties": false
+        }
+      }
+    },
+    "definitions": {
+      "DnsPrevalidationOptions": {
+        "type": "object",
+        "description": "DNS-based prevalidation options for the domain validation.",
+        "properties": {
+          "DomainScope": {
+            "ref_name": "DomainScope"
+          },
+          "HostedZoneId": {
+            "type": "string",
+            "description": "The Route 53 hosted zone ID for automatic DNS record management. When provided, the service creates the validation DNS record on the customer's behalf."
+          }
+        },
+        "additional_properties": false
+      },
+      "DomainScope": {
+        "type": "object",
+        "description": "Controls which certificate types are authorized to be issued for the domain via the ACME endpoint.",
+        "properties": {
+          "ExactDomain": {
+            "type": "string",
+            "description": "Whether certificates may be issued for the exact domain."
+          },
+          "Subdomains": {
+            "type": "string",
+            "description": "Whether certificates may be issued for subdomains of the domain."
+          },
+          "Wildcards": {
+            "type": "string",
+            "description": "Whether wildcard certificates may be issued for the domain."
+          }
+        },
+        "additional_properties": false
+      },
+      "PrevalidationOptions": {
+        "type": "object",
+        "description": "Prevalidation method configuration. Currently only DNS-based prevalidation is supported.",
+        "properties": {
+          "DnsPrevalidation": {
+            "ref_name": "DnsPrevalidationOptions"
+          }
+        },
+        "required": [
+          "DnsPrevalidation"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "AcmeEndpointArn",
+      "DomainName",
+      "PrevalidationOptions"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn"
+    ],
+    "create_only_properties": [
+      "AcmeEndpointArn",
+      "DomainName",
+      "PrevalidationOptions.DnsPrevalidation.HostedZoneId"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "description": "Resource Type definition for AWS::CertificateManager::AcmeDomainValidation"
+  },
+  "AWS::CertificateManager::AcmeEndpoint": {
+    "type_name": "AWS::CertificateManager::AcmeEndpoint",
+    "properties": {
+      "AcmeEndpointArn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the ACME endpoint."
+      },
+      "AuthorizationBehavior": {
+        "type": "string",
+        "enum": [
+          "PRE_APPROVED"
+        ],
+        "description": "The authorization behavior for the ACME endpoint."
+      },
+      "CertificateAuthority": {
+        "ref_name": "CertificateAuthority"
+      },
+      "CertificateTags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 50,
+        "description": "Tags applied to certificates issued via this endpoint.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "Contact": {
+        "type": "string",
+        "enum": [
+          "NOT_REQUIRED",
+          "REQUIRED"
+        ],
+        "description": "Whether contact information is required for the ACME endpoint."
+      },
+      "EndpointUrl": {
+        "type": "string",
+        "description": "The ACME directory URL for the endpoint."
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 50,
+        "description": "Tags associated with the ACME endpoint.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Key": {
+              "type": "string",
+              "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+              "min_length": 1,
+              "max_length": 128,
+              "description": "The key name of the tag."
+            },
+            "Value": {
+              "type": "string",
+              "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+              "min_length": 0,
+              "max_length": 256,
+              "description": "The value for the tag."
+            }
+          },
+          "required": [
+            "Key",
+            "Value"
+          ],
+          "additional_properties": false
+        }
+      }
+    },
+    "definitions": {
+      "CertificateAuthority": {
+        "type": "object",
+        "description": "The certificate authority configuration for the ACME endpoint.",
+        "properties": {
+          "PublicCertificateAuthority": {
+            "ref_name": "PublicCertificateAuthority"
+          }
+        },
+        "required": [
+          "PublicCertificateAuthority"
+        ],
+        "additional_properties": false
+      },
+      "PublicCertificateAuthority": {
+        "type": "object",
+        "description": "Configuration for the public certificate authority.",
+        "properties": {
+          "AllowedKeyAlgorithms": {
+            "type": "array",
+            "description": "The allowed key algorithms for certificates issued via this endpoint.",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "AuthorizationBehavior",
+      "CertificateAuthority"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "AcmeEndpointArn",
+      "EndpointUrl"
+    ],
+    "create_only_properties": [
+      "CertificateTags"
+    ],
+    "primary_identifier": [
+      "AcmeEndpointArn"
+    ],
+    "description": "Resource Type definition for AWS::CertificateManager::AcmeEndpoint"
+  },
+  "AWS::CertificateManager::AcmeExternalAccountBinding": {
+    "type_name": "AWS::CertificateManager::AcmeExternalAccountBinding",
+    "properties": {
+      "AcmeEndpointArn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-z-]*:acm:[a-z0-9-]+:[0-9]{12}:acme-endpoint/[a-zA-Z0-9-]+$",
+        "min_length": 1,
+        "max_length": 200,
+        "description": "The ARN of the ACME endpoint this binding is associated with."
+      },
+      "AcmeExternalAccountBindingArn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the external account binding."
+      },
+      "Expiration": {
+        "ref_name": "Expiration"
+      },
+      "RoleArn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-z-]*:iam::[0-9]{12}:role/.+$",
+        "min_length": 1,
+        "max_length": 2048,
+        "format": "AWS::IAM::Role.Arn",
+        "description": "The IAM role ARN for cross-account access."
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 50,
+        "description": "Tags associated with the external account binding.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Key": {
+              "type": "string",
+              "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+              "min_length": 1,
+              "max_length": 128,
+              "description": "The key name of the tag."
+            },
+            "Value": {
+              "type": "string",
+              "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+              "min_length": 0,
+              "max_length": 256,
+              "description": "The value for the tag."
+            }
+          },
+          "required": [
+            "Key",
+            "Value"
+          ],
+          "additional_properties": false
+        }
+      }
+    },
+    "definitions": {
+      "Expiration": {
+        "type": "object",
+        "description": "The expiration configuration for the external account binding.",
+        "properties": {
+          "Type": {
+            "type": "string",
+            "enum": [
+              "DAYS",
+              "HOURS",
+              "MINUTES"
+            ],
+            "description": "The time unit for the expiration value."
+          },
+          "Value": {
+            "type": "integer",
+            "description": "The expiration value."
+          }
+        },
+        "required": [
+          "Value",
+          "Type"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "AcmeEndpointArn",
+      "RoleArn"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "AcmeExternalAccountBindingArn"
+    ],
+    "write_only_properties": [
+      "Expiration"
+    ],
+    "create_only_properties": [
+      "AcmeEndpointArn",
+      "RoleArn",
+      "Expiration"
+    ],
+    "primary_identifier": [
+      "AcmeExternalAccountBindingArn"
+    ],
+    "description": "Resource Type definition for AWS::CertificateManager::AcmeExternalAccountBinding"
+  },
   "AWS::CertificateManager::Certificate": {
     "type_name": "AWS::CertificateManager::Certificate",
     "properties": {
@@ -59241,7 +60019,6 @@
       },
       "CustomMLMemberAbilities": {
         "type": "array",
-        "min_items": 1,
         "unique_items": true,
         "items": {
           "ref_name": "CustomMLMemberAbility"
@@ -70351,20 +71128,27 @@
       "Arn": {
         "type": "string"
       },
-      "Id": {
-        "type": "string"
-      },
       "RuleBody": {
         "type": "string"
       },
       "RuleName": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[\\x20-\\x7E]+$",
+        "min_length": 1,
+        "max_length": 128
       },
       "RuleState": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "ENABLED",
+          "DISABLED"
+        ],
+        "min_length": 1,
+        "max_length": 32
       },
       "Tags": {
         "type": "array",
+        "unique_items": true,
         "items": {
           "ref_name": "Tag"
         }
@@ -70375,36 +71159,39 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
           }
         },
         "required": [
-          "Value",
-          "Key"
+          "Key",
+          "Value"
         ],
         "additional_properties": false
       }
     },
     "required": [
+      "RuleName",
       "RuleState",
-      "RuleBody",
-      "RuleName"
+      "RuleBody"
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "Id",
       "Arn"
     ],
     "create_only_properties": [
       "RuleName"
     ],
     "primary_identifier": [
-      "Id"
+      "Arn"
     ],
-    "description": "Resource Type definition for AWS::CloudWatch::InsightRule"
+    "description": "Resource Type definition for AWS::CloudWatch::InsightRule. Creates a Contributor Insights rule that analyzes log data to identify top contributors and usage patterns."
   },
   "AWS::CloudWatch::LogAlarm": {
     "type_name": "AWS::CloudWatch::LogAlarm",
@@ -74040,6 +74827,11 @@
   "AWS::CodePipeline::Pipeline": {
     "type_name": "AWS::CodePipeline::Pipeline",
     "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "arn:aws(-[\\w]+)*:codepipeline:[a-z0-9-]+:[0-9]{12}:.+",
+        "description": "The Amazon Resource Name (ARN) of the pipeline."
+      },
       "ArtifactStore": {
         "ref_name": "ArtifactStore"
       },
@@ -74813,7 +75605,8 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "Version"
+      "Version",
+      "Arn"
     ],
     "write_only_properties": [
       "RestartExecutionOnUpdate"
@@ -76160,6 +76953,12 @@
           "type": "string"
         }
       },
+      "IssuerConfiguration": {
+        "ref_name": "IssuerConfiguration"
+      },
+      "KeyConfiguration": {
+        "ref_name": "KeyConfiguration"
+      },
       "LambdaConfig": {
         "ref_name": "LambdaConfig"
       },
@@ -76352,6 +77151,17 @@
         },
         "additional_properties": false
       },
+      "EncryptionKeyArnType": {
+        "type": "string",
+        "pattern": "arn:[\\w+=/,.@-]+:[\\w+=/,.@-]+:([\\w+=/,.@-]*)?:[0-9]+:[\\w+=/,.@-]+(:[\\w+=/,.@-]+)?(:[\\w+=/,.@-]+)?"
+      },
+      "EncryptionKeyType": {
+        "type": "string",
+        "enum": [
+          "AWS_OWNED_KEY",
+          "CUSTOMER_MANAGED_KEY"
+        ]
+      },
       "InboundFederation": {
         "type": "object",
         "properties": {
@@ -76376,6 +77186,31 @@
           },
           "SMSMessage": {
             "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
+      "IssuerConfiguration": {
+        "type": "object",
+        "properties": {
+          "Type": {
+            "type": "string",
+            "enum": [
+              "ORIGINAL",
+              "UPDATED"
+            ]
+          }
+        },
+        "additional_properties": false
+      },
+      "KeyConfiguration": {
+        "type": "object",
+        "properties": {
+          "KeyType": {
+            "ref_name": "EncryptionKeyType"
+          },
+          "KmsKeyArn": {
+            "ref_name": "EncryptionKeyArnType"
           }
         },
         "additional_properties": false
@@ -79193,6 +80028,112 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-config.git",
     "description": "A conformance pack is a collection of AWS Config rules and remediation actions that can be easily deployed as a single entity in an account and a region or across an entire AWS Organization."
   },
+  "AWS::Config::Connector": {
+    "type_name": "AWS::Config::Connector",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the connector."
+      },
+      "ConnectorConfiguration": {
+        "ref_name": "ConnectorConfiguration"
+      },
+      "CreatedTime": {
+        "type": "string",
+        "description": "The time at which the connector was created."
+      },
+      "Name": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 256,
+        "description": "The name of the connector. AWS Config automatically assigns the name when creating the Connector."
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "unique_items": true,
+        "description": "The tags for the connector.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "AzureConnectorConfiguration": {
+        "type": "object",
+        "description": "Configuration for connecting to Microsoft Azure.",
+        "properties": {
+          "ClientIdentifier": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The Azure client (application) identifier."
+          },
+          "TenantIdentifier": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The Azure tenant identifier."
+          }
+        },
+        "required": [
+          "TenantIdentifier",
+          "ClientIdentifier"
+        ],
+        "additional_properties": false
+      },
+      "ConnectorConfiguration": {
+        "type": "object",
+        "description": "The configuration for the connector. Specify the third-party cloud provider configuration.",
+        "properties": {
+          "Azure": {
+            "ref_name": "AzureConnectorConfiguration"
+          }
+        },
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag. You can specify a value that is 1 to 128 Unicode characters in length and cannot be prefixed with aws:."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag. You can specify a value that is 0 to 256 Unicode characters in length and cannot be prefixed with aws:."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ConnectorConfiguration"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "Name",
+      "CreatedTime"
+    ],
+    "create_only_properties": [
+      "ConnectorConfiguration"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "replacement_strategy": "delete_then_create",
+    "description": "Resource Type definition for AWS::Config::Connector"
+  },
   "AWS::Config::DeliveryChannel": {
     "type_name": "AWS::Config::DeliveryChannel",
     "properties": {
@@ -81032,8 +81973,20 @@
         "type": "object",
         "description": "An option for a multi-select question in an evaluation form.",
         "properties": {
+          "AutomaticFail": {
+            "type": "boolean"
+          },
+          "AutomaticFailConfiguration": {
+            "ref_name": "AutomaticFailConfiguration"
+          },
+          "PointsConfiguration": {
+            "ref_name": "QuestionOptionPointsConfiguration"
+          },
           "RefId": {
             "ref_name": "RefId"
+          },
+          "Score": {
+            "ref_name": "Score"
           },
           "Text": {
             "type": "string",
@@ -81110,6 +82063,9 @@
             "type": "integer",
             "description": "The minimum answer value of the range option."
           },
+          "PointsConfiguration": {
+            "ref_name": "QuestionOptionPointsConfiguration"
+          },
           "Score": {
             "ref_name": "Score"
           }
@@ -81184,6 +82140,9 @@
           "RefId": {
             "ref_name": "RefId"
           },
+          "ScoringConfiguration": {
+            "ref_name": "EvaluationFormQuestionScoringConfiguration"
+          },
           "Title": {
             "type": "string",
             "min_length": 1,
@@ -81219,6 +82178,26 @@
         ],
         "additional_properties": false
       },
+      "EvaluationFormQuestionScoringConfiguration": {
+        "type": "object",
+        "properties": {
+          "IsExcludedFromScoring": {
+            "type": "boolean",
+            "description": "Whether the question is excluded from scoring."
+          },
+          "PointsConfiguration": {
+            "ref_name": "QuestionPointsConfiguration"
+          },
+          "ScoreThresholds": {
+            "type": "array",
+            "description": "The score thresholds for the question.",
+            "items": {
+              "ref_name": "EvaluationFormScoreThreshold"
+            }
+          }
+        },
+        "additional_properties": false
+      },
       "EvaluationFormQuestionTypeProperties": {
         "type": "object",
         "description": "Information about properties for a question in an evaluation form. The question type properties must be either for a numeric question or a single select question.",
@@ -81238,6 +82217,35 @@
         },
         "additional_properties": false
       },
+      "EvaluationFormScoreThreshold": {
+        "type": "object",
+        "properties": {
+          "MaxScorePercentage": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "The maximum score percentage for this threshold."
+          },
+          "MinScorePercentage": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 100.0,
+            "description": "The minimum score percentage for this threshold."
+          },
+          "PerformanceCategory": {
+            "type": "string",
+            "enum": [
+              "NEEDS_IMPROVEMENT",
+              "EXCEEDS_EXPECTATIONS"
+            ],
+            "description": "The performance category name."
+          }
+        },
+        "required": [
+          "PerformanceCategory"
+        ],
+        "additional_properties": false
+      },
       "EvaluationFormSection": {
         "type": "object",
         "description": "Information about a section from an evaluation form. A section can contain sections and/or questions. Evaluation forms can only contain sections and subsections (two level nesting).",
@@ -81246,6 +82254,9 @@
             "type": "string",
             "max_length": 1024,
             "description": "The instructions of the section."
+          },
+          "IsExcludedFromScoring": {
+            "type": "boolean"
           },
           "Items": {
             "type": "array",
@@ -81258,6 +82269,12 @@
           },
           "RefId": {
             "ref_name": "RefId"
+          },
+          "ScoreThresholds": {
+            "type": "array",
+            "items": {
+              "ref_name": "EvaluationFormScoreThreshold"
+            }
           },
           "Title": {
             "type": "string",
@@ -81320,6 +82337,9 @@
           },
           "AutomaticFailConfiguration": {
             "ref_name": "AutomaticFailConfiguration"
+          },
+          "PointsConfiguration": {
+            "ref_name": "QuestionOptionPointsConfiguration"
           },
           "RefId": {
             "ref_name": "RefId"
@@ -81525,6 +82545,44 @@
         ],
         "additional_properties": false
       },
+      "PointValue": {
+        "type": "integer",
+        "minimum": 0.0,
+        "maximum": 100.0,
+        "description": "The point value for scoring."
+      },
+      "QuestionOptionPointsConfiguration": {
+        "type": "object",
+        "properties": {
+          "IsBonus": {
+            "type": "boolean",
+            "description": "Whether this option is a bonus. Note: Bonus options are not supported for multi-select questions. This property should only be set to true for single-select and numeric question options."
+          },
+          "PointValue": {
+            "ref_name": "PointValue"
+          }
+        },
+        "required": [
+          "PointValue"
+        ],
+        "additional_properties": false
+      },
+      "QuestionPointsConfiguration": {
+        "type": "object",
+        "properties": {
+          "IsBonus": {
+            "type": "boolean",
+            "description": "Whether the question is a bonus question."
+          },
+          "MaxPointValue": {
+            "ref_name": "PointValue"
+          },
+          "MinPointValue": {
+            "ref_name": "PointValue"
+          }
+        },
+        "additional_properties": false
+      },
       "RefId": {
         "type": "string",
         "pattern": "^[a-zA-Z0-9._-]{1,40}$",
@@ -81551,9 +82609,16 @@
             "type": "string",
             "enum": [
               "QUESTION_ONLY",
-              "SECTION_ONLY"
+              "SECTION_ONLY",
+              "POINTS_BASED"
             ],
             "description": "The scoring mode of the evaluation form.\n *Allowed values*: ``QUESTION_ONLY`` | ``SECTION_ONLY``"
+          },
+          "ScoreThresholds": {
+            "type": "array",
+            "items": {
+              "ref_name": "EvaluationFormScoreThreshold"
+            }
           },
           "Status": {
             "type": "string",
@@ -84918,14 +85983,18 @@
             "properties": {
               "DestinationPhoneNumber": {
                 "type": "string",
+                "pattern": "^\\\\+[1-9]\\\\d{1,14}$",
                 "description": "The destination phonenumber of the EntryPoint"
               },
               "FlowId": {
                 "type": "string",
+                "min_length": 0,
+                "max_length": 500,
                 "description": "The flow id used for the TestCase"
               },
               "SourcePhoneNumber": {
                 "type": "string",
+                "pattern": "^\\\\+[1-9]\\\\d{1,14}$",
                 "description": "The source phonenumber of the EntryPoint"
               }
             },
@@ -89234,6 +90303,7 @@
           "Unit": {
             "type": "string",
             "enum": [
+              "MINUTES",
               "HOURS",
               "DAYS",
               "WEEKS",
@@ -89248,7 +90318,7 @@
           "Value": {
             "type": "integer",
             "minimum": 1.0,
-            "maximum": 24.0,
+            "maximum": 60.0,
             "description": "The amount of time of the specified unit."
           }
         },
@@ -107543,6 +108613,9 @@
               }
             }
           },
+          "McpRoleArn": {
+            "format": "AWS::IAM::Role.Arn"
+          },
           "Region": {
             "type": "string",
             "pattern": "^(\\*|[a-z]{2,4}(-[a-z]+)+-\\d+)$",
@@ -107948,6 +109021,9 @@
           "Endpoint": {
             "type": "string",
             "description": "The MCP server endpoint URL"
+          },
+          "McpRoleArn": {
+            "format": "AWS::IAM::Role.Arn"
           },
           "Name": {
             "type": "string",
@@ -129904,7 +130980,13 @@
                 "t4g",
                 "vu9p",
                 "v100",
-                "l40s"
+                "l40s",
+                "l4",
+                "gaudi-hl-205",
+                "inferentia2",
+                "trainium",
+                "trainium2",
+                "u30"
               ]
             }
           },
@@ -131466,6 +132548,9 @@
           "ref_name": "Tag"
         }
       },
+      "TaskDefinitionArn": {
+        "type": "string"
+      },
       "TaskRoleArn": {
         "type": "string",
         "format": "AWS::IAM::Role.Arn"
@@ -131651,6 +132736,9 @@
           "ServiceRevisionArn": {
             "type": "string"
           },
+          "TaskDefinitionArn": {
+            "type": "string"
+          },
           "TaskRoleArn": {
             "type": "string",
             "format": "AWS::IAM::Role.Arn"
@@ -131804,9 +132892,7 @@
       }
     },
     "required": [
-      "ExecutionRoleArn",
-      "InfrastructureRoleArn",
-      "PrimaryContainer"
+      "InfrastructureRoleArn"
     ],
     "additional_properties": false,
     "read_only_properties": [
@@ -131834,6 +132920,7 @@
     "write_only_properties": [
       "ExecutionRoleArn",
       "TaskRoleArn",
+      "TaskDefinitionArn",
       "HealthCheckPath",
       "PrimaryContainer",
       "NetworkConfiguration",
@@ -132180,9 +133267,15 @@
             "type": "boolean",
             "description": "Determines whether to use the deployment circuit breaker logic for the service."
           },
+          "ResetOnHealthyTask": {
+            "type": "boolean"
+          },
           "Rollback": {
             "type": "boolean",
             "description": "Determines whether to configure Amazon ECS to roll back the service if a service deployment fails. If rollback is on, when a service deployment fails, the service is rolled back to the last deployment that completed successfully."
+          },
+          "ThresholdConfiguration": {
+            "ref_name": "ThresholdConfiguration"
           }
         },
         "required": [
@@ -132459,12 +133552,14 @@
       },
       "MetricConfiguration": {
         "type": "object",
+        "description": "The configuration for a specific set of metrics to collect for a service.",
         "properties": {
           "MetricNames": {
             "type": "array",
             "min_items": 1,
             "max_items": 2,
             "unique_items": true,
+            "description": "The list of metric names to configure. The supported metric names are ``CPUUtilization`` and ``MemoryUtilization``.",
             "items": {
               "type": "string",
               "enum": [
@@ -132482,7 +133577,8 @@
               60
             ],
             "minimum": 20.0,
-            "maximum": 60.0
+            "maximum": 60.0,
+            "description": "The resolution, in seconds, at which to collect the metrics. The valid values are ``20`` and ``60``."
           }
         },
         "required": [
@@ -132493,11 +133589,13 @@
       },
       "MonitoringConfiguration": {
         "type": "object",
+        "description": "The optional monitoring configuration for a service, which defines the resolution for the service-level ``CPUUtilization`` and ``MemoryUtilization`` Amazon CloudWatch metrics. When not specified, Amazon ECS uses the default resolution of ``60`` seconds.",
         "properties": {
           "MetricConfigurations": {
             "type": "array",
             "min_items": 1,
             "max_items": 2,
+            "description": "The list of metric configurations for the service monitoring.",
             "items": {
               "ref_name": "MetricConfiguration"
             }
@@ -132900,6 +133998,27 @@
             "description": "The optional part of a key-value pair that make up a tag. A ``value`` acts as a descriptor within a tag category (key)."
           }
         },
+        "additional_properties": false
+      },
+      "ThresholdConfiguration": {
+        "type": "object",
+        "properties": {
+          "Type": {
+            "type": "string",
+            "enum": [
+              "COUNT",
+              "BOUNDED_PERCENT",
+              "UNBOUNDED_PERCENT"
+            ]
+          },
+          "Value": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "Type",
+          "Value"
+        ],
         "additional_properties": false
       },
       "TimeoutConfiguration": {
@@ -135724,6 +136843,9 @@
         "format": "AWS::IAM::Role.Arn",
         "description": "The Amazon Resource Name (ARN) of the IAM role that provides permissions for the Kubernetes control plane to make calls to AWS API operations on your behalf."
       },
+      "RollbackConfig": {
+        "ref_name": "RollbackConfig"
+      },
       "StorageConfig": {
         "ref_name": "StorageConfig"
       },
@@ -136123,6 +137245,19 @@
         ],
         "additional_properties": false
       },
+      "RollbackConfig": {
+        "type": "object",
+        "description": "The rollback configuration to use for the cluster version rollback.",
+        "properties": {
+          "TimeoutMinutes": {
+            "type": "integer",
+            "minimum": 120.0,
+            "maximum": 10080.0,
+            "description": "The timeout in minutes for the version rollback operation. If not specified, defaults to 720 minutes (12 hours)."
+          }
+        },
+        "additional_properties": false
+      },
       "StorageConfig": {
         "type": "object",
         "description": "Todo: add description",
@@ -136201,7 +137336,8 @@
     "write_only_properties": [
       "AccessConfig.BootstrapClusterCreatorAdminPermissions",
       "BootstrapSelfManagedAddons",
-      "Force"
+      "Force",
+      "RollbackConfig"
     ],
     "create_only_properties": [
       "OutpostConfig",
@@ -140574,7 +141710,8 @@
         "type": "string",
         "enum": [
           "VCF-5.2.1",
-          "VCF-5.2.2"
+          "VCF-5.2.2",
+          "SELF_DEPLOYED"
         ]
       },
       "VpcId": {
@@ -140745,11 +141882,7 @@
       "VpcId",
       "ServiceAccessSubnetId",
       "VcfVersion",
-      "TermsAccepted",
-      "LicenseInfo",
-      "ConnectivityInfo",
-      "VcfHostnames",
-      "SiteId"
+      "TermsAccepted"
     ],
     "additional_properties": false,
     "read_only_properties": [
@@ -172312,6 +173445,16 @@
       "ImageScanningConfiguration": {
         "ref_name": "ImageScanningConfiguration"
       },
+      "ImageTags": {
+        "type": "object",
+        "description": "The tags to be applied to images created by this pipeline.",
+        "additional_properties": false,
+        "pattern_properties": {
+          ".{1,}": {
+            "type": "string"
+          }
+        }
+      },
       "ImageTestsConfiguration": {
         "ref_name": "ImageTestsConfiguration"
       },
@@ -172852,7 +173995,9 @@
       "ParentImage",
       "Description",
       "BlockDeviceMappings",
-      "WorkingDirectory"
+      "WorkingDirectory",
+      "AdditionalInstanceConfiguration",
+      "AmiTags"
     ],
     "primary_identifier": [
       "Arn"
@@ -181587,7 +182732,6 @@
       },
       "AlarmModelDescription": {
         "type": "string",
-        "min_length": 0,
         "max_length": 1024,
         "description": "The description of the alarm model."
       },
@@ -181976,10 +183120,6 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
-              "JSON",
-              "STRING"
-            ],
             "description": "The value of the payload type can be either ``STRING`` or ``JSON``."
           }
         },
@@ -182071,14 +183211,10 @@
         "properties": {
           "Key": {
             "type": "string",
-            "min_length": 1,
-            "max_length": 128,
             "description": "The tag's key."
           },
           "Value": {
             "type": "string",
-            "min_length": 0,
-            "max_length": 256,
             "description": "The tag's value."
           }
         },
@@ -182113,7 +183249,6 @@
       },
       "DetectorModelDescription": {
         "type": "string",
-        "min_length": 0,
         "max_length": 1024,
         "description": "A brief description of the detector model."
       },
@@ -182384,13 +183519,11 @@
           },
           "Condition": {
             "type": "string",
-            "min_length": 0,
             "max_length": 512,
             "description": "Optional. The Boolean expression that, when TRUE, causes the ``actions`` to be performed. If not present, the actions are performed (=TRUE). If the expression result is not a Boolean value, the actions are not performed (=FALSE)."
           },
           "EventName": {
             "type": "string",
-            "min_length": 0,
             "max_length": 128,
             "description": "The name of the event."
           }
@@ -182570,10 +183703,6 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
-              "JSON",
-              "STRING"
-            ],
             "description": "The value of the payload type can be either ``STRING`` or ``JSON``."
           }
         },
@@ -182722,14 +183851,10 @@
         "properties": {
           "Key": {
             "type": "string",
-            "min_length": 1,
-            "max_length": 128,
             "description": "The tag's key."
           },
           "Value": {
             "type": "string",
-            "min_length": 0,
-            "max_length": 256,
             "description": "The tag's value."
           }
         },
@@ -182752,7 +183877,6 @@
           },
           "Condition": {
             "type": "string",
-            "min_length": 0,
             "max_length": 512,
             "description": "Required. A Boolean expression that when TRUE causes the actions to be performed and the ``nextState`` to be entered."
           },
@@ -182864,14 +183988,10 @@
         "properties": {
           "Key": {
             "type": "string",
-            "min_length": 1,
-            "max_length": 128,
             "description": "The tag's key."
           },
           "Value": {
             "type": "string",
-            "min_length": 0,
-            "max_length": 256,
             "description": "The tag's value."
           }
         },
@@ -200768,6 +201888,10 @@
             "maximum": 31622400.0,
             "description": "The maximum time (in seconds) that a durable execution can run before timing out. This timeout applies to the entire durable execution, not individual function invocations."
           },
+          "KMSKeyArn": {
+            "type": "string",
+            "pattern": "^(arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)|()$"
+          },
           "RetentionPeriodInDays": {
             "type": "integer",
             "minimum": 1.0,
@@ -202075,7 +203199,7 @@
       },
       "InvokedViaFunctionUrl": {
         "type": "boolean",
-        "description": "Restricts the ``lambda:InvokeFunction`` action to function URL calls. When specified, this option prevents the principal from invoking the function by any means other than the function URL. For more information, see [Control access to Lambda function URLs](https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html)."
+        "description": "Indicates whether the permission applies when the function is invoked through a function URL."
       },
       "Principal": {
         "type": "string",
@@ -238435,7 +239559,7 @@
       },
       "VpcEndpointService": {
         "type": "string",
-        "min_length": 1,
+        "min_length": 0,
         "max_length": 128,
         "description": "The VPC endpoint service name for the pipeline."
       },
@@ -242639,6 +243763,48 @@
       "IndexSettings": {
         "type": "object",
         "properties": {
+          "Analysis": {
+            "type": "object",
+            "description": "Custom analysis configuration including analyzers, tokenizers, and filters",
+            "properties": {
+              "Analyzer": {
+                "type": "object",
+                "description": "Custom analyzer definitions",
+                "additional_properties": false,
+                "pattern_properties": {
+                  "^[A-Za-z0-9_.-]{1,64}$": {
+                    "type": "object",
+                    "properties": {
+                      "CharFilter": {
+                        "type": "array",
+                        "description": "Character filters to apply",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "Filter": {
+                        "type": "array",
+                        "description": "Token filters to apply",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "Tokenizer": {
+                        "type": "string",
+                        "description": "The tokenizer to use"
+                      },
+                      "Type": {
+                        "type": "string",
+                        "description": "The analyzer type (e.g. custom, standard, simple)"
+                      }
+                    },
+                    "additional_properties": false
+                  }
+                }
+              }
+            },
+            "additional_properties": false
+          },
           "Index": {
             "type": "object",
             "properties": {
@@ -242663,6 +243829,22 @@
       "PropertyMapping": {
         "type": "object",
         "properties": {
+          "Analyzer": {
+            "type": "string",
+            "description": "The analyzer to use for this field (for text and keyword fields)"
+          },
+          "CompressionLevel": {
+            "type": "string",
+            "enum": [
+              "16x",
+              "32x",
+              "8x",
+              "4x",
+              "2x",
+              "1x"
+            ],
+            "description": "The compression level for knn_vector fields"
+          },
           "Dimension": {
             "type": "integer",
             "description": "Dimension size for vector fields, defines the number of dimensions in the vector"
@@ -242738,11 +243920,25 @@
               }
             }
           },
+          "SpaceType": {
+            "type": "string",
+            "enum": [
+              "l2",
+              "l1",
+              "linf",
+              "cosinesimil",
+              "innerproduct",
+              "hamming"
+            ],
+            "description": "The distance function used for k-NN search (field-level, outside Method)"
+          },
           "Type": {
             "type": "string",
             "enum": [
               "text",
-              "knn_vector"
+              "knn_vector",
+              "keyword",
+              "integer"
             ],
             "description": "The field data type. Must be a valid OpenSearch field type."
           },
@@ -242771,14 +243967,15 @@
     ],
     "create_only_properties": [
       "IndexName",
-      "CollectionEndpoint"
+      "CollectionEndpoint",
+      "Settings.Analysis"
     ],
     "primary_identifier": [
       "IndexName",
       "CollectionEndpoint"
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-opensearchserverless",
-    "description": "An OpenSearch Serverless index resource"
+    "description": "Resource Type definition for AWS::OpenSearchServerless::Index"
   },
   "AWS::OpenSearchServerless::LifecyclePolicy": {
     "type_name": "AWS::OpenSearchServerless::LifecyclePolicy",
@@ -309789,7 +310986,7 @@
       },
       "RecoveryPointId": {
         "type": "string",
-        "description": "The recovery point id to restore from."
+        "description": "The identifier of the recovery point to restore the namespace from. When this resource is first created, the namespace is restored from this recovery point. On subsequent updates, a restore occurs only when RecoveryPointId changes from its previous value. If the value is unchanged or removed, no restore takes place and existing data is preserved."
       },
       "SecurityGroupIds": {
         "type": "array",
@@ -309807,15 +311004,15 @@
       },
       "SnapshotArn": {
         "type": "string",
-        "description": "The Amazon Resource Name (ARN) of the snapshot to restore from."
+        "description": "The Amazon Resource Name (ARN) of the snapshot to restore the namespace from. Specify either SnapshotArn or SnapshotName, but not both. When this resource is first created, the namespace is restored from this snapshot. On subsequent updates, a restore occurs only when SnapshotArn changes from its previous value. If the value is unchanged or removed, no restore takes place and existing data is preserved."
       },
       "SnapshotName": {
         "type": "string",
-        "description": "The snapshot name to restore from."
+        "description": "The name of the snapshot to restore the namespace from. Because snapshot names are unique only within an account, also specify SnapshotOwnerAccount when restoring from a snapshot owned by a different account. Specify either SnapshotName or SnapshotArn, but not both. When this resource is first created, the namespace is restored from this snapshot. On subsequent updates, a restore occurs only when SnapshotName or SnapshotOwnerAccount changes from its previous value. If both values are unchanged or SnapshotName is removed, no restore takes place and existing data is preserved."
       },
       "SnapshotOwnerAccount": {
         "type": "string",
-        "description": "The Amazon Web Services account that owns the snapshot."
+        "description": "The AWS account ID that owns the snapshot. Required when restoring from a snapshot shared by another account. Used in combination with SnapshotName. On updates, changing this value while SnapshotName is set triggers a restore from the newly referenced snapshot. If the value is unchanged, no restore takes place and existing data is preserved."
       },
       "SubnetIds": {
         "type": "array",
@@ -312372,6 +313569,10 @@
         "type": "string",
         "pattern": "^[A-Za-z0-9][A-Za-z0-9_\\-]{1,59}$",
         "description": "The name of the system."
+      },
+      "SharingEnabled": {
+        "type": "boolean",
+        "description": "Whether the system is enabled to be shared with other members of the Organization. Only applicable if the system owner is a management account or delegated admin."
       },
       "SystemArn": {
         "type": "string",
@@ -317178,6 +318379,15 @@
             "min_length": 1,
             "max_length": 16,
             "description": "Qtype"
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "COMPLETE",
+              "CREATING",
+              "CREATION_FAILED"
+            ],
+            "description": "The status of the firewall rule."
           }
         },
         "required": [
@@ -317195,10 +318405,18 @@
           },
           "FirewallAdvancedThreatCategory": {
             "ref_name": "FirewallAdvancedThreatCategoryConfig"
+          },
+          "PartnerThreatProtection": {
+            "ref_name": "PartnerThreatProtectionConfig"
           }
         },
         "additional_properties": false,
         "one_of": [
+          {
+            "required": [
+              "PartnerThreatProtection"
+            ]
+          },
           {
             "required": [
               "FirewallAdvancedContentCategory"
@@ -317210,6 +318428,22 @@
             ]
           }
         ]
+      },
+      "PartnerThreatProtectionConfig": {
+        "type": "object",
+        "description": "Configuration for a partner threat protection rule type.",
+        "properties": {
+          "Partner": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The partner identifier value."
+          }
+        },
+        "required": [
+          "Partner"
+        ],
+        "additional_properties": false
       },
       "Tag": {
         "type": "object",
@@ -317248,7 +318482,8 @@
       "CreatorRequestId",
       "CreationTime",
       "ModificationTime",
-      "FirewallRules.*.FirewallThreatProtectionId"
+      "FirewallRules.*.FirewallThreatProtectionId",
+      "FirewallRules.*.Status"
     ],
     "create_only_properties": [
       "Name"
@@ -356425,7 +357660,7 @@
         },
         "additional_properties": false
       },
-      "VpcConfig": {
+      "samtranslator__internal__schema_source__aws_serverless_capacity_provider__VpcConfig": {
         "type": "object",
         "properties": {
           "SecurityGroupIds": {
@@ -357526,24 +358761,6 @@
         ],
         "additional_properties": false
       },
-      "Hooks": {
-        "type": "object",
-        "properties": {
-          "PostTraffic": {
-            "any_of": [
-              {},
-              {}
-            ]
-          },
-          "PreTraffic": {
-            "any_of": [
-              {},
-              {}
-            ]
-          }
-        },
-        "additional_properties": false
-      },
       "HttpApiAuth": {
         "type": "object",
         "properties": {
@@ -358575,6 +359792,24 @@
         ],
         "additional_properties": false
       },
+      "samtranslator__internal__schema_source__aws_serverless_function__Hooks": {
+        "type": "object",
+        "properties": {
+          "PostTraffic": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "PreTraffic": {
+            "any_of": [
+              {},
+              {}
+            ]
+          }
+        },
+        "additional_properties": false
+      },
       "samtranslator__internal__schema_source__aws_serverless_function__ResourcePolicy": {
         "type": "object",
         "properties": {
@@ -359204,21 +360439,6 @@
         ],
         "additional_properties": false
       },
-      "Logging": {
-        "type": "object",
-        "properties": {
-          "CloudWatchLogsRoleArn": {
-            "ref_name": "PassThroughProp"
-          },
-          "ExcludeVerboseContent": {
-            "ref_name": "PassThroughProp"
-          },
-          "FieldLogLevel": {
-            "ref_name": "PassThroughProp"
-          }
-        },
-        "additional_properties": false
-      },
       "OpenIDConnectConfig": {
         "type": "object",
         "properties": {
@@ -359374,6 +360594,21 @@
         "required": [
           "Type"
         ],
+        "additional_properties": false
+      },
+      "samtranslator__internal__schema_source__aws_serverless_graphqlapi__Logging": {
+        "type": "object",
+        "properties": {
+          "CloudWatchLogsRoleArn": {
+            "ref_name": "PassThroughProp"
+          },
+          "ExcludeVerboseContent": {
+            "ref_name": "PassThroughProp"
+          },
+          "FieldLogLevel": {
+            "ref_name": "PassThroughProp"
+          }
+        },
         "additional_properties": false
       }
     },
@@ -359750,6 +360985,344 @@
     },
     "required": [
       "ContentUri"
+    ],
+    "additional_properties": false,
+    "read_only_properties": []
+  },
+  "AWS::Serverless::MicrovmImage": {
+    "type_name": "AWS::Serverless::MicrovmImage",
+    "properties": {
+      "AdditionalOsCapabilities": {
+        "type": "array",
+        "items": {
+          "any_of": [
+            {},
+            {}
+          ]
+        }
+      },
+      "BaseImageArn": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "BaseImageVersion": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "BuildRoleArn": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "CodeUri": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "CpuConfigurations": {
+        "type": "array",
+        "items": {
+          "ref_name": "CpuConfiguration"
+        }
+      },
+      "Description": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "EgressNetworkConnectors": {
+        "type": "array",
+        "items": {
+          "any_of": [
+            {},
+            {}
+          ]
+        }
+      },
+      "EnvironmentVariables": {
+        "type": "object"
+      },
+      "Hooks": {
+        "all_of": [
+          {}
+        ]
+      },
+      "Logging": {
+        "all_of": [
+          {}
+        ]
+      },
+      "Name": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "PropagateTags": {
+        "type": "boolean"
+      },
+      "Resources": {
+        "type": "array",
+        "items": {
+          "ref_name": "ResourceSpec"
+        }
+      },
+      "Tags": {
+        "type": "object"
+      }
+    },
+    "definitions": {
+      "CloudWatchLogging": {
+        "type": "object",
+        "properties": {
+          "LogGroup": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "LogStream": {
+            "any_of": [
+              {},
+              {}
+            ]
+          }
+        },
+        "additional_properties": false
+      },
+      "CpuConfiguration": {
+        "type": "object",
+        "properties": {
+          "Architecture": {
+            "any_of": [
+              {},
+              {}
+            ]
+          }
+        },
+        "required": [
+          "Architecture"
+        ],
+        "additional_properties": false
+      },
+      "MicrovmHooks": {
+        "type": "object",
+        "properties": {
+          "Resume": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "ResumeTimeoutInSeconds": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "Run": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "RunTimeoutInSeconds": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "Suspend": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "SuspendTimeoutInSeconds": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "Terminate": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "TerminateTimeoutInSeconds": {
+            "any_of": [
+              {},
+              {}
+            ]
+          }
+        },
+        "additional_properties": false
+      },
+      "MicrovmImageHooks": {
+        "type": "object",
+        "properties": {
+          "Ready": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "ReadyTimeoutInSeconds": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "Validate": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "ValidateTimeoutInSeconds": {
+            "any_of": [
+              {},
+              {}
+            ]
+          }
+        },
+        "additional_properties": false
+      },
+      "ResourceSpec": {
+        "type": "object",
+        "properties": {
+          "MinimumMemoryInMiB": {
+            "any_of": [
+              {},
+              {}
+            ]
+          }
+        },
+        "required": [
+          "MinimumMemoryInMiB"
+        ],
+        "additional_properties": false
+      },
+      "samtranslator__internal__schema_source__aws_serverless_microvmimage__Hooks": {
+        "type": "object",
+        "properties": {
+          "MicrovmHooks": {
+            "all_of": [
+              {}
+            ]
+          },
+          "MicrovmImageHooks": {
+            "all_of": [
+              {}
+            ]
+          },
+          "Port": {
+            "any_of": [
+              {},
+              {}
+            ]
+          }
+        },
+        "additional_properties": false
+      },
+      "samtranslator__internal__schema_source__aws_serverless_microvmimage__Logging": {
+        "type": "object",
+        "properties": {
+          "CloudWatch": {
+            "all_of": [
+              {}
+            ]
+          },
+          "Disabled": {
+            "type": "boolean"
+          }
+        },
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "Name",
+      "CodeUri",
+      "BaseImageArn",
+      "BaseImageVersion"
+    ],
+    "additional_properties": false,
+    "read_only_properties": []
+  },
+  "AWS::Serverless::NetworkConnector": {
+    "type_name": "AWS::Serverless::NetworkConnector",
+    "properties": {
+      "Name": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "OperatorRole": {
+        "any_of": [
+          {},
+          {}
+        ]
+      },
+      "PropagateTags": {
+        "type": "boolean"
+      },
+      "Tags": {
+        "type": "object"
+      },
+      "VpcConfig": {
+        "all_of": [
+          {}
+        ]
+      }
+    },
+    "definitions": {
+      "samtranslator__internal__schema_source__aws_serverless_networkconnector__VpcConfig": {
+        "type": "object",
+        "properties": {
+          "NetworkProtocol": {
+            "any_of": [
+              {},
+              {}
+            ]
+          },
+          "SecurityGroupIds": {
+            "type": "array",
+            "items": {
+              "any_of": [
+                {},
+                {}
+              ]
+            }
+          },
+          "SubnetIds": {
+            "type": "array",
+            "items": {
+              "any_of": [
+                {},
+                {}
+              ]
+            }
+          }
+        },
+        "required": [
+          "SubnetIds",
+          "SecurityGroupIds",
+          "NetworkProtocol"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "VpcConfig"
     ],
     "additional_properties": false,
     "read_only_properties": []
@@ -363087,7 +364660,6 @@
       },
       "MaximumDuration": {
         "type": "string",
-        "pattern": "^\\d{1,5}[mhdMHD]$",
         "min_length": 2,
         "max_length": 6,
         "description": "The maximum running time of the simulation."
@@ -363101,9 +364673,6 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(?:aws|aws-cn|aws-us-gov):iam::(\\d{12})?:role\\/(.+)$",
-        "min_length": 0,
-        "max_length": 1600,
         "format": "AWS::IAM::Role.Arn",
         "description": "Role ARN."
       },
@@ -369878,6 +371447,11 @@
         "pattern": "^svc-[0-9a-z]{17}$",
         "min_length": 21,
         "max_length": 21
+      },
+      "IdleTimeoutSeconds": {
+        "type": "integer",
+        "minimum": 60.0,
+        "maximum": 600.0
       },
       "LastUpdatedAt": {
         "type": "string"

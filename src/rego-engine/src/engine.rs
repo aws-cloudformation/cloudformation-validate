@@ -17,7 +17,6 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
         ("data/known_resource_types", &*embedded::KNOWN_RESOURCE_TYPES_BYTES),
         ("data/primary_identifiers", &*embedded::PRIMARY_IDENTIFIERS_BYTES),
         ("data/iam_action_resource_patterns", &*embedded::IAM_ACTION_RESOURCE_PATTERNS_BYTES),
-        ("data/region_resource_types", &*embedded::REGION_RESOURCE_TYPES_BYTES),
         ("data/stateful_resource_types", &*embedded::STATEFUL_RESOURCE_TYPES_BYTES),
         ("data/aws_rds_dbinstance_dbinstanceclass_enum", &*embedded::AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES),
         ("data/aws_ec2_instance_instancetype_enum", &*embedded::AWS_EC2_INSTANCE_INSTANCETYPE_ENUM_BYTES),

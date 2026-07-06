@@ -672,4 +672,76 @@ Resources:
         );
         assert!(ids.contains(&"E9004".to_string()), "Expected E9004 for invalid GetAtt attribute, got: {:?}", ids);
     }
+
+    #[test]
+    fn e9004_dotted_attribute_on_object_attribute_is_still_invalid() {
+        // A dotted GetAtt whose leading segment is an object/array-typed property
+        // (here S3 Bucket `Tags`, an array) is NOT a valid map-member reference:
+        // GetAtt cannot index into such an attribute. The engine must still flag
+        // it, matching the reference tool. Only nested-stack / provisioned-product
+        // `Outputs.<key>` is an open-ended map member.
+        let ids = validate(
+            r#"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+  Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt Bucket.Tags.0
+"#,
+        );
+        assert!(
+            ids.contains(&"E9004".to_string()),
+            "Expected E9004 for a dotted GetAtt into an object/array attribute, got: {:?}",
+            ids
+        );
+    }
+
+    #[test]
+    fn e9004_provisioned_product_outputs_member_is_valid() {
+        // A provisioned product exposes `Outputs.<OutputKey>` for any key, so a
+        // dotted `Outputs.<key>` must NOT be flagged, while a genuinely invalid
+        // attribute on the same type still is.
+        let ids = validate(
+            r#"
+Resources:
+  PP:
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
+    Properties:
+      ProductName: p
+      ProvisioningArtifactName: v1
+  UseOutput:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt PP.Outputs.MyKey
+"#,
+        );
+        assert!(
+            !ids.contains(&"E9004".to_string()),
+            "A provisioned product Outputs.<key> member must not be flagged, got: {:?}",
+            ids
+        );
+
+        let bad = validate(
+            r#"
+Resources:
+  PP:
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
+    Properties:
+      ProductName: p
+      ProvisioningArtifactName: v1
+  UseBad:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt PP.NotARealAttr
+"#,
+        );
+        assert!(
+            bad.contains(&"E9004".to_string()),
+            "An invalid provisioned product attribute must still be flagged, got: {:?}",
+            bad
+        );
+    }
 }

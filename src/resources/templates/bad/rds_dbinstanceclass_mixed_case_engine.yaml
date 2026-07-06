@@ -1,0 +1,10 @@
+Resources:
+  # Engine is mixed-case ("MySQL"). The reference tool lowercases Engine before
+  # matching the conditional enum branches, so E3025 must still fire for an
+  # invalid DBInstanceClass. (Guards the case-sensitivity false negative.)
+  Db:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: MySQL
+      DBInstanceClass: totally.bogus.class
+      AllocatedStorage: "20"

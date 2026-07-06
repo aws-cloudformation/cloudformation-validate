@@ -560,6 +560,26 @@
       "AssessmentId",
       "CreationTime"
     ],
+    "AWS::AuditManager::AssessmentFramework": [
+      "Arn",
+      "CreatedAt",
+      "CreatedBy",
+      "FrameworkId",
+      "LastUpdatedAt",
+      "LastUpdatedBy",
+      "Type"
+    ],
+    "AWS::AuditManager::Control": [
+      "Arn",
+      "ControlMappingSources.*.SourceId",
+      "ControlSources",
+      "CreatedAt",
+      "CreatedBy",
+      "Id",
+      "LastUpdatedAt",
+      "LastUpdatedBy",
+      "Type"
+    ],
     "AWS::AutoScaling::AutoScalingGroup": [
       "AutoScalingGroupARN",
       "AutoScalingGroupName",
@@ -1248,6 +1268,16 @@
     "AWS::CertificateManager::Account": [
       "AccountId"
     ],
+    "AWS::CertificateManager::AcmeDomainValidation": [
+      "Arn"
+    ],
+    "AWS::CertificateManager::AcmeEndpoint": [
+      "AcmeEndpointArn",
+      "EndpointUrl"
+    ],
+    "AWS::CertificateManager::AcmeExternalAccountBinding": [
+      "AcmeExternalAccountBindingArn"
+    ],
     "AWS::CertificateManager::Certificate": [
       "Id"
     ],
@@ -1549,7 +1579,6 @@
     ],
     "AWS::CloudWatch::InsightRule": [
       "Arn",
-      "Id",
       "RuleName"
     ],
     "AWS::CloudWatch::LogAlarm": [
@@ -1651,6 +1680,7 @@
       "Id"
     ],
     "AWS::CodePipeline::Pipeline": [
+      "Arn",
       "Version"
     ],
     "AWS::CodePipeline::Webhook": [
@@ -1735,6 +1765,11 @@
     ],
     "AWS::Config::ConfigurationRecorder": [
       "Id"
+    ],
+    "AWS::Config::Connector": [
+      "Arn",
+      "CreatedTime",
+      "Name"
     ],
     "AWS::Config::DeliveryChannel": [
       "Id"
@@ -7023,6 +7058,7 @@
       "CreationTime",
       "CreatorRequestId",
       "FirewallRules.*.FirewallThreatProtectionId",
+      "FirewallRules.*.Status",
       "Id",
       "ModificationTime",
       "OwnerId",
@@ -9685,6 +9721,37 @@
       "Roles": "array",
       "Tags": "array"
     },
+    "AWS::AuditManager::AssessmentFramework": {
+      "Arn": "string",
+      "ComplianceType": "string",
+      "ControlSets": "array",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "Description": "string",
+      "FrameworkId": "string",
+      "LastUpdatedAt": "string",
+      "LastUpdatedBy": "string",
+      "Name": "string",
+      "Tags": "array",
+      "Type": "string"
+    },
+    "AWS::AuditManager::Control": {
+      "ActionPlanInstructions": "string",
+      "ActionPlanTitle": "string",
+      "Arn": "string",
+      "ControlMappingSources": "array",
+      "ControlSources": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "Description": "string",
+      "Id": "string",
+      "LastUpdatedAt": "string",
+      "LastUpdatedBy": "string",
+      "Name": "string",
+      "Tags": "array",
+      "TestingInformation": "string",
+      "Type": "string"
+    },
     "AWS::AutoScaling::AutoScalingGroup": {
       "AutoScalingGroupARN": "string",
       "AutoScalingGroupName": "string",
@@ -10614,6 +10681,26 @@
       "MaxNestingDepth": "integer",
       "TypeName": "string"
     },
+    "AWS::CertificateManager::AcmeDomainValidation": {
+      "AcmeEndpointArn": "string",
+      "Arn": "string",
+      "DomainName": "string",
+      "Tags": "array"
+    },
+    "AWS::CertificateManager::AcmeEndpoint": {
+      "AcmeEndpointArn": "string",
+      "AuthorizationBehavior": "string",
+      "CertificateTags": "array",
+      "Contact": "string",
+      "EndpointUrl": "string",
+      "Tags": "array"
+    },
+    "AWS::CertificateManager::AcmeExternalAccountBinding": {
+      "AcmeEndpointArn": "string",
+      "AcmeExternalAccountBindingArn": "string",
+      "RoleArn": "string",
+      "Tags": "array"
+    },
     "AWS::CertificateManager::Certificate": {
       "CertificateAuthorityArn": "string",
       "CertificateExport": "string",
@@ -11221,7 +11308,6 @@
     "AWS::CloudWatch::InsightRule": {
       "ApplyOnTransformedLogs": "boolean",
       "Arn": "string",
-      "Id": "string",
       "RuleBody": "string",
       "RuleName": "string",
       "RuleState": "string",
@@ -11439,6 +11525,7 @@
       "Version": "string"
     },
     "AWS::CodePipeline::Pipeline": {
+      "Arn": "string",
       "ArtifactStores": "array",
       "DisableInboundStageTransitions": "array",
       "ExecutionMode": "string",
@@ -11734,6 +11821,12 @@
       "TemplateBody": "string",
       "TemplateS3Uri": "string",
       "TemplateSSMDocumentDetails": "object"
+    },
+    "AWS::Config::Connector": {
+      "Arn": "string",
+      "CreatedTime": "string",
+      "Name": "string",
+      "Tags": "array"
     },
     "AWS::Config::DeliveryChannel": {
       "Id": "string",
@@ -14571,6 +14664,7 @@
       "ServiceArn": "string",
       "ServiceName": "string",
       "Tags": "array",
+      "TaskDefinitionArn": "string",
       "TaskRoleArn": "string",
       "UpdatedAt": "string"
     },
@@ -16534,6 +16628,7 @@
       "EnhancedImageMetadataEnabled": "boolean",
       "ExecutionRole": "string",
       "ImageRecipeArn": "string",
+      "ImageTags": "object",
       "InfrastructureConfigurationArn": "string",
       "Name": "string",
       "Status": "string",
@@ -21029,6 +21124,7 @@
       "Description": "string",
       "KmsKeyId": "string",
       "Name": "string",
+      "SharingEnabled": "boolean",
       "SystemArn": "string",
       "SystemId": "string",
       "Tags": "array",
@@ -22728,6 +22824,19 @@
       "LicenseInfo": "string",
       "PublishLambdaVersion": "boolean"
     },
+    "AWS::Serverless::MicrovmImage": {
+      "AdditionalOsCapabilities": "array",
+      "CpuConfigurations": "array",
+      "EgressNetworkConnectors": "array",
+      "EnvironmentVariables": "object",
+      "PropagateTags": "boolean",
+      "Resources": "array",
+      "Tags": "object"
+    },
+    "AWS::Serverless::NetworkConnector": {
+      "PropagateTags": "boolean",
+      "Tags": "object"
+    },
     "AWS::Serverless::SimpleTable": {
       "TableName": "string",
       "Tags": "object"
@@ -23363,6 +23472,7 @@
       "CreatedAt": "string",
       "CustomDomainName": "string",
       "Id": "string",
+      "IdleTimeoutSeconds": "integer",
       "LastUpdatedAt": "string",
       "Name": "string",
       "Status": "string",

@@ -20,15 +20,17 @@ Reports are written to scripts/<engine>/report_<engine>_<format>.md.
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 SRC_DIR = PROJECT_ROOT / "src"
+REPORTS_ROOT = SRC_DIR / "cfn-validate" / "reports"
 ENGINE_NAME = "rego"
 ENGINE_REPORTS = SRC_DIR / "cfn-validate" / "reports" / "rego" / "json_detailed"
 CFN_LINT_ROOT = Path(os.environ["CFN_LINT_ROOT"]) if "CFN_LINT_ROOT" in os.environ else None
@@ -116,6 +118,22 @@ def configure_run(engine, fmt):
 
 # ── Build & Run ──────────────────────────────────────────────────────────────
 
+def clean_reports():
+    """Remove the entire reports/ tree before a run.
+
+    Report filenames are derived from template stems and format/engine names, so
+    anything left from a prior run — orphaned per-template reports for renamed or
+    removed fixtures, aggregate JSON for a format not regenerated this run, or a
+    stale report_*.md — is silently compared against the reference's live results
+    and corrupts the FP/FN/location tallies (and inflates the cel↔rego diff with
+    ghost disagreements). Wiping the whole tree up front guarantees every artifact
+    read downstream was produced by this run.
+    """
+    if REPORTS_ROOT.exists():
+        shutil.rmtree(REPORTS_ROOT)
+    print(f"Cleaned reports directory: {REPORTS_ROOT}")
+
+
 def build():
     if SKIP_BUILD:
         print("Skipping build (--skip-build)", file=sys.stderr)
@@ -131,11 +149,44 @@ def build():
     print("Build succeeded.")
 
 
+def _warn_if_benchmark_stale(bench_bin):
+    """Warn when the cfn-benchmark binary predates the newest Rust source.
+
+    With --skip-build the script reuses whatever cfn-benchmark exists. A common
+    trap is rebuilding only `cfn-validate` (`cargo build -p cfn-validate --bin
+    cfn-validate`), which leaves cfn-benchmark stale — the comparison then runs on
+    old behavior while a freshly-built golden passes, producing phantom results.
+    """
+    bench_mtime = bench_bin.stat().st_mtime
+    newest_src = 0.0
+    newest_path = None
+    for rs in SRC_DIR.rglob("*.rs"):
+        if "target" in rs.parts:
+            continue
+        m = rs.stat().st_mtime
+        if m > newest_src:
+            newest_src, newest_path = m, rs
+    for rego in SRC_DIR.rglob("*.rego"):
+        if "target" in rego.parts:
+            continue
+        m = rego.stat().st_mtime
+        if m > newest_src:
+            newest_src, newest_path = m, rego
+    if newest_src > bench_mtime:
+        print(
+            f"WARNING: cfn-benchmark is older than {newest_path} — it may be stale. "
+            f"Run `cargo build --release` (whole workspace) or drop --skip-build.",
+            file=sys.stderr,
+        )
+
+
 def run_bench():
     bench_bin = SRC_DIR / "target" / "release" / "cfn-benchmark"
     if not bench_bin.exists():
         print(f"cfn-benchmark binary not found at {bench_bin}", file=sys.stderr)
         sys.exit(1)
+    if SKIP_BUILD:
+        _warn_if_benchmark_stale(bench_bin)
 
     cmd = [str(bench_bin), str(SRC_DIR / "resources" / "templates"), "--engine", ENGINE_NAME, "--format", OUTPUT_FORMAT, "--iterations", str(ITERATIONS)]
     print(f"=== Running cfn-benchmark (engine={ENGINE_NAME}, format={OUTPUT_FORMAT}) ===")
@@ -409,6 +460,29 @@ def _is_engine_extra(d):
     return False
 
 
+def _location_diverges(exp, act):
+    """True when a matched pair reports the SAME finding on the SAME property at
+    a different start line — a genuine per-property anchoring bug.
+
+    Scoped deliberately to same-property pairs (equal, non-empty resource_id and
+    resource_path). Structural / transform findings (E0001, E1001, W3005, …) that
+    the reference anchors at the template or resource root while the engine
+    anchors more precisely at the offending node carry no property path; those
+    are an intentional precision improvement, not a data-source divergence, so
+    they are excluded rather than flooding the report."""
+    exp_line = exp.get("line", 0)
+    act_line = act.get("line", 0)
+    if not exp_line or not act_line or exp_line == act_line:
+        return False
+    exp_rid = exp.get("resource_id", "")
+    act_rid = act.get("resource_id", "")
+    if not exp_rid or exp_rid != act_rid:
+        return False
+    exp_path = exp.get("resource_path", "")
+    act_path = act.get("resource_path", "")
+    return bool(exp_path) and exp_path == act_path
+
+
 def compare_template(cfnlint_diags, engine_diags):
     """Returns (matched, false_positives, false_negatives).
     Two-pass matching: first by (rule_id, resource_id, path), then by (rule_id, resource_id)
@@ -529,6 +603,13 @@ def run_single():
     rules = defaultdict(lambda: {"severity": "", "description": "", "source_url": "",
                                   "tp": [], "fp": [], "ee": [], "fn": []})
 
+    # Matched-pair divergence the (rule_id, resource_id, path) key cannot see:
+    # a pair whose start line differs is a wrong-location divergence — the
+    # diagnostic fired but not where it should. Severity and message are NOT
+    # compared: the engine deliberately re-severities some split rules and is
+    # free to word diagnostics differently, so neither is a defect.
+    location_mismatches = []  # (key, exp, act)
+
     for key in matched_keys:
         m, fp_all, fn = compare_template(cfnlint_all[key], engine_all[key])
         # If cfn-lint reported a parse error (F0000/E0000), it stopped further
@@ -558,6 +639,11 @@ def run_single():
             rules[rid]["severity"] = rules[rid]["severity"] or exp["severity"]
             rules[rid]["description"] = rules[rid]["description"] or exp.get("rule_description", "")
             rules[rid]["source_url"] = rules[rid]["source_url"] or exp.get("rule_source", "")
+            # A matched pair still diverges if the engine reports it at a
+            # different line even though the (rule_id, resource_id, path) key
+            # lined up.
+            if _location_diverges(exp, act):
+                location_mismatches.append((key, exp, act))
         for d in fp:
             rid = d["rule_id"]
             rules[rid]["fp"].append((key, d))
@@ -618,6 +704,7 @@ def run_single():
     w(f"| F1 | {f1:.2f}% |")
     w(f"| Unique rules detected | {len(rules)} |")
     w(f"| Perfect templates | {perfect_templates}/{len(matched_keys)} |")
+    w(f"| Location mismatches (matched pairs) | {len(location_mismatches)} |")
     w("")
 
     # ── Per-severity summary ─────────────────────────────────────────────
@@ -869,17 +956,37 @@ def run_single():
         w(f"| {cause} | {info['count']} | {pct:.2f}% | {rule_list} |")
     w("")
 
+    # ── Location Mismatches (matched pairs) ───────────────────────────────
+    # Reported last: these pairs matched on (rule_id, resource_id, path) — the
+    # two-pass key — yet disagree on line. The key alone counts them as clean true
+    # positives; surface them so wrong-location divergences are not silently
+    # accepted. Kept at the bottom because they are lower-severity than an FP/FN
+    # (the finding fired, just at a different line) and tend to be voluminous.
+    if location_mismatches:
+        w(f"## Location Mismatches — {len(location_mismatches)} matched pairs disagree on line")
+        w("")
+        w("Same rule ID + resource + path, but the engine start line differs from")
+        w("the reference. (Messages are not compared — wording may differ freely.)")
+        w("")
+        for key, exp, act in sorted(location_mismatches, key=lambda x: (x[1]["rule_id"], x[0])):
+            w(f"- **{exp['rule_id']}** `{exp.get('resource_id','')}` → "
+              f"`{exp.get('resource_path','')}` in `{key}`: "
+              f"reference L{exp.get('line','?')} vs engine L{act.get('line','?')}")
+        w("")
+
     # ── Write ────────────────────────────────────────────────────────────
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text("\n".join(lines) + "\n")
     print(f"\nReport written to {OUTPUT_PATH} ({len(lines)} lines)")
     print(f"  Precision: {precision:.2f}%  Recall: {recall:.2f}%  F1: {f1:.2f}%")
     print(f"  TP={total_tp}  FP={total_fp}  EE={total_ee}  FN={total_fn}")
+    print(f"  LocationMismatch={len(location_mismatches)}")
 
 
 def main():
     engine_set = parse_args()
     init_rule_origins()
+    clean_reports()
     build()
     engines = [ENGINE_NAME] if engine_set else ALL_ENGINES
     for engine in engines:
