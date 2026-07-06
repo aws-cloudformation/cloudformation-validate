@@ -1,9 +1,9 @@
 use crate::engine::{SharedModel, SharedRegion};
 use data_source::embedded::{GETATT_ATTRIBUTES_BYTES, SCHEMA_METADATA_BYTES};
 use data_source::types::GetattData;
-use diagnostics::{SourceSpan, UNKNOWN_SPAN, render_value_list};
+use diagnostics::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
 use regorus::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 use template_model::coercion::{cfn_coerce_to_number, cfn_coerce_to_string, cfn_type_compatible};
@@ -39,6 +39,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_conjunction_implies(rego, holder.clone());
     register_resource_condition(rego, holder.clone());
     register_has_property(rego, holder.clone());
+    register_property_can_be_absent(rego, holder.clone());
     register_param_allowed_values(rego, holder.clone());
     register_param_type(rego, holder.clone());
     register_mapping_value(rego, holder.clone());
@@ -54,6 +55,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_resolve_ref_target(rego, holder.clone());
     register_flatten_list(rego, holder.clone());
     register_pipeline_artifacts(rego, holder.clone());
+    register_pipeline_artifact_count_issues(rego, holder.clone());
     register_resolve_type(rego, holder.clone());
     let schema_registry: LazySchemaRegistry = Arc::new(OnceLock::new());
     let getatt_registry: LazyGetattRegistry = Arc::new(OnceLock::new());
@@ -66,6 +68,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_edges_from(rego, holder.clone());
     register_edges_to(rego, holder.clone());
     register_arn_matches(rego);
+    register_arn_matches_format(rego);
     register_ip_overlaps(rego);
     register_ip_subnet_of(rego);
     register_is_valid_cidr_strict(rego);
@@ -73,6 +76,8 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_input_region(rego, region_holder.clone());
     register_effective_region(rego, region_holder);
     register_render_list(rego);
+    register_render_value(rego);
+    register_conditional_instance_class_enum(rego);
     register_coerce_to_number(rego);
     register_coerce_to_string(rego);
     register_cfn_type_compatible(rego);
@@ -193,6 +198,33 @@ fn resolved_value_to_json_static(val: &ResolvedValue) -> serde_json::Value {
         ResolvedValue::TypedDynamic { reason, param_type } => {
             serde_json::json!({MARKER_DYNAMIC: reason, MARKER_PARAM_TYPE: param_type})
         }
+    }
+}
+
+/// Like `resolved_value_to_json_static` but preserves `Fn::If` structure as
+/// `{"Fn::If": [condition, then, else]}` instead of collapsing to the true
+/// branch, so branch-sensitive checks (CodePipeline artifact counts) can inspect
+/// every branch.
+fn resolved_to_json_preserving_conditionals(val: &ResolvedValue) -> serde_json::Value {
+    match val {
+        ResolvedValue::List { items } => {
+            serde_json::Value::Array(items.iter().map(resolved_to_json_preserving_conditionals).collect())
+        }
+        ResolvedValue::Map { entries } => {
+            let mut map = serde_json::Map::new();
+            for MapEntry { key: k, value: v } in entries {
+                map.insert(k.clone(), resolved_to_json_preserving_conditionals(v));
+            }
+            serde_json::Value::Object(map)
+        }
+        ResolvedValue::Conditional { condition, if_true, if_false } => serde_json::json!({
+            FN_IF: [
+                condition.clone(),
+                resolved_to_json_preserving_conditionals(if_true),
+                resolved_to_json_preserving_conditionals(if_false),
+            ]
+        }),
+        other => resolved_value_to_json_static(other),
     }
 }
 
@@ -768,6 +800,70 @@ fn register_arn_matches(rego: &mut regorus::Engine) {
     );
 }
 
+/// Registers `arn_matches_format(resource_arn, format_arn)`: whether an IAM
+/// statement resource ARN matches an action's expected ARN format. Both ARNs are
+/// padded to six colon parts with "*" (a shorter ARN, e.g. missing region or
+/// account, is not a mismatch), `${Partition}`/`${Region}`/`${Account}`
+/// placeholders match anything, and the sixth part is compared per its `:` or
+/// `/` delimiter — the shared ARN-matching behavior every engine agrees on.
+fn register_arn_matches_format(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "arn_matches_format".into(),
+        2,
+        Box::new(|params: Vec<Value>| {
+            let resource_arn = params[0].as_string()?;
+            let format_arn = params[1].as_string()?;
+            Ok(Value::from(arn_matches_format(resource_arn.as_ref(), format_arn.as_ref())))
+        }),
+    );
+}
+
+fn arn_matches_format(resource_arn: &str, format_arn: &str) -> bool {
+    let pad_to_six = |arn: &str| -> Vec<String> {
+        let mut parts: Vec<String> = arn.splitn(6, ':').map(str::to_string).collect();
+        while parts.len() < 6 {
+            parts.push("*".to_string());
+        }
+        parts
+    };
+    let r_parts = pad_to_six(resource_arn);
+    let f_parts = pad_to_six(format_arn);
+    for i in 0..5 {
+        if r_parts[i] == "*" {
+            continue;
+        }
+        if matches!(f_parts[i].as_str(), "${Partition}" | "${Region}" | "${Account}") {
+            continue;
+        }
+        if r_parts[i] != f_parts[i] {
+            return false;
+        }
+    }
+    if r_parts[5] == "*" {
+        return true;
+    }
+    let delimiter = if f_parts[5].contains(':') {
+        ':'
+    } else if f_parts[5].contains('/') {
+        '/'
+    } else {
+        return true;
+    };
+    for (r_seg, f_seg) in r_parts[5].split(delimiter).zip(f_parts[5].split(delimiter)) {
+        if r_seg == f_seg {
+            continue;
+        }
+        if r_seg == "*" || r_seg.starts_with('*') || f_seg.is_empty() || f_seg == ".*" {
+            return true;
+        }
+        if r_seg.starts_with(f_seg) && r_seg.contains('*') {
+            return true;
+        }
+        return false;
+    }
+    true
+}
+
 fn register_ip_overlaps(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "ip_overlaps".into(),
@@ -852,6 +948,134 @@ fn register_render_list(rego: &mut regorus::Engine) {
             Ok(Value::from(render_value_list(&items)))
         }),
     );
+}
+
+fn register_render_value(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "render_value".into(),
+        1,
+        Box::new(|params: Vec<Value>| Ok(Value::from(render_value(&rego_to_json(&params[0]))))),
+    );
+}
+
+/// Registers `conditional_instance_class_enum(region_schema, props)`: given a
+/// conditional RDS region document and an object of the resource's resolved
+/// scalar properties (Engine, LicenseModel, …), returns the sorted enum of the
+/// first `allOf` branch whose `if.required` consts all match, or `undefined`
+/// when no branch matches.
+/// Registers `property_can_be_absent(rid, path)`: true when a property is not
+/// set in every satisfiable scenario — either its key is missing, or it resolves
+/// to `AWS::NoValue`/null in at least one satisfiable `Fn::If` branch. Rules that
+/// require a property to always be present (e.g. retention periods) use this so
+/// an `Fn::If [cond, X, AWS::NoValue]` is correctly treated as possibly-absent.
+fn register_property_can_be_absent(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "property_can_be_absent".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(false));
+            };
+            let rid = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let prop = path.strip_prefix("Properties.").unwrap_or(path.as_ref());
+            let key_present =
+                model.resources.get(rid.as_ref()).map(|r| r.properties.contains_key(prop)).unwrap_or(false);
+            if !key_present {
+                return Ok(Value::from(true));
+            }
+            let scenarios = model.resolve_scenarios_json(rid.as_ref(), path.as_ref());
+            let absent = scenarios.is_empty() || scenarios.iter().any(|(v, _)| v.is_null());
+            Ok(Value::from(absent))
+        }),
+    );
+}
+
+/// Registers `invalid_instance_class_enum(schema, props, target_prop, normalize_engine_case, value)`:
+/// for a conditional RDS region document, returns the sorted enum to render in an
+/// E3025/E3694 diagnostic when `value` is invalid, or `undefined` when the value
+/// is valid or no branch matches. A value is valid only when it is in EVERY
+/// matching branch's enum (the intersection); when invalid, the largest failing
+/// branch's enum is returned, matching the reference linter's reported enum.
+fn register_conditional_instance_class_enum(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "invalid_instance_class_enum".into(),
+        5,
+        Box::new(|params: Vec<Value>| {
+            let schema = rego_to_json(&params[0]);
+            let props = rego_to_json(&params[1]);
+            let target_prop = params[2].as_string()?;
+            let normalize_engine_case = matches!(&params[3], Value::Bool(b) if *b);
+            let value = params[4].as_string()?;
+            let branch_enums =
+                conditional_instance_class_enums(&schema, target_prop.as_ref(), normalize_engine_case, &props);
+            match invalid_class_branch_enum(&branch_enums, value.as_ref()) {
+                Some(vals) => Ok(Value::from(vals.into_iter().map(Value::from).collect::<Vec<_>>())),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+/// Collects every `then.<target_prop>.enum` from a conditional region document
+/// whose `allOf` branch `if.required` consts all match `props`. Returns one enum
+/// per matching branch. The `Engine` const is matched case-insensitively when
+/// `normalize_engine_case` is set (RDS DBInstance), mirroring the reference tool.
+fn conditional_instance_class_enums(
+    schema: &serde_json::Value,
+    target_prop: &str,
+    normalize_engine_case: bool,
+    props: &serde_json::Value,
+) -> Vec<Vec<String>> {
+    let mut enums = Vec::new();
+    let Some(branches) = schema.get("allOf").and_then(|v| v.as_array()) else {
+        return enums;
+    };
+    for branch in branches {
+        let (Some(required), Some(if_props)) = (
+            branch.get("if").and_then(|c| c.get("required")).and_then(|v| v.as_array()),
+            branch.get("if").and_then(|c| c.get("properties")).and_then(|v| v.as_object()),
+        ) else {
+            continue;
+        };
+        let all_match = required.iter().filter_map(|r| r.as_str()).filter(|p| *p != target_prop).all(|prop| {
+            let Some(expected) = if_props.get(prop).and_then(|p| p.get("const")).and_then(|c| c.as_str()) else {
+                return false;
+            };
+            let Some(actual) = props.get(prop).and_then(|v| v.as_str()) else {
+                return false;
+            };
+            if normalize_engine_case && prop == "Engine" {
+                actual.eq_ignore_ascii_case(expected)
+            } else {
+                actual == expected
+            }
+        });
+        if all_match
+            && let Some(enum_vals) = branch
+                .get("then")
+                .and_then(|t| t.get("properties"))
+                .and_then(|p| p.get(target_prop))
+                .and_then(|d| d.get("enum"))
+                .and_then(|e| e.as_array())
+        {
+            enums.push(enum_vals.iter().filter_map(|v| v.as_str()).map(String::from).collect());
+        }
+    }
+    enums
+}
+
+/// The enum to render when `value` is not in the intersection of all matching
+/// branch enums: the largest branch enum missing the value. `None` when the value
+/// is in every branch (valid) or there are no matching branches.
+fn invalid_class_branch_enum(branch_enums: &[Vec<String>], value: &str) -> Option<Vec<String>> {
+    let failing_largest = branch_enums
+        .iter()
+        .filter(|allowed| !allowed.iter().any(|v| v == value))
+        .max_by_key(|allowed| allowed.len())?;
+    let mut sorted = failing_largest.clone();
+    sorted.sort();
+    Some(sorted)
 }
 
 fn rego_to_json(v: &Value) -> serde_json::Value {
@@ -981,6 +1205,125 @@ fn register_pipeline_artifacts(rego: &mut regorus::Engine, holder: SharedModel) 
         Value::from_json_str(&serde_json::json!({"issues": issues}).to_string())
     }));
 }
+
+/// Enumerates the possible element counts of a CodePipeline artifact list.
+/// A list may be a plain array (one count) or an `Fn::If` whose branches each
+/// contribute a count (nested `Fn::If`s recurse). Absent/other values count 0.
+/// The result is sorted and deduped so identical branch counts are checked once.
+fn rego_artifact_count_scenarios(value: Option<&serde_json::Value>) -> Vec<usize> {
+    fn walk(value: Option<&serde_json::Value>, out: &mut BTreeSet<usize>) {
+        match value {
+            Some(serde_json::Value::Array(a)) => {
+                out.insert(a.len());
+            }
+            Some(serde_json::Value::Object(o)) if o.len() == 1 && o.contains_key(FN_IF) => {
+                if let Some(branches) = o.get(FN_IF).and_then(|v| v.as_array()) {
+                    walk(branches.get(1), out);
+                    walk(branches.get(2), out);
+                }
+            }
+            _ => {
+                out.insert(0);
+            }
+        }
+    }
+    let mut counts = BTreeSet::new();
+    walk(value, &mut counts);
+    counts.into_iter().collect()
+}
+
+/// Returns the E3702 artifact-count violation messages for a pipeline, keyed by
+/// the Owner/Category/Provider tuple. Resolves Stages preserving `Fn::If` so an
+/// artifact list authored behind a condition has EVERY branch's count checked
+fn register_pipeline_artifact_count_issues(rego: &mut regorus::Engine, holder: SharedModel) {
+    // The embedded document wraps the count table under a single top-level key
+    // (`codepipeline_action_artifact_counts`); unwrap it to reach the per-tuple
+    // bounds.
+    let counts: HashMap<String, serde_json::Value> =
+        serde_json::from_slice::<serde_json::Value>(&data_source::embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES)
+            .ok()
+            .and_then(|v| v.as_object().and_then(|o| o.values().next()).and_then(|v| v.as_object()).cloned())
+            .map(|o| o.into_iter().collect())
+            .unwrap_or_default();
+    let _ = rego.add_extension(
+        "pipeline_artifact_count_issues".into(),
+        1,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let stages_json = model
+                .resolve_deep(rid.as_ref(), "Properties.Stages")
+                .map(|rv| resolved_to_json_preserving_conditionals(&rv));
+            let issues = pipeline_artifact_count_issues(stages_json.as_ref(), &counts);
+            Value::from_json_str(&serde_json::json!({ "issues": issues }).to_string())
+        }),
+    );
+}
+
+/// Computes the E3702 count-violation messages from a Stages JSON that preserves
+/// `Fn::If` structure. Shared helper so the builtin stays readable.
+fn pipeline_artifact_count_issues(
+    stages_json: Option<&serde_json::Value>,
+    counts: &HashMap<String, serde_json::Value>,
+) -> Vec<serde_json::Value> {
+    let mut issues = Vec::new();
+    let Some(stages) = stages_json.and_then(|v| v.as_array()) else {
+        return issues;
+    };
+    for stage in stages {
+        let Some(actions) = stage.get("Actions").and_then(|a| a.as_array()) else {
+            continue;
+        };
+        for action in actions {
+            let action_type_id = action.get("ActionTypeId");
+            let (Some(owner), Some(category), Some(provider)) = (
+                action_type_id.and_then(|a| a.get("Owner")).and_then(|c| c.as_str()),
+                action_type_id.and_then(|a| a.get("Category")).and_then(|c| c.as_str()),
+                action_type_id.and_then(|a| a.get("Provider")).and_then(|c| c.as_str()),
+            ) else {
+                continue;
+            };
+            let aname = action.get("Name").and_then(|n| n.as_str()).unwrap_or("unknown");
+            let key = format!("{owner}/{category}/{provider}");
+            let Some(bounds) = counts.get(&key) else { continue };
+            let bound = |field: &str| bounds.get(field).and_then(|v| v.as_u64()).map(|v| v as usize);
+            let (min_in, max_in) = (bound("min_input"), bound("max_input"));
+            let (min_out, max_out) = (bound("min_output"), bound("max_output"));
+            for n in rego_artifact_count_scenarios(action.get("InputArtifacts")) {
+                if let Some(lo) = min_in
+                    && n < lo
+                {
+                    issues.push(serde_json::json!({"message":
+                        format!("Action '{}' ({}) has {} input artifacts, expected at least {}", aname, key, n, lo)}));
+                }
+                if let Some(hi) = max_in
+                    && n > hi
+                {
+                    issues.push(serde_json::json!({"message":
+                        format!("Action '{}' ({}) has {} input artifacts, expected at most {}", aname, key, n, hi)}));
+                }
+            }
+            for n in rego_artifact_count_scenarios(action.get("OutputArtifacts")) {
+                if let Some(lo) = min_out
+                    && n < lo
+                {
+                    issues.push(serde_json::json!({"message":
+                        format!("Action '{}' ({}) has {} output artifacts, expected at least {}", aname, key, n, lo)}));
+                }
+                if let Some(hi) = max_out
+                    && n > hi
+                {
+                    issues.push(serde_json::json!({"message":
+                        format!("Action '{}' ({}) has {} output artifacts, expected at most {}", aname, key, n, hi)}));
+                }
+            }
+        }
+    }
+    issues
+}
+
 fn register_resolve_type(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "resolve_type".into(),

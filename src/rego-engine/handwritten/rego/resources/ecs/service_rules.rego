@@ -16,7 +16,9 @@ violation contains make_diag_full("E3054", "ERROR", target_name,
     taskdef := get_resource(target_name)
     taskdef != null
     # An awsvpc task definition is already Fargate-compatible, so it is exempt.
-    resolve(target_name, "Properties.NetworkMode") != "awsvpc"
+    # Read the value with a default so an ABSENT NetworkMode (which resolves to
+    # undefined) is treated as "not awsvpc" rather than failing the whole rule.
+    object.get(taskdef.properties, "NetworkMode", "") != "awsvpc"
     has_property(target_name, "RequiresCompatibilities")
     compat := object.get(taskdef.properties, "RequiresCompatibilities", [])
     not "FARGATE" in compat
@@ -37,7 +39,9 @@ violation contains make_diag_full("E3054", "ERROR", target_name,
     taskdef := get_resource(target_name)
     taskdef != null
     # An awsvpc task definition is already Fargate-compatible, so it is exempt.
-    resolve(target_name, "Properties.NetworkMode") != "awsvpc"
+    # Read the value with a default so an ABSENT NetworkMode (which resolves to
+    # undefined) is treated as "not awsvpc" rather than failing the whole rule.
+    object.get(taskdef.properties, "NetworkMode", "") != "awsvpc"
     not has_property(target_name, "RequiresCompatibilities")
 }
 

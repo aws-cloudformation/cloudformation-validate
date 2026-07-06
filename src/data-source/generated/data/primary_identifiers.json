@@ -197,6 +197,9 @@
     "AWS::CloudWatch::MetricStream": [
       "Name"
     ],
+    "AWS::CodeBuild::Project": [
+      "Name"
+    ],
     "AWS::CodeDeploy::Application": [
       "ApplicationName"
     ],

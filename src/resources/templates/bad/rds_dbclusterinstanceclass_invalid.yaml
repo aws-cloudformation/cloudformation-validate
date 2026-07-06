@@ -1,0 +1,11 @@
+Resources:
+  # DBCluster with an invalid DBClusterInstanceClass. E3694 uses the same
+  # conditional (Engine-keyed) schema as E3025 and must fire in BOTH engines.
+  # (Guards the Rego false negative from reading a non-existent flat `.enum`.)
+  Cluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: mysql
+      DBClusterInstanceClass: db.bogus.class
+      MasterUsername: admin
+      MasterUserPassword: Passw0rd123

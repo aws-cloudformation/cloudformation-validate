@@ -852,11 +852,18 @@ impl SemanticModel {
 
     /// Returns the source span for a resource property path, falling back to
     /// the resource-level span if the specific path is not found.
+    ///
+    /// The span index is keyed with slash-separated paths, so a dotted,
+    /// resource-relative path (`Properties.BucketName`) is normalized to slash
+    /// form before lookup — the same normalization [`Self::diagnostic_span`]
+    /// applies. Callers pass paths in either form, so accepting only slash form
+    /// here would silently mislocate every dotted-path diagnostic onto the
+    /// resource declaration line.
     pub fn resource_span(&self, resource_id: &str, prop_path: &str) -> SourceSpan {
         let specific = if prop_path.is_empty() {
             format!("Resources/{}", resource_id)
         } else {
-            format!("Resources/{}/{}", resource_id, prop_path)
+            format!("Resources/{}/{}", resource_id, prop_path.replace('.', "/"))
         };
         let fallback = format!("Resources/{}", resource_id);
         self.source_location(&specific).or_else(|| self.source_location(&fallback)).copied().unwrap_or(UNKNOWN_SPAN)
@@ -1807,6 +1814,19 @@ Resources:
         let span = model.resource_span("R", "Properties/Name");
         // Should find a span (not UNKNOWN_SPAN) for the specific path
         assert!(span.start_line > 0 || span.end_line > 0, "expected non-zero span for Properties/Name");
+    }
+
+    #[test]
+    fn resource_span_specific_path_dotted_form() {
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Name: hello\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // A dotted, resource-relative path must resolve to the SAME specific span
+        // as its slash-form equivalent — not fall back to the resource span.
+        let dotted = model.resource_span("R", "Properties.Name");
+        let slashed = model.resource_span("R", "Properties/Name");
+        let resource = model.resource_span("R", "");
+        assert_eq!(dotted, slashed, "dotted and slash forms must resolve to the same span");
+        assert_ne!(dotted, resource, "specific property span must differ from the resource span");
     }
 
     #[test]

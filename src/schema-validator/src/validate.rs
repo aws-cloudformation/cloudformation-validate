@@ -59,18 +59,45 @@ pub fn validate_all_resources(
     validate_lifecycle(&mut out, store, model);
 
     for rtype in &relevant {
-        if rtype.ends_with("::MODULE") {
+        // Custom resources, modules, and SAM resources (rewritten by the SAM
+        // transform before deployment) are not region-scoped provider types, so
+        // the region check skips them — matching the reference linter, which
+        // validates the post-transform template.
+        if rtype.ends_with("::MODULE") || rtype.starts_with("Custom::") || rtype.starts_with("AWS::Serverless::") {
             continue;
         }
 
-        if store.has_region_data() && !store.is_available_in_region(rtype, region) {
+        // Only flag a genuine regional provider type that is absent in the target
+        // region. A type that appears in no region's map at all (e.g. an empty or
+        // transform-generated placeholder type) is not a region-availability
+        // problem and must not be reported here, or good templates regress.
+        if store.has_region_data()
+            && store.is_known_in_any_region(rtype)
+            && !store.is_available_in_region(rtype, region)
+        {
             for rid in model.resources_of_type(rtype) {
+                // A resource guarded by a Condition that cannot hold in the target
+                // region is never created there, so its type's absence in that
+                // region is not an error. The satisfiability check pins
+                // AWS::Region to the target region (mirroring the reference
+                // linter's per-region scenario evaluation), so a condition like
+                // `!Equals [AWS::Region, us-east-1]` is unsatisfiable at any other
+                // region and the finding is skipped — even at the DEFAULT region,
+                // where AWS::Region is otherwise a free SAT variable.
+                if let Some(res) = model.resources.get(rid.as_str())
+                    && let Some(cond) = res.condition.as_deref()
+                    && !model.conditions.is_satisfiable_in_region(&[(cond.to_string(), true)], region)
+                {
+                    continue;
+                }
+                // Match the reference linter's region-availability message and
+                // Type-node location (its Error is promoted to the Fatal F3006 here).
                 out.push(build_diagnostic(
                     "F3006",
-                    &format!("Resource type '{}' is not available in region '{}'", rtype, region),
+                    &format!("Resource type '{}' does not exist in '{}'", rtype, region),
                     model,
                     rid,
-                    "",
+                    "Type",
                     None,
                 ));
             }
@@ -1861,37 +1888,49 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
                 let Some(runtime) = val.as_str() else {
                     continue;
                 };
-                if lifecycle.is_runtime_eol(runtime) {
-                    out.push(build_diagnostic(
-                        "E2533",
-                        &format!("Runtime '{}' has reached end-of-life", runtime),
-                        model,
-                        rid,
-                        "Properties.Runtime",
-                        Some("Update to a supported runtime"),
-                    ));
+                // All three deprecation bands share one dated message; only the
+                // rule id and severity differ by how far the runtime is through
+                // its lifecycle. The band is a snapshot taken at data-sync time.
+                let (rule_id, band) = if lifecycle.is_runtime_eol(runtime) {
+                    ("E2533", true)
                 } else if lifecycle.is_runtime_create_blocked(runtime) {
-                    out.push(build_diagnostic(
-                        "E2531",
-                        &format!("Runtime '{}' is blocked for new function creation", runtime),
-                        model,
-                        rid,
-                        "Properties.Runtime",
-                        Some("Update to a supported runtime"),
-                    ));
+                    ("E2531", true)
                 } else if lifecycle.is_runtime_deprecated(runtime) {
+                    ("W2531", true)
+                } else {
+                    ("", false)
+                };
+                if band {
                     out.push(build_diagnostic(
-                        "W2531",
-                        &format!("Runtime '{}' is deprecated", runtime),
+                        rule_id,
+                        &runtime_deprecation_message(lifecycle, runtime),
                         model,
                         rid,
                         "Properties.Runtime",
-                        Some("Update to a current runtime"),
+                        None,
                     ));
                 }
             }
         }
     }
+}
+
+/// Builds the dated runtime-deprecation message the reference tool emits for all
+/// three bands: "Runtime 'X' was deprecated on 'D'. Creation was disabled on 'C'
+/// and update on 'U'. Please consider updating to 'S'". A string value renders
+/// single-quoted; a missing successor renders as bare `None` (Python `repr`).
+fn runtime_deprecation_message(lifecycle: &crate::store::LifecycleStore, runtime: &str) -> String {
+    let Some(dates) = lifecycle.runtime_lifecycle(runtime) else {
+        return format!("Runtime '{}' is deprecated", runtime);
+    };
+    let successor = match &dates.successor {
+        Some(s) => format!("'{}'", s),
+        None => "None".to_string(),
+    };
+    format!(
+        "Runtime '{}' was deprecated on '{}'. Creation was disabled on '{}' and update on '{}'. Please consider updating to {}",
+        runtime, dates.deprecated, dates.create_block, dates.update_block, successor
+    )
 }
 
 fn validate_extensions(
@@ -1946,7 +1985,10 @@ fn validate_cfn_gather(
         let reference_path = slot_obj.get("reference").and_then(|v| v.as_str());
 
         let target_rid = if let Some(ref_path) = reference_path {
-            let prop_key = ref_path.trim_start_matches('/');
+            // A reference may be a nested JSON pointer (e.g.
+            // /RedrivePolicy/deadLetterTargetArn); convert it to the dotted
+            // property path follow_ref expects.
+            let prop_key = ref_path.trim_start_matches('/').replace('/', ".");
             model.follow_ref(rid, &format!("Properties.{}", prop_key)).map(String::from)
         } else {
             Some(rid.to_string())
@@ -1966,13 +2008,18 @@ fn validate_cfn_gather(
         let mut slot_values = serde_json::Map::new();
         if let Some(props) = properties {
             for (prop_name, prop_def) in props {
-                let path = prop_def
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .map(|p| format!("Properties.{}", p.trim_start_matches('/')));
-                let default_val = prop_def.get("default").cloned();
+                // A gather property spec is either a bare JSON-pointer string
+                // ("/RestApiId") or an object ({"path": "/FifoQueue", "default":
+                // false}). Both forms appear in the upstream data; reading only
+                // the object form silently drops the value for the string form
+                // and makes the whole cross-resource check a no-op.
+                let (path, default_val) = match prop_def {
+                    serde_json::Value::String(p) => (Some(p.as_str()), None),
+                    _ => (prop_def.get("path").and_then(|v| v.as_str()), prop_def.get("default").cloned()),
+                };
+                let resolved_path = path.map(|p| format!("Properties.{}", p.trim_start_matches('/').replace('/', ".")));
 
-                let resolved = path
+                let resolved = resolved_path
                     .as_ref()
                     .and_then(|p| model.resolve_scenarios_json(&target, p).into_iter().next().map(|(v, _)| v));
                 let value = resolved.or(default_val).unwrap_or(serde_json::Value::Null);
@@ -1986,6 +2033,28 @@ fn validate_cfn_gather(
 
     let resolved_schema = resolve_data_in_schema(schema, &context_val);
     evaluate_gather_schema(out, model, rid, res, &resolved_schema, &context_val);
+}
+
+/// Whether an extension-required property is already reported by a dedicated
+/// native rule under its own specific ID, so the generic F3003 must be
+/// suppressed to avoid double-reporting. Keyed on `(resource type, required
+/// property)`:
+/// - S3 `AccessControl`→`OwnershipControls` is covered by the dedicated S3
+///   access-control rule.
+/// - ELBv2 Listener HTTPS/TLS→`Certificates` is covered by the dedicated
+///   listener-certificate rule (E3676), which fires on the same trigger.
+/// - RDS DBInstance `BackupRetentionPeriod` is a retention-period advisory the
+///   dedicated retention rule (I3013) already emits; the extension carrying a
+///   `then.required` for it must not additionally raise a Fatal F3003 (the
+///   reference tool treats a missing retention period as informational, never a
+///   required-property error).
+fn extension_required_covered_by_dedicated_rule(resource_type: &str, prop_name: &str) -> bool {
+    matches!(
+        (resource_type, prop_name),
+        ("AWS::S3::Bucket", "OwnershipControls")
+            | ("AWS::ElasticLoadBalancingV2::Listener", "Certificates")
+            | ("AWS::RDS::DBInstance", "BackupRetentionPeriod")
+    )
 }
 
 fn validate_extension_if_then_else(
@@ -2007,6 +2076,15 @@ fn validate_extension_if_then_else(
             if let Some(prop_name) = req.as_str()
                 && !res.properties.contains_key(prop_name)
             {
+                // Some extensions express a requirement that a dedicated rule
+                // already reports under its own specific ID (e.g. the S3
+                // AccessControl→OwnershipControls extension is the dedicated S3
+                // access-control rule). Emitting the generic F3003 on top of that
+                // dedicated diagnostic is a double-report the reference tool never
+                // produces, so skip it.
+                if extension_required_covered_by_dedicated_rule(&res.resource_type, prop_name) {
+                    continue;
+                }
                 // Dedup: compiled base schema's if_then_else may already have
                 // emitted a required-property diagnostic for the same required property (extensions
                 // upstream sometimes mirror the base schema's conditional
@@ -2064,6 +2142,14 @@ fn validate_extension_if_then_else(
                 if !is_satisfiable(model, conds) {
                     continue;
                 }
+                // NOTE: the reference tool applies these extension enums with
+                // per-enum case sensitivity — case-insensitive for engine names
+                // (Engine: "MySQL" is accepted against "mysql") but case-sensitive
+                // for others (ReplicaMode: "Mounted" is rejected against
+                // "mounted"). Distinguishing them requires the per-rule mapping
+                // (tracked with the extension→specific-ID work); until then keep
+                // the case-insensitive fallback, since a false negative on
+                // ReplicaMode is preferable to false positives on valid engines.
                 let matches_enum = enum_vals.iter().any(|e| {
                     e == val
                         || cfn_coerce_to_string(e) == cfn_coerce_to_string(val)
@@ -2121,6 +2207,19 @@ fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<Semant
         for (prop_name, constraint) in props {
             let prop_path = format!("Properties.{}", prop_name);
             let scenarios = model.resolve_scenarios_json(rid, &prop_path);
+            // A property schema of `false` means the property must be ABSENT for
+            // the condition to hold (JSON Schema: `false` rejects any value). So
+            // the `if` matches only when the property resolves to nothing in
+            // every satisfiable scenario; if it is present anywhere, the
+            // condition fails. (e.g. RDS read-replica: SourceDBInstanceIdentifier
+            // present ⇒ the BackupRetentionPeriod requirement does not apply.)
+            if constraint == &serde_json::Value::Bool(false) {
+                let present = scenarios.iter().any(|(v, c)| is_satisfiable(model, c) && !v.is_null());
+                if present {
+                    return false;
+                }
+                continue;
+            }
             if scenarios.is_empty() {
                 return false;
             }
@@ -2225,13 +2324,17 @@ fn evaluate_gather_schema(
     let Some(obj) = schema.as_object() else {
         return;
     };
-    let if_schema = obj.get("if");
-    let then_schema = obj.get("then");
-    let else_schema = obj.get("else");
-
-    if let Some(if_val) = if_schema {
+    // NOTE: this generic gather path only surfaces top-level const mismatches as
+    // E3030. The reference linter reports these cross-resource constraints under specific
+    // rule IDs (E3699, E3707, E3709, …) and dedicated native rules already cover
+    // the reachable cases (E3502, E3707, E3698, …). Broadening this path to also
+    // unwrap `cfnContext` or evaluate bare `properties` schemas made it emit
+    // generic E3030 duplicates alongside those dedicated rules; keep it scoped to
+    // an explicit if/then/else so it does not double-report. Emitting the
+    // per-resource IDs is tracked as a dedicated follow-up.
+    if let Some(if_val) = obj.get("if") {
         let matches = gather_condition_matches(if_val, context);
-        let branch = if matches { then_schema } else { else_schema };
+        let branch = if matches { obj.get("then") } else { obj.get("else") };
         if let Some(branch_val) = branch {
             evaluate_gather_constraints(out, model, rid, branch_val, context);
         }

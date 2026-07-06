@@ -212,30 +212,6 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(region) = ctx.region {
-        let region_data = &ctx.cached_data.region_resource_types;
-        if let Some(available) = region_data.get(region.as_str()).and_then(|v| v.as_object()) {
-            for (name, res) in &m.resources {
-                if !available.contains_key(&res.resource_type) {
-                    let exists_somewhere = region_data
-                        .as_object()
-                        .map(|rd| rd.values().any(|rv| rv.get(&res.resource_type).is_some()))
-                        .unwrap_or(false);
-                    if exists_somewhere {
-                        out.push(make_resource_diagnostic(
-                            "E3001",
-                            &format!("Resource type '{}' is not available in region '{}'", res.resource_type, region),
-                            m,
-                            name,
-                            "",
-                            None,
-                        ));
-                    }
-                }
-            }
-        }
-    }
-
     out
 }
 

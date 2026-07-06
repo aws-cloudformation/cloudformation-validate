@@ -125,6 +125,8 @@
     "AWS::Athena::PreparedStatement": "string",
     "AWS::Athena::WorkGroup": "string",
     "AWS::AuditManager::Assessment": "string",
+    "AWS::AuditManager::AssessmentFramework": "string",
+    "AWS::AuditManager::Control": "string",
     "AWS::AutoScaling::AutoScalingGroup": "string",
     "AWS::AutoScaling::LaunchConfiguration": "string",
     "AWS::AutoScaling::LifecycleHook": "string",
@@ -223,6 +225,9 @@
     "AWS::Cassandra::Table": "string",
     "AWS::Cassandra::Type": "string",
     "AWS::CertificateManager::Account": "string",
+    "AWS::CertificateManager::AcmeDomainValidation": "string",
+    "AWS::CertificateManager::AcmeEndpoint": "string",
+    "AWS::CertificateManager::AcmeExternalAccountBinding": "string",
     "AWS::CertificateManager::Certificate": "string",
     "AWS::Chatbot::CustomAction": "string",
     "AWS::Chatbot::MicrosoftTeamsChannelConfiguration": "string",
@@ -344,6 +349,7 @@
     "AWS::Config::ConfigurationAggregator": "string",
     "AWS::Config::ConfigurationRecorder": "string",
     "AWS::Config::ConformancePack": "string",
+    "AWS::Config::Connector": "string",
     "AWS::Config::DeliveryChannel": "string",
     "AWS::Config::OrganizationConfigRule": "string",
     "AWS::Config::OrganizationConformancePack": "string",
@@ -2807,6 +2813,37 @@
       "Roles": "array",
       "Tags": "array"
     },
+    "AWS::AuditManager::AssessmentFramework": {
+      "Arn": "string",
+      "ComplianceType": "string",
+      "ControlSets": "array",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "Description": "string",
+      "FrameworkId": "string",
+      "LastUpdatedAt": "string",
+      "LastUpdatedBy": "string",
+      "Name": "string",
+      "Tags": "array",
+      "Type": "string"
+    },
+    "AWS::AuditManager::Control": {
+      "ActionPlanInstructions": "string",
+      "ActionPlanTitle": "string",
+      "Arn": "string",
+      "ControlMappingSources": "array",
+      "ControlSources": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "Description": "string",
+      "Id": "string",
+      "LastUpdatedAt": "string",
+      "LastUpdatedBy": "string",
+      "Name": "string",
+      "Tags": "array",
+      "TestingInformation": "string",
+      "Type": "string"
+    },
     "AWS::AutoScaling::AutoScalingGroup": {
       "AutoScalingGroupARN": "string",
       "AutoScalingGroupName": "string",
@@ -3736,6 +3773,26 @@
       "MaxNestingDepth": "integer",
       "TypeName": "string"
     },
+    "AWS::CertificateManager::AcmeDomainValidation": {
+      "AcmeEndpointArn": "string",
+      "Arn": "string",
+      "DomainName": "string",
+      "Tags": "array"
+    },
+    "AWS::CertificateManager::AcmeEndpoint": {
+      "AcmeEndpointArn": "string",
+      "AuthorizationBehavior": "string",
+      "CertificateTags": "array",
+      "Contact": "string",
+      "EndpointUrl": "string",
+      "Tags": "array"
+    },
+    "AWS::CertificateManager::AcmeExternalAccountBinding": {
+      "AcmeEndpointArn": "string",
+      "AcmeExternalAccountBindingArn": "string",
+      "RoleArn": "string",
+      "Tags": "array"
+    },
     "AWS::CertificateManager::Certificate": {
       "CertificateAuthorityArn": "string",
       "CertificateExport": "string",
@@ -4343,7 +4400,6 @@
     "AWS::CloudWatch::InsightRule": {
       "ApplyOnTransformedLogs": "boolean",
       "Arn": "string",
-      "Id": "string",
       "RuleBody": "string",
       "RuleName": "string",
       "RuleState": "string",
@@ -4561,6 +4617,7 @@
       "Version": "string"
     },
     "AWS::CodePipeline::Pipeline": {
+      "Arn": "string",
       "ArtifactStores": "array",
       "DisableInboundStageTransitions": "array",
       "ExecutionMode": "string",
@@ -4856,6 +4913,12 @@
       "TemplateBody": "string",
       "TemplateS3Uri": "string",
       "TemplateSSMDocumentDetails": "object"
+    },
+    "AWS::Config::Connector": {
+      "Arn": "string",
+      "CreatedTime": "string",
+      "Name": "string",
+      "Tags": "array"
     },
     "AWS::Config::DeliveryChannel": {
       "Id": "string",
@@ -7693,6 +7756,7 @@
       "ServiceArn": "string",
       "ServiceName": "string",
       "Tags": "array",
+      "TaskDefinitionArn": "string",
       "TaskRoleArn": "string",
       "UpdatedAt": "string"
     },
@@ -9656,6 +9720,7 @@
       "EnhancedImageMetadataEnabled": "boolean",
       "ExecutionRole": "string",
       "ImageRecipeArn": "string",
+      "ImageTags": "object",
       "InfrastructureConfigurationArn": "string",
       "Name": "string",
       "Status": "string",
@@ -14151,6 +14216,7 @@
       "Description": "string",
       "KmsKeyId": "string",
       "Name": "string",
+      "SharingEnabled": "boolean",
       "SystemArn": "string",
       "SystemId": "string",
       "Tags": "array",
@@ -15850,6 +15916,19 @@
       "LicenseInfo": "string",
       "PublishLambdaVersion": "boolean"
     },
+    "AWS::Serverless::MicrovmImage": {
+      "AdditionalOsCapabilities": "array",
+      "CpuConfigurations": "array",
+      "EgressNetworkConnectors": "array",
+      "EnvironmentVariables": "object",
+      "PropagateTags": "boolean",
+      "Resources": "array",
+      "Tags": "object"
+    },
+    "AWS::Serverless::NetworkConnector": {
+      "PropagateTags": "boolean",
+      "Tags": "object"
+    },
     "AWS::Serverless::SimpleTable": {
       "TableName": "string",
       "Tags": "object"
@@ -16485,6 +16564,7 @@
       "CreatedAt": "string",
       "CustomDomainName": "string",
       "Id": "string",
+      "IdleTimeoutSeconds": "integer",
       "LastUpdatedAt": "string",
       "Name": "string",
       "Status": "string",

@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# Counter-example to bad/getatt_object_attribute_member: a provisioned product
+# exposes `Outputs.<OutputKey>` for any key, so a dotted `Outputs.<key>` GetAtt is
+# a valid open-ended map member and must NOT fire E9004 in either engine.
+Resources:
+  ProvisionedProduct:
+    Type: AWS::ServiceCatalog::CloudFormationProvisionedProduct
+    Properties:
+      ProductName: MyProduct
+      ProvisioningArtifactName: v1
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt ProvisionedProduct.Outputs.MyOutputKey

@@ -26,6 +26,11 @@ pub fn sync_additional_specs(
         let mut deprecated = Vec::new();
         let mut create_blocked = Vec::new();
         let mut eol = Vec::new();
+        // Preserve each runtime's lifecycle dates + successor so the engine can
+        // reconstruct the reference tool's dated deprecation message. The band
+        // (deprecated / create-blocked / eol) is snapshotted here against the
+        // sync date, matching the reference tool evaluated on that date.
+        let mut lifecycle_dates: BTreeMap<String, serde_json::Value> = BTreeMap::new();
 
         for (runtime, info) in &lifecycle {
             let create_block = info.get("create-block").and_then(|v| v.as_str()).unwrap_or("");
@@ -41,10 +46,26 @@ pub fn sync_additional_specs(
             } else {
                 current.push(runtime.clone());
             }
+
+            lifecycle_dates.insert(
+                runtime.clone(),
+                serde_json::json!({
+                    "deprecated": deprecated_date,
+                    "create_block": create_block,
+                    "update_block": update_block,
+                    "successor": info.get("successor").cloned().unwrap_or(serde_json::Value::Null),
+                }),
+            );
         }
 
         let out = serde_json::json!({
-            "lambda_runtimes": { "current": current, "deprecated": deprecated, "create_blocked": create_blocked, "eol": eol }
+            "lambda_runtimes": {
+                "current": current,
+                "deprecated": deprecated,
+                "create_blocked": create_blocked,
+                "eol": eol,
+                "lifecycle": lifecycle_dates,
+            }
         });
         fs::write(data_output_dir.join("lambda_runtimes.json"), serde_json::to_string_pretty(&out)?)?;
         stats.files_written += 1;

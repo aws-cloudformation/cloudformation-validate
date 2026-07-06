@@ -167,21 +167,6 @@ violation contains make_diag_full("E3672", "ERROR", name,
     not val in valid
 }
 
-# E3694: RDS DBCluster DBClusterInstanceClass not valid for region
-violation contains make_diag_full("E3694", "ERROR", name,
-    "Properties.DBClusterInstanceClass",
-    sprintf("'%s' is not valid for region '%s'", [val, region]),
-    "",
-    "") if {
-    some name in resources_of_type("AWS::RDS::DBCluster")
-    val := resolve(name, "Properties.DBClusterInstanceClass")
-    is_string(val)
-    region := effective_region()
-    valid := data.aws_rds_dbcluster_dbclusterinstanceclass_enum[region].enum
-    valid != null
-    not val in valid
-}
-
 # E3640: SageMaker processing InstanceType not valid for region
 _e3640_paths := {
     "AWS::SageMaker::DataQualityJobDefinition": "Properties.JobResources.ClusterConfig.InstanceType",

@@ -549,10 +549,6 @@ mod tests {
         assert_eq!(messages(&yaml), messages(&json));
     }
 
-    /// A bare (integer) YAML key and a quoted string key of the same digits are
-    /// distinct source keys, so — matching cfn-lint, which compares keys by value
-    /// and never flags them — no F0000 is emitted. (The two are coerced to the same
-    /// string later, but that must not manufacture a duplicate diagnostic.)
     #[test]
     fn integer_key_and_string_key_are_not_duplicates() {
         let input = "Resources:\n  R:\n    Type: AWS::S3::Bucket\n    Metadata:\n      1: a\n      \"1\": b\n";
@@ -1023,9 +1019,6 @@ mod tests {
         );
     }
 
-    /// A literal duplicate key inside a mapping that also uses `<<` is suppressed,
-    /// matching cfn-lint's `using_merge` behavior (the whole mapping's dup check is
-    /// disabled). Ordering of the duplicate relative to `<<` must not matter.
     #[test]
     fn yaml_merge_key_suppresses_literal_duplicate_in_same_mapping() {
         let input = "Anchors:\n  Base: &base\n    X: 1\nResources:\n  Derived:\n    Type: AWS::S3::Bucket\n    Dup: 1\n    Dup: 2\n    <<: *base\n";
