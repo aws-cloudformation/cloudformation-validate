@@ -9,7 +9,10 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{CoerceResult, cfn_coerce_to_number, cfn_coerce_to_string, cfn_coerce_value};
-use template_model::consts::{FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES};
+use template_model::consts::{
+    FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES, KEY_TYPE, PARAM_TYPE_COMMA_DELIMITED_LIST,
+    PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
+};
 use template_model::model::ResolvedResource;
 use template_model::resolver::{RefKind, ResolvedValue};
 
@@ -63,7 +66,8 @@ pub fn validate_all_resources(
         // transform before deployment) are not region-scoped provider types, so
         // the region check skips them — CloudFormation validates the
         // post-transform template.
-        if rtype.ends_with("::MODULE") || rtype.starts_with("Custom::") || rtype.starts_with("AWS::Serverless::") {
+        if rtype.ends_with("::MODULE") || rtype.starts_with("Custom::") || rtype.starts_with(SAM_SERVERLESS_TYPE_PREFIX)
+        {
             continue;
         }
 
@@ -97,7 +101,7 @@ pub fn validate_all_resources(
                     &format!("Resource type '{}' does not exist in '{}'", rtype, region),
                     model,
                     rid,
-                    "Type",
+                    KEY_TYPE,
                     None,
                 ));
             }
@@ -124,7 +128,7 @@ pub fn validate_all_resources(
             // the raw resource schema (required properties, etc. are supplied or
             // relaxed during expansion). Validating the pre-transform shape would
             // flag requirements the transform fills in.
-            if rtype.starts_with("AWS::Serverless::") {
+            if rtype.starts_with(SAM_SERVERLESS_TYPE_PREFIX) {
                 continue;
             }
             validate_resource(&mut out, store, model, rid, res, schema, region);
@@ -1761,9 +1765,9 @@ fn validate_reference_type(
 
 fn cfn_param_type_to_schema_type(param_type: &str) -> &str {
     match param_type {
-        "Number" => "number",
-        "String" => "string",
-        "CommaDelimitedList" => "array",
+        PARAM_TYPE_NUMBER => "number",
+        PARAM_TYPE_STRING => "string",
+        PARAM_TYPE_COMMA_DELIMITED_LIST => "array",
         t if t.starts_with("List<") => "array",
         t if t.starts_with("AWS::SSM::Parameter::") => "string",
         _ => "string",
@@ -1877,7 +1881,7 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
             out.push(build_diagnostic(rule_id, &msg, model, rid, "", None));
         }
 
-        if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function")
+        if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == SAM_FUNCTION_TYPE)
             // Only a literal Runtime string is validated against the deprecation
             // list; a Runtime produced by an intrinsic (e.g. Fn::FindInMap)
             // resolves at deploy time and is handled by the intrinsic rules
