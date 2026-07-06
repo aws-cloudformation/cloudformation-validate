@@ -444,7 +444,7 @@ class SmokeTest {
 
     @Test
     fun engineVersionMatchesWorkspaceVersion() {
-        val expected = "1.3.0"
+        val expected = "1.4.0"
         assertEquals(expected, readWorkspaceVersion(), "expected version must match workspace Cargo.toml")
         assertEquals(expected, CEL.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).engineVersion, "cel: engineVersion")
         assertEquals(expected, REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).engineVersion, "rego: engineVersion")

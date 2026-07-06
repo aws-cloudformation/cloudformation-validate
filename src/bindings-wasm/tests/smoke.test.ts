@@ -419,7 +419,7 @@ describe("report fields excluded from golden", () => {
 
   // The full built-in rule set is fixed and evaluated by both engines with no category filters.
   const EXPECTED_RULES_EVALUATED = 278;
-  const EXPECTED_ENGINE_VERSION = "1.3.0";
+  const EXPECTED_ENGINE_VERSION = "1.4.0";
 
   it("rulesEvaluated is the full built-in rule count under both engines", () => {
     for (const [name, engine] of [["cel", CEL], ["rego", REGO]] as const) {
