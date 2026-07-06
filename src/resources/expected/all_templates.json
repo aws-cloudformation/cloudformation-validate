@@ -12322,6 +12322,79 @@
       }
     ]
   },
+  "bad/getatt_object_attribute_member.yaml": {
+    "filePath": "bad/getatt_object_attribute_member.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E9004",
+        "severity": "ERROR",
+        "message": "'Tags.0' is not one of ['Arn', 'DomainName', 'DualStackDomainName', 'MetadataConfiguration.AnnotationTableConfiguration.TableArn', 'MetadataConfiguration.AnnotationTableConfiguration.TableName', 'MetadataConfiguration.Destination', 'MetadataConfiguration.InventoryTableConfiguration.TableArn', 'MetadataConfiguration.InventoryTableConfiguration.TableName', 'MetadataConfiguration.JournalTableConfiguration.TableArn', 'MetadataConfiguration.JournalTableConfiguration.TableName', 'MetadataTableConfiguration.S3TablesDestination.TableArn', 'MetadataTableConfiguration.S3TablesDestination.TableNamespace', 'RegionalDomainName', 'WebsiteURL']",
+        "source": "CFN_LINT",
+        "resourceId": "Param",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Value",
+        "suggestedFix": "Check the resource type documentation for valid GetAtt attributes",
+        "category": "Intrinsic Function",
+        "startLine": 16,
+        "startColumn": 7,
+        "endLine": 16,
+        "endColumn": 12,
+        "ruleDescription": "GetAtt attribute must exist on target resource type",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 9,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Param' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Param",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 3,
+        "endLine": 12,
+        "endColumn": 8,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/hard_coded_arn_properties.yaml": {
     "filePath": "bad/hard_coded_arn_properties.yaml",
     "status": "OK",
@@ -114656,6 +114729,61 @@
         "startColumn": 3,
         "endLine": 161,
         "endColumn": 17,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/getatt_provisioned_product_outputs.yaml": {
+    "filePath": "good/getatt_provisioned_product_outputs.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ProvisionedProduct' of type 'AWS::ServiceCatalog::CloudFormationProvisionedProduct' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "ProvisionedProduct",
+        "resourceType": "AWS::ServiceCatalog::CloudFormationProvisionedProduct",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 3,
+        "endLine": 7,
+        "endColumn": 21,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Topic",
+        "resourceType": "AWS::SNS::Topic",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 3,
+        "endLine": 12,
+        "endColumn": 8,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"

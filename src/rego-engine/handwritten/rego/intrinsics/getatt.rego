@@ -22,15 +22,17 @@ violation contains make_diag_full("E9004", "ERROR", name, edge.sourcePath,
     not _is_map_member_attr(attr, target_type)
 }
 
-# A dotted attribute (e.g. Outputs.SomeKey) addresses a member of a map/list
-# attribute, which CloudFormation exposes as <Attr>.<key> for any key (the
-# reference tool models these as <Attr>\..*). Valid whenever the leading segment
-# is an object- or array-typed attribute of the type.
+# A dotted attribute (e.g. Outputs.SomeKey) addresses a member of an open-ended
+# map attribute that CloudFormation exposes as <Attr>.<key> for any key. Only two
+# resource types have such an attribute: nested stacks and provisioned products
+# both expose Outputs.<OutputKey>. Nested stacks (AWS::CloudFormation::Stack) are
+# already in _skip_getatt_types, so the only type that reaches here needing the
+# exemption is the provisioned product. Every other dotted attribute (e.g. Tags.0
+# on a bucket) is a real attribute-validity error — an object/array attribute is
+# NOT itself indexable via GetAtt.
 _is_map_member_attr(attr, target_type) if {
-    contains(attr, ".")
-    prefix := split(attr, ".")[0]
-    attr_type := data.getatt_attribute_types[target_type][prefix]
-    attr_type in {"object", "array"}
+    target_type == "AWS::ServiceCatalog::CloudFormationProvisionedProduct"
+    startswith(attr, "Outputs.")
 }
 
 # E9003 is disabled - CloudFormation auto-converts non-string GetAtt return values
