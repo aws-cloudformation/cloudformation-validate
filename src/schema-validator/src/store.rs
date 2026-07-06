@@ -151,8 +151,8 @@ pub struct LifecycleStore {
     runtime_lifecycle: HashMap<String, RuntimeLifecycle>,
 }
 
-/// Per-runtime lifecycle dates used to reconstruct the reference tool's dated
-/// deprecation message.
+/// Per-runtime lifecycle dates used to reconstruct the dated runtime-deprecation
+/// message.
 #[derive(Clone)]
 pub struct RuntimeLifecycle {
     pub deprecated: String,

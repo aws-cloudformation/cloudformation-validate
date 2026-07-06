@@ -2115,11 +2115,11 @@ Resources:
 
     #[test]
     fn output_find_in_map_list_value_not_flagged() {
-        // Fn::FindInMap can resolve to a list, but the reference linter does not
-        // flag it here (the mapping's shape is validated elsewhere): only literal
-        // lists and list-returning functions are string-type violations. This is
-        // exactly the case a resolved-value check would get wrong, since the
-        // resolved value is indistinguishable from a literal list.
+        // Fn::FindInMap can resolve to a list, but it is not flagged here (the
+        // mapping's shape is validated elsewhere): only literal lists and
+        // list-returning functions are string-type violations. This is exactly
+        // the case a resolved-value check would get wrong, since the resolved
+        // value is indistinguishable from a literal list.
         let template = "Mappings:\n  M:\n    k:\n      l:\n        - a\n        - b\nResources:\n  R:\n    Type: T\nOutputs:\n  O:\n    Value: !FindInMap [M, k, l]\n";
         assert_eq!(output_string_type_diagnostics(template), 0);
     }

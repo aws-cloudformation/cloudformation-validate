@@ -41,8 +41,8 @@ violation contains make_diag_at("E3671", "ERROR", name,
 }
 
 # Iops below the minimum for its VolumeType. The bound only applies to a literal
-# Iops — a value supplied via a parameter Ref/intrinsic is not folded into the
-# check, matching the reference tool.
+# Iops — a value supplied via a parameter Ref/intrinsic has no known value at
+# validation time, so it is not folded into the check.
 violation contains make_diag_at("E3671", "ERROR", name,
     sprintf("%s.%d.Ebs.Iops", [base_path, i]),
     sprintf("%d is less than the minimum of %d", [iops, bounds.min])) if {

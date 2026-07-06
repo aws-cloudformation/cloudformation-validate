@@ -246,7 +246,7 @@ fn custom_cel_rule_that_fails_to_evaluate_is_a_hard_error_not_a_diagnostic() {
     // compiles, but fails at execution. That failure must surface as a hard
     // validation error (an exception) — never silently dropped, never reported
     // as a diagnostic — matching the Rego engine's custom-rule semantics
-    // (engine parity, no silent failures).
+    // (no silent failures).
     let escape_rule = r#"{"rules": [
         {
             "rule_id": "SBXCEL001",
