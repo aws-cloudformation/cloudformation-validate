@@ -4021,6 +4021,7 @@
       },
       "Arn": {
         "type": "string",
+        "pattern": "^arn:[^:]+:access-analyzer(-beta|-gamma)?:[^:]*:[^:]*:analyzer/.+$",
         "min_length": 1,
         "max_length": 1600,
         "description": "Amazon Resource Name (ARN) of the analyzer"
@@ -70533,7 +70534,8 @@
     },
     "required_xor": [
       "Metrics",
-      "MetricName"
+      "MetricName",
+      "EvaluationCriteria"
     ]
   },
   "AWS::CloudWatch::AlarmMuteRule": {
@@ -84775,6 +84777,9 @@
           "AssignContactCategoryActions": {
             "ref_name": "AssignContactCategoryActions"
           },
+          "AssignSlaActions": {
+            "ref_name": "AssignSlaActions"
+          },
           "CreateCaseActions": {
             "ref_name": "CreateCaseActions"
           },
@@ -84814,6 +84819,78 @@
         "description": "This action will assign contact category when a rule is triggered.",
         "items": {
           "ref_name": "AssignContactCategoryAction"
+        }
+      },
+      "AssignSlaAction": {
+        "type": "object",
+        "properties": {
+          "CaseSlaConfiguration": {
+            "type": "object",
+            "description": "The SLA configuration for cases.",
+            "properties": {
+              "FieldId": {
+                "type": "string",
+                "min_length": 1,
+                "max_length": 500,
+                "description": "The field Id for the SLA."
+              },
+              "Name": {
+                "type": "string",
+                "min_length": 1,
+                "max_length": 500,
+                "description": "The name of the SLA."
+              },
+              "TargetFieldValues": {
+                "type": "array",
+                "max_items": 1,
+                "description": "The target field values for the SLA.",
+                "items": {
+                  "ref_name": "SlaTargetFieldValue"
+                }
+              },
+              "TargetSlaMinutes": {
+                "type": "number",
+                "minimum": 1.0,
+                "maximum": 1051200.0,
+                "description": "The target SLA time in minutes."
+              },
+              "Type": {
+                "type": "string",
+                "enum": [
+                  "CaseField"
+                ],
+                "description": "The type of SLA."
+              }
+            },
+            "required": [
+              "Type",
+              "Name",
+              "TargetSlaMinutes"
+            ],
+            "additional_properties": false
+          },
+          "SlaAssignmentType": {
+            "type": "string",
+            "enum": [
+              "CASES"
+            ],
+            "description": "The type of SLA assignment."
+          }
+        },
+        "required": [
+          "SlaAssignmentType",
+          "CaseSlaConfiguration"
+        ],
+        "additional_properties": false
+      },
+      "AssignSlaActions": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 1,
+        "unique_items": true,
+        "description": "This action will assign an SLA when a rule is triggered.",
+        "items": {
+          "ref_name": "AssignSlaAction"
         }
       },
       "CreateCaseAction": {
@@ -84998,6 +85075,7 @@
           "EventSourceName": {
             "type": "string",
             "enum": [
+              "OnEmailAnalysisAvailable",
               "OnContactEvaluationSubmit",
               "OnPostCallAnalysisAvailable",
               "OnRealTimeCallAnalysisAvailable",
@@ -85008,7 +85086,11 @@
               "OnSalesforceCaseCreate",
               "OnMetricDataUpdate",
               "OnCaseCreate",
-              "OnCaseUpdate"
+              "OnCaseUpdate",
+              "OnSlaBreach",
+              "OnSchedulePublish",
+              "OnScheduleUpdate",
+              "OnScheduleTimeOffRequestActivity"
             ],
             "description": "The name of the event source."
           },
@@ -85047,6 +85129,9 @@
             ],
             "description": "Notification delivery method.\n *Allowed value*: ``EMAIL``"
           },
+          "Exclusion": {
+            "ref_name": "NotificationRecipientType"
+          },
           "Recipient": {
             "ref_name": "NotificationRecipientType"
           },
@@ -85074,6 +85159,15 @@
         "items": {
           "ref_name": "SendNotificationAction"
         }
+      },
+      "SlaTargetFieldValue": {
+        "type": "object",
+        "properties": {
+          "StringValue": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
       },
       "SubmitAutoEvaluationAction": {
         "type": "object",
@@ -173723,6 +173817,18 @@
           }
         }
       },
+      "AmiWatermarks": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 5,
+        "description": "The AMI watermark names to attach to the output AMI from this recipe. AMI watermarks are lineage markers that automatically propagate to derivative AMIs when the source AMI is copied or distributed.",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9()\\[\\]./'@_\\-][A-Za-z0-9 ()\\[\\]./'@_\\-]{1,126}[A-Za-z0-9()\\[\\]./'@_\\-]$",
+          "min_length": 3,
+          "max_length": 128
+        }
+      },
       "Arn": {
         "type": "string",
         "description": "The Amazon Resource Name (ARN) of the image recipe."
@@ -173997,7 +174103,8 @@
       "BlockDeviceMappings",
       "WorkingDirectory",
       "AdditionalInstanceConfiguration",
-      "AmiTags"
+      "AmiTags",
+      "AmiWatermarks"
     ],
     "primary_identifier": [
       "Arn"
@@ -219164,6 +219271,12 @@
       "Configuration": {
         "ref_name": "RouterInputConfiguration"
       },
+      "ContentQualityAnalysisConfiguration": {
+        "ref_name": "RouterContentQualityAnalysisConfiguration"
+      },
+      "ContentQualityAnalysisType": {
+        "ref_name": "RouterContentQualityAnalysisType"
+      },
       "CreatedAt": {
         "type": "string",
         "format": "date-time",
@@ -219234,6 +219347,49 @@
         "type": "object",
         "description": "Configuration settings for automatic encryption key management, where MediaConnect handles key creation and rotation.",
         "additional_properties": false
+      },
+      "BlackFramesConfiguration": {
+        "type": "object",
+        "description": "Detects black frames in the router input's source content and reports them through a CloudWatch metric, an EventBridge event, and a router input message.",
+        "properties": {
+          "State": {
+            "ref_name": "ContentQualityAnalysisState"
+          },
+          "ThresholdSeconds": {
+            "type": "integer",
+            "minimum": 10.0,
+            "maximum": 60.0,
+            "description": "The number of consecutive seconds of black frames that MediaConnect must detect before it reports an issue."
+          }
+        },
+        "required": [
+          "State",
+          "ThresholdSeconds"
+        ],
+        "additional_properties": false
+      },
+      "ContentQualityAnalysisFeatureConfiguration": {
+        "type": "object",
+        "description": "Configures the content quality analysis features for the router input.",
+        "properties": {
+          "BlackFrames": {
+            "ref_name": "BlackFramesConfiguration"
+          },
+          "FrozenFrames": {
+            "ref_name": "FrozenFramesConfiguration"
+          },
+          "SilentAudio": {
+            "ref_name": "SilentAudioConfiguration"
+          }
+        },
+        "additional_properties": false
+      },
+      "ContentQualityAnalysisState": {
+        "type": "string",
+        "enum": [
+          "ENABLED",
+          "DISABLED"
+        ]
       },
       "Day": {
         "type": "string",
@@ -219397,6 +219553,26 @@
           "ENABLED",
           "DISABLED"
         ]
+      },
+      "FrozenFramesConfiguration": {
+        "type": "object",
+        "description": "Detects frozen video frames in the router input's source content and reports them through a CloudWatch metric, an EventBridge event, and a router input message.",
+        "properties": {
+          "State": {
+            "ref_name": "ContentQualityAnalysisState"
+          },
+          "ThresholdSeconds": {
+            "type": "integer",
+            "minimum": 10.0,
+            "maximum": 60.0,
+            "description": "The number of consecutive seconds of a frozen frame that MediaConnect must detect before it reports an issue."
+          }
+        },
+        "required": [
+          "State",
+          "ThresholdSeconds"
+        ],
+        "additional_properties": false
       },
       "MaintenanceConfiguration": {
         "description": "The configuration settings for maintenance operations, including preferred maintenance windows and schedules.",
@@ -219632,6 +219808,28 @@
           "RecoveryLatencyMilliseconds"
         ],
         "additional_properties": false
+      },
+      "RouterContentQualityAnalysisConfiguration": {
+        "description": "The content quality analysis configuration for the router input. The content quality analysis feature only monitors the first video stream and the first audio stream it encounters within the router input source.",
+        "one_of": [
+          {
+            "required": [
+              "ContentLevel"
+            ],
+            "properties": {
+              "ContentLevel": {
+                "ref_name": "ContentQualityAnalysisFeatureConfiguration"
+              }
+            },
+            "additional_properties": false
+          }
+        ]
+      },
+      "RouterContentQualityAnalysisType": {
+        "type": "string",
+        "enum": [
+          "CONTENT_LEVEL"
+        ]
       },
       "RouterInputConfiguration": {
         "description": "The configuration settings for a router input.",
@@ -219882,6 +220080,26 @@
         ],
         "additional_properties": false
       },
+      "SilentAudioConfiguration": {
+        "type": "object",
+        "description": "Detects silent audio in the router input's source content and reports it through a CloudWatch metric, an EventBridge event, and a router input message.",
+        "properties": {
+          "State": {
+            "ref_name": "ContentQualityAnalysisState"
+          },
+          "ThresholdSeconds": {
+            "type": "integer",
+            "minimum": 10.0,
+            "maximum": 60.0,
+            "description": "The number of consecutive seconds of silence that MediaConnect must detect before it reports an issue."
+          }
+        },
+        "required": [
+          "State",
+          "ThresholdSeconds"
+        ],
+        "additional_properties": false
+      },
       "SrtCallerRouterInputConfiguration": {
         "type": "object",
         "description": "The configuration settings for a router input using the SRT (Secure Reliable Transport) protocol in caller mode, including the source address and port, minimum latency, stream ID, and decryption key configuration.",
@@ -219993,10 +220211,6 @@
           "Value"
         ],
         "additional_properties": false
-      },
-      "Unit": {
-        "type": "object",
-        "additional_properties": false
       }
     },
     "required": [
@@ -220009,6 +220223,7 @@
     "additional_properties": false,
     "read_only_properties": [
       "Arn",
+      "ContentQualityAnalysisType",
       "CreatedAt",
       "Id",
       "InputType",
@@ -362310,13 +362525,15 @@
     "type_name": "AWS::ServiceCatalog::AcceptedPortfolioShare",
     "properties": {
       "AcceptLanguage": {
-        "type": "string"
-      },
-      "Id": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^(en|jp|zh)$",
+        "description": "The language code."
       },
       "PortfolioId": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 100,
+        "description": "The portfolio identifier."
       }
     },
     "definitions": {},
@@ -362324,15 +362541,16 @@
       "PortfolioId"
     ],
     "additional_properties": false,
-    "read_only_properties": [
-      "Id"
-    ],
-    "create_only_properties": [
-      "PortfolioId",
+    "read_only_properties": [],
+    "write_only_properties": [
       "AcceptLanguage"
     ],
+    "create_only_properties": [
+      "AcceptLanguage",
+      "PortfolioId"
+    ],
     "primary_identifier": [
-      "Id"
+      "PortfolioId"
     ],
     "description": "Resource Type definition for AWS::ServiceCatalog::AcceptedPortfolioShare"
   },
@@ -362340,58 +362558,100 @@
     "type_name": "AWS::ServiceCatalog::CloudFormationProduct",
     "properties": {
       "AcceptLanguage": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 100,
+        "description": "The language code."
       },
       "Description": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 8191,
+        "description": "The description of the product."
       },
       "Distributor": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 8191,
+        "description": "The distributor of the product."
       },
       "Id": {
-        "type": "string"
+        "type": "string",
+        "description": "The ID of the product, such as prod-tsjbmal34qvek"
       },
       "Name": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 8191,
+        "description": "The name of the product."
       },
       "Owner": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 8191,
+        "description": "The owner of the product."
       },
       "ProductName": {
-        "type": "string"
+        "type": "string",
+        "description": "The name of the product."
       },
       "ProductType": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "CLOUD_FORMATION_TEMPLATE",
+          "MARKETPLACE_AMI",
+          "MARKETPLACE_CAR",
+          "TERRAFORM_OPEN_SOURCE",
+          "TERRAFORM_CLOUD",
+          "EXTERNAL"
+        ],
+        "description": "The type of product."
       },
       "ProvisioningArtifactIds": {
-        "type": "string"
+        "type": "string",
+        "description": "The IDs of the provisioning artifacts"
       },
       "ProvisioningArtifactNames": {
-        "type": "string"
+        "type": "string",
+        "description": "The names of the provisioning artifacts"
       },
       "ProvisioningArtifactParameters": {
         "type": "array",
+        "description": "The configuration of the provisioning artifact (also known as a version).",
         "items": {
           "ref_name": "ProvisioningArtifactProperties"
         }
       },
       "ReplaceProvisioningArtifacts": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "This property is turned off by default. If turned off, you can update provisioning artifacts or product attributes (such as description, distributor, name, owner, and more) and the associated provisioning artifacts will retain the same unique identifier. Provisioning artifacts are matched within the CloudFormationProduct resource, and only those that have been updated will be changed. Provisioning artifacts are matched by a combinaton of provisioning artifact template URL and name."
       },
       "SourceConnection": {
         "ref_name": "SourceConnection"
       },
       "SupportDescription": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 8191,
+        "description": "The support information about the product."
       },
       "SupportEmail": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 254,
+        "description": "The contact email for product support."
       },
       "SupportUrl": {
-        "type": "string"
+        "type": "string",
+        "min_length": 0,
+        "max_length": 2083,
+        "description": "The contact URL for product support."
       },
       "Tags": {
         "type": "array",
+        "min_items": 0,
+        "max_items": 20,
+        "description": "One or more tags.",
         "items": {
           "ref_name": "Tag"
         }
@@ -362402,16 +362662,29 @@
         "type": "object",
         "properties": {
           "ArtifactPath": {
-            "type": "string"
+            "type": "string",
+            "min_length": 1,
+            "max_length": 4096,
+            "description": "The absolute path where the artifact resides within the repo and branch, formatted as \"folder/file.json\"."
           },
           "Branch": {
-            "type": "string"
+            "type": "string",
+            "min_length": 1,
+            "max_length": 250,
+            "description": "The specific branch where the artifact resides."
           },
           "ConnectionArn": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^arn:[a-z0-9][-.a-z0-9]{0,62}:codestar-connections:([a-z0-9][-.a-z0-9]{0,62})?:([a-z0-9][-.a-z0-9]{0,62})?:[^/].{0,1023}$",
+            "min_length": 1,
+            "max_length": 1224,
+            "description": "The CodeStar ARN, which is the connection between AWS Service Catalog and the external repository.\n\n"
           },
           "Repository": {
-            "type": "string"
+            "type": "string",
+            "min_length": 1,
+            "max_length": 100,
+            "description": "The specific repository where the product's artifact-to-be-synced resides, formatted as \"Account/Repo.\""
           }
         },
         "required": [
@@ -362435,10 +362708,12 @@
         "type": "object",
         "properties": {
           "Description": {
-            "type": "string"
+            "type": "string",
+            "description": "The description of the provisioning artifact, including how it differs from the previous provisioning artifact."
           },
           "DisableTemplateValidation": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "If set to true, AWS Service Catalog stops validating the specified provisioning artifact even if it is invalid."
           },
           "Info": {
             "type": [
@@ -362448,10 +362723,20 @@
             "format": "json"
           },
           "Name": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of the provisioning artifact (for example, v1 v2beta). No spaces are allowed."
           },
           "Type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "CLOUD_FORMATION_TEMPLATE",
+              "MARKETPLACE_AMI",
+              "MARKETPLACE_CAR",
+              "TERRAFORM_OPEN_SOURCE",
+              "TERRAFORM_CLOUD",
+              "EXTERNAL"
+            ],
+            "description": "The type of provisioning artifact. Valid values are CLOUD_FORMATION_TEMPLATE, TERRAFORM_OPEN_SOURCE, TERRAFORM_CLOUD, EXTERNAL"
           }
         },
         "required": [
@@ -362463,15 +362748,26 @@
         "type": "object",
         "properties": {
           "ConnectionParameters": {
-            "ref_name": "ConnectionParameters"
+            "type": "object",
+            "description": "The connection details based on the connection Type.",
+            "properties": {
+              "CodeStar": {
+                "ref_name": "CodeStarParameters"
+              }
+            },
+            "additional_properties": false
           },
           "Type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "CODESTAR"
+            ],
+            "description": "The only supported SourceConnection type is Codestar."
           }
         },
         "required": [
-          "Type",
-          "ConnectionParameters"
+          "ConnectionParameters",
+          "Type"
         ],
         "additional_properties": false
       },
@@ -362479,10 +362775,18 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The tag key."
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 256,
+            "description": "The tag value"
           }
         },
         "required": [
@@ -362498,15 +362802,21 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "ProvisioningArtifactIds",
       "Id",
+      "ProvisioningArtifactIds",
       "ProvisioningArtifactNames",
       "ProductName"
+    ],
+    "write_only_properties": [
+      "AcceptLanguage",
+      "ReplaceProvisioningArtifacts",
+      "ProvisioningArtifactParameters.*.DisableTemplateValidation"
     ],
     "primary_identifier": [
       "Id"
     ],
-    "description": "Resource Type definition for AWS::ServiceCatalog::CloudFormationProduct"
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+    "description": "Resource type definition for AWS::ServiceCatalog::CloudFormationProduct"
   },
   "AWS::ServiceCatalog::CloudFormationProvisionedProduct": {
     "type_name": "AWS::ServiceCatalog::CloudFormationProvisionedProduct",
