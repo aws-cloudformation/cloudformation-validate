@@ -572,9 +572,9 @@ def main():
 
     lines += data_sources_section(all_loaded)
 
-    out_dir = SCRIPT_DIR
+    out_dir = SCRIPT_DIR / "snapshots"
     out_dir.mkdir(parents=True, exist_ok=True)
-    output_path = out_dir / f"benchmark_comparison.md"
+    output_path = out_dir / "benchmark_comparison.md"
     output_path.write_text("\n".join(lines) + "\n")
     print(f"\nComparison written to {output_path}", file=sys.stderr)
 

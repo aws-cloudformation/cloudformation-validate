@@ -70,8 +70,7 @@ def init_rule_origins():
 
 
 def parse_args():
-    global CFN_LINT_ROOT, CFN_LINT_RESULTS, CFN_LINT_TEMPLATES, SKIP_BUILD
-    global ENGINE_NAME, ENGINE_REPORTS, OUTPUT_PATH, OUTPUT_FORMAT
+    global CFN_LINT_ROOT, CFN_LINT_RESULTS, CFN_LINT_TEMPLATES, SKIP_BUILD, ENGINE_NAME
     engine_set = False
     i = 1
     while i < len(sys.argv):
@@ -91,7 +90,7 @@ def parse_args():
         else:
             i += 1
 
-    ENGINE_REPORTS = SRC_DIR / "cfn-validate" / "reports" / ENGINE_NAME / f"json_{OUTPUT_FORMAT}"
+    configure_run(ENGINE_NAME, OUTPUT_FORMAT)
 
     if CFN_LINT_ROOT is None:
         print("error: --cfn-lint-root or CFN_LINT_ROOT env var is required", file=sys.stderr)
@@ -102,8 +101,6 @@ def parse_args():
     CFN_LINT_RESULTS = CFN_LINT_ROOT / "test" / "fixtures" / "results"
     CFN_LINT_TEMPLATES = CFN_LINT_ROOT / "test" / "fixtures" / "templates"
 
-    OUTPUT_PATH = SCRIPT_DIR / f"report_{ENGINE_NAME}_{OUTPUT_FORMAT}.md"
-
     return engine_set
 
 
@@ -113,7 +110,7 @@ def configure_run(engine, fmt):
     ENGINE_NAME = engine
     OUTPUT_FORMAT = fmt
     ENGINE_REPORTS = SRC_DIR / "cfn-validate" / "reports" / engine / f"json_{fmt}"
-    OUTPUT_PATH = SCRIPT_DIR / f"report_{engine}_{fmt}.md"
+    OUTPUT_PATH = SCRIPT_DIR / "snapshots" / f"report_{engine}_{fmt}.md"
 
 
 # ── Build & Run ──────────────────────────────────────────────────────────────

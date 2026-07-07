@@ -45,7 +45,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 REGISTRY = PROJECT_ROOT / "src/rules/src/registry.rs"
-DEFAULT_OUTPUT = SCRIPT_DIR / "rule_categorization_audit.md"
+DEFAULT_OUTPUT = SCRIPT_DIR / "snapshots" / "rule_categorization_audit.md"
 
 SEV_MAP = {"F": "Fatal", "E": "Error", "W": "Warn", "I": "Info", "D": "Debug"}
 
