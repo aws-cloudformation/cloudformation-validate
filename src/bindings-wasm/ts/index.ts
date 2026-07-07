@@ -139,7 +139,7 @@ export class SchemaValidator {
         return this.inner.schemaCount();
     }
 
-    validate(template: TemplateFile, region: string = 'us-east-1'): StandardDiagnostic[] {
+    validate(template: TemplateFile, region?: string): StandardDiagnostic[] {
         const model = bridge.WasmSemanticModel.parse(template.readBytes());
         try {
             return this.inner.validate(model, region).diagnostics;

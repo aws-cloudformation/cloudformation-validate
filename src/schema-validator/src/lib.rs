@@ -45,7 +45,11 @@ impl SchemaValidator {
         &self.init_metric
     }
 
-    pub fn validate(&self, model: &Arc<SemanticModel>, region: &str) -> SchemaValidationResult {
+    /// Validates every resource. `region` is the configured AWS region, or `None`
+    /// when the caller supplied none — in which case region-scoped checks widen to
+    /// the union of all regions (a resource type or enum value is flagged only when
+    /// it is unavailable in every region) rather than assuming a default region.
+    pub fn validate(&self, model: &Arc<SemanticModel>, region: Option<&str>) -> SchemaValidationResult {
         let start = web_time::Instant::now();
         let diagnostics = validate::validate_all_resources(&self.store, model, region);
         let metric = phase_metric(start);

@@ -1158,6 +1158,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "I9003",
+        category: Category::BestPractice,
+        description: "Region-scoped values validated against all regions because no region was supplied",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "I3037",
         category: Category::BestPractice,
         description: "Check if a list that allows duplicates has any duplicates",

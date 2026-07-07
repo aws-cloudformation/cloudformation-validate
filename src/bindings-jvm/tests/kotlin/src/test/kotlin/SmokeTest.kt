@@ -436,7 +436,7 @@ class SmokeTest {
 
     @Test
     fun rulesEvaluatedIsFullRuleCount() {
-        val expected = 279
+        val expected = 280
         assertEquals(expected, CEL.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "cel: rulesEvaluated")
         assertEquals(expected, REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "rego: rulesEvaluated")
     }
