@@ -15,7 +15,7 @@ fn validate_fixture(path: &str) -> Vec<Diagnostic> {
     let full = format!("{}/{}", TEMPLATES, path);
     let bytes = std::fs::read(&full).unwrap_or_else(|e| panic!("read {}: {}", full, e));
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap_or_else(|e| panic!("parse {}: {}", full, e)));
-    SV.validate(&model, "us-east-1").diagnostics
+    SV.validate(&model, Some("us-east-1")).diagnostics
 }
 
 fn has_rule(diags: &[Diagnostic], rule_id: &str) -> bool {
@@ -234,7 +234,7 @@ fn enrich_context_adds_documentation_url() {
     let full = format!("{}/bad/schema_enum_violation.yaml", TEMPLATES);
     let bytes = std::fs::read(&full).unwrap();
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
-    let mut result = SV.validate(&model, "us-east-1");
+    let mut result = SV.validate(&model, Some("us-east-1"));
     SV.enrich_context(&mut result.diagnostics, &model);
     let enum_diag = result.diagnostics.iter().find(|d| d.rule_id == "W3030");
     assert!(enum_diag.is_some(), "expected W3030 diagnostic after enrichment");
@@ -245,7 +245,7 @@ fn enrich_context_adds_allowed_values_for_enum() {
     let full = format!("{}/bad/schema_enum_violation.yaml", TEMPLATES);
     let bytes = std::fs::read(&full).unwrap();
     let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
-    let mut result = SV.validate(&model, "us-east-1");
+    let mut result = SV.validate(&model, Some("us-east-1"));
     SV.enrich_context(&mut result.diagnostics, &model);
     let enum_diag = result.diagnostics.iter().find(|d| d.rule_id == "W3030");
     if let Some(d) = enum_diag
@@ -445,12 +445,44 @@ fn region_availability_e3037() {
         }
     });
     store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
-    let diags = validate_all_resources(&store, &model, "us-east-1");
+    let diags = validate_all_resources(&store, &model, Some("us-east-1"));
     let f3006 = diags.iter().filter(|d| d.rule_id == "F3006").count();
     assert!(
         f3006 > 0,
         "expected F3006 for resource type not in region, got: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+/// A resource type available in some region but not the configured one is flagged
+/// (F3006); with no region configured the availability check widens to the union
+/// of all regions, so a type available in any region is not flagged.
+#[test]
+fn region_availability_widens_to_union_when_no_region() {
+    let full = format!("{}/good/minimal.yaml", TEMPLATES);
+    let bytes = std::fs::read(&full).unwrap();
+    let model = Arc::new(SemanticModel::from_bytes(&bytes).unwrap());
+    // minimal.yaml's type exists only in us-west-2 here, not us-east-1.
+    let rtype = model.resources.values().next().unwrap().resource_type.clone();
+    let mut store = CompiledSchemaStore::new();
+    let region_json = serde_json::json!({
+        "region_resource_types": {
+            "us-east-1": { "AWS::S3::Bucket": true },
+            "us-west-2": { rtype.clone(): true }
+        }
+    });
+    store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+
+    let at_us_east_1 = validate_all_resources(&store, &model, Some("us-east-1"));
+    assert!(
+        at_us_east_1.iter().any(|d| d.rule_id == "F3006"),
+        "type absent in us-east-1 must be flagged when that region is configured"
+    );
+
+    let no_region = validate_all_resources(&store, &model, None);
+    assert!(
+        !no_region.iter().any(|d| d.rule_id == "F3006"),
+        "type available in us-west-2 must not be flagged when no region is configured (union of all regions)"
     );
 }
 

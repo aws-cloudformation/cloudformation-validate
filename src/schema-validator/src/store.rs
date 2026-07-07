@@ -1,6 +1,7 @@
 use crate::compiled::CompiledSchema;
 use data_source::embedded::*;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
+use template_model::consts::AWS_REGIONS;
 
 pub struct CompiledSchemaStore {
     schemas: HashMap<String, CompiledSchema>,
@@ -38,6 +39,14 @@ impl CompiledSchemaStore {
         // (F3006) validates against the target region. Without this the region
         // check is dormant and unavailable types slip through.
         store.load_region_data(&REGION_RESOURCE_TYPES_BYTES);
+        assert!(
+            store.has_region_data(),
+            "Embedded region-availability data (region_resource_types) is empty; the build is missing regional data"
+        );
+        assert!(
+            store.region_enums.has_data(),
+            "Embedded regional enum data (region_enums) is empty; the build is missing regional data"
+        );
         store
     }
 
@@ -66,9 +75,6 @@ impl CompiledSchemaStore {
     }
 
     pub fn is_available_in_region(&self, type_name: &str, region: &str) -> bool {
-        if self.region_types.is_empty() {
-            return true;
-        }
         self.region_types.get(region).map(|types| types.contains_key(type_name)).unwrap_or(true)
     }
 
@@ -301,6 +307,28 @@ impl RegionEnumStore {
         self.enums.get(&key).and_then(|regions| regions.get(region)).map(|v| v.as_slice())
     }
 
+    /// Allowed values for a property in the effective scope: the single `region`
+    /// when configured, or the union across all AWS regions when not (`None`) — so
+    /// with no region a value is accepted when it is valid in any region. Returns
+    /// `None` when the property has no regional override, or when a configured
+    /// region has no entry, so the caller falls back to the region-agnostic enum.
+    pub fn allowed_values(&self, resource_type: &str, prop_name: &str, region: Option<&str>) -> Option<Vec<&str>> {
+        let key = format!("{}::{}", resource_type, prop_name);
+        let regions = self.enums.get(&key)?;
+        match region {
+            Some(region) => regions.get(region).map(|v| v.iter().map(String::as_str).collect()),
+            None => {
+                let mut union: BTreeSet<&str> = BTreeSet::new();
+                for region in AWS_REGIONS {
+                    if let Some(values) = regions.get(*region) {
+                        union.extend(values.iter().map(String::as_str));
+                    }
+                }
+                (!union.is_empty()).then(|| union.into_iter().collect())
+            }
+        }
+    }
+
     pub fn has_data(&self) -> bool {
         !self.enums.is_empty()
     }
@@ -331,14 +359,9 @@ mod tests {
     }
 
     #[test]
-    fn store_no_region_data_always_available() {
-        // `new()` eagerly loads the embedded region map; clear it to exercise the
-        // "no region data → everything is available" fallback in isolation.
-        let mut store = CompiledSchemaStore::new();
-        store.region_types.clear();
-        assert!(!store.has_region_data());
-        assert!(store.is_available_in_region("AWS::S3::Bucket", "us-east-1"));
-        assert!(store.is_available_in_region("AWS::Fake::Type", "us-west-2"));
+    fn store_new_always_has_region_data() {
+        let store = CompiledSchemaStore::new();
+        assert!(store.has_region_data(), "embedded region data must be present");
     }
 
     #[test]
@@ -524,5 +547,48 @@ mod tests {
             None,
             "ap-south-1 should have no enum values"
         );
+    }
+
+    fn region_enum_fixture() -> RegionEnumStore {
+        // t3.micro is valid only in eu-west-1, not us-east-1; "description" is a
+        // synthetic non-region key that must never contribute to the union.
+        let data = json!({
+            "AWS::EC2::Instance::InstanceType": {
+                "us-east-1": ["t2.micro"],
+                "eu-west-1": ["t2.micro", "t3.micro"],
+                "description": ["should.be.ignored"]
+            }
+        });
+        RegionEnumStore::load(serde_json::to_vec(&data).unwrap().as_slice())
+    }
+
+    #[test]
+    fn allowed_values_with_region_is_that_region_only() {
+        let re = region_enum_fixture();
+        let vals = re.allowed_values("AWS::EC2::Instance", "InstanceType", Some("us-east-1")).expect("us-east-1 entry");
+        assert!(vals.contains(&"t2.micro"));
+        assert!(!vals.contains(&"t3.micro"), "t3.micro is not valid in us-east-1");
+    }
+
+    #[test]
+    fn allowed_values_without_region_unions_all_regions() {
+        let re = region_enum_fixture();
+        let vals = re.allowed_values("AWS::EC2::Instance", "InstanceType", None).expect("union across regions");
+        assert!(vals.contains(&"t2.micro"));
+        assert!(vals.contains(&"t3.micro"), "t3.micro is valid in eu-west-1, so present in the union");
+        assert!(!vals.contains(&"should.be.ignored"), "the synthetic 'description' key must not contribute");
+    }
+
+    #[test]
+    fn allowed_values_unknown_configured_region_is_none() {
+        let re = region_enum_fixture();
+        assert!(re.allowed_values("AWS::EC2::Instance", "InstanceType", Some("ap-south-1")).is_none());
+    }
+
+    #[test]
+    fn allowed_values_unknown_property_is_none() {
+        let re = region_enum_fixture();
+        assert!(re.allowed_values("AWS::Fake::Type", "FakeProp", None).is_none());
+        assert!(re.allowed_values("AWS::Fake::Type", "FakeProp", Some("us-east-1")).is_none());
     }
 }

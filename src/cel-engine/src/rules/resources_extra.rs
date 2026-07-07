@@ -12,10 +12,11 @@ use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_to_string, scalar_eq};
 use template_model::consts::{
-    DEFAULT_REGION, EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS,
-    FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FN_REF, KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS,
+    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_REF, KEY_PROPERTIES,
+    PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
+use template_model::region_enums;
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
@@ -2615,9 +2616,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Instance type enum validation per region
+    // Instance type enum validation per region. With no region configured the
+    // value is validated against the union of all regions (flagged only when
+    // invalid everywhere); with a region set, that one region — see
+    // `template_model::region_enums`.
     {
-        let region = ctx.region.as_deref().unwrap_or(DEFAULT_REGION);
+        let region = ctx.region.as_deref();
         let enum_checks: &[(&str, &str, &str, &str)] = &[
             ("E3628", "AWS::EC2::Instance", "Properties.InstanceType", "data/aws_ec2_instance_instancetype_enum"),
             (
@@ -2703,16 +2707,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, prop_path, enum_key) in enum_checks {
-            let Some(allowed) = region_instance_type_enum(&ctx.cached_data.enum_data, enum_key, region) else {
+            let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
             for name in m.resources_of_type(rtype) {
-                if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path)
+                if let Some(val) = resolve_enum_string(m, name, prop_path)
                     && !allowed.contains(val.as_str())
                 {
                     out.push(make_resource_diagnostic(
                         rule_id,
-                        &format!("'{}' is not valid for region '{}'", val, region),
+                        &region_enums::flat_invalid_message(&val, region),
                         m,
                         name,
                         prop_path,
@@ -2753,7 +2757,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, wildcard_path, report_path, enum_key) in wildcard_enum_checks {
-            let Some(allowed) = region_instance_type_enum(&ctx.cached_data.enum_data, enum_key, region) else {
+            let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
             for name in m.resources_of_type(rtype) {
@@ -2764,7 +2768,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                     out.push(make_resource_diagnostic(
                         rule_id,
-                        &format!("'{}' is not valid for region '{}'", val, region),
+                        &region_enums::flat_invalid_message(&val, region),
                         m,
                         name,
                         report_path,
@@ -2774,14 +2778,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(region_data) = ctx
-            .cached_data
-            .enum_data
-            .get("data/aws_rds_dbinstance_dbinstanceclass_enum")
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.values().next())
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.get(region))
+        if let Some(region_map) =
+            region_map_for_key(&ctx.cached_data.enum_data, "data/aws_rds_dbinstance_dbinstanceclass_enum")
         {
             // The RDS document is a conditional schema: each allOf branch's
             // `if.required` consts (Engine/LicenseModel) select which
@@ -2790,22 +2788,20 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // enums (the intersection); a dynamic or unmatched Engine leaves no
             // matching branch and is not validated. The Engine value is matched
             // case-insensitively for DBInstance (the Engine value is lowercased
-            // before evaluating this schema).
+            // before evaluating this schema). With no region configured the class
+            // is validated against the union of all regions.
             for name in m.resources_of_type("AWS::RDS::DBInstance") {
-                let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, "Properties.DBInstanceClass")
-                else {
+                let Some(val) = resolve_enum_string(m, name, "Properties.DBInstanceClass") else {
                     continue;
                 };
-                let branch_enums = conditional_instance_class_enums(region_data, "DBInstanceClass", true, |prop| {
-                    resolve_concrete(m, name, &format!("Properties.{}", prop)).and_then(|v| match v {
-                        serde_json::Value::String(s) => Some(s),
-                        _ => None,
+                if let Some(sorted) =
+                    region_enums::conditional_invalid_enum(region_map, region, "DBInstanceClass", true, &val, |prop| {
+                        resolve_enum_string(m, name, &format!("Properties.{}", prop))
                     })
-                });
-                if let Some(sorted) = invalid_class_branch_enum(&branch_enums, val.as_str()) {
+                {
                     out.push(make_resource_diagnostic(
                         "E3025",
-                        &format!("'{}' is not one of {} in '{}'", val, render_str_list(&sorted), region),
+                        &region_enums::conditional_invalid_message(&val, &sorted, region),
                         m,
                         name,
                         "Properties.DBInstanceClass",
@@ -2818,32 +2814,24 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         // E3694: RDS DBCluster DBClusterInstanceClass. Like E3025 this is a
         // conditional schema keyed on Engine, but Engine is NOT lowercased for
         // DBCluster, so match the const case-sensitively.
-        if let Some(region_data) = ctx
-            .cached_data
-            .enum_data
-            .get("data/aws_rds_dbcluster_dbclusterinstanceclass_enum")
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.values().next())
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.get(region))
+        if let Some(region_map) =
+            region_map_for_key(&ctx.cached_data.enum_data, "data/aws_rds_dbcluster_dbclusterinstanceclass_enum")
         {
             for name in m.resources_of_type("AWS::RDS::DBCluster") {
-                let Some(serde_json::Value::String(val)) =
-                    resolve_concrete(m, name, "Properties.DBClusterInstanceClass")
-                else {
+                let Some(val) = resolve_enum_string(m, name, "Properties.DBClusterInstanceClass") else {
                     continue;
                 };
-                let branch_enums =
-                    conditional_instance_class_enums(region_data, "DBClusterInstanceClass", false, |prop| {
-                        resolve_concrete(m, name, &format!("Properties.{}", prop)).and_then(|v| match v {
-                            serde_json::Value::String(s) => Some(s),
-                            _ => None,
-                        })
-                    });
-                if let Some(sorted) = invalid_class_branch_enum(&branch_enums, val.as_str()) {
+                if let Some(sorted) = region_enums::conditional_invalid_enum(
+                    region_map,
+                    region,
+                    "DBClusterInstanceClass",
+                    false,
+                    &val,
+                    |prop| resolve_enum_string(m, name, &format!("Properties.{}", prop)),
+                ) {
                     out.push(make_resource_diagnostic(
                         "E3694",
-                        &format!("'{}' is not one of {} in '{}'", val, render_str_list(&sorted), region),
+                        &region_enums::conditional_invalid_message(&val, &sorted, region),
                         m,
                         name,
                         "Properties.DBClusterInstanceClass",
@@ -2853,25 +2841,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(region_data) = ctx
-            .cached_data
-            .enum_data
-            .get("data/aws_amazonmq_broker_instancetype_enum")
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.values().next())
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.get(region))
-            .and_then(|v| v.get("enum"))
-            .and_then(|v| v.as_array())
+        if let Some(allowed) =
+            region_flat_allowed(&ctx.cached_data.enum_data, "data/aws_amazonmq_broker_instancetype_enum", region)
         {
-            let allowed: HashSet<&str> = region_data.iter().filter_map(|v| v.as_str()).collect();
             for name in m.resources_of_type("AWS::AmazonMQ::Broker") {
-                if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, "Properties.HostInstanceType")
+                if let Some(val) = resolve_enum_string(m, name, "Properties.HostInstanceType")
                     && !allowed.contains(val.as_str())
                 {
                     out.push(make_resource_diagnostic(
                         "E3670",
-                        &format!("'{}' is not valid for region '{}'", val, region),
+                        &region_enums::flat_invalid_message(&val, region),
                         m,
                         name,
                         "Properties.HostInstanceType",
@@ -2881,25 +2860,18 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(region_data) = ctx
-            .cached_data
-            .enum_data
-            .get("data/aws_emr_cluster_instancetypeconfig_instancetype_enum")
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.values().next())
-            .and_then(|v| v.as_object())
-            .and_then(|o| o.get(region))
-            .and_then(|v| v.get("enum"))
-            .and_then(|v| v.as_array())
-        {
-            let allowed: HashSet<&str> = region_data.iter().filter_map(|v| v.as_str()).collect();
+        if let Some(allowed) = region_flat_allowed(
+            &ctx.cached_data.enum_data,
+            "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
+            region,
+        ) {
             for name in m.resources_of_type("AWS::EMR::InstanceFleetConfig") {
-                if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, "Properties.InstanceType")
+                if let Some(val) = resolve_enum_string(m, name, "Properties.InstanceType")
                     && !allowed.contains(val.as_str())
                 {
                     out.push(make_resource_diagnostic(
                         "E3675",
-                        &format!("'{}' is not valid for region '{}'", val, region),
+                        &region_enums::flat_invalid_message(&val, region),
                         m,
                         name,
                         "Properties.InstanceType",
@@ -3759,101 +3731,40 @@ fn check_bdm_virtualname_ignored(
     }
 }
 
-/// Collects every `then.<target_prop>.enum` from a conditional region document
-/// whose `allOf` branch `if.required` consts all match the resource's resolved
-/// properties (via `resolve_prop`). `target_prop` is the class property the enum
-/// constrains (`DBInstanceClass` for RDS DBInstance, `DBClusterInstanceClass` for
-/// DBCluster) and is excluded from the required-const match. Returns one enum per
-/// matching branch (the whole conditional schema is evaluated, so EVERY matching
-/// branch's enum applies), or an empty vec when no branch matches — so a resource
-/// with a dynamic or unmatched Engine is not validated.
-///
-/// The `Engine` value is lowercased before matching it against the (all-lowercase)
-/// Engine consts for RDS DBInstance but NOT for DBCluster; `normalize_engine_case`
-/// selects that behavior.
-fn conditional_instance_class_enums<'a, F>(
-    region_data: &'a serde_json::Value,
-    target_prop: &str,
-    normalize_engine_case: bool,
-    resolve_prop: F,
-) -> Vec<HashSet<&'a str>>
-where
-    F: Fn(&str) -> Option<String>,
-{
-    let mut enums = Vec::new();
-    let Some(branches) = region_data.get("allOf").and_then(|v| v.as_array()) else {
-        return enums;
-    };
-    for branch in branches {
-        let (Some(if_clause), Some(required), Some(if_props)) = (
-            branch.get("if"),
-            branch.get("if").and_then(|c| c.get("required")).and_then(|v| v.as_array()),
-            branch.get("if").and_then(|c| c.get("properties")).and_then(|v| v.as_object()),
-        ) else {
-            continue;
-        };
-        let _ = if_clause;
-        let all_required_match = required.iter().filter_map(|r| r.as_str()).filter(|p| *p != target_prop).all(|prop| {
-            let Some(expected) = if_props.get(prop).and_then(|p| p.get("const")).and_then(|c| c.as_str()) else {
-                return false;
-            };
-            let Some(actual) = resolve_prop(prop) else {
-                return false;
-            };
-            if normalize_engine_case && prop == "Engine" {
-                actual.eq_ignore_ascii_case(expected)
-            } else {
-                actual == expected
-            }
-        });
-        if all_required_match
-            && let Some(enum_vals) = branch
-                .get("then")
-                .and_then(|t| t.get("properties"))
-                .and_then(|p| p.get(target_prop))
-                .and_then(|d| d.get("enum"))
-                .and_then(|e| e.as_array())
-        {
-            enums.push(enum_vals.iter().filter_map(|v| v.as_str()).collect::<HashSet<&str>>());
-        }
-    }
-    enums
-}
-
-/// Given the matching-branch enums for a conditional instance-class schema and a
-/// class value, returns the enum to render in the diagnostic when the value is
-/// invalid, or `None` when the value is valid. A value is valid only when it is
-/// in EVERY matching branch's enum (the intersection). When invalid, report the
-/// largest branch enum the value is missing from, so return that branch's sorted
-/// enum.
-fn invalid_class_branch_enum<'a>(branch_enums: &[HashSet<&'a str>], value: &str) -> Option<Vec<&'a str>> {
-    let failing_largest =
-        branch_enums.iter().filter(|allowed| !allowed.contains(value)).max_by_key(|allowed| allowed.len())?;
-    let mut sorted: Vec<&str> = failing_largest.iter().copied().collect();
-    sorted.sort_unstable();
-    Some(sorted)
-}
-
-/// Valid instance-type/class enum values for `region`, or `None` when the
-/// document has no entry for that region. These documents are flat
-/// `{ "<region>": { "enum": [...] } }` maps (EC2, DocDB, Neptune, Redshift, …);
-/// the conditional `allOf` RDS DBInstance/DBCluster documents are validated
-/// separately via [`conditional_instance_class_enums`].
-fn region_instance_type_enum<'a>(
+/// The inner `{ "<region>": ... }` map of an embedded enum document, reached by
+/// unwrapping the single top-level document key. `None` when the key is absent or
+/// the shape is unexpected. Both flat and conditional documents share this shape;
+/// the region-scoping logic lives in [`template_model::region_enums`].
+fn region_map_for_key<'a>(
     enum_data: &'a HashMap<String, serde_json::Value>,
     enum_key: &str,
-    region: &str,
-) -> Option<HashSet<&'a str>> {
-    let values = enum_data
-        .get(enum_key)?
-        .as_object()?
-        .values()
-        .next()? // unwrap the single top-level document key to reach the region map
-        .as_object()?
-        .get(region)?
-        .get("enum")?
-        .as_array()?;
-    Some(values.iter().filter_map(|v| v.as_str()).collect())
+) -> Option<&'a serde_json::Map<String, serde_json::Value>> {
+    enum_data.get(enum_key)?.as_object()?.values().next()?.as_object()
+}
+
+/// Allowed instance-type/node-type values from a flat enum document for the
+/// effective scope: the single `region` when configured, or the union of all
+/// regions when not (`None` region). `None` when the document is absent or has no
+/// entry for the effective scope, so the caller skips validation.
+fn region_flat_allowed<'a>(
+    enum_data: &'a HashMap<String, serde_json::Value>,
+    enum_key: &str,
+    region: Option<&str>,
+) -> Option<BTreeSet<&'a str>> {
+    region_enums::flat_allowed_values(region_map_for_key(enum_data, enum_key)?, region)
+}
+
+/// A scalar string property value, collapsing an `Fn::If`-wrapped value to its
+/// true branch — mirroring the Rego `resolve()` builtin so the region-scoped enum
+/// rules that key on this (instance class + the Engine/LicenseModel consts) stay
+/// at parity across engines. `resolve_concrete` alone is `Conditional`-blind, so
+/// using it here silently skipped `Fn::If`-wrapped values that Rego flags.
+fn resolve_enum_string(m: &SemanticModel, rid: &str, path: &str) -> Option<String> {
+    let resolved = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned())?;
+    match resolved_to_json_best_effort(&resolved) {
+        serde_json::Value::String(s) => Some(s),
+        _ => None,
+    }
 }
 
 fn resolve_concrete_strings(m: &SemanticModel, rid: &str, path: &str) -> Vec<String> {

@@ -10,6 +10,7 @@ pub mod ir;
 pub mod model;
 pub(crate) mod nesting;
 pub(crate) mod parser;
+pub mod region_enums;
 pub mod resolved_value;
 pub mod resolver;
 pub(crate) mod rules;
@@ -18,9 +19,9 @@ pub(crate) mod serialization;
 
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{
-    DEFAULT_ACCOUNT_ID, DEFAULT_PARTITION, DEFAULT_REGION, DEFAULT_STACK_NAME, DEFAULT_URL_SUFFIX, FORMAT_VERSION,
-    MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_KIND,
-    MARKER_PARAM_TYPE, MARKER_REF,
+    AWS_REGIONS, DEFAULT_ACCOUNT_ID, DEFAULT_PARTITION, DEFAULT_REGION, DEFAULT_STACK_NAME, DEFAULT_URL_SUFFIX,
+    FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC,
+    MARKER_KIND, MARKER_PARAM_TYPE, MARKER_REF,
 };
 pub use ir::*;
 pub use model::{ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
