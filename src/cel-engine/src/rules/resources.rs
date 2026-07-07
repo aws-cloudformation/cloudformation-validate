@@ -2,6 +2,7 @@ use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::{Diagnostic, RelatedResource, ResourceRef, SourceSpan};
 use rules::Category;
 use template_model::SemanticModel;
+use template_model::coercion::coerce_to_integer;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
     KEY_UPDATE_POLICY,
@@ -44,8 +45,8 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let cpu = resolve_concrete(m, name, "Properties.Cpu");
             let mem = resolve_concrete(m, name, "Properties.Memory");
             if let (Some(cpu_val), Some(mem_val)) = (cpu, mem) {
-                let cpu_n = to_num(&cpu_val);
-                let mem_n = to_num(&mem_val);
+                let cpu_n = coerce_to_integer(&cpu_val);
+                let mem_n = coerce_to_integer(&mem_val);
                 if let (Some(c), Some(me)) = (cpu_n, mem_n)
                     && !valid_fargate_combo(c, me)
                 {
@@ -215,14 +216,6 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
-fn to_num(v: &serde_json::Value) -> Option<i64> {
-    match v {
-        serde_json::Value::Number(n) => n.as_i64(),
-        serde_json::Value::String(s) => s.parse().ok(),
-        _ => None,
-    }
-}
-
 fn valid_fargate_combo(cpu: i64, mem: i64) -> bool {
     match cpu {
         256 => [512, 1024, 2048].contains(&mem),
@@ -299,25 +292,5 @@ mod tests {
     fn fargate_unknown_cpu() {
         assert!(!valid_fargate_combo(128, 512));
         assert!(!valid_fargate_combo(0, 0));
-    }
-
-    #[test]
-    fn to_num_from_number() {
-        assert_eq!(to_num(&serde_json::json!(256)), Some(256));
-    }
-
-    #[test]
-    fn to_num_from_string() {
-        assert_eq!(to_num(&serde_json::json!("1024")), Some(1024));
-    }
-
-    #[test]
-    fn to_num_from_invalid_string() {
-        assert_eq!(to_num(&serde_json::json!("abc")), None);
-    }
-
-    #[test]
-    fn to_num_from_bool() {
-        assert_eq!(to_num(&serde_json::json!(true)), None);
     }
 }

@@ -30,8 +30,8 @@ _dynamic_port_bindings contains binding if {
     cdef.Name == container_name
     some pm in cdef.PortMappings
     is_object(pm)
-    pm.ContainerPort == container_port
-    object.get(pm, "HostPort", -1) == 0
+    coerce_port_to_string(pm.ContainerPort) == coerce_port_to_string(container_port)
+    coerce_port_to_string(object.get(pm, "HostPort", -1)) == "0"
     tg_name := follow_ref(svc_name, sprintf("Properties.LoadBalancers.%d.TargetGroupArn", [i]))
     tg_name != null
     tg := get_resource(tg_name)

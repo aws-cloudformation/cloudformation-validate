@@ -9,9 +9,8 @@ violation contains make_diag_at("E3705", "ERROR", name,
     some name in resources_of_type("AWS::Lambda::EventSourceMapping")
     target := follow_ref(name, "Properties.EventSourceArn")
     get_resource(target).resourceType == "AWS::SQS::Queue"
-    resolve(target, "Properties.FifoQueue") == true
-    batch_size := resolve(name, "Properties.BatchSize")
-    is_number(batch_size)
+    coerce_to_string(resolve(target, "Properties.FifoQueue")) == "true"
+    batch_size := coerce_to_integer(resolve(name, "Properties.BatchSize"))
     batch_size > 10
 }
 

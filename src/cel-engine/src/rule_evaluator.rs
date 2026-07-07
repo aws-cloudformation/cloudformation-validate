@@ -4,7 +4,7 @@ use rules::lookup_rule;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use template_model::SemanticModel;
-use template_model::coercion::{cfn_coerce_to_number, cfn_coerce_to_string};
+use template_model::coercion::{coerce_to_number, coerce_to_string};
 use template_model::resolver::ResolvedValue;
 use template_model::{MARKER_CONDITIONAL, MARKER_DYNAMIC};
 
@@ -300,10 +300,10 @@ fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, r
                 if !satisfiable(m, conds) || val.is_null() {
                     continue;
                 }
-                let coerced = cfn_coerce_to_string(val);
+                let coerced = coerce_to_string(val);
                 let matches = valid_vals.iter().any(|v| match v {
                     serde_json::Value::String(s) => coerced.as_deref() == Some(s.as_str()),
-                    serde_json::Value::Number(n) => cfn_coerce_to_number(val)
+                    serde_json::Value::Number(n) => coerce_to_number(val)
                         .map(|nv| n.as_f64().map(|nf| (nv - nf).abs() < f64::EPSILON).unwrap_or(false))
                         .unwrap_or(false),
                     serde_json::Value::Bool(b) => val.as_bool() == Some(*b),
@@ -334,7 +334,7 @@ fn evaluate_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, r
                 if !satisfiable(m, conds) {
                     continue;
                 }
-                if let Some(s) = cfn_coerce_to_string(val) {
+                if let Some(s) = coerce_to_string(val) {
                     if s.contains("${") {
                         continue;
                     }
@@ -533,24 +533,24 @@ fn eval_val_check(expr: &str, val: &serde_json::Value) -> bool {
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) > ")
         && let Ok(n) = rest.parse::<i64>()
     {
-        return cfn_coerce_to_number(val).map(|v| v > n as f64).unwrap_or(false);
+        return coerce_to_number(val).map(|v| v > n as f64).unwrap_or(false);
     }
     if let Some(rest) = expr.strip_prefix("coerce_to_number(val) < ")
         && let Ok(n) = rest.parse::<i64>()
     {
-        return cfn_coerce_to_number(val).map(|v| v < n as f64).unwrap_or(false);
+        return coerce_to_number(val).map(|v| v < n as f64).unwrap_or(false);
     }
 
     // String length: size(coerce_to_string(val)) > N or < N
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) > ")
         && let Ok(n) = rest.parse::<u64>()
     {
-        return cfn_coerce_to_string(val).map(|s| s.len() as u64 > n).unwrap_or(false);
+        return coerce_to_string(val).map(|s| s.len() as u64 > n).unwrap_or(false);
     }
     if let Some(rest) = expr.strip_prefix("size(coerce_to_string(val)) < ")
         && let Ok(n) = rest.parse::<u64>()
     {
-        return cfn_coerce_to_string(val).map(|s| (s.len() as u64) < n).unwrap_or(false);
+        return coerce_to_string(val).map(|s| (s.len() as u64) < n).unwrap_or(false);
     }
 
     // Array size: is_array(val) && size(val) > N or < N
