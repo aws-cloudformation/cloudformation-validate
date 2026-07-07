@@ -203,12 +203,6 @@ pub(crate) fn validate(
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
         all_diagnostics.extend(model.diagnostics.iter().cloned());
 
-        // When no region was supplied, the region-scoped instance-type / node-type
-        // enum rules validated against the union of all regions (best-effort),
-        // rather than a specific region. Emit one template-level advisory so the
-        // user knows a value may still be unavailable in their actual target
-        // region — but only when the template actually had such a value validated.
-        // Emitted here (engine-agnostic) so both engines report it identically.
         if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
         {
             all_diagnostics.push(
