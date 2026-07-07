@@ -1501,6 +1501,9 @@
     "AWS::SecurityLake::SubscriberNotification": [
       "SubscriberArn"
     ],
+    "AWS::ServiceCatalog::AcceptedPortfolioShare": [
+      "PortfolioId"
+    ],
     "AWS::ServiceCatalog::PortfolioPrincipalAssociation": [
       "PortfolioId",
       "PrincipalARN"

@@ -651,16 +651,14 @@ fn issue_63_e2001_on_intrinsic_in_parameter_default() {
 
 // issue #65 is tested below in a dedicated test (needs a non-12-digit account id override).
 
-/// Issue #67: F3014 FATAL false positive on a deployable PromQL CloudWatch alarm
-/// that uses `EvaluationCriteria` instead of `Metrics`/`MetricName` (a stale
+/// Issue #67: F3014 PromQL CloudWatch alarm that uses `EvaluationCriteria` instead of `Metrics`/`MetricName` (a stale
 /// `requiredXor` patch predating the PromQL feature). Pins the current behavior.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/67
 #[test]
-fn issue_67_f3014_false_positive_on_promql_alarm() {
+fn issue_67_f3014_promql_alarm() {
     let diags = validate_both("issue-67.json");
-    assert_fires_with_severity(&diags, "F3014", Severity::Fatal);
-    assert_fires_on_resource(&diags, "F3014", "PromAlarm");
-    assert_count(&diags, "F3014", 1);
+    assert_absent(&diags, "F3014");
+    assert_count(&diags, "F3014", 0);
 }
 
 /// Issue #68: the Lambda ZipFile runtime rule (E3677) already uses a

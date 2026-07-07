@@ -9729,6 +9729,7 @@
     },
     "AWS::ImageBuilder::ImageRecipe": {
       "AmiTags": "object",
+      "AmiWatermarks": "array",
       "Arn": "string",
       "BlockDeviceMappings": "array",
       "Components": "array",
@@ -15950,7 +15951,6 @@
     },
     "AWS::ServiceCatalog::AcceptedPortfolioShare": {
       "AcceptLanguage": "string",
-      "Id": "string",
       "PortfolioId": "string"
     },
     "AWS::ServiceCatalog::CloudFormationProduct": {

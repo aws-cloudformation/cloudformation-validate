@@ -23887,7 +23887,7 @@
       {
         "ruleId": "F3014",
         "severity": "FATAL",
-        "message": "Exactly one of ['Metrics', 'MetricName'] must be specified",
+        "message": "Exactly one of ['Metrics', 'MetricName', 'EvaluationCriteria'] must be specified",
         "source": "SCHEMA",
         "resourceId": "CloudWatchAlarm",
         "resourceType": "AWS::CloudWatch::Alarm",
@@ -107920,7 +107920,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 0,
         "informational": 2,
@@ -107931,24 +107931,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3014",
-        "severity": "FATAL",
-        "message": "Exactly one of ['Metrics', 'MetricName'] must be specified",
-        "source": "SCHEMA",
-        "resourceId": "PromAlarm",
-        "resourceType": "AWS::CloudWatch::Alarm",
-        "propertyPath": "Properties",
-        "category": "Schema",
-        "startLine": 5,
-        "startColumn": 7,
-        "endLine": 5,
-        "endColumn": 18,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
-        "ruleDescription": "Exactly one of properties required (requiredXor)",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
