@@ -9309,7 +9309,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource myInstance. Circular dependency with [myInstance]",
+        "message": "Circular Dependencies for resource myInstance. Circular dependency with [myInstance -> myInstance]",
         "source": "SCHEMA",
         "resourceId": "myInstance",
         "propertyPath": "Resources/myInstance",
@@ -9384,7 +9384,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource mySubnet1. Circular dependency with [mySubnet1]",
+        "message": "Circular Dependencies for resource mySubnet1. Circular dependency with [mySubnet1 -> mySubnet1]",
         "source": "SCHEMA",
         "resourceId": "mySubnet1",
         "propertyPath": "Resources/mySubnet1",
@@ -9998,7 +9998,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource mySecurityGroupVpc1. Circular dependency with [mySecurityGroupVpc2]",
+        "message": "Circular Dependencies for resource mySecurityGroupVpc1. Circular dependency with [mySecurityGroupVpc1 -> mySecurityGroupVpc2 -> mySecurityGroupVpc1]",
         "source": "SCHEMA",
         "resourceId": "mySecurityGroupVpc1",
         "propertyPath": "Resources/mySecurityGroupVpc1",
@@ -10014,7 +10014,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource mySecurityGroupVpc2. Circular dependency with [mySecurityGroupVpc1]",
+        "message": "Circular Dependencies for resource mySecurityGroupVpc2. Circular dependency with [mySecurityGroupVpc2 -> mySecurityGroupVpc1 -> mySecurityGroupVpc2]",
         "source": "SCHEMA",
         "resourceId": "mySecurityGroupVpc2",
         "propertyPath": "Resources/mySecurityGroupVpc2",
@@ -25114,7 +25114,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource mySecurityGroupVpc1. Circular dependency with [mySecurityGroupVpc2]",
+        "message": "Circular Dependencies for resource mySecurityGroupVpc1. Circular dependency with [mySecurityGroupVpc1 -> mySecurityGroupVpc2 -> mySecurityGroupVpc1]",
         "source": "SCHEMA",
         "resourceId": "mySecurityGroupVpc1",
         "propertyPath": "Resources/mySecurityGroupVpc1",
@@ -25130,7 +25130,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource mySecurityGroupVpc2. Circular dependency with [mySecurityGroupVpc1]",
+        "message": "Circular Dependencies for resource mySecurityGroupVpc2. Circular dependency with [mySecurityGroupVpc2 -> mySecurityGroupVpc1 -> mySecurityGroupVpc2]",
         "source": "SCHEMA",
         "resourceId": "mySecurityGroupVpc2",
         "propertyPath": "Resources/mySecurityGroupVpc2",
@@ -25146,7 +25146,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource mySecurityGroupVpc3. Circular dependency with [mySecurityGroupVpc3]",
+        "message": "Circular Dependencies for resource mySecurityGroupVpc3. Circular dependency with [mySecurityGroupVpc3 -> mySecurityGroupVpc3]",
         "source": "SCHEMA",
         "resourceId": "mySecurityGroupVpc3",
         "propertyPath": "Resources/mySecurityGroupVpc3",
@@ -25162,7 +25162,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource myRoleToWriteToS3. Circular dependency with [myKms]",
+        "message": "Circular Dependencies for resource myRoleToWriteToS3. Circular dependency with [myRoleToWriteToS3 -> myKms -> myInstanceProfile -> myRoleToWriteToS3]",
         "source": "SCHEMA",
         "resourceId": "myRoleToWriteToS3",
         "propertyPath": "Resources/myRoleToWriteToS3",
@@ -25178,7 +25178,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource myInstanceProfile. Circular dependency with [myRoleToWriteToS3]",
+        "message": "Circular Dependencies for resource myInstanceProfile. Circular dependency with [myInstanceProfile -> myRoleToWriteToS3 -> myKms -> myInstanceProfile]",
         "source": "SCHEMA",
         "resourceId": "myInstanceProfile",
         "propertyPath": "Resources/myInstanceProfile",
@@ -25194,7 +25194,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource myKms. Circular dependency with [myInstanceProfile]",
+        "message": "Circular Dependencies for resource myKms. Circular dependency with [myKms -> myInstanceProfile -> myRoleToWriteToS3 -> myKms]",
         "source": "SCHEMA",
         "resourceId": "myKms",
         "propertyPath": "Resources/myKms",
@@ -26166,7 +26166,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource. Circular dependency with [Resource2]",
+        "message": "Circular Dependencies for resource Resource. Circular dependency with [Resource -> Resource2 -> Resource3 -> Resource4 -> Resource5 -> Resource6 -> Resource7 -> Resource8 -> Resource9 -> Resource]",
         "source": "SCHEMA",
         "resourceId": "Resource",
         "propertyPath": "Resources/Resource",
@@ -26182,7 +26182,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource2. Circular dependency with [Resource3]",
+        "message": "Circular Dependencies for resource Resource2. Circular dependency with [Resource2 -> Resource3 -> Resource4 -> Resource5 -> Resource6 -> Resource7 -> Resource8 -> Resource9 -> Resource -> Resource2]",
         "source": "SCHEMA",
         "resourceId": "Resource2",
         "propertyPath": "Resources/Resource2",
@@ -26198,7 +26198,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource3. Circular dependency with [Resource4]",
+        "message": "Circular Dependencies for resource Resource3. Circular dependency with [Resource3 -> Resource4 -> Resource5 -> Resource6 -> Resource7 -> Resource8 -> Resource9 -> Resource -> Resource2 -> Resource3]",
         "source": "SCHEMA",
         "resourceId": "Resource3",
         "propertyPath": "Resources/Resource3",
@@ -26214,7 +26214,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource4. Circular dependency with [Resource5]",
+        "message": "Circular Dependencies for resource Resource4. Circular dependency with [Resource4 -> Resource5 -> Resource6 -> Resource7 -> Resource8 -> Resource9 -> Resource -> Resource2 -> Resource3 -> Resource4]",
         "source": "SCHEMA",
         "resourceId": "Resource4",
         "propertyPath": "Resources/Resource4",
@@ -26230,7 +26230,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource5. Circular dependency with [Resource6]",
+        "message": "Circular Dependencies for resource Resource5. Circular dependency with [Resource5 -> Resource6 -> Resource7 -> Resource8 -> Resource9 -> Resource -> Resource2 -> Resource3 -> Resource4 -> Resource5]",
         "source": "SCHEMA",
         "resourceId": "Resource5",
         "propertyPath": "Resources/Resource5",
@@ -26246,7 +26246,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource6. Circular dependency with [Resource7]",
+        "message": "Circular Dependencies for resource Resource6. Circular dependency with [Resource6 -> Resource7 -> Resource8 -> Resource9 -> Resource -> Resource2 -> Resource3 -> Resource4 -> Resource5 -> Resource6]",
         "source": "SCHEMA",
         "resourceId": "Resource6",
         "propertyPath": "Resources/Resource6",
@@ -26262,7 +26262,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource7. Circular dependency with [Resource8]",
+        "message": "Circular Dependencies for resource Resource7. Circular dependency with [Resource7 -> Resource8 -> Resource9 -> Resource -> Resource2 -> Resource3 -> Resource4 -> Resource5 -> Resource6 -> Resource7]",
         "source": "SCHEMA",
         "resourceId": "Resource7",
         "propertyPath": "Resources/Resource7",
@@ -26278,7 +26278,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource8. Circular dependency with [Resource9]",
+        "message": "Circular Dependencies for resource Resource8. Circular dependency with [Resource8 -> Resource9 -> Resource -> Resource2 -> Resource3 -> Resource4 -> Resource5 -> Resource6 -> Resource7 -> Resource8]",
         "source": "SCHEMA",
         "resourceId": "Resource8",
         "propertyPath": "Resources/Resource8",
@@ -26294,7 +26294,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource9. Circular dependency with [Resource]",
+        "message": "Circular Dependencies for resource Resource9. Circular dependency with [Resource9 -> Resource -> Resource2 -> Resource3 -> Resource4 -> Resource5 -> Resource6 -> Resource7 -> Resource8 -> Resource9]",
         "source": "SCHEMA",
         "resourceId": "Resource9",
         "propertyPath": "Resources/Resource9",
@@ -26491,7 +26491,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource. Circular dependency with [Resource2]",
+        "message": "Circular Dependencies for resource Resource. Circular dependency with [Resource -> Resource2 -> Resource]",
         "source": "SCHEMA",
         "resourceId": "Resource",
         "propertyPath": "Resources/Resource",
@@ -26507,7 +26507,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Resource2. Circular dependency with [Resource]",
+        "message": "Circular Dependencies for resource Resource2. Circular dependency with [Resource2 -> Resource -> Resource2]",
         "source": "SCHEMA",
         "resourceId": "Resource2",
         "propertyPath": "Resources/Resource2",
@@ -105485,13 +105485,13 @@
     "metadata": {
       "resourcesScanned": 37,
       "counts": {
-        "fatal": 9,
+        "fatal": 10,
         "errors": 0,
         "warnings": 6,
         "informational": 67,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -105499,7 +105499,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterKubectlHandlerRole94549F93. Circular dependency with [ClusterKubectlReadyBarrier200052AF]",
+        "message": "Circular Dependencies for resource ClusterKubectlHandlerRole94549F93. Circular dependency with [ClusterKubectlHandlerRole94549F93 -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -> ClusterKubectlHandlerRole94549F93]",
         "source": "SCHEMA",
         "resourceId": "ClusterKubectlHandlerRole94549F93",
         "propertyPath": "Resources/ClusterKubectlHandlerRole94549F93",
@@ -105515,7 +105515,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterControlPlaneSecurityGroupD274242C. Circular dependency with [ClusterKubectlReadyBarrier200052AF]",
+        "message": "Circular Dependencies for resource ClusterControlPlaneSecurityGroupD274242C. Circular dependency with [ClusterControlPlaneSecurityGroupD274242C -> ClusterKubectlReadyBarrier200052AF -> Cluster9EE0221C -> ClusterControlPlaneSecurityGroupD274242C]",
         "source": "SCHEMA",
         "resourceId": "ClusterControlPlaneSecurityGroupD274242C",
         "propertyPath": "Resources/ClusterControlPlaneSecurityGroupD274242C",
@@ -105531,7 +105531,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterKubectlHandlerRole94549F93]",
+        "message": "Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterCreationRole360249B6 -> ClusterKubectlHandlerRole94549F93 -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6]",
         "source": "SCHEMA",
         "resourceId": "ClusterCreationRole360249B6",
         "propertyPath": "Resources/ClusterCreationRole360249B6",
@@ -105547,7 +105547,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterKubectlReadyBarrier200052AF]",
+        "message": "Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterCreationRole360249B6 -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6]",
         "source": "SCHEMA",
         "resourceId": "ClusterCreationRole360249B6",
         "propertyPath": "Resources/ClusterCreationRole360249B6",
@@ -105563,7 +105563,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterCreationRoleDefaultPolicyE8BDFC7B. Circular dependency with [ClusterKubectlReadyBarrier200052AF]",
+        "message": "Circular Dependencies for resource ClusterCreationRoleDefaultPolicyE8BDFC7B. Circular dependency with [ClusterCreationRoleDefaultPolicyE8BDFC7B -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRoleDefaultPolicyE8BDFC7B]",
         "source": "SCHEMA",
         "resourceId": "ClusterCreationRoleDefaultPolicyE8BDFC7B",
         "propertyPath": "Resources/ClusterCreationRoleDefaultPolicyE8BDFC7B",
@@ -105579,7 +105579,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource Cluster9EE0221C. Circular dependency with [ClusterControlPlaneSecurityGroupD274242C]",
+        "message": "Circular Dependencies for resource Cluster9EE0221C. Circular dependency with [Cluster9EE0221C -> ClusterControlPlaneSecurityGroupD274242C -> ClusterKubectlReadyBarrier200052AF -> Cluster9EE0221C]",
         "source": "SCHEMA",
         "resourceId": "Cluster9EE0221C",
         "propertyPath": "Resources/Cluster9EE0221C",
@@ -105595,7 +105595,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [Cluster9EE0221C]",
+        "message": "Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterKubectlReadyBarrier200052AF -> Cluster9EE0221C -> ClusterControlPlaneSecurityGroupD274242C -> ClusterKubectlReadyBarrier200052AF]",
         "source": "SCHEMA",
         "resourceId": "ClusterKubectlReadyBarrier200052AF",
         "propertyPath": "Resources/ClusterKubectlReadyBarrier200052AF",
@@ -105611,7 +105611,7 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterCreationRole360249B6]",
+        "message": "Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -> ClusterKubectlHandlerRole94549F93 -> ClusterKubectlReadyBarrier200052AF]",
         "source": "SCHEMA",
         "resourceId": "ClusterKubectlReadyBarrier200052AF",
         "propertyPath": "Resources/ClusterKubectlReadyBarrier200052AF",
@@ -105627,7 +105627,23 @@
       {
         "ruleId": "F3004",
         "severity": "FATAL",
-        "message": "Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterCreationRoleDefaultPolicyE8BDFC7B]",
+        "message": "Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -> ClusterKubectlReadyBarrier200052AF]",
+        "source": "SCHEMA",
+        "resourceId": "ClusterKubectlReadyBarrier200052AF",
+        "propertyPath": "Resources/ClusterKubectlReadyBarrier200052AF",
+        "category": "Reference",
+        "startLine": 880,
+        "startColumn": 3,
+        "endLine": 880,
+        "endColumn": 38,
+        "ruleDescription": "Circular dependency detected",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F3004",
+        "severity": "FATAL",
+        "message": "Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterKubectlReadyBarrier200052AF -> ClusterCreationRoleDefaultPolicyE8BDFC7B -> ClusterKubectlReadyBarrier200052AF]",
         "source": "SCHEMA",
         "resourceId": "ClusterKubectlReadyBarrier200052AF",
         "propertyPath": "Resources/ClusterKubectlReadyBarrier200052AF",

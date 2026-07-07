@@ -123,12 +123,12 @@ impl ReferenceGraph {
         for cycle in &self.cycles {
             for i in 0..cycle.len() {
                 let source = &cycle[i];
-                let target = &cycle[(i + 1) % cycle.len()];
+                let path = render_cycle_from(cycle, i);
                 let span = span_index.get(&format!("Resources/{}", source)).copied().unwrap_or(UNKNOWN_SPAN);
                 out.push(
                     RegisteredDiagnostic::new(
                         "F3004",
-                        format!("Circular Dependencies for resource {}. Circular dependency with [{}]", source, target),
+                        format!("Circular Dependencies for resource {source}. Circular dependency with [{path}]"),
                     )
                     .resource(source.clone(), None)
                     .property_path(format!("Resources/{}", source))
@@ -140,6 +140,18 @@ impl ReferenceGraph {
         }
         out
     }
+}
+
+/// Renders the cycle as a closed dependency path that starts and ends at the
+/// resource the diagnostic is about, e.g. `A -> B -> C -> A`. Naming only the
+/// next hop reads as a two-node cycle even when the real loop is longer, which
+/// hides the actual dependency chain from the reader; spelling out every edge
+/// back to the resource lets them verify each `DependsOn`/`Ref`/`GetAtt` link.
+fn render_cycle_from(cycle: &[String], start: usize) -> String {
+    let len = cycle.len();
+    let mut nodes: Vec<&str> = (0..len).map(|offset| cycle[(start + offset) % len].as_str()).collect();
+    nodes.push(cycle[start].as_str());
+    nodes.join(" -> ")
 }
 
 fn detect_cycles(edges: &[Edge], resource_ids: &BTreeSet<&str>) -> Vec<Vec<String>> {
@@ -345,8 +357,47 @@ mod tests {
         let diags = graph.cycle_diagnostics(&span_index);
         assert_eq!(diags.len(), 2, "one diagnostic per resource in cycle");
         assert!(diags.iter().all(|d| d.rule_id == "F3004"));
-        assert!(diags[0].message.contains("Circular Dependencies for resource A"));
-        assert!(diags[1].message.contains("Circular Dependencies for resource B"));
+        // Each diagnostic spells out the full loop starting and ending at its own
+        // resource, so the reader can trace every edge rather than guessing from a
+        // single next-hop.
+        let by_resource = |id: &str| {
+            diags
+                .iter()
+                .find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(id))
+                .unwrap_or_else(|| panic!("expected an F3004 for {id}"))
+        };
+        assert!(by_resource("A").message.contains("Circular Dependencies for resource A"));
+        assert!(by_resource("A").message.contains("[A -> B -> A]"), "got: {}", by_resource("A").message);
+        assert!(by_resource("B").message.contains("[B -> A -> B]"), "got: {}", by_resource("B").message);
+    }
+
+    #[test]
+    fn graph_cycle_diagnostics_render_full_three_node_path() {
+        // The exact shape from issue #53: a three-node loop where naming only the
+        // next hop reads like a two-node cycle. Every member's message must trace
+        // the whole loop back to itself.
+        let edges = vec![make_edge("A", "B"), make_edge("B", "C"), make_edge("C", "A")];
+        let ids = vec!["A".into(), "B".into(), "C".into()];
+        let graph = ReferenceGraph::build(edges, &ids);
+        let diags = graph.cycle_diagnostics(&HashMap::new());
+        assert_eq!(diags.len(), 3);
+        for (id, expected) in [("A", "[A -> B -> C -> A]"), ("B", "[B -> C -> A -> B]"), ("C", "[C -> A -> B -> C]")] {
+            let d = diags
+                .iter()
+                .find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(id))
+                .unwrap_or_else(|| panic!("expected an F3004 for {id}"));
+            assert!(d.message.contains(expected), "{id}: got {}", d.message);
+        }
+    }
+
+    #[test]
+    fn graph_cycle_diagnostics_render_self_cycle() {
+        let edges = vec![make_edge("A", "A")];
+        let ids = vec!["A".into()];
+        let graph = ReferenceGraph::build(edges, &ids);
+        let diags = graph.cycle_diagnostics(&HashMap::new());
+        assert_eq!(diags.len(), 1);
+        assert!(diags[0].message.contains("[A -> A]"), "got: {}", diags[0].message);
     }
 
     #[test]

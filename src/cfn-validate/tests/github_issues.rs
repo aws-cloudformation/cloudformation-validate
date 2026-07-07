@@ -450,16 +450,41 @@ fn issue_52_w9007_still_fires_on_repeated_import_of_same_export() {
     assert_count(&diags, "W9007", 1);
 }
 
-/// Issue #53: F3004 correctly fires on a genuine bidirectional `DependsOn`
-/// circular dependency (a cycle invisible to Ref/GetAtt-only graph tools).
+/// Issue #53: F3004 correctly fires on a genuine circular dependency that is
+/// invisible to Ref/GetAtt-only graph tools because the loop is closed by
+/// `DependsOn` edges. Each finding now names the full loop back to its own
+/// resource (`A -> B -> C -> A`) rather than a single next hop; the reporter read
+/// the next-hop form as a two-node cycle and, seeing no back-edge on the named
+/// resource, concluded there was none. The full path also distinguishes the two
+/// separate cycles through the barrier that the next-hop message collapsed into
+/// one, so ten findings surface here.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/53
 #[test]
 fn issue_53_f3004_fires_on_real_dependson_cycle() {
     let diags = validate_both("issue-53.json");
     assert_fires_with_severity(&diags, "F3004", Severity::Fatal);
-    assert_count(&diags, "F3004", 9);
+    assert_count(&diags, "F3004", 10);
     assert_fires_on_resource(&diags, "F3004", "ClusterKubectlHandlerRole94549F93");
     assert_fires_on_resource(&diags, "F3004", "ClusterKubectlReadyBarrier200052AF");
+    // The message traces the whole loop, so a reader can verify each edge instead
+    // of guessing from one hop. The handler-role finding names the three-node loop
+    // that runs through the creation role, not a phantom two-node barrier cycle.
+    for (engine, ds) in &diags {
+        let handler = ds
+            .iter()
+            .find(|d| {
+                d.rule_id == "F3004"
+                    && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ClusterKubectlHandlerRole94549F93")
+            })
+            .expect("F3004 on the kubectl handler role");
+        assert!(
+            handler.message.contains(
+                "[ClusterKubectlHandlerRole94549F93 -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -> ClusterKubectlHandlerRole94549F93]"
+            ),
+            "[{engine}] handler-role F3004 must trace the full loop, got: {}",
+            handler.message
+        );
+    }
 }
 
 /// Issue #54 (fixed): an S3 bucket with non-Private AccessControl and missing
