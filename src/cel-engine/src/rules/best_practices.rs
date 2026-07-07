@@ -467,9 +467,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(coerce_to_bool)
-            == Some(true)
-        {
+        if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(coerce_to_bool) == Some(true) {
             out.push(make_resource_diagnostic(
                 "W9011",
                 "RDS instance has PubliclyAccessible set to true - consider restricting access",

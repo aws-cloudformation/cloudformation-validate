@@ -7,8 +7,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 use template_model::coercion::{
-    coerce_port_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number, coerce_to_string,
-    type_compatible,
+    coerce_port_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number, coerce_to_string, type_compatible,
 };
 use template_model::consts::{
     DEFAULT_REGION, FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,

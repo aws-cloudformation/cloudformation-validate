@@ -8,9 +8,7 @@ use rules::{
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
-use template_model::coercion::{
-    CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq,
-};
+use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::consts::{
     FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES, KEY_TYPE, PARAM_TYPE_COMMA_DELIMITED_LIST,
     PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
@@ -2148,8 +2146,7 @@ fn validate_extension_if_then_else(
                 // the case-insensitive fallback, since a false negative on
                 // ReplicaMode is preferable to false positives on valid engines.
                 let matches_enum = enum_vals.iter().any(|e| {
-                    scalar_eq(e, val)
-                        || e.as_str().zip(val.as_str()).is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
+                    scalar_eq(e, val) || e.as_str().zip(val.as_str()).is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
                 });
                 if !matches_enum {
                     let allowed = render_str_list(enum_vals.iter().filter_map(|v| v.as_str()));

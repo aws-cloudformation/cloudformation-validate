@@ -1375,8 +1375,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && let Some(sqs) = m.resources.get(target)
             && sqs.resource_type == "AWS::SQS::Queue"
         {
-            let vis =
-                resolve_concrete(m, target, "Properties.VisibilityTimeout").as_ref().and_then(coerce_to_integer);
+            let vis = resolve_concrete(m, target, "Properties.VisibilityTimeout").as_ref().and_then(coerce_to_integer);
             if let Some(fn_name) = m.follow_ref(name, "Properties.FunctionName") {
                 let timeout = resolve_concrete(m, fn_name, "Properties.Timeout")
                     .as_ref()
@@ -1977,8 +1976,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         .and_then(|p| p.as_array())
                         .map(|pms| {
                             pms.iter().any(|pm| {
-                                pm.get("ContainerPort").and_then(coerce_port_to_string).as_deref()
-                                    == Some(cp.as_str())
+                                pm.get("ContainerPort").and_then(coerce_port_to_string).as_deref() == Some(cp.as_str())
                                     && pm.get("HostPort").and_then(coerce_port_to_string).as_deref() == Some("0")
                             })
                         })
@@ -3328,8 +3326,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for name in m.resources_of_type("AWS::RDS::DBInstance") {
             let engine = resolve_concrete(m, name, "Properties.Engine")
                 .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None });
-            let engine_ver =
-                resolve_concrete(m, name, "Properties.EngineVersion").as_ref().and_then(coerce_to_string);
+            let engine_ver = resolve_concrete(m, name, "Properties.EngineVersion").as_ref().and_then(coerce_to_string);
             let db_class = resolve_concrete(m, name, "Properties.DBInstanceClass")
                 .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None });
             if let (Some(eng), Some(ver), Some(cls)) = (engine, engine_ver, db_class) {
