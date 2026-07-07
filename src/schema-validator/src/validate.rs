@@ -81,7 +81,6 @@ pub fn validate_all_resources(
         // region is never flagged — the availability check only runs for a
         // configured region.
         if let Some(region) = region
-            && store.has_region_data()
             && store.is_known_in_any_region(rtype)
             && !store.is_available_in_region(rtype, region)
         {

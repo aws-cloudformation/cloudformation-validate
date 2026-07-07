@@ -155,12 +155,6 @@ pub fn conditional_invalid_message(value: &str, allowed_sorted: &[String], regio
     }
 }
 
-/// Whether any AWS region key is present in the document — i.e. whether the
-/// document can validate anything at all when no region is configured.
-fn has_any_region(doc: &serde_json::Map<String, serde_json::Value>) -> bool {
-    AWS_REGIONS.iter().any(|r| doc.contains_key(*r))
-}
-
 /// The allowed values from a flat enum document for the effective scope: the
 /// single `region` when configured, or the union across all AWS regions when not.
 /// Returns `None` when the document has no entry for the effective scope, so the
@@ -177,16 +171,17 @@ pub fn flat_allowed_values<'a>(
             Some(values.iter().filter_map(|v| v.as_str()).collect())
         }
         None => {
-            if !has_any_region(doc) {
-                return None;
-            }
             let mut union = BTreeSet::new();
             for region in AWS_REGIONS {
                 if let Some(values) = doc.get(*region).and_then(|r| r.get("enum")).and_then(|e| e.as_array()) {
                     union.extend(values.iter().filter_map(|v| v.as_str()));
                 }
             }
-            Some(union)
+            // An empty union means no region contributed any allowed value, so
+            // there is nothing to validate against — skip (return `None`) rather
+            // than flag every value as invalid, mirroring the per-region arm which
+            // returns `None` when the region has no enum.
+            (!union.is_empty()).then_some(union)
         }
     }
 }
@@ -220,14 +215,13 @@ where
             invalid_branch_enum(&branch_enums, value)
         }
         None => {
-            if !has_any_region(doc) {
-                return None;
-            }
             // Valid when valid in any region; flag only when invalid in every
             // region. Collect each region's matching-branch enums, and treat the
             // value as invalid only if no region has a matching branch that
             // contains it. Report the largest branch enum the value is missing
-            // from, across all regions.
+            // from, across all regions. If no region has a matching branch (no
+            // region key present, or a dynamic/unmatched Engine), the value is not
+            // validated — `had_matching_branch` stays false.
             let mut valid_somewhere = false;
             let mut had_matching_branch = false;
             let mut failing_largest: Option<Vec<String>> = None;

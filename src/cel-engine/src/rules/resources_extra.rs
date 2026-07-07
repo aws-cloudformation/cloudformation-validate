@@ -2711,7 +2711,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 continue;
             };
             for name in m.resources_of_type(rtype) {
-                if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path)
+                if let Some(val) = resolve_enum_string(m, name, prop_path)
                     && !allowed.contains(val.as_str())
                 {
                     out.push(make_resource_diagnostic(

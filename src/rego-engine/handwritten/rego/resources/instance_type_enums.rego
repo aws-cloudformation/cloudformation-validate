@@ -54,10 +54,12 @@ violation contains make_diag_full("E3670", "ERROR", name,
     msg := region_flat_invalid(data.aws_amazonmq_broker_instancetype_enum, val)
 }
 
-# E3675: EMR InstanceType not valid for region
+# E3675: EMR InstanceType not valid for region. Both InstanceTypeConfig and
+# InstanceFleetConfig carry an InstanceType validated against the same enum.
 violation contains make_diag_full("E3675", "ERROR", name,
     "Properties.InstanceType", msg, "", "") if {
-    some name in resources_of_type("AWS::EMR::InstanceTypeConfig")
+    some rtype in {"AWS::EMR::InstanceTypeConfig", "AWS::EMR::InstanceFleetConfig"}
+    some name in resources_of_type(rtype)
     val := resolve(name, "Properties.InstanceType")
     is_string(val)
     msg := region_flat_invalid(data.aws_emr_cluster_instancetypeconfig_instancetype_enum, val)

@@ -120,7 +120,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -1064,7 +1064,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -1324,7 +1324,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -10457,7 +10457,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -12125,7 +12125,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -14712,7 +14712,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -16787,7 +16787,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -17186,7 +17186,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -17666,7 +17666,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -18154,7 +18154,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -19596,7 +19596,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -19725,7 +19725,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -19900,7 +19900,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -20487,7 +20487,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -24829,7 +24829,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -26120,7 +26120,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -27318,7 +27318,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -27814,7 +27814,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -29668,7 +29668,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -36097,7 +36097,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -54838,7 +54838,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -55533,7 +55533,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -91183,7 +91183,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -93165,7 +93165,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -102355,7 +102355,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -103395,7 +103395,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -104080,7 +104080,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -105516,7 +105516,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -108890,7 +108890,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -109305,7 +109305,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -109806,7 +109806,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -111500,7 +111500,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -112286,7 +112286,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -114871,7 +114871,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -115850,7 +115850,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -118344,7 +118344,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -122329,7 +122329,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -122941,7 +122941,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -123351,7 +123351,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -123449,7 +123449,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -124937,7 +124937,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -126248,7 +126248,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -127889,7 +127889,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -128369,7 +128369,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -128976,7 +128976,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -132079,7 +132079,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -132801,7 +132801,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -133132,7 +133132,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -133583,7 +133583,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -135852,7 +135852,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -141133,7 +141133,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -148919,7 +148919,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -153922,7 +153922,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -156320,7 +156320,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
@@ -160657,7 +160657,7 @@
       {
         "ruleId": "I9003",
         "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
         "source": "ENGINE",
         "category": "Best Practice",
         "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",

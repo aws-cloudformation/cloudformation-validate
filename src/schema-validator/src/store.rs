@@ -39,6 +39,14 @@ impl CompiledSchemaStore {
         // (F3006) validates against the target region. Without this the region
         // check is dormant and unavailable types slip through.
         store.load_region_data(&REGION_RESOURCE_TYPES_BYTES);
+        assert!(
+            store.has_region_data(),
+            "Embedded region-availability data (region_resource_types) is empty; the build is missing regional data"
+        );
+        assert!(
+            store.region_enums.has_data(),
+            "Embedded regional enum data (region_enums) is empty; the build is missing regional data"
+        );
         store
     }
 
@@ -67,9 +75,6 @@ impl CompiledSchemaStore {
     }
 
     pub fn is_available_in_region(&self, type_name: &str, region: &str) -> bool {
-        if self.region_types.is_empty() {
-            return true;
-        }
         self.region_types.get(region).map(|types| types.contains_key(type_name)).unwrap_or(true)
     }
 
@@ -354,14 +359,9 @@ mod tests {
     }
 
     #[test]
-    fn store_no_region_data_always_available() {
-        // `new()` eagerly loads the embedded region map; clear it to exercise the
-        // "no region data → everything is available" fallback in isolation.
-        let mut store = CompiledSchemaStore::new();
-        store.region_types.clear();
-        assert!(!store.has_region_data());
-        assert!(store.is_available_in_region("AWS::S3::Bucket", "us-east-1"));
-        assert!(store.is_available_in_region("AWS::Fake::Type", "us-west-2"));
+    fn store_new_always_has_region_data() {
+        let store = CompiledSchemaStore::new();
+        assert!(store.has_region_data(), "embedded region data must be present");
     }
 
     #[test]
