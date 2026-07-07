@@ -986,7 +986,7 @@ export class WasmSchemaValidator {
     listRules(): any;
     constructor();
     schemaCount(): number;
-    validate(model: WasmSemanticModel, region: string): any;
+    validate(model: WasmSemanticModel, region?: string | null): any;
 }
 
 export class WasmSemanticModel {
