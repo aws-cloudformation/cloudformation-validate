@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{
-    CoerceResult, cfn_coerce_to_number, cfn_coerce_to_string, cfn_coerce_value, cfn_scalar_eq,
+    CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq,
 };
 use template_model::consts::{
     FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES, KEY_TYPE, PARAM_TYPE_COMMA_DELIMITED_LIST,
@@ -974,7 +974,7 @@ fn validate_prop(
             }
             if !type_matches(val, pt) {
                 let expected = pt.primary().unwrap_or("unknown");
-                match cfn_coerce_value(val, expected) {
+                match coerce_value(val, expected) {
                     CoerceResult::Coerced(_, ref description) => {
                         if emitted_type_errors.insert(("W9003", expected)) {
                             out.push(build_diagnostic_conditional(
@@ -1054,7 +1054,7 @@ fn validate_prop(
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
             }
-            if !cfn_scalar_eq(val, cv) {
+            if !scalar_eq(val, cv) {
                 out.push(build_diagnostic_conditional(
                     "F3030",
                     &format!("{} was expected", cv),
@@ -1082,7 +1082,7 @@ fn validate_prop(
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
             }
-            if let Some(s) = cfn_coerce_to_string(val) {
+            if let Some(s) = coerce_to_string(val) {
                 if s.contains("${") {
                     continue;
                 }
@@ -1115,7 +1115,7 @@ fn validate_prop(
         if !is_satisfiable(m, conds) || val.is_null() {
             continue;
         }
-        let Some(n) = cfn_coerce_to_number(val) else {
+        let Some(n) = coerce_to_number(val) else {
             continue;
         };
         if let Some(max) = schema.maximum
@@ -1178,7 +1178,7 @@ fn validate_prop(
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
             }
-            let Some(s) = cfn_coerce_to_string(val) else {
+            let Some(s) = coerce_to_string(val) else {
                 continue;
             };
             if s.contains("${") {
@@ -1517,7 +1517,7 @@ fn single_type(val: &serde_json::Value, expected: &str) -> bool {
 }
 
 fn enum_matches(val: &serde_json::Value, allowed: &[serde_json::Value]) -> bool {
-    allowed.iter().any(|a| cfn_scalar_eq(a, val))
+    allowed.iter().any(|a| scalar_eq(a, val))
 }
 
 /// True when property `prop` under `base` resolves to a concrete (non-null)
@@ -1667,10 +1667,10 @@ fn condition_matches(
                 return !enum_matches(val, &resolved.not_enum);
             }
             if let Some(ref cv) = resolved.const_value {
-                return cfn_scalar_eq(val, cv);
+                return scalar_eq(val, cv);
             }
             if let Some(ref re) = compiled_pattern {
-                return cfn_coerce_to_string(val).map(|s| re.is_match(&s)).unwrap_or(false);
+                return coerce_to_string(val).map(|s| re.is_match(&s)).unwrap_or(false);
             }
             if let Some(ref pt) = resolved.prop_type {
                 return type_matches(val, pt);
@@ -1814,7 +1814,7 @@ fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str,
         if !is_satisfiable(m, conds) || val.is_null() {
             continue;
         }
-        if let Some(s) = cfn_coerce_to_string(val) {
+        if let Some(s) = coerce_to_string(val) {
             if s.contains("${") {
                 continue;
             }
@@ -2148,14 +2148,14 @@ fn validate_extension_if_then_else(
                 // the case-insensitive fallback, since a false negative on
                 // ReplicaMode is preferable to false positives on valid engines.
                 let matches_enum = enum_vals.iter().any(|e| {
-                    cfn_scalar_eq(e, val)
+                    scalar_eq(e, val)
                         || e.as_str().zip(val.as_str()).is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
                 });
                 if !matches_enum {
                     let allowed = render_str_list(enum_vals.iter().filter_map(|v| v.as_str()));
                     out.push(build_diagnostic(
                         "E9006",
-                        &format!("'{}' is not one of {}", cfn_coerce_to_string(val).unwrap_or_default(), allowed),
+                        &format!("'{}' is not one of {}", coerce_to_string(val).unwrap_or_default(), allowed),
                         model,
                         rid,
                         &format!("Properties.{}", prop_name),
@@ -2172,10 +2172,10 @@ fn validate_extension_if_then_else(
 /// is present (open constraint).
 fn match_constraint_value(constraint: &serde_json::Map<String, serde_json::Value>, val: &serde_json::Value) -> bool {
     if let Some(enum_vals) = constraint.get("enum").and_then(|v| v.as_array()) {
-        return enum_vals.iter().any(|e| cfn_scalar_eq(e, val));
+        return enum_vals.iter().any(|e| scalar_eq(e, val));
     }
     if let Some(cv) = constraint.get("const") {
-        return cfn_scalar_eq(val, cv);
+        return scalar_eq(val, cv);
     }
     if let Some(pat) = constraint.get("pattern").and_then(|v| v.as_str()) {
         return val.as_str().and_then(|s| compile_pattern(pat).map(|re| re.is_match(s))).unwrap_or(false);
@@ -2393,7 +2393,7 @@ fn gather_prop_matches(actual: &serde_json::Value, constraint: &serde_json::Valu
         }
     }
     if let Some(cv) = obj.get("const") {
-        return cfn_scalar_eq(actual, cv);
+        return scalar_eq(actual, cv);
     }
     if let Some(enum_vals) = obj.get("enum").and_then(|v| v.as_array()) {
         return enum_vals.iter().any(|e| e == actual);
@@ -2439,7 +2439,7 @@ fn check_gather_property_constraints(
             };
             if let Some(cv) = pc.get("const")
                 && !cv.is_null()
-                && !cfn_scalar_eq(prop_val, cv)
+                && !scalar_eq(prop_val, cv)
             {
                 out.push(build_diagnostic(
                     "E3030",

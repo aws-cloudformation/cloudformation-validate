@@ -7,8 +7,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
 use template_model::coercion::{
-    cfn_coerce_port_to_string, cfn_coerce_to_bool, cfn_coerce_to_integer, cfn_coerce_to_number, cfn_coerce_to_string,
-    cfn_type_compatible,
+    coerce_port_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number, coerce_to_string,
+    type_compatible,
 };
 use template_model::consts::{
     DEFAULT_REGION, FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
@@ -1098,7 +1098,7 @@ fn register_coerce_to_number(rego: &mut regorus::Engine) {
         1,
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
-            match cfn_coerce_to_number(&jv) {
+            match coerce_to_number(&jv) {
                 Some(n) => {
                     if n.fract() == 0.0 && n >= i64::MIN as f64 && n <= i64::MAX as f64 {
                         Ok(Value::from(n as i64))
@@ -1118,7 +1118,7 @@ fn register_coerce_to_integer(rego: &mut regorus::Engine) {
         1,
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
-            match cfn_coerce_to_integer(&jv) {
+            match coerce_to_integer(&jv) {
                 Some(i) => Ok(Value::from(i)),
                 None => Ok(Value::Undefined),
             }
@@ -1132,7 +1132,7 @@ fn register_coerce_to_string(rego: &mut regorus::Engine) {
         1,
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
-            match cfn_coerce_to_string(&jv) {
+            match coerce_to_string(&jv) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::Undefined),
             }
@@ -1146,7 +1146,7 @@ fn register_coerce_port_to_string(rego: &mut regorus::Engine) {
         1,
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
-            match cfn_coerce_port_to_string(&jv) {
+            match coerce_port_to_string(&jv) {
                 Some(s) => Ok(Value::from(s.as_str())),
                 None => Ok(Value::Undefined),
             }
@@ -1160,7 +1160,7 @@ fn register_coerce_to_bool(rego: &mut regorus::Engine) {
         1,
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
-            match cfn_coerce_to_bool(&jv) {
+            match coerce_to_bool(&jv) {
                 Some(b) => Ok(Value::from(b)),
                 None => Ok(Value::Undefined),
             }
@@ -1175,7 +1175,7 @@ fn register_cfn_type_compatible(rego: &mut regorus::Engine) {
         Box::new(|params: Vec<Value>| {
             let jv = rego_to_json(&params[0]);
             let expected = params[1].as_string()?;
-            Ok(Value::from(cfn_type_compatible(&jv, expected)))
+            Ok(Value::from(type_compatible(&jv, expected)))
         }),
     );
 }

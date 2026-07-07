@@ -2,7 +2,7 @@ use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::{Diagnostic, RelatedResource, ResourceRef, SourceSpan};
 use rules::Category;
 use template_model::SemanticModel;
-use template_model::coercion::cfn_coerce_to_integer;
+use template_model::coercion::coerce_to_integer;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,
     KEY_UPDATE_POLICY,
@@ -45,8 +45,8 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             let cpu = resolve_concrete(m, name, "Properties.Cpu");
             let mem = resolve_concrete(m, name, "Properties.Memory");
             if let (Some(cpu_val), Some(mem_val)) = (cpu, mem) {
-                let cpu_n = cfn_coerce_to_integer(&cpu_val);
-                let mem_n = cfn_coerce_to_integer(&mem_val);
+                let cpu_n = coerce_to_integer(&cpu_val);
+                let mem_n = coerce_to_integer(&mem_val);
                 if let (Some(c), Some(me)) = (cpu_n, mem_n)
                     && !valid_fargate_combo(c, me)
                 {

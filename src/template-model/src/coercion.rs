@@ -5,7 +5,7 @@
 
 use serde_json::Value;
 
-pub fn cfn_coerce_to_number(val: &Value) -> Option<f64> {
+pub fn coerce_to_number(val: &Value) -> Option<f64> {
     match val {
         Value::Number(n) => n.as_f64(),
         Value::String(s) => s.trim().parse::<f64>().ok(),
@@ -13,7 +13,7 @@ pub fn cfn_coerce_to_number(val: &Value) -> Option<f64> {
     }
 }
 
-pub fn cfn_coerce_to_integer(val: &Value) -> Option<i64> {
+pub fn coerce_to_integer(val: &Value) -> Option<i64> {
     match val {
         Value::Number(n) => n.as_i64().or_else(|| {
             let f = n.as_f64()?;
@@ -30,7 +30,7 @@ pub fn cfn_coerce_to_integer(val: &Value) -> Option<i64> {
     }
 }
 
-pub fn cfn_coerce_to_string(val: &Value) -> Option<String> {
+pub fn coerce_to_string(val: &Value) -> Option<String> {
     match val {
         Value::String(s) => Some(s.clone()),
         Value::Bool(b) => Some(if *b { "true" } else { "false" }.into()),
@@ -53,7 +53,7 @@ pub fn cfn_coerce_to_string(val: &Value) -> Option<String> {
 ///
 /// Only the three standard YAML 1.1 casings are accepted per variant
 /// (lowercase, Titlecase, UPPERCASE). Non-spec casings like `"yEs"` are rejected.
-pub fn cfn_coerce_to_bool(val: &Value) -> Option<bool> {
+pub fn coerce_to_bool(val: &Value) -> Option<bool> {
     match val {
         Value::Bool(b) => Some(*b),
         Value::String(s) => match s.as_str() {
@@ -75,7 +75,7 @@ pub fn cfn_coerce_to_bool(val: &Value) -> Option<bool> {
 /// `None` so the comparison is skipped rather than matched on a coerced value.
 /// An integer-valued float such as `80.0` is deliberately excluded — the value
 /// is only treated as a port when written as an integer or a string.
-pub fn cfn_coerce_port_to_string(val: &Value) -> Option<String> {
+pub fn coerce_port_to_string(val: &Value) -> Option<String> {
     match val {
         Value::String(s) => Some(s.clone()),
         Value::Number(n) => n.as_i64().map(|i| i.to_string()).or_else(|| n.as_u64().map(|u| u.to_string())),
@@ -91,11 +91,11 @@ pub fn cfn_coerce_port_to_string(val: &Value) -> Option<String> {
 /// the same string. Non-scalar values have no string coercion, so distinct
 /// arrays/objects/nulls never collapse together — only native equality can make
 /// them match.
-pub fn cfn_scalar_eq(a: &Value, b: &Value) -> bool {
+pub fn scalar_eq(a: &Value, b: &Value) -> bool {
     if a == b {
         return true;
     }
-    match (cfn_coerce_to_string(a), cfn_coerce_to_string(b)) {
+    match (coerce_to_string(a), coerce_to_string(b)) {
         (Some(sa), Some(sb)) => sa == sb,
         _ => false,
     }
@@ -109,24 +109,24 @@ pub fn cfn_scalar_eq(a: &Value, b: &Value) -> bool {
 /// - `"number"`: anything parseable as a number (not bool)
 /// - `"boolean"`: native bool or YAML 1.1 boolean strings (true/false/yes/no/on/off/y/n/1/0 with standard casings)
 /// - `"object"`, `"array"`, `"null"`: strict native type only
-pub fn cfn_type_compatible(val: &Value, expected: &str) -> bool {
+pub fn type_compatible(val: &Value, expected: &str) -> bool {
     match expected {
         // Type CHECK is strict: integer/boolean are NOT type "string".
-        // Coercion for constraint evaluation uses cfn_coerce_to_string separately.
+        // Coercion for constraint evaluation uses coerce_to_string separately.
         "string" => val.is_string(),
         "integer" => {
             if val.is_boolean() {
                 return false;
             }
-            cfn_coerce_to_integer(val).is_some()
+            coerce_to_integer(val).is_some()
         }
         "number" => {
             if val.is_boolean() {
                 return false;
             }
-            cfn_coerce_to_number(val).is_some()
+            coerce_to_number(val).is_some()
         }
-        "boolean" => cfn_coerce_to_bool(val).is_some(),
+        "boolean" => coerce_to_bool(val).is_some(),
         "object" => val.is_object(),
         "array" => val.is_array(),
         "null" => val.is_null(),
@@ -151,7 +151,7 @@ pub enum CoerceResult {
 /// Returns `AlreadyCorrect` if the native type matches, `Coerced` with the
 /// converted value if CloudFormation would silently accept the mismatch, or
 /// `Failed` if the types are incompatible.
-pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
+pub fn coerce_value(val: &Value, expected: &str) -> CoerceResult {
     let native_match = match expected {
         "string" => val.is_string(),
         "integer" => {
@@ -169,7 +169,7 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
     }
 
     match expected {
-        "string" => cfn_coerce_to_string(val)
+        "string" => coerce_to_string(val)
             .map(|s| {
                 let from = if val.is_boolean() { "boolean" } else { "number" };
                 CoerceResult::Coerced(Value::String(s), format!("{from} to string"))
@@ -179,7 +179,7 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
             if val.is_boolean() {
                 return CoerceResult::Failed;
             }
-            cfn_coerce_to_integer(val)
+            coerce_to_integer(val)
                 .map(|i| CoerceResult::Coerced(Value::Number(i.into()), "string to integer".into()))
                 .unwrap_or(CoerceResult::Failed)
         }
@@ -187,14 +187,14 @@ pub fn cfn_coerce_value(val: &Value, expected: &str) -> CoerceResult {
             if val.is_boolean() {
                 return CoerceResult::Failed;
             }
-            cfn_coerce_to_number(val)
+            coerce_to_number(val)
                 .and_then(|f| {
                     serde_json::Number::from_f64(f)
                         .map(|n| CoerceResult::Coerced(Value::Number(n), "string to number".into()))
                 })
                 .unwrap_or(CoerceResult::Failed)
         }
-        "boolean" => cfn_coerce_to_bool(val)
+        "boolean" => coerce_to_bool(val)
             .map(|b| CoerceResult::Coerced(Value::Bool(b), "string to boolean".into()))
             .unwrap_or(CoerceResult::Failed),
         _ => CoerceResult::Failed,
@@ -208,212 +208,212 @@ mod tests {
 
     #[test]
     fn coerce_to_number_from_string() {
-        assert_eq!(cfn_coerce_to_number(&json!("512")), Some(512.0));
-        assert_eq!(cfn_coerce_to_number(&json!("3.14")), Some(3.14));
-        assert_eq!(cfn_coerce_to_number(&json!(" 42 ")), Some(42.0));
-        assert_eq!(cfn_coerce_to_number(&json!("abc")), None);
-        assert_eq!(cfn_coerce_to_number(&json!("")), None);
+        assert_eq!(coerce_to_number(&json!("512")), Some(512.0));
+        assert_eq!(coerce_to_number(&json!("3.14")), Some(3.14));
+        assert_eq!(coerce_to_number(&json!(" 42 ")), Some(42.0));
+        assert_eq!(coerce_to_number(&json!("abc")), None);
+        assert_eq!(coerce_to_number(&json!("")), None);
     }
 
     #[test]
     fn coerce_to_number_from_number() {
-        assert_eq!(cfn_coerce_to_number(&json!(512)), Some(512.0));
-        assert_eq!(cfn_coerce_to_number(&json!(3.14)), Some(3.14));
+        assert_eq!(coerce_to_number(&json!(512)), Some(512.0));
+        assert_eq!(coerce_to_number(&json!(3.14)), Some(3.14));
     }
 
     #[test]
     fn coerce_to_number_rejects_non_scalars() {
-        assert_eq!(cfn_coerce_to_number(&json!(true)), None);
-        assert_eq!(cfn_coerce_to_number(&json!(null)), None);
-        assert_eq!(cfn_coerce_to_number(&json!([1])), None);
-        assert_eq!(cfn_coerce_to_number(&json!({"a": 1})), None);
+        assert_eq!(coerce_to_number(&json!(true)), None);
+        assert_eq!(coerce_to_number(&json!(null)), None);
+        assert_eq!(coerce_to_number(&json!([1])), None);
+        assert_eq!(coerce_to_number(&json!({"a": 1})), None);
     }
 
     #[test]
     fn coerce_to_integer_from_string() {
-        assert_eq!(cfn_coerce_to_integer(&json!("512")), Some(512));
-        assert_eq!(cfn_coerce_to_integer(&json!("3.0")), Some(3));
-        assert_eq!(cfn_coerce_to_integer(&json!("3.5")), None);
-        assert_eq!(cfn_coerce_to_integer(&json!("abc")), None);
+        assert_eq!(coerce_to_integer(&json!("512")), Some(512));
+        assert_eq!(coerce_to_integer(&json!("3.0")), Some(3));
+        assert_eq!(coerce_to_integer(&json!("3.5")), None);
+        assert_eq!(coerce_to_integer(&json!("abc")), None);
     }
 
     #[test]
     fn coerce_to_string_from_bool() {
-        assert_eq!(cfn_coerce_to_string(&json!(true)), Some("true".into()));
-        assert_eq!(cfn_coerce_to_string(&json!(false)), Some("false".into()));
+        assert_eq!(coerce_to_string(&json!(true)), Some("true".into()));
+        assert_eq!(coerce_to_string(&json!(false)), Some("false".into()));
     }
 
     #[test]
     fn coerce_to_string_from_number() {
-        assert_eq!(cfn_coerce_to_string(&json!(512)), Some("512".into()));
+        assert_eq!(coerce_to_string(&json!(512)), Some("512".into()));
     }
 
     #[test]
     fn coerce_to_string_rejects_complex() {
-        assert_eq!(cfn_coerce_to_string(&json!(null)), None);
-        assert_eq!(cfn_coerce_to_string(&json!([1])), None);
-        assert_eq!(cfn_coerce_to_string(&json!({"a": 1})), None);
+        assert_eq!(coerce_to_string(&json!(null)), None);
+        assert_eq!(coerce_to_string(&json!([1])), None);
+        assert_eq!(coerce_to_string(&json!({"a": 1})), None);
     }
 
     #[test]
     fn coerce_to_bool_from_string() {
-        assert_eq!(cfn_coerce_to_bool(&json!("true")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("True")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("TRUE")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("false")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("False")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("FALSE")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("true")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("True")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("TRUE")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("false")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("False")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("FALSE")), Some(false));
     }
 
     #[test]
     fn coerce_to_bool_yaml11_true_variants() {
-        assert_eq!(cfn_coerce_to_bool(&json!("yes")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("Yes")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("YES")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("on")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("On")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("ON")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("y")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("Y")), Some(true));
-        assert_eq!(cfn_coerce_to_bool(&json!("1")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("yes")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("Yes")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("YES")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("on")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("On")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("ON")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("y")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("Y")), Some(true));
+        assert_eq!(coerce_to_bool(&json!("1")), Some(true));
     }
 
     #[test]
     fn coerce_to_bool_yaml11_false_variants() {
-        assert_eq!(cfn_coerce_to_bool(&json!("no")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("No")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("NO")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("off")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("Off")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("OFF")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("n")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("N")), Some(false));
-        assert_eq!(cfn_coerce_to_bool(&json!("0")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("no")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("No")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("NO")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("off")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("Off")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("OFF")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("n")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("N")), Some(false));
+        assert_eq!(coerce_to_bool(&json!("0")), Some(false));
     }
 
     #[test]
     fn coerce_to_bool_rejects_nonspec_casings() {
-        assert_eq!(cfn_coerce_to_bool(&json!("tRuE")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("yEs")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("oN")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("fAlSe")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("nO")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("oFf")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("maybe")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("")), None);
-        assert_eq!(cfn_coerce_to_bool(&json!("2")), None);
+        assert_eq!(coerce_to_bool(&json!("tRuE")), None);
+        assert_eq!(coerce_to_bool(&json!("yEs")), None);
+        assert_eq!(coerce_to_bool(&json!("oN")), None);
+        assert_eq!(coerce_to_bool(&json!("fAlSe")), None);
+        assert_eq!(coerce_to_bool(&json!("nO")), None);
+        assert_eq!(coerce_to_bool(&json!("oFf")), None);
+        assert_eq!(coerce_to_bool(&json!("maybe")), None);
+        assert_eq!(coerce_to_bool(&json!("")), None);
+        assert_eq!(coerce_to_bool(&json!("2")), None);
     }
 
     #[test]
     fn coerce_port_to_string_accepts_string_and_integer_only() {
-        assert_eq!(cfn_coerce_port_to_string(&json!("80")), Some("80".into()));
-        assert_eq!(cfn_coerce_port_to_string(&json!(80)), Some("80".into()));
-        assert_eq!(cfn_coerce_port_to_string(&json!(0)), Some("0".into()));
+        assert_eq!(coerce_port_to_string(&json!("80")), Some("80".into()));
+        assert_eq!(coerce_port_to_string(&json!(80)), Some("80".into()));
+        assert_eq!(coerce_port_to_string(&json!(0)), Some("0".into()));
         // Non-integer numbers, booleans, and composites are not valid port forms.
-        assert_eq!(cfn_coerce_port_to_string(&json!(80.0)), None);
-        assert_eq!(cfn_coerce_port_to_string(&json!(80.5)), None);
-        assert_eq!(cfn_coerce_port_to_string(&json!(true)), None);
-        assert_eq!(cfn_coerce_port_to_string(&json!(null)), None);
-        assert_eq!(cfn_coerce_port_to_string(&json!([80])), None);
+        assert_eq!(coerce_port_to_string(&json!(80.0)), None);
+        assert_eq!(coerce_port_to_string(&json!(80.5)), None);
+        assert_eq!(coerce_port_to_string(&json!(true)), None);
+        assert_eq!(coerce_port_to_string(&json!(null)), None);
+        assert_eq!(coerce_port_to_string(&json!([80])), None);
     }
 
     #[test]
     fn scalar_eq_native_and_coerced_scalars() {
-        assert!(cfn_scalar_eq(&json!(512), &json!("512")));
-        assert!(cfn_scalar_eq(&json!("512"), &json!(512)));
-        assert!(cfn_scalar_eq(&json!(true), &json!("true")));
-        assert!(cfn_scalar_eq(&json!("hello"), &json!("hello")));
-        assert!(!cfn_scalar_eq(&json!(512), &json!("513")));
-        assert!(!cfn_scalar_eq(&json!(true), &json!("false")));
+        assert!(scalar_eq(&json!(512), &json!("512")));
+        assert!(scalar_eq(&json!("512"), &json!(512)));
+        assert!(scalar_eq(&json!(true), &json!("true")));
+        assert!(scalar_eq(&json!("hello"), &json!("hello")));
+        assert!(!scalar_eq(&json!(512), &json!("513")));
+        assert!(!scalar_eq(&json!(true), &json!("false")));
     }
 
     #[test]
     fn scalar_eq_distinct_non_scalars_never_collapse() {
         // Arrays/objects/null have no string coercion; only native equality can
         // make them match. Distinct composites must NOT be treated as equal.
-        assert!(!cfn_scalar_eq(&json!([1]), &json!([2])));
-        assert!(!cfn_scalar_eq(&json!({"a": 1}), &json!({"b": 2})));
-        assert!(!cfn_scalar_eq(&json!([1]), &json!("[1]")));
-        assert!(!cfn_scalar_eq(&json!(null), &json!("null")));
+        assert!(!scalar_eq(&json!([1]), &json!([2])));
+        assert!(!scalar_eq(&json!({"a": 1}), &json!({"b": 2})));
+        assert!(!scalar_eq(&json!([1]), &json!("[1]")));
+        assert!(!scalar_eq(&json!(null), &json!("null")));
         // Native equality still holds for identical composites/null.
-        assert!(cfn_scalar_eq(&json!([1, 2]), &json!([1, 2])));
-        assert!(cfn_scalar_eq(&json!(null), &json!(null)));
+        assert!(scalar_eq(&json!([1, 2]), &json!([1, 2])));
+        assert!(scalar_eq(&json!(null), &json!(null)));
     }
 
     #[test]
     fn type_compatible_string() {
-        assert!(cfn_type_compatible(&json!("hello"), "string"));
-        assert!(!cfn_type_compatible(&json!(512), "string"));
-        assert!(!cfn_type_compatible(&json!(true), "string"));
-        assert!(!cfn_type_compatible(&json!(null), "string"));
-        assert!(!cfn_type_compatible(&json!([1]), "string"));
-        assert!(!cfn_type_compatible(&json!({"a": 1}), "string"));
+        assert!(type_compatible(&json!("hello"), "string"));
+        assert!(!type_compatible(&json!(512), "string"));
+        assert!(!type_compatible(&json!(true), "string"));
+        assert!(!type_compatible(&json!(null), "string"));
+        assert!(!type_compatible(&json!([1]), "string"));
+        assert!(!type_compatible(&json!({"a": 1}), "string"));
     }
 
     #[test]
     fn type_compatible_integer() {
-        assert!(cfn_type_compatible(&json!(512), "integer"));
-        assert!(cfn_type_compatible(&json!("512"), "integer"));
-        assert!(!cfn_type_compatible(&json!("3.5"), "integer"));
-        assert!(!cfn_type_compatible(&json!("abc"), "integer"));
-        assert!(!cfn_type_compatible(&json!(true), "integer"));
+        assert!(type_compatible(&json!(512), "integer"));
+        assert!(type_compatible(&json!("512"), "integer"));
+        assert!(!type_compatible(&json!("3.5"), "integer"));
+        assert!(!type_compatible(&json!("abc"), "integer"));
+        assert!(!type_compatible(&json!(true), "integer"));
     }
 
     #[test]
     fn type_compatible_number() {
-        assert!(cfn_type_compatible(&json!(3.14), "number"));
-        assert!(cfn_type_compatible(&json!("3.14"), "number"));
-        assert!(cfn_type_compatible(&json!(512), "number"));
-        assert!(!cfn_type_compatible(&json!("abc"), "number"));
-        assert!(!cfn_type_compatible(&json!(true), "number"));
+        assert!(type_compatible(&json!(3.14), "number"));
+        assert!(type_compatible(&json!("3.14"), "number"));
+        assert!(type_compatible(&json!(512), "number"));
+        assert!(!type_compatible(&json!("abc"), "number"));
+        assert!(!type_compatible(&json!(true), "number"));
     }
 
     #[test]
     fn type_compatible_boolean() {
-        assert!(cfn_type_compatible(&json!(true), "boolean"));
-        assert!(cfn_type_compatible(&json!("true"), "boolean"));
-        assert!(cfn_type_compatible(&json!("FALSE"), "boolean"));
-        assert!(cfn_type_compatible(&json!("yes"), "boolean"));
-        assert!(cfn_type_compatible(&json!("Yes"), "boolean"));
-        assert!(cfn_type_compatible(&json!("on"), "boolean"));
-        assert!(cfn_type_compatible(&json!("OFF"), "boolean"));
-        assert!(cfn_type_compatible(&json!("y"), "boolean"));
-        assert!(cfn_type_compatible(&json!("N"), "boolean"));
-        assert!(cfn_type_compatible(&json!("1"), "boolean"));
-        assert!(cfn_type_compatible(&json!("0"), "boolean"));
-        assert!(!cfn_type_compatible(&json!(1), "boolean"));
-        assert!(!cfn_type_compatible(&json!("maybe"), "boolean"));
+        assert!(type_compatible(&json!(true), "boolean"));
+        assert!(type_compatible(&json!("true"), "boolean"));
+        assert!(type_compatible(&json!("FALSE"), "boolean"));
+        assert!(type_compatible(&json!("yes"), "boolean"));
+        assert!(type_compatible(&json!("Yes"), "boolean"));
+        assert!(type_compatible(&json!("on"), "boolean"));
+        assert!(type_compatible(&json!("OFF"), "boolean"));
+        assert!(type_compatible(&json!("y"), "boolean"));
+        assert!(type_compatible(&json!("N"), "boolean"));
+        assert!(type_compatible(&json!("1"), "boolean"));
+        assert!(type_compatible(&json!("0"), "boolean"));
+        assert!(!type_compatible(&json!(1), "boolean"));
+        assert!(!type_compatible(&json!("maybe"), "boolean"));
     }
 
     #[test]
     fn type_compatible_object_array_null() {
-        assert!(cfn_type_compatible(&json!({}), "object"));
-        assert!(!cfn_type_compatible(&json!("s"), "object"));
-        assert!(cfn_type_compatible(&json!([]), "array"));
-        assert!(!cfn_type_compatible(&json!(1), "array"));
-        assert!(cfn_type_compatible(&json!(null), "null"));
-        assert!(!cfn_type_compatible(&json!(""), "null"));
+        assert!(type_compatible(&json!({}), "object"));
+        assert!(!type_compatible(&json!("s"), "object"));
+        assert!(type_compatible(&json!([]), "array"));
+        assert!(!type_compatible(&json!(1), "array"));
+        assert!(type_compatible(&json!(null), "null"));
+        assert!(!type_compatible(&json!(""), "null"));
     }
 
     #[test]
     fn type_compatible_unknown_type_returns_false() {
-        assert!(!cfn_type_compatible(&json!("x"), "foobar"));
+        assert!(!type_compatible(&json!("x"), "foobar"));
     }
 
     #[test]
     fn coerce_value_already_correct() {
-        assert_eq!(cfn_coerce_value(&json!("hello"), "string"), CoerceResult::AlreadyCorrect);
-        assert_eq!(cfn_coerce_value(&json!(42), "integer"), CoerceResult::AlreadyCorrect);
-        assert_eq!(cfn_coerce_value(&json!(3.14), "number"), CoerceResult::AlreadyCorrect);
-        assert_eq!(cfn_coerce_value(&json!(true), "boolean"), CoerceResult::AlreadyCorrect);
-        assert_eq!(cfn_coerce_value(&json!({}), "object"), CoerceResult::AlreadyCorrect);
-        assert_eq!(cfn_coerce_value(&json!([]), "array"), CoerceResult::AlreadyCorrect);
-        assert_eq!(cfn_coerce_value(&json!(null), "null"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!("hello"), "string"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!(42), "integer"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!(3.14), "number"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!(true), "boolean"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!({}), "object"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!([]), "array"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!(null), "null"), CoerceResult::AlreadyCorrect);
     }
 
     #[test]
     fn coerce_value_string_to_integer() {
-        match cfn_coerce_value(&json!("42"), "integer") {
+        match coerce_value(&json!("42"), "integer") {
             CoerceResult::Coerced(v, desc) => {
                 assert_eq!(v, json!(42));
                 assert!(desc.contains("integer"));
@@ -424,7 +424,7 @@ mod tests {
 
     #[test]
     fn coerce_value_string_to_number() {
-        match cfn_coerce_value(&json!("3.14"), "number") {
+        match coerce_value(&json!("3.14"), "number") {
             CoerceResult::Coerced(v, _) => assert_eq!(v.as_f64().unwrap(), 3.14),
             other => panic!("expected Coerced, got {:?}", other),
         }
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn coerce_value_string_to_boolean() {
-        match cfn_coerce_value(&json!("yes"), "boolean") {
+        match coerce_value(&json!("yes"), "boolean") {
             CoerceResult::Coerced(v, _) => assert_eq!(v, json!(true)),
             other => panic!("expected Coerced, got {:?}", other),
         }
@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn coerce_value_bool_to_string() {
-        match cfn_coerce_value(&json!(true), "string") {
+        match coerce_value(&json!(true), "string") {
             CoerceResult::Coerced(v, desc) => {
                 assert_eq!(v, json!("true"));
                 assert!(desc.contains("boolean"));
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn coerce_value_number_to_string() {
-        match cfn_coerce_value(&json!(42), "string") {
+        match coerce_value(&json!(42), "string") {
             CoerceResult::Coerced(v, desc) => {
                 assert_eq!(v, json!("42"));
                 assert!(desc.contains("number"));
@@ -462,28 +462,28 @@ mod tests {
 
     #[test]
     fn coerce_value_bool_to_integer_fails() {
-        assert_eq!(cfn_coerce_value(&json!(true), "integer"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!(true), "integer"), CoerceResult::Failed);
     }
 
     #[test]
     fn coerce_value_bool_to_number_fails() {
-        assert_eq!(cfn_coerce_value(&json!(true), "number"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!(true), "number"), CoerceResult::Failed);
     }
 
     #[test]
     fn coerce_value_incompatible_fails() {
-        assert_eq!(cfn_coerce_value(&json!(null), "string"), CoerceResult::Failed);
-        assert_eq!(cfn_coerce_value(&json!([1]), "string"), CoerceResult::Failed);
-        assert_eq!(cfn_coerce_value(&json!("abc"), "integer"), CoerceResult::Failed);
-        assert_eq!(cfn_coerce_value(&json!("abc"), "number"), CoerceResult::Failed);
-        assert_eq!(cfn_coerce_value(&json!("maybe"), "boolean"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!(null), "string"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!([1]), "string"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!("abc"), "integer"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!("abc"), "number"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!("maybe"), "boolean"), CoerceResult::Failed);
     }
 
     #[test]
     fn coerce_value_double_and_float_aliases() {
-        assert_eq!(cfn_coerce_value(&json!(1.5), "double"), CoerceResult::AlreadyCorrect);
-        assert_eq!(cfn_coerce_value(&json!(1.5), "float"), CoerceResult::AlreadyCorrect);
-        match cfn_coerce_value(&json!("1.5"), "double") {
+        assert_eq!(coerce_value(&json!(1.5), "double"), CoerceResult::AlreadyCorrect);
+        assert_eq!(coerce_value(&json!(1.5), "float"), CoerceResult::AlreadyCorrect);
+        match coerce_value(&json!("1.5"), "double") {
             CoerceResult::Coerced(v, _) => assert_eq!(v.as_f64().unwrap(), 1.5),
             other => panic!("expected Coerced, got {:?}", other),
         }
@@ -491,12 +491,12 @@ mod tests {
 
     #[test]
     fn coerce_value_unknown_type_fails() {
-        assert_eq!(cfn_coerce_value(&json!("x"), "foobar"), CoerceResult::Failed);
+        assert_eq!(coerce_value(&json!("x"), "foobar"), CoerceResult::Failed);
     }
 
     #[test]
     fn coerce_to_integer_from_float_number() {
-        assert_eq!(cfn_coerce_to_integer(&json!(3.0)), Some(3));
-        assert_eq!(cfn_coerce_to_integer(&json!(3.5)), None);
+        assert_eq!(coerce_to_integer(&json!(3.0)), Some(3));
+        assert_eq!(coerce_to_integer(&json!(3.5)), None);
     }
 }
