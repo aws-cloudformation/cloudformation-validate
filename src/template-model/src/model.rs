@@ -860,13 +860,26 @@ impl SemanticModel {
     /// here would silently mislocate every dotted-path diagnostic onto the
     /// resource declaration line.
     pub fn resource_span(&self, resource_id: &str, prop_path: &str) -> SourceSpan {
+        // An empty resource id means the path is already a section-absolute span-index
+        // key (e.g. an output's `Outputs/X/Value.Fn::Join`); prefixing it with
+        // `Resources/` would mislocate the finding onto the Resources block. Resolve it
+        // as-is (no dot-to-slash conversion, since dots in segment names like `Fn::Join`
+        // are literal, not path separators). Returns UNKNOWN when nothing resolves so
+        // callers fall back to section-level or backfill-based location.
+        if resource_id.is_empty() {
+            return self.walk_up_span(prop_path).unwrap_or(UNKNOWN_SPAN);
+        }
         let specific = if prop_path.is_empty() {
             format!("Resources/{}", resource_id)
         } else {
             format!("Resources/{}/{}", resource_id, prop_path.replace('.', "/"))
         };
-        let fallback = format!("Resources/{}", resource_id);
-        self.source_location(&specific).or_else(|| self.source_location(&fallback)).copied().unwrap_or(UNKNOWN_SPAN)
+        // Walk up from the exact path to the nearest indexed ancestor, so a leaf that
+        // carries no span of its own — a synthetic intrinsic key (`…/Topic/Fn::Sub`),
+        // an `Fn::If` branch index — anchors at its closest real parent rather than
+        // collapsing straight to the resource declaration. The resource path itself is
+        // the final ancestor, preserving the previous resource-level fallback.
+        self.walk_up_span(&specific).unwrap_or(UNKNOWN_SPAN)
     }
 
     /// Walks up `key` (a `/`-separated span-index path), trimming one trailing
@@ -1836,6 +1849,72 @@ Resources:
         let span = model.resource_span("R", "Properties/NonExistent/Deep");
         // Should fall back to the resource-level span
         assert!(span.start_line > 0 || span.end_line > 0, "expected non-zero span, got {:?}", span);
+    }
+
+    #[test]
+    fn resource_span_nested_array_property_anchors_at_element() {
+        // A property inside an array element must anchor at that element, not at the
+        // array or the resource. The span index is keyed with the array index.
+        let input =
+            "Resources:\n  R:\n    Type: T\n    Properties:\n      Ingress:\n      - Port: 80\n      - Port: 443\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let first = model.resource_span("R", "Properties.Ingress.0.Port");
+        let second = model.resource_span("R", "Properties.Ingress.1.Port");
+        assert_eq!(first.start_line, 6, "Ingress[0].Port is on line 6, got {:?}", first);
+        assert_eq!(second.start_line, 7, "Ingress[1].Port is on line 7, got {:?}", second);
+    }
+
+    #[test]
+    fn resource_span_empty_id_resolves_section_absolute_path_precisely() {
+        // A finding with no resource id (e.g. an Outputs-level diagnostic) carries a
+        // section-absolute span-index path. It must resolve against that path directly,
+        // NOT be prefixed with `Resources/` (which would mislocate onto the Resources
+        // block). A path whose exact node is indexed resolves to that node.
+        let input = concat!(
+            "Resources:\n  R:\n    Type: T\n",                                  // lines 1-3
+            "Outputs:\n  Combined:\n    Value: !Join [\"\", [\"a\", \"b\"]]\n", // lines 4-6
+        );
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        // The `Value` node is indexed (line 6) — resolution lands on it exactly.
+        let value = model.resource_span("", "Outputs/Combined/Value");
+        assert_eq!(value.start_line, 6, "Outputs/Combined/Value is on line 6, got {:?}", value);
+        // The output key itself resolves to its own line (line 5).
+        let combined = model.resource_span("", "Outputs/Combined");
+        assert_eq!(combined.start_line, 5, "Outputs/Combined is on line 5, got {:?}", combined);
+    }
+
+    #[test]
+    fn resource_span_empty_id_fused_intrinsic_suffix_anchors_at_nearest_slash_ancestor() {
+        // A synthetic intrinsic suffix (`.Fn::Join`) is joined to its parent by a DOT,
+        // which is deliberately not treated as a path separator here: real span-index
+        // keys contain literal dots inside a single segment (e.g. API Gateway's
+        // `method.request.path.proxy`), so splitting on dots would shred those paths and
+        // mis-anchor. The walk-up therefore trims the whole `Value.Fn::Join` segment on
+        // the nearest `/`, landing on the enclosing output — still within Outputs, never
+        // on the Resources block. Both engines resolve this identically, which is what
+        // keeps them at parity.
+        let input = concat!(
+            "Resources:\n  R:\n    Type: T\n",                                  // lines 1-3
+            "Outputs:\n  Combined:\n    Value: !Join [\"\", [\"a\", \"b\"]]\n", // lines 4-6
+        );
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let span = model.resource_span("", "Outputs/Combined/Value.Fn::Join");
+        assert_eq!(
+            span.start_line, 5,
+            "fused-suffix path must anchor at the enclosing output (line 5), got {:?}",
+            span
+        );
+    }
+
+    #[test]
+    fn resource_span_empty_id_does_not_leak_onto_resources_block() {
+        // Regression guard: an unresolvable empty-id path must return UNKNOWN rather
+        // than walking up a spuriously `Resources/`-prefixed key onto the Resources
+        // section. This is the divergence that made the two engines disagree.
+        let input = "Resources:\n  R:\n    Type: T\n";
+        let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let span = model.resource_span("", "Outputs/DoesNotExist/Value");
+        assert_eq!(span, UNKNOWN_SPAN, "unresolvable empty-id path must be UNKNOWN, got {:?}", span);
     }
 
     #[test]

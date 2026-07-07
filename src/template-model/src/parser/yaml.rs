@@ -18,6 +18,19 @@ struct LoadedYaml {
     dup_key_diagnostics: Vec<diagnostics::Diagnostic>,
 }
 
+/// One open container while the event stream is being consumed. The frame stack
+/// runs parallel to `doc_stack`, and each frame records the slot the *next* child
+/// value will occupy: a mapping's current key, or a sequence's next index. Joining
+/// every frame's slot yields the canonical `/`-separated path the shared builder
+/// assigns each node — so a span keyed here (e.g. `Ingress/0/SourceSecurityGroupId`)
+/// lands on exactly the node the builder produces, array indices included.
+enum PathFrame {
+    /// The key currently awaiting its value, or `None` while awaiting a key.
+    Map(Option<String>),
+    /// The index the next sequence element will occupy.
+    Seq(usize),
+}
+
 /// Converts YAML shorthand tags (!Ref, !Sub, etc.) into map-form intrinsics.
 struct CfnYamlLoader {
     docs: Vec<Yaml>,
@@ -29,8 +42,8 @@ struct CfnYamlLoader {
     /// A stack is needed because nested tags (e.g. `!Or [!Equals [...]]`)
     /// would otherwise overwrite the outer tag.
     pending_tags: Vec<(String, usize)>,
-    path_stack: Vec<String>,
-    array_idx_stack: Vec<usize>,
+    /// One frame per open container, parallel to `doc_stack`; see [`PathFrame`].
+    path_frames: Vec<PathFrame>,
     span_map: HashMap<String, (u32, u32)>,
     /// Source position of the key currently awaiting its value, one entry per open
     /// mapping (parallel to `key_stack`). Used to anchor duplicate-key diagnostics.
@@ -59,8 +72,7 @@ impl CfnYamlLoader {
             key_stack: Vec::new(),
             anchor_map: BTreeMap::new(),
             pending_tags: Vec::new(),
-            path_stack: Vec::new(),
-            array_idx_stack: Vec::new(),
+            path_frames: Vec::new(),
             span_map: HashMap::new(),
             key_marks: Vec::new(),
             pending_dup_diagnostics: Vec::new(),
@@ -76,20 +88,85 @@ impl CfnYamlLoader {
         // resulting F1101 diagnostic is anchored at the offending position instead of
         // being left without a location.
         parser.load(&mut loader, true).map_err(|e| {
-            // The scanner Marker reports line 1-based but column 0-based, so only the
-            // column is shifted to the 1-based column every other diagnostic reports.
-            let marker = e.marker();
-            ParseError {
-                message: format!("YAML parse error: {}", e),
-                line: Some(marker.line() as u32),
-                column: Some(marker.col() as u32 + 1),
-            }
+            let (line, column) = Self::mark_position(*e.marker());
+            ParseError { message: format!("YAML parse error: {}", e), line: Some(line), column: Some(column) }
         })?;
         Ok(LoadedYaml { docs: loader.docs, span_map: loader.span_map, dup_key_diagnostics: loader.dup_key_diagnostics })
     }
 
+    /// The canonical `/`-separated path of the value the innermost frame is about to
+    /// receive: every enclosing frame's committed slot, then this frame's own slot.
+    /// A mapping frame still awaiting its key contributes nothing (that key becomes the
+    /// slot once seen), so the path names the value node the builder will allocate.
     fn current_path(&self) -> String {
-        self.path_stack.join("/")
+        let mut path = String::new();
+        for frame in &self.path_frames {
+            let segment = match frame {
+                PathFrame::Map(Some(key)) => key.as_str(),
+                PathFrame::Map(None) => continue,
+                PathFrame::Seq(idx) => {
+                    if !path.is_empty() {
+                        path.push('/');
+                    }
+                    path.push_str(&idx.to_string());
+                    continue;
+                }
+            };
+            if !path.is_empty() {
+                path.push('/');
+            }
+            path.push_str(segment);
+        }
+        path
+    }
+
+    /// The `(line, column)` a Marker points at, in the 1-based/1-based convention the
+    /// rest of the diagnostics pipeline uses. yaml_rust2 already reports the line
+    /// 1-based but the column 0-based, so only the column is incremented. This is the
+    /// single place that conversion happens.
+    fn mark_position(mark: Marker) -> (u32, u32) {
+        (mark.line() as u32, mark.col() as u32 + 1)
+    }
+
+    /// Anchors a mapping value at its key's position, overwriting any earlier entry so
+    /// a duplicate key resolves to the surviving (last) occurrence — matching how the
+    /// loaded `Hash` keeps the last value written for a repeated key. cfn-lint anchors
+    /// object-property diagnostics at the key, so this is where the value's span lives.
+    fn record_key_span(&mut self, mark: Marker) {
+        let path = self.current_path();
+        if !path.is_empty() {
+            self.span_map.insert(path, Self::mark_position(mark));
+        }
+    }
+
+    /// Anchors a value that no key precedes — a sequence element, or a container opened
+    /// directly inside a sequence — at its own position. Never overwrites a span a key
+    /// already assigned to the same path (a container that is a mapping *value* is
+    /// reached here too, but its key recorded the authoritative position first).
+    fn record_value_span(&mut self, mark: Marker) {
+        let path = self.current_path();
+        if !path.is_empty() {
+            self.span_map.entry(path).or_insert_with(|| Self::mark_position(mark));
+        }
+    }
+
+    /// Advances the innermost frame's slot once a value has been placed into it, so the
+    /// next child resolves to the correct path: a mapping again awaits a key, and a
+    /// sequence moves to the next index. A no-op for a mapping still awaiting its key
+    /// (the placed node was that key, not a value).
+    fn advance_after_value(&mut self) {
+        match self.path_frames.last_mut() {
+            Some(PathFrame::Map(slot @ Some(_))) => *slot = None,
+            Some(PathFrame::Seq(idx)) => *idx += 1,
+            _ => {}
+        }
+    }
+
+    /// Whether a node about to be placed is a mapping key still awaiting its value,
+    /// rather than a value or sequence element. Read from the tree builder's own
+    /// `key_stack` so path tracking stays in lockstep with node construction.
+    fn placing_map_key(&self) -> bool {
+        matches!(self.doc_stack.last(), Some((Yaml::Hash(_), _))) && self.key_stack.last() == Some(&Yaml::BadValue)
     }
 
     /// The bare suffix of a primary (`!`-handle) YAML tag, or `None` for
@@ -202,23 +279,31 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 if let Some(tag_name) = Self::cfn_tag_name(tag) {
                     self.pending_tags.push((tag_name, self.doc_stack.len()));
                 }
+                // Anchor the sequence at its slot in the parent before opening a frame
+                // for its elements. As a mapping value this is a no-op (the key already
+                // recorded the authoritative position); as a nested element it records
+                // the sequence's own start.
+                self.record_value_span(mark);
                 self.doc_stack.push((Yaml::Array(Vec::new()), aid));
-                self.array_idx_stack.push(0);
+                self.path_frames.push(PathFrame::Seq(0));
             }
             Event::SequenceEnd => {
-                self.array_idx_stack.pop();
+                self.path_frames.pop();
                 let node = self.doc_stack.pop().unwrap();
                 self.insert_new_node(node, mark);
+                self.advance_after_value();
             }
             Event::MappingStart(aid, ref tag) => {
                 if let Some(tag_name) = Self::cfn_tag_name(tag) {
                     self.pending_tags.push((tag_name, self.doc_stack.len()));
                 }
+                self.record_value_span(mark);
                 self.doc_stack.push((Yaml::Hash(Hash::new()), aid));
                 self.key_stack.push(Yaml::BadValue);
                 self.key_marks.push(None);
                 self.pending_dup_diagnostics.push(Vec::new());
                 self.mapping_uses_merge.push(false);
+                self.path_frames.push(PathFrame::Map(None));
             }
             Event::MappingEnd => {
                 self.key_stack.pop();
@@ -229,15 +314,10 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 if !self.mapping_uses_merge.pop().unwrap_or(false) {
                     self.dup_key_diagnostics.extend(buffered);
                 }
-                if !self.path_stack.is_empty() {
-                    let parent_is_array =
-                        self.doc_stack.last().map(|(y, _)| matches!(y, Yaml::Array(_))).unwrap_or(false);
-                    if !parent_is_array {
-                        self.path_stack.pop();
-                    }
-                }
+                self.path_frames.pop();
                 let node = self.doc_stack.pop().unwrap();
                 self.insert_new_node(node, mark);
+                self.advance_after_value();
             }
             Event::Scalar(v, style, aid, ref tag) => {
                 let cfn_tag = Self::cfn_tag_name(tag);
@@ -247,29 +327,23 @@ impl MarkedEventReceiver for CfnYamlLoader {
                     Yaml::from_str(&v)
                 };
 
-                if let Some(parent) = self.doc_stack.last() {
-                    if matches!(parent.0, Yaml::Hash(_)) {
-                        let cur_key = self.key_stack.last().unwrap();
-                        if cur_key == &Yaml::BadValue {
-                            let mapping_depth = self.key_stack.len();
-                            if self.path_stack.len() >= mapping_depth {
-                                self.path_stack.truncate(mapping_depth - 1);
-                            }
-                            self.path_stack.push(v.clone());
-                            let path = self.current_path();
-                            // mark.line() and mark.col() are 0-based
-                            self.span_map.insert(path, (mark.line() as u32 + 1, mark.col() as u32 + 1));
-                            // Remember this key's position so a later duplicate of it
-                            // can be anchored at the offending occurrence.
-                            if let Some(slot) = self.key_marks.last_mut() {
-                                *slot = Some((mark.line() as u32 + 1, mark.col() as u32 + 1));
-                            }
-                        }
-                    } else if matches!(parent.0, Yaml::Array(_))
-                        && let Some(idx) = self.array_idx_stack.last_mut()
-                    {
-                        *idx += 1;
+                let is_key = self.placing_map_key();
+                if is_key {
+                    // This scalar names the slot its sibling value will occupy; put it in
+                    // the frame so the value's path is complete, then anchor the property
+                    // at the key (cfn-lint anchors object-property diagnostics at the key).
+                    if let Some(PathFrame::Map(slot)) = self.path_frames.last_mut() {
+                        *slot = Some(v.clone());
                     }
+                    self.record_key_span(mark);
+                    // Remember this key's position so a later duplicate of it can be
+                    // anchored at the offending occurrence.
+                    if let Some(slot) = self.key_marks.last_mut() {
+                        *slot = Some(Self::mark_position(mark));
+                    }
+                } else if matches!(self.doc_stack.last(), Some((Yaml::Array(_), _))) {
+                    // A sequence element: no key precedes it, so anchor it at itself.
+                    self.record_value_span(mark);
                 }
 
                 if let Some(tag_name) = cfn_tag {
@@ -278,10 +352,19 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 } else {
                     self.insert_new_node((node, aid), mark);
                 }
+                if !is_key {
+                    self.advance_after_value();
+                }
             }
             Event::Alias(id) => {
                 let n = self.anchor_map.get(&id).cloned().unwrap_or(Yaml::BadValue);
+                // An alias resolves to an anchored value, so it is always a value or
+                // sequence element (never a key); anchor a sequence element at itself.
+                if matches!(self.doc_stack.last(), Some((Yaml::Array(_), _))) {
+                    self.record_value_span(mark);
+                }
                 self.insert_new_node((n, 0), mark);
+                self.advance_after_value();
             }
         }
     }
@@ -565,6 +648,25 @@ mod tests {
         let ir = parse_yaml(input.as_bytes()).unwrap();
         assert_eq!(ir.format_version.as_deref(), Some("2010-09-09"));
         assert_eq!(ir.arena.as_map(ir.resources).unwrap().len(), 1);
+    }
+
+    /// Span-index paths must carry the array index, matching the paths the shared
+    /// builder assigns. A key inside an array element (`Ingress/1/Port`) and a scalar
+    /// array element (`Cidrs/1`) each get their own span, so a diagnostic on them
+    /// anchors at the offending line rather than walking up to the enclosing array.
+    #[test]
+    fn array_element_spans_include_index() {
+        //             1          2       3      4              5           6            7             8              9
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      Ingress:\n      - Port: 80\n      - Port: 443\n      Cidrs:\n      - 10.0.0.0/16\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let line = |path: &str| ir.span_index.get(path).map(|s| s.start_line);
+        // Keys inside distinct array elements resolve to distinct element lines,
+        // never collapsing onto a single index-less `Ingress/Port` key.
+        assert_eq!(line("Resources/R/Properties/Ingress/0/Port"), Some(6));
+        assert_eq!(line("Resources/R/Properties/Ingress/1/Port"), Some(7));
+        assert!(line("Resources/R/Properties/Ingress/Port").is_none(), "index-less array key must not exist");
+        // A scalar array element is anchored at itself.
+        assert_eq!(line("Resources/R/Properties/Cidrs/0"), Some(9));
     }
 
     #[test]
