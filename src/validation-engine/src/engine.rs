@@ -796,7 +796,7 @@ fn gate_cdk_suppressed_rules(diagnostics: &mut Vec<Diagnostic>, model: &Semantic
 
 /// Attaches a source span to any diagnostic still missing one. Location is part of
 /// both the standard and detailed reports, so this runs regardless of detail level
-/// and independently of the engine, keeping the two engines at parity.
+/// and independently of the engine.
 ///
 /// Most diagnostics are located at construction (via `resource_span` /
 /// `resolve_section_span`), but some emission paths cannot reach a span there:
@@ -1471,7 +1471,8 @@ Resources:
         assert_eq!(diags.len(), 2);
     }
 
-    /// Regression for the CEL WASM-vs-native parity bug.
+    /// Regression for a dedup bug where the same rule/message/line was duplicated
+    /// across native and WASM builds, separated by a sibling diagnostic.
     ///
     /// Two diagnostics for rule X message M at the same line/col, separated by a sibling
     /// for the same rule but a different message M', must still be deduped. Before the fix

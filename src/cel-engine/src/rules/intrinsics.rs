@@ -286,8 +286,8 @@ fn has_language_extensions(model: &SemanticModel) -> bool {
 /// (`AWS::CloudFormation::Stack`) are already skipped entirely before this check,
 /// so the only type that reaches here needing the exemption is the provisioned
 /// product. Every other dotted attribute (e.g. `Tags.0` on a bucket) is a real
-/// attribute-validity error, matching the reference tool — an object/array
-/// attribute is NOT itself indexable via GetAtt.
+/// attribute-validity error, because CloudFormation does not expose an
+/// object/array attribute as itself indexable via GetAtt.
 fn getatt_attr_is_map_member(attr: &str, rtype: &str) -> bool {
     rtype == "AWS::ServiceCatalog::CloudFormationProvisionedProduct" && attr.starts_with("Outputs.")
 }

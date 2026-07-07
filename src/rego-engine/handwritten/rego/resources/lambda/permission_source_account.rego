@@ -22,7 +22,7 @@ violation contains make_diag_full("W3663", "WARN", name,
 # Branch 2: SourceArn is a literal ARN string without a 12-digit account segment.
 # Guard on `not is_from_intrinsic` so a SourceArn supplied via Ref/GetAtt (whose
 # resolved value is not a concrete literal) does not trip the pattern check —
-# matching the reference tool, which only tests a literal string here.
+# the account-id pattern check applies only to a literal ARN string here.
 violation contains make_diag_full("W3663", "WARN", name,
     "Properties",
     "Lambda Permission with a SourceArn that has no account id should also specify SourceAccount",

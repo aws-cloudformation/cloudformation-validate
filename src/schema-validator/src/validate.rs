@@ -9,12 +9,15 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{CoerceResult, cfn_coerce_to_number, cfn_coerce_to_string, cfn_coerce_value};
-use template_model::consts::{FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES};
+use template_model::consts::{
+    FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES, KEY_TYPE, PARAM_TYPE_COMMA_DELIMITED_LIST,
+    PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
+};
 use template_model::model::ResolvedResource;
 use template_model::resolver::{RefKind, ResolvedValue};
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
-/// The baseline skips type checks for these paths when the value is a string.
+/// Type checks are skipped for these paths when the value is a string.
 const PACKAGING_PROPERTY_PATHS: &[(&str, &str)] = &[
     ("AWS::Lambda::Function", "Properties.Code"),
     ("AWS::Lambda::LayerVersion", "Properties.Content"),
@@ -30,7 +33,7 @@ const PACKAGING_PROPERTY_PATHS: &[(&str, &str)] = &[
     ("AWS::CodeCommit::Repository", "Properties.Code.S3"),
 ];
 
-/// Property paths where the baseline skips type validation entirely because
+/// Property paths where type validation is skipped entirely because
 /// the property accepts free-form user-defined content.
 const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
     ("AWS::Lambda::Function", "Properties.Environment.Variables"),
@@ -61,9 +64,10 @@ pub fn validate_all_resources(
     for rtype in &relevant {
         // Custom resources, modules, and SAM resources (rewritten by the SAM
         // transform before deployment) are not region-scoped provider types, so
-        // the region check skips them — matching the reference linter, which
-        // validates the post-transform template.
-        if rtype.ends_with("::MODULE") || rtype.starts_with("Custom::") || rtype.starts_with("AWS::Serverless::") {
+        // the region check skips them — CloudFormation validates the
+        // post-transform template.
+        if rtype.ends_with("::MODULE") || rtype.starts_with("Custom::") || rtype.starts_with(SAM_SERVERLESS_TYPE_PREFIX)
+        {
             continue;
         }
 
@@ -79,8 +83,8 @@ pub fn validate_all_resources(
                 // A resource guarded by a Condition that cannot hold in the target
                 // region is never created there, so its type's absence in that
                 // region is not an error. The satisfiability check pins
-                // AWS::Region to the target region (mirroring the reference
-                // linter's per-region scenario evaluation), so a condition like
+                // AWS::Region to the target region and asks whether the condition
+                // can hold there, so a condition like
                 // `!Equals [AWS::Region, us-east-1]` is unsatisfiable at any other
                 // region and the finding is skipped — even at the DEFAULT region,
                 // where AWS::Region is otherwise a free SAT variable.
@@ -90,14 +94,14 @@ pub fn validate_all_resources(
                 {
                     continue;
                 }
-                // Match the reference linter's region-availability message and
-                // Type-node location (its Error is promoted to the Fatal F3006 here).
+                // Report the region-availability message at the Type node
+                // (a Fatal F3006 here).
                 out.push(build_diagnostic(
                     "F3006",
                     &format!("Resource type '{}' does not exist in '{}'", rtype, region),
                     model,
                     rid,
-                    "Type",
+                    KEY_TYPE,
                     None,
                 ));
             }
@@ -124,7 +128,7 @@ pub fn validate_all_resources(
             // the raw resource schema (required properties, etc. are supplied or
             // relaxed during expansion). Validating the pre-transform shape would
             // flag requirements the transform fills in.
-            if rtype.starts_with("AWS::Serverless::") {
+            if rtype.starts_with(SAM_SERVERLESS_TYPE_PREFIX) {
                 continue;
             }
             validate_resource(&mut out, store, model, rid, res, schema, region);
@@ -1761,9 +1765,9 @@ fn validate_reference_type(
 
 fn cfn_param_type_to_schema_type(param_type: &str) -> &str {
     match param_type {
-        "Number" => "number",
-        "String" => "string",
-        "CommaDelimitedList" => "array",
+        PARAM_TYPE_NUMBER => "number",
+        PARAM_TYPE_STRING => "string",
+        PARAM_TYPE_COMMA_DELIMITED_LIST => "array",
         t if t.starts_with("List<") => "array",
         t if t.starts_with("AWS::SSM::Parameter::") => "string",
         _ => "string",
@@ -1877,7 +1881,7 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
             out.push(build_diagnostic(rule_id, &msg, model, rid, "", None));
         }
 
-        if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == "AWS::Serverless::Function")
+        if (res.resource_type == "AWS::Lambda::Function" || res.resource_type == SAM_FUNCTION_TYPE)
             // Only a literal Runtime string is validated against the deprecation
             // list; a Runtime produced by an intrinsic (e.g. Fn::FindInMap)
             // resolves at deploy time and is handled by the intrinsic rules
@@ -1915,7 +1919,7 @@ fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, mo
     }
 }
 
-/// Builds the dated runtime-deprecation message the reference tool emits for all
+/// Builds the dated runtime-deprecation message CloudFormation reports for all
 /// three bands: "Runtime 'X' was deprecated on 'D'. Creation was disabled on 'C'
 /// and update on 'U'. Please consider updating to 'S'". A string value renders
 /// single-quoted; a missing successor renders as bare `None` (Python `repr`).
@@ -2010,7 +2014,7 @@ fn validate_cfn_gather(
             for (prop_name, prop_def) in props {
                 // A gather property spec is either a bare JSON-pointer string
                 // ("/RestApiId") or an object ({"path": "/FifoQueue", "default":
-                // false}). Both forms appear in the upstream data; reading only
+                // false}). Both forms appear in the extension data; reading only
                 // the object form silently drops the value for the string form
                 // and makes the whole cross-resource check a no-op.
                 let (path, default_val) = match prop_def {
@@ -2045,9 +2049,9 @@ fn validate_cfn_gather(
 ///   listener-certificate rule (E3676), which fires on the same trigger.
 /// - RDS DBInstance `BackupRetentionPeriod` is a retention-period advisory the
 ///   dedicated retention rule (I3013) already emits; the extension carrying a
-///   `then.required` for it must not additionally raise a Fatal F3003 (the
-///   reference tool treats a missing retention period as informational, never a
-///   required-property error).
+///   `then.required` for it must not additionally raise a Fatal F3003 (a
+///   missing retention period is informational, never a required-property
+///   error).
 fn extension_required_covered_by_dedicated_rule(resource_type: &str, prop_name: &str) -> bool {
     matches!(
         (resource_type, prop_name),
@@ -2080,14 +2084,13 @@ fn validate_extension_if_then_else(
                 // already reports under its own specific ID (e.g. the S3
                 // AccessControl→OwnershipControls extension is the dedicated S3
                 // access-control rule). Emitting the generic F3003 on top of that
-                // dedicated diagnostic is a double-report the reference tool never
-                // produces, so skip it.
+                // dedicated diagnostic would be a double-report, so skip it.
                 if extension_required_covered_by_dedicated_rule(&res.resource_type, prop_name) {
                     continue;
                 }
                 // Dedup: compiled base schema's if_then_else may already have
-                // emitted a required-property diagnostic for the same required property (extensions
-                // upstream sometimes mirror the base schema's conditional
+                // emitted a required-property diagnostic for the same required property (the
+                // extension schemas sometimes mirror the base schema's conditional
                 // requirements). Skip to avoid double-reporting.
                 let already_reported = out.iter().any(|d| {
                     d.rule_id == "F3003"
@@ -2142,8 +2145,8 @@ fn validate_extension_if_then_else(
                 if !is_satisfiable(model, conds) {
                     continue;
                 }
-                // NOTE: the reference tool applies these extension enums with
-                // per-enum case sensitivity — case-insensitive for engine names
+                // NOTE: these extension enums use per-enum case
+                // sensitivity — case-insensitive for engine names
                 // (Engine: "MySQL" is accepted against "mysql") but case-sensitive
                 // for others (ReplicaMode: "Mounted" is rejected against
                 // "mounted"). Distinguishing them requires the per-rule mapping
@@ -2325,7 +2328,7 @@ fn evaluate_gather_schema(
         return;
     };
     // NOTE: this generic gather path only surfaces top-level const mismatches as
-    // E3030. The reference linter reports these cross-resource constraints under specific
+    // E3030. These cross-resource constraints belong under specific dedicated
     // rule IDs (E3699, E3707, E3709, …) and dedicated native rules already cover
     // the reachable cases (E3502, E3707, E3698, …). Broadening this path to also
     // unwrap `cfnContext` or evaluate bare `properties` schemas made it emit

@@ -677,8 +677,8 @@ Resources:
     fn e9004_dotted_attribute_on_object_attribute_is_still_invalid() {
         // A dotted GetAtt whose leading segment is an object/array-typed property
         // (here S3 Bucket `Tags`, an array) is NOT a valid map-member reference:
-        // GetAtt cannot index into such an attribute. The engine must still flag
-        // it, matching the reference tool. Only nested-stack / provisioned-product
+        // GetAtt cannot index into such an attribute, so CloudFormation rejects it
+        // and the engine must still flag it. Only nested-stack / provisioned-product
         // `Outputs.<key>` is an open-ended map member.
         let ids = validate(
             r#"

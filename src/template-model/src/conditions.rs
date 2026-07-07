@@ -177,10 +177,10 @@ impl ConditionModel {
     }
 
     /// Like [`Self::is_satisfiable`], but with the target region pinned as the
-    /// only candidate value for the `AWS::Region` pseudo-parameter — mirroring the
-    /// reference linter's per-region scenario evaluation (it asks whether a
-    /// condition can hold *in that region*, not whether the region could be
-    /// anything). Used by the region-availability check so a resource guarded by a
+    /// only candidate value for the `AWS::Region` pseudo-parameter — a per-region
+    /// satisfiability query that asks whether a condition can hold *in that
+    /// region*, not whether the region could be anything. Used by the
+    /// region-availability check so a resource guarded by a
     /// condition that cannot hold in the target region (e.g.
     /// `!Equals [AWS::Region, other-region]`) is correctly treated as never
     /// created there — even when no explicit `--region` override pins the

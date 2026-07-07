@@ -41,7 +41,7 @@ fn debug_config() -> ValidateConfig {
 
 /// Run both engines with the default config and return their diagnostics tagged
 /// by engine name. Every assertion helper checks both, so a test that passes is
-/// asserting engine parity for that fact.
+/// asserting both engines agree on that fact.
 fn validate_both(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
     vec![
         ("rego", validate_with(&*REGO, fixture, debug_config())),
@@ -162,7 +162,7 @@ fn issue_37_w3697_fires_on_autoscaling_launchconfiguration() {
 
 /// Issue #37: a per-service exclude filter silences W3697 for every AutoScaling
 /// resource — the resolution the issue asked for. The filter is applied after
-/// evaluation in both engines, so the two stay at parity. The `service` string is
+/// evaluation in both engines, so the two agree. The `service` string is
 /// the fully qualified `service-provider::service-name` prefix (`AWS::AutoScaling`)
 /// matched verbatim against the resource type; the rule id scopes it to W3697,
 /// leaving the rest of the service untouched.
@@ -270,10 +270,9 @@ fn issue_41_no_w9013_on_join_ref_accountid() {
 /// Issue #42: an omitted `HealthCheckPort` on an ECS dynamic-port (HostPort 0)
 /// TargetGroup defaults to `traffic-port` — the correct setting — so the finding
 /// is advisory (I3049 INFO), not an Error. The ECS dynamic-port health-check
-/// check is severity-split from the reference linter's single Error: an omitted
-/// port is informational (I3049), a concrete non-`traffic-port` value is a
-/// warning (W3049, exercised by the `bad/` corpus). The template deploys and
-/// works in the omitted case, so no Error is warranted.
+/// check is severity-split: an omitted port is informational (I3049), a concrete
+/// non-`traffic-port` value is a warning (W3049, exercised by the `bad/` corpus).
+/// The template deploys and works in the omitted case, so no Error is warranted.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
 fn issue_42_omitted_healthcheckport_is_info_not_error() {
@@ -289,8 +288,8 @@ fn issue_42_omitted_healthcheckport_is_info_not_error() {
 /// (a `Ref` to a no-default parameter) is unknowable at validation time, so the
 /// dynamic-port health-check rule must stay silent in both engines — neither the
 /// advisory I3049 nor the warning W3049 fires. Guards the false-positive fix: an
-/// opaque value must not be treated like a fixed non-`traffic-port` port. This
-/// matches the reference linter, which is also silent here.
+/// opaque value must not be treated like a fixed non-`traffic-port` port, because
+/// CloudFormation cannot know the value at deploy time.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
 fn issue_42_no_finding_on_deploy_time_healthcheckport() {
@@ -304,8 +303,8 @@ fn issue_42_no_finding_on_deploy_time_healthcheckport() {
 /// across ALL its branches, in both engines identically. One branch pins a fixed
 /// `8080` (wrong for dynamic port mapping) and the other is `traffic-port`, so the
 /// warning W3049 fires (on the fixed branch) and the omitted-default advisory
-/// I3049 does not (the property is present). Guards engine parity on conditionals
-/// — a divergence here (one engine reading only a single branch) is a bug.
+/// I3049 does not (the property is present). Guards that both engines agree on
+/// conditionals — one engine reading only a single branch would be a bug.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/42
 #[test]
 fn issue_42_conditional_healthcheckport_warns_on_wrong_branch() {
@@ -464,8 +463,8 @@ fn issue_53_f3004_fires_on_real_dependson_cycle() {
 }
 
 /// Issue #54 (fixed): an S3 bucket with non-Private AccessControl and missing
-/// OwnershipControls reports only E3045 (Error), matching the reference linter.
-/// The extension's `then.required: [OwnershipControls]` used to also fire a
+/// OwnershipControls reports only E3045 (Error). The extension's
+/// `then.required: [OwnershipControls]` used to also fire a
 /// duplicate FATAL F3003 for the same concern; that false positive is now
 /// suppressed because E3045 already covers this trigger.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
@@ -505,7 +504,7 @@ fn issue_54_no_required_ownershipcontrols_on_bare_bucket() {
 /// the OwnershipControl requirement is satisfied. This guards the bug's scope:
 /// the false positive must be tied to *missing* OwnershipControls, and the data
 /// constraint must not regress into firing on a valid bucket. Only the W3045
-/// AccessControl-deprecation warning remains, matching the reference linter.
+/// AccessControl-deprecation warning remains.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
 #[test]
 fn issue_54_no_f3003_when_ownershipcontrols_present() {
@@ -516,11 +515,11 @@ fn issue_54_no_f3003_when_ownershipcontrols_present() {
     assert_fires_with_severity(&diags, "W3045", Severity::Warn);
 }
 
-/// Issue #54 (parity gap): when `AccessControl` is a symbolic `{Ref}` to a
+/// Issue #54 (engine divergence): when `AccessControl` is a symbolic `{Ref}` to a
 /// parameter with no default, the property IS present so the deprecation warning
-/// W3045 should fire (the reference linter keys on presence, not value). CEL does
-/// fire it; rego does not (it keys on the resolved value, which is unresolvable
-/// here) — a rego false-negative and a rego/cel divergence. Pinned with inline
+/// W3045 should fire (the deprecation is about presence of the property, not its
+/// value). CEL does fire it; rego does not (it keys on the resolved value, which
+/// is unresolvable here) — a rego false-negative and a rego/cel divergence. Pinned with inline
 /// bytes because the fixture diverges between engines and so cannot live in the
 /// rego==cel golden corpus. Tighten to both-fire once rego keys on presence.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/54
@@ -580,8 +579,8 @@ fn issue_57_no_e3057_on_valid_origin_group_id() {
 
 /// Issue #57 (positive boundary): widening the valid-target set to include
 /// OriginGroup ids must not silence E3057 on a genuinely dangling
-/// `TargetOriginId` that matches neither an Origin nor an OriginGroup. Matches
-/// the reference linter, which validates only `DefaultCacheBehavior`.
+/// `TargetOriginId` that matches neither an Origin nor an OriginGroup. Only
+/// `DefaultCacheBehavior` is validated here.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/57
 #[test]
 fn issue_57_e3057_still_fires_on_dangling_target_origin_id() {
@@ -641,7 +640,7 @@ fn issue_62_f3032_fatal_on_empty_unconstrained_array() {
 
 /// Issue #63: E2001 fires on an intrinsic (`Fn::GetStackOutput`) used in a
 /// parameter Default, because CloudFormation never evaluates intrinsics in
-/// `Parameters.*.Default`. Working as intended (matches the reference linter).
+/// `Parameters.*.Default`. Working as intended.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/63
 #[test]
 fn issue_63_e2001_on_intrinsic_in_parameter_default() {
@@ -948,7 +947,7 @@ fn fatal_rule_suppressed_by_exclude_range() {
     }
 }
 
-/// Engine parity for the hardcoded-ARN warning when the ARN sits behind an
+/// Both engines flag the hardcoded-ARN warning when the ARN sits behind an
 /// `Fn::If`. The Rego rule resolves the property (collapsing the conditional to
 /// its true branch), so it must fire; the native rule previously matched only a
 /// plain concrete string and silently skipped the conditional, diverging from
@@ -974,7 +973,7 @@ Resources:
     assert_count(&diags, "W9002", 1);
 }
 
-/// Engine parity for multiple hardcoded ARNs on one resource: every `*Arn`
+/// Both engines flag multiple hardcoded ARNs on one resource: every `*Arn`
 /// property with a literal ARN is a separate finding. The native rule previously
 /// stopped after the first match on a resource, reporting one warning where Rego
 /// reported one per property.
@@ -995,8 +994,8 @@ Resources:
     assert_count(&diags, "W9002", 2);
 }
 
-/// An output whose value is not a string is a guaranteed template error (F6101,
-/// the promoted form of the reference linter's output value-type check). A
+/// An output whose value is not a string is a guaranteed template error (F6101):
+/// CloudFormation requires output values to resolve to a string. A
 /// literal list or object, and a list-returning function (`Fn::GetAZs`,
 /// `Fn::Split`, `Fn::Cidr`), each fire; an `Fn::If` is transparent, so a list in
 /// a branch fires on that branch. Both engines must agree.
@@ -1030,8 +1029,8 @@ Outputs:
 /// String-valued outputs, and shapes that only look non-string, must NOT fire
 /// F6101 in either engine: scalars coerce to strings; `Ref`, `Fn::Sub`,
 /// `Fn::Join`, `Fn::Select`, and `Fn::FindInMap` produce (or are treated as)
-/// strings — including a `Fn::FindInMap` that resolves to a list, which the
-/// reference linter does not flag here. Empty containers are also accepted.
+/// strings — including a `Fn::FindInMap` that resolves to a list, which is not
+/// flagged here. Empty containers are also accepted.
 #[test]
 fn string_output_values_not_flagged_in_either_engine() {
     let template = br#"

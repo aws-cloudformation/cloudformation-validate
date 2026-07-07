@@ -68,7 +68,7 @@ impl Builder {
     }
 
     /// A malformed `Fn::GetStackOutput` argument (error). No function-name prefix —
-    /// the message mirrors the JSON-Schema wording the reference tooling emits.
+    /// the message uses standard JSON-Schema wording.
     /// Anchored at `at_path` (the function node, or a specific offending key) so it
     /// lands exactly where the offending value is written.
     fn get_stack_output_error(&mut self, message: String, at_path: &str) {

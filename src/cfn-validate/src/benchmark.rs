@@ -41,7 +41,7 @@ fn main() {
         .max(1);
 
     // Hardcoded: benchmarks always use DETAILED format and DEBUG severity to capture
-    // all diagnostics. This ensures parity across native/wasm/jvm harnesses.
+    // all diagnostics, so the native/wasm/jvm harnesses all measure the same work.
     let detail_level = DetailLevel::Detailed;
     let severity_level = Severity::Debug;
     let format_str = "detailed";

@@ -228,8 +228,8 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
 /// `OwnershipControls.Rules` array is present with at least one entry. An absent
 /// `OwnershipControls`, an absent `Rules`, or an empty `Rules: []` is not
 /// effective (S3 Object Ownership defaults to BucketOwnerEnforced, which disables
-/// ACLs, so an `AccessControl` value would be ignored). Mirrors the reference
-/// linter's `minItems: 1` requirement on `Rules`.
+/// ACLs, so an `AccessControl` value would be ignored). The schema requires at
+/// least one entry in `Rules` (`minItems: 1`).
 fn has_effective_ownership_controls(m: &SemanticModel, rid: &str) -> bool {
     resolve_concrete(m, rid, "Properties.OwnershipControls.Rules")
         .as_ref()
@@ -913,8 +913,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             .unwrap_or(false);
         // The string branch only tests a genuinely literal SourceArn. A value
         // supplied via a Ref/GetAtt/Sub (even one that resolves to a concrete
-        // account-less string) is not folded into the pattern check — the
-        // reference tool only pattern-matches a literal string here.
+        // account-less string) is not folded into the pattern check — only a
+        // literal string is pattern-matched here.
         let source_arn_string_without_account = !m.is_from_intrinsic(name, "Properties.SourceArn")
             && resolve_concrete(m, name, "Properties.SourceArn")
                 .as_ref()
@@ -1272,10 +1272,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         let key = format!("{owner}/{category}/{provider}");
                         if let Some(counts) = ctx.cached_data.codepipeline_artifact_counts.get(&key) {
                             // An artifact list may be authored directly or wrapped
-                            // in an Fn::If; enumerate every branch's count (like the
-                            // reference tool, which walks each path) so a violation
-                            // in ANY branch is reported, and dedupe so equal counts
-                            // are not double-reported.
+                            // in an Fn::If; enumerate every branch's count (walk each
+                            // path) so a violation in ANY branch is reported, and
+                            // dedupe so equal counts are not double-reported.
                             for actual_in in artifact_count_scenarios(action.get("InputArtifacts")) {
                                 if actual_in < counts.min_input {
                                     out.push(make_resource_diagnostic(
@@ -2326,8 +2325,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && let Some(deploy_api) = m.follow_ref(deployment_name, "Properties.RestApiId")
             && stage_api != deploy_api
         {
-            // The reference linter reports this through a $data const constraint
-            // whose error renders the Stage's own RestApiId value as
+            // A Deployment's RestApiId must match the Stage's RestApiId; the
+            // finding renders the Stage's own RestApiId value as
             // "<value> was expected".
             out.push(make_resource_diagnostic(
                 "E3698",
@@ -2343,9 +2342,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::AutoScaling::AutoScalingGroup") {
         // MinSize/MaxSize are typically authored as strings ('10'), which
         // CloudFormation coerces to numbers; compare on the coerced integers so
-        // string forms are checked too. The reference linter anchors the finding at MaxSize
-        // and renders it as the constraint that is violated (the max is below
-        // the minimum), so mirror that message and location.
+        // string forms are checked too. Anchor the finding at MaxSize and render
+        // it as the constraint that is violated (the max is below the minimum).
         let min_raw = resolve_concrete(m, name, "Properties.MinSize");
         let max_raw = resolve_concrete(m, name, "Properties.MaxSize");
         if let (Some(min_raw), Some(max_raw)) = (min_raw.as_ref(), max_raw.as_ref())
@@ -2439,13 +2437,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if resolve_concrete(m, name, "Properties.PackageType").as_ref().and_then(|v| v.as_str()) == Some("Image") {
             // A container-image function must not set Handler, Runtime, or Layers.
-            // The reference linter reports this once with a fixed message, anchored at the
-            // first offending property present (schema order), no matter how many
-            // are set — so collapse to a single diagnostic. Presence is keyed on
-            // the property being SET (the reference tool's `dependentExcluded` is
-            // key-presence), not on it resolving to a concrete value — so an
-            // excluded property whose value is an unresolved Ref/intrinsic still
-            // anchors the finding.
+            // Report this once with a fixed message, anchored at the first
+            // offending property present (schema order), no matter how many are
+            // set — so collapse to a single diagnostic. Presence is keyed on the
+            // property being SET (key-presence), not on it resolving to a concrete
+            // value — so an excluded property whose value is an unresolved
+            // Ref/intrinsic still anchors the finding.
             let props = m.resources.get(name.as_str()).map(|r| &r.properties);
             if let Some(first_excluded) = ["Handler", "Runtime", "Layers"]
                 .iter()
@@ -2502,9 +2499,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         let iops_path = format!("{}.Ebs.Iops", bdm_path);
         // The numeric bounds only apply to a literal Iops. An Iops supplied via a
         // parameter Ref (whose default happens to be out of range) or another
-        // intrinsic is not flagged — the reference tool does not fold the
-        // parameter default into the bound check. The required-when-absent check
-        // still holds regardless, since absence is unambiguous.
+        // intrinsic is not flagged — the parameter default is not folded into the
+        // bound check. The required-when-absent check still holds regardless,
+        // since absence is unambiguous.
         let iops_is_literal = !m.is_from_parameter(name, &iops_path) && !m.is_from_intrinsic(name, &iops_path);
         match ebs.get("Iops").and_then(cfn_coerce_to_integer) {
             None => {
@@ -2786,8 +2783,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // match applies, so the class must be in ALL matching branches'
             // enums (the intersection); a dynamic or unmatched Engine leaves no
             // matching branch and is not validated. The Engine value is matched
-            // case-insensitively, mirroring the reference linter (which lowercases
-            // Engine for DBInstance before evaluating this schema).
+            // case-insensitively for DBInstance (the Engine value is lowercased
+            // before evaluating this schema).
             for name in m.resources_of_type("AWS::RDS::DBInstance") {
                 let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, "Properties.DBInstanceClass")
                 else {
@@ -2813,8 +2810,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
 
         // E3694: RDS DBCluster DBClusterInstanceClass. Like E3025 this is a
-        // conditional schema keyed on Engine, but the reference linter does NOT
-        // lowercase Engine for DBCluster, so match the const case-sensitively.
+        // conditional schema keyed on Engine, but Engine is NOT lowercased for
+        // DBCluster, so match the const case-sensitively.
         if let Some(region_data) = ctx
             .cached_data
             .enum_data
@@ -2996,10 +2993,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     // A mis-cased property name is already reported as an unknown property
-    // (F3002, "Additional properties are not allowed"), exactly as the reference
-    // linter reports it. A separate casing diagnostic under E3011 is both a
-    // false positive (the reference linter's E3011 is a name-length limit, not a
-    // casing check) and an engine-only finding, so it is not emitted.
+    // (F3002, "Additional properties are not allowed"). A separate casing
+    // diagnostic under E3011 would be a false positive, since E3011 enforces a
+    // name-length limit rather than a casing check, so it is not emitted.
 
     // Route53 RecordSet validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
@@ -3766,13 +3762,13 @@ fn check_bdm_virtualname_ignored(
 /// properties (via `resolve_prop`). `target_prop` is the class property the enum
 /// constrains (`DBInstanceClass` for RDS DBInstance, `DBClusterInstanceClass` for
 /// DBCluster) and is excluded from the required-const match. Returns one enum per
-/// matching branch (the reference tool evaluates the whole conditional schema, so
-/// EVERY matching branch's enum applies), or an empty vec when no branch matches —
-/// so a resource with a dynamic or unmatched Engine is not validated.
+/// matching branch (the whole conditional schema is evaluated, so EVERY matching
+/// branch's enum applies), or an empty vec when no branch matches — so a resource
+/// with a dynamic or unmatched Engine is not validated.
 ///
-/// The reference linter lowercases the `Engine` value before matching it against
-/// the (all-lowercase) Engine consts for RDS DBInstance but NOT for DBCluster;
-/// `normalize_engine_case` selects that behavior.
+/// The `Engine` value is lowercased before matching it against the (all-lowercase)
+/// Engine consts for RDS DBInstance but NOT for DBCluster; `normalize_engine_case`
+/// selects that behavior.
 fn conditional_instance_class_enums<'a, F>(
     region_data: &'a serde_json::Value,
     target_prop: &str,
@@ -3825,9 +3821,9 @@ where
 /// Given the matching-branch enums for a conditional instance-class schema and a
 /// class value, returns the enum to render in the diagnostic when the value is
 /// invalid, or `None` when the value is valid. A value is valid only when it is
-/// in EVERY matching branch's enum (the intersection). When invalid, the
-/// reference linter reports the largest branch enum the value is missing from, so
-/// return that branch's sorted enum.
+/// in EVERY matching branch's enum (the intersection). When invalid, report the
+/// largest branch enum the value is missing from, so return that branch's sorted
+/// enum.
 fn invalid_class_branch_enum<'a>(branch_enums: &[HashSet<&'a str>], value: &str) -> Option<Vec<&'a str>> {
     let failing_largest =
         branch_enums.iter().filter(|allowed| !allowed.contains(value)).max_by_key(|allowed| allowed.len())?;

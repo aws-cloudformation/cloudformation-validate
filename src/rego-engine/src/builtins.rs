@@ -996,7 +996,7 @@ fn register_property_can_be_absent(rego: &mut regorus::Engine, holder: SharedMod
 /// E3025/E3694 diagnostic when `value` is invalid, or `undefined` when the value
 /// is valid or no branch matches. A value is valid only when it is in EVERY
 /// matching branch's enum (the intersection); when invalid, the largest failing
-/// branch's enum is returned, matching the reference linter's reported enum.
+/// branch's enum is returned.
 fn register_conditional_instance_class_enum(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "invalid_instance_class_enum".into(),
@@ -1020,7 +1020,8 @@ fn register_conditional_instance_class_enum(rego: &mut regorus::Engine) {
 /// Collects every `then.<target_prop>.enum` from a conditional region document
 /// whose `allOf` branch `if.required` consts all match `props`. Returns one enum
 /// per matching branch. The `Engine` const is matched case-insensitively when
-/// `normalize_engine_case` is set (RDS DBInstance), mirroring the reference tool.
+/// `normalize_engine_case` is set, because RDS DBInstance treats the engine name
+/// case-insensitively.
 fn conditional_instance_class_enums(
     schema: &serde_json::Value,
     target_prop: &str,
