@@ -12,17 +12,12 @@ use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_to_string, scalar_eq};
 use template_model::consts::{
-    DEFAULT_REGION, EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS,
-    FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    FN_IF, FN_REF, KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
-};
-use template_model::resolver::{RefKind, ResolvedValue};
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS,
-    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_REF, KEY_PROPERTIES,
-    PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
+    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
+    KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::region_enums;
-use template_model::resolver::ResolvedValue;
+use template_model::resolver::{RefKind, ResolvedValue};
 use validation_engine::make_resource_diagnostic;
 
 static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
