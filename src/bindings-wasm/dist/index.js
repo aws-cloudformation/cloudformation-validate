@@ -64,7 +64,7 @@ class SchemaValidator {
     schemaCount() {
         return this.inner.schemaCount();
     }
-    validate(template, region = 'us-east-1') {
+    validate(template, region) {
         const model = bridge.WasmSemanticModel.parse(template.readBytes());
         try {
             return this.inner.validate(model, region).diagnostics;
