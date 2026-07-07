@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
-use template_model::coercion::cfn_coerce_to_integer;
+use template_model::coercion::{cfn_coerce_port_to_string, cfn_coerce_to_integer, cfn_coerce_to_string, cfn_scalar_eq};
 use template_model::consts::{
     DEFAULT_REGION, EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS,
     FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
@@ -336,8 +336,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 res.get(FIELD_PROPERTIES).and_then(|p| p.get("SecurityGroupIngress")).and_then(|s| s.as_array())
             {
                 for rule in rules {
-                    let from = rule.get("FromPort").and_then(|p| p.as_i64());
-                    let to = rule.get("ToPort").and_then(|p| p.as_i64());
+                    let from = rule.get("FromPort").and_then(cfn_coerce_to_integer);
+                    let to = rule.get("ToPort").and_then(cfn_coerce_to_integer);
                     if let (Some(f), Some(t)) = (from, to)
                         && f > t
                     {
@@ -474,8 +474,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for (ci, cdef) in cdefs.iter().enumerate() {
                 if let Some(pms) = cdef.get("PortMappings").and_then(|p| p.as_array()) {
                     for (pi, pm) in pms.iter().enumerate() {
-                        let hp = pm.get("HostPort").and_then(|p| p.as_i64());
-                        let cp = pm.get("ContainerPort").and_then(|p| p.as_i64());
+                        let hp = pm.get("HostPort").and_then(cfn_coerce_port_to_string);
+                        let cp = pm.get("ContainerPort").and_then(cfn_coerce_port_to_string);
                         if let (Some(h), Some(c)) = (hp, cp)
                             && h != c
                         {
@@ -1375,9 +1375,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && let Some(sqs) = m.resources.get(target)
             && sqs.resource_type == "AWS::SQS::Queue"
         {
-            let vis = resolve_concrete(m, target, "Properties.VisibilityTimeout").and_then(|v| v.as_i64());
+            let vis =
+                resolve_concrete(m, target, "Properties.VisibilityTimeout").as_ref().and_then(cfn_coerce_to_integer);
             if let Some(fn_name) = m.follow_ref(name, "Properties.FunctionName") {
-                let timeout = resolve_concrete(m, fn_name, "Properties.Timeout").and_then(|v| v.as_i64()).unwrap_or(3);
+                let timeout = resolve_concrete(m, fn_name, "Properties.Timeout")
+                    .as_ref()
+                    .and_then(cfn_coerce_to_integer)
+                    .unwrap_or(3);
                 // CloudFormation requires the queue's VisibilityTimeout to be at
                 // least the function Timeout. The finding is anchored on the
                 // queue's VisibilityTimeout property (the value that must be raised).
@@ -1960,19 +1964,22 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         };
         for (i, lb) in lbs.iter().enumerate() {
             let cn = lb.get("ContainerName").and_then(|v| v.as_str()).unwrap_or("");
-            let cp = lb.get("ContainerPort").and_then(|v| v.as_i64());
-            if cn.is_empty() || cp.is_none() {
+            let cp = match lb.get("ContainerPort").and_then(cfn_coerce_port_to_string) {
+                Some(port) => port,
+                None => continue,
+            };
+            if cn.is_empty() {
                 continue;
             }
-            let cp = cp.unwrap();
             let has_dynamic = cdefs.iter().any(|c| {
                 c.get("Name").and_then(|n| n.as_str()) == Some(cn)
                     && c.get("PortMappings")
                         .and_then(|p| p.as_array())
                         .map(|pms| {
                             pms.iter().any(|pm| {
-                                pm.get("ContainerPort").and_then(|p| p.as_i64()) == Some(cp)
-                                    && pm.get("HostPort").and_then(|p| p.as_i64()) == Some(0)
+                                pm.get("ContainerPort").and_then(cfn_coerce_port_to_string).as_deref()
+                                    == Some(cp.as_str())
+                                    && pm.get("HostPort").and_then(cfn_coerce_port_to_string).as_deref() == Some("0")
                             })
                         })
                         .unwrap_or(false)
@@ -2244,10 +2251,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && let Some(target_res) = m.resources.get(target as &str)
             && target_res.resource_type == "AWS::SQS::Queue"
         {
-            let is_fifo =
-                resolve_concrete(m, target, "Properties.FifoQueue").and_then(|v| v.as_bool()).unwrap_or(false);
+            let is_fifo = resolve_concrete(m, target, "Properties.FifoQueue")
+                .is_some_and(|v| cfn_scalar_eq(&v, &serde_json::Value::Bool(true)));
             if is_fifo
-                && let Some(batch) = resolve_concrete(m, name, "Properties.BatchSize").and_then(|v| v.as_u64())
+                && let Some(batch) =
+                    resolve_concrete(m, name, "Properties.BatchSize").as_ref().and_then(cfn_coerce_to_integer)
                 && batch > 10
             {
                 out.push(make_resource_diagnostic(
@@ -3320,11 +3328,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for name in m.resources_of_type("AWS::RDS::DBInstance") {
             let engine = resolve_concrete(m, name, "Properties.Engine")
                 .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None });
-            let engine_ver = resolve_concrete(m, name, "Properties.EngineVersion").and_then(|v| match v {
-                serde_json::Value::String(s) => Some(s),
-                serde_json::Value::Number(n) => Some(n.to_string()),
-                _ => None,
-            });
+            let engine_ver =
+                resolve_concrete(m, name, "Properties.EngineVersion").as_ref().and_then(cfn_coerce_to_string);
             let db_class = resolve_concrete(m, name, "Properties.DBInstanceClass")
                 .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None });
             if let (Some(eng), Some(ver), Some(cls)) = (engine, engine_ver, db_class) {

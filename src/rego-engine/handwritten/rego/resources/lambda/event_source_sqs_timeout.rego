@@ -19,15 +19,13 @@ violation contains make_diag_full("E3505", "ERROR", queue_name,
     func_res := get_resource(func_name)
     func_res != null
     func_res.resourceType == "AWS::Lambda::Function"
-    func_timeout := object.get(func_res.properties, "Timeout", 3)
-    is_number(func_timeout)
+    func_timeout := coerce_to_integer(object.get(func_res.properties, "Timeout", 3))
     # Find the SQS queue this ESM points to
     queue_name := follow_ref(esm_name, "Properties.EventSourceArn")
     queue_name != null
     queue_res := get_resource(queue_name)
     queue_res != null
     queue_res.resourceType == "AWS::SQS::Queue"
-    vis_timeout := object.get(queue_res.properties, "VisibilityTimeout", 30)
-    is_number(vis_timeout)
+    vis_timeout := coerce_to_integer(object.get(queue_res.properties, "VisibilityTimeout", 30))
     vis_timeout < func_timeout
 }

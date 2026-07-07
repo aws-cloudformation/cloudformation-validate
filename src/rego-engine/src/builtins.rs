@@ -6,7 +6,10 @@ use regorus::Value;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
-use template_model::coercion::{cfn_coerce_to_number, cfn_coerce_to_string, cfn_type_compatible};
+use template_model::coercion::{
+    cfn_coerce_port_to_string, cfn_coerce_to_bool, cfn_coerce_to_integer, cfn_coerce_to_number, cfn_coerce_to_string,
+    cfn_type_compatible,
+};
 use template_model::consts::{
     DEFAULT_REGION, FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
@@ -79,7 +82,10 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_render_value(rego);
     register_conditional_instance_class_enum(rego);
     register_coerce_to_number(rego);
+    register_coerce_to_integer(rego);
     register_coerce_to_string(rego);
+    register_coerce_port_to_string(rego);
+    register_coerce_to_bool(rego);
     register_cfn_type_compatible(rego);
     register_estimate_string_length(rego, holder.clone());
     register_schema_string_length(rego, schema_registry.clone());
@@ -1106,6 +1112,20 @@ fn register_coerce_to_number(rego: &mut regorus::Engine) {
     );
 }
 
+fn register_coerce_to_integer(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "coerce_to_integer".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let jv = rego_to_json(&params[0]);
+            match cfn_coerce_to_integer(&jv) {
+                Some(i) => Ok(Value::from(i)),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
 fn register_coerce_to_string(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "coerce_to_string".into(),
@@ -1114,6 +1134,34 @@ fn register_coerce_to_string(rego: &mut regorus::Engine) {
             let jv = rego_to_json(&params[0]);
             match cfn_coerce_to_string(&jv) {
                 Some(s) => Ok(Value::from(s.as_str())),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+fn register_coerce_port_to_string(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "coerce_port_to_string".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let jv = rego_to_json(&params[0]);
+            match cfn_coerce_port_to_string(&jv) {
+                Some(s) => Ok(Value::from(s.as_str())),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+fn register_coerce_to_bool(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "coerce_to_bool".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let jv = rego_to_json(&params[0]);
+            match cfn_coerce_to_bool(&jv) {
+                Some(b) => Ok(Value::from(b)),
                 None => Ok(Value::Undefined),
             }
         }),

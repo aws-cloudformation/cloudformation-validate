@@ -5,6 +5,7 @@ use rules::Category;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
+use template_model::coercion::{cfn_coerce_to_bool, cfn_coerce_to_integer, cfn_coerce_to_string};
 use template_model::consts::{
     EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
     KEY_PROPERTIES, TRANSFORM_SERVERLESS,
@@ -466,7 +467,9 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(|v| v.as_bool()) == Some(true) {
+        if resolve_concrete(m, name, "Properties.PubliclyAccessible").as_ref().and_then(cfn_coerce_to_bool)
+            == Some(true)
+        {
             out.push(make_resource_diagnostic(
                 "W9011",
                 "RDS instance has PubliclyAccessible set to true - consider restricting access",
@@ -606,19 +609,11 @@ fn resolve_array_len(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<u
 }
 
 fn resolve_str(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<String> {
-    match resolve_concrete(m, name, path)? {
-        serde_json::Value::String(s) => Some(s),
-        serde_json::Value::Number(n) => Some(n.to_string()),
-        _ => None,
-    }
+    cfn_coerce_to_string(&resolve_concrete(m, name, path)?)
 }
 
 fn resolve_i64(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<i64> {
-    match resolve_concrete(m, name, path)? {
-        serde_json::Value::Number(n) => n.as_i64(),
-        serde_json::Value::String(s) => s.parse::<i64>().ok(),
-        _ => None,
-    }
+    cfn_coerce_to_integer(&resolve_concrete(m, name, path)?)
 }
 
 fn check_sg_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, rule_path: &str, ports: &[u16]) {

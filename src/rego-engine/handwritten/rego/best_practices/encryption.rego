@@ -17,6 +17,5 @@ violation contains make_diag_full("W9011", "WARN", name, "Properties.PubliclyAcc
     "Set PubliclyAccessible to false",
     "") if {
     some name in resources_of_type("AWS::RDS::DBInstance")
-    val := resolve(name, "Properties.PubliclyAccessible")
-    val == true
+    coerce_to_bool(resolve(name, "Properties.PubliclyAccessible")) == true
 }

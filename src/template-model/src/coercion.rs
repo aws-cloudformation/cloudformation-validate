@@ -65,6 +65,42 @@ pub fn cfn_coerce_to_bool(val: &Value) -> Option<bool> {
     }
 }
 
+/// Stringify a value for port-style comparison, accepting only string and
+/// integer scalars.
+///
+/// Some rules compare port-like values (host/container ports, target-group
+/// ports) by their string form — a quoted `"80"` and an unquoted `80` are the
+/// same port. Only strings and integers participate: a non-integer number
+/// (e.g. `80.0`), a boolean, or a composite is not a valid port form and yields
+/// `None` so the comparison is skipped rather than matched on a coerced value.
+/// An integer-valued float such as `80.0` is deliberately excluded — the value
+/// is only treated as a port when written as an integer or a string.
+pub fn cfn_coerce_port_to_string(val: &Value) -> Option<String> {
+    match val {
+        Value::String(s) => Some(s.clone()),
+        Value::Number(n) => n.as_i64().map(|i| i.to_string()).or_else(|| n.as_u64().map(|u| u.to_string())),
+        _ => None,
+    }
+}
+
+/// Whether two values are equal under CloudFormation's loose scalar semantics.
+///
+/// CloudFormation stringifies scalar values before comparison, so `512` and
+/// `"512"`, or `true` and `"true"`, are equal. Two values match when they are
+/// natively equal (covering arrays, objects, and null) or when both coerce to
+/// the same string. Non-scalar values have no string coercion, so distinct
+/// arrays/objects/nulls never collapse together — only native equality can make
+/// them match.
+pub fn cfn_scalar_eq(a: &Value, b: &Value) -> bool {
+    if a == b {
+        return true;
+    }
+    match (cfn_coerce_to_string(a), cfn_coerce_to_string(b)) {
+        (Some(sa), Some(sb)) => sa == sb,
+        _ => false,
+    }
+}
+
 /// Check if a value is compatible with the expected JSON Schema type using
 /// CFN's loose semantics.
 ///
@@ -266,6 +302,42 @@ mod tests {
         assert_eq!(cfn_coerce_to_bool(&json!("maybe")), None);
         assert_eq!(cfn_coerce_to_bool(&json!("")), None);
         assert_eq!(cfn_coerce_to_bool(&json!("2")), None);
+    }
+
+    #[test]
+    fn coerce_port_to_string_accepts_string_and_integer_only() {
+        assert_eq!(cfn_coerce_port_to_string(&json!("80")), Some("80".into()));
+        assert_eq!(cfn_coerce_port_to_string(&json!(80)), Some("80".into()));
+        assert_eq!(cfn_coerce_port_to_string(&json!(0)), Some("0".into()));
+        // Non-integer numbers, booleans, and composites are not valid port forms.
+        assert_eq!(cfn_coerce_port_to_string(&json!(80.0)), None);
+        assert_eq!(cfn_coerce_port_to_string(&json!(80.5)), None);
+        assert_eq!(cfn_coerce_port_to_string(&json!(true)), None);
+        assert_eq!(cfn_coerce_port_to_string(&json!(null)), None);
+        assert_eq!(cfn_coerce_port_to_string(&json!([80])), None);
+    }
+
+    #[test]
+    fn scalar_eq_native_and_coerced_scalars() {
+        assert!(cfn_scalar_eq(&json!(512), &json!("512")));
+        assert!(cfn_scalar_eq(&json!("512"), &json!(512)));
+        assert!(cfn_scalar_eq(&json!(true), &json!("true")));
+        assert!(cfn_scalar_eq(&json!("hello"), &json!("hello")));
+        assert!(!cfn_scalar_eq(&json!(512), &json!("513")));
+        assert!(!cfn_scalar_eq(&json!(true), &json!("false")));
+    }
+
+    #[test]
+    fn scalar_eq_distinct_non_scalars_never_collapse() {
+        // Arrays/objects/null have no string coercion; only native equality can
+        // make them match. Distinct composites must NOT be treated as equal.
+        assert!(!cfn_scalar_eq(&json!([1]), &json!([2])));
+        assert!(!cfn_scalar_eq(&json!({"a": 1}), &json!({"b": 2})));
+        assert!(!cfn_scalar_eq(&json!([1]), &json!("[1]")));
+        assert!(!cfn_scalar_eq(&json!(null), &json!("null")));
+        // Native equality still holds for identical composites/null.
+        assert!(cfn_scalar_eq(&json!([1, 2]), &json!([1, 2])));
+        assert!(cfn_scalar_eq(&json!(null), &json!(null)));
     }
 
     #[test]

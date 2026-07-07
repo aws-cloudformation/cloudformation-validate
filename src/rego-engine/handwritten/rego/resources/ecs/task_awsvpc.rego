@@ -17,8 +17,7 @@ violation contains make_diag_full("E3053", "ERROR", name,
     pms := object.get(cdef, "PortMappings", [])
     is_array(pms)
     some pi, pm in pms
-    hp := object.get(pm, "HostPort", null)
-    cp := object.get(pm, "ContainerPort", null)
-    is_number(hp); is_number(cp)
+    hp := coerce_port_to_string(object.get(pm, "HostPort", null))
+    cp := coerce_port_to_string(object.get(pm, "ContainerPort", null))
     hp != cp
 }
