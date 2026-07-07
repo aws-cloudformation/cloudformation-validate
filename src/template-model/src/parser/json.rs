@@ -89,6 +89,34 @@ impl<'a> ParseValue for JsonValue<'a> {
     }
 }
 
+/// Records the span of a container (`{`/`[`) opening at `offset` when it is an
+/// element of the enclosing array, keyed at the element's current indexed path.
+/// A no-op when the enclosing context is an object (the element's key already
+/// anchored it) or when there is no enclosing container. First writer wins, so a
+/// nested container does not overwrite the outer element's own opening position.
+fn record_array_element_span(
+    line_offsets: &[usize],
+    path_stack: &[String],
+    in_array: &[bool],
+    path_to_span: &mut HashMap<String, SourceSpan>,
+    offset: usize,
+) {
+    if in_array.last() != Some(&true) {
+        return;
+    }
+    let full_path = path_stack.iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join("/");
+    if full_path.is_empty() {
+        return;
+    }
+    let (line, col) = offset_to_line_col(line_offsets, offset);
+    path_to_span.entry(full_path).or_insert(SourceSpan {
+        start_line: line,
+        start_column: col,
+        end_line: line,
+        end_column: col + 1,
+    });
+}
+
 fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, bytes: &[u8]) {
     let line_offsets = build_line_offsets(bytes);
     let mut path_stack: Vec<String> = Vec::new();
@@ -100,6 +128,12 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
     while i < bytes.len() {
         match bytes[i] {
             b'{' => {
+                // A container that is itself an array element carries no key to anchor
+                // it, so record its span at the opening brace — mirroring how a scalar
+                // array element is recorded below. Without this a diagnostic on an
+                // object element (e.g. an `Fn::If` branch) has no span of its own and
+                // walks up to the enclosing array instead of the element.
+                record_array_element_span(&line_offsets, &path_stack, &in_array, &mut path_to_span, i);
                 in_array.push(false);
                 array_idx.push(0);
                 path_stack.push(String::new());
@@ -112,6 +146,7 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
                 i += 1;
             }
             b'[' => {
+                record_array_element_span(&line_offsets, &path_stack, &in_array, &mut path_to_span, i);
                 in_array.push(true);
                 array_idx.push(0);
                 path_stack.push("0".to_string());
@@ -404,6 +439,40 @@ mod tests {
         let input = r#"{"Resources":{"MyBucket":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"test"}}}}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(ir.global_index.contains_key("Resources/MyBucket/Properties/BucketName"));
+    }
+
+    /// A container-valued array element (an object/array, not a scalar) is anchored at
+    /// its opening brace, so a diagnostic on an `Fn::If` branch object lands on that
+    /// branch rather than walking up to the enclosing array. Scalar array elements are
+    /// anchored likewise. Both are keyed with the element index.
+    #[test]
+    fn array_element_container_spans_are_recorded() {
+        // Each token on its own line so line numbers are unambiguous.
+        let input = concat!(
+            "{\n",                               // 1
+            "  \"Resources\": {\n",              // 2
+            "    \"R\": {\n",                    // 3
+            "      \"Type\": \"T\",\n",          // 4
+            "      \"Properties\": {\n",         // 5
+            "        \"Key\": {\n",              // 6
+            "          \"Fn::If\": [\n",         // 7
+            "            \"Cond\",\n",           // 8  (index 0, scalar)
+            "            { \"Ref\": \"A\" },\n", // 9  (index 1, object)
+            "            { \"Ref\": \"B\" }\n",  // 10 (index 2, object)
+            "          ]\n",
+            "        }\n",
+            "      }\n",
+            "    }\n",
+            "  }\n",
+            "}\n",
+        );
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let line = |path: &str| ir.span_index.get(path).map(|s| s.start_line);
+        // Object-valued branch elements are anchored at their own `{`.
+        assert_eq!(line("Resources/R/Properties/Key/Fn::If/1"), Some(9));
+        assert_eq!(line("Resources/R/Properties/Key/Fn::If/2"), Some(10));
+        // The scalar branch element is anchored too.
+        assert_eq!(line("Resources/R/Properties/Key/Fn::If/0"), Some(8));
     }
 
     #[test]
