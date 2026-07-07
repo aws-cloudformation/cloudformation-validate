@@ -14,7 +14,7 @@ use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
-use template_model::{ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel};
+use template_model::{ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, region_enums};
 use web_time::Instant;
 
 #[derive(Debug)]
@@ -181,7 +181,7 @@ pub(crate) fn validate(
     let schema_result = if config.disable_builtin_rules {
         SchemaValidationResult { diagnostics: Vec::new(), metric: phase_metric(Instant::now()) }
     } else {
-        schema_validator.validate(&model, config.pseudo_parameter_overrides.region())
+        schema_validator.validate(&model, config.pseudo_parameter_overrides.region.as_deref())
     };
     let mut all_diagnostics = schema_result.diagnostics;
 
@@ -202,6 +202,25 @@ pub(crate) fn validate(
     if !config.disable_builtin_rules {
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
         all_diagnostics.extend(model.diagnostics.iter().cloned());
+
+        // When no region was supplied, the region-scoped instance-type / node-type
+        // enum rules validated against the union of all regions (best-effort),
+        // rather than a specific region. Emit one template-level advisory so the
+        // user knows a value may still be unavailable in their actual target
+        // region — but only when the template actually had such a value validated.
+        // Emitted here (engine-agnostic) so both engines report it identically.
+        if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
+        {
+            all_diagnostics.push(
+                RegisteredDiagnostic::new(
+                    "I9003",
+                    "No region supplied; region-scoped instance/node types were validated against all regions. \
+                     A value reported valid here may still be unavailable in your target region - pass a region to \
+                     validate against it specifically.",
+                )
+                .build(),
+            );
+        }
     }
 
     gate_sam_transform_errors(&mut all_diagnostics);

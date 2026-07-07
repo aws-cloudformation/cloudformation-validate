@@ -14,6 +14,7 @@ use template_model::consts::{
     PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
 };
 use template_model::model::ResolvedResource;
+use template_model::region_enums;
 use template_model::resolver::{RefKind, ResolvedValue};
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
@@ -54,7 +55,7 @@ fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
 pub fn validate_all_resources(
     store: &CompiledSchemaStore,
     model: &Arc<SemanticModel>,
-    region: &str,
+    region: Option<&str>,
 ) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let relevant: HashSet<&str> = model.resources.values().map(|r| r.resource_type.as_str()).collect();
@@ -74,8 +75,13 @@ pub fn validate_all_resources(
         // Only flag a genuine regional provider type that is absent in the target
         // region. A type that appears in no region's map at all (e.g. an empty or
         // transform-generated placeholder type) is not a region-availability
-        // problem and must not be reported here, or good templates regress.
-        if store.has_region_data()
+        // problem and must not be reported here, or good templates regress. With
+        // no region configured the type is validated against the union of all
+        // regions: available if it exists in any region, so a type known in some
+        // region is never flagged — the availability check only runs for a
+        // configured region.
+        if let Some(region) = region
+            && store.has_region_data()
             && store.is_known_in_any_region(rtype)
             && !store.is_available_in_region(rtype, region)
         {
@@ -375,7 +381,7 @@ fn validate_resource(
     rid: &str,
     res: &ResolvedResource,
     schema: &CompiledSchema,
-    region: &str,
+    region: Option<&str>,
 ) {
     let base = KEY_PROPERTIES;
     let defs = &schema.definitions;
@@ -909,7 +915,7 @@ fn validate_prop(
     schema: &PropSchema,
     defs: &HashMap<String, PropSchema>,
     visited: &mut HashSet<String>,
-    region: &str,
+    region: Option<&str>,
 ) {
     // Guard against circular $ref chains at validation time
     if let Some(ref rn) = schema.ref_name {
@@ -1012,13 +1018,16 @@ fn validate_prop(
 
     if !schema.enum_values.is_empty() {
         let prop_name = prop_path.strip_prefix("Properties.").unwrap_or(prop_path);
-        let regional = store.region_enums().get(rtype, prop_name, region);
+        // The regional allowed set for the effective scope: the configured region,
+        // or the union of all regions when none is configured (so a value valid in
+        // any region is accepted rather than only the platform default).
+        let regional = store.region_enums().allowed_values(rtype, prop_name, region);
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;
             }
-            let matches = if let Some(regional_vals) = regional {
-                val.as_str().map(|s| regional_vals.iter().any(|v| v == s)).unwrap_or(false)
+            let matches = if let Some(regional_vals) = &regional {
+                val.as_str().map(|s| regional_vals.contains(&s)).unwrap_or(false)
                     || enum_matches(val, &schema.enum_values)
             } else {
                 enum_matches(val, &schema.enum_values)
@@ -1030,7 +1039,7 @@ fn validate_prop(
                 // guaranteed-failure Fatal) lets templates using a newer value proceed
                 // and stay suppressible.
                 let enum_desc = if regional.is_some() {
-                    format!("allowed values for region '{}'", region)
+                    format!("allowed values for region '{}'", region_enums::region_label(region))
                 } else {
                     format_allowed_values(&schema.enum_values)
                 };

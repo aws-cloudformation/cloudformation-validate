@@ -98,10 +98,10 @@ impl WasmSchemaValidator {
         self.inner.schema_count()
     }
 
-    pub fn validate(&self, model: &WasmSemanticModel, region: &str) -> Result<JsValue, JsValue> {
+    pub fn validate(&self, model: &WasmSemanticModel, region: Option<String>) -> Result<JsValue, JsValue> {
         catch_panics(
             || {
-                let result = self.inner.validate(&model.model, region);
+                let result = self.inner.validate(&model.model, region.as_deref());
                 let diagnostics: Vec<_> = result.diagnostics.iter().map(|d| d.to_standard()).collect();
                 to_js(&WasmSchemaValidationResult { diagnostics, metric: result.metric })
             },

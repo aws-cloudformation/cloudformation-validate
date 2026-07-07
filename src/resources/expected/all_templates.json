@@ -8,7 +8,7 @@
         "fatal": 0,
         "errors": 2,
         "warnings": 1,
-        "informational": 3,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -116,6 +116,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -555,7 +564,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 12,
-        "informational": 23,
+        "informational": 24,
         "debug": 0
       },
       "suppressed": 0,
@@ -1053,6 +1062,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Asg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured",
@@ -1207,7 +1225,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 4,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -1302,6 +1320,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -9927,7 +9954,7 @@
         "fatal": 5,
         "errors": 4,
         "warnings": 5,
-        "informational": 16,
+        "informational": 17,
         "debug": 0
       },
       "suppressed": 0,
@@ -10428,6 +10455,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'mySecurityGroupVpc1' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
@@ -10864,7 +10900,7 @@
         "fatal": 22,
         "errors": 1,
         "warnings": 11,
-        "informational": 31,
+        "informational": 32,
         "debug": 0
       },
       "suppressed": 3,
@@ -12085,6 +12121,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -14575,7 +14620,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 6,
+        "informational": 7,
         "debug": 0
       },
       "suppressed": 0,
@@ -14586,7 +14631,7 @@
       {
         "ruleId": "E3653",
         "severity": "ERROR",
-        "message": "'fake.invalid.search' is not valid for region 'us-east-1'",
+        "message": "'fake.invalid.search' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "BadDomain",
         "resourceType": "AWS::OpenSearchService::Domain",
@@ -14663,6 +14708,15 @@
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -16666,7 +16720,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 3,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -16731,6 +16785,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
@@ -16759,7 +16822,7 @@
         "fatal": 1,
         "errors": 3,
         "warnings": 1,
-        "informational": 21,
+        "informational": 22,
         "debug": 0
       },
       "suppressed": 0,
@@ -16810,7 +16873,7 @@
       {
         "ruleId": "E3647",
         "severity": "ERROR",
-        "message": "'cache.r3.large' is not valid for region 'us-east-1'",
+        "message": "'cache.r3.large' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "CacheCluster",
         "resourceType": "AWS::ElastiCache::CacheCluster",
@@ -16827,7 +16890,7 @@
       {
         "ruleId": "E3652",
         "severity": "ERROR",
-        "message": "'m3.medium.elasticsearch' is not valid for region 'us-east-1'",
+        "message": "'m3.medium.elasticsearch' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "Domain2",
         "resourceType": "AWS::Elasticsearch::Domain",
@@ -17121,6 +17184,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Domain' of type 'AWS::Elasticsearch::Domain' supports Tags but none are configured",
@@ -17239,7 +17311,7 @@
         "fatal": 1,
         "errors": 3,
         "warnings": 6,
-        "informational": 10,
+        "informational": 11,
         "debug": 0
       },
       "suppressed": 0,
@@ -17592,6 +17664,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'MyEC2Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
@@ -17638,7 +17719,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 13,
-        "informational": 15,
+        "informational": 16,
         "debug": 0
       },
       "suppressed": 0,
@@ -18069,6 +18150,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -19355,7 +19445,7 @@
         "fatal": 3,
         "errors": 1,
         "warnings": 1,
-        "informational": 4,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -19423,7 +19513,7 @@
       {
         "ruleId": "E3694",
         "severity": "ERROR",
-        "message": "'db.bogus.class' is not one of ['db.c6gd.12xlarge', 'db.c6gd.16xlarge', 'db.c6gd.2xlarge', 'db.c6gd.4xlarge', 'db.c6gd.8xlarge', 'db.c6gd.large', 'db.c6gd.medium', 'db.c6gd.xlarge', 'db.m5d.12xlarge', 'db.m5d.16xlarge', 'db.m5d.24xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.8xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6gd.12xlarge', 'db.m6gd.16xlarge', 'db.m6gd.2xlarge', 'db.m6gd.4xlarge', 'db.m6gd.8xlarge', 'db.m6gd.large', 'db.m6gd.xlarge', 'db.m6id.12xlarge', 'db.m6id.16xlarge', 'db.m6id.24xlarge', 'db.m6id.2xlarge', 'db.m6id.32xlarge', 'db.m6id.4xlarge', 'db.m6id.8xlarge', 'db.m6id.large', 'db.m6id.xlarge', 'db.m6idn.12xlarge', 'db.m6idn.16xlarge', 'db.m6idn.24xlarge', 'db.m6idn.2xlarge', 'db.m6idn.32xlarge', 'db.m6idn.4xlarge', 'db.m6idn.8xlarge', 'db.m6idn.large', 'db.m6idn.xlarge', 'db.m8gd.12xlarge', 'db.m8gd.16xlarge', 'db.m8gd.24xlarge', 'db.m8gd.2xlarge', 'db.m8gd.48xlarge', 'db.m8gd.4xlarge', 'db.m8gd.8xlarge', 'db.m8gd.large', 'db.m8gd.xlarge', 'db.r5d.12xlarge', 'db.r5d.16xlarge', 'db.r5d.24xlarge', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.8xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6gd.12xlarge', 'db.r6gd.16xlarge', 'db.r6gd.2xlarge', 'db.r6gd.4xlarge', 'db.r6gd.8xlarge', 'db.r6gd.large', 'db.r6gd.xlarge', 'db.r6id.12xlarge', 'db.r6id.16xlarge', 'db.r6id.24xlarge', 'db.r6id.2xlarge', 'db.r6id.32xlarge', 'db.r6id.4xlarge', 'db.r6id.8xlarge', 'db.r6id.large', 'db.r6id.xlarge', 'db.r6idn.12xlarge', 'db.r6idn.16xlarge', 'db.r6idn.24xlarge', 'db.r6idn.2xlarge', 'db.r6idn.32xlarge', 'db.r6idn.4xlarge', 'db.r6idn.8xlarge', 'db.r6idn.large', 'db.r6idn.xlarge', 'db.r8gd.12xlarge', 'db.r8gd.16xlarge', 'db.r8gd.24xlarge', 'db.r8gd.2xlarge', 'db.r8gd.48xlarge', 'db.r8gd.4xlarge', 'db.r8gd.8xlarge', 'db.r8gd.large', 'db.r8gd.xlarge', 'db.x2iedn.16xlarge', 'db.x2iedn.24xlarge', 'db.x2iedn.2xlarge', 'db.x2iedn.32xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.8xlarge', 'db.x2iedn.xlarge'] in 'us-east-1'",
+        "message": "'db.bogus.class' is not one of ['db.c6gd.12xlarge', 'db.c6gd.16xlarge', 'db.c6gd.2xlarge', 'db.c6gd.4xlarge', 'db.c6gd.8xlarge', 'db.c6gd.large', 'db.c6gd.medium', 'db.c6gd.xlarge', 'db.m5d.12xlarge', 'db.m5d.16xlarge', 'db.m5d.24xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.8xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6gd.12xlarge', 'db.m6gd.16xlarge', 'db.m6gd.2xlarge', 'db.m6gd.4xlarge', 'db.m6gd.8xlarge', 'db.m6gd.large', 'db.m6gd.xlarge', 'db.m6id.12xlarge', 'db.m6id.16xlarge', 'db.m6id.24xlarge', 'db.m6id.2xlarge', 'db.m6id.32xlarge', 'db.m6id.4xlarge', 'db.m6id.8xlarge', 'db.m6id.large', 'db.m6id.xlarge', 'db.m6idn.12xlarge', 'db.m6idn.16xlarge', 'db.m6idn.24xlarge', 'db.m6idn.2xlarge', 'db.m6idn.32xlarge', 'db.m6idn.4xlarge', 'db.m6idn.8xlarge', 'db.m6idn.large', 'db.m6idn.xlarge', 'db.m8gd.12xlarge', 'db.m8gd.16xlarge', 'db.m8gd.24xlarge', 'db.m8gd.2xlarge', 'db.m8gd.48xlarge', 'db.m8gd.4xlarge', 'db.m8gd.8xlarge', 'db.m8gd.large', 'db.m8gd.xlarge', 'db.r5d.12xlarge', 'db.r5d.16xlarge', 'db.r5d.24xlarge', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.8xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6gd.12xlarge', 'db.r6gd.16xlarge', 'db.r6gd.2xlarge', 'db.r6gd.4xlarge', 'db.r6gd.8xlarge', 'db.r6gd.large', 'db.r6gd.xlarge', 'db.r6id.12xlarge', 'db.r6id.16xlarge', 'db.r6id.24xlarge', 'db.r6id.2xlarge', 'db.r6id.32xlarge', 'db.r6id.4xlarge', 'db.r6id.8xlarge', 'db.r6id.large', 'db.r6id.xlarge', 'db.r6idn.12xlarge', 'db.r6idn.16xlarge', 'db.r6idn.24xlarge', 'db.r6idn.2xlarge', 'db.r6idn.32xlarge', 'db.r6idn.4xlarge', 'db.r6idn.8xlarge', 'db.r6idn.large', 'db.r6idn.xlarge', 'db.r8gd.12xlarge', 'db.r8gd.16xlarge', 'db.r8gd.24xlarge', 'db.r8gd.2xlarge', 'db.r8gd.48xlarge', 'db.r8gd.4xlarge', 'db.r8gd.8xlarge', 'db.r8gd.large', 'db.r8gd.xlarge', 'db.x2iedn.16xlarge', 'db.x2iedn.24xlarge', 'db.x2iedn.2xlarge', 'db.x2iedn.32xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.8xlarge', 'db.x2iedn.xlarge'] in any region",
         "source": "CFN_LINT",
         "resourceId": "Cluster",
         "resourceType": "AWS::RDS::DBCluster",
@@ -19504,6 +19594,15 @@
         "section": "Resources"
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Cluster' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
@@ -19532,7 +19631,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 1,
-        "informational": 4,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -19543,7 +19642,7 @@
       {
         "ruleId": "E3025",
         "severity": "ERROR",
-        "message": "'totally.bogus.class' is not one of ['db.m1.large', 'db.m1.medium', 'db.m1.small', 'db.m1.xlarge', 'db.m2.2xlarge', 'db.m2.4xlarge', 'db.m2.xlarge', 'db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.10xlarge', 'db.m4.16xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.12xlarge', 'db.m5.16xlarge', 'db.m5.24xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.8xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m5d.12xlarge', 'db.m5d.16xlarge', 'db.m5d.24xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.8xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6g.12xlarge', 'db.m6g.16xlarge', 'db.m6g.2xlarge', 'db.m6g.4xlarge', 'db.m6g.8xlarge', 'db.m6g.large', 'db.m6g.xlarge', 'db.m6gd.12xlarge', 'db.m6gd.16xlarge', 'db.m6gd.2xlarge', 'db.m6gd.4xlarge', 'db.m6gd.8xlarge', 'db.m6gd.large', 'db.m6gd.xlarge', 'db.m6i.12xlarge', 'db.m6i.16xlarge', 'db.m6i.24xlarge', 'db.m6i.2xlarge', 'db.m6i.32xlarge', 'db.m6i.4xlarge', 'db.m6i.8xlarge', 'db.m6i.large', 'db.m6i.xlarge', 'db.m6id.12xlarge', 'db.m6id.16xlarge', 'db.m6id.24xlarge', 'db.m6id.2xlarge', 'db.m6id.32xlarge', 'db.m6id.4xlarge', 'db.m6id.8xlarge', 'db.m6id.large', 'db.m6id.xlarge', 'db.m6idn.12xlarge', 'db.m6idn.16xlarge', 'db.m6idn.24xlarge', 'db.m6idn.2xlarge', 'db.m6idn.32xlarge', 'db.m6idn.4xlarge', 'db.m6idn.8xlarge', 'db.m6idn.large', 'db.m6idn.xlarge', 'db.m6in.12xlarge', 'db.m6in.16xlarge', 'db.m6in.24xlarge', 'db.m6in.2xlarge', 'db.m6in.32xlarge', 'db.m6in.4xlarge', 'db.m6in.8xlarge', 'db.m6in.large', 'db.m6in.xlarge', 'db.m7g.12xlarge', 'db.m7g.16xlarge', 'db.m7g.2xlarge', 'db.m7g.4xlarge', 'db.m7g.8xlarge', 'db.m7g.large', 'db.m7g.xlarge', 'db.m7i.12xlarge', 'db.m7i.16xlarge', 'db.m7i.24xlarge', 'db.m7i.2xlarge', 'db.m7i.48xlarge', 'db.m7i.4xlarge', 'db.m7i.8xlarge', 'db.m7i.large', 'db.m7i.xlarge', 'db.m8g.12xlarge', 'db.m8g.16xlarge', 'db.m8g.24xlarge', 'db.m8g.2xlarge', 'db.m8g.48xlarge', 'db.m8g.4xlarge', 'db.m8g.8xlarge', 'db.m8g.large', 'db.m8g.xlarge', 'db.m8gd.12xlarge', 'db.m8gd.16xlarge', 'db.m8gd.24xlarge', 'db.m8gd.2xlarge', 'db.m8gd.48xlarge', 'db.m8gd.4xlarge', 'db.m8gd.8xlarge', 'db.m8gd.large', 'db.m8gd.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.12xlarge', 'db.r5.16xlarge', 'db.r5.24xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r5b.12xlarge', 'db.r5b.16xlarge', 'db.r5b.24xlarge', 'db.r5b.2xlarge', 'db.r5b.4xlarge', 'db.r5b.8xlarge', 'db.r5b.large', 'db.r5b.xlarge', 'db.r5d.12xlarge', 'db.r5d.16xlarge', 'db.r5d.24xlarge', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.8xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6gd.12xlarge', 'db.r6gd.16xlarge', 'db.r6gd.2xlarge', 'db.r6gd.4xlarge', 'db.r6gd.8xlarge', 'db.r6gd.large', 'db.r6gd.xlarge', 'db.r6i.12xlarge', 'db.r6i.16xlarge', 'db.r6i.24xlarge', 'db.r6i.2xlarge', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.8xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r6id.12xlarge', 'db.r6id.16xlarge', 'db.r6id.24xlarge', 'db.r6id.2xlarge', 'db.r6id.32xlarge', 'db.r6id.4xlarge', 'db.r6id.8xlarge', 'db.r6id.large', 'db.r6id.xlarge', 'db.r6idn.12xlarge', 'db.r6idn.16xlarge', 'db.r6idn.24xlarge', 'db.r6idn.2xlarge', 'db.r6idn.32xlarge', 'db.r6idn.4xlarge', 'db.r6idn.8xlarge', 'db.r6idn.large', 'db.r6idn.xlarge', 'db.r6in.12xlarge', 'db.r6in.16xlarge', 'db.r6in.24xlarge', 'db.r6in.2xlarge', 'db.r6in.32xlarge', 'db.r6in.4xlarge', 'db.r6in.8xlarge', 'db.r6in.large', 'db.r6in.xlarge', 'db.r7g.12xlarge', 'db.r7g.16xlarge', 'db.r7g.2xlarge', 'db.r7g.4xlarge', 'db.r7g.8xlarge', 'db.r7g.large', 'db.r7g.xlarge', 'db.r7i.12xlarge', 'db.r7i.16xlarge', 'db.r7i.24xlarge', 'db.r7i.2xlarge', 'db.r7i.48xlarge', 'db.r7i.4xlarge', 'db.r7i.8xlarge', 'db.r7i.large', 'db.r7i.xlarge', 'db.r8g.12xlarge', 'db.r8g.16xlarge', 'db.r8g.24xlarge', 'db.r8g.2xlarge', 'db.r8g.48xlarge', 'db.r8g.4xlarge', 'db.r8g.8xlarge', 'db.r8g.large', 'db.r8g.xlarge', 'db.r8gd.12xlarge', 'db.r8gd.16xlarge', 'db.r8gd.24xlarge', 'db.r8gd.2xlarge', 'db.r8gd.48xlarge', 'db.r8gd.4xlarge', 'db.r8gd.8xlarge', 'db.r8gd.large', 'db.r8gd.xlarge', 'db.t1.micro', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.micro', 'db.t3.small', 'db.t3.xlarge', 'db.t4g.2xlarge', 'db.t4g.large', 'db.t4g.medium', 'db.t4g.micro', 'db.t4g.small', 'db.t4g.xlarge', 'db.x2g.12xlarge', 'db.x2g.16xlarge', 'db.x2g.2xlarge', 'db.x2g.4xlarge', 'db.x2g.8xlarge', 'db.x2g.large', 'db.x2g.xlarge', 'db.x2iedn.16xlarge', 'db.x2iedn.24xlarge', 'db.x2iedn.2xlarge', 'db.x2iedn.32xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.8xlarge', 'db.x2iedn.xlarge'] in 'us-east-1'",
+        "message": "'totally.bogus.class' is not one of ['db.m1.large', 'db.m1.medium', 'db.m1.small', 'db.m1.xlarge', 'db.m2.2xlarge', 'db.m2.4xlarge', 'db.m2.xlarge', 'db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.10xlarge', 'db.m4.16xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.12xlarge', 'db.m5.16xlarge', 'db.m5.24xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.8xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m5d.12xlarge', 'db.m5d.16xlarge', 'db.m5d.24xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.8xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6g.12xlarge', 'db.m6g.16xlarge', 'db.m6g.2xlarge', 'db.m6g.4xlarge', 'db.m6g.8xlarge', 'db.m6g.large', 'db.m6g.xlarge', 'db.m6gd.12xlarge', 'db.m6gd.16xlarge', 'db.m6gd.2xlarge', 'db.m6gd.4xlarge', 'db.m6gd.8xlarge', 'db.m6gd.large', 'db.m6gd.xlarge', 'db.m6i.12xlarge', 'db.m6i.16xlarge', 'db.m6i.24xlarge', 'db.m6i.2xlarge', 'db.m6i.32xlarge', 'db.m6i.4xlarge', 'db.m6i.8xlarge', 'db.m6i.large', 'db.m6i.xlarge', 'db.m6id.12xlarge', 'db.m6id.16xlarge', 'db.m6id.24xlarge', 'db.m6id.2xlarge', 'db.m6id.32xlarge', 'db.m6id.4xlarge', 'db.m6id.8xlarge', 'db.m6id.large', 'db.m6id.xlarge', 'db.m6idn.12xlarge', 'db.m6idn.16xlarge', 'db.m6idn.24xlarge', 'db.m6idn.2xlarge', 'db.m6idn.32xlarge', 'db.m6idn.4xlarge', 'db.m6idn.8xlarge', 'db.m6idn.large', 'db.m6idn.xlarge', 'db.m6in.12xlarge', 'db.m6in.16xlarge', 'db.m6in.24xlarge', 'db.m6in.2xlarge', 'db.m6in.32xlarge', 'db.m6in.4xlarge', 'db.m6in.8xlarge', 'db.m6in.large', 'db.m6in.xlarge', 'db.m7g.12xlarge', 'db.m7g.16xlarge', 'db.m7g.2xlarge', 'db.m7g.4xlarge', 'db.m7g.8xlarge', 'db.m7g.large', 'db.m7g.xlarge', 'db.m7i.12xlarge', 'db.m7i.16xlarge', 'db.m7i.24xlarge', 'db.m7i.2xlarge', 'db.m7i.48xlarge', 'db.m7i.4xlarge', 'db.m7i.8xlarge', 'db.m7i.large', 'db.m7i.xlarge', 'db.m8g.12xlarge', 'db.m8g.16xlarge', 'db.m8g.24xlarge', 'db.m8g.2xlarge', 'db.m8g.48xlarge', 'db.m8g.4xlarge', 'db.m8g.8xlarge', 'db.m8g.large', 'db.m8g.xlarge', 'db.m8gd.12xlarge', 'db.m8gd.16xlarge', 'db.m8gd.24xlarge', 'db.m8gd.2xlarge', 'db.m8gd.48xlarge', 'db.m8gd.4xlarge', 'db.m8gd.8xlarge', 'db.m8gd.large', 'db.m8gd.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.12xlarge', 'db.r5.16xlarge', 'db.r5.24xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r5b.12xlarge', 'db.r5b.16xlarge', 'db.r5b.24xlarge', 'db.r5b.2xlarge', 'db.r5b.4xlarge', 'db.r5b.8xlarge', 'db.r5b.large', 'db.r5b.xlarge', 'db.r5d.12xlarge', 'db.r5d.16xlarge', 'db.r5d.24xlarge', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.8xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6gd.12xlarge', 'db.r6gd.16xlarge', 'db.r6gd.2xlarge', 'db.r6gd.4xlarge', 'db.r6gd.8xlarge', 'db.r6gd.large', 'db.r6gd.xlarge', 'db.r6i.12xlarge', 'db.r6i.16xlarge', 'db.r6i.24xlarge', 'db.r6i.2xlarge', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.8xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r6id.12xlarge', 'db.r6id.16xlarge', 'db.r6id.24xlarge', 'db.r6id.2xlarge', 'db.r6id.32xlarge', 'db.r6id.4xlarge', 'db.r6id.8xlarge', 'db.r6id.large', 'db.r6id.xlarge', 'db.r6idn.12xlarge', 'db.r6idn.16xlarge', 'db.r6idn.24xlarge', 'db.r6idn.2xlarge', 'db.r6idn.32xlarge', 'db.r6idn.4xlarge', 'db.r6idn.8xlarge', 'db.r6idn.large', 'db.r6idn.xlarge', 'db.r6in.12xlarge', 'db.r6in.16xlarge', 'db.r6in.24xlarge', 'db.r6in.2xlarge', 'db.r6in.32xlarge', 'db.r6in.4xlarge', 'db.r6in.8xlarge', 'db.r6in.large', 'db.r6in.xlarge', 'db.r7g.12xlarge', 'db.r7g.16xlarge', 'db.r7g.2xlarge', 'db.r7g.4xlarge', 'db.r7g.8xlarge', 'db.r7g.large', 'db.r7g.xlarge', 'db.r7i.12xlarge', 'db.r7i.16xlarge', 'db.r7i.24xlarge', 'db.r7i.2xlarge', 'db.r7i.48xlarge', 'db.r7i.4xlarge', 'db.r7i.8xlarge', 'db.r7i.large', 'db.r7i.xlarge', 'db.r8g.12xlarge', 'db.r8g.16xlarge', 'db.r8g.24xlarge', 'db.r8g.2xlarge', 'db.r8g.48xlarge', 'db.r8g.4xlarge', 'db.r8g.8xlarge', 'db.r8g.large', 'db.r8g.xlarge', 'db.r8gd.12xlarge', 'db.r8gd.16xlarge', 'db.r8gd.24xlarge', 'db.r8gd.2xlarge', 'db.r8gd.48xlarge', 'db.r8gd.4xlarge', 'db.r8gd.8xlarge', 'db.r8gd.large', 'db.r8gd.xlarge', 'db.t1.micro', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.micro', 'db.t3.small', 'db.t3.xlarge', 'db.t4g.2xlarge', 'db.t4g.large', 'db.t4g.medium', 'db.t4g.micro', 'db.t4g.small', 'db.t4g.xlarge', 'db.x2g.12xlarge', 'db.x2g.16xlarge', 'db.x2g.2xlarge', 'db.x2g.4xlarge', 'db.x2g.8xlarge', 'db.x2g.large', 'db.x2g.xlarge', 'db.x2iedn.16xlarge', 'db.x2iedn.24xlarge', 'db.x2iedn.2xlarge', 'db.x2iedn.32xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.8xlarge', 'db.x2iedn.xlarge'] in any region",
         "source": "CFN_LINT",
         "resourceId": "Db",
         "resourceType": "AWS::RDS::DBInstance",
@@ -19624,6 +19723,15 @@
         "section": "Resources"
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Db' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
@@ -19652,7 +19760,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 6,
+        "informational": 7,
         "debug": 0
       },
       "suppressed": 0,
@@ -19788,6 +19896,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -20103,7 +20220,7 @@
         "fatal": 3,
         "errors": 0,
         "warnings": 2,
-        "informational": 10,
+        "informational": 11,
         "debug": 0
       },
       "suppressed": 0,
@@ -20366,6 +20483,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -24129,7 +24255,7 @@
         "fatal": 0,
         "errors": 4,
         "warnings": 8,
-        "informational": 30,
+        "informational": 31,
         "debug": 0
       },
       "suppressed": 0,
@@ -24140,7 +24266,7 @@
       {
         "ruleId": "E3025",
         "severity": "ERROR",
-        "message": "'db.m4.xlarge' is not one of ['db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.12xlarge', 'db.r5.16xlarge', 'db.r5.24xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6i.12xlarge', 'db.r6i.16xlarge', 'db.r6i.24xlarge', 'db.r6i.2xlarge', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.8xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r7g.12xlarge', 'db.r7g.16xlarge', 'db.r7g.2xlarge', 'db.r7g.4xlarge', 'db.r7g.8xlarge', 'db.r7g.large', 'db.r7g.xlarge', 'db.r7i.12xlarge', 'db.r7i.16xlarge', 'db.r7i.24xlarge', 'db.r7i.2xlarge', 'db.r7i.48xlarge', 'db.r7i.4xlarge', 'db.r7i.8xlarge', 'db.r7i.large', 'db.r7i.xlarge', 'db.r8g.12xlarge', 'db.r8g.16xlarge', 'db.r8g.24xlarge', 'db.r8g.2xlarge', 'db.r8g.48xlarge', 'db.r8g.4xlarge', 'db.r8g.8xlarge', 'db.r8g.large', 'db.r8g.xlarge', 'db.serverless', 'db.t2.medium', 'db.t2.small', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t4g.large', 'db.t4g.medium', 'db.x2g.12xlarge', 'db.x2g.16xlarge', 'db.x2g.2xlarge', 'db.x2g.4xlarge', 'db.x2g.8xlarge', 'db.x2g.large', 'db.x2g.xlarge'] in 'us-east-1'",
+        "message": "'db.m4.xlarge' is not one of ['db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.12xlarge', 'db.r5.16xlarge', 'db.r5.24xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6i.12xlarge', 'db.r6i.16xlarge', 'db.r6i.24xlarge', 'db.r6i.2xlarge', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.8xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r7g.12xlarge', 'db.r7g.16xlarge', 'db.r7g.2xlarge', 'db.r7g.4xlarge', 'db.r7g.8xlarge', 'db.r7g.large', 'db.r7g.xlarge', 'db.r7i.12xlarge', 'db.r7i.16xlarge', 'db.r7i.24xlarge', 'db.r7i.2xlarge', 'db.r7i.48xlarge', 'db.r7i.4xlarge', 'db.r7i.8xlarge', 'db.r7i.large', 'db.r7i.xlarge', 'db.r8g.12xlarge', 'db.r8g.16xlarge', 'db.r8g.24xlarge', 'db.r8g.2xlarge', 'db.r8g.48xlarge', 'db.r8g.4xlarge', 'db.r8g.8xlarge', 'db.r8g.large', 'db.r8g.xlarge', 'db.serverless', 'db.t2.medium', 'db.t2.small', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t4g.large', 'db.t4g.medium', 'db.x2g.12xlarge', 'db.x2g.16xlarge', 'db.x2g.2xlarge', 'db.x2g.4xlarge', 'db.x2g.8xlarge', 'db.x2g.large', 'db.x2g.xlarge'] in any region",
         "source": "CFN_LINT",
         "resourceId": "DBInstance1",
         "resourceType": "AWS::RDS::DBInstance",
@@ -24157,7 +24283,7 @@
       {
         "ruleId": "E3025",
         "severity": "ERROR",
-        "message": "'db.x2e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6i.2xlarge', 'db.m6i.32xlarge', 'db.m6i.4xlarge', 'db.m6i.large', 'db.m6i.metal', 'db.m6i.xlarge', 'db.m6id.2xlarge', 'db.m6id.4xlarge', 'db.m6id.large', 'db.m6id.metal', 'db.m6id.xlarge', 'db.m6in.2xlarge', 'db.m6in.4xlarge', 'db.m6in.large', 'db.m6in.xlarge', 'db.m7i.2xlarge', 'db.m7i.4xlarge', 'db.m7i.large', 'db.m7i.metal-24xl', 'db.m7i.metal-48xl', 'db.m7i.xlarge', 'db.m8i.2xlarge', 'db.m8i.4xlarge', 'db.m8i.large', 'db.m8i.metal-48xl', 'db.m8i.metal-96xl', 'db.m8i.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.2xlarge', 'db.r5.2xlarge.tpc1.mem2x', 'db.r5.2xlarge.tpc2.mem4x', 'db.r5.2xlarge.tpc2.mem8x', 'db.r5.4xlarge', 'db.r5.4xlarge.tpc2.mem2x', 'db.r5.4xlarge.tpc2.mem3x', 'db.r5.4xlarge.tpc2.mem4x', 'db.r5.large', 'db.r5.large.tpc1.mem2x', 'db.r5.xlarge', 'db.r5.xlarge.tpc2.mem2x', 'db.r5.xlarge.tpc2.mem4x', 'db.r5b.2xlarge', 'db.r5b.2xlarge.tpc1.mem2x', 'db.r5b.2xlarge.tpc2.mem4x', 'db.r5b.2xlarge.tpc2.mem8x', 'db.r5b.4xlarge', 'db.r5b.4xlarge.tpc2.mem2x', 'db.r5b.4xlarge.tpc2.mem3x', 'db.r5b.4xlarge.tpc2.mem4x', 'db.r5b.large', 'db.r5b.large.tpc1.mem2x', 'db.r5b.xlarge', 'db.r5b.xlarge.tpc2.mem2x', 'db.r5b.xlarge.tpc2.mem4x', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6i.2xlarge', 'db.r6i.2xlarge.tpc1.mem2x', 'db.r6i.2xlarge.tpc2.mem4x', 'db.r6i.2xlarge.tpc2.mem8x', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.4xlarge.tpc2.mem2x', 'db.r6i.4xlarge.tpc2.mem3x', 'db.r6i.4xlarge.tpc2.mem4x', 'db.r6i.large', 'db.r6i.large.tpc1.mem2x', 'db.r6i.metal', 'db.r6i.xlarge', 'db.r6i.xlarge.tpc2.mem2x', 'db.r6i.xlarge.tpc2.mem4x', 'db.r6id.2xlarge', 'db.r6id.4xlarge', 'db.r6id.large', 'db.r6id.metal', 'db.r6id.xlarge', 'db.r6in.2xlarge', 'db.r6in.4xlarge', 'db.r6in.large', 'db.r6in.xlarge', 'db.r7i.2xlarge', 'db.r7i.2xlarge.tpc2.mem4x', 'db.r7i.2xlarge.tpc2.mem8x', 'db.r7i.3xlarge.tpc2.mem4x', 'db.r7i.4xlarge', 'db.r7i.4xlarge.tpc2.mem2x', 'db.r7i.4xlarge.tpc2.mem3x', 'db.r7i.4xlarge.tpc2.mem4x', 'db.r7i.large', 'db.r7i.metal-24xl', 'db.r7i.metal-48xl', 'db.r7i.xlarge', 'db.r7i.xlarge.tpc2.mem2x', 'db.r7i.xlarge.tpc2.mem4x', 'db.r8i.2xlarge', 'db.r8i.4xlarge', 'db.r8i.large', 'db.r8i.metal-48xl', 'db.r8i.metal-96xl', 'db.r8i.xlarge', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t3.xlarge', 'db.x1e.2xlarge', 'db.x1e.4xlarge', 'db.x1e.xlarge', 'db.x2idn.metal', 'db.x2iedn.2xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.metal', 'db.x2iedn.xlarge', 'db.x2iezn.2xlarge', 'db.x2iezn.4xlarge', 'db.x2iezn.metal', 'db.z1d.2xlarge', 'db.z1d.3xlarge', 'db.z1d.large', 'db.z1d.xlarge'] in 'us-east-1'",
+        "message": "'db.x2e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.12xlarge', 'db.m5.16xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.8xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6i.2xlarge', 'db.m6i.32xlarge', 'db.m6i.4xlarge', 'db.m6i.large', 'db.m6i.metal', 'db.m6i.xlarge', 'db.m6id.2xlarge', 'db.m6id.4xlarge', 'db.m6id.large', 'db.m6id.metal', 'db.m6id.xlarge', 'db.m6in.2xlarge', 'db.m6in.4xlarge', 'db.m6in.large', 'db.m6in.xlarge', 'db.m7i.2xlarge', 'db.m7i.4xlarge', 'db.m7i.large', 'db.m7i.metal-24xl', 'db.m7i.metal-48xl', 'db.m7i.xlarge', 'db.m8i.2xlarge', 'db.m8i.4xlarge', 'db.m8i.large', 'db.m8i.metal-48xl', 'db.m8i.metal-96xl', 'db.m8i.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.2xlarge', 'db.r5.2xlarge.tpc1.mem2x', 'db.r5.2xlarge.tpc2.mem4x', 'db.r5.2xlarge.tpc2.mem8x', 'db.r5.4xlarge', 'db.r5.4xlarge.tpc2.mem2x', 'db.r5.4xlarge.tpc2.mem3x', 'db.r5.4xlarge.tpc2.mem4x', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.large.tpc1.mem2x', 'db.r5.xlarge', 'db.r5.xlarge.tpc2.mem2x', 'db.r5.xlarge.tpc2.mem4x', 'db.r5b.2xlarge', 'db.r5b.2xlarge.tpc1.mem2x', 'db.r5b.2xlarge.tpc2.mem4x', 'db.r5b.2xlarge.tpc2.mem8x', 'db.r5b.4xlarge', 'db.r5b.4xlarge.tpc2.mem2x', 'db.r5b.4xlarge.tpc2.mem3x', 'db.r5b.4xlarge.tpc2.mem4x', 'db.r5b.large', 'db.r5b.large.tpc1.mem2x', 'db.r5b.xlarge', 'db.r5b.xlarge.tpc2.mem2x', 'db.r5b.xlarge.tpc2.mem4x', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6i.2xlarge', 'db.r6i.2xlarge.tpc1.mem2x', 'db.r6i.2xlarge.tpc2.mem4x', 'db.r6i.2xlarge.tpc2.mem8x', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.4xlarge.tpc2.mem2x', 'db.r6i.4xlarge.tpc2.mem3x', 'db.r6i.4xlarge.tpc2.mem4x', 'db.r6i.large', 'db.r6i.large.tpc1.mem2x', 'db.r6i.metal', 'db.r6i.xlarge', 'db.r6i.xlarge.tpc2.mem2x', 'db.r6i.xlarge.tpc2.mem4x', 'db.r6id.2xlarge', 'db.r6id.4xlarge', 'db.r6id.large', 'db.r6id.metal', 'db.r6id.xlarge', 'db.r6in.2xlarge', 'db.r6in.4xlarge', 'db.r6in.large', 'db.r6in.xlarge', 'db.r7i.2xlarge', 'db.r7i.2xlarge.tpc2.mem4x', 'db.r7i.2xlarge.tpc2.mem8x', 'db.r7i.3xlarge.tpc2.mem4x', 'db.r7i.4xlarge', 'db.r7i.4xlarge.tpc2.mem2x', 'db.r7i.4xlarge.tpc2.mem3x', 'db.r7i.4xlarge.tpc2.mem4x', 'db.r7i.large', 'db.r7i.metal-24xl', 'db.r7i.metal-48xl', 'db.r7i.xlarge', 'db.r7i.xlarge.tpc2.mem2x', 'db.r7i.xlarge.tpc2.mem4x', 'db.r8i.2xlarge', 'db.r8i.4xlarge', 'db.r8i.large', 'db.r8i.metal-48xl', 'db.r8i.metal-96xl', 'db.r8i.xlarge', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t3.xlarge', 'db.x1e.2xlarge', 'db.x1e.4xlarge', 'db.x1e.xlarge', 'db.x2idn.metal', 'db.x2iedn.2xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.metal', 'db.x2iedn.xlarge', 'db.x2iezn.2xlarge', 'db.x2iezn.4xlarge', 'db.x2iezn.metal', 'db.z1d.2xlarge', 'db.z1d.3xlarge', 'db.z1d.large', 'db.z1d.xlarge'] in any region",
         "source": "CFN_LINT",
         "resourceId": "DBInstance2",
         "resourceType": "AWS::RDS::DBInstance",
@@ -24174,7 +24300,7 @@
       {
         "ruleId": "E3025",
         "severity": "ERROR",
-        "message": "'db.x1e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m8i.2xlarge', 'db.m8i.4xlarge', 'db.m8i.large', 'db.m8i.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r6i.2xlarge', 'db.r6i.4xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r8i.2xlarge', 'db.r8i.4xlarge', 'db.r8i.large', 'db.r8i.xlarge', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t3.xlarge', 'db.x2iedn.4xlarge'] in 'us-east-1'",
+        "message": "'db.x1e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m8i.2xlarge', 'db.m8i.4xlarge', 'db.m8i.large', 'db.m8i.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r6i.2xlarge', 'db.r6i.4xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r8i.2xlarge', 'db.r8i.4xlarge', 'db.r8i.large', 'db.r8i.xlarge', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t3.xlarge', 'db.x2iedn.4xlarge'] in any region",
         "source": "CFN_LINT",
         "resourceId": "DBInstance3",
         "resourceType": "AWS::RDS::DBInstance",
@@ -24701,6 +24827,15 @@
         "section": "Resources"
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'DBInstance1' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
@@ -25103,7 +25238,7 @@
         "fatal": 6,
         "errors": 6,
         "warnings": 9,
-        "informational": 35,
+        "informational": 36,
         "debug": 0
       },
       "suppressed": 0,
@@ -25983,6 +26118,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'mySecurityGroupVpc1' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
@@ -26842,7 +26986,7 @@
         "fatal": 2,
         "errors": 0,
         "warnings": 8,
-        "informational": 13,
+        "informational": 14,
         "debug": 0
       },
       "suppressed": 0,
@@ -27172,6 +27316,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
@@ -27297,7 +27450,7 @@
         "fatal": 2,
         "errors": 0,
         "warnings": 9,
-        "informational": 14,
+        "informational": 15,
         "debug": 0
       },
       "suppressed": 0,
@@ -27657,6 +27810,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -28716,7 +28878,7 @@
         "fatal": 36,
         "errors": 5,
         "warnings": 0,
-        "informational": 7,
+        "informational": 8,
         "debug": 0
       },
       "suppressed": 0,
@@ -29380,7 +29542,7 @@
       {
         "ruleId": "E3640",
         "severity": "ERROR",
-        "message": "'ml.fake.xlarge' is not valid for region 'us-east-1'",
+        "message": "'ml.fake.xlarge' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "MonitoringSchedule",
         "resourceType": "AWS::SageMaker::MonitoringSchedule",
@@ -29397,7 +29559,7 @@
       {
         "ruleId": "E3642",
         "severity": "ERROR",
-        "message": "'ml.fake.xlarge' is not valid for region 'us-east-1'",
+        "message": "'ml.fake.xlarge' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "InferenceExperiment",
         "resourceType": "AWS::SageMaker::InferenceExperiment",
@@ -29414,7 +29576,7 @@
       {
         "ruleId": "E3643",
         "severity": "ERROR",
-        "message": "'ml.bogus.large' is not valid for region 'us-east-1'",
+        "message": "'ml.bogus.large' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "ModelPackage",
         "resourceType": "AWS::SageMaker::ModelPackage",
@@ -29431,7 +29593,7 @@
       {
         "ruleId": "E3644",
         "severity": "ERROR",
-        "message": "'ml.fake.xlarge' is not valid for region 'us-east-1'",
+        "message": "'ml.fake.xlarge' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "Cluster",
         "resourceType": "AWS::SageMaker::Cluster",
@@ -29448,7 +29610,7 @@
       {
         "ruleId": "E3644",
         "severity": "ERROR",
-        "message": "'ml.bogus.large' is not valid for region 'us-east-1'",
+        "message": "'ml.bogus.large' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "Cluster",
         "resourceType": "AWS::SageMaker::Cluster",
@@ -29502,6 +29664,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -35334,7 +35505,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 10,
-        "informational": 40,
+        "informational": 41,
         "debug": 0
       },
       "suppressed": 0,
@@ -35922,6 +36093,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "GetAtt consumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1MqEsmDeleterAmazonMqRabbitmqLambdaStackconsumerlambdaFunctionRabbitMqEventSourceAmazonMqRabbitmqLambdaStackRabbitMqBroker41CBF5C1D1E2BA2FframeworkonEv3DB60A38.Arn"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -53951,7 +54131,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 5,
-        "informational": 35,
+        "informational": 36,
         "debug": 0
       },
       "suppressed": 0,
@@ -54656,6 +54836,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'VPCSSHSecurityGroup0495A24F' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
@@ -54792,7 +54981,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 8,
-        "informational": 29,
+        "informational": 30,
         "debug": 0
       },
       "suppressed": 0,
@@ -55340,6 +55529,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'VpcrdsSubnet1SubnetC2926CEA'"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -90797,7 +90995,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 1,
-        "informational": 11,
+        "informational": 12,
         "debug": 0
       },
       "suppressed": 0,
@@ -90981,6 +91179,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "dynamic (Join:{dynamic}{ref:RDSSecret3683CA93}:SecretString:username::}})"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -91585,7 +91792,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 3,
-        "informational": 65,
+        "informational": 66,
         "debug": 0
       },
       "suppressed": 0,
@@ -91596,7 +91803,7 @@
       {
         "ruleId": "E3628",
         "severity": "ERROR",
-        "message": "'Write a EC2 instance type' is not valid for region 'us-east-1'",
+        "message": "'Write a EC2 instance type' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "WebInstanceF774E10D",
         "resourceType": "AWS::EC2::Instance",
@@ -92954,6 +93161,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -101742,7 +101958,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 22,
+        "informational": 23,
         "debug": 0
       },
       "suppressed": 0,
@@ -102135,6 +102351,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E'"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -103103,7 +103328,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 4,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -103166,6 +103391,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -103628,7 +103862,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 4,
-        "informational": 9,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -103842,6 +104076,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -105106,7 +105349,7 @@
         "fatal": 0,
         "errors": 2,
         "warnings": 1,
-        "informational": 9,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -105117,7 +105360,7 @@
       {
         "ruleId": "E3620",
         "severity": "ERROR",
-        "message": "'db.t2.small' is not valid for region 'us-east-1'",
+        "message": "'db.t2.small' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "DocDbInstance",
         "resourceType": "AWS::DocDB::DBInstance",
@@ -105134,7 +105377,7 @@
       {
         "ruleId": "E3652",
         "severity": "ERROR",
-        "message": "'r5.large.elasticsearch' is not valid for region 'us-east-1'",
+        "message": "'r5.large.elasticsearch' is not valid in any region",
         "source": "CFN_LINT",
         "resourceId": "EsDomain",
         "resourceType": "AWS::Elasticsearch::Domain",
@@ -105269,6 +105512,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -108539,7 +108791,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 5,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
@@ -108634,6 +108886,15 @@
         "ruleDescription": "Property is ignored in this configuration (from extension)",
         "phase": "SCHEMA",
         "section": "Resources"
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -108887,7 +109148,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 9,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -109040,6 +109301,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -109220,7 +109490,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 7,
-        "informational": 15,
+        "informational": 16,
         "debug": 0
       },
       "suppressed": 0,
@@ -109532,6 +109802,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -111107,7 +111386,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 4,
-        "informational": 4,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -111217,6 +111496,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -111903,7 +112191,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 6,
+        "informational": 7,
         "debug": 0
       },
       "suppressed": 0,
@@ -111994,6 +112282,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "parameter 'dynamic reference: prefix-{{resolve:ssm:/ec2/ami-id}}' (type String)"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -114346,7 +114643,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 3,
-        "informational": 16,
+        "informational": 17,
         "debug": 0
       },
       "suppressed": 0,
@@ -114570,6 +114867,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -115501,7 +115807,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -115540,6 +115846,15 @@
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -117910,7 +118225,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 6,
+        "informational": 7,
         "debug": 0
       },
       "suppressed": 0,
@@ -118027,6 +118342,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Cluster' of type 'AWS::Redshift::Cluster' supports Tags but none are configured",
@@ -118055,7 +118379,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 1,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -118095,6 +118419,27 @@
         "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ProjectArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Pool",
+        "resourceType": "AWS::DeviceFarm::DevicePool",
+        "propertyPath": "Properties.ProjectArn",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-device-farm",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
       },
       {
         "ruleId": "I9040",
@@ -121602,7 +121947,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 8,
-        "informational": 17,
+        "informational": 18,
         "debug": 0
       },
       "suppressed": 0,
@@ -121982,6 +122327,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'MyDB' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
@@ -122196,7 +122550,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 6,
-        "informational": 23,
+        "informational": 24,
         "debug": 0
       },
       "suppressed": 0,
@@ -122585,6 +122939,15 @@
         "section": "Resources"
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'DBInstance1' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
@@ -122925,7 +123288,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 3,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -122984,6 +123347,15 @@
         "ruleDescription": "Checks for legacy instance type generations",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -123014,7 +123386,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 3,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -123073,6 +123445,15 @@
         "ruleDescription": "Checks for legacy instance type generations",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -124371,7 +124752,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 12,
+        "informational": 13,
         "debug": 0
       },
       "suppressed": 0,
@@ -124552,6 +124933,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -125700,7 +126090,7 @@
         "fatal": 4,
         "errors": 0,
         "warnings": 0,
-        "informational": 4,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -125854,6 +126244,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -126624,7 +127023,7 @@
         "fatal": 0,
         "errors": 7,
         "warnings": 2,
-        "informational": 50,
+        "informational": 51,
         "debug": 0
       },
       "suppressed": 0,
@@ -127488,6 +127887,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
@@ -127825,7 +128233,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 9,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -127957,6 +128365,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "GetAtt Subnet1.SubnetId"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -128294,7 +128711,7 @@
         "fatal": 0,
         "errors": 2,
         "warnings": 4,
-        "informational": 11,
+        "informational": 12,
         "debug": 0
       },
       "suppressed": 0,
@@ -128555,6 +128972,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -131037,7 +131463,7 @@
         "fatal": 3,
         "errors": 1,
         "warnings": 8,
-        "informational": 23,
+        "informational": 24,
         "debug": 0
       },
       "suppressed": 0,
@@ -131651,6 +132077,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'BastionSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
@@ -131733,7 +132168,7 @@
         "fatal": 3,
         "errors": 1,
         "warnings": 9,
-        "informational": 23,
+        "informational": 24,
         "debug": 0
       },
       "suppressed": 0,
@@ -132364,6 +132799,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'BastionSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
@@ -132446,7 +132890,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 6,
-        "informational": 10,
+        "informational": 11,
         "debug": 0
       },
       "suppressed": 0,
@@ -132686,6 +133130,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'ProductionBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
@@ -132750,7 +133203,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 7,
-        "informational": 18,
+        "informational": 19,
         "debug": 0
       },
       "suppressed": 0,
@@ -133126,6 +133579,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "Fn::If on condition '__inline_cond_133'"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -134751,7 +135213,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 37,
+        "informational": 38,
         "debug": 0
       },
       "suppressed": 0,
@@ -135386,6 +135848,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -140395,7 +140866,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 3,
-        "informational": 11,
+        "informational": 12,
         "debug": 0
       },
       "suppressed": 0,
@@ -140658,6 +141129,15 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -146548,7 +147028,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 27,
-        "informational": 72,
+        "informational": 73,
         "debug": 0
       },
       "suppressed": 0,
@@ -148435,6 +148915,15 @@
             "replacement_strategy": "delete_then_create"
           }
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -151767,7 +152256,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 39,
-        "informational": 58,
+        "informational": 59,
         "debug": 0
       },
       "suppressed": 0,
@@ -153431,6 +153920,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'ContainerAccessELB' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured",
@@ -153917,7 +154415,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 28,
-        "informational": 72,
+        "informational": 73,
         "debug": 0
       },
       "suppressed": 0,
@@ -155820,6 +156318,15 @@
         }
       },
       {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'rNatInstanceTemplate' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured",
@@ -155920,7 +156427,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 46,
-        "informational": 166,
+        "informational": 167,
         "debug": 0
       },
       "suppressed": 11,
@@ -160146,6 +160653,15 @@
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'VPC'"
         }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region — pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9040",

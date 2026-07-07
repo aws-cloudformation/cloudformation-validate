@@ -102,11 +102,11 @@ impl JvmSchemaValidator {
     pub fn validate(
         &self,
         model: &JvmSemanticModel,
-        region: String,
+        region: Option<String>,
     ) -> Result<JvmSchemaValidationResult, ValidationError> {
         validation_engine::catch_panics(
             || {
-                let result = self.inner.validate(&model.model, &region);
+                let result = self.inner.validate(&model.model, region.as_deref());
                 Ok(JvmSchemaValidationResult {
                     diagnostics: result.diagnostics.iter().map(|d| d.to_standard()).collect(),
                     metric: result.metric,

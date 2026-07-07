@@ -34,7 +34,7 @@ class SchemaValidator {
     fun listRules(): List<RuleInfo> = inner.listRules()
     fun schemaCount(): Int = inner.schemaCount().toInt()
 
-    fun validate(template: File, region: String = "us-east-1"): List<StandardDiagnostic> {
+    fun validate(template: File, region: String?): List<StandardDiagnostic> {
         val model = JvmSemanticModel.parse(template.readBytes())
         return inner.validate(model, region).diagnostics
     }

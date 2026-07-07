@@ -10,9 +10,10 @@ use template_model::coercion::{
     coerce_port_to_string, coerce_to_bool, coerce_to_integer, coerce_to_number, coerce_to_string, type_compatible,
 };
 use template_model::consts::{
-    DEFAULT_REGION, FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
+    FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
 };
+use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
@@ -76,10 +77,10 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_is_valid_cidr_strict(rego);
     register_ensure_list(rego);
     register_input_region(rego, region_holder.clone());
-    register_effective_region(rego, region_holder);
+    register_region_flat_invalid(rego, region_holder.clone());
+    register_region_conditional_invalid(rego, region_holder);
     register_render_list(rego);
     register_render_value(rego);
-    register_conditional_instance_class_enum(rego);
     register_coerce_to_number(rego);
     register_coerce_to_integer(rego);
     register_coerce_to_string(rego);
@@ -996,92 +997,73 @@ fn register_property_can_be_absent(rego: &mut regorus::Engine, holder: SharedMod
     );
 }
 
-/// Registers `invalid_instance_class_enum(schema, props, target_prop, normalize_engine_case, value)`:
-/// for a conditional RDS region document, returns the sorted enum to render in an
-/// E3025/E3694 diagnostic when `value` is invalid, or `undefined` when the value
-/// is valid or no branch matches. A value is valid only when it is in EVERY
-/// matching branch's enum (the intersection); when invalid, the largest failing
-/// branch's enum is returned.
-fn register_conditional_instance_class_enum(rego: &mut regorus::Engine) {
+/// Registers `region_flat_invalid(region_map, value)`: given the inner
+/// `{ "<region>": { "enum": [...] } }` map of a flat instance-type / node-type
+/// enum document, returns the E-diagnostic message when `value` is invalid for the
+/// effective scope, or `undefined` when it is valid or the document does not apply.
+/// The effective scope is the configured region, or the union of all regions when
+/// none is configured (`input_region()` is null) — a value is flagged only when it
+/// is invalid in every region. The message text is produced by the shared
+/// `region_enums` helper so it is byte-identical to the CEL engine.
+fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion) {
     let _ = rego.add_extension(
-        "invalid_instance_class_enum".into(),
-        5,
-        Box::new(|params: Vec<Value>| {
-            let schema = rego_to_json(&params[0]);
-            let props = rego_to_json(&params[1]);
-            let target_prop = params[2].as_string()?;
-            let normalize_engine_case = matches!(&params[3], Value::Bool(b) if *b);
-            let value = params[4].as_string()?;
-            let branch_enums =
-                conditional_instance_class_enums(&schema, target_prop.as_ref(), normalize_engine_case, &props);
-            match invalid_class_branch_enum(&branch_enums, value.as_ref()) {
-                Some(vals) => Ok(Value::from(vals.into_iter().map(Value::from).collect::<Vec<_>>())),
-                None => Ok(Value::Undefined),
+        "region_flat_invalid".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let region = holder.lock().unwrap_or_else(|e| e.into_inner()).clone();
+            let region_map = rego_to_json(&params[0]);
+            let value = params[1].as_string()?;
+            let Some(map) = region_map.as_object() else {
+                return Ok(Value::Undefined);
+            };
+            match region_enums::flat_allowed_values(map, region.as_deref()) {
+                Some(allowed) if !allowed.contains(value.as_ref()) => {
+                    Ok(Value::from(region_enums::flat_invalid_message(value.as_ref(), region.as_deref())))
+                }
+                _ => Ok(Value::Undefined),
             }
         }),
     );
 }
 
-/// Collects every `then.<target_prop>.enum` from a conditional region document
-/// whose `allOf` branch `if.required` consts all match `props`. Returns one enum
-/// per matching branch. The `Engine` const is matched case-insensitively when
-/// `normalize_engine_case` is set, because RDS DBInstance treats the engine name
-/// case-insensitively.
-fn conditional_instance_class_enums(
-    schema: &serde_json::Value,
-    target_prop: &str,
-    normalize_engine_case: bool,
-    props: &serde_json::Value,
-) -> Vec<Vec<String>> {
-    let mut enums = Vec::new();
-    let Some(branches) = schema.get("allOf").and_then(|v| v.as_array()) else {
-        return enums;
-    };
-    for branch in branches {
-        let (Some(required), Some(if_props)) = (
-            branch.get("if").and_then(|c| c.get("required")).and_then(|v| v.as_array()),
-            branch.get("if").and_then(|c| c.get("properties")).and_then(|v| v.as_object()),
-        ) else {
-            continue;
-        };
-        let all_match = required.iter().filter_map(|r| r.as_str()).filter(|p| *p != target_prop).all(|prop| {
-            let Some(expected) = if_props.get(prop).and_then(|p| p.get("const")).and_then(|c| c.as_str()) else {
-                return false;
+/// Registers `region_conditional_invalid(region_map, target_prop, normalize_engine_case, value, props)`:
+/// for a conditional RDS region document (`{ "<region>": { "allOf": [...] } }`),
+/// returns the E3025/E3694 diagnostic message when `value` is invalid for the
+/// effective scope, or `undefined` when it is valid or no branch matches. `props`
+/// is the resource's resolved scalar properties (Engine, LicenseModel) the branch
+/// consts key on. Region scoping and message text come from the shared
+/// `region_enums` helper, matching the CEL engine exactly.
+fn register_region_conditional_invalid(rego: &mut regorus::Engine, holder: SharedRegion) {
+    let _ = rego.add_extension(
+        "region_conditional_invalid".into(),
+        5,
+        Box::new(move |params: Vec<Value>| {
+            let region = holder.lock().unwrap_or_else(|e| e.into_inner()).clone();
+            let region_map = rego_to_json(&params[0]);
+            let target_prop = params[1].as_string()?;
+            let normalize_engine_case = matches!(&params[2], Value::Bool(b) if *b);
+            let value = params[3].as_string()?;
+            let props = rego_to_json(&params[4]);
+            let Some(map) = region_map.as_object() else {
+                return Ok(Value::Undefined);
             };
-            let Some(actual) = props.get(prop).and_then(|v| v.as_str()) else {
-                return false;
-            };
-            if normalize_engine_case && prop == "Engine" {
-                actual.eq_ignore_ascii_case(expected)
-            } else {
-                actual == expected
+            match region_enums::conditional_invalid_enum(
+                map,
+                region.as_deref(),
+                target_prop.as_ref(),
+                normalize_engine_case,
+                value.as_ref(),
+                |prop| props.get(prop).and_then(|v| v.as_str()).map(String::from),
+            ) {
+                Some(sorted) => Ok(Value::from(region_enums::conditional_invalid_message(
+                    value.as_ref(),
+                    &sorted,
+                    region.as_deref(),
+                ))),
+                None => Ok(Value::Undefined),
             }
-        });
-        if all_match
-            && let Some(enum_vals) = branch
-                .get("then")
-                .and_then(|t| t.get("properties"))
-                .and_then(|p| p.get(target_prop))
-                .and_then(|d| d.get("enum"))
-                .and_then(|e| e.as_array())
-        {
-            enums.push(enum_vals.iter().filter_map(|v| v.as_str()).map(String::from).collect());
-        }
-    }
-    enums
-}
-
-/// The enum to render when `value` is not in the intersection of all matching
-/// branch enums: the largest branch enum missing the value. `None` when the value
-/// is in every branch (valid) or there are no matching branches.
-fn invalid_class_branch_enum(branch_enums: &[Vec<String>], value: &str) -> Option<Vec<String>> {
-    let failing_largest = branch_enums
-        .iter()
-        .filter(|allowed| !allowed.iter().any(|v| v == value))
-        .max_by_key(|allowed| allowed.len())?;
-    let mut sorted = failing_largest.clone();
-    sorted.sort();
-    Some(sorted)
+        }),
+    );
 }
 
 fn rego_to_json(v: &Value) -> serde_json::Value {
@@ -1186,21 +1168,6 @@ fn register_input_region(rego: &mut regorus::Engine, holder: SharedRegion) {
         Box::new(move |_: Vec<Value>| match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
             Some(r) => Ok(Value::from(r.as_str())),
             None => Ok(Value::Null),
-        }),
-    );
-}
-
-/// Region used for region-scoped enum validation: the configured region, or
-/// the platform default ([`template_model::DEFAULT_REGION`]) when unset. This
-/// keeps the default in one place and validates against the default region
-/// when none is configured.
-fn register_effective_region(rego: &mut regorus::Engine, holder: SharedRegion) {
-    let _ = rego.add_extension(
-        "effective_region".into(),
-        0,
-        Box::new(move |_: Vec<Value>| match holder.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-            Some(r) => Ok(Value::from(r.as_str())),
-            None => Ok(Value::from(DEFAULT_REGION)),
         }),
     );
 }

@@ -114,7 +114,8 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | `is_valid_cidr_strict`   | `(cidr) → bool`                 | Validate CIDR notation                        |
 | `ensure_list`            | `(value) → [value]`             | Wrap scalar in array, pass arrays through     |
 | `input_region`           | `() → region_string`            | Get the configured AWS region                 |
-| `effective_region`       | `() → region_string`            | Configured AWS region, or the platform default when unset |
+| `region_flat_invalid`    | `(region_map, value) → message` | Diagnostic message when a flat instance/node-type value is invalid for the effective scope (configured region, or union of all regions when unset), else undefined |
+| `region_conditional_invalid` | `(region_map, target_prop, normalize_engine_case, value, props) → message` | Diagnostic message when a conditional RDS instance-class value is invalid for the effective scope, else undefined |
 | `coerce_to_number`       | `(value) → number`              | CloudFormation-style number coercion          |
 | `coerce_to_string`       | `(value) → string`              | CloudFormation-style string coercion          |
 | `cfn_type_compatible`    | `(value, expected_type) → bool` | Check CFN type compatibility with coercion    |
