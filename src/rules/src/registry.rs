@@ -1092,6 +1092,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3699",
+        category: Category::Resource,
+        description: "API Gateway Method and Authorizer must use the same RestApi",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E3700",
         category: Category::Resource,
         description: "Validate CodePipeline Source actions are only in the first stage",

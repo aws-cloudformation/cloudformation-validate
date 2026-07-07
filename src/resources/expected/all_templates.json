@@ -376,6 +376,409 @@
       }
     ]
   },
+  "bad/E3699_authorizer_literal_and_param_rest_api.yaml": {
+    "filePath": "bad/E3699_authorizer_literal_and_param_rest_api.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 0,
+        "informational": 9,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3699",
+        "severity": "ERROR",
+        "message": "{'Ref': 'RestApi1'} was expected",
+        "source": "CFN_LINT",
+        "resourceId": "AuthorizerLiteral",
+        "resourceType": "AWS::ApiGateway::Authorizer",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Resource",
+        "startLine": 21,
+        "startColumn": 7,
+        "endLine": 21,
+        "endColumn": 16,
+        "ruleDescription": "API Gateway Method and Authorizer must use the same RestApi",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E3699",
+        "severity": "ERROR",
+        "message": "{'Ref': 'RestApi1'} was expected",
+        "source": "CFN_LINT",
+        "resourceId": "AuthorizerParam",
+        "resourceType": "AWS::ApiGateway::Authorizer",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Resource",
+        "startLine": 40,
+        "startColumn": 7,
+        "endLine": 40,
+        "endColumn": 16,
+        "ruleDescription": "API Gateway Method and Authorizer must use the same RestApi",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "AuthorizerLiteral",
+        "resourceType": "AWS::ApiGateway::Authorizer",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 21,
+        "startColumn": 7,
+        "endLine": 21,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodRefLiteralMismatch",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'RestApi1'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodRefLiteralMismatch",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.ResourceId",
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 7,
+        "endLine": 28,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt RestApi1.RootResourceId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HttpMethod' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodRefLiteralMismatch",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.HttpMethod",
+        "category": "Best Practice",
+        "startLine": 29,
+        "startColumn": 7,
+        "endLine": 29,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "AuthorizerParam",
+        "resourceType": "AWS::ApiGateway::Authorizer",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 40,
+        "startColumn": 7,
+        "endLine": 40,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'parameter ApiIdParam value unknown' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodRefParamMismatch",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 46,
+        "startColumn": 7,
+        "endLine": 46,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'RestApi1'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodRefParamMismatch",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.ResourceId",
+        "category": "Best Practice",
+        "startLine": 47,
+        "startColumn": 7,
+        "endLine": 47,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt RestApi1.RootResourceId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HttpMethod' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodRefParamMismatch",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.HttpMethod",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RestApi1' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "RestApi1",
+        "resourceType": "AWS::ApiGateway::RestApi",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/E3699_method_authorizer_rest_api_mismatch.yaml": {
+    "filePath": "bad/E3699_method_authorizer_rest_api_mismatch.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3699",
+        "severity": "ERROR",
+        "message": "{'Ref': 'RestApiA'} was expected",
+        "source": "CFN_LINT",
+        "resourceId": "AuthorizerB",
+        "resourceType": "AWS::ApiGateway::Authorizer",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Resource",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 16,
+        "ruleDescription": "API Gateway Method and Authorizer must use the same RestApi",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "AuthorizerB",
+        "resourceType": "AWS::ApiGateway::Authorizer",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'RestApiB'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodA",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'RestApiA'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodA",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.ResourceId",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt RestApiA.RootResourceId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HttpMethod' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MethodA",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.HttpMethod",
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 7,
+        "endLine": 28,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RestApiA' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "RestApiA",
+        "resourceType": "AWS::ApiGateway::RestApi",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RestApiB' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "RestApiB",
+        "resourceType": "AWS::ApiGateway::RestApi",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/E9001_unknown_resource_type.yaml": {
     "filePath": "bad/E9001_unknown_resource_type.yaml",
     "status": "OK",
@@ -481,6 +884,158 @@
         "startLine": 10,
         "startColumn": 5,
         "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/F3006_invalid_aws_namespaces.yaml": {
+    "filePath": "bad/F3006_invalid_aws_namespaces.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 3,
+        "errors": 0,
+        "warnings": 2,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3006",
+        "severity": "FATAL",
+        "message": "Unknown resource type 'AWS::Serverless::NotARealType'",
+        "source": "SCHEMA",
+        "resourceId": "BadServerless",
+        "resourceType": "AWS::Serverless::NotARealType",
+        "category": "Schema",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 16,
+        "ruleDescription": "Resource type must be recognized",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "extra": {
+            "resource_type": "AWS::Serverless::NotARealType"
+          }
+        }
+      },
+      {
+        "ruleId": "F3006",
+        "severity": "FATAL",
+        "message": "Unknown resource type 'AWS::CloudFormation::NotARealType'",
+        "source": "SCHEMA",
+        "resourceId": "BadCloudFormation",
+        "resourceType": "AWS::CloudFormation::NotARealType",
+        "category": "Schema",
+        "startLine": 15,
+        "startColumn": 3,
+        "endLine": 15,
+        "endColumn": 20,
+        "ruleDescription": "Resource type must be recognized",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "extra": {
+            "resource_type": "AWS::CloudFormation::NotARealType"
+          }
+        }
+      },
+      {
+        "ruleId": "F3006",
+        "severity": "FATAL",
+        "message": "Unknown resource type 'My::Org::MODULE::Thing'",
+        "source": "SCHEMA",
+        "resourceId": "MidStringModule",
+        "resourceType": "My::Org::MODULE::Thing",
+        "category": "Schema",
+        "startLine": 19,
+        "startColumn": 3,
+        "endLine": 19,
+        "endColumn": 18,
+        "ruleDescription": "Resource type must be recognized",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "extra": {
+            "resource_type": "My::Org::MODULE::Thing"
+          }
+        }
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "resourceId": "GoodCustomResource",
+        "resourceType": "AWS::CloudFormation::CustomResource",
+        "category": "Security",
+        "startLine": 29,
+        "startColumn": 3,
+        "endLine": 29,
+        "endColumn": 21,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "resourceId": "GoodCustom",
+        "resourceType": "Custom::MyThing",
+        "category": "Security",
+        "startLine": 36,
+        "startColumn": 3,
+        "endLine": 36,
+        "endColumn": 13,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ServiceToken' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "GoodCustomResource",
+        "resourceType": "AWS::CloudFormation::CustomResource",
+        "propertyPath": "Properties.ServiceToken",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'GoodFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "GoodFunction",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 5,
+        "endLine": 25,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
@@ -108530,6 +109085,213 @@
       }
     ]
   },
+  "good/apigateway_method_authorizer_same_rest_api.yaml": {
+    "filePath": "good/apigateway_method_authorizer_same_rest_api.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 9,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Authorizer1",
+        "resourceType": "AWS::ApiGateway::Authorizer",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 7,
+        "endLine": 19,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt RestApi1.RestApiId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Method1",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'RestApi1'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Method1",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.ResourceId",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt RestApi1.RootResourceId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HttpMethod' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Method1",
+        "resourceType": "AWS::ApiGateway::Method",
+        "propertyPath": "Properties.HttpMethod",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Deployment1",
+        "resourceType": "AWS::ApiGateway::Deployment",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt RestApi1.RestApiId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Stage1",
+        "resourceType": "AWS::ApiGateway::Stage",
+        "propertyPath": "Properties.RestApiId",
+        "category": "Best Practice",
+        "startLine": 40,
+        "startColumn": 7,
+        "endLine": 40,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'RestApi1'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StageName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Stage1",
+        "resourceType": "AWS::ApiGateway::Stage",
+        "propertyPath": "Properties.StageName",
+        "category": "Best Practice",
+        "startLine": 42,
+        "startColumn": 7,
+        "endLine": 42,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RestApi1' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "RestApi1",
+        "resourceType": "AWS::ApiGateway::RestApi",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Stage1' of type 'AWS::ApiGateway::Stage' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Stage1",
+        "resourceType": "AWS::ApiGateway::Stage",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 39,
+        "startColumn": 5,
+        "endLine": 39,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "good/aurora_dbinstance.yaml": {
     "filePath": "good/aurora_dbinstance.yaml",
     "status": "OK",
@@ -114766,6 +115528,61 @@
         "startColumn": 5,
         "endLine": 13,
         "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/iam_conditional_resource_arns.yaml": {
+    "filePath": "good/iam_conditional_resource_arns.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
+  "good/iam_intrinsic_resource_arns.yaml": {
+    "filePath": "good/iam_intrinsic_resource_arns.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SomeBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "SomeBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 13,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"

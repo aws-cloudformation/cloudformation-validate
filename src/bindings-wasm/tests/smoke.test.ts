@@ -417,8 +417,7 @@ describe("golden file validation", () => {
 describe("report fields excluded from golden", () => {
   const REPORT_TEMPLATE = "good/generic.yaml";
 
-  // The full built-in rule set is fixed and evaluated by both engines with no category filters.
-  const EXPECTED_RULES_EVALUATED = 278;
+  const EXPECTED_RULES_EVALUATED = 279;
   const EXPECTED_ENGINE_VERSION = "1.4.0";
 
   it("rulesEvaluated is the full built-in rule count under both engines", () => {
