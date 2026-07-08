@@ -3296,6 +3296,7 @@
     ],
     "AWS::EMRContainers::Endpoint": [
       "Arn",
+      "AuthProxyUrl",
       "CertificateAuthority",
       "CreatedAt",
       "FailureReason",
@@ -4307,6 +4308,7 @@
     "AWS::ImageBuilder::ImageRecipe": [
       "AdditionalInstanceConfiguration.SystemsManagerAgent.UninstallAfterBuild",
       "AdditionalInstanceConfiguration.UserDataOverride",
+      "AmiWatermarks",
       "Arn",
       "BlockDeviceMappings",
       "Components",
@@ -7421,6 +7423,7 @@
     ],
     "AWS::SSM::Parameter": [
       "AllowedPattern",
+      "Arn",
       "DataType",
       "Description",
       "Name",
@@ -14941,6 +14944,7 @@
     },
     "AWS::EMRContainers::Endpoint": {
       "Arn": "string",
+      "AuthProxyUrl": "string",
       "CreatedAt": "string",
       "ExecutionRoleArn": "string",
       "FailureReason": "string",
@@ -14949,6 +14953,7 @@
       "ReleaseLabel": "string",
       "SecurityGroup": "string",
       "ServerUrl": "string",
+      "SessionIdleTimeoutInMinutes": "integer",
       "State": "string",
       "StateDetails": "string",
       "Tags": "array",
@@ -14966,6 +14971,7 @@
       "Id": "string",
       "Name": "string",
       "SecurityConfigurationId": "string",
+      "SessionEnabled": "boolean",
       "Tags": "array"
     },
     "AWS::EMRServerless::Application": {
@@ -22053,6 +22059,7 @@
     },
     "AWS::SSM::Parameter": {
       "AllowedPattern": "string",
+      "Arn": "string",
       "DataType": "string",
       "Description": "string",
       "Name": "string",

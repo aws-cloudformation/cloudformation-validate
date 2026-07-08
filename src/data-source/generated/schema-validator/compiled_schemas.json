@@ -57595,28 +57595,7 @@
         "unique_items": true,
         "items": {
           "type": "string",
-          "enum": [
-            "af-south-1",
-            "ap-east-1",
-            "ap-northeast-1",
-            "ap-northeast-2",
-            "ap-south-1",
-            "ap-southeast-1",
-            "ap-southeast-2",
-            "ca-central-1",
-            "eu-central-1",
-            "eu-north-1",
-            "eu-west-1",
-            "eu-west-2",
-            "eu-west-3",
-            "me-central-1",
-            "me-south-1",
-            "sa-east-1",
-            "us-east-1",
-            "us-east-2",
-            "us-west-1",
-            "us-west-2"
-          ]
+          "pattern": "^[a-z]{2,}-[a-z]+-[0-9]+$"
         }
       },
       "ReplicationSpecification": {
@@ -57659,6 +57638,10 @@
     "required": [],
     "additional_properties": false,
     "read_only_properties": [],
+    "write_only_properties": [
+      "ClientSideTimestampsEnabled",
+      "ReplicationSpecification.RegionList"
+    ],
     "create_only_properties": [
       "KeyspaceName"
     ],
@@ -80052,6 +80035,7 @@
       },
       "Tags": {
         "type": "array",
+        "min_items": 0,
         "max_items": 50,
         "unique_items": true,
         "description": "The tags for the connector.",
@@ -140192,6 +140176,10 @@
         "type": "string",
         "description": "The ARN of the managed endpoint."
       },
+      "AuthProxyUrl": {
+        "type": "string",
+        "description": "The auth proxy URL for Spark Connect connections."
+      },
       "CertificateAuthority": {
         "ref_name": "Certificate"
       },
@@ -140240,6 +140228,12 @@
       "ServerUrl": {
         "type": "string",
         "description": "The server URL of the managed endpoint."
+      },
+      "SessionIdleTimeoutInMinutes": {
+        "type": "integer",
+        "minimum": 1.0,
+        "maximum": 1440.0,
+        "description": "The idle timeout in minutes for sessions on the managed endpoint."
       },
       "State": {
         "type": "string",
@@ -140454,7 +140448,11 @@
       "FailureReason",
       "CreatedAt",
       "SecurityGroup",
-      "CertificateAuthority"
+      "CertificateAuthority",
+      "AuthProxyUrl"
+    ],
+    "write_only_properties": [
+      "SessionIdleTimeoutInMinutes"
     ],
     "create_only_properties": [
       "Name",
@@ -140462,7 +140460,8 @@
       "Type",
       "ReleaseLabel",
       "ExecutionRoleArn",
-      "ConfigurationOverrides"
+      "ConfigurationOverrides",
+      "SessionIdleTimeoutInMinutes"
     ],
     "primary_identifier": [
       "Arn"
@@ -140849,6 +140848,10 @@
         "max_length": 64,
         "description": "The ID of the security configuration."
       },
+      "SessionEnabled": {
+        "type": "boolean",
+        "description": "Whether the virtual cluster is session-enabled for Spark Connect."
+      },
       "Tags": {
         "type": "array",
         "unique_items": true,
@@ -140945,7 +140948,9 @@
     ],
     "create_only_properties": [
       "ContainerProvider",
-      "Name"
+      "Name",
+      "SecurityConfigurationId",
+      "SessionEnabled"
     ],
     "primary_identifier": [
       "Id"
@@ -201997,7 +202002,9 @@
           },
           "KMSKeyArn": {
             "type": "string",
-            "pattern": "^(arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)|()$"
+            "pattern": "^(arn:(aws[a-zA-Z-]*)?:[a-z0-9-.]+:.*)|()$",
+            "min_length": 0,
+            "max_length": 10000
           },
           "RetentionPeriodInDays": {
             "type": "integer",
@@ -203377,7 +203384,7 @@
       },
       "ResourceArn": {
         "type": "string",
-        "pattern": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST|[a-zA-Z0-9-_]+))?$",
+        "pattern": "^(arn:(aws[a-zA-Z-]*)?:lambda:)?([a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:|web-function/)?([a-zA-Z0-9-_]+)(:(\\$LATEST|[a-zA-Z0-9-_]+))?$",
         "min_length": 12,
         "max_length": 1024,
         "description": "The resource arn of your Lambda resource"
@@ -332061,6 +332068,10 @@
         "max_length": 1024,
         "description": "A regular expression used to validate the parameter value. For example, for ``String`` types with values restricted to numbers, you can specify the following: ``AllowedPattern=^\\d+$``"
       },
+      "Arn": {
+        "type": "string",
+        "pattern": "arn:aws(-[a-z0-9-]+)*:ssm:[a-z0-9-]+:[0-9]{12}:parameter/.+"
+      },
       "DataType": {
         "type": "string",
         "enum": [
@@ -332129,7 +332140,9 @@
       "Type"
     ],
     "additional_properties": false,
-    "read_only_properties": [],
+    "read_only_properties": [
+      "Arn"
+    ],
     "write_only_properties": [
       "Description",
       "Tier",

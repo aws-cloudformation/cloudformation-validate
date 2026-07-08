@@ -6711,6 +6711,108 @@
                 "type": "string"
               },
               "Engine": {
+                "const": "db2-ae"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-se"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
                 "const": "oracle-se2"
               },
               "LicenseModel": {
@@ -8349,6 +8451,108 @@
                   "db.t3.large",
                   "db.t3.medium",
                   "db.t3.micro",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-ae"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-se"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
                   "db.t3.small",
                   "db.t3.xlarge"
                 ]
@@ -10965,6 +11169,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -11104,6 +11315,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -11332,6 +11547,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -11561,6 +11780,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -15176,6 +15402,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -15309,6 +15542,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -16638,6 +16875,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -16787,6 +17028,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -22752,6 +23000,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -22950,6 +23205,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -25222,6 +25481,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -25445,6 +25708,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -30152,6 +30422,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -30300,6 +30574,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -34102,6 +34383,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -34250,6 +34535,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -36935,6 +37227,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -37242,6 +37538,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -39895,6 +40198,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -40119,6 +40426,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -46989,6 +47303,102 @@
                 "type": "string"
               },
               "Engine": {
+                "const": "db2-ae"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.8xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-se"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.8xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
                 "const": "oracle-se2"
               },
               "LicenseModel": {
@@ -47063,80 +47473,6 @@
                   "db.t3.medium",
                   "db.t3.small",
                   "db.t3.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "db2-ae"
-              },
-              "LicenseModel": {
-                "const": "bring-your-own-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m6i.2xlarge",
-                  "db.m6i.4xlarge",
-                  "db.m6i.8xlarge",
-                  "db.m6i.large",
-                  "db.m6i.xlarge",
-                  "db.r6i.2xlarge",
-                  "db.r6i.4xlarge",
-                  "db.r6i.large",
-                  "db.r6i.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "db2-se"
-              },
-              "LicenseModel": {
-                "const": "bring-your-own-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m6i.2xlarge",
-                  "db.m6i.4xlarge",
-                  "db.m6i.8xlarge",
-                  "db.m6i.large",
-                  "db.m6i.xlarge",
-                  "db.r6i.2xlarge",
-                  "db.r6i.4xlarge",
-                  "db.r6i.large",
-                  "db.r6i.xlarge"
                 ]
               }
             }
@@ -47393,10 +47729,21 @@
                   "db.m6i.8xlarge",
                   "db.m6i.large",
                   "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
                   "db.r6i.2xlarge",
                   "db.r6i.4xlarge",
                   "db.r6i.large",
-                  "db.r6i.xlarge"
+                  "db.r6i.xlarge",
+                  "db.r7i.8xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
                 ]
               }
             }
@@ -47430,10 +47777,21 @@
                   "db.m6i.8xlarge",
                   "db.m6i.large",
                   "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
                   "db.r6i.2xlarge",
                   "db.r6i.4xlarge",
                   "db.r6i.large",
-                  "db.r6i.xlarge"
+                  "db.r6i.xlarge",
+                  "db.r7i.8xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
                 ]
               }
             }
@@ -51774,7 +52132,12 @@
                   "db.r6i.2xlarge",
                   "db.r6i.4xlarge",
                   "db.r6i.large",
-                  "db.r6i.xlarge"
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
                 ]
               }
             }
@@ -51811,7 +52174,12 @@
                   "db.r6i.2xlarge",
                   "db.r6i.4xlarge",
                   "db.r6i.large",
-                  "db.r6i.xlarge"
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
                 ]
               }
             }
@@ -54303,7 +54671,12 @@
                   "db.r6i.2xlarge",
                   "db.r6i.4xlarge",
                   "db.r6i.large",
-                  "db.r6i.xlarge"
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
                 ]
               }
             }
@@ -54340,7 +54713,12 @@
                   "db.r6i.2xlarge",
                   "db.r6i.4xlarge",
                   "db.r6i.large",
-                  "db.r6i.xlarge"
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
                 ]
               }
             }
@@ -56602,7 +56980,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -56787,7 +57172,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -58146,7 +58535,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -58362,7 +58755,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -59769,6 +60169,90 @@
                 "type": "string"
               },
               "Engine": {
+                "const": "db2-ae"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-se"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
                 "const": "postgres"
               },
               "LicenseModel": false
@@ -60852,6 +61336,90 @@
                 "type": "string"
               },
               "Engine": {
+                "const": "db2-ae"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-se"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
                 "const": "oracle-se2"
               },
               "LicenseModel": {
@@ -61104,6 +61672,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -61152,6 +61729,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -61239,6 +61825,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -61287,6 +61882,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -61370,6 +61974,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -61418,6 +62031,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -61504,6 +62126,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -61552,6 +62183,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -61636,6 +62276,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -61684,6 +62333,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -61771,6 +62429,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -61819,6 +62486,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -62582,756 +63258,6 @@
                 "type": "string"
               },
               "Engine": {
-                "const": "mariadb"
-              },
-              "LicenseModel": false
-            },
-            "required": [
-              "Engine",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m3.2xlarge",
-                  "db.m3.large",
-                  "db.m3.medium",
-                  "db.m3.xlarge",
-                  "db.m4.10xlarge",
-                  "db.m4.16xlarge",
-                  "db.m4.2xlarge",
-                  "db.m4.4xlarge",
-                  "db.m4.large",
-                  "db.m4.xlarge",
-                  "db.m5.12xlarge",
-                  "db.m5.16xlarge",
-                  "db.m5.24xlarge",
-                  "db.m5.2xlarge",
-                  "db.m5.4xlarge",
-                  "db.m5.8xlarge",
-                  "db.m5.large",
-                  "db.m5.xlarge",
-                  "db.m5d.12xlarge",
-                  "db.m5d.16xlarge",
-                  "db.m5d.24xlarge",
-                  "db.m5d.2xlarge",
-                  "db.m5d.4xlarge",
-                  "db.m5d.8xlarge",
-                  "db.m5d.large",
-                  "db.m5d.xlarge",
-                  "db.m6g.12xlarge",
-                  "db.m6g.16xlarge",
-                  "db.m6g.2xlarge",
-                  "db.m6g.4xlarge",
-                  "db.m6g.8xlarge",
-                  "db.m6g.large",
-                  "db.m6g.xlarge",
-                  "db.m7g.12xlarge",
-                  "db.m7g.16xlarge",
-                  "db.m7g.2xlarge",
-                  "db.m7g.4xlarge",
-                  "db.m7g.8xlarge",
-                  "db.m7g.large",
-                  "db.m7g.xlarge",
-                  "db.r3.2xlarge",
-                  "db.r3.4xlarge",
-                  "db.r3.8xlarge",
-                  "db.r3.large",
-                  "db.r3.xlarge",
-                  "db.r4.16xlarge",
-                  "db.r4.2xlarge",
-                  "db.r4.4xlarge",
-                  "db.r4.8xlarge",
-                  "db.r4.large",
-                  "db.r4.xlarge",
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r5d.12xlarge",
-                  "db.r5d.16xlarge",
-                  "db.r5d.24xlarge",
-                  "db.r5d.2xlarge",
-                  "db.r5d.4xlarge",
-                  "db.r5d.8xlarge",
-                  "db.r5d.large",
-                  "db.r5d.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r6gd.12xlarge",
-                  "db.r6gd.16xlarge",
-                  "db.r6gd.2xlarge",
-                  "db.r6gd.4xlarge",
-                  "db.r6gd.8xlarge",
-                  "db.r6gd.large",
-                  "db.r6gd.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.t2.2xlarge",
-                  "db.t2.large",
-                  "db.t2.medium",
-                  "db.t2.micro",
-                  "db.t2.small",
-                  "db.t2.xlarge",
-                  "db.t3.2xlarge",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.micro",
-                  "db.t3.small",
-                  "db.t3.xlarge",
-                  "db.t4g.2xlarge",
-                  "db.t4g.large",
-                  "db.t4g.medium",
-                  "db.t4g.micro",
-                  "db.t4g.small",
-                  "db.t4g.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "mariadb"
-              },
-              "LicenseModel": {
-                "const": "general-public-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m3.2xlarge",
-                  "db.m3.large",
-                  "db.m3.medium",
-                  "db.m3.xlarge",
-                  "db.m4.10xlarge",
-                  "db.m4.16xlarge",
-                  "db.m4.2xlarge",
-                  "db.m4.4xlarge",
-                  "db.m4.large",
-                  "db.m4.xlarge",
-                  "db.m5.12xlarge",
-                  "db.m5.16xlarge",
-                  "db.m5.24xlarge",
-                  "db.m5.2xlarge",
-                  "db.m5.4xlarge",
-                  "db.m5.8xlarge",
-                  "db.m5.large",
-                  "db.m5.xlarge",
-                  "db.m5d.12xlarge",
-                  "db.m5d.16xlarge",
-                  "db.m5d.24xlarge",
-                  "db.m5d.2xlarge",
-                  "db.m5d.4xlarge",
-                  "db.m5d.8xlarge",
-                  "db.m5d.large",
-                  "db.m5d.xlarge",
-                  "db.m6g.12xlarge",
-                  "db.m6g.16xlarge",
-                  "db.m6g.2xlarge",
-                  "db.m6g.4xlarge",
-                  "db.m6g.8xlarge",
-                  "db.m6g.large",
-                  "db.m6g.xlarge",
-                  "db.m7g.12xlarge",
-                  "db.m7g.16xlarge",
-                  "db.m7g.2xlarge",
-                  "db.m7g.4xlarge",
-                  "db.m7g.8xlarge",
-                  "db.m7g.large",
-                  "db.m7g.xlarge",
-                  "db.r3.2xlarge",
-                  "db.r3.4xlarge",
-                  "db.r3.8xlarge",
-                  "db.r3.large",
-                  "db.r3.xlarge",
-                  "db.r4.16xlarge",
-                  "db.r4.2xlarge",
-                  "db.r4.4xlarge",
-                  "db.r4.8xlarge",
-                  "db.r4.large",
-                  "db.r4.xlarge",
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r5d.12xlarge",
-                  "db.r5d.16xlarge",
-                  "db.r5d.24xlarge",
-                  "db.r5d.2xlarge",
-                  "db.r5d.4xlarge",
-                  "db.r5d.8xlarge",
-                  "db.r5d.large",
-                  "db.r5d.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r6gd.12xlarge",
-                  "db.r6gd.16xlarge",
-                  "db.r6gd.2xlarge",
-                  "db.r6gd.4xlarge",
-                  "db.r6gd.8xlarge",
-                  "db.r6gd.large",
-                  "db.r6gd.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.t2.2xlarge",
-                  "db.t2.large",
-                  "db.t2.medium",
-                  "db.t2.micro",
-                  "db.t2.small",
-                  "db.t2.xlarge",
-                  "db.t3.2xlarge",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.micro",
-                  "db.t3.small",
-                  "db.t3.xlarge",
-                  "db.t4g.2xlarge",
-                  "db.t4g.large",
-                  "db.t4g.medium",
-                  "db.t4g.micro",
-                  "db.t4g.small",
-                  "db.t4g.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "aurora-mysql"
-              },
-              "LicenseModel": false
-            },
-            "required": [
-              "Engine",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.serverless",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.small",
-                  "db.t4g.large",
-                  "db.t4g.medium"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "aurora-mysql"
-              },
-              "LicenseModel": {
-                "const": "general-public-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.serverless",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.small",
-                  "db.t4g.large",
-                  "db.t4g.medium"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "aurora"
-              },
-              "LicenseModel": false
-            },
-            "required": [
-              "Engine",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.small",
-                  "db.t4g.large",
-                  "db.t4g.medium"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "aurora"
-              },
-              "LicenseModel": {
-                "const": "general-public-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.small",
-                  "db.t4g.large",
-                  "db.t4g.medium"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "postgres"
-              },
-              "LicenseModel": false
-            },
-            "required": [
-              "Engine",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m1.small",
-                  "db.m3.2xlarge",
-                  "db.m3.large",
-                  "db.m3.medium",
-                  "db.m3.xlarge",
-                  "db.m4.10xlarge",
-                  "db.m4.16xlarge",
-                  "db.m4.2xlarge",
-                  "db.m4.4xlarge",
-                  "db.m4.large",
-                  "db.m4.xlarge",
-                  "db.m5.12xlarge",
-                  "db.m5.16xlarge",
-                  "db.m5.24xlarge",
-                  "db.m5.2xlarge",
-                  "db.m5.4xlarge",
-                  "db.m5.8xlarge",
-                  "db.m5.large",
-                  "db.m5.xlarge",
-                  "db.m5d.12xlarge",
-                  "db.m5d.16xlarge",
-                  "db.m5d.24xlarge",
-                  "db.m5d.2xlarge",
-                  "db.m5d.4xlarge",
-                  "db.m5d.8xlarge",
-                  "db.m5d.large",
-                  "db.m5d.xlarge",
-                  "db.m6g.12xlarge",
-                  "db.m6g.16xlarge",
-                  "db.m6g.2xlarge",
-                  "db.m6g.4xlarge",
-                  "db.m6g.8xlarge",
-                  "db.m6g.large",
-                  "db.m6g.xlarge",
-                  "db.m7g.12xlarge",
-                  "db.m7g.16xlarge",
-                  "db.m7g.2xlarge",
-                  "db.m7g.4xlarge",
-                  "db.m7g.8xlarge",
-                  "db.m7g.large",
-                  "db.m7g.xlarge",
-                  "db.r3.2xlarge",
-                  "db.r3.4xlarge",
-                  "db.r3.8xlarge",
-                  "db.r3.large",
-                  "db.r3.xlarge",
-                  "db.r4.16xlarge",
-                  "db.r4.2xlarge",
-                  "db.r4.4xlarge",
-                  "db.r4.8xlarge",
-                  "db.r4.large",
-                  "db.r4.xlarge",
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r5d.12xlarge",
-                  "db.r5d.16xlarge",
-                  "db.r5d.24xlarge",
-                  "db.r5d.2xlarge",
-                  "db.r5d.4xlarge",
-                  "db.r5d.8xlarge",
-                  "db.r5d.large",
-                  "db.r5d.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r6gd.12xlarge",
-                  "db.r6gd.16xlarge",
-                  "db.r6gd.2xlarge",
-                  "db.r6gd.4xlarge",
-                  "db.r6gd.8xlarge",
-                  "db.r6gd.large",
-                  "db.r6gd.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.t1.micro",
-                  "db.t2.2xlarge",
-                  "db.t2.large",
-                  "db.t2.medium",
-                  "db.t2.micro",
-                  "db.t2.small",
-                  "db.t2.xlarge",
-                  "db.t3.2xlarge",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.micro",
-                  "db.t3.small",
-                  "db.t3.xlarge",
-                  "db.t4g.2xlarge",
-                  "db.t4g.large",
-                  "db.t4g.medium",
-                  "db.t4g.micro",
-                  "db.t4g.small",
-                  "db.t4g.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "postgres"
-              },
-              "LicenseModel": {
-                "const": "general-public-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m1.small",
-                  "db.m3.2xlarge",
-                  "db.m3.large",
-                  "db.m3.medium",
-                  "db.m3.xlarge",
-                  "db.m4.10xlarge",
-                  "db.m4.16xlarge",
-                  "db.m4.2xlarge",
-                  "db.m4.4xlarge",
-                  "db.m4.large",
-                  "db.m4.xlarge",
-                  "db.m5.12xlarge",
-                  "db.m5.16xlarge",
-                  "db.m5.24xlarge",
-                  "db.m5.2xlarge",
-                  "db.m5.4xlarge",
-                  "db.m5.8xlarge",
-                  "db.m5.large",
-                  "db.m5.xlarge",
-                  "db.m5d.12xlarge",
-                  "db.m5d.16xlarge",
-                  "db.m5d.24xlarge",
-                  "db.m5d.2xlarge",
-                  "db.m5d.4xlarge",
-                  "db.m5d.8xlarge",
-                  "db.m5d.large",
-                  "db.m5d.xlarge",
-                  "db.m6g.12xlarge",
-                  "db.m6g.16xlarge",
-                  "db.m6g.2xlarge",
-                  "db.m6g.4xlarge",
-                  "db.m6g.8xlarge",
-                  "db.m6g.large",
-                  "db.m6g.xlarge",
-                  "db.m7g.12xlarge",
-                  "db.m7g.16xlarge",
-                  "db.m7g.2xlarge",
-                  "db.m7g.4xlarge",
-                  "db.m7g.8xlarge",
-                  "db.m7g.large",
-                  "db.m7g.xlarge",
-                  "db.r3.2xlarge",
-                  "db.r3.4xlarge",
-                  "db.r3.8xlarge",
-                  "db.r3.large",
-                  "db.r3.xlarge",
-                  "db.r4.16xlarge",
-                  "db.r4.2xlarge",
-                  "db.r4.4xlarge",
-                  "db.r4.8xlarge",
-                  "db.r4.large",
-                  "db.r4.xlarge",
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r5d.12xlarge",
-                  "db.r5d.16xlarge",
-                  "db.r5d.24xlarge",
-                  "db.r5d.2xlarge",
-                  "db.r5d.4xlarge",
-                  "db.r5d.8xlarge",
-                  "db.r5d.large",
-                  "db.r5d.xlarge",
-                  "db.r6g.12xlarge",
-                  "db.r6g.16xlarge",
-                  "db.r6g.2xlarge",
-                  "db.r6g.4xlarge",
-                  "db.r6g.8xlarge",
-                  "db.r6g.large",
-                  "db.r6g.xlarge",
-                  "db.r6gd.12xlarge",
-                  "db.r6gd.16xlarge",
-                  "db.r6gd.2xlarge",
-                  "db.r6gd.4xlarge",
-                  "db.r6gd.8xlarge",
-                  "db.r6gd.large",
-                  "db.r6gd.xlarge",
-                  "db.r7g.12xlarge",
-                  "db.r7g.16xlarge",
-                  "db.r7g.2xlarge",
-                  "db.r7g.4xlarge",
-                  "db.r7g.8xlarge",
-                  "db.r7g.large",
-                  "db.r7g.xlarge",
-                  "db.t1.micro",
-                  "db.t2.2xlarge",
-                  "db.t2.large",
-                  "db.t2.medium",
-                  "db.t2.micro",
-                  "db.t2.small",
-                  "db.t2.xlarge",
-                  "db.t3.2xlarge",
-                  "db.t3.large",
-                  "db.t3.medium",
-                  "db.t3.micro",
-                  "db.t3.small",
-                  "db.t3.xlarge",
-                  "db.t4g.2xlarge",
-                  "db.t4g.large",
-                  "db.t4g.medium",
-                  "db.t4g.micro",
-                  "db.t4g.small",
-                  "db.t4g.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
                 "const": "mysql"
               },
               "LicenseModel": false
@@ -63386,6 +63312,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -63434,6 +63369,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t1.micro",
                   "db.t2.2xlarge",
                   "db.t2.large",
@@ -63522,6 +63466,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -63570,6 +63523,873 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.t1.micro",
+                  "db.t2.2xlarge",
+                  "db.t2.large",
+                  "db.t2.medium",
+                  "db.t2.micro",
+                  "db.t2.small",
+                  "db.t2.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.micro",
+                  "db.t3.small",
+                  "db.t3.xlarge",
+                  "db.t4g.2xlarge",
+                  "db.t4g.large",
+                  "db.t4g.medium",
+                  "db.t4g.micro",
+                  "db.t4g.small",
+                  "db.t4g.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "mariadb"
+              },
+              "LicenseModel": false
+            },
+            "required": [
+              "Engine",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m3.2xlarge",
+                  "db.m3.large",
+                  "db.m3.medium",
+                  "db.m3.xlarge",
+                  "db.m4.10xlarge",
+                  "db.m4.16xlarge",
+                  "db.m4.2xlarge",
+                  "db.m4.4xlarge",
+                  "db.m4.large",
+                  "db.m4.xlarge",
+                  "db.m5.12xlarge",
+                  "db.m5.16xlarge",
+                  "db.m5.24xlarge",
+                  "db.m5.2xlarge",
+                  "db.m5.4xlarge",
+                  "db.m5.8xlarge",
+                  "db.m5.large",
+                  "db.m5.xlarge",
+                  "db.m5d.12xlarge",
+                  "db.m5d.16xlarge",
+                  "db.m5d.24xlarge",
+                  "db.m5d.2xlarge",
+                  "db.m5d.4xlarge",
+                  "db.m5d.8xlarge",
+                  "db.m5d.large",
+                  "db.m5d.xlarge",
+                  "db.m6g.12xlarge",
+                  "db.m6g.16xlarge",
+                  "db.m6g.2xlarge",
+                  "db.m6g.4xlarge",
+                  "db.m6g.8xlarge",
+                  "db.m6g.large",
+                  "db.m6g.xlarge",
+                  "db.m7g.12xlarge",
+                  "db.m7g.16xlarge",
+                  "db.m7g.2xlarge",
+                  "db.m7g.4xlarge",
+                  "db.m7g.8xlarge",
+                  "db.m7g.large",
+                  "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
+                  "db.r3.2xlarge",
+                  "db.r3.4xlarge",
+                  "db.r3.8xlarge",
+                  "db.r3.large",
+                  "db.r3.xlarge",
+                  "db.r4.16xlarge",
+                  "db.r4.2xlarge",
+                  "db.r4.4xlarge",
+                  "db.r4.8xlarge",
+                  "db.r4.large",
+                  "db.r4.xlarge",
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r5d.12xlarge",
+                  "db.r5d.16xlarge",
+                  "db.r5d.24xlarge",
+                  "db.r5d.2xlarge",
+                  "db.r5d.4xlarge",
+                  "db.r5d.8xlarge",
+                  "db.r5d.large",
+                  "db.r5d.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r6gd.12xlarge",
+                  "db.r6gd.16xlarge",
+                  "db.r6gd.2xlarge",
+                  "db.r6gd.4xlarge",
+                  "db.r6gd.8xlarge",
+                  "db.r6gd.large",
+                  "db.r6gd.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.t2.2xlarge",
+                  "db.t2.large",
+                  "db.t2.medium",
+                  "db.t2.micro",
+                  "db.t2.small",
+                  "db.t2.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.micro",
+                  "db.t3.small",
+                  "db.t3.xlarge",
+                  "db.t4g.2xlarge",
+                  "db.t4g.large",
+                  "db.t4g.medium",
+                  "db.t4g.micro",
+                  "db.t4g.small",
+                  "db.t4g.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "mariadb"
+              },
+              "LicenseModel": {
+                "const": "general-public-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m3.2xlarge",
+                  "db.m3.large",
+                  "db.m3.medium",
+                  "db.m3.xlarge",
+                  "db.m4.10xlarge",
+                  "db.m4.16xlarge",
+                  "db.m4.2xlarge",
+                  "db.m4.4xlarge",
+                  "db.m4.large",
+                  "db.m4.xlarge",
+                  "db.m5.12xlarge",
+                  "db.m5.16xlarge",
+                  "db.m5.24xlarge",
+                  "db.m5.2xlarge",
+                  "db.m5.4xlarge",
+                  "db.m5.8xlarge",
+                  "db.m5.large",
+                  "db.m5.xlarge",
+                  "db.m5d.12xlarge",
+                  "db.m5d.16xlarge",
+                  "db.m5d.24xlarge",
+                  "db.m5d.2xlarge",
+                  "db.m5d.4xlarge",
+                  "db.m5d.8xlarge",
+                  "db.m5d.large",
+                  "db.m5d.xlarge",
+                  "db.m6g.12xlarge",
+                  "db.m6g.16xlarge",
+                  "db.m6g.2xlarge",
+                  "db.m6g.4xlarge",
+                  "db.m6g.8xlarge",
+                  "db.m6g.large",
+                  "db.m6g.xlarge",
+                  "db.m7g.12xlarge",
+                  "db.m7g.16xlarge",
+                  "db.m7g.2xlarge",
+                  "db.m7g.4xlarge",
+                  "db.m7g.8xlarge",
+                  "db.m7g.large",
+                  "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
+                  "db.r3.2xlarge",
+                  "db.r3.4xlarge",
+                  "db.r3.8xlarge",
+                  "db.r3.large",
+                  "db.r3.xlarge",
+                  "db.r4.16xlarge",
+                  "db.r4.2xlarge",
+                  "db.r4.4xlarge",
+                  "db.r4.8xlarge",
+                  "db.r4.large",
+                  "db.r4.xlarge",
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r5d.12xlarge",
+                  "db.r5d.16xlarge",
+                  "db.r5d.24xlarge",
+                  "db.r5d.2xlarge",
+                  "db.r5d.4xlarge",
+                  "db.r5d.8xlarge",
+                  "db.r5d.large",
+                  "db.r5d.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r6gd.12xlarge",
+                  "db.r6gd.16xlarge",
+                  "db.r6gd.2xlarge",
+                  "db.r6gd.4xlarge",
+                  "db.r6gd.8xlarge",
+                  "db.r6gd.large",
+                  "db.r6gd.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.t2.2xlarge",
+                  "db.t2.large",
+                  "db.t2.medium",
+                  "db.t2.micro",
+                  "db.t2.small",
+                  "db.t2.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.micro",
+                  "db.t3.small",
+                  "db.t3.xlarge",
+                  "db.t4g.2xlarge",
+                  "db.t4g.large",
+                  "db.t4g.medium",
+                  "db.t4g.micro",
+                  "db.t4g.small",
+                  "db.t4g.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "aurora-mysql"
+              },
+              "LicenseModel": false
+            },
+            "required": [
+              "Engine",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.serverless",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t4g.large",
+                  "db.t4g.medium"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "aurora-mysql"
+              },
+              "LicenseModel": {
+                "const": "general-public-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.serverless",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t4g.large",
+                  "db.t4g.medium"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "aurora"
+              },
+              "LicenseModel": false
+            },
+            "required": [
+              "Engine",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t4g.large",
+                  "db.t4g.medium"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "aurora"
+              },
+              "LicenseModel": {
+                "const": "general-public-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t4g.large",
+                  "db.t4g.medium"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "postgres"
+              },
+              "LicenseModel": false
+            },
+            "required": [
+              "Engine",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m1.small",
+                  "db.m3.2xlarge",
+                  "db.m3.large",
+                  "db.m3.medium",
+                  "db.m3.xlarge",
+                  "db.m4.10xlarge",
+                  "db.m4.16xlarge",
+                  "db.m4.2xlarge",
+                  "db.m4.4xlarge",
+                  "db.m4.large",
+                  "db.m4.xlarge",
+                  "db.m5.12xlarge",
+                  "db.m5.16xlarge",
+                  "db.m5.24xlarge",
+                  "db.m5.2xlarge",
+                  "db.m5.4xlarge",
+                  "db.m5.8xlarge",
+                  "db.m5.large",
+                  "db.m5.xlarge",
+                  "db.m5d.12xlarge",
+                  "db.m5d.16xlarge",
+                  "db.m5d.24xlarge",
+                  "db.m5d.2xlarge",
+                  "db.m5d.4xlarge",
+                  "db.m5d.8xlarge",
+                  "db.m5d.large",
+                  "db.m5d.xlarge",
+                  "db.m6g.12xlarge",
+                  "db.m6g.16xlarge",
+                  "db.m6g.2xlarge",
+                  "db.m6g.4xlarge",
+                  "db.m6g.8xlarge",
+                  "db.m6g.large",
+                  "db.m6g.xlarge",
+                  "db.m7g.12xlarge",
+                  "db.m7g.16xlarge",
+                  "db.m7g.2xlarge",
+                  "db.m7g.4xlarge",
+                  "db.m7g.8xlarge",
+                  "db.m7g.large",
+                  "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
+                  "db.r3.2xlarge",
+                  "db.r3.4xlarge",
+                  "db.r3.8xlarge",
+                  "db.r3.large",
+                  "db.r3.xlarge",
+                  "db.r4.16xlarge",
+                  "db.r4.2xlarge",
+                  "db.r4.4xlarge",
+                  "db.r4.8xlarge",
+                  "db.r4.large",
+                  "db.r4.xlarge",
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r5d.12xlarge",
+                  "db.r5d.16xlarge",
+                  "db.r5d.24xlarge",
+                  "db.r5d.2xlarge",
+                  "db.r5d.4xlarge",
+                  "db.r5d.8xlarge",
+                  "db.r5d.large",
+                  "db.r5d.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r6gd.12xlarge",
+                  "db.r6gd.16xlarge",
+                  "db.r6gd.2xlarge",
+                  "db.r6gd.4xlarge",
+                  "db.r6gd.8xlarge",
+                  "db.r6gd.large",
+                  "db.r6gd.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
+                  "db.t1.micro",
+                  "db.t2.2xlarge",
+                  "db.t2.large",
+                  "db.t2.medium",
+                  "db.t2.micro",
+                  "db.t2.small",
+                  "db.t2.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.micro",
+                  "db.t3.small",
+                  "db.t3.xlarge",
+                  "db.t4g.2xlarge",
+                  "db.t4g.large",
+                  "db.t4g.medium",
+                  "db.t4g.micro",
+                  "db.t4g.small",
+                  "db.t4g.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "postgres"
+              },
+              "LicenseModel": {
+                "const": "general-public-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m1.small",
+                  "db.m3.2xlarge",
+                  "db.m3.large",
+                  "db.m3.medium",
+                  "db.m3.xlarge",
+                  "db.m4.10xlarge",
+                  "db.m4.16xlarge",
+                  "db.m4.2xlarge",
+                  "db.m4.4xlarge",
+                  "db.m4.large",
+                  "db.m4.xlarge",
+                  "db.m5.12xlarge",
+                  "db.m5.16xlarge",
+                  "db.m5.24xlarge",
+                  "db.m5.2xlarge",
+                  "db.m5.4xlarge",
+                  "db.m5.8xlarge",
+                  "db.m5.large",
+                  "db.m5.xlarge",
+                  "db.m5d.12xlarge",
+                  "db.m5d.16xlarge",
+                  "db.m5d.24xlarge",
+                  "db.m5d.2xlarge",
+                  "db.m5d.4xlarge",
+                  "db.m5d.8xlarge",
+                  "db.m5d.large",
+                  "db.m5d.xlarge",
+                  "db.m6g.12xlarge",
+                  "db.m6g.16xlarge",
+                  "db.m6g.2xlarge",
+                  "db.m6g.4xlarge",
+                  "db.m6g.8xlarge",
+                  "db.m6g.large",
+                  "db.m6g.xlarge",
+                  "db.m7g.12xlarge",
+                  "db.m7g.16xlarge",
+                  "db.m7g.2xlarge",
+                  "db.m7g.4xlarge",
+                  "db.m7g.8xlarge",
+                  "db.m7g.large",
+                  "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
+                  "db.r3.2xlarge",
+                  "db.r3.4xlarge",
+                  "db.r3.8xlarge",
+                  "db.r3.large",
+                  "db.r3.xlarge",
+                  "db.r4.16xlarge",
+                  "db.r4.2xlarge",
+                  "db.r4.4xlarge",
+                  "db.r4.8xlarge",
+                  "db.r4.large",
+                  "db.r4.xlarge",
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r5d.12xlarge",
+                  "db.r5d.16xlarge",
+                  "db.r5d.24xlarge",
+                  "db.r5d.2xlarge",
+                  "db.r5d.4xlarge",
+                  "db.r5d.8xlarge",
+                  "db.r5d.large",
+                  "db.r5d.xlarge",
+                  "db.r6g.12xlarge",
+                  "db.r6g.16xlarge",
+                  "db.r6g.2xlarge",
+                  "db.r6g.4xlarge",
+                  "db.r6g.8xlarge",
+                  "db.r6g.large",
+                  "db.r6g.xlarge",
+                  "db.r6gd.12xlarge",
+                  "db.r6gd.16xlarge",
+                  "db.r6gd.2xlarge",
+                  "db.r6gd.4xlarge",
+                  "db.r6gd.8xlarge",
+                  "db.r6gd.large",
+                  "db.r6gd.xlarge",
+                  "db.r7g.12xlarge",
+                  "db.r7g.16xlarge",
+                  "db.r7g.2xlarge",
+                  "db.r7g.4xlarge",
+                  "db.r7g.8xlarge",
+                  "db.r7g.large",
+                  "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t1.micro",
                   "db.t2.2xlarge",
                   "db.t2.large",
@@ -63636,6 +64456,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.serverless",
                   "db.t3.large",
                   "db.t3.medium",
@@ -63691,6 +64520,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.serverless",
                   "db.t3.large",
                   "db.t3.medium",
@@ -63915,6 +64753,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -63951,6 +64798,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -64033,6 +64889,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -64069,6 +64934,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -64148,6 +65022,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -64184,6 +65067,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -64266,6 +65158,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -64302,6 +65203,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -64381,6 +65291,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -64417,6 +65336,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -64499,6 +65427,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -64535,6 +65472,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -64606,6 +65552,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.serverless",
                   "db.t3.large",
                   "db.t3.medium",
@@ -64667,6 +65622,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.serverless",
                   "db.t3.large",
                   "db.t3.medium",
@@ -64725,6 +65689,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.serverless",
                   "db.t2.medium",
                   "db.t2.small",
@@ -64789,6 +65762,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.serverless",
                   "db.t2.medium",
                   "db.t2.small",
@@ -64850,6 +65832,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.medium",
                   "db.t2.small",
                   "db.t3.large",
@@ -64913,6 +65904,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.medium",
                   "db.t2.small",
                   "db.t3.large",
@@ -65714,6 +66714,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -65750,6 +66759,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -65832,6 +66850,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -65868,6 +66895,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -65947,6 +66983,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -65983,6 +67028,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -66065,6 +67119,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -66101,6 +67164,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -66180,6 +67252,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -66216,6 +67297,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -66298,6 +67388,15 @@
                   "db.m7g.8xlarge",
                   "db.m7g.large",
                   "db.m7g.xlarge",
+                  "db.m8g.12xlarge",
+                  "db.m8g.16xlarge",
+                  "db.m8g.24xlarge",
+                  "db.m8g.2xlarge",
+                  "db.m8g.48xlarge",
+                  "db.m8g.4xlarge",
+                  "db.m8g.8xlarge",
+                  "db.m8g.large",
+                  "db.m8g.xlarge",
                   "db.r4.16xlarge",
                   "db.r4.2xlarge",
                   "db.r4.4xlarge",
@@ -66334,6 +67433,15 @@
                   "db.r7g.8xlarge",
                   "db.r7g.large",
                   "db.r7g.xlarge",
+                  "db.r8g.12xlarge",
+                  "db.r8g.16xlarge",
+                  "db.r8g.24xlarge",
+                  "db.r8g.2xlarge",
+                  "db.r8g.48xlarge",
+                  "db.r8g.4xlarge",
+                  "db.r8g.8xlarge",
+                  "db.r8g.large",
+                  "db.r8g.xlarge",
                   "db.t2.2xlarge",
                   "db.t2.large",
                   "db.t2.medium",
@@ -66627,6 +67735,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -66876,6 +67993,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -67122,6 +68248,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -67371,6 +68506,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -67617,6 +68761,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -67866,6 +69019,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -68686,6 +69848,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -68840,6 +70006,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -69678,6 +70851,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -69927,6 +71109,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -70173,6 +71364,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -70422,6 +71622,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -70668,6 +71877,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -70917,6 +72135,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -71761,6 +72988,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -72008,6 +73239,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -75920,7 +77158,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -76017,7 +77259,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -78191,7 +79440,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -78288,7 +79541,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -80073,7 +81333,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -80155,7 +81422,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -81564,7 +82835,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -81646,7 +82924,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -85390,6 +86672,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -85691,6 +86977,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -91060,6 +92353,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -91187,6 +92487,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -93303,6 +94607,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -93523,6 +94831,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -94294,6 +95609,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -94427,6 +95746,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -97610,7 +98936,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -97719,7 +99052,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -98788,115 +100125,6 @@
                 "type": "string"
               },
               "Engine": {
-                "const": "sqlserver-se"
-              },
-              "LicenseModel": {
-                "const": "license-included"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m4.10xlarge",
-                  "db.m5.12xlarge",
-                  "db.m5.16xlarge",
-                  "db.m5.24xlarge",
-                  "db.m5.2xlarge",
-                  "db.m5.4xlarge",
-                  "db.m5.8xlarge",
-                  "db.m5.large",
-                  "db.m5.xlarge",
-                  "db.m5d.12xlarge",
-                  "db.m5d.16xlarge",
-                  "db.m5d.24xlarge",
-                  "db.m5d.2xlarge",
-                  "db.m5d.4xlarge",
-                  "db.m5d.8xlarge",
-                  "db.m5d.large",
-                  "db.m5d.xlarge",
-                  "db.m6i.2xlarge",
-                  "db.m6i.4xlarge",
-                  "db.m6i.8xlarge",
-                  "db.m6i.large",
-                  "db.m6i.xlarge",
-                  "db.m7i.12xlarge",
-                  "db.m7i.2xlarge",
-                  "db.m7i.4xlarge",
-                  "db.m7i.8xlarge",
-                  "db.m7i.large",
-                  "db.m7i.xlarge",
-                  "db.m8i.12xlarge",
-                  "db.m8i.2xlarge",
-                  "db.m8i.4xlarge",
-                  "db.m8i.8xlarge",
-                  "db.m8i.large",
-                  "db.m8i.xlarge",
-                  "db.r4.16xlarge",
-                  "db.r4.2xlarge",
-                  "db.r4.4xlarge",
-                  "db.r4.8xlarge",
-                  "db.r4.large",
-                  "db.r4.xlarge",
-                  "db.r5.12xlarge",
-                  "db.r5.16xlarge",
-                  "db.r5.24xlarge",
-                  "db.r5.2xlarge",
-                  "db.r5.4xlarge",
-                  "db.r5.8xlarge",
-                  "db.r5.large",
-                  "db.r5.xlarge",
-                  "db.r5d.12xlarge",
-                  "db.r5d.16xlarge",
-                  "db.r5d.24xlarge",
-                  "db.r5d.2xlarge",
-                  "db.r5d.4xlarge",
-                  "db.r5d.8xlarge",
-                  "db.r5d.large",
-                  "db.r5d.xlarge",
-                  "db.r6i.2xlarge",
-                  "db.r6i.4xlarge",
-                  "db.r6i.8xlarge",
-                  "db.r6i.large",
-                  "db.r6i.xlarge",
-                  "db.r7i.12xlarge",
-                  "db.r7i.2xlarge",
-                  "db.r7i.4xlarge",
-                  "db.r7i.8xlarge",
-                  "db.r7i.large",
-                  "db.r7i.xlarge",
-                  "db.r8i.12xlarge",
-                  "db.r8i.2xlarge",
-                  "db.r8i.4xlarge",
-                  "db.r8i.8xlarge",
-                  "db.r8i.large",
-                  "db.r8i.xlarge",
-                  "db.t3.2xlarge",
-                  "db.t3.xlarge",
-                  "db.x1.16xlarge",
-                  "db.x1.32xlarge",
-                  "db.x2iedn.2xlarge",
-                  "db.x2iedn.4xlarge",
-                  "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
                 "const": "sqlserver-ee"
               },
               "LicenseModel": {
@@ -99008,7 +100236,127 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "sqlserver-se"
+              },
+              "LicenseModel": {
+                "const": "license-included"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m4.10xlarge",
+                  "db.m5.12xlarge",
+                  "db.m5.16xlarge",
+                  "db.m5.24xlarge",
+                  "db.m5.2xlarge",
+                  "db.m5.4xlarge",
+                  "db.m5.8xlarge",
+                  "db.m5.large",
+                  "db.m5.xlarge",
+                  "db.m5d.12xlarge",
+                  "db.m5d.16xlarge",
+                  "db.m5d.24xlarge",
+                  "db.m5d.2xlarge",
+                  "db.m5d.4xlarge",
+                  "db.m5d.8xlarge",
+                  "db.m5d.large",
+                  "db.m5d.xlarge",
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.12xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.m8i.12xlarge",
+                  "db.m8i.2xlarge",
+                  "db.m8i.4xlarge",
+                  "db.m8i.8xlarge",
+                  "db.m8i.large",
+                  "db.m8i.xlarge",
+                  "db.r4.16xlarge",
+                  "db.r4.2xlarge",
+                  "db.r4.4xlarge",
+                  "db.r4.8xlarge",
+                  "db.r4.large",
+                  "db.r4.xlarge",
+                  "db.r5.12xlarge",
+                  "db.r5.16xlarge",
+                  "db.r5.24xlarge",
+                  "db.r5.2xlarge",
+                  "db.r5.4xlarge",
+                  "db.r5.8xlarge",
+                  "db.r5.large",
+                  "db.r5.xlarge",
+                  "db.r5d.12xlarge",
+                  "db.r5d.16xlarge",
+                  "db.r5d.24xlarge",
+                  "db.r5d.2xlarge",
+                  "db.r5d.4xlarge",
+                  "db.r5d.8xlarge",
+                  "db.r5d.large",
+                  "db.r5d.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.8xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.12xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.8xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.r8i.12xlarge",
+                  "db.r8i.2xlarge",
+                  "db.r8i.4xlarge",
+                  "db.r8i.8xlarge",
+                  "db.r8i.large",
+                  "db.r8i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.xlarge",
+                  "db.x1.16xlarge",
+                  "db.x1.32xlarge",
+                  "db.x2iedn.2xlarge",
+                  "db.x2iedn.4xlarge",
+                  "db.x2iedn.8xlarge",
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -107454,6 +108802,108 @@
                 "type": "string"
               },
               "Engine": {
+                "const": "db2-ae"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-se"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
                 "const": "oracle-se2"
               },
               "LicenseModel": {
@@ -107499,80 +108949,6 @@
                   "db.t3.medium",
                   "db.t3.small",
                   "db.t3.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "db2-ae"
-              },
-              "LicenseModel": {
-                "const": "bring-your-own-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m6i.2xlarge",
-                  "db.m6i.4xlarge",
-                  "db.m6i.8xlarge",
-                  "db.m6i.large",
-                  "db.m6i.xlarge",
-                  "db.r6i.2xlarge",
-                  "db.r6i.4xlarge",
-                  "db.r6i.large",
-                  "db.r6i.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "db2-se"
-              },
-              "LicenseModel": {
-                "const": "bring-your-own-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m6i.2xlarge",
-                  "db.m6i.4xlarge",
-                  "db.m6i.8xlarge",
-                  "db.m6i.large",
-                  "db.m6i.xlarge",
-                  "db.r6i.2xlarge",
-                  "db.r6i.4xlarge",
-                  "db.r6i.large",
-                  "db.r6i.xlarge"
                 ]
               }
             }
@@ -109887,6 +111263,108 @@
                 "type": "string"
               },
               "Engine": {
+                "const": "db2-ae"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
+                "const": "db2-se"
+              },
+              "LicenseModel": {
+                "const": "bring-your-own-license"
+              }
+            },
+            "required": [
+              "Engine",
+              "LicenseModel",
+              "DBInstanceClass"
+            ]
+          },
+          "then": {
+            "properties": {
+              "DBInstanceClass": {
+                "enum": [
+                  "db.m6i.2xlarge",
+                  "db.m6i.4xlarge",
+                  "db.m6i.8xlarge",
+                  "db.m6i.large",
+                  "db.m6i.xlarge",
+                  "db.m7i.2xlarge",
+                  "db.m7i.4xlarge",
+                  "db.m7i.8xlarge",
+                  "db.m7i.large",
+                  "db.m7i.xlarge",
+                  "db.r6i.2xlarge",
+                  "db.r6i.4xlarge",
+                  "db.r6i.large",
+                  "db.r6i.xlarge",
+                  "db.r7i.2xlarge",
+                  "db.r7i.4xlarge",
+                  "db.r7i.large",
+                  "db.r7i.xlarge",
+                  "db.t3.2xlarge",
+                  "db.t3.large",
+                  "db.t3.medium",
+                  "db.t3.small",
+                  "db.t3.xlarge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "DBInstanceClass": {
+                "type": "string"
+              },
+              "Engine": {
                 "const": "oracle-ee"
               },
               "LicenseModel": {
@@ -109956,80 +111434,6 @@
                   "db.t3.medium",
                   "db.t3.small",
                   "db.t3.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "db2-ae"
-              },
-              "LicenseModel": {
-                "const": "bring-your-own-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m6i.2xlarge",
-                  "db.m6i.4xlarge",
-                  "db.m6i.8xlarge",
-                  "db.m6i.large",
-                  "db.m6i.xlarge",
-                  "db.r6i.2xlarge",
-                  "db.r6i.4xlarge",
-                  "db.r6i.large",
-                  "db.r6i.xlarge"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "DBInstanceClass": {
-                "type": "string"
-              },
-              "Engine": {
-                "const": "db2-se"
-              },
-              "LicenseModel": {
-                "const": "bring-your-own-license"
-              }
-            },
-            "required": [
-              "Engine",
-              "LicenseModel",
-              "DBInstanceClass"
-            ]
-          },
-          "then": {
-            "properties": {
-              "DBInstanceClass": {
-                "enum": [
-                  "db.m6i.2xlarge",
-                  "db.m6i.4xlarge",
-                  "db.m6i.8xlarge",
-                  "db.m6i.large",
-                  "db.m6i.xlarge",
-                  "db.r6i.2xlarge",
-                  "db.r6i.4xlarge",
-                  "db.r6i.large",
-                  "db.r6i.xlarge"
                 ]
               }
             }
@@ -111420,7 +112824,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -111542,7 +112953,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -112649,7 +114064,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -112942,7 +114361,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -115192,6 +116618,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -115481,6 +116916,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -115774,6 +117218,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -116071,6 +117524,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -116365,6 +117827,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -116662,6 +118133,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -117061,6 +118541,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -117207,6 +118694,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -117546,6 +119037,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -117691,6 +119189,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -117951,6 +119453,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -118248,6 +119759,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -118535,6 +120055,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -118824,6 +120353,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -119336,6 +120874,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -119633,6 +121180,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -120927,6 +122483,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -121205,6 +122770,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -121480,6 +123054,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -121758,6 +123341,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -122033,6 +123625,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -122311,6 +123912,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -122774,6 +124384,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -122919,6 +124536,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -123642,6 +125263,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -123920,6 +125550,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -124195,6 +125834,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -124473,6 +126121,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -124748,6 +126405,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -125026,6 +126692,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -126621,6 +128296,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -126781,6 +128460,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -127372,7 +129058,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -127466,7 +129159,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -129011,7 +130708,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -129170,7 +130874,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -130485,7 +132193,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -130638,7 +132353,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -133633,7 +135352,11 @@
                   "db.x2iedn.2xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -133735,7 +135458,14 @@
                   "db.x2iedn.32xlarge",
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
-                  "db.x2iedn.xlarge"
+                  "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge"
                 ]
               }
             }
@@ -135972,6 +137702,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -136088,6 +137825,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -136810,6 +138551,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -136926,6 +138674,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -139581,6 +141333,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -139878,6 +141639,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -140172,6 +141942,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -140469,6 +142248,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -140756,6 +142544,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -141045,6 +142842,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -142066,6 +143872,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -142264,6 +144074,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -142486,6 +144303,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -142783,6 +144609,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -143077,6 +144912,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -143374,6 +145218,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -143661,6 +145514,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -143950,6 +145812,15 @@
                   "db.m8gd.8xlarge",
                   "db.m8gd.large",
                   "db.m8gd.xlarge",
+                  "db.m9g.12xlarge",
+                  "db.m9g.16xlarge",
+                  "db.m9g.24xlarge",
+                  "db.m9g.2xlarge",
+                  "db.m9g.48xlarge",
+                  "db.m9g.4xlarge",
+                  "db.m9g.8xlarge",
+                  "db.m9g.large",
+                  "db.m9g.xlarge",
                   "db.r3.2xlarge",
                   "db.r3.4xlarge",
                   "db.r3.8xlarge",
@@ -144844,6 +146715,10 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
@@ -145004,6 +146879,13 @@
                   "db.x2iedn.4xlarge",
                   "db.x2iedn.8xlarge",
                   "db.x2iedn.xlarge",
+                  "db.x2m.16xlarge",
+                  "db.x2m.24xlarge",
+                  "db.x2m.2xlarge",
+                  "db.x2m.32xlarge",
+                  "db.x2m.4xlarge",
+                  "db.x2m.8xlarge",
+                  "db.x2m.xlarge",
                   "db.z1d.12xlarge",
                   "db.z1d.2xlarge",
                   "db.z1d.3xlarge",
