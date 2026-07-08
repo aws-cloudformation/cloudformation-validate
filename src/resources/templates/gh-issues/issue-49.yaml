@@ -3,7 +3,7 @@ Resources:
     Type: AWS::Elasticsearch::Domain
     Properties:
       ElasticsearchClusterConfig:
-        InstanceType: r5.large.elasticsearch
+        InstanceType: t2.nano.elasticsearch
         InstanceCount: 2
   DocDbInstance:
     Type: AWS::DocDB::DBInstance

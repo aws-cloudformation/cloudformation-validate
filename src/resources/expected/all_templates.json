@@ -105885,7 +105885,7 @@
       "resourcesScanned": 3,
       "counts": {
         "fatal": 0,
-        "errors": 1,
+        "errors": 2,
         "warnings": 1,
         "informational": 10,
         "debug": 0
@@ -105909,6 +105909,23 @@
         "endLine": 12,
         "endColumn": 22,
         "ruleDescription": "Validate a DocDB DB Instance class",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E3652",
+        "severity": "ERROR",
+        "message": "'t2.nano.elasticsearch' is not valid in any region",
+        "source": "CFN_LINT",
+        "resourceId": "EsDomain",
+        "resourceType": "AWS::Elasticsearch::Domain",
+        "propertyPath": "Properties.ElasticsearchClusterConfig.InstanceType",
+        "category": "Resource",
+        "startLine": 6,
+        "startColumn": 9,
+        "endLine": 6,
+        "endColumn": 21,
+        "ruleDescription": "Validate Elasticsearch domain cluster instance",
         "phase": "LINT",
         "section": "Resources"
       },
