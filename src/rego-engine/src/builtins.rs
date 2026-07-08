@@ -34,6 +34,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_is_from_intrinsic(rego, holder.clone());
     register_follow_ref(rego, holder.clone());
     register_resources_of_type(rego, holder.clone());
+    register_hardcoded_azs(rego, holder.clone());
     register_ref_targets(rego, holder.clone());
     register_ref_sources(rego, holder.clone());
     register_depends_on(rego, holder.clone());
@@ -77,6 +78,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_is_valid_cidr_strict(rego);
     register_ensure_list(rego);
     register_input_region(rego, region_holder.clone());
+    register_is_valid_region(rego);
     register_region_flat_invalid(rego, region_holder.clone());
     register_region_conditional_invalid(rego, region_holder);
     register_render_list(rego);
@@ -459,6 +461,35 @@ fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {
             let ids = model.resources_of_type(type_name);
             let set: Vec<Value> = ids.iter().map(|s: &String| Value::from(s.as_str())).collect();
             Ok(Value::from(set))
+        }),
+    );
+}
+
+/// Registers `hardcoded_azs(resource_id, resource_type)`: the hardcoded
+/// availability zones found on a resource, as an array of `{"path": ...,
+/// "zone": ...}` objects. The paths inspected, the AZ pattern, and the traversal
+/// all come from the shared `template_model::hardcoded_az` module.
+fn register_hardcoded_azs(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "hardcoded_azs".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let resource_type = params[1].as_string()?;
+            let found: Vec<Value> =
+                template_model::hardcoded_az::find(&model, resource_id.as_ref(), resource_type.as_ref())
+                    .into_iter()
+                    .map(|az| {
+                        Value::from(std::collections::BTreeMap::from([
+                            (Value::from("path"), Value::from(az.path)),
+                            (Value::from("zone"), Value::from(az.zone)),
+                        ]))
+                    })
+                    .collect();
+            Ok(Value::from(found))
         }),
     );
 }
@@ -997,6 +1028,20 @@ fn register_property_can_be_absent(rego: &mut regorus::Engine, holder: SharedMod
     );
 }
 
+/// Registers `is_valid_region(region)`: whether `region` is a known AWS region
+/// name, delegating to the shared `template_model` region table so the set of
+/// valid regions lives in one place.
+fn register_is_valid_region(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "is_valid_region".into(),
+        1,
+        Box::new(|params: Vec<Value>| {
+            let region = params[0].as_string()?;
+            Ok(Value::from(template_model::is_known_region(region.as_ref())))
+        }),
+    );
+}
+
 /// Registers `region_flat_invalid(region_map, value)`: given the inner
 /// `{ "<region>": { "enum": [...] } }` map of a flat instance-type / node-type
 /// enum document, returns the E-diagnostic message when `value` is invalid for the
@@ -1004,7 +1049,7 @@ fn register_property_can_be_absent(rego: &mut regorus::Engine, holder: SharedMod
 /// The effective scope is the configured region, or the union of all regions when
 /// none is configured (`input_region()` is null) — a value is flagged only when it
 /// is invalid in every region. The message text is produced by the shared
-/// `region_enums` helper so it is byte-identical to the CEL engine.
+/// `region_enums` helper.
 fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion) {
     let _ = rego.add_extension(
         "region_flat_invalid".into(),
@@ -1032,7 +1077,7 @@ fn register_region_flat_invalid(rego: &mut regorus::Engine, holder: SharedRegion
 /// effective scope, or `undefined` when it is valid or no branch matches. `props`
 /// is the resource's resolved scalar properties (Engine, LicenseModel) the branch
 /// consts key on. Region scoping and message text come from the shared
-/// `region_enums` helper, matching the CEL engine exactly.
+/// `region_enums` helper.
 fn register_region_conditional_invalid(rego: &mut regorus::Engine, holder: SharedRegion) {
     let _ = rego.add_extension(
         "region_conditional_invalid".into(),

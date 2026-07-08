@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# Fn::GetAZs on currently-GA regions must resolve to that region's availability
+# zones (not go dynamic) and must not be flagged as an invalid region. Exercises
+# regions added to the shared region table beyond the original set, including a
+# commercial region (ap-east-2) and Mexico Central (mx-central-1).
+Resources:
+  SubnetApEast2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: vpc-0abcd1234ef567890
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs "ap-east-2"]
+  SubnetMxCentral1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: vpc-0abcd1234ef567890
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs "mx-central-1"]

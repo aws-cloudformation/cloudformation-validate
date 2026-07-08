@@ -25,6 +25,7 @@ diagnostics = { path = "../diagnostics" }
 rules = { path = "../rules" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+regex = "1"
 yaml-rust2 = "0.11.0"
 base64 = "0.22"
 log = "0.4"

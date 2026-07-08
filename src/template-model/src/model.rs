@@ -2,6 +2,7 @@ use crate::conditions::ConditionModel;
 use crate::consts::*;
 use crate::graph::ReferenceGraph;
 use crate::ir::*;
+use crate::regions::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
 use crate::sam;

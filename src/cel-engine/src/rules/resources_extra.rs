@@ -5,7 +5,7 @@ use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
 use diagnostics::SourceSpan;
 use diagnostics::message::{render_str_list, render_value};
-use rules::{AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN};
+use rules::{CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
@@ -16,8 +16,8 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_REF, KEY_PROPERTIES,
     PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
-use template_model::region_enums;
 use template_model::resolver::ResolvedValue;
+use template_model::{hardcoded_az, region_enums};
 use validation_engine::make_resource_diagnostic;
 
 static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
@@ -27,9 +27,6 @@ static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
 
 static ARN_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(IAM_ROLE_ARN_RULE_PATTERN).expect("Invalid ARN_RE pattern"));
-
-static AZ_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(AVAILABILITY_ZONE_PATTERN).expect("Invalid AZ_RE pattern"));
 
 static W1030_VPC_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$").expect("Invalid W1030_VPC_RE pattern")
@@ -2591,28 +2588,18 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    const AZ_PATHS: &[(&str, &str)] = &[
-        ("AWS::AutoScaling::AutoScalingGroup", "AvailabilityZones.*"),
-        ("AWS::DAX::Cluster", "AvailabilityZones.*"),
-        ("AWS::DMS::ReplicationInstance", "AvailabilityZone"),
-        ("AWS::EC2::Host", "AvailabilityZone"),
-        ("AWS::EC2::Instance", "AvailabilityZone"),
-        ("AWS::EC2::LaunchTemplate", "LaunchTemplateData.Placement.AvailabilityZone"),
-        ("AWS::EC2::SpotFleet", "SpotFleetRequestConfigData.LaunchSpecifications.{}.Placement.AvailabilityZone"),
-        ("AWS::EC2::SpotFleet", "SpotFleetRequestConfigData.LaunchTemplateConfigs.{}.Overrides.{}.AvailabilityZone"),
-        ("AWS::EC2::Subnet", "AvailabilityZone"),
-        ("AWS::EC2::Volume", "AvailabilityZone"),
-        ("AWS::ElasticLoadBalancing::LoadBalancer", "AvailabilityZones.*"),
-        ("AWS::ElasticLoadBalancingV2::TargetGroup", "Targets.{}.AvailabilityZone"),
-        ("AWS::EMR::Cluster", "Instances.Placement.AvailabilityZone"),
-        ("AWS::Glue::Connection", "ConnectionInput.PhysicalConnectionRequirements.AvailabilityZone"),
-        ("AWS::OpsWorks::Instance", "AvailabilityZone"),
-        ("AWS::RDS::DBCluster", "AvailabilityZones.*"),
-        ("AWS::RDS::DBInstance", "AvailabilityZone"),
-    ];
-    for &(rtype, descriptor) in AZ_PATHS {
+    // AZ_PATHS lists some resource types more than once (a type with multiple AZ
+    // paths); `hardcoded_az::find` already scans all of a type's paths, so visit
+    // each distinct type once to avoid emitting duplicate findings.
+    let mut az_types_seen = HashSet::new();
+    for (rtype, _) in hardcoded_az::AZ_PATHS {
+        if !az_types_seen.insert(*rtype) {
+            continue;
+        }
         for name in m.resources_of_type(rtype) {
-            emit_w3010_for_path(&mut out, m, name, descriptor);
+            for az in hardcoded_az::find(m, name, rtype) {
+                out.push(make_resource_diagnostic("W3010", &hardcoded_az::message(&az.zone), m, name, &az.path, None));
+            }
         }
     }
 
@@ -3755,10 +3742,9 @@ fn region_flat_allowed<'a>(
 }
 
 /// A scalar string property value, collapsing an `Fn::If`-wrapped value to its
-/// true branch — mirroring the Rego `resolve()` builtin so the region-scoped enum
-/// rules that key on this (instance class + the Engine/LicenseModel consts) stay
-/// at parity across engines. `resolve_concrete` alone is `Conditional`-blind, so
-/// using it here silently skipped `Fn::If`-wrapped values that Rego flags.
+/// true branch, so the region-scoped enum rules that key on this (instance class
+/// plus the Engine/LicenseModel consts) see the concrete value. `resolve_concrete`
+/// alone is `Conditional`-blind and would silently skip `Fn::If`-wrapped values.
 fn resolve_enum_string(m: &SemanticModel, rid: &str, path: &str) -> Option<String> {
     let resolved = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned())?;
     match resolved_to_json_best_effort(&resolved) {
@@ -3798,92 +3784,6 @@ fn collect_concrete_strings(value: &ResolvedValue, out: &mut Vec<String>) {
             collect_concrete_strings(if_false, out);
         }
         _ => {}
-    }
-}
-
-fn emit_w3010_for_path(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, descriptor: &str) {
-    let segments: Vec<&str> = descriptor.split('.').collect();
-    walk_w3010(out, m, name, &segments, 0, KEY_PROPERTIES.to_string());
-}
-
-fn walk_w3010(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    segments: &[&str],
-    idx: usize,
-    path: String,
-) {
-    if idx == segments.len() {
-        if m.is_from_intrinsic(name, &path) {
-            return;
-        }
-        if let Some(s) = resolve_concrete_string(m, name, &path)
-            && AZ_RE.is_match(&s)
-        {
-            out.push(make_resource_diagnostic(
-                "W3010",
-                &format!("Avoid hardcoding availability zones '{}'", s),
-                m,
-                name,
-                &path,
-                None,
-            ));
-        }
-        return;
-    }
-    let seg = segments[idx];
-    if seg == "*" {
-        if m.is_from_intrinsic(name, &path) {
-            return;
-        }
-        let Some(len) = resolve_array_len_any(m, name, &path) else {
-            return;
-        };
-        for i in 0..len {
-            let item_path = format!("{}.{}", path, i);
-            if m.is_from_intrinsic(name, &item_path) {
-                continue;
-            }
-            if let Some(s) = resolve_concrete_string(m, name, &item_path)
-                && AZ_RE.is_match(&s)
-            {
-                out.push(make_resource_diagnostic(
-                    "W3010",
-                    &format!("Avoid hardcoding availability zones '{}'", s),
-                    m,
-                    name,
-                    &item_path,
-                    None,
-                ));
-            }
-        }
-    } else if seg == "{}" {
-        let Some(len) = resolve_array_len_any(m, name, &path) else {
-            return;
-        };
-        for i in 0..len {
-            walk_w3010(out, m, name, segments, idx + 1, format!("{}.{}", path, i));
-        }
-    } else {
-        walk_w3010(out, m, name, segments, idx + 1, format!("{}.{}", path, seg));
-    }
-}
-
-fn resolve_concrete_string(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<String> {
-    let rv = m.resolve_deep(name, path).or_else(|| m.resolve(name, path).cloned())?;
-    match rv {
-        ResolvedValue::Concrete { value: v } => v.as_str().map(str::to_string),
-        _ => None,
-    }
-}
-
-fn resolve_array_len_any(m: &Arc<SemanticModel>, name: &str, path: &str) -> Option<usize> {
-    let rv = m.resolve_deep(name, path).or_else(|| m.resolve(name, path).cloned())?;
-    match rv {
-        ResolvedValue::Concrete { value: v } => v.as_array().map(|a| a.len()),
-        ResolvedValue::List { items } => Some(items.len()),
-        _ => None,
     }
 }
 

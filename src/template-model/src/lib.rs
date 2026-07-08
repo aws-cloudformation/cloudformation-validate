@@ -6,11 +6,13 @@ pub mod conditions;
 pub mod consts;
 pub mod diagnostic;
 pub(crate) mod graph;
+pub mod hardcoded_az;
 pub mod ir;
 pub mod model;
 pub(crate) mod nesting;
 pub(crate) mod parser;
 pub mod region_enums;
+pub mod regions;
 pub mod resolved_value;
 pub mod resolver;
 pub(crate) mod rules;
@@ -19,12 +21,15 @@ pub(crate) mod serialization;
 
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{
-    AWS_REGIONS, DEFAULT_ACCOUNT_ID, DEFAULT_PARTITION, DEFAULT_REGION, DEFAULT_STACK_NAME, DEFAULT_URL_SUFFIX,
-    FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM, MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC,
-    MARKER_KIND, MARKER_PARAM_TYPE, MARKER_REF,
+    DEFAULT_ACCOUNT_ID, DEFAULT_STACK_NAME, FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM,
+    MARKER_IF_FALSE, MARKER_IF_TRUE, MARKER_INTRINSIC, MARKER_KIND, MARKER_PARAM_TYPE, MARKER_REF,
 };
 pub use ir::*;
 pub use model::{ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
+pub use regions::{
+    AVAILABILITY_ZONES, AWS_REGIONS, DEFAULT_PARTITION, DEFAULT_REGION, DEFAULT_URL_SUFFIX,
+    availability_zones_for_region, is_known_region, partition_for_region, url_suffix_for_region,
+};
 
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, SourceSpan};
 
