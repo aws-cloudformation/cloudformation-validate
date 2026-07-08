@@ -208,13 +208,13 @@ class WasmSchemaValidator {
     }
     /**
      * @param {WasmSemanticModel} model
-     * @param {string} region
+     * @param {string | null} [region]
      * @returns {any}
      */
     validate(model, region) {
         _assertClass(model, WasmSemanticModel);
-        const ptr0 = passStringToWasm0(region, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
+        var ptr0 = isLikeNone(region) ? 0 : passStringToWasm0(region, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmschemavalidator_validate(this.__wbg_ptr, model.__wbg_ptr, ptr0, len0);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
