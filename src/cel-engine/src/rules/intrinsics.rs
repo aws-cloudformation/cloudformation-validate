@@ -13,7 +13,7 @@ use template_model::consts::{
     SECTION_OUTPUTS, TRANSFORM_LANGUAGE_EXTENSIONS,
 };
 use template_model::resolver::RefKind;
-use template_model::{PSEUDO_PARAMETERS, SemanticModel};
+use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_known_region};
 use validation_engine::make_resource_diagnostic;
 
 pub fn register(reg: &mut NativeRuleRegistry) {
@@ -235,46 +235,6 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
-static VALID_REGIONS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
-    [
-        "af-south-1",
-        "ap-east-1",
-        "ap-northeast-1",
-        "ap-northeast-2",
-        "ap-northeast-3",
-        "ap-south-1",
-        "ap-south-2",
-        "ap-southeast-1",
-        "ap-southeast-2",
-        "ap-southeast-3",
-        "ap-southeast-4",
-        "ca-central-1",
-        "ca-west-1",
-        "eu-central-1",
-        "eu-central-2",
-        "eu-north-1",
-        "eu-south-1",
-        "eu-south-2",
-        "eu-west-1",
-        "eu-west-2",
-        "eu-west-3",
-        "il-central-1",
-        "me-central-1",
-        "me-south-1",
-        "sa-east-1",
-        "us-east-1",
-        "us-east-2",
-        "us-west-1",
-        "us-west-2",
-        "us-gov-east-1",
-        "us-gov-west-1",
-        "cn-north-1",
-        "cn-northwest-1",
-    ]
-    .into_iter()
-    .collect()
-});
-
 fn has_language_extensions(model: &SemanticModel) -> bool {
     model.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS)
 }
@@ -385,7 +345,7 @@ fn scan_value_for_intrinsics(
             if let Some(param) = obj.get(FN_GET_AZS)
                 && let Some(s) = param.as_str()
                 && !s.is_empty()
-                && !VALID_REGIONS.contains(s)
+                && !is_known_region(s)
             {
                 out.push(make_resource_diagnostic(
                     "E1015",

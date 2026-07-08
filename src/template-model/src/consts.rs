@@ -19,69 +19,8 @@ pub const PSEUDO_PARAMETERS: &[&str] = &[
     PSEUDO_URL_SUFFIX,
 ];
 
-pub const DEFAULT_REGION: &str = "us-east-1";
 pub const DEFAULT_ACCOUNT_ID: &str = "123456789012";
-pub const DEFAULT_PARTITION: &str = "aws";
 pub const DEFAULT_STACK_NAME: &str = "teststack";
-pub const DEFAULT_URL_SUFFIX: &str = "amazonaws.com";
-
-const CN_REGIONS: &[&str] = &["cn-north-1", "cn-northwest-1"];
-const GOV_REGIONS: &[&str] = &["us-gov-east-1", "us-gov-west-1"];
-
-pub const AWS_REGIONS: &[&str] = &[
-    "af-south-1",
-    "ap-east-1",
-    "ap-east-2",
-    "ap-northeast-1",
-    "ap-northeast-2",
-    "ap-northeast-3",
-    "ap-south-1",
-    "ap-south-2",
-    "ap-southeast-1",
-    "ap-southeast-2",
-    "ap-southeast-3",
-    "ap-southeast-4",
-    "ap-southeast-5",
-    "ap-southeast-6",
-    "ap-southeast-7",
-    "ca-central-1",
-    "ca-west-1",
-    "cn-north-1",
-    "cn-northwest-1",
-    "eu-central-1",
-    "eu-central-2",
-    "eu-north-1",
-    "eu-south-1",
-    "eu-south-2",
-    "eu-west-1",
-    "eu-west-2",
-    "eu-west-3",
-    "il-central-1",
-    "me-central-1",
-    "me-south-1",
-    "mx-central-1",
-    "sa-east-1",
-    "us-east-1",
-    "us-east-2",
-    "us-gov-east-1",
-    "us-gov-west-1",
-    "us-west-1",
-    "us-west-2",
-];
-
-pub fn partition_for_region(region: &str) -> &'static str {
-    if CN_REGIONS.contains(&region) {
-        "aws-cn"
-    } else if GOV_REGIONS.contains(&region) {
-        "aws-us-gov"
-    } else {
-        DEFAULT_PARTITION
-    }
-}
-
-pub fn url_suffix_for_region(region: &str) -> &'static str {
-    if CN_REGIONS.contains(&region) { "amazonaws.com.cn" } else { DEFAULT_URL_SUFFIX }
-}
 
 pub const SECTION_PARAMETERS: &str = "Parameters";
 pub const SECTION_MAPPINGS: &str = "Mappings";
@@ -492,40 +431,3 @@ pub const CONDITION_REF_PREFIX: &str = "Condition:";
 pub const PARAM_TYPE_STRING: &str = "String";
 pub const PARAM_TYPE_NUMBER: &str = "Number";
 pub const PARAM_TYPE_COMMA_DELIMITED_LIST: &str = "CommaDelimitedList";
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn partition_for_standard_regions() {
-        assert_eq!(partition_for_region("us-east-1"), "aws");
-        assert_eq!(partition_for_region("eu-west-1"), "aws");
-        assert_eq!(partition_for_region("ap-southeast-1"), "aws");
-    }
-
-    #[test]
-    fn partition_for_china_regions() {
-        assert_eq!(partition_for_region("cn-north-1"), "aws-cn");
-        assert_eq!(partition_for_region("cn-northwest-1"), "aws-cn");
-    }
-
-    #[test]
-    fn partition_for_govcloud_regions() {
-        assert_eq!(partition_for_region("us-gov-east-1"), "aws-us-gov");
-        assert_eq!(partition_for_region("us-gov-west-1"), "aws-us-gov");
-    }
-
-    #[test]
-    fn url_suffix_for_standard_regions() {
-        assert_eq!(url_suffix_for_region("us-east-1"), "amazonaws.com");
-        assert_eq!(url_suffix_for_region("eu-west-1"), "amazonaws.com");
-        assert_eq!(url_suffix_for_region("us-gov-west-1"), "amazonaws.com");
-    }
-
-    #[test]
-    fn url_suffix_for_china_regions() {
-        assert_eq!(url_suffix_for_region("cn-north-1"), "amazonaws.com.cn");
-        assert_eq!(url_suffix_for_region("cn-northwest-1"), "amazonaws.com.cn");
-    }
-}

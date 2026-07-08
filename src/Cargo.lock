@@ -1792,6 +1792,7 @@ dependencies = [
  "diagnostics",
  "env_logger",
  "log",
+ "regex",
  "rules",
  "serde",
  "serde_json",

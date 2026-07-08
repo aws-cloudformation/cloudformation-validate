@@ -1,7 +1,7 @@
 use crate::compiled::CompiledSchema;
 use data_source::embedded::*;
 use std::collections::{BTreeSet, HashMap};
-use template_model::consts::AWS_REGIONS;
+use template_model::regions::AWS_REGIONS;
 
 pub struct CompiledSchemaStore {
     schemas: HashMap<String, CompiledSchema>,

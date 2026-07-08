@@ -1,6 +1,7 @@
 use crate::coercion::type_compatible;
 use crate::consts::*;
 use crate::ir::*;
+use crate::regions::*;
 use base64::Engine as _;
 use diagnostics::JsonValue;
 use diagnostics::message::render_str_list;
@@ -573,40 +574,7 @@ impl<'a> Resolver<'a> {
                         .insert((rid.clone(), self.current_path.clone()), "Intrinsic/Fn::GetAZs".to_string());
                 }
                 let region_val = self.resolve_node(*region_ref);
-                match &region_val {
-                    ResolvedValue::Concrete { value: v } => {
-                        let region_str = v.as_str().unwrap_or("");
-                        let effective_region = if region_str.is_empty() {
-                            self.pseudo_parameter_overrides.region().to_string()
-                        } else {
-                            region_str.to_string()
-                        };
-                        match availability_zones_for_region(&effective_region) {
-                            Some(azs) => ResolvedValue::Concrete {
-                                value: serde_json::Value::Array(
-                                    azs.into_iter().map(serde_json::Value::String).collect(),
-                                )
-                                .into(),
-                            },
-                            None => {
-                                ResolvedValue::Dynamic { reason: format!("GetAZs unknown region {}", effective_region) }
-                            }
-                        }
-                    }
-                    ResolvedValue::Enum { variants } => {
-                        let results: Vec<ResolvedValue> =
-                            variants.iter().map(|v| resolve_getazs_value(v, self.pseudo_parameter_overrides)).collect();
-                        ResolvedValue::Enum { variants: results }
-                    }
-                    ResolvedValue::Conditional { condition: cond, if_true: t, if_false: f } => {
-                        ResolvedValue::Conditional {
-                            condition: cond.clone(),
-                            if_true: Box::new(resolve_getazs_value(t, self.pseudo_parameter_overrides)),
-                            if_false: Box::new(resolve_getazs_value(f, self.pseudo_parameter_overrides)),
-                        }
-                    }
-                    _ => ResolvedValue::Dynamic { reason: "GetAZs runtime value".into() },
-                }
+                resolve_getazs_value(&region_val, self.pseudo_parameter_overrides)
             }
             IntrinsicFn::Cidr(ip_ref, count_ref, bits_ref) => {
                 let ip_val = self.resolve_node(*ip_ref);
@@ -1454,21 +1422,6 @@ fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
     }
 }
 
-fn availability_zones_for_region(region: &str) -> Option<Vec<String>> {
-    let suffixes: &[&str] = match region {
-        "us-east-1" => &["a", "b", "c", "d", "e", "f"],
-        "us-east-2" => &["a", "b", "c"],
-        "us-west-1" => &["a", "b"],
-        "us-west-2" => &["a", "b", "c", "d"],
-        "eu-west-1" | "eu-west-2" | "eu-west-3" | "eu-central-1" => &["a", "b", "c"],
-        "ap-southeast-1" | "ap-southeast-2" | "ap-south-1" | "sa-east-1" => &["a", "b", "c"],
-        "ap-northeast-1" | "ap-northeast-2" => &["a", "b", "c", "d"],
-        "ca-central-1" => &["a", "b", "d"],
-        _ => return None,
-    };
-    Some(suffixes.iter().map(|s| format!("{}{}", region, s)).collect())
-}
-
 fn calculate_cidr_blocks(ip_block: &str, count: u64, cidr_bits: u64) -> Option<Vec<String>> {
     let (ip_str, prefix_str) = ip_block.split_once('/')?;
     let prefix_len: u32 = prefix_str.parse().ok()?;
@@ -1692,11 +1645,13 @@ fn resolve_getazs_value(
     match region_val {
         ResolvedValue::Concrete { value: v } => {
             let region_str = v.as_str().unwrap_or("");
-            let effective_region =
-                if region_str.is_empty() { pseudo_overrides.region().to_string() } else { region_str.to_string() };
-            match availability_zones_for_region(&effective_region) {
+            let effective_region = if region_str.is_empty() { pseudo_overrides.region() } else { region_str };
+            match availability_zones_for_region(effective_region) {
                 Some(azs) => ResolvedValue::Concrete {
-                    value: serde_json::Value::Array(azs.into_iter().map(serde_json::Value::String).collect()).into(),
+                    value: serde_json::Value::Array(
+                        azs.iter().map(|z| serde_json::Value::String((*z).to_string())).collect(),
+                    )
+                    .into(),
                 },
                 None => ResolvedValue::Dynamic { reason: format!("GetAZs unknown region {}", effective_region) },
             }
