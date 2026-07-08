@@ -15,7 +15,7 @@ use template_model::consts::{
 };
 use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
-use template_model::resolver::{MapEntry, ResolvedValue};
+use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
 
 pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
@@ -28,11 +28,13 @@ fn get_model(holder: &SharedModel) -> Option<Arc<SemanticModel>> {
 
 pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, region_holder: SharedRegion) {
     register_resolve(rego, holder.clone());
+    register_resolve_preserving_conditionals(rego, holder.clone());
     register_resolve_all(rego, holder.clone());
     register_is_dynamic(rego, holder.clone());
     register_is_from_parameter(rego, holder.clone());
     register_is_from_intrinsic(rego, holder.clone());
     register_follow_ref(rego, holder.clone());
+    register_authored_form(rego, holder.clone());
     register_resources_of_type(rego, holder.clone());
     register_hardcoded_azs(rego, holder.clone());
     register_ref_targets(rego, holder.clone());
@@ -275,6 +277,28 @@ fn register_resolve(rego: &mut regorus::Engine, holder: SharedModel) {
     );
 }
 
+/// `resolve_preserving_conditionals(rid, path)`: like `resolve`, but keeps every
+/// `Fn::If` as `{"Fn::If": [condition, then, else]}` rather than collapsing to the
+/// true branch, so a rule can consider every branch of a conditional value.
+fn register_resolve_preserving_conditionals(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "resolve_preserving_conditionals".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let resolved = model.resolve_deep(rid, path).or_else(|| model.resolve(rid, path).cloned());
+            if let Some(val) = resolved {
+                return Ok(serde_json_to_rego_value(&resolved_to_json_preserving_conditionals(&val)));
+            }
+            Ok(Value::Undefined)
+        }),
+    );
+}
+
 fn register_resolve_all(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "resolve_all".into(),
@@ -447,6 +471,54 @@ fn register_follow_ref(rego: &mut regorus::Engine, holder: SharedModel) {
             Ok(model.follow_ref(rid, path).map(Value::from).unwrap_or(Value::Undefined))
         }),
     );
+}
+
+/// `authored_form(rid, path)`: the authored JSON form of a resource property,
+/// reconstructed from the resolved value — `{"Ref": target}` for a `Ref`,
+/// `{"Fn::GetAtt": [target, attr]}` for a `GetAtt`, or the literal for a concrete
+/// value. A `Ref`/`GetAtt` to a parameter resolves to a dynamic value rather than
+/// a reference, so the reference graph is consulted to recover the authored form.
+/// Returns undefined when the property is absent or is an opaque function.
+fn register_authored_form(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "authored_form".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let form = match model.resolve(rid.as_ref(), path.as_ref()) {
+                Some(ResolvedValue::Reference { target, kind }) => authored_ref_form(target, kind),
+                Some(ResolvedValue::Concrete { value: v }) => Some(v.0.clone()),
+                _ => {
+                    let prop_path = path.strip_prefix("Properties.").unwrap_or(path.as_ref());
+                    let qualified = format!("Properties.{}", prop_path);
+                    model
+                        .graph
+                        .outgoing(rid.as_ref())
+                        .into_iter()
+                        .find(|e| {
+                            e.source_path == path.as_ref() || e.source_path == prop_path || e.source_path == qualified
+                        })
+                        .and_then(|e| authored_ref_form(&e.target, &e.kind))
+                }
+            };
+            match form {
+                Some(v) => Ok(serde_json_to_rego_value(&v)),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+fn authored_ref_form(target: &str, kind: &RefKind) -> Option<serde_json::Value> {
+    match kind {
+        RefKind::Ref => Some(serde_json::json!({ "Ref": target })),
+        RefKind::GetAtt { attr } => Some(serde_json::json!({ "Fn::GetAtt": [target, attr] })),
+        _ => None,
+    }
 }
 
 fn register_resources_of_type(rego: &mut regorus::Engine, holder: SharedModel) {

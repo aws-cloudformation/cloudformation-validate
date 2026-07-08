@@ -13,8 +13,8 @@ use template_model::SemanticModel;
 use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_to_string, scalar_eq};
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS,
-    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_REF, KEY_PROPERTIES,
-    PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
+    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
+    KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::resolver::ResolvedValue;
 use template_model::{hardcoded_az, region_enums};
@@ -222,6 +222,63 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     scenarios.into_iter().next().map(|(v, _)| v)
 }
 
+/// The authored JSON form of a resource property, reconstructed from the resolved
+/// value: `{"Ref": target}` for a `Ref`, `{"Fn::GetAtt": [target, attr]}` for a
+/// `GetAtt`, or the literal for a concrete value. A `Ref` to a parameter resolves
+/// to a dynamic value rather than a reference, so the reference graph is consulted
+/// to recover the authored `Ref`/`GetAtt`. `None` when the property is absent or
+/// its form is not one of these (e.g. an opaque function). Used to compare and
+/// render `RestApiId` values as the author wrote them.
+fn authored_form(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
+    match m.resolve(rid, path) {
+        Some(ResolvedValue::Reference { target, kind }) => {
+            return authored_ref_form(target, kind);
+        }
+        Some(ResolvedValue::Concrete { value }) => return Some(value.0.clone()),
+        _ => {}
+    }
+    // A Ref/GetAtt to a parameter (or another unresolved target) is a dynamic
+    // value; recover the authored form from the reference graph edge anchored at
+    // this property path.
+    let prop_path = path.strip_prefix("Properties.").unwrap_or(path);
+    let edge = m.graph.outgoing(rid).into_iter().find(|e| {
+        e.source_path == path || e.source_path == prop_path || e.source_path == format!("Properties.{}", prop_path)
+    })?;
+    authored_ref_form(&edge.target, &edge.kind)
+}
+
+fn authored_ref_form(target: &str, kind: &RefKind) -> Option<serde_json::Value> {
+    match kind {
+        RefKind::Ref => Some(serde_json::json!({ FN_REF: target })),
+        RefKind::GetAtt { attr } => Some(serde_json::json!({ "Fn::GetAtt": [target, attr] })),
+        _ => None,
+    }
+}
+
+/// Whether a Method's `RestApiId` and its Authorizer's `RestApiId` refer to
+/// different REST APIs. Identity is compared first: two values that follow to the
+/// same resource are equal even when authored differently (e.g. `Ref RestApi` and
+/// `Fn::GetAtt RestApi.RestApiId` both resolve to that API). When either side is
+/// not a reference to a resource (a literal id or a `Ref` to a parameter), the
+/// authored values are compared structurally, matching how CloudFormation would
+/// treat them at deploy time. A side whose value is absent is treated as
+/// non-conflicting (a missing required `RestApiId` is reported elsewhere).
+fn rest_api_ids_conflict(m: &SemanticModel, method_name: &str, authorizer_name: &str) -> bool {
+    let method_target = m.follow_ref(method_name, "Properties.RestApiId");
+    let authorizer_target = m.follow_ref(authorizer_name, "Properties.RestApiId");
+    if let (Some(mt), Some(at)) = (method_target, authorizer_target) {
+        return mt != at;
+    }
+    match (
+        authored_form(m, method_name, "Properties.RestApiId"),
+        authored_form(m, authorizer_name, "Properties.RestApiId"),
+    ) {
+        (Some(m_val), Some(a_val)) => m_val != a_val,
+        // A missing RestApiId on either side is not a mismatch to report here.
+        _ => false,
+    }
+}
+
 /// Whether an S3 bucket has an *effective* OwnershipControls configuration: the
 /// `OwnershipControls.Rules` array is present with at least one entry. An absent
 /// `OwnershipControls`, an absent `Rules`, or an empty `Rules: []` is not
@@ -258,10 +315,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             if res.resource_type.is_empty() {
                 continue;
             }
+            // Only custom resources (`Custom::` prefix) and modules (`::MODULE`
+            // suffix) are exempt from the known-type set; every other type —
+            // including all AWS-namespaced types such as `AWS::Serverless::*` and
+            // `AWS::CloudFormation::*` — must be a recognized type. Valid
+            // transform/service types already appear in `known_types`, so no
+            // namespace is exempted wholesale.
             if !ctx.cached_data.known_types.contains(&res.resource_type)
                 && !res.resource_type.starts_with("Custom::")
                 && !res.resource_type.ends_with("::MODULE")
-                && !res.resource_type.starts_with("AWS::CloudFormation::")
             {
                 out.push(make_resource_diagnostic(
                     "F3006",
@@ -2058,7 +2120,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     let Some(rv) = doc_rv else {
                         continue;
                     };
-                    let doc = resolved_to_json_best_effort(&rv);
+                    // Preserve Fn::If as `{"Fn::If": [cond, then, else]}` (rather
+                    // than collapsing to one branch) so the action-format check
+                    // can consider every branch's ARN — a resource is acceptable
+                    // if any reachable branch matches the action.
+                    let doc = resolved_to_json_preserving_conditionals(&rv);
                     check_iam_action_resources(&mut out, m, name, &doc, &iam_patterns);
                 }
             }
@@ -2324,19 +2390,55 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ApiGateway::Stage") {
-        if let (Some(stage_api), Some(deployment_name)) =
-            (m.follow_ref(name, "Properties.RestApiId"), m.follow_ref(name, "Properties.DeploymentId"))
-            && let Some(deploy_api) = m.follow_ref(deployment_name, "Properties.RestApiId")
-            && stage_api != deploy_api
-        {
-            // A Deployment's RestApiId must match the Stage's RestApiId; the
-            // finding renders the Stage's own RestApiId value as
-            // "<value> was expected".
+        // The check applies only when the Stage references a Deployment that
+        // resolves to a resource.
+        let Some(deployment_name) = m.follow_ref(name, "Properties.DeploymentId") else {
+            continue;
+        };
+        // A Deployment's RestApiId must match the Stage's RestApiId; a mismatch
+        // fails deployment. Compare by identity first (a `Ref` and a `GetAtt` of
+        // the same RestApi are equal), else by authored value. The finding is
+        // anchored on the Deployment's RestApiId and renders the Stage's own
+        // authored RestApiId as "<value> was expected".
+        if rest_api_ids_conflict(m, name, deployment_name) {
+            let expected = authored_form(m, name, "Properties.RestApiId")
+                .map(|v| render_value(&v))
+                .unwrap_or_else(|| "null".to_string());
             out.push(make_resource_diagnostic(
                 "E3698",
-                &format!("{{'Ref': '{}'}} was expected", stage_api),
+                &format!("{} was expected", expected),
                 m,
                 deployment_name,
+                "Properties.RestApiId",
+                None,
+            ));
+        }
+    }
+
+    for name in m.resources_of_type("AWS::ApiGateway::Method") {
+        // The check applies only when the Method references an Authorizer that
+        // resolves to a resource (a Ref/GetAtt to an Authorizer) — a Method whose
+        // AuthorizerId is a literal or opaque function has no in-template
+        // Authorizer to compare against.
+        let Some(authorizer_name) = m.follow_ref(name, "Properties.AuthorizerId") else {
+            continue;
+        };
+        // A Method and the Authorizer it references must reference the same
+        // RestApi; a mismatch fails deployment. Compare by identity: two values
+        // that follow to the same resource match even when authored differently
+        // (e.g. `Ref` vs `GetAtt` of the same RestApi resolve to one API), and
+        // otherwise the raw authored values must be structurally equal.
+        if rest_api_ids_conflict(m, name, authorizer_name) {
+            // The finding is anchored on the Authorizer's RestApiId and renders
+            // the Method's own authored RestApiId as "<value> was expected".
+            let expected = authored_form(m, name, "Properties.RestApiId")
+                .map(|v| render_value(&v))
+                .unwrap_or_else(|| "null".to_string());
+            out.push(make_resource_diagnostic(
+                "E3699",
+                &format!("{} was expected", expected),
+                m,
+                authorizer_name,
                 "Properties.RestApiId",
                 None,
             ));
@@ -3966,6 +4068,86 @@ fn arn_matches_format(resource_arn: &str, format_arn: &str) -> bool {
     true
 }
 
+/// The outcome of classifying a statement's `Resource`/`NotResource` entries for
+/// the action-format check: the literal ARNs to match against, whether any entry
+/// was a function whose ARN is unknowable (so the format check is skipped), and
+/// whether the whole statement is exempt (a `*`, a dynamic reference, or a
+/// `Ref` to a parameter).
+#[derive(Default)]
+struct IamResourceClassification {
+    resources: Vec<String>,
+    using_functions: bool,
+    skip_statement: bool,
+}
+
+/// Classifies one `Resource`/`NotResource` entry. When `at_top_level` (the entry
+/// is the property's scalar value, not a list element), an `Fn::If` is enumerated
+/// so every reachable branch contributes — a resource is acceptable if any branch
+/// matches. As a list element, an `Fn::If` is instead an opaque function whose
+/// ARN is unknowable. A concrete ARN is a match candidate unless it was
+/// synthesized by an intrinsic (its real ARN is only known at deploy time); a
+/// `*`/dynamic-reference/`Ref`-to-parameter exempts the statement.
+fn classify_iam_resource_entry(
+    m: &Arc<SemanticModel>,
+    name: &str,
+    item_path: &str,
+    val: &serde_json::Value,
+    at_top_level: bool,
+    out: &mut IamResourceClassification,
+) {
+    match val {
+        serde_json::Value::String(s) => {
+            if s.contains("{{resolve:") || s == "*" {
+                out.skip_statement = true;
+                return;
+            }
+            if m.is_from_intrinsic(name, item_path) {
+                out.using_functions = true;
+            } else {
+                out.resources.push(s.clone());
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            // A scalar `Fn::If` branch may itself be a list of ARNs; classify
+            // each element as a (non-top-level) entry.
+            for (i, v) in arr.iter().enumerate() {
+                classify_iam_resource_entry(m, name, &format!("{}.{}", item_path, i), v, false, out);
+                if out.skip_statement {
+                    return;
+                }
+            }
+        }
+        serde_json::Value::Object(obj) => {
+            // `Fn::If` survives preserved as `{"Fn::If": [cond, then, else]}`.
+            // Enumerate both branches only for a scalar value (mirroring how the
+            // reference model descends conditions); an `Fn::If` list element is an
+            // opaque function.
+            if at_top_level
+                && let Some(serde_json::Value::Array(branches)) = obj.get(FN_IF)
+                && branches.len() == 3
+            {
+                classify_iam_resource_entry(m, name, &format!("{}.{}.1", item_path, FN_IF), &branches[1], true, out);
+                if out.skip_statement {
+                    return;
+                }
+                classify_iam_resource_entry(m, name, &format!("{}.{}.2", item_path, FN_IF), &branches[2], true, out);
+                return;
+            }
+            if let Some(ref_target) = obj.get(FN_REF).and_then(|v| v.as_str())
+                && m.parameters.contains_key(ref_target)
+            {
+                out.skip_statement = true;
+                return;
+            }
+            out.using_functions = true;
+        }
+        serde_json::Value::Null => {
+            out.using_functions = true;
+        }
+        _ => {}
+    }
+}
+
 fn check_iam_action_resources(
     out: &mut Vec<Diagnostic>,
     m: &Arc<SemanticModel>,
@@ -3981,54 +4163,40 @@ fn check_iam_action_resources(
         if !stmt.is_object() {
             continue;
         }
-        let mut using_functions = false;
-        let mut all_resources: Vec<&str> = Vec::new();
-        let mut skip_statement = false;
+        let mut classification = IamResourceClassification::default();
 
         for key in &["Resource", "NotResource"] {
             let field = match stmt.get(*key) {
                 Some(v) => v,
                 None => continue,
             };
-            let items: Vec<&serde_json::Value> = match field {
-                serde_json::Value::Array(arr) => arr.iter().collect(),
-                other => vec![other],
+            // A scalar field is anchored at `...<key>`; array elements at
+            // `...<key>.<index>`. A scalar field value may be an `Fn::If` whose
+            // branches are enumerated (`at_top_level`); a list element that is an
+            // `Fn::If` is instead treated as an opaque function.
+            let items: Vec<(String, &serde_json::Value, bool)> = match field {
+                serde_json::Value::Array(arr) => arr
+                    .iter()
+                    .enumerate()
+                    .map(|(i, v)| (format!("Properties.PolicyDocument.Statement.{}.{}.{}", stmt_idx, key, i), v, false))
+                    .collect(),
+                other => vec![(format!("Properties.PolicyDocument.Statement.{}.{}", stmt_idx, key), other, true)],
             };
-            for val in items {
-                match val {
-                    serde_json::Value::String(s) => {
-                        if s.contains("{{resolve:") {
-                            skip_statement = true;
-                            break;
-                        }
-                        if s == "*" {
-                            skip_statement = true;
-                            break;
-                        }
-                        all_resources.push(s.as_str());
-                    }
-                    serde_json::Value::Object(obj) => {
-                        if let Some(ref_target) = obj.get(FN_REF).and_then(|v| v.as_str())
-                            && m.parameters.contains_key(ref_target)
-                        {
-                            skip_statement = true;
-                            break;
-                        }
-                        using_functions = true;
-                    }
-                    serde_json::Value::Null => {
-                        using_functions = true;
-                    }
-                    _ => {}
+            for (item_path, val, at_top_level) in items {
+                classify_iam_resource_entry(m, name, &item_path, val, at_top_level, &mut classification);
+                if classification.skip_statement {
+                    break;
                 }
             }
-            if skip_statement {
+            if classification.skip_statement {
                 break;
             }
         }
-        if skip_statement {
+        if classification.skip_statement {
             continue;
         }
+        let using_functions = classification.using_functions;
+        let all_resources: Vec<&str> = classification.resources.iter().map(String::as_str).collect();
 
         let actions: Vec<&str> = match stmt.get("Action") {
             Some(serde_json::Value::String(s)) => vec![s.as_str()],

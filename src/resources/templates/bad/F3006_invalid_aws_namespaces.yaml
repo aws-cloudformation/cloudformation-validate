@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  F3006 must fire for AWS-namespaced resource types that are not recognized —
+  no namespace (AWS::Serverless::, AWS::CloudFormation::) is exempted wholesale,
+  and ::MODULE is only exempt as a suffix. Both engines must agree, matching
+  cfn-lint's E3006. Valid types below must stay clean.
+Resources:
+  # Invalid SAM type — not a real AWS::Serverless resource. Must fire.
+  BadServerless:
+    Type: AWS::Serverless::NotARealType
+    Properties:
+      Foo: bar
+  # Invalid CloudFormation type — not in the known-type set. Must fire.
+  BadCloudFormation:
+    Type: AWS::CloudFormation::NotARealType
+    Properties: {}
+  # ::MODULE appearing mid-string is not the module suffix. Must fire.
+  MidStringModule:
+    Type: My::Org::MODULE::Thing
+    Properties: {}
+  # --- Counter-examples that must NOT fire ---
+  GoodFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://bucket/key
+  GoodCustomResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: arn:aws:sns:us-east-1:123456789012:topic
+  GoodModule:
+    Type: My::Org::Resource::MODULE
+    Properties: {}
+  GoodCustom:
+    Type: Custom::MyThing
+    Properties:
+      ServiceToken: arn:aws:sns:us-east-1:123456789012:topic
