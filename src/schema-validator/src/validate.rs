@@ -373,6 +373,21 @@ fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<&
     None
 }
 
+/// Resolves a schema lifecycle pointer (a dotted property path such as
+/// `Source.Decryption.Url`, where `*` denotes an array element) against the
+/// resource's resolved properties, returning the pointer when that leaf is
+/// actually set in the template and `None` otherwise.
+///
+/// Lifecycle pointer lists frequently address a nested sub-property while the
+/// top-level parent is a required, non-deprecated block; keying only off the
+/// parent's presence would flag correct templates. The array-wildcard token is
+/// translated to the resolver's `{}` form so a deprecated leaf inside any array
+/// element is detected.
+fn present_lifecycle_pointer(m: &Arc<SemanticModel>, rid: &str, base: &str, pointer: &str) -> Option<String> {
+    let resolver_path = pointer.replace(".*.", ".{}.");
+    m.resolve_deep(rid, &format!("{}.{}", base, resolver_path)).map(|_| pointer.to_string())
+}
+
 fn validate_resource(
     out: &mut Vec<Diagnostic>,
     store: &CompiledSchemaStore,
@@ -385,54 +400,50 @@ fn validate_resource(
     let base = KEY_PROPERTIES;
     let defs = &schema.definitions;
 
-    // The read-only-property check is intentionally not emitted here: a resource's
-    // read-only properties are also declared as writable properties, so schema
-    // validation accepts them and CloudFormation silently ignores the value at
-    // deploy time rather than rejecting it. Emitting it flagged values (e.g. ACMPCA
-    // Certificate.Arn) that CloudFormation accepts.
-
+    // Lifecycle pointers (deprecated/create-only/write-only) address a specific
+    // property, which for many resources is a nested sub-property (e.g. MediaConnect
+    // Flow deprecates only `Source.Decryption.Url`, never the required `Source`
+    // itself). Matching on the leaf's actual presence — not merely the top-level
+    // parent's — is required to avoid flagging correct templates.
     for dp in &schema.deprecated_properties {
-        let top = dp.split('.').next().unwrap_or(dp);
-        if res.properties.contains_key(top) {
+        if let Some(pointer) = present_lifecycle_pointer(m, rid, base, dp) {
             out.push(build_diagnostic(
                 "W9009",
-                &format!("Property '{}' is deprecated", top),
+                &format!("Property '{}' is deprecated", pointer),
                 m,
                 rid,
-                &format!("{}.{}", base, top),
+                &format!("{}.{}", base, pointer),
                 None,
             ));
         }
     }
 
     for cp in &schema.create_only_properties {
-        let top = cp.split('.').next().unwrap_or(cp);
-        if res.properties.contains_key(top) {
+        if let Some(pointer) = present_lifecycle_pointer(m, rid, base, cp) {
             out.push(build_diagnostic(
                 "I9001",
-                &format!("Property '{}' is create-only; updating it will cause resource replacement", top),
+                &format!("Property '{}' is create-only; updating it will cause resource replacement", pointer),
                 m,
                 rid,
-                &format!("{}.{}", base, top),
+                &format!("{}.{}", base, pointer),
                 None,
             ));
         }
     }
 
     for wo in &schema.write_only_properties {
-        let top = wo.split('.').next().unwrap_or(wo);
         for edge in m.graph.incoming(rid) {
             if let RefKind::GetAtt { attr } = &edge.kind
-                && attr == top
+                && attr == wo
                 && edge.source_resource.starts_with("__output__")
             {
                 let output_name = edge.source_resource.strip_prefix("__output__").unwrap_or(&edge.source_resource);
                 out.push(build_diagnostic(
                     "W3041",
-                    &format!("Write-only property '{}' of '{}' is referenced in output '{}'", top, rid, output_name),
+                    &format!("Write-only property '{}' of '{}' is referenced in output '{}'", wo, rid, output_name),
                     m,
                     rid,
-                    &format!("{}.{}", base, top),
+                    &format!("{}.{}", base, wo),
                     None,
                 ));
             }

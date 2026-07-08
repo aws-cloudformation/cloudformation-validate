@@ -102,6 +102,18 @@ fn assert_count(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, expected: 
     }
 }
 
+/// Assert `rule_id` fires at the given property path in every engine's output.
+fn assert_fires_on_property(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, property_path: &str) {
+    for (engine, diags) in by_engine {
+        let paths: Vec<&str> =
+            diags.iter().filter(|d| d.rule_id == rule_id).filter_map(|d| d.property_path.as_deref()).collect();
+        assert!(
+            paths.contains(&property_path),
+            "[{engine}] expected {rule_id} at property path {property_path}, but it fired at: {paths:?}"
+        );
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Per-issue regression tests
 // ---------------------------------------------------------------------------
@@ -388,6 +400,38 @@ fn issue_50_no_false_positive_on_fn_split_ref_iam_resource() {
     assert_absent(&diags, "W1030");
     assert_fires_on_resource(&diags, "I9040", "MyFunctionServiceRole");
     assert_count(&diags, "I9040", 1);
+}
+
+/// Issue #50 (fixed-behavior guard): a `String` parameter Ref'd directly into an
+/// IAM policy `Resource` — with no `Fn::Split` and no ARN-shaped Default — must
+/// not trip W1030 either. This is the general form of the removed ARN branch
+/// (PR #51): W1030's surviving arms key only off `ImageId`/CIDR/`VpcId` property
+/// paths, so an ARN-position String Ref is never inspected. Both engines agree.
+#[test]
+fn issue_50_no_w1030_on_string_ref_in_iam_resource() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "roleArnParam": { "Type": "String" } },
+  "Resources": {
+    "Policy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "p",
+        "Roles": ["some-role"],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Action": ["s3:GetObject"],
+            "Resource": { "Ref": "roleArnParam" }
+          }]
+        }
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W1030");
+    assert_count(&diags, "W1030", 0);
 }
 
 /// Issue #52: two distinct `Fn::ImportValue` items in an array must not be
@@ -713,6 +757,59 @@ fn issue_69_f3037_f3032_content_constraints_are_fatal() {
     assert_fires_on_resource(&diags, "F3037", "Profile");
     assert_fires_with_severity(&diags, "F3032", Severity::Fatal);
     assert_count(&diags, "F3037", 1);
+}
+
+/// Issue #144: a schema that deprecates only nested sub-properties must not flag
+/// the top-level parent. `AWS::MediaConnect::Flow` requires `Source` and
+/// deprecates only `Source.SenderIpAddress` / `Source.Decryption.*`; a template
+/// that sets none of those leaves must produce no W9009. The create-only
+/// `Source.Name` IS set, so I9001 must report that exact leaf — not the bare
+/// `Source` — confirming the fix pinpoints the real property rather than
+/// collapsing to the parent. Both engines agree (the check lives in the shared
+/// schema-validator).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/144
+#[test]
+fn issue_144_no_w9009_when_only_nested_subproperty_deprecated() {
+    let diags = validate_both("issue-144.yaml");
+    assert_absent(&diags, "W9009");
+    assert_count(&diags, "W9009", 0);
+    // The fix reports the actual create-only leaf, not the top-level parent.
+    assert_fires_on_property(&diags, "I9001", "Properties.Source.Name");
+    for (engine, d) in &diags {
+        let bare_source =
+            d.iter().any(|x| x.rule_id == "I9001" && x.property_path.as_deref() == Some("Properties.Source"));
+        assert!(!bare_source, "[{engine}] I9001 must not fire on the bare Source parent");
+    }
+}
+
+/// Issue #144 (positive boundary): when the deprecated nested leaf IS present,
+/// W9009 still fires — and reports the full leaf path, not the parent. Setting
+/// `Source.Decryption.Url` (a deprecated pointer) must surface exactly that path.
+/// Both engines agree.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/144
+#[test]
+fn issue_144_w9009_still_fires_on_deprecated_nested_leaf() {
+    const TEMPLATE: &[u8] = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Flow:
+    Type: AWS::MediaConnect::Flow
+    Properties:
+      Name: my-flow
+      Source:
+        Name: my-source
+        Protocol: rtp
+        IngestPort: 5000
+        WhitelistCidr: 10.0.0.0/24
+        Decryption:
+          Algorithm: aes256
+          RoleArn: arn:aws:iam::123456789012:role/r
+          Url: https://example.com/key
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9009", Severity::Warn);
+    assert_fires_on_property(&diags, "W9009", "Properties.Source.Decryption.Url");
+    assert_count(&diags, "W9009", 1);
 }
 
 // ---------------------------------------------------------------------------
