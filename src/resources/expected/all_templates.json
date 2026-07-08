@@ -1913,11 +1913,11 @@
       "counts": {
         "fatal": 0,
         "errors": 1,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 1,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -1938,26 +1938,6 @@
         "ruleDescription": "CloudFront Aliases",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "Dist",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
       },
       {
         "ruleId": "I9040",
@@ -1987,11 +1967,11 @@
       "counts": {
         "fatal": 0,
         "errors": 1,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 1,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -2013,26 +1993,6 @@
         "ruleDescription": "Validate that CloudFront TargetOriginId is a specified Origin",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "Distribution",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
       },
       {
         "ruleId": "I9040",
@@ -2254,11 +2214,11 @@
       "counts": {
         "fatal": 9,
         "errors": 0,
-        "warnings": 9,
+        "warnings": 8,
         "informational": 8,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -2658,26 +2618,6 @@
         "ruleDescription": "Check if Conditions are Used",
         "phase": "LINT",
         "section": "Conditions"
-      },
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "CloudFrontDistribution",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 86,
-        "startColumn": 7,
-        "endLine": 86,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
       },
       {
         "ruleId": "W9010",
@@ -27248,11 +27188,11 @@
       "counts": {
         "fatal": 0,
         "errors": 8,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 1,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -27392,26 +27332,6 @@
         "ruleDescription": "CloudFront Aliases",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "CloudFrontDistribution",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
       },
       {
         "ruleId": "I9040",
@@ -48100,7 +48020,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 57,
+        "informational": 56,
         "debug": 0
       },
       "suppressed": 0,
@@ -48995,26 +48915,6 @@
         "context": {
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'OpenMPVPCF5EF58EB'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ComputeResources' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "resourceId": "OpenMPComputeEnvironment",
-        "resourceType": "AWS::Batch::ComputeEnvironment",
-        "propertyPath": "Properties.ComputeResources",
-        "category": "Best Practice",
-        "startLine": 748,
-        "startColumn": 5,
-        "endLine": 748,
-        "endColumn": 22,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "create-only"
         }
       },
       {
@@ -50691,11 +50591,11 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 10,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -50717,26 +50617,6 @@
         "ruleDescription": "Check obsolete DependsOn configuration for Resources",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "SiteDistribution3FF9535D",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 429,
-        "startColumn": 5,
-        "endLine": 429,
-        "endColumn": 24,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
       },
       {
         "ruleId": "I9001",
@@ -57317,16 +57197,16 @@
       {
         "ruleId": "I9001",
         "severity": "INFO",
-        "message": "Property 'AutoScalingGroupProvider' is create-only; updating it will cause resource replacement",
+        "message": "Property 'AutoScalingGroupProvider.AutoScalingGroupArn' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "resourceId": "AsgCapacityProvider760D11D9",
         "resourceType": "AWS::ECS::CapacityProvider",
-        "propertyPath": "Properties.AutoScalingGroupProvider",
+        "propertyPath": "Properties.AutoScalingGroupProvider.AutoScalingGroupArn",
         "category": "Best Practice",
-        "startLine": 690,
-        "startColumn": 5,
-        "endLine": 690,
-        "endColumn": 30,
+        "startLine": 691,
+        "startColumn": 6,
+        "endLine": 691,
+        "endColumn": 26,
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "section": "Resources",
@@ -96755,11 +96635,11 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 6,
+        "warnings": 5,
         "informational": 22,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -96859,27 +96739,6 @@
         "ruleDescription": "Check obsolete DependsOn configuration for Resources",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'TopicRulePayload' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "CdkIoTCoreRule",
-        "resourceType": "AWS::IoT::TopicRule",
-        "propertyPath": "Properties.TopicRulePayload",
-        "category": "Deprecation",
-        "startLine": 529,
-        "startColumn": 5,
-        "endLine": 529,
-        "endColumn": 22,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
       },
       {
         "ruleId": "I3011",
@@ -103822,6 +103681,85 @@
       }
     ]
   },
+  "gh-issues/issue-144.yaml": {
+    "filePath": "gh-issues/issue-144.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Flow",
+        "resourceType": "AWS::MediaConnect::Flow",
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-mediaconnect.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Source.Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "Flow",
+        "resourceType": "AWS::MediaConnect::Flow",
+        "propertyPath": "Properties.Source.Name",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 9,
+        "endLine": 13,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-mediaconnect.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Flow' of type 'AWS::MediaConnect::Flow' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Flow",
+        "resourceType": "AWS::MediaConnect::Flow",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "gh-issues/issue-34-w2506-overfire.json": {
     "filePath": "gh-issues/issue-34-w2506-overfire.json",
     "status": "OK",
@@ -108207,35 +108145,15 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 1,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 6,
-        "startColumn": 9,
-        "endLine": 6,
-        "endColumn": 28,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
-      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -109797,35 +109715,15 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 1,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "Distribution",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
-      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -110136,35 +110034,15 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 2,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "CloudFrontDistribution",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 42,
-        "startColumn": 7,
-        "endLine": 42,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
-      },
       {
         "ruleId": "W9010",
         "severity": "WARN",
@@ -119896,35 +119774,15 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 1,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "CloudFrontDistribution",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
-      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -130582,11 +130440,11 @@
       "counts": {
         "fatal": 0,
         "errors": 7,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 3,
         "debug": 0
       },
-      "suppressed": 1,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -130716,26 +130574,6 @@
         "ruleDescription": "Validate IAM trust policies",
         "phase": "LINT",
         "section": "Resources"
-      },
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Property 'DistributionConfig' is deprecated",
-        "source": "ENGINE",
-        "resourceId": "CloudFront2",
-        "resourceType": "AWS::CloudFront::Distribution",
-        "propertyPath": "Properties.DistributionConfig",
-        "category": "Deprecation",
-        "startLine": 43,
-        "startColumn": 7,
-        "endLine": 43,
-        "endColumn": 25,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "deprecated"
-        }
       },
       {
         "ruleId": "I9040",
