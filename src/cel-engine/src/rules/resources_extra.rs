@@ -16,7 +16,7 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
-use template_model::resolver::ResolvedValue;
+use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{hardcoded_az, region_enums};
 use validation_engine::make_resource_diagnostic;
 

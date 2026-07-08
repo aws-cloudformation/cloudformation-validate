@@ -116031,6 +116031,61 @@
       }
     ]
   },
+  "good/iam_conditional_resource_arns.yaml": {
+    "filePath": "good/iam_conditional_resource_arns.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
+  "good/iam_intrinsic_resource_arns.yaml": {
+    "filePath": "good/iam_intrinsic_resource_arns.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SomeBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "SomeBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 13,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "good/iam_valid.yaml": {
     "filePath": "good/iam_valid.yaml",
     "status": "OK",
