@@ -21,15 +21,21 @@ violation contains make_diag_at("E3504", "ERROR", name,
     move_days >= delete_days
 }
 
-# I3013: Retention period on resources with auto-expiring content (data-driven)
+# I3013: Retention period on resources with auto-expiring content (data-driven).
+# A resource type may list several retention properties (a canary needs both a
+# success and a failure retention period). The reference linter collapses the
+# required-property check to a single best-match finding anchored on the
+# properties object, so report only the first missing property in declaration
+# order — emitting one per missing property would over-report a single concern.
 violation contains make_diag_at("I3013", "INFO", name,
-    sprintf("Properties.%s", [prop]),
-    sprintf("'%s' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", [prop])) if {
+    "Properties",
+    sprintf("'%s' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", [props[first_missing]])) if {
     some rtype, props in data.retention_period_requirements
     some name in resources_of_type(rtype)
     _i3013_applies(name, rtype)
-    some prop in props
-    property_can_be_absent(name, sprintf("Properties.%s", [prop]))
+    missing_indices := {i | some i, prop in props; property_can_be_absent(name, sprintf("Properties.%s", [prop]))}
+    count(missing_indices) > 0
+    first_missing := min(missing_indices)
 }
 
 # RDS DB instances only need an explicit backup retention period when they are a
