@@ -402,8 +402,35 @@
     "acm:addtagstocertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
     ],
+    "acm:createacmedomainvalidation": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:createacmeexternalaccountbinding": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:deleteacmedomainvalidation": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:deleteacmeendpoint": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:deleteacmeexternalaccountbinding": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
     "acm:deletecertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
+    ],
+    "acm:describeacmeaccount": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:describeacmedomainvalidation": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:describeacmeendpoint": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:describeacmeexternalaccountbinding": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
     ],
     "acm:describecertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
@@ -411,14 +438,31 @@
     "acm:exportcertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
     ],
+    "acm:getacmeexternalaccountbindingcredentials": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
     "acm:getcertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
     ],
     "acm:importcertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
     ],
+    "acm:listacmeaccounts": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:listacmedomainvalidations": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:listacmeexternalaccountbindings": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
     "acm:listtagsforcertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
+    ],
+    "acm:listtagsforresource": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*",
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*",
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
     ],
     "acm:removetagsfromcertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
@@ -429,7 +473,32 @@
     "acm:resendvalidationemail": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
     ],
+    "acm:revokeacmeaccount": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:revokeacmeexternalaccountbinding": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
     "acm:revokecertificate": [
+      "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
+    ],
+    "acm:tagresource": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*",
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*",
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:untagresource": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*",
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*",
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:updateacmedomainvalidation": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:updateacmeendpoint": [
+      "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
+    ],
+    "acm:updatecertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
     ],
     "acm:updatecertificateoptions": [
@@ -3051,8 +3120,17 @@
     "artifact:acceptndaforagreement": [
       "arn:${Partition}:artifact:::agreement/*"
     ],
+    "artifact:createcomplianceinquiry": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
+    ],
+    "artifact:exportcomplianceinquiry": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
+    ],
     "artifact:getagreement": [
       "arn:${Partition}:artifact:::agreement/*"
+    ],
+    "artifact:getcomplianceinquirymetadata": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
     ],
     "artifact:getcustomeragreement": [
       "arn:${Partition}:artifact::${Account}:customer-agreement/*"
@@ -3069,8 +3147,20 @@
     "artifact:gettermforreport": [
       "arn:${Partition}:artifact:${Region}::.*"
     ],
+    "artifact:listcomplianceinquiryqueries": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
+    ],
+    "artifact:listtagsforresource": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
+    ],
+    "artifact:tagresource": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
+    ],
     "artifact:terminateagreement": [
       "arn:${Partition}:artifact::${Account}:customer-agreement/*"
+    ],
+    "artifact:untagresource": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
     ],
     "athena:batchgetnamedquery": [
       "arn:${Partition}:athena:${Region}:${Account}:workgroup/.*"
@@ -7471,10 +7561,12 @@
     "cleanrooms:batchgetschema": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:collaboration/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:batchgetschemaanalysisrule": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:collaboration/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
@@ -7514,6 +7606,14 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
+    "cleanrooms:createintermediatetable": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:createintermediatetableanalysisrule": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
     "cleanrooms:createmembership": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:collaboration/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
@@ -7551,6 +7651,13 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
+    "cleanrooms:deleteintermediatetable": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:deleteintermediatetableanalysisrule": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
     "cleanrooms:deletemember": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:collaboration/.*"
     ],
@@ -7558,6 +7665,9 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:deleteprivacybudgettemplate": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:disallowintermediatetable": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:getanalysistemplate": [
@@ -7606,6 +7716,13 @@
     ],
     "cleanrooms:getidnamespaceassociation": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:getintermediatetable": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:getintermediatetableanalysisrule": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:getmembership": [
@@ -7666,6 +7783,14 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
+    "cleanrooms:listintermediatetables": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:listintermediatetableversions": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
     "cleanrooms:listmembers": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:collaboration/.*"
     ],
@@ -7692,6 +7817,7 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:configuredtable/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:passcollaboration": [
@@ -7704,15 +7830,23 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
+    "cleanrooms:populateintermediatetable": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
     "cleanrooms:previewprivacyimpact": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:startprotectedjob": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:startprotectedquery": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
@@ -7727,6 +7861,7 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:untagresource": [
@@ -7734,6 +7869,7 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:collaboration/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:configuredtable/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
@@ -7776,6 +7912,13 @@
     ],
     "cleanrooms:updateidnamespaceassociation": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:updateintermediatetable": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:updateintermediatetableanalysisrule": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:updatemembership": [
@@ -8938,6 +9081,9 @@
     "cloudwatch:deletemetricstream": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:metric-stream/.*"
     ],
+    "cloudwatch:deletepipelinerule": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:dataset/.*"
+    ],
     "cloudwatch:deleteservicelevelobjective": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:slo/.*"
     ],
@@ -9027,6 +9173,9 @@
     ],
     "cloudwatch:putmetricstream": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:metric-stream/.*"
+    ],
+    "cloudwatch:putpipelinerule": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:dataset/.*"
     ],
     "cloudwatch:setalarmstate": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:alarm:.*"
@@ -11274,6 +11423,9 @@
     "connect:createagentstatus": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:createattachedfile": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:createauthenticationprofile": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11706,6 +11858,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*",
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:getevaluationformvalidation": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:getfederationtoken": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -12074,6 +12229,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*",
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:startcontactconversationalanalyticsjob": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:startcontactevaluation": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*",
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*",
@@ -12090,6 +12248,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:startemailcontact": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:startevaluationformvalidation": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:startforecastingplanningschedulingintegration": [
@@ -15237,6 +15398,9 @@
       "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:vpc/.*"
     ],
+    "ec2:attachimagewatermark": [
+      "arn:${Partition}:ec2:${Region}::image/.*"
+    ],
     "ec2:attachinternetgateway": [
       "arn:${Partition}:ec2:${Region}:${Account}:internet-gateway/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:vpc/.*"
@@ -15321,6 +15485,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*"
     ],
     "ec2:createcapacityreservationcancellationquote": [
+      "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation-cancellation-quote/.*"
     ],
     "ec2:createcapacityreservationfleet": [
@@ -16319,6 +16484,9 @@
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:vpc/.*"
     ],
+    "ec2:detachimagewatermark": [
+      "arn:${Partition}:ec2:${Region}::image/.*"
+    ],
     "ec2:detachinternetgateway": [
       "arn:${Partition}:ec2:${Region}:${Account}:internet-gateway/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:vpc/.*"
@@ -17138,9 +17306,11 @@
       "arn:${Partition}:license-manager:${Region}:${Account}:license-configuration:.*",
       "arn:${Partition}:ec2:${Region}:${Account}:network-interface/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:placement-group/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:secondary-interface/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:secondary-subnet/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*",
       "arn:${Partition}:ec2:${Region}::snapshot/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:spot-instances-request/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:subnet/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:volume/.*"
     ],
@@ -17377,6 +17547,9 @@
     ],
     "ecr:uploadlayerpart": [
       "arn:${Partition}:ecr:${Region}:${Account}:repository/.*"
+    ],
+    "ecs:allowvendedlogdeliveryforresource": [
+      "arn:${Partition}:ecs:${Region}:${Account}:cluster/.*"
     ],
     "ecs:continueservicedeployment": [
       "arn:${Partition}:ecs:${Region}:${Account}:service/.*",
@@ -17619,6 +17792,9 @@
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
     "eks:associateidentityproviderconfig": [
+      "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
+    ],
+    "eks:cancelupdate": [
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
     "eks:createaccessentry": [
@@ -21008,6 +21184,9 @@
     ],
     "gameliftstreams:associateapplications": [
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:application/.*",
+      "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
+    ],
+    "gameliftstreams:createstreamsessionadminshell": [
       "arn:${Partition}:gameliftstreams:${Region}:${Account}:streamgroup/.*"
     ],
     "gameliftstreams:createstreamsessionconnection": [
@@ -32384,6 +32563,9 @@
       "arn:${Partition}:network-firewall:${Region}:${Account}:proxy-configuration/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:proxy-rule-group/.*"
     ],
+    "network-firewall:createcontainerassociation": [
+      "arn:${Partition}:network-firewall:${Region}:${Account}:container-association/.*"
+    ],
     "network-firewall:createfirewall": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall-policy/.*"
@@ -32418,6 +32600,9 @@
     "network-firewall:createvpcendpointassociation": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:vpc-endpoint-association/.*"
+    ],
+    "network-firewall:deletecontainerassociation": [
+      "arn:${Partition}:network-firewall:${Region}:${Account}:container-association/.*"
     ],
     "network-firewall:deletefirewall": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*"
@@ -32455,6 +32640,9 @@
     ],
     "network-firewall:deletevpcendpointassociation": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:vpc-endpoint-association/.*"
+    ],
+    "network-firewall:describecontainerassociation": [
+      "arn:${Partition}:network-firewall:${Region}:${Account}:container-association/.*"
     ],
     "network-firewall:describefirewall": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*"
@@ -32548,6 +32736,7 @@
       "arn:${Partition}:network-firewall:${Region}:${Account}:proxy-rule-group/.*"
     ],
     "network-firewall:listtagsforresource": [
+      "arn:${Partition}:network-firewall:${Region}:${Account}:container-association/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall-policy/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:stateful-rulegroup/.*",
@@ -32580,6 +32769,7 @@
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*"
     ],
     "network-firewall:tagresource": [
+      "arn:${Partition}:network-firewall:${Region}:${Account}:container-association/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall-policy/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:proxy/.*",
@@ -32591,6 +32781,7 @@
       "arn:${Partition}:network-firewall:${Region}:${Account}:vpc-endpoint-association/.*"
     ],
     "network-firewall:untagresource": [
+      "arn:${Partition}:network-firewall:${Region}:${Account}:container-association/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall-policy/.*",
       "arn:${Partition}:network-firewall:${Region}:${Account}:proxy/.*",
@@ -32603,6 +32794,9 @@
     ],
     "network-firewall:updateavailabilityzonechangeprotection": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*"
+    ],
+    "network-firewall:updatecontainerassociation": [
+      "arn:${Partition}:network-firewall:${Region}:${Account}:container-association/.*"
     ],
     "network-firewall:updatefirewallanalysissettings": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:firewall/.*"
@@ -34662,6 +34856,9 @@
     "partnercentral:createengagementinvitation": [
       "arn:${Partition}:partnercentral:${Region}::catalog/.*"
     ],
+    "partnercentral:createmarketplacerevenueshareallocation": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:createopportunity": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -34721,6 +34918,12 @@
     "partnercentral:getengagementinvitation": [
       "arn:${Partition}:partnercentral:${Region}::catalog/.*"
     ],
+    "partnercentral:getmarketplacerevenueshare": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:getmarketplacerevenueshareallocation": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:getopportunity": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -34748,6 +34951,15 @@
     "partnercentral:getresourcesnapshotjob": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
+    "partnercentral:getrevenueattribution": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:getrevenueattributionallocation": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:getrevenueattributionallocationstask": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:listbenefitallocations": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -34766,6 +34978,9 @@
     "partnercentral:listengagementresourceassociations": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
+    "partnercentral:listmarketplacerevenueshareallocations": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:listprogrammanagementaccounts": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -34773,6 +34988,9 @@
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
     "partnercentral:listresourcesnapshots": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:listrevenueattributionallocations": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
     "partnercentral:putallianceleadcontact": [
@@ -34811,6 +35029,9 @@
     "partnercentral:startresourcesnapshotjob": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
+    "partnercentral:startrevenueattributionallocationstask": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:stopresourcesnapshotjob": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -34827,9 +35048,13 @@
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
     "partnercentral:untagresource": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
@@ -34844,6 +35069,9 @@
     "partnercentral:updateengagementcontext": [
       "arn:${Partition}:partnercentral:${Region}::catalog/.*"
     ],
+    "partnercentral:updatemarketplacerevenueshareallocation": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:updateopportunity": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -34851,6 +35079,9 @@
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
     "partnercentral:updaterelationship": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:updaterevenueattribution": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
     "payment-cryptography:addkeyreplicationregions": [
@@ -42118,6 +42349,9 @@
       "arn:${Partition}:sagemaker:${Region}:${Account}:experiment-trial-component/.*",
       "arn:${Partition}:sagemaker:${Region}:${Account}:training-job/.*"
     ],
+    "sagemaker:batchwriterecord": [
+      "arn:${Partition}:sagemaker:${Region}:${Account}:feature-group/.*"
+    ],
     "sagemaker:callmlflowappapi": [
       "arn:${Partition}:sagemaker:${Region}:${Account}:mlflow-app/.*"
     ],
@@ -42939,6 +43173,9 @@
     ],
     "sagemaker:listpipelineversions": [
       "arn:${Partition}:sagemaker:${Region}:${Account}:pipeline/.*"
+    ],
+    "sagemaker:listrecords": [
+      "arn:${Partition}:sagemaker:${Region}:${Account}:feature-group/.*"
     ],
     "sagemaker:listsharedmodelversions": [
       "arn:${Partition}:sagemaker:${Region}:${Account}:shared-model/.*"
@@ -45647,6 +45884,9 @@
     "sns:untagresource": [
       "arn:${Partition}:sns:${Region}:${Account}:.*"
     ],
+    "social-messaging:createwhatsappflow": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
     "social-messaging:createwhatsappmessagetemplate": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
@@ -45656,10 +45896,16 @@
     "social-messaging:createwhatsappmessagetemplatemedia": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
+    "social-messaging:deletewhatsappflow": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
     "social-messaging:deletewhatsappmessagemedia": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
     ],
     "social-messaging:deletewhatsappmessagetemplate": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
+    "social-messaging:deprecatewhatsappflow": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
     "social-messaging:disassociatewhatsappbusinessaccount": [
@@ -45671,6 +45917,12 @@
     "social-messaging:getlinkedwhatsappbusinessaccountphonenumber": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
     ],
+    "social-messaging:getwhatsappflow": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
+    "social-messaging:getwhatsappflowpreview": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
     "social-messaging:getwhatsappmessagemedia": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
     ],
@@ -45681,6 +45933,12 @@
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*",
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
+    "social-messaging:listwhatsappflowassets": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
+    "social-messaging:listwhatsappflows": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
     "social-messaging:listwhatsappmessagetemplates": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
@@ -45689,6 +45947,9 @@
     ],
     "social-messaging:postwhatsappmessagemedia": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
+    ],
+    "social-messaging:publishwhatsappflow": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
     "social-messaging:putwhatsappbusinessaccounteventdestinations": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
@@ -45702,6 +45963,12 @@
     ],
     "social-messaging:untagresource": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*",
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
+    "social-messaging:updatewhatsappflow": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
+    "social-messaging:updatewhatsappflowassets": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
     "social-messaging:updatewhatsappmessagetemplate": [
@@ -49099,6 +49366,7 @@
       "arn:${Partition}:waf::${Account}:xssmatchset/.*"
     ],
     "wafv2:associatewebacl": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
       "arn:${Partition}:amplify:${Region}:${Account}:apps/.*",
       "arn:${Partition}:apigateway:${Region}::/restapis/.*",
       "arn:${Partition}:apprunner:${Region}:${Account}:service/.*",
@@ -49151,6 +49419,7 @@
       "arn:${Partition}:wafv2:${Region}:${Account}:.*"
     ],
     "wafv2:disassociatewebacl": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
       "arn:${Partition}:amplify:${Region}:${Account}:apps/.*",
       "arn:${Partition}:apigateway:${Region}::/restapis/.*",
       "arn:${Partition}:apprunner:${Region}:${Account}:service/.*",
@@ -49190,6 +49459,7 @@
       "arn:${Partition}:wafv2:${Region}:${Account}:.*"
     ],
     "wafv2:getwebaclforresource": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
       "arn:${Partition}:amplify:${Region}:${Account}:apps/.*",
       "arn:${Partition}:apigateway:${Region}::/restapis/.*",
       "arn:${Partition}:apprunner:${Region}:${Account}:service/.*",
@@ -49200,6 +49470,7 @@
       "arn:${Partition}:wafv2:${Region}:${Account}:.*"
     ],
     "wafv2:listresourcesforwebacl": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
       "arn:${Partition}:amplify:${Region}:${Account}:apps/.*",
       "arn:${Partition}:apprunner:${Region}:${Account}:service/.*",
       "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*",
