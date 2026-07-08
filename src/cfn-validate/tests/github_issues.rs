@@ -496,37 +496,37 @@ fn issue_52_w9007_still_fires_on_repeated_import_of_same_export() {
 
 /// Issue #53: F3004 correctly fires on a genuine circular dependency that is
 /// invisible to Ref/GetAtt-only graph tools because the loop is closed by
-/// `DependsOn` edges. Each finding now names the full loop back to its own
-/// resource (`A -> B -> C -> A`) rather than a single next hop; the reporter read
-/// the next-hop form as a two-node cycle and, seeing no back-edge on the named
-/// resource, concluded there was none. The full path also distinguishes the two
-/// separate cycles through the barrier that the next-hop message collapsed into
-/// one, so ten findings surface here.
+/// `DependsOn` edges. The cycle here is a two-node loop between the kubectl-ready
+/// barrier and the cluster creation-role default policy. A finding is anchored on
+/// each resource whose edge closes the loop — the two directions of that edge —
+/// so exactly two findings surface, one per edge, rather than one per member of
+/// the surrounding strongly connected component. Each message traces the loop
+/// back to its own resource so a reader can verify every edge.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/53
 #[test]
 fn issue_53_f3004_fires_on_real_dependson_cycle() {
     let diags = validate_both("issue-53.json");
     assert_fires_with_severity(&diags, "F3004", Severity::Fatal);
-    assert_count(&diags, "F3004", 10);
-    assert_fires_on_resource(&diags, "F3004", "ClusterKubectlHandlerRole94549F93");
+    assert_count(&diags, "F3004", 2);
+    assert_fires_on_resource(&diags, "F3004", "ClusterCreationRoleDefaultPolicyE8BDFC7B");
     assert_fires_on_resource(&diags, "F3004", "ClusterKubectlReadyBarrier200052AF");
     // The message traces the whole loop, so a reader can verify each edge instead
-    // of guessing from one hop. The handler-role finding names the three-node loop
-    // that runs through the creation role, not a phantom two-node barrier cycle.
+    // of guessing from one hop. The barrier's finding names the two-node loop that
+    // closes back through the creation-role default policy.
     for (engine, ds) in &diags {
-        let handler = ds
+        let barrier = ds
             .iter()
             .find(|d| {
                 d.rule_id == "F3004"
-                    && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ClusterKubectlHandlerRole94549F93")
+                    && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ClusterKubectlReadyBarrier200052AF")
             })
-            .expect("F3004 on the kubectl handler role");
+            .expect("F3004 on the kubectl ready barrier");
         assert!(
-            handler.message.contains(
-                "[ClusterKubectlHandlerRole94549F93 -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -> ClusterKubectlHandlerRole94549F93]"
+            barrier.message.contains(
+                "[ClusterKubectlReadyBarrier200052AF -> ClusterCreationRoleDefaultPolicyE8BDFC7B -> ClusterKubectlReadyBarrier200052AF]"
             ),
-            "[{engine}] handler-role F3004 must trace the full loop, got: {}",
-            handler.message
+            "[{engine}] barrier F3004 must trace the full loop, got: {}",
+            barrier.message
         );
     }
 }
@@ -705,6 +705,34 @@ fn issue_62_f3032_fatal_on_empty_unconstrained_array() {
     assert_fires_with_severity(&diags, "F3032", Severity::Fatal);
     assert_fires_on_resource(&diags, "F3032", "Canary");
     assert_count(&diags, "F3032", 1);
+}
+
+/// Issue #62 (retention collapse): a `AWS::Synthetics::Canary` requires two
+/// retention properties (`SuccessRetentionPeriod` and `FailureRetentionPeriod`).
+/// When both are missing, exactly one I3013 fires — for the first missing
+/// property in declaration order, anchored on the properties object — rather than
+/// one per property, matching how the reference linter collapses the
+/// required-property check to a single best match.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/62
+#[test]
+fn issue_62_i3013_reports_single_retention_finding() {
+    let diags = validate_both("issue-62.json");
+    assert_fires_with_severity(&diags, "I3013", Severity::Info);
+    assert_count(&diags, "I3013", 1);
+    assert_fires_on_resource(&diags, "I3013", "Canary");
+    for (engine, ds) in &diags {
+        let retention = ds.iter().find(|d| d.rule_id == "I3013").expect("I3013 on the canary");
+        assert!(
+            retention.message.starts_with("'SuccessRetentionPeriod' is a required property"),
+            "[{engine}] I3013 must name the first missing retention property, got: {}",
+            retention.message
+        );
+        assert_eq!(
+            retention.property_path.as_deref(),
+            Some("Properties"),
+            "[{engine}] I3013 must anchor on the properties object"
+        );
+    }
 }
 
 /// Issue #63: E2001 fires on an intrinsic (`Fn::GetStackOutput`) used in a
