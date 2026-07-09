@@ -226,7 +226,9 @@ jobs:
           package-manager-cache: false
 
       - name: Upgrade npm for Trusted Publishing
-        run: npm install -g npm@latest
+        run: |
+          npm install -g npm@11
+          echo "npm version: $(npm --version)"
 
       - name: Match version with release tag
         working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/dist
