@@ -558,7 +558,7 @@ export type DetailLevel = 'STANDARD' | 'DETAILED';
 export interface DetailedReport {
     filePath: string;
     status: ReportStatus;
-    engineVersion: string;
+    version: string;
     metadata: ReportMetadata;
     performance: PerformanceMetrics;
     diagnostics: DetailedDiagnostic[];
@@ -690,7 +690,7 @@ export type EngineType = 'REGO' | 'CEL';
 export interface StandardReport {
     filePath: string;
     status: ReportStatus;
-    engineVersion: string;
+    version: string;
     metadata: ReportMetadata;
     performance: PerformanceMetrics;
     diagnostics: StandardDiagnostic[];

@@ -177,7 +177,7 @@ validator.free();
 interface StandardReport {
     filePath: string;
     status: "OK" | "ERROR";           // ERROR when the template fails to parse
-    engineVersion: string;
+    version: string;
     metadata: ReportMetadata;
     performance: PerformanceMetrics;
     diagnostics: StandardDiagnostic[];
