@@ -77,7 +77,7 @@ fields. Drops `documentation_url`, `rule_description`, `phase`, `section`, and `
 
 ## Report Types
 
-All report types share: `file_path`, `status` (`Ok`/`Error`), `engine_version`, `metadata`, `performance`,
+All report types share: `file_path`, `status` (`Ok`/`Error`), `version`, `metadata`, `performance`,
 `diagnostics`.
 
 `ReportMetadata`: `rules_evaluated`, `resources_scanned`, `counts` (Summary by severity), `suppressed`, `strict`,

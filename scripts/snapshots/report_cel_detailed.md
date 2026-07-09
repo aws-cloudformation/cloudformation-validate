@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-08 16:46:26  
+> Generated: 2026-07-09 14:46:29  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **504**  
+> Templates compared: **508**  
 
 ## Terminology
 
@@ -22,51 +22,51 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 1994 |
-| False Positives (engine bugs) | 9 |
-| Engine Extra (correct, cfn-lint gap) | 5765 |
-| False Negatives (engine misses) | 337 |
-| Precision | 99.55% |
-| Recall | 85.54% |
-| F1 | 92.02% |
-| Unique rules detected | 211 |
-| Perfect templates | 391/504 |
+| True Positives | 2002 |
+| False Positives (engine bugs) | 0 |
+| Engine Extra (correct, cfn-lint gap) | 5763 |
+| False Negatives (engine misses) | 338 |
+| Precision | 100.00% |
+| Recall | 85.56% |
+| F1 | 92.22% |
+| Unique rules detected | 212 |
+| Perfect templates | 396/508 |
 | Location mismatches (matched pairs) | 16 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 413 | 8 | 61 | 110 | 98.10% | 78.97% |
-| Error | 349 | 0 | 3 | 153 | 100.00% | 69.52% |
-| Warning | 736 | 0 | 353 | 59 | 100.00% | 92.58% |
-| Info | 496 | 1 | 5348 | 15 | 99.80% | 97.06% |
+| Fatal | 413 | 0 | 62 | 111 | 100.00% | 78.82% |
+| Error | 354 | 0 | 3 | 153 | 100.00% | 69.82% |
+| Warning | 736 | 0 | 342 | 59 | 100.00% | 92.58% |
+| Info | 499 | 0 | 5356 | 15 | 100.00% | 97.08% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 32990.9643 ms |
-| Throughput | 77.45 validations/sec |
-| Templates | 511 ok, 8 failed |
+| Total wall time | 35918.2134 ms |
+| Throughput | 71.27 validations/sec |
+| Templates | 512 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 33.3812 ms |
-| Engine init (max) | 33.5576 ms |
-| Schema init (p99) | 66.4721 ms |
-| Schema init (max) | 67.0478 ms |
+| Engine init (p99) | 37.0541 ms |
+| Engine init (max) | 37.2695 ms |
+| Schema init (p99) | 70.6424 ms |
+| Schema init (max) | 71.2822 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0028 | 0.2087 | 0.0541 | 0.6261 | 0.9030 | 1.7115 | 2.7194 |
-| Schema Validate | 0.0000 | 0.4537 | 0.2030 | 1.1983 | 1.7392 | 3.1454 | 6.9965 |
-| Rule Evaluation | 10.5333 | 11.5225 | 11.3015 | 12.3124 | 12.6309 | 13.5806 | 55.6809 |
-| Diagnostic Finalize | 0.0011 | 0.0117 | 0.0065 | 0.0245 | 0.0390 | 0.0715 | 0.1713 |
-| Engine Internal | 10.5568 | 12.2457 | 11.8768 | 13.6686 | 15.1264 | 17.9723 | 62.5335 |
-| Wall Clock | 10.5573 | 12.2464 | 11.8777 | 13.6691 | 15.1274 | 17.9776 | 62.5348 |
+| Model Build | 0.0030 | 0.2245 | 0.0560 | 0.6638 | 0.9899 | 1.9004 | 3.0558 |
+| Schema Validate | 0.0001 | 0.4940 | 0.2283 | 1.3458 | 1.8459 | 3.2539 | 7.0653 |
+| Rule Evaluation | 10.8368 | 12.4103 | 11.9219 | 13.3609 | 14.7309 | 20.5603 | 55.0324 |
+| Diagnostic Finalize | 0.0018 | 0.0143 | 0.0086 | 0.0315 | 0.0453 | 0.0811 | 0.1715 |
+| Engine Internal | 10.9131 | 13.2149 | 12.4079 | 15.6580 | 17.5742 | 21.6035 | 62.7525 |
+| Wall Clock | 10.9136 | 13.2159 | 12.4087 | 15.6591 | 17.5755 | 21.6047 | 62.7538 |
 
-## False Negatives — 337 missed findings across 82 rules
+## False Negatives — 338 missed findings across 82 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -244,6 +244,29 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1031** `Bucket7` → `Properties.BucketName.Fn::Sub` L64 in `lsp_parameter_usage_yaml`
   > {'Fn::Sub': 'Bucket-${AWS::Region}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
 
+### F3014 — 10 missed — Validate only one of a set of required properties are specified
+
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L47 in `bad_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.CidrIp` L39 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.SourceSecurityGroupId` L40 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.SourceSecurityGroupId` L49 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.CidrIp` L50 in `bad_properties_sg_ingress_yaml`
+  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
+- **F3014** (cfn-lint: E3014) `ScalingPolicyBothIds` → `Properties.ResourceId` L29 in `bad_schema_structural_yaml`
+  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
+- **F3014** (cfn-lint: E3014) `PromAlarm` → `Properties` L5 in `gh-issues_issue-67_json`
+  > Only one of ['Metrics', 'MetricName'] is a required property
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions_yaml`
+  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+
 ### E1001 — 10 missed — Basic CloudFormation Template Configuration
 
 - **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
@@ -266,27 +289,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > None is not one of ['2010-09-09']
 - **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
   > None is not of type 'string', 'date'
-
-### F3014 — 9 missed — Validate only one of a set of required properties are specified
-
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L47 in `bad_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.CidrIp` L39 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.1.SourceSecurityGroupId` L40 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.SourceSecurityGroupId` L49 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `mySecurityGroupVpc` → `Properties.SecurityGroupIngress.4.CidrIp` L50 in `bad_properties_sg_ingress_yaml`
-  > Only one of ['CidrIp', 'CidrIpv6', 'SourcePrefixListId', 'SourceSecurityGroupId', 'SourceSecurityGroupName'] is a required property
-- **F3014** (cfn-lint: E3014) `ScalingPolicyBothIds` → `Properties.ResourceId` L29 in `bad_schema_structural_yaml`
-  > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
-- **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions_yaml`
-  > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
 
 ### I3011 — 8 missed — Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy
 
@@ -990,39 +992,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives — 9 extra findings across 2 rules
+## False Positives — 0 extra findings across 0 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-### F3004 — 8 extra — Resource dependencies are not circular
-
-- **F3004** `ClusterKubectlHandlerRole94549F93` → `Resources/ClusterKubectlHandlerRole94549F93` L472 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource ClusterKubectlHandlerRole94549F93. Circular dependency with [ClusterKubectlHandlerRole94549F93 -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -
-- **F3004** `ClusterControlPlaneSecurityGroupD274242C` → `Resources/ClusterControlPlaneSecurityGroupD274242C` L593 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource ClusterControlPlaneSecurityGroupD274242C. Circular dependency with [ClusterControlPlaneSecurityGroupD274242C -> ClusterKubectlReadyBarrier200052AF -> Cluster9EE0221C
-- **F3004** `ClusterCreationRole360249B6` → `Resources/ClusterCreationRole360249B6` L614 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterCreationRole360249B6 -> ClusterKubectlHandlerRole94549F93 -> ClusterKubectlReadyBarrier200052AF -> Clus
-- **F3004** `ClusterCreationRole360249B6` → `Resources/ClusterCreationRole360249B6` L614 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource ClusterCreationRole360249B6. Circular dependency with [ClusterCreationRole360249B6 -> ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6]
-- **F3004** `Cluster9EE0221C` → `Resources/Cluster9EE0221C` L793 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource Cluster9EE0221C. Circular dependency with [Cluster9EE0221C -> ClusterControlPlaneSecurityGroupD274242C -> ClusterKubectlReadyBarrier200052AF -> Cluster9EE0221C]
-- **F3004** `ClusterKubectlReadyBarrier200052AF` → `Resources/ClusterKubectlReadyBarrier200052AF` L880 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -> ClusterKubectlHandlerRole94549F93 
-- **F3004** `ClusterKubectlReadyBarrier200052AF` → `Resources/ClusterKubectlReadyBarrier200052AF` L880 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterKubectlReadyBarrier200052AF -> ClusterCreationRole360249B6 -> ClusterKubectlReadyBarrier200052AF
-- **F3004** `ClusterKubectlReadyBarrier200052AF` → `Resources/ClusterKubectlReadyBarrier200052AF` L880 in `gh-issues_issue-53_json`
-  > Circular Dependencies for resource ClusterKubectlReadyBarrier200052AF. Circular dependency with [ClusterKubectlReadyBarrier200052AF -> ClusterCreationRoleDefaultPolicyE8BDFC7B -> ClusterKubectlReadyBa
-
-### I3013 — 1 extra — Check resources with auto expiring content have explicit retention period
-
-- **I3013** `Canary` (AWS::Synthetics::Canary) → `Properties.SuccessRetentionPeriod` L5 in `gh-issues_issue-62_json`
-  > 'SuccessRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-
-## Engine Extra — 5765 correct findings across 37 rules
+## Engine Extra — 5763 correct findings across 37 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 — 3746 findings
+### I9001 — 3747 findings
 
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L9 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
@@ -2640,8 +2618,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
 - **I9001** `BatchSecurityGroup77EC865F` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L576 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
-- **I9001** `OpenMPComputeEnvironment` (AWS::Batch::ComputeEnvironment) → `Properties.ComputeResources` L748 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
-  > Property 'ComputeResources' is create-only; updating it will cause resource replacement
 - **I9001** `OpenMPComputeEnvironment` (AWS::Batch::ComputeEnvironment) → `Properties.Type` L789 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
   > Property 'Type' is create-only; updating it will cause resource replacement
 - **I9001** `OpenMPLogGroup95FEB040` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L850 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
@@ -3162,8 +3138,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'UserData' is create-only; updating it will cause resource replacement
 - **I9001** `EcsCluster72B17558` (AWS::ECS::ClusterCapacityProviderAssociations) → `Properties.Cluster` L678 in `cdk_ecs-cluster--MyFirstEcsCluster.template_json`
   > Property 'Cluster' is create-only; updating it will cause resource replacement
-- **I9001** `AsgCapacityProvider760D11D9` (AWS::ECS::CapacityProvider) → `Properties.AutoScalingGroupProvider` L690 in `cdk_ecs-cluster--MyFirstEcsCluster.template_json`
-  > Property 'AutoScalingGroupProvider' is create-only; updating it will cause resource replacement
+- **I9001** `AsgCapacityProvider760D11D9` (AWS::ECS::CapacityProvider) → `Properties.AutoScalingGroupProvider.AutoScalingGroupArn` L691 in `cdk_ecs-cluster--MyFirstEcsCluster.template_json`
+  > Property 'AutoScalingGroupProvider.AutoScalingGroupArn' is create-only; updating it will cause resource replacement
 - **I9001** `Vpc8378EB38` (AWS::EC2::VPC) → `Properties.CidrBlock` L6 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `VpcPublicSubnet1Subnet5C2D37C4` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L24 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
@@ -6196,6 +6172,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ResourceId' is create-only; updating it will cause resource replacement
 - **I9001** `StepFuncApiordersGET0318ABB9` (AWS::ApiGateway::Method) → `Properties.RestApiId` L321 in `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template_json`
   > Property 'RestApiId' is create-only; updating it will cause resource replacement
+- **I9001** `Flow` (AWS::MediaConnect::Flow) → `Properties.Name` L11 in `gh-issues_issue-144_yaml`
+  > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `Flow` (AWS::MediaConnect::Flow) → `Properties.Source.Name` L13 in `gh-issues_issue-144_yaml`
+  > Property 'Source.Name' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L16 in `gh-issues_issue-34_json`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Instance2` (AWS::EC2::Instance) → `Properties.ImageId` L23 in `gh-issues_issue-34_json`
@@ -8517,7 +8497,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2214 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1545 findings
+### I9040 — 1552 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -8687,6 +8667,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Topic3' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `Topic4` (AWS::SNS::Topic) → `Properties.Tags` L34 in `bad_functions_get_stack_output_json`
   > Resource 'Topic4' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `Topic1` (AWS::SNS::Topic) → `Properties.Tags` L6 in `bad_functions_get_stack_output_yaml`
+  > Resource 'Topic1' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `Topic2` (AWS::SNS::Topic) → `Properties.Tags` L13 in `bad_functions_get_stack_output_yaml`
+  > Resource 'Topic2' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `Topic3` (AWS::SNS::Topic) → `Properties.Tags` L20 in `bad_functions_get_stack_output_yaml`
+  > Resource 'Topic3' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `Topic4` (AWS::SNS::Topic) → `Properties.Tags` L26 in `bad_functions_get_stack_output_yaml`
+  > Resource 'Topic4' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `Topic5` (AWS::SQS::Queue) → `Properties.Tags` L35 in `bad_functions_get_stack_output_yaml`
+  > Resource 'Topic5' of type 'AWS::SQS::Queue' supports Tags but none are configured
 - **I9040** `mySubnet1` (AWS::EC2::Subnet) → `Properties.Tags` L12 in `bad_functions_getaz_yaml`
   > Resource 'mySubnet1' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `mySubnet2` (AWS::EC2::Subnet) → `Properties.Tags` L21 in `bad_functions_getaz_yaml`
@@ -10537,6 +10527,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'CronStateMachineEventsRoleA3F136B0' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Rule4C995B7F` (AWS::Events::Rule) → `Properties.Tags` L317 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template_json`
   > Resource 'Rule4C995B7F' of type 'AWS::Events::Rule' supports Tags but none are configured
+- **I9040** `Flow` (AWS::MediaConnect::Flow) → `Properties.Tags` L10 in `gh-issues_issue-144_yaml`
+  > Resource 'Flow' of type 'AWS::MediaConnect::Flow' supports Tags but none are configured
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L15 in `gh-issues_issue-34_json`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Instance2` (AWS::EC2::Instance) → `Properties.Tags` L22 in `gh-issues_issue-34_json`
@@ -11345,6 +11337,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Bucket6' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket7` (AWS::S3::Bucket) → `Properties.Tags` L63 in `lsp_parameter_usage_yaml`
   > Resource 'Bucket7' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `MyS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L4 in `lsp_simple_json`
+  > Resource 'MyS3Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `MyS3Bucket` (AWS::S3::Bucket) → `Properties.Tags` L3 in `lsp_simple_yaml`
   > Resource 'MyS3Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `MyFunction` (AWS::Serverless::Function) → `Properties.Tags` L4 in `lsp_test-template_yaml`
@@ -12328,7 +12322,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L20 in `good_stepfunctions_valid_yaml`
   > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 
-### F0001 — 22 findings
+### F0001 — 23 findings
 
 - **F0001** L23 in `bad_conditions_and_yaml`
   > Resources section must exist and be non-empty
@@ -12355,6 +12349,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F0001** L3 in `bad_templates_base_null_yaml`
   > Resources section must exist and be non-empty
 - **F0001** L4 in `bad_templates_base_yaml`
+  > Resources section must exist and be non-empty
+- **F0001** L16 in `good_core_config_cfn_lint_json`
   > Resources section must exist and be non-empty
 - **F0001** L11 in `good_core_config_cfn_lint_yaml`
   > Resources section must exist and be non-empty
@@ -12415,35 +12411,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 - **W2508** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L808 in `quickstart_vpc-management_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
-
-### W9009 — 13 findings
-
-- **W9009** `Dist` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L6 in `bad_cloudfront_bad_alias_yaml`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `Distribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L6 in `bad_cloudfront_bad_origin_yaml`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L86 in `bad_conditions_yaml`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `Domain` (AWS::SDB::Domain) L3 in `bad_deprecated_type_yaml`
-  > Resource type 'AWS::SDB::Domain' is deprecated - consider using a newer alternative
-- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L6 in `bad_resources_cloudfront_invalid_aliases_yaml`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `DeprecatedProp` (AWS::Athena::WorkGroup) → `Properties.WorkGroupConfigurationUpdates` L23 in `bad_schema_property_constraints_yaml`
-  > Property 'WorkGroupConfigurationUpdates' is deprecated
-- **W9009** `SiteDistribution3FF9535D` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L429 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template_json`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `CdkIoTCoreRule` (AWS::IoT::TopicRule) → `Properties.TopicRulePayload` L529 in `cdk_py-iotcore--CdkIotThingStack.template_json`
-  > Property 'TopicRulePayload' is deprecated
-- **W9009** `AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L6 in `gh-issues_issue-57_json`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `Distribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L6 in `good_cloudfront_valid_yaml`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L42 in `good_conditions_yaml`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `CloudFrontDistribution` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L6 in `good_resources_cloudfront_aliases_yaml`
-  > Property 'DistributionConfig' is deprecated
-- **W9009** `CloudFront2` (AWS::CloudFront::Distribution) → `Properties.DistributionConfig` L43 in `integration_ref-no-value_yaml`
-  > Property 'DistributionConfig' is deprecated
 
 ### F3003 — 7 findings — Required Resource properties are missing
 
@@ -12581,6 +12548,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W1020** `NodeGroup` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags.1.Key` L15 in `bad_core_parse_invalid_map_yaml`
   > Fn::Sub isn't needed because there are no variables
 
+### W9009 — 2 findings
+
+- **W9009** `Domain` (AWS::SDB::Domain) L3 in `bad_deprecated_type_yaml`
+  > Resource type 'AWS::SDB::Domain' is deprecated - consider using a newer alternative
+- **W9009** `DeprecatedProp` (AWS::Athena::WorkGroup) → `Properties.WorkGroupConfigurationUpdates` L23 in `bad_schema_property_constraints_yaml`
+  > Property 'WorkGroupConfigurationUpdates' is deprecated
+
 ### F1012 — 2 findings
 
 - **F1012** `Bucket` (AWS::S3::Bucket) L3 in `bad_findinmap_bad_yaml`
@@ -12663,7 +12637,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L6 in `bad_unique_items_yaml`
   > Array property 'AvailabilityZones' contains duplicate values
 
-## Per-Template Breakdown — 113 templates with mismatches
+## Per-Template Breakdown — 112 templates with mismatches
 
 ### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 5 EE, 18 FN)
 
@@ -12685,10 +12659,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F0013` ×6, `F6101` ×4, `E3016`
 - EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`, `I9003`
 
-### `bad_conditions_yaml` — 10 mismatches (11 TP, 0 FP, 15 EE, 10 FN)
+### `bad_conditions_yaml` — 10 mismatches (11 TP, 0 FP, 14 EE, 10 FN)
 
 - FN: `F0013` ×5, `E3024` ×2, `E1001`, `E3001`, `W1028`
-- EE: `I9001` ×4, `F1060` ×2, `F1104` ×2, `F3002` ×2, `I9040` ×2, `W1103`, `W9009`, `W9010`
+- EE: `I9001` ×4, `F1060` ×2, `F1104` ×2, `F3002` ×2, `I9040` ×2, `W1103`, `W9010`
 
 ### `lsp_parameter_usage_yaml` — 9 mismatches (3 TP, 0 FP, 14 EE, 9 FN)
 
@@ -12699,11 +12673,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3043` ×8
 - EE: `I9040` ×2
-
-### `gh-issues_issue-53_json` — 8 mismatches (18 TP, 8 FP, 57 EE, 0 FN)
-
-- FP: `F3004` ×8
-- EE: `I9001` ×48, `I9040` ×9
 
 ### `bad_core_conditions_yaml` — 7 mismatches (16 TP, 0 FP, 15 EE, 7 FN)
 
@@ -12979,10 +12948,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `I3011` ×2
 - EE: `I9040` ×2
 
-### `integration_ref-no-value_yaml` — 2 mismatches (7 TP, 0 FP, 4 EE, 2 FN)
+### `integration_ref-no-value_yaml` — 2 mismatches (7 TP, 0 FP, 3 EE, 2 FN)
 
 - FN: `F3012` ×2
-- EE: `I9040` ×3, `W9009`
+- EE: `I9040` ×3
 
 ### `issues_sam_w_conditions_yaml` — 2 mismatches (8 TP, 0 FP, 27 EE, 2 FN)
 
@@ -13166,10 +13135,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1041`
 - EE: `I9001` ×6, `W9013` ×3, `I9040` ×3, `W9002`, `I9003`
 
-### `gh-issues_issue-62_json` — 1 mismatches (2 TP, 1 FP, 4 EE, 0 FN)
+### `gh-issues_issue-67_json` — 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
 
-- FP: `I3013`
-- EE: `W9002`, `W9013`, `I9001`, `I9040`
+- FN: `F3014`
+- EE: `I9001`, `I9040`
 
 ### `good_custom_is-not-defined_yaml` — 1 mismatches (8 TP, 0 FP, 6 EE, 1 FN)
 
@@ -13223,22 +13192,19 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ## Coverage Gaps
 
-14 cfn-lint templates with no engine report:
+11 cfn-lint templates with no engine report:
 
 - `bad_core_config_invalid_json_json` (1 expected diagnostics)
 - `bad_core_config_invalid_yaml_yaml` (1 expected diagnostics)
 - `bad_empty_file_yaml` (1 expected diagnostics)
 - `bad_json_parse_json` (1 expected diagnostics)
+- `bad_limit_numbers_yaml` (404 expected diagnostics)
+- `bad_limit_size_yaml` (1198 expected diagnostics)
 - `bad_string_yaml` (1 expected diagnostics)
 - `bad_template_yaml` (1 expected diagnostics)
-- `gh-issues_issue-48_json` (0 expected diagnostics)
-- `good_core_config_cfn_lint.json` (0 expected diagnostics)
-- `good_core_config_cfn_lint.yaml` (0 expected diagnostics)
 - `good_resources_dynamodb_attributes_transform_yaml` (6 expected diagnostics)
 - `integration_get-stack-output_yaml` (2 expected diagnostics)
 - `integration_module-sub-resources_yaml` (0 expected diagnostics)
-- `lsp_simple.json` (0 expected diagnostics)
-- `lsp_simple.yaml` (0 expected diagnostics)
 
 ## Root-Cause Analysis
 
@@ -13246,18 +13212,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 128 | 37.98% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 93 | 27.60% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 59 | 17.51% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W6001, W8001 |
-| Intrinsic function validation | 42 | 12.46% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 15 | 4.45% | I2530, I3010, I3011, I3510 |
+| Other | 129 | 38.17% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 93 | 27.51% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 59 | 17.46% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3037, W3045, W3691, W3698, W6001, W8001 |
+| Intrinsic function validation | 42 | 12.43% | E1001, E1005, E1011, E1016, E1017, E1021, E1032, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 15 | 4.44% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 8 | 88.89% | F3004 |
-| Extra informational findings | 1 | 11.11% | I3013 |
 
 ## Location Mismatches — 16 matched pairs disagree on line
 

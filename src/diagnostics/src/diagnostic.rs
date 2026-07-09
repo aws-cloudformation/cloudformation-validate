@@ -398,7 +398,7 @@ pub enum ReportStatus {
 pub struct ValidationReport {
     pub file_path: String,
     pub status: ReportStatus,
-    pub engine_version: String,
+    pub version: String,
     pub metadata: ReportMetadata,
     pub performance: PerformanceMetrics,
     pub diagnostics: Vec<Diagnostic>,
@@ -409,7 +409,7 @@ impl ValidationReport {
         StandardReport {
             file_path: self.file_path.clone(),
             status: self.status,
-            engine_version: self.engine_version.clone(),
+            version: self.version.clone(),
             diagnostics: self.diagnostics.iter().map(|d| d.to_standard()).collect(),
             metadata: self.metadata.clone(),
             performance: self.performance.clone(),
@@ -420,7 +420,7 @@ impl ValidationReport {
         DetailedReport {
             file_path: self.file_path.clone(),
             status: self.status,
-            engine_version: self.engine_version.clone(),
+            version: self.version.clone(),
             diagnostics: self.diagnostics.iter().map(|d| d.to_detailed()).collect(),
             metadata: self.metadata.clone(),
             performance: self.performance.clone(),
@@ -436,7 +436,7 @@ impl ValidationReport {
 pub struct StandardReport {
     pub file_path: String,
     pub status: ReportStatus,
-    pub engine_version: String,
+    pub version: String,
     pub metadata: ReportMetadata,
     pub performance: PerformanceMetrics,
     pub diagnostics: Vec<StandardDiagnostic>,
@@ -450,7 +450,7 @@ pub struct StandardReport {
 pub struct DetailedReport {
     pub file_path: String,
     pub status: ReportStatus,
-    pub engine_version: String,
+    pub version: String,
     pub metadata: ReportMetadata,
     pub performance: PerformanceMetrics,
     pub diagnostics: Vec<DetailedDiagnostic>,

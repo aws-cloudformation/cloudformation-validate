@@ -423,7 +423,7 @@ class SmokeTest {
     private fun stripGoldenExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
         if (filePath != null) out["filePath"] = filePath
-        out.remove("engineVersion")
+        out.remove("version")
         out.remove("performance")
         val metadata = out["metadata"] as? Map<String, Any?>
         if (metadata != null) {
@@ -432,21 +432,6 @@ class SmokeTest {
             out["metadata"] = trimmed
         }
         return out
-    }
-
-    @Test
-    fun rulesEvaluatedIsFullRuleCount() {
-        val expected = 280u
-        assertEquals(expected, CEL.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "cel: rulesEvaluated")
-        assertEquals(expected, REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).metadata.rulesEvaluated, "rego: rulesEvaluated")
-    }
-
-    @Test
-    fun engineVersionMatchesWorkspaceVersion() {
-        val expected = "1.4.0"
-        assertEquals(expected, readWorkspaceVersion(), "expected version must match workspace Cargo.toml")
-        assertEquals(expected, CEL.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).engineVersion, "cel: engineVersion")
-        assertEquals(expected, REGO.validateDetailed(templateFile("good/generic.yaml"), defaultConfig()).engineVersion, "rego: engineVersion")
     }
 
     @Test

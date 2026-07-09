@@ -25,13 +25,11 @@ use serde_json::{Map, Value};
 /// the golden file; cel is validated against it for parity.
 const ENGINES: &[&str] = &["rego", "cel"];
 
-/// Fields stripped before the rego-vs-cel parity comparison — they legitimately
-/// differ between engines. `rulesEvaluated` and `engineVersion` are intentionally
-/// NOT here: they must match across engines.
-const PARITY_IGNORED_FIELDS: &[&str] = &["engine", "performance", "benchmarkMetrics", "suppressed"];
+/// Fields stripped before the rego-vs-cel parity comparison
+const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics", "suppressed"];
 
 /// Top-level fields compared across engines but not persisted to the golden file.
-const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance", "engineVersion"];
+const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance"];
 
 /// `metadata` fields compared across engines but not persisted to the golden file.
 const OUTPUT_ONLY_METADATA_FIELDS: &[&str] = &["rulesEvaluated"];

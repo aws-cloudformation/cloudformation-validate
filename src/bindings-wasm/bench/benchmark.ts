@@ -13,7 +13,7 @@ import type { DetailedReport, EngineConfig, ValidateConfig } from '@aws/cloudfor
 import type {
     WasmCelEngine as WasmCelEngineType,
     WasmRegoEngine as WasmRegoEngineType,
-} from 'bindings-wasm/bindings_wasm';
+} from '@aws/cloudformation-validate/bindings_wasm';
 type WasmEngine = WasmRegoEngineType | WasmCelEngineType;
 
 const { SchemaValidator } = wasmBindings;
@@ -243,7 +243,6 @@ fs.mkdirSync(jsonDir, { recursive: true });
 const validateConfig: ValidateConfig = {
     severityLevel: 'DEBUG',
     strict: false,
-    includeEngineRules: true,
 };
 
 if (templates.length > 0) {

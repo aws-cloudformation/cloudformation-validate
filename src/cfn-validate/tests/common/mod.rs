@@ -135,4 +135,4 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
 pub const DETAILED_ONLY_DIAGNOSTIC_FIELDS: &[&str] =
     &["documentationUrl", "context", "ruleDescription", "phase", "section"];
 
-pub const GOLDEN_EXCLUDED_FIELDS: &[&str] = &["performance", "engineVersion", "rulesEvaluated", "suppressed"];
+pub const GOLDEN_EXCLUDED_FIELDS: &[&str] = &["performance", "version", "rulesEvaluated", "suppressed"];
