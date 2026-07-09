@@ -168,9 +168,9 @@ fn engine_version_matches_workspace_version() {
         ("cel", validate_to_json(&cel, &bytes, "good/generic.yaml", DetailLevel::Detailed)),
     ] {
         assert_eq!(
-            report["engineVersion"].as_str(),
+            report["version"].as_str(),
             Some(EXPECTED_ENGINE_VERSION),
-            "{name}: engineVersion must be the workspace crate version"
+            "{name}: version must be the workspace crate version"
         );
     }
 }

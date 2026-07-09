@@ -245,12 +245,14 @@ def _load_cfnlint_result_file(f, prefix, results):
         return
     if not isinstance(data, list):
         return
-    # Derive key from the template filename inside the JSON, not the results filename.
-    # cfn-lint results filenames may differ from the actual template filename
-    # (e.g., results file "metadata.json" for template "metdata.yaml"). The file
-    # extension is kept as part of the key (".yaml" -> "_yaml") so a template
-    # authored in both JSON and YAML maps to two distinct keys, matching the
-    # engine report names.
+
+    # The default key comes from the result filename, whose stem now embeds the
+    # source extension as a suffix (template "metdata.yaml" -> result
+    # "metadata_yaml.json")
+    # Prefer the template filename read from the JSON's `Filename` field: the
+    # result filename's base may differ from the real template name (e.g. result
+    # "metadata_yaml.json" for template "metdata.yaml"), and the engine report is
+    # keyed off the true template path.
     key = f"{prefix}_{f.stem}"
     if data and isinstance(data[0], dict) and data[0].get("Filename"):
         tpl = data[0]["Filename"].replace("test/fixtures/templates/", "")
@@ -259,11 +261,9 @@ def _load_cfnlint_result_file(f, prefix, results):
             key = derived
     else:
         # An empty result list (cfn-lint found nothing) carries no `Filename`, so
-        # the extension cannot be read from the diagnostics. Recover it by mirroring
-        # the result path into the templates tree and adopting the real template
-        # extension; otherwise the key stays suffix-less and never matches the
-        # extension-suffixed engine report, silently dropping the template from the
-        # comparison.
+        # the true template extension cannot be read from the diagnostics. Confirm
+        # it instead by locating the mirror template under the templates tree; if
+        # none exists the default key (from the result filename) is kept as-is.
         derived = _derive_key_from_template_path(f)
         if derived:
             key = derived
@@ -271,13 +271,19 @@ def _load_cfnlint_result_file(f, prefix, results):
 
 
 def _derive_key_from_template_path(result_file):
-    """Recover the extension-suffixed key for a result file by locating the mirror
-    template under CFN_LINT_TEMPLATES. Returns None if no matching template exists."""
+    """Recover the extension-suffixed key for an empty-result file by locating the
+    mirror template under CFN_LINT_TEMPLATES. The result stem now embeds the source
+    extension as a suffix (e.g. "foo_yaml.json"), so split that suffix back off, find
+    the matching template, and rebuild the key from its real extension. Returns None
+    if no matching template exists (leaving the caller's default key in place)."""
     relative = result_file.relative_to(CFN_LINT_RESULTS)
-    stem_path = str(relative.with_suffix("")).replace(os.sep, "_")
-    for ext in (".yaml", ".yml", ".json"):
-        if (CFN_LINT_TEMPLATES / relative.with_suffix(ext)).exists():
-            return f"{stem_path}_{ext.lstrip('.')}"
+    stem = relative.stem  # drops ".json"; still carries the "_yaml"/"_yml"/"_json" suffix
+    for ext in ("yaml", "yml", "json"):
+        base = stem[: -(len(ext) + 1)] if stem.endswith(f"_{ext}") else stem
+        template = relative.with_name(f"{base}.{ext}")
+        if (CFN_LINT_TEMPLATES / template).exists():
+            key_path = str(template.with_suffix("")).replace(os.sep, "_")
+            return f"{key_path}_{ext}"
     return None
 
 

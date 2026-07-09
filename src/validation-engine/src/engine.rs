@@ -310,7 +310,7 @@ pub fn validate_bytes_with_path(
             let report = ValidationReport {
                 file_path,
                 status: ReportStatus::Error,
-                engine_version: env!("CARGO_PKG_VERSION").to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
                 diagnostics: diags,
                 metadata: ReportMetadata {
                     rules_evaluated: None,
@@ -541,7 +541,7 @@ pub(crate) fn build_report(
     ValidationReport {
         file_path,
         status: ReportStatus::Ok,
-        engine_version: env!("CARGO_PKG_VERSION").to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
         diagnostics,
         metadata: ReportMetadata {
             rules_evaluated,

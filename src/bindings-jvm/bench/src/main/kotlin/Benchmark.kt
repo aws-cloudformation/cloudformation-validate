@@ -466,7 +466,6 @@ fun validateConfig() = ValidateConfig(
     parameterOverrides = mapOf(),
     pseudoParameterOverrides = PseudoParameterOverrides(),
     strict = false,
-    includeEngineRules = true,
 )
 
 private data class PendingReport(val dest: File, val rel: String, val report: DetailedReport, val metrics: JsonObject)
