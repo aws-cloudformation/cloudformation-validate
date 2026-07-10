@@ -270,7 +270,9 @@ fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic
     );
     let message = error.to_string();
     assert!(
-        message.contains("SBXCEL001") && message.contains("unknown function") && message.contains("host_network_access"),
+        message.contains("SBXCEL001")
+            && message.contains("unknown function")
+            && message.contains("host_network_access"),
         "the error must identify the failed custom rule and the unresolved function; got: {message}"
     );
 }
