@@ -1,6 +1,6 @@
 use data_source::embedded;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
-use guard_translator::{pack_name_from_path, parse_guard};
+use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use log::{debug, info, warn};
 use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
 use std::collections::HashMap;
@@ -155,6 +155,8 @@ impl RegoEngine {
         for entry in &config.guard_rules {
             let guard_file = parse_guard(&entry.content, &entry.name)
                 .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
+            ensure_translatable(&guard_file)
+                .map_err(|e| anyhow::anyhow!("Unsupported guard rule in '{}': {}", entry.name, e))?;
             let pack = pack_name_from_path(&entry.name);
             for tr in crate::guard_to_rego::translate_to_rego(&guard_file, &pack, &[]) {
                 guard_rule_metadata.push((

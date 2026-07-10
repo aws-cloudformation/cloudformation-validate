@@ -127,10 +127,11 @@ fn guard_clause_to_cel_expr(gc: &GuardClauseIR) -> String {
                 None => body,
             }
         }
-        GuardClauseIR::NamedRule(nr) => format!("true /* depends on rule: {} */", nr.rule_name),
-        GuardClauseIR::ParameterizedNamedRule(pnr) => {
-            format!("true /* depends on parameterized rule: {} */", pnr.rule_name)
-        }
+        // Cross-rule references have no per-resource CEL translation and are rejected
+        // upstream by `guard_translator::ensure_translatable`. This arm is a
+        // defensive fallback: it emits a bare `true` and never a comment, because
+        // the CEL parser aborts on block comments embedded in an expression.
+        GuardClauseIR::NamedRule(_) | GuardClauseIR::ParameterizedNamedRule(_) => "true".into(),
     }
 }
 
@@ -198,12 +199,11 @@ fn when_conditions_to_cel(conds: &ConjunctionsIR<WhenClauseIR>) -> Option<String
         .flat_map(|disj| {
             disj.iter().map(|wc| match wc {
                 WhenClauseIR::Access(ac) => access_to_cel(ac),
-                WhenClauseIR::NamedRule(nr) => {
-                    format!("true /* when rule: {} */", nr.rule_name)
-                }
-                WhenClauseIR::ParameterizedNamedRule(pnr) => {
-                    format!("true /* when param rule: {} */", pnr.rule_name)
-                }
+                // Cross-rule references are rejected upstream by
+                // `guard_translator::ensure_translatable`. This defensive fallback
+                // emits a bare `true` and never a comment, which the CEL parser
+                // cannot handle inside an expression.
+                WhenClauseIR::NamedRule(_) | WhenClauseIR::ParameterizedNamedRule(_) => "true".into(),
             })
         })
         .collect();
@@ -645,8 +645,10 @@ mod tests {
             custom_message: None,
         });
         let result = guard_clause_to_cel_expr(&gc);
-        assert!(result.contains("my_rule"));
-        assert!(result.contains("true"));
+        // Must be a bare `true` with no embedded comment — the CEL parser aborts on
+        // block comments inside an expression, so the rule-name is intentionally dropped.
+        assert_eq!(result, "true");
+        assert!(!result.contains("/*"), "generated CEL must not contain block comments");
     }
 
     #[test]
@@ -658,7 +660,9 @@ mod tests {
             custom_message: None,
         });
         let result = guard_clause_to_cel_expr(&gc);
-        assert!(result.contains("param_rule"));
+        // Bare `true`, never a comment (the CEL parser aborts on embedded block comments).
+        assert_eq!(result, "true");
+        assert!(!result.contains("/*"), "generated CEL must not contain block comments");
     }
 
     #[test]
@@ -845,7 +849,9 @@ mod tests {
             custom_message: None,
         })]];
         let result = when_conditions_to_cel(&conds).unwrap();
-        assert!(result.contains("my_rule"));
+        // Bare `true`, no comment (see negation/parser note above).
+        assert_eq!(result, "true");
+        assert!(!result.contains("/*"), "generated CEL must not contain block comments");
     }
 
     #[test]
@@ -857,7 +863,9 @@ mod tests {
             parameters: vec![],
         })]];
         let result = when_conditions_to_cel(&conds).unwrap();
-        assert!(result.contains("param_rule"));
+        // Bare `true`, no comment (see negation/parser note above).
+        assert_eq!(result, "true");
+        assert!(!result.contains("/*"), "generated CEL must not contain block comments");
     }
 
     #[test]
