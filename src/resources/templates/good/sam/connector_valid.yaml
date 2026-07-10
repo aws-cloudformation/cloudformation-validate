@@ -1,0 +1,19 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyTopic:
+    Type: AWS::SNS::Topic
+  MyFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: s3://bucket/key.zip
+  MyConn:
+    Type: AWS::Serverless::Connector
+    Properties:
+      Source:
+        Id: MyFn
+      Destination:
+        Id: MyTopic
+      Permissions:
+        - Write

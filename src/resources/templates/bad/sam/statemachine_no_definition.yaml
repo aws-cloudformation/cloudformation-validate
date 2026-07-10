@@ -1,0 +1,6 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MySM:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Role: arn:aws:iam::123456789012:role/StatesRole

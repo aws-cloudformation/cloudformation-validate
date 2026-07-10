@@ -1,0 +1,21 @@
+Transform: AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.12
+  Api:
+    Auth:
+      DefaultAuthorizer: NONE
+    Cors: "'*'"
+  HttpApi:
+    FailOnWarnings: true
+  SimpleTable:
+    SSESpecification:
+      SSEEnabled: true
+Resources:
+  Fn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: s3://bucket/key.zip
