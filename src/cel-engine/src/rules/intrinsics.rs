@@ -8,9 +8,9 @@ use std::sync::{Arc, LazyLock};
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITIONS, FIELD_DEPENDS_ON, FIELD_KIND,
     FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FN_FOR_EACH, FN_GET_AZS, FN_IMPORT_VALUE, FN_LENGTH, FN_TO_JSON_STRING,
-    KEY_DEFAULT, KEY_DEPENDS_ON, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, SECTION_CONDITIONS,
-    SECTION_OUTPUTS, TRANSFORM_LANGUAGE_EXTENSIONS,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_GET_AZS, FN_IMPORT_VALUE, KEY_DEFAULT, KEY_DEPENDS_ON, KEY_PROPERTIES,
+    OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, SECTION_CONDITIONS, SECTION_OUTPUTS,
+    TRANSFORM_LANGUAGE_EXTENSIONS,
 };
 use template_model::resolver::RefKind;
 use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_known_region};
@@ -305,13 +305,6 @@ fn eval_intrinsic_params(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    // Language extensions transform required
-    if !has_language_extensions(m) {
-        for (name, res) in resources {
-            check_language_extension_intrinsics(&mut out, m, name, res);
-        }
-    }
-
     out
 }
 
@@ -359,70 +352,6 @@ fn scan_value_for_intrinsics(
             }
             for (_, v) in obj {
                 scan_value_for_intrinsics(out, m, resource_id, v, _path);
-            }
-        }
-        _ => {}
-    }
-}
-
-fn check_language_extension_intrinsics(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    resource_id: &str,
-    res: &serde_json::Value,
-) {
-    if let Some(props) = res.get(FIELD_PROPERTIES).and_then(|p| p.as_object()) {
-        for (_, val) in props {
-            scan_for_lang_ext_intrinsics(out, m, resource_id, val);
-        }
-    }
-}
-
-fn scan_for_lang_ext_intrinsics(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    resource_id: &str,
-    val: &serde_json::Value,
-) {
-    match val {
-        serde_json::Value::Array(arr) => {
-            for item in arr {
-                scan_for_lang_ext_intrinsics(out, m, resource_id, item);
-            }
-        }
-        serde_json::Value::Object(obj) => {
-            if obj.contains_key(FN_LENGTH) {
-                out.push(make_resource_diagnostic(
-                    "E1030",
-                    "Fn::Length requires the AWS::LanguageExtensions transform",
-                    m,
-                    resource_id,
-                    "",
-                    None,
-                ));
-            }
-            if obj.contains_key(FN_TO_JSON_STRING) {
-                out.push(make_resource_diagnostic(
-                    "E1031",
-                    "Fn::ToJsonString requires the AWS::LanguageExtensions transform",
-                    m,
-                    resource_id,
-                    "",
-                    None,
-                ));
-            }
-            if obj.contains_key(FN_FOR_EACH) {
-                out.push(make_resource_diagnostic(
-                    "E1032",
-                    "Fn::ForEach requires the AWS::LanguageExtensions transform",
-                    m,
-                    resource_id,
-                    "",
-                    None,
-                ));
-            }
-            for (_, v) in obj {
-                scan_for_lang_ext_intrinsics(out, m, resource_id, v);
             }
         }
         _ => {}

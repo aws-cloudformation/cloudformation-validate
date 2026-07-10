@@ -29,7 +29,7 @@ violation contains make_diag_full("F1020", "FATAL", name, entry.path,
     "") if {
     some name, res in input.resources
     not input.hasParseErrors
-    not _has_language_extensions
+    not has_transform("AWS::LanguageExtensions")
     some entry in res.invalidRefs
     entry.target != ""
     not entry.target in object.get(input, "samImplicitResources", [])

@@ -510,6 +510,7 @@ impl SemanticModel {
         diagnostics.extend(parameter_diagnostics);
 
         diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
 
         let mut fn_if_conditions: Vec<String> = Vec::new();
         for idx in 0..ir.arena.len() {
