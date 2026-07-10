@@ -403,11 +403,17 @@ pub(crate) fn parse_diagnostic(
 ) -> Result<Diagnostic, String> {
     let rule_id =
         val.get("rule_id").and_then(|v| v.as_str()).ok_or("Diagnostic missing required field 'rule_id'")?.to_string();
+    if rule_id.trim().is_empty() {
+        return Err("Diagnostic has an empty 'rule_id'".to_string());
+    }
     let message = val
         .get("message")
         .and_then(|v| v.as_str())
         .ok_or_else(|| format!("Diagnostic '{}' missing required field 'message'", rule_id))?
         .to_string();
+    if message.trim().is_empty() {
+        return Err(format!("Diagnostic '{}' has an empty 'message'", rule_id));
+    }
     let resource_id = val.get("resource_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
     let resource = resource_id.as_ref().map(|rid| ResourceRef {
         id: Some(rid.clone()),
@@ -1016,6 +1022,24 @@ Resources:
         let model = minimal_model();
         let val = serde_json::json!({"rule_id": "E3012", "severity": Severity::Error.as_str()});
         parse_diagnostic(&val, &model, None).unwrap_err();
+    }
+
+    #[test]
+    fn parse_diagnostic_empty_rule_id_returns_error() {
+        let model = minimal_model();
+        let val = serde_json::json!({"rule_id": "", "severity": Severity::Error.as_str(), "message": "x"});
+        let err = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom))
+            .expect_err("an empty rule_id must be rejected, not accepted as a blank-ID diagnostic");
+        assert!(err.contains("empty 'rule_id'"), "got: {err}");
+    }
+
+    #[test]
+    fn parse_diagnostic_empty_message_returns_error() {
+        let model = minimal_model();
+        let val = serde_json::json!({"rule_id": "CUSTOM1", "severity": Severity::Error.as_str(), "message": "   "});
+        let err =
+            parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom)).expect_err("a blank message must be rejected");
+        assert!(err.contains("CUSTOM1") && err.contains("empty 'message'"), "got: {err}");
     }
 
     #[test]
@@ -2017,6 +2041,25 @@ Resources:
             error.contains("Unknown engine type 'unknown'") && error.contains("rego"),
             "the error must name the bad selector and the valid options, got: {error}"
         );
+    }
+
+    #[test]
+    fn catch_panics_maps_panic_to_caller_error_type() {
+        // The bindings rely on this to keep a panic during engine construction from
+        // unwinding across the FFI boundary: it must become the caller's own error type.
+        #[derive(Debug, PartialEq)]
+        struct BindingError(String);
+        let result: Result<(), BindingError> = catch_panics(|| panic!("engine init blew up"), BindingError);
+        let error = result.expect_err("a panic must be converted to the caller's error type");
+        assert!(error.0.contains("engine init blew up"), "the panic payload must be carried, got: {}", error.0);
+    }
+
+    #[test]
+    fn catch_panics_passes_through_ok_and_err_without_wrapping() {
+        let ok: Result<i32, String> = catch_panics(|| Ok(7), |m| m);
+        assert_eq!(ok, Ok(7), "a non-panicking Ok must pass through unchanged");
+        let err: Result<i32, String> = catch_panics(|| Err("plain error".to_string()), |_| "panic".to_string());
+        assert_eq!(err, Err("plain error".to_string()), "a returned Err must pass through, not be treated as a panic");
     }
 
     #[test]

@@ -8,8 +8,8 @@ use rules::{FilterConfig, IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFil
 use schema_validator::SchemaValidator;
 use template_model::PseudoParameterOverrides;
 use validation_engine::{
-    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, guard, validate_bytes_with_path,
-    validate_catching_panics,
+    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, catch_panics,
+    guard, validate_bytes_with_path, validate_catching_panics,
 };
 
 fn main() {
@@ -214,16 +214,26 @@ fn main() {
 
     let schema_validator = SchemaValidator::new();
 
-    let engine: Box<dyn ValidationEngine> = match engine_type {
-        EngineType::Cel => Box::new(CelEngine::new(engine_config).unwrap_or_else(|e| {
-            error!("CEL engine init failed: {}", e);
-            process::exit(2);
-        })),
-        EngineType::Rego => Box::new(RegoEngine::new(engine_config).unwrap_or_else(|e| {
-            error!("Rego engine init failed: {}", e);
-            process::exit(2);
-        })),
-    };
+    // Engine construction compiles user-supplied custom and Guard rules, so an
+    // internal invariant violation on adversarial rule input could panic. Catch it
+    // here so it surfaces as a structured error and a clean exit code rather than an
+    // uncaught abort — matching how the library bindings guard the same entry point.
+    let engine_init: Result<Box<dyn ValidationEngine>, ValidationError> = catch_panics(
+        || {
+            let engine: Box<dyn ValidationEngine> = match engine_type {
+                EngineType::Cel => Box::new(CelEngine::new(engine_config).map_err(|e| e.to_string())?),
+                EngineType::Rego => Box::new(RegoEngine::new(engine_config).map_err(|e| e.to_string())?),
+            };
+            Ok(engine)
+        },
+        |message| {
+            ValidationError::Engine(format!("Internal error while initializing the {engine_type} engine: {message}"))
+        },
+    );
+    let engine: Box<dyn ValidationEngine> = engine_init.unwrap_or_else(|e| {
+        error!("{} engine init failed: {}", engine_type, e);
+        process::exit(2);
+    });
 
     if list_rules {
         let mut rules = engine.list_rules();
