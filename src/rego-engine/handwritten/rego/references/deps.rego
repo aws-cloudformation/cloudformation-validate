@@ -11,6 +11,7 @@ violation contains make_diag("E3005", "ERROR", name,
     some name in object.keys(input.resources)
     some dep in input.resources[name].dependsOn
     not dep in object.keys(input.resources)
+    not dep in object.get(input, "samImplicitResources", [])
 }
 
 # E3005: DependsOn target is conditional and may not exist

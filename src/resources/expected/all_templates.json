@@ -30376,6 +30376,1082 @@
       }
     ]
   },
+  "bad/sam/api_missing_stagename.yaml": {
+    "filePath": "bad/sam/api_missing_stagename.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MyApi] is invalid. Missing required property 'StageName'.",
+        "source": "CFN_LINT",
+        "resourceId": "MyApi",
+        "propertyPath": "Properties/StageName",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 8,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/connector_missing_destination.yaml": {
+    "filePath": "bad/sam/connector_missing_destination.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MyConn] is invalid. Missing required property 'Destination'.",
+        "source": "CFN_LINT",
+        "resourceId": "MyConn",
+        "propertyPath": "Properties/Destination",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 9,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/connector_missing_source.yaml": {
+    "filePath": "bad/sam/connector_missing_source.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MyConn] is invalid. Missing required property 'Source'.",
+        "source": "CFN_LINT",
+        "resourceId": "MyConn",
+        "propertyPath": "Properties/Source",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 9,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_autopublishalias_invalid_name.yaml": {
+    "filePath": "bad/sam/function_autopublishalias_invalid_name.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. AutoPublishAlias name ('123') must contain only alphanumeric characters, hyphens, or underscores matching (?!^[0-9]+$)([a-zA-Z0-9-_]+) pattern.",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_capacityprovider_with_vpcconfig.yaml": {
+    "filePath": "bad/sam/function_capacityprovider_with_vpcconfig.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. Cannot specify 'CapacityProviderConfig' and 'VpcConfig' together.",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_deploymentpreference_without_alias.yaml": {
+    "filePath": "bad/sam/function_deploymentpreference_without_alias.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. 'DeploymentPreference' requires AutoPublishAlias property to be specified.",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_dlq_invalid_type.yaml": {
+    "filePath": "bad/sam/function_dlq_invalid_type.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. 'DeadLetterQueue' requires Type of ['SQS', 'SNS']",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_dlq_missing_targetarn.yaml": {
+    "filePath": "bad/sam/function_dlq_missing_targetarn.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. 'DeadLetterQueue' requires Type and TargetArn properties to be specified.",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_functionscaling_without_capacityprovider.yaml": {
+    "filePath": "bad/sam/function_functionscaling_without_capacityprovider.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. 'FunctionScalingConfig' requires 'CapacityProviderConfig'.",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_image_with_handler_runtime.yaml": {
+    "filePath": "bad/sam/function_image_with_handler_runtime.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. Runtime, Handler, Layers cannot be present when PackageType is of type `Image`",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_packagetype_invalid.yaml": {
+    "filePath": "bad/sam/function_packagetype_invalid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. invalid 'PackageType' : Banana",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_provisioned_concurrency_without_alias.yaml": {
+    "filePath": "bad/sam/function_provisioned_concurrency_without_alias.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. To set ProvisionedConcurrencyConfig AutoPublishALias must be defined on the function",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_url_config_missing_authtype.yaml": {
+    "filePath": "bad/sam/function_url_config_missing_authtype.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. AuthType is required to configure function property `FunctionUrlConfig`. Please provide either AWS_IAM or NONE.",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_versiondeletionpolicy_without_alias.yaml": {
+    "filePath": "bad/sam/function_versiondeletionpolicy_without_alias.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. 'VersionDeletionPolicy' requires 'AutoPublishAlias'.",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_zip_missing_runtime_handler.yaml": {
+    "filePath": "bad/sam/function_zip_missing_runtime_handler.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. Runtime and Handler needs to be present when PackageType is of type `Zip`",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/function_zip_with_imageuri.yaml": {
+    "filePath": "bad/sam/function_zip_with_imageuri.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Fn] is invalid. ImageUri or ImageConfig cannot be present when PackageType is of type `Zip`",
+        "source": "CFN_LINT",
+        "resourceId": "Fn",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/globals_not_dict.yaml": {
+    "filePath": "bad/sam/globals_not_dict.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: 'Globals' section is invalid. It must be a non-empty dictionary",
+        "source": "CFN_LINT",
+        "propertyPath": "Globals",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 8,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/globals_section_not_dict.yaml": {
+    "filePath": "bad/sam/globals_section_not_dict.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: 'Globals' section is invalid. Value of ${section} must be a dictionary",
+        "source": "CFN_LINT",
+        "propertyPath": "Globals",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 8,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/globals_unknown_property.yaml": {
+    "filePath": "bad/sam/globals_unknown_property.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: 'Globals' section is invalid. 'NotARealProperty' is not a supported property of 'Function'. Must be one of the following values - ['Handler', 'Runtime', 'CodeUri', 'DeadLetterQueue', 'Description', 'MemorySize', 'Timeout', 'VpcConfig', 'Environment', 'Tags', 'PropagateTags', 'Tracing', 'KmsKeyArn', 'AutoPublishAlias', 'AutoPublishAliasAllProperties', 'Layers', 'DeploymentPreference', 'RolePath', 'PermissionsBoundary', 'ReservedConcurrentExecutions', 'ProvisionedConcurrencyConfig', 'AssumeRolePolicyDocument', 'EventInvokeConfig', 'FileSystemConfigs', 'CodeSigningConfigArn', 'Architectures', 'SnapStart', 'EphemeralStorage', 'FunctionUrlConfig', 'RuntimeManagementConfig', 'LoggingConfig', 'RecursiveLoop', 'SourceKMSKeyArn', 'TenancyConfig', 'DurableConfig', 'CapacityProviderConfig', 'FunctionScalingConfig', 'PublishToLatestPublished', 'VersionDeletionPolicy']",
+        "source": "CFN_LINT",
+        "propertyPath": "Globals",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 8,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/globals_unknown_section.yaml": {
+    "filePath": "bad/sam/globals_unknown_section.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: 'Globals' section is invalid. 'Foo' is not supported. Must be one of the following values - ['Api', 'CapacityProvider', 'Function', 'HttpApi', 'LayerVersion', 'MicrovmImage', 'NetworkConnector', 'SimpleTable', 'StateMachine', 'WebSocketApi']",
+        "source": "CFN_LINT",
+        "propertyPath": "Globals",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 8,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/graphqlapi_missing_auth.yaml": {
+    "filePath": "bad/sam/graphqlapi_missing_auth.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MyApi] is invalid. Missing required property 'Auth'.",
+        "source": "CFN_LINT",
+        "resourceId": "MyApi",
+        "propertyPath": "Properties/Auth",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 8,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/layerversion_invalid_compatible_architectures.yaml": {
+    "filePath": "bad/sam/layerversion_invalid_compatible_architectures.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Layer] is invalid. CompatibleArchitectures needs to be a list of 'x86_64' or 'arm64'",
+        "source": "CFN_LINT",
+        "resourceId": "Layer",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/layerversion_invalid_retention_policy.yaml": {
+    "filePath": "bad/sam/layerversion_invalid_retention_policy.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [Layer] is invalid. 'RetentionPolicy' must be one of the following options: ['Retain', 'Delete'].",
+        "source": "CFN_LINT",
+        "resourceId": "Layer",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/simpletable_primarykey_invalid_type.yaml": {
+    "filePath": "bad/sam/simpletable_primarykey_invalid_type.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MyTable] is invalid. Invalid 'Type' \"Banana\".",
+        "source": "CFN_LINT",
+        "resourceId": "MyTable",
+        "propertyPath": "Properties/PrimaryKey",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 17,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/simpletable_primarykey_missing_type.yaml": {
+    "filePath": "bad/sam/simpletable_primarykey_missing_type.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MyTable] is invalid. Property 'PrimaryKey.Type' is required.",
+        "source": "CFN_LINT",
+        "resourceId": "MyTable",
+        "propertyPath": "Properties/PrimaryKey",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 17,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/statemachine_both_definitions.yaml": {
+    "filePath": "bad/sam/statemachine_both_definitions.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MySM] is invalid. Specify either 'Definition' or 'DefinitionUri' property and not both.",
+        "source": "CFN_LINT",
+        "resourceId": "MySM",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/statemachine_no_definition.yaml": {
+    "filePath": "bad/sam/statemachine_no_definition.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MySM] is invalid. Either 'Definition' or 'DefinitionUri' property must be specified.",
+        "source": "CFN_LINT",
+        "resourceId": "MySM",
+        "propertyPath": "Properties",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/transform_bogus_name.yaml": {
+    "filePath": "bad/sam/transform_bogus_name.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3038",
+        "severity": "ERROR",
+        "message": "Resource type 'AWS::Serverless::Function' requires the AWS::Serverless-2016-10-31 transform",
+        "source": "CFN_LINT",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 7,
+        "ruleDescription": "Check if Serverless Resources have Serverless Transform",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/sam/transform_wrong_date.yaml": {
+    "filePath": "bad/sam/transform_wrong_date.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3038",
+        "severity": "ERROR",
+        "message": "Resource type 'AWS::Serverless::Function' requires the AWS::Serverless-2016-10-31 transform",
+        "source": "CFN_LINT",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 7,
+        "ruleDescription": "Check if Serverless Resources have Serverless Transform",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/schema_additional_props.yaml": {
     "filePath": "bad/schema_additional_props.yaml",
     "status": "OK",
@@ -35324,9 +36400,9 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 0,
+        "errors": 1,
         "warnings": 0,
-        "informational": 1,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -35335,20 +36411,18 @@
     },
     "diagnostics": [
       {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyApi' of type 'AWS::Serverless::Api' supports Tags but none are configured",
-        "source": "ENGINE",
+        "ruleId": "E0001",
+        "severity": "ERROR",
+        "message": "Error transforming template: Resource with id [MyApi] is invalid. Missing required property 'StageName'.",
+        "source": "CFN_LINT",
         "resourceId": "MyApi",
-        "resourceType": "AWS::Serverless::Api",
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
+        "propertyPath": "Properties/StageName",
+        "category": "Structure",
         "startLine": 7,
         "startColumn": 3,
         "endLine": 7,
         "endColumn": 8,
-        "ruleDescription": "Resource should have Tags",
+        "ruleDescription": "SAM (AWS::Serverless) transform would reject the template",
         "phase": "LINT",
         "section": "Resources"
       }
@@ -124616,6 +125690,851 @@
         "startLine": 28,
         "startColumn": 5,
         "endLine": 28,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/api_stagename_valid.yaml": {
+    "filePath": "good/sam/api_stagename_valid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyApi' of type 'AWS::Serverless::Api' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyApi",
+        "resourceType": "AWS::Serverless::Api",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/connector_valid.yaml": {
+    "filePath": "good/sam/connector_valid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyTopic",
+        "resourceType": "AWS::SNS::Topic",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 5,
+        "endLine": 7,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/function_deploymentpreference_with_alias.yaml": {
+    "filePath": "good/sam/function_deploymentpreference_with_alias.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/function_dlq_valid.yaml": {
+    "filePath": "good/sam/function_dlq_valid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/function_image_valid.yaml": {
+    "filePath": "good/sam/function_image_valid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/function_provisioned_concurrency_with_alias.yaml": {
+    "filePath": "good/sam/function_provisioned_concurrency_with_alias.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/function_runtime_handler_via_globals.yaml": {
+    "filePath": "good/sam/function_runtime_handler_via_globals.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 5,
+        "endLine": 9,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/function_url_config_valid.yaml": {
+    "filePath": "good/sam/function_url_config_valid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/function_zip_valid.yaml": {
+    "filePath": "good/sam/function_zip_valid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/globals_all_valid_sections.yaml": {
+    "filePath": "good/sam/globals_all_valid_sections.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/globals_empty.yaml": {
+    "filePath": "good/sam/globals_empty.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Fn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/implicit_alias_ref.yaml": {
+    "filePath": "good/sam/implicit_alias_ref.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AliasParam' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "AliasParam",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/implicit_httpapi_ref.yaml": {
+    "filePath": "good/sam/implicit_httpapi_ref.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ApiIdParam' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "ApiIdParam",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 17,
+        "startColumn": 5,
+        "endLine": 17,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ApiSubParam' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "ApiSubParam",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 5,
+        "endLine": 22,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/implicit_restapi_stage_ref.yaml": {
+    "filePath": "good/sam/implicit_restapi_stage_ref.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'StageParam' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "StageParam",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 17,
+        "startColumn": 5,
+        "endLine": 17,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/implicit_role_getatt_dependson.yaml": {
+    "filePath": "good/sam/implicit_role_getatt_dependson.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFn",
+        "resourceType": "AWS::Serverless::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RoleArnParam' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "RoleArnParam",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RoleRefParam' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "RoleRefParam",
+        "resourceType": "AWS::SSM::Parameter",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 17,
+        "startColumn": 5,
+        "endLine": 17,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/layerversion_valid_retention_and_arch.yaml": {
+    "filePath": "good/sam/layerversion_valid_retention_and_arch.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
+  "good/sam/simpletable_no_primarykey.yaml": {
+    "filePath": "good/sam/simpletable_no_primarykey.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyTable' of type 'AWS::Serverless::SimpleTable' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyTable",
+        "resourceType": "AWS::Serverless::SimpleTable",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/simpletable_valid.yaml": {
+    "filePath": "good/sam/simpletable_valid.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyTable' of type 'AWS::Serverless::SimpleTable' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyTable",
+        "resourceType": "AWS::Serverless::SimpleTable",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/sam/statemachine_definition_only.yaml": {
+    "filePath": "good/sam/statemachine_definition_only.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "resourceId": "MySM",
+        "resourceType": "AWS::Serverless::StateMachine",
+        "category": "Security",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 7,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MySM' of type 'AWS::Serverless::StateMachine' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MySM",
+        "resourceType": "AWS::Serverless::StateMachine",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",

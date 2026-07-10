@@ -358,6 +358,64 @@ fn good_templates_produce_no_fatal_or_error_diagnostics() {
     );
 }
 
+/// Every `good/sam` template must be clean of Fatal/Error diagnostics on both
+/// engines: these are the counter-examples proving the SAM transform-error and
+/// implicit-resource handling does not false-positive on valid templates.
+#[test]
+fn good_sam_templates_are_clean_on_both_engines() {
+    let sv = SchemaValidator::new();
+    let root = common::templates_dir().join("good").join("sam");
+    let mut failures = Vec::new();
+    for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
+        for entry in walkdir(&root) {
+            let bytes = std::fs::read(&entry).unwrap();
+            let report = validate_bytes(engine, &sv, &bytes, Default::default()).unwrap();
+            let bad: Vec<_> = report
+                .diagnostics
+                .iter()
+                .filter(|d| matches!(d.severity, Severity::Fatal | Severity::Error))
+                .map(|d| format!("  {} {}: {}", d.rule_id, d.severity, d.message))
+                .collect();
+            if !bad.is_empty() {
+                let name = entry.strip_prefix(&root).unwrap_or(&entry);
+                failures.push(format!("[{engine_name}] {}:\n{}", name.display(), bad.join("\n")));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "good/sam templates produced Fatal/Error diagnostics:\n{}", failures.join("\n\n"));
+}
+
+/// Every `bad/sam` template must produce identical diagnostics on both engines,
+/// and each must fire the SAM transform-error rule (E0001) or the
+/// missing-transform rule (E3038) — the engines stay at parity on SAM handling.
+#[test]
+fn bad_sam_templates_fire_identically_on_both_engines() {
+    let sv = SchemaValidator::new();
+    let root = common::templates_dir().join("bad").join("sam");
+    for entry in walkdir(&root) {
+        let bytes = std::fs::read(&entry).unwrap();
+        let name = entry.strip_prefix(&root).unwrap_or(&entry).display().to_string();
+        let ids = |engine: &dyn ValidationEngine| -> Vec<String> {
+            let report = validate_bytes(engine, &sv, &bytes, Default::default()).unwrap();
+            let mut out: Vec<String> = report
+                .diagnostics
+                .iter()
+                .filter(|d| matches!(d.severity, Severity::Fatal | Severity::Error))
+                .map(|d| format!("{}|{}", d.rule_id, d.message))
+                .collect();
+            out.sort();
+            out
+        };
+        let cel_ids = ids(&*CEL);
+        let rego_ids = ids(&*REGO);
+        assert_eq!(cel_ids, rego_ids, "{name}: engines diverge");
+        assert!(
+            cel_ids.iter().any(|d| d.starts_with("E0001|") || d.starts_with("E3038|")),
+            "{name}: expected a SAM transform error (E0001/E3038), got {cel_ids:?}"
+        );
+    }
+}
+
 fn walkdir(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut out = Vec::new();
     walk_recursive(dir, &mut out);

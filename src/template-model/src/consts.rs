@@ -67,7 +67,6 @@ pub const KEY_OUTPUT_NAME: &str = "OutputName";
 pub const KEY_REGION: &str = "Region";
 pub const KEY_ROLE_ARN: &str = "RoleArn";
 
-pub const SAM_TRANSFORM_MARKER: &str = "Serverless";
 pub const SAM_SERVERLESS_TYPE_PREFIX: &str = "AWS::Serverless::";
 pub const SAM_FUNCTION_TYPE: &str = "AWS::Serverless::Function";
 pub const SAM_API_TYPE: &str = "AWS::Serverless::Api";
@@ -75,14 +74,66 @@ pub const SAM_HTTP_API_TYPE: &str = "AWS::Serverless::HttpApi";
 pub const SAM_SIMPLE_TABLE_TYPE: &str = "AWS::Serverless::SimpleTable";
 pub const SAM_LAYER_VERSION_TYPE: &str = "AWS::Serverless::LayerVersion";
 pub const SAM_APPLICATION_TYPE: &str = "AWS::Serverless::Application";
+pub const SAM_STATE_MACHINE_TYPE: &str = "AWS::Serverless::StateMachine";
+pub const SAM_CONNECTOR_TYPE: &str = "AWS::Serverless::Connector";
+pub const SAM_GRAPHQL_API_TYPE: &str = "AWS::Serverless::GraphQLApi";
 pub const SAM_EVENT_TYPE_API: &str = "Api";
+pub const SAM_EVENT_TYPE_HTTP_API: &str = "HttpApi";
 pub const SAM_EVENT_TYPE_SCHEDULE: &str = "Schedule";
 pub const SAM_IMPLICIT_REST_API: &str = "ServerlessRestApi";
+pub const SAM_IMPLICIT_HTTP_API: &str = "ServerlessHttpApi";
+/// The SAM transform gives the implicit REST API a stage named `Prod`, whose
+/// logical id is `ServerlessRestApi` + `Prod` + `Stage`.
+pub const SAM_IMPLICIT_REST_API_STAGE: &str = "ServerlessRestApiProdStage";
 pub const SAM_AUTO_PUBLISH_ALIAS: &str = "AutoPublishAlias";
 pub const SAM_LAYER_CONTENT_URI: &str = "ContentUri";
 pub const SAM_APPLICATION_LOCATION: &str = "Location";
 pub const SAM_FUNCTION_EVENTS: &str = "Events";
+pub const SAM_FUNCTION_ROLE: &str = "Role";
 pub const SAM_SCHEDULE_PROPERTY: &str = "Schedule";
+pub const SAM_API_STAGE_NAME: &str = "StageName";
+pub const SAM_DEFINITION: &str = "Definition";
+pub const SAM_DEFINITION_URI: &str = "DefinitionUri";
+pub const SAM_CONNECTOR_SOURCE: &str = "Source";
+pub const SAM_CONNECTOR_DESTINATION: &str = "Destination";
+pub const SAM_CONNECTOR_PERMISSIONS: &str = "Permissions";
+pub const SAM_GRAPHQL_AUTH: &str = "Auth";
+pub const SAM_SIMPLE_TABLE_PRIMARY_KEY: &str = "PrimaryKey";
+pub const SAM_PRIMARY_KEY_TYPE: &str = "Type";
+/// Valid DynamoDB attribute types for a `SimpleTable` PrimaryKey.
+pub const SAM_PRIMARY_KEY_TYPES: &[&str] = &["String", "Number", "Binary"];
+
+// Function properties involved in transform-error validation.
+pub const SAM_FUNCTION_PACKAGE_TYPE: &str = "PackageType";
+pub const SAM_FUNCTION_RUNTIME: &str = "Runtime";
+pub const SAM_FUNCTION_HANDLER: &str = "Handler";
+pub const SAM_FUNCTION_LAYERS: &str = "Layers";
+pub const SAM_FUNCTION_DEAD_LETTER_QUEUE: &str = "DeadLetterQueue";
+pub const SAM_FUNCTION_TARGET_ARN: &str = "TargetArn";
+pub const SAM_FUNCTION_PROVISIONED_CONCURRENCY: &str = "ProvisionedConcurrencyConfig";
+pub const SAM_FUNCTION_CAPACITY_PROVIDER: &str = "CapacityProviderConfig";
+pub const SAM_FUNCTION_VPC_CONFIG: &str = "VpcConfig";
+pub const SAM_FUNCTION_SCALING_CONFIG: &str = "FunctionScalingConfig";
+pub const SAM_FUNCTION_VERSION_DELETION_POLICY: &str = "VersionDeletionPolicy";
+pub const SAM_FUNCTION_IMAGE_URI: &str = "ImageUri";
+pub const SAM_FUNCTION_IMAGE_CONFIG: &str = "ImageConfig";
+pub const SAM_FUNCTION_URL_CONFIG: &str = "FunctionUrlConfig";
+pub const SAM_FUNCTION_URL_AUTH_TYPE: &str = "AuthType";
+pub const SAM_FUNCTION_DEPLOYMENT_PREFERENCE: &str = "DeploymentPreference";
+pub const SAM_PACKAGE_TYPE_ZIP: &str = "Zip";
+pub const SAM_PACKAGE_TYPE_IMAGE: &str = "Image";
+/// Valid DeadLetterQueue target types.
+pub const SAM_DLQ_TYPES: &[&str] = &["SQS", "SNS"];
+/// Valid FunctionUrlConfig auth types.
+pub const SAM_FUNCTION_URL_AUTH_TYPES: &[&str] = &["AWS_IAM", "NONE"];
+
+// LayerVersion properties involved in transform-error validation.
+pub const SAM_LAYER_RETENTION_POLICY: &str = "RetentionPolicy";
+pub const SAM_LAYER_COMPATIBLE_ARCHITECTURES: &str = "CompatibleArchitectures";
+/// Valid LayerVersion RetentionPolicy values.
+pub const SAM_LAYER_RETENTION_POLICIES: &[&str] = &["Retain", "Delete"];
+/// Valid Lambda architectures (LayerVersion CompatibleArchitectures).
+pub const SAM_ARCHITECTURES: &[&str] = &["x86_64", "arm64"];
 
 /// Maps each `Globals` template-section key to the SAM resource type whose
 /// defaults it carries.
