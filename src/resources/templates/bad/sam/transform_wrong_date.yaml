@@ -1,0 +1,8 @@
+Transform: AWS::Serverless-2016-10-30
+Resources:
+  MyFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: s3://bucket/key.zip

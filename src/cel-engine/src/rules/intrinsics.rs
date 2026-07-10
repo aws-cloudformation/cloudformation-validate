@@ -86,7 +86,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                         let attr = edge.get(FIELD_ATTR).and_then(|a| a.as_str()).unwrap_or("");
                         let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
 
-                        if !resource_keys.contains(target) && !has_parse_errors {
+                        if !resource_keys.contains(target) && !sam_implicit.contains(target) && !has_parse_errors {
                             out.push(make_resource_diagnostic(
                                 "F1020",
                                 &format!("Fn::GetAtt references non-existent resource '{}'", target),
@@ -122,7 +122,8 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                     EDGE_KIND_SUB
                         if !resource_keys.contains(target)
                             && !param_keys.contains(target)
-                            && !pseudo.contains(target) =>
+                            && !pseudo.contains(target)
+                            && !sam_implicit.contains(target) =>
                     {
                         out.push(make_resource_diagnostic("F1018",
                                 &format!("Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or pseudo-parameter", target),

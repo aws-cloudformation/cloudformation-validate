@@ -1,0 +1,19 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyFn:
+    Type: AWS::Serverless::Function
+    DependsOn: MyFnRole
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: s3://bucket/key.zip
+  RoleArnParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt MyFnRole.Arn
+  RoleRefParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Ref MyFnRole

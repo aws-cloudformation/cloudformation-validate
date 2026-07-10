@@ -1,0 +1,19 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: s3://bucket/key.zip
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+  StageParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Ref ServerlessRestApiProdStage

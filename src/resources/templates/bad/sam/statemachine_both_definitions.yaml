@@ -1,0 +1,11 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MySM:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        StartAt: Done
+        States:
+          Done:
+            Type: Succeed
+      DefinitionUri: s3://bucket/definition.asl.json

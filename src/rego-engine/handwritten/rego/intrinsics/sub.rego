@@ -17,4 +17,5 @@ violation contains make_diag("F1018", "FATAL", name,
     not target in object.keys(input.resources)
     not target in object.keys(input.parameters)
     not target in pseudo_params_sub
+    not target in object.get(input, "samImplicitResources", [])
 }

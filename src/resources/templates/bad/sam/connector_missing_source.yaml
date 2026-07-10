@@ -1,0 +1,5 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyConn:
+    Type: AWS::Serverless::Connector
+    Properties: {}

@@ -1,0 +1,9 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Fn:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: 123456789012.dkr.ecr.us-east-1.amazonaws.com/repo:latest
+      Handler: index.handler
+      Runtime: python3.12

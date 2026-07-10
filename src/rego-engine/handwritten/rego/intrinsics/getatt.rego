@@ -49,6 +49,7 @@ violation contains make_diag_full("F1020", "FATAL", name, "",
     edge.kind == "GetAtt"
     target := edge.target
     not target in object.keys(input.resources)
+    not target in object.get(input, "samImplicitResources", [])
 }
 
 # E1040: GetAtt format mismatch

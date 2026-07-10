@@ -549,9 +549,14 @@ impl SemanticModel {
             }
         }
         diagnostics.extend(resolver.diagnostics);
-        let has_sam = ir.transforms.iter().any(|t| t.contains(SAM_TRANSFORM_MARKER));
+        // SAM handling keys on the exact transform id, matching how the engines
+        // detect the transform. A substring match would misclassify a non-SAM
+        // transform whose name merely contains "Serverless" (e.g. a typo'd date
+        // or a custom macro) as SAM, running the transform-error validators and
+        // suppressing the correct "serverless type without transform" finding.
+        let is_sam = ir.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
         for d in graph.cycle_diagnostics(&ir.span_index) {
-            if has_sam && sam::cycle_involves_sam_diagnostic(&d, &resources) {
+            if is_sam && sam::cycle_involves_sam_diagnostic(&d, &resources) {
                 continue;
             }
             diagnostics.push(d);
@@ -591,7 +596,6 @@ impl SemanticModel {
         if !sam_globals.is_empty() {
             sam::apply_sam_globals(&mut resources, &sam_globals);
         }
-        let is_sam = ir.transforms.iter().any(|t| t.contains(SAM_TRANSFORM_MARKER));
         let sam_implicit_resources =
             if is_sam { sam::collect_sam_implicit_resources(&resources) } else { HashSet::new() };
         let globals_param_refs =

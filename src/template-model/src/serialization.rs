@@ -367,7 +367,7 @@ fn filter_sam_cycles(
     transforms: &[String],
     resources: &HashMap<String, ResolvedResource>,
 ) -> Vec<Vec<String>> {
-    let has_sam = transforms.iter().any(|t| t.contains(SAM_TRANSFORM_MARKER));
+    let has_sam = transforms.iter().any(|t| t == TRANSFORM_SERVERLESS);
     if has_sam {
         raw_cycles
             .iter()

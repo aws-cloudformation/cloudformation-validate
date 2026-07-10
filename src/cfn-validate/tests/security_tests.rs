@@ -240,13 +240,17 @@ violation contains make_diag(\"CTRL001\", \"WARN\", name, \"control rule fired\"
 }
 
 #[test]
-fn custom_cel_rule_that_fails_to_evaluate_is_a_hard_error_not_a_diagnostic() {
+fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic() {
     // The CEL counterpart to the Rego sandbox-escape test: a custom CEL rule
-    // whose expression calls a function the interpreter does not provide
-    // compiles, but fails at execution. That failure must surface as a hard
-    // validation error (an exception) — never silently dropped, never reported
-    // as a diagnostic — matching the Rego engine's custom-rule semantics
-    // (no silent failures).
+    // whose expression calls a function the interpreter does not provide is a
+    // hard error — never silently dropped, never reported as a diagnostic. A
+    // failed escape attempt must not be able to masquerade as a finding.
+    //
+    // Unlike Rego (whose missing builtins only surface at evaluation), CEL can
+    // enumerate an expression's function references at compile time, so the
+    // unknown function is rejected when the engine loads the rule rather than
+    // when it runs. That is strictly safer: a rule scoped to an absent resource
+    // type cannot load clean and then silently never run.
     let escape_rule = r#"{"rules": [
         {
             "rule_id": "SBXCEL001",
@@ -260,23 +264,14 @@ fn custom_cel_rule_that_fails_to_evaluate_is_a_hard_error_not_a_diagnostic() {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_escape.celrules.json".into(), content: escape_rule }],
         guard_rules: vec![],
     };
-    let engine =
-        CelEngine::new(config).expect("engine must build: the expression compiles; it only fails at execution");
-    let schema_validator = SchemaValidator::new();
-    let error = validate_bytes_with_path(
-        &engine,
-        &schema_validator,
-        SMALL_TEMPLATE,
-        ValidateConfig::default(),
-        "inline".to_string(),
-    )
-    .expect_err(
-        "a custom CEL rule that fails to execute must fail validation with an error, not be \
-         silently dropped or reported as a diagnostic",
+    let error = CelEngine::new(config).err().expect(
+        "a custom CEL rule referencing an unknown function must fail the engine build with an error, \
+         not load clean and then be silently dropped or reported as a diagnostic",
     );
+    let message = error.to_string();
     assert!(
-        error.to_string().contains("failed to evaluate"),
-        "the error must identify the failed custom rule; got: {error}"
+        message.contains("SBXCEL001") && message.contains("unknown function") && message.contains("host_network_access"),
+        "the error must identify the failed custom rule and the unresolved function; got: {message}"
     );
 }
 

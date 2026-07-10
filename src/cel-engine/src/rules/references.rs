@@ -28,7 +28,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for (name, res) in &m.resources {
         for dep in &res.depends_on {
-            if !m.resources.contains_key(dep.as_str()) {
+            if !m.resources.contains_key(dep.as_str()) && !m.sam_implicit_resources.contains(dep.as_str()) {
                 out.push(make_resource_diagnostic(
                     "E3005",
                     &format!("DependsOn target '{}' does not exist as a resource", dep),

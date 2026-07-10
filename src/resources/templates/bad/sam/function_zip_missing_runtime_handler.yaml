@@ -1,0 +1,6 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Fn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://bucket/key.zip

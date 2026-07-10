@@ -1,0 +1,14 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Fn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: s3://bucket/key.zip
+      CapacityProviderConfig: {}
+      VpcConfig:
+        SubnetIds:
+          - subnet-12345678
+        SecurityGroupIds:
+          - sg-12345678
