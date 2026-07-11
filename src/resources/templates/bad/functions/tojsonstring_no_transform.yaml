@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Template using Fn::ToJsonString without declaring AWS::LanguageExtensions
-  transform. Should trigger E1031 at resource property, output value, and
-  metadata slots.
+  transform. Should flag the unsupported Fn::ToJsonString at resource property,
+  output value, and metadata slots.
 Resources:
   Topic:
     Type: AWS::SNS::Topic

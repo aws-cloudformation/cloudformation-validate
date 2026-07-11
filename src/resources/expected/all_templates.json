@@ -8712,6 +8712,60 @@
       }
     ]
   },
+  "bad/functions/findinmap_default_value_no_transform.yaml": {
+    "filePath": "bad/functions/findinmap_default_value_no_transform.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1101",
+        "severity": "FATAL",
+        "message": "Fn::FindInMap: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements",
+        "source": "SCHEMA",
+        "resourceId": "Topic",
+        "propertyPath": "Properties.DisplayName",
+        "category": "Structure",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 18,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Topic",
+        "resourceType": "AWS::SNS::Topic",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/functions/foreach_no_transform.yaml": {
     "filePath": "bad/functions/foreach_no_transform.yaml",
     "status": "OK",
@@ -8719,7 +8773,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 4,
         "errors": 0,
         "warnings": 0,
         "informational": 0,
@@ -8745,6 +8799,49 @@
         "ruleDescription": "Logical IDs must be alphanumeric",
         "phase": "SCHEMA",
         "section": "Resources"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::Buckets'",
+        "source": "SCHEMA",
+        "resourceId": "Fn::ForEach::Buckets",
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 25,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::BucketOutputs'",
+        "source": "SCHEMA",
+        "propertyPath": "Outputs/Fn::ForEach::BucketOutputs",
+        "category": "Intrinsic Function",
+        "startLine": 33,
+        "startColumn": 5,
+        "endLine": 33,
+        "endColumn": 31,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::GetAttLoop'",
+        "source": "SCHEMA",
+        "propertyPath": "Outputs/Fn::ForEach::BucketOutputs/2/Fn::ForEach::GetAttLoop",
+        "category": "Intrinsic Function",
+        "startLine": 36,
+        "startColumn": 11,
+        "endLine": 36,
+        "endColumn": 34,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
       }
     ]
   },
@@ -9228,6 +9325,109 @@
         "startLine": 8,
         "startColumn": 5,
         "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/functions/length_no_transform.yaml": {
+    "filePath": "bad/functions/length_no_transform.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1030",
+        "severity": "FATAL",
+        "message": "Fn::Length requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
+        "source": "SCHEMA",
+        "resourceId": "Queue",
+        "propertyPath": "Properties.DelaySeconds",
+        "category": "Intrinsic Function",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Length requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "resourceId": "Queue",
+        "resourceType": "AWS::SQS::Queue",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "resourceId": "Queue",
+        "resourceType": "AWS::SQS::Queue",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "resourceId": "Queue",
+        "resourceType": "AWS::SQS::Queue",
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Queue",
+        "resourceType": "AWS::SQS::Queue",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
@@ -9828,6 +10028,90 @@
         "startLine": 58,
         "startColumn": 5,
         "endLine": 58,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/functions/tojsonstring_no_transform.yaml": {
+    "filePath": "bad/functions/tojsonstring_no_transform.yaml",
+    "status": "OK",
+    "version": "1.5.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 3,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1031",
+        "severity": "FATAL",
+        "message": "Fn::ToJsonString requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
+        "source": "SCHEMA",
+        "resourceId": "Topic",
+        "propertyPath": "Properties.DisplayName",
+        "category": "Intrinsic Function",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 18,
+        "ruleDescription": "Fn::ToJsonString requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F1031",
+        "severity": "FATAL",
+        "message": "Fn::ToJsonString requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
+        "source": "SCHEMA",
+        "resourceId": "Topic",
+        "propertyPath": "Metadata.Custom",
+        "category": "Intrinsic Function",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 13,
+        "ruleDescription": "Fn::ToJsonString requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "F1031",
+        "severity": "FATAL",
+        "message": "Fn::ToJsonString requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
+        "source": "SCHEMA",
+        "propertyPath": "Outputs/JsonOutput/Value",
+        "category": "Intrinsic Function",
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
+        "endColumn": 10,
+        "ruleDescription": "Fn::ToJsonString requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Topic",
+        "resourceType": "AWS::SNS::Topic",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 5,
+        "endLine": 9,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",

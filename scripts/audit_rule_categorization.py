@@ -181,6 +181,9 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E1022": "F1020",   # GetAtt target must exist (incl. inside Fn::Join)
         "E1028": "F0013",   # Fn::If must have exactly 3 elements
         "E1029": "F1029",   # Sub required when a variable is used
+        "E1030": "F1030",   # Fn::Length requires the AWS::LanguageExtensions transform
+        "E1031": "F1031",   # Fn::ToJsonString requires the AWS::LanguageExtensions transform
+        "E1032": "F1032",   # Fn::ForEach requires the AWS::LanguageExtensions transform
         "E2002": "F2002",   # Parameter Type must be valid
         "E2003": "F2003",   # Parameter name must be alphanumeric
         "E2011": "F2011",   # Parameter name length

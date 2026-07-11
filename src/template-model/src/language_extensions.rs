@@ -96,9 +96,10 @@ fn collect_findinmap_default_value(arena: &Arena, out: &mut Vec<Diagnostic>) {
     }
 }
 
-/// Emits `E1032` for every `Fn::ForEach::<name>` key in the template. The loop
-/// key appears as a map key at the section level (Resources/Outputs/Conditions)
-/// or nested inside another loop's body; scanning every map node covers all
+/// Emits the transform-required error for every `Fn::ForEach::<name>` key in the
+/// template. The loop key appears as a map key at the section level
+/// (Resources/Outputs/Conditions) or nested inside another loop's body; scanning
+/// every map node covers all
 /// placements the way the source template writes them.
 ///
 /// A loop declared directly under `Resources` occupies a resource logical-id
@@ -121,21 +122,21 @@ fn collect_foreach_keys(arena: &Arena, out: &mut Vec<Diagnostic>) {
             );
             let build_path = &arena.get(*value_ref).path;
             let diag = if build_path == &format!("{}/{}", SECTION_RESOURCES, key) {
-                RegisteredDiagnostic::new("E1032", message)
+                RegisteredDiagnostic::new("F1032", message)
                     .location(arena.span(*value_ref))
                     .phase(Phase::Parse)
                     .resource(key.clone(), None)
                     .build()
             } else {
-                crate::make_parse_diagnostic_at("E1032", message, arena.span(*value_ref), build_path)
+                crate::make_parse_diagnostic_at("F1032", message, arena.span(*value_ref), build_path)
             };
             out.push(diag);
         }
     }
 }
 
-/// Walks each value tree top-down and emits `E1030`/`E1031` where `Fn::Length`/
-/// `Fn::ToJsonString` sit in a slot that permits them. The traversal starts from
+/// Walks each value tree top-down and emits the transform-required error where
+/// `Fn::Length`/`Fn::ToJsonString` sit in a slot that permits them. The traversal starts from
 /// the open value roots (resource property/metadata values, output values,
 /// condition and rule expressions) and narrows the permitted set as it descends
 /// through nested intrinsics per their argument schemas.
@@ -199,7 +200,7 @@ fn visit_value(
             if !permits.permits(FN_LENGTH) {
                 return;
             }
-            out.push(make_transform_required(arena, node_ref, FN_LENGTH, "E1030"));
+            out.push(make_transform_required(arena, node_ref, FN_LENGTH, "F1030"));
             // Length's own argument is a list whose items permit ToJsonString.
             visit_child(arena, *inner, SlotPermits { length: false, to_json_string: true }, out);
         }
@@ -207,7 +208,7 @@ fn visit_value(
             if !permits.permits(FN_TO_JSON_STRING) {
                 return;
             }
-            out.push(make_transform_required(arena, node_ref, FN_TO_JSON_STRING, "E1031"));
+            out.push(make_transform_required(arena, node_ref, FN_TO_JSON_STRING, "F1031"));
             // ToJsonString serializes an arbitrary value; its child is a free slot.
             visit_child(arena, *inner, SlotPermits::OPEN, out);
         }
