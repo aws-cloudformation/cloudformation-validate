@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use diagnostics::{Diagnostic, PhaseMetric, ResourceRef, UNKNOWN_SPAN, phase_metric};
 use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
-use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
+use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map, is_valid_custom_rule_id};
 use template_model::SemanticModel;
 use validation_engine::{
     EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
@@ -284,6 +284,17 @@ fn load_custom_rules(source: &str, origin: RuleOrigin) -> anyhow::Result<Vec<Cus
         if def.rule_id.trim().is_empty() {
             return Err(anyhow::anyhow!("Custom rule has an empty 'rule_id'"));
         }
+        // A custom rule ID may be any run of letters, digits, and the separators
+        // `_`, `.`, `-` — it need not follow the built-in ID convention — but must
+        // exclude whitespace and other punctuation that would corrupt formatting,
+        // filtering, and de-duplication of diagnostics.
+        if !is_valid_custom_rule_id(&def.rule_id) {
+            return Err(anyhow::anyhow!(
+                "Custom rule '{}' has an invalid 'rule_id': only letters, digits, and the separators '_', '.', '-' \
+                 are allowed",
+                def.rule_id
+            ));
+        }
         if def.message.trim().is_empty() {
             return Err(anyhow::anyhow!("Custom rule '{}' has an empty 'message'", def.rule_id));
         }
@@ -440,6 +451,26 @@ mod tests {
         let json = r#"{"rules": [{"rule_id": "   ", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
         let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
         assert!(err.contains("empty 'rule_id'"), "a whitespace-only rule_id must be rejected, got: {err}");
+    }
+
+    #[test]
+    fn load_custom_rules_arbitrary_alphanumeric_id_with_separators_is_accepted() {
+        // A custom rule ID need not follow the built-in convention: letters, digits,
+        // and the separators `_`, `.`, `-` are all permitted.
+        let json = r#"{"rules": [{"rule_id": "s3.encryption-required_1", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let rules = load_custom_rules(json, RuleOrigin::Custom).expect("an alphanumeric+separator id must load");
+        assert_eq!(rules[0].rule_id, "s3.encryption-required_1");
+    }
+
+    #[test]
+    fn load_custom_rules_rule_id_with_space_or_punctuation_is_rejected() {
+        let json = r#"{"rules": [{"rule_id": "bad id", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(err.contains("invalid 'rule_id'"), "a rule_id with a space must be rejected, got: {err}");
+
+        let json = r#"{"rules": [{"rule_id": "bad/id", "severity": "ERROR", "expression": "true", "message": "m"}]}"#;
+        let err = format!("{}", load_custom_rules(json, RuleOrigin::Custom).unwrap_err());
+        assert!(err.contains("invalid 'rule_id'"), "a rule_id with punctuation must be rejected, got: {err}");
     }
 
     #[test]
