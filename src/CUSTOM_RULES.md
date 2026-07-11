@@ -1,5 +1,27 @@
 # Custom Rules Reference
 
+## Rule IDs and Severity
+
+Every custom rule — CEL, Rego, or Guard — is identified by a **rule ID** and carries a
+**severity**. These apply to all three formats:
+
+- **Rule IDs are yours to choose.** A custom rule ID does **not** need to follow the
+  built-in `[FEWID]NNNN` convention. It may be any non-empty string of ASCII letters,
+  digits, and the separators `_`, `.`, and `-` (for example `CUSTOM001`, `myRule1`,
+  `check_bucket_encryption`, `s3.encryption-required`). Whitespace and other punctuation
+  are rejected at load time so IDs stay well-behaved for display, filtering, and
+  de-duplication. The severity prefix of a built-in ID (`F`/`E`/`W`/`I`/`D`) has **no
+  meaning** for a custom ID — a rule named `Firewall` is not promoted to Fatal.
+- **Severity is honored verbatim.** The severity you declare is the severity reported.
+  CEL and Rego rules must declare one of `FATAL`, `ERROR`, `WARN`, `INFO`, or `DEBUG`.
+  Guard rules cannot express a severity, so they always report `ERROR`.
+- **Filtering works on any ID.** Custom rules are subject to the same include/exclude
+  filters as built-ins. Exact-ID filters (`--include-ids`/`--exclude-ids`), category
+  filters, and (in the library/bindings) regex `id_patterns` all match arbitrary IDs.
+  Numeric-range filters (`--include-range`/`--exclude-range`) only match IDs whose suffix
+  is a plain number after a shared prefix, so they are best suited to convention-style
+  IDs; use exact-ID or pattern filters for free-form IDs.
+
 ## CEL Rules (JSON)
 
 A JSON file with a `rules` array. Each rule's `expression` is a [CEL](https://cel.dev/) expression that fires when it evaluates to `true`.
@@ -8,8 +30,8 @@ A JSON file with a `rules` array. Each rule's `expression` is a [CEL](https://ce
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `rule_id` | Yes | Unique identifier shown in diagnostics |
-| `severity` | Yes | `FATAL`, `ERROR`, `WARN`, `INFO`, or `DEBUG` |
+| `rule_id` | Yes | Unique identifier shown in diagnostics. Letters, digits, and `_`, `.`, `-` only (see [Rule IDs and Severity](#rule-ids-and-severity)) |
+| `severity` | Yes | `FATAL`, `ERROR`, `WARN`, `INFO`, or `DEBUG` — reported verbatim |
 | `expression` | Yes | CEL expression — fires when `true` |
 | `message` | Yes | Diagnostic message |
 | `resource_type` | No | Scope to a resource type (e.g. `AWS::S3::Bucket`). Omit for global rules. |
@@ -122,7 +144,11 @@ violation contains v if {
 | `make_diag_related` | `(rule_id, severity, resource_id, prop_path, message, related_locations)` |
 | `make_diag_conditional` | `(rule_id, severity, resource_id, prop_path, message, conditions)` |
 
-Severity is a string: `"FATAL"`, `"ERROR"`, `"WARN"`, `"INFO"`, `"DEBUG"`. Pass `""` for `resource_id` on template-level diagnostics. Pass `""` for optional string args to omit them.
+Every emitted violation must supply a `rule_id` and a `severity`. The `rule_id` may be any
+string of letters, digits, and `_`, `.`, `-` (see [Rule IDs and Severity](#rule-ids-and-severity)),
+and the declared severity is reported verbatim. Severity is a string: `"FATAL"`, `"ERROR"`,
+`"WARN"`, `"INFO"`, `"DEBUG"`. Pass `""` for `resource_id` on template-level diagnostics. Pass
+`""` for optional string args to omit them.
 
 ### Template Introspection Builtins
 
@@ -170,6 +196,11 @@ violation contains v if {
 ## Guard DSL Rules
 
 [CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) declarative rules. Translated internally — works with both `RegoEngine` and `CelEngine`.
+
+The Guard `<rule_name>` becomes the diagnostic's rule ID. Guard rule names follow the Guard
+grammar (an ASCII letter followed by letters, digits, or `_`), which is within the allowed
+custom-ID character set. Guard DSL cannot express a severity, so every Guard rule reports
+`ERROR`.
 
 ### Structure
 

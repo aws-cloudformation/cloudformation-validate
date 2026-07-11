@@ -4,7 +4,8 @@ use diagnostics::{
     apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
 };
 use rules::{
-    FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, rule_number, section_for_rule_id,
+    FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
+    rule_number, section_for_rule_id,
 };
 use schema_validator::{SchemaValidationResult, SchemaValidator};
 use serde::{Deserialize, Serialize};
@@ -229,7 +230,7 @@ pub(crate) fn validate(
     if config.detail_level.needs_context() {
         schema_validator.enrich_context(&mut all_diagnostics, &model);
         for d in all_diagnostics.iter_mut() {
-            if d.context.is_none() && !is_fatal_rule(&d.rule_id) {
+            if d.context.is_none() && d.phase != Some(Phase::Schema) {
                 d.context = build_context(
                     &d.rule_id,
                     d.resource.as_ref().and_then(|r| r.id.as_deref()),
@@ -469,15 +470,20 @@ pub(crate) fn parse_diagnostic(
         .map(|m| m.iter().filter_map(|(k, v)| v.as_bool().map(|b| (k.clone(), b))).collect());
 
     if is_custom_or_guard {
-        // Custom and Guard rules are absent from the registry, so severity,
-        // category, and origin must come from the engine output instead of the
-        // registry-driven builder.
+        if !is_valid_custom_rule_id(&rule_id) {
+            return Err(format!(
+                "Custom/Guard diagnostic '{}' has an invalid 'rule_id': only letters, digits, and the separators \
+                 '_', '.', '-' are allowed",
+                rule_id
+            ));
+        }
         let severity_str = val
             .get("severity")
             .and_then(|v| v.as_str())
             .ok_or_else(|| format!("Custom/Guard diagnostic '{}' missing required field 'severity'", rule_id))?;
-        let parsed_severity = severity_str.parse::<Severity>()?;
-        let severity = if is_fatal_rule(&rule_id) { Severity::Fatal } else { parsed_severity };
+        // The declared severity is authoritative. A custom/Guard rule ID is arbitrary,
+        // so the built-in `F`-prefix→Fatal heuristic must NOT apply here
+        let severity = severity_str.parse::<Severity>()?;
         let category = val.get("category").and_then(|v| v.as_str()).map(|c| c.to_string());
         let source = *source_override.expect("custom/guard branch is only reached with a source override");
         return Ok(Diagnostic {
@@ -857,7 +863,10 @@ pub(crate) fn enrich_diagnostics(
             let rid = d.resource.as_ref().and_then(|r| r.id.as_deref());
             d.section = section_for_rule_id(rid, &d.rule_id).map(Into::into);
         }
-        if d.phase.is_none() {
+        // Custom and Guard rules are user-supplied and have no built-in evaluation
+        // phase, so leave their phase unset rather than forcing one. Built-in rules
+        // are Schema-phase when fatal and Lint-phase otherwise.
+        if d.phase.is_none() && !matches!(d.source, RuleOrigin::Custom | RuleOrigin::Guard) {
             d.phase = Some(if is_fatal_rule(&d.rule_id) { Phase::Schema } else { Phase::Lint });
         }
         if d.rule_description.is_none() {
@@ -1043,9 +1052,11 @@ Resources:
     }
 
     #[test]
-    fn parse_diagnostic_fatal_prefix_overrides_custom_severity() {
-        // F-prefix rule IDs are coerced to Fatal at the engine boundary so a
-        // custom rule that mis-reports its severity gets corrected here.
+    fn parse_diagnostic_custom_severity_is_authoritative_even_for_f_prefixed_id() {
+        // A custom rule chooses its own ID freely, so the built-in `F`-prefix→Fatal
+        // heuristic must NOT apply: the declared severity is preserved verbatim. This
+        // also keeps the Rego/Guard boundary at parity with the CEL engine, which emits
+        // the declared severity directly.
         let model = minimal_model();
         let val = serde_json::json!({
             "rule_id": "FCUSTOM",
@@ -1053,7 +1064,27 @@ Resources:
             "message": "type mismatch"
         });
         let diag = parse_diagnostic(&val, &model, Some(&RuleOrigin::Custom)).unwrap();
-        assert_eq!(diag.severity, Severity::Fatal);
+        assert_eq!(diag.severity, Severity::Error, "declared severity must survive an F-prefixed custom ID");
+    }
+
+    #[test]
+    fn parse_diagnostic_custom_rule_id_allows_separators_but_rejects_punctuation() {
+        let model = minimal_model();
+        let ok = serde_json::json!({
+            "rule_id": "s3.encryption-required_1",
+            "severity": Severity::Warn.as_str(),
+            "message": "ok"
+        });
+        assert!(parse_diagnostic(&ok, &model, Some(&RuleOrigin::Custom)).is_ok());
+
+        let bad = serde_json::json!({
+            "rule_id": "bad id/with space",
+            "severity": Severity::Warn.as_str(),
+            "message": "bad"
+        });
+        let err = parse_diagnostic(&bad, &model, Some(&RuleOrigin::Custom))
+            .expect_err("a rule_id with whitespace/punctuation must be rejected");
+        assert!(err.contains("invalid 'rule_id'"), "got: {err}");
     }
 
     #[test]
@@ -1630,6 +1661,21 @@ Resources:
         }];
         enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Detailed);
         assert_eq!(diags[0].phase, Some(Phase::Schema));
+    }
+
+    #[test]
+    fn enrich_custom_rule_gets_no_phase() {
+        let model = minimal_model();
+        let meta = meta_map();
+        let mut diags = vec![Diagnostic {
+            rule_id: "Firewall".into(),
+            severity: Severity::Error,
+            message: "x".into(),
+            source: RuleOrigin::Custom,
+            ..default_diag()
+        }];
+        enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Detailed);
+        assert_eq!(diags[0].phase, None, "custom rules must not be assigned a phase");
     }
 
     #[test]

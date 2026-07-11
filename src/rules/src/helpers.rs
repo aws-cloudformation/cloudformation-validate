@@ -1,8 +1,28 @@
 use crate::category::Category;
 
 /// Returns `true` if the rule ID indicates a fatal-severity rule (prefix `F`).
+///
+/// This is a heuristic over the built-in ID convention only. It must never decide
+/// the severity, phase, or category of a custom, Rego, or Guard rule: those rules
+/// choose their own ID freely (see [`is_valid_custom_rule_id`]) and carry their own
+/// declared severity.
 pub fn is_fatal_rule(rule_id: &str) -> bool {
     rule_id.starts_with('F')
+}
+
+/// The characters permitted in a custom (CEL/Rego/Guard) rule ID beyond ASCII
+/// letters and digits: the identifier separators `_`, `.`, and `-`.
+pub const CUSTOM_RULE_ID_SEPARATORS: [char; 3] = ['_', '.', '-'];
+
+/// Returns `true` if `rule_id` is a well-formed custom-rule identifier: a non-empty
+/// run of ASCII letters, digits, and the separators `_`, `.`, or `-`.
+///
+/// Custom (CEL/Rego/Guard) rule IDs are intentionally NOT required to follow the
+/// built-in `[FEWID]\d{4}` convention — an author may name a rule anything in that
+/// character set. The restriction only rejects whitespace and other punctuation that
+/// would corrupt diagnostic formatting, rule-ID filtering, and de-duplication.
+pub fn is_valid_custom_rule_id(rule_id: &str) -> bool {
+    !rule_id.is_empty() && rule_id.chars().all(|c| c.is_ascii_alphanumeric() || CUSTOM_RULE_ID_SEPARATORS.contains(&c))
 }
 
 /// Extracts the numeric part of a rule ID (the digits after the severity-prefix
@@ -146,6 +166,28 @@ mod tests {
         assert!(!is_fatal_rule("E3002"));
         assert!(!is_fatal_rule("W1001"));
         assert!(!is_fatal_rule("I3011"));
+    }
+
+    #[test]
+    fn is_valid_custom_rule_id_accepts_alphanumeric_and_separators() {
+        // Built-in-style, arbitrary, and separator-bearing IDs are all permitted.
+        assert!(is_valid_custom_rule_id("CUSTOM001"));
+        assert!(is_valid_custom_rule_id("myRule1"));
+        assert!(is_valid_custom_rule_id("check_bucket_encryption"));
+        assert!(is_valid_custom_rule_id("s3.encryption.required"));
+        assert!(is_valid_custom_rule_id("my-rule-1"));
+        assert!(is_valid_custom_rule_id("Fluffy123"));
+        assert!(is_valid_custom_rule_id("_"));
+    }
+
+    #[test]
+    fn is_valid_custom_rule_id_rejects_empty_whitespace_and_punctuation() {
+        assert!(!is_valid_custom_rule_id(""));
+        assert!(!is_valid_custom_rule_id("my rule"));
+        assert!(!is_valid_custom_rule_id("rule/id"));
+        assert!(!is_valid_custom_rule_id("rule:id"));
+        assert!(!is_valid_custom_rule_id("rule#1"));
+        assert!(!is_valid_custom_rule_id("emoji😀"));
     }
 
     #[test]

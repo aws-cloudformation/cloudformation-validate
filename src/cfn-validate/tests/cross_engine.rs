@@ -5,10 +5,11 @@ use common::{load_rule, load_template};
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use rules::registry::RULE_REGISTRY;
+use rules::{FilterConfig, RuleFilterConfig};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine, validate_bytes};
+use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
@@ -29,11 +30,30 @@ fn validate_template(engine: &dyn ValidationEngine, template: &str) -> Vec<Diagn
     validate_bytes(engine, &sv, &bytes, Default::default()).unwrap().diagnostics
 }
 
+fn validate_template_with_config(
+    engine: &dyn ValidationEngine,
+    template: &str,
+    config: ValidateConfig,
+) -> Vec<Diagnostic> {
+    let sv = SchemaValidator::new();
+    let bytes = load_template(template);
+    validate_bytes(engine, &sv, &bytes, config).unwrap().diagnostics
+}
+
 fn custom_config(engine: &str) -> EngineConfig {
     let (name, content) = if engine == "rego" {
         ("rego_custom.rego", load_rule("rego_custom.rego"))
     } else {
         ("cel_custom.json", load_rule("cel_custom.json"))
+    };
+    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![] }
+}
+
+fn arbitrary_id_config(engine: &str) -> EngineConfig {
+    let (name, content) = if engine == "rego" {
+        ("rego_arbitrary_id.rego", load_rule("rego_arbitrary_id.rego"))
+    } else {
+        ("cel_arbitrary_id.json", load_rule("cel_arbitrary_id.json"))
     };
     EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![] }
 }
@@ -120,6 +140,52 @@ fn custom_rule_list_rules_and_validate_match_between_engines() {
             d.resource.as_ref().and_then(|r| r.resource_type.as_deref()),
             Some("AWS::S3::Bucket"),
             "{name}: resource_type"
+        );
+    }
+}
+
+#[test]
+fn arbitrary_f_prefixed_custom_id_keeps_declared_severity_in_both_engines() {
+    // A custom rule ID is arbitrary (here: `Firewall.check-1`, WARN). The built-in
+    // `F`-prefix→Fatal heuristic must NOT apply to it, and both engines must agree.
+    let cel = CelEngine::new(arbitrary_id_config("cel")).unwrap();
+    let rego = RegoEngine::new(arbitrary_id_config("rego")).unwrap();
+
+    for (name, engine) in [("cel", &cel as &dyn ValidationEngine), ("rego", &rego as &dyn ValidationEngine)] {
+        let diags = validate_template(engine, "bad/invalid_deletion_policy.yaml");
+        let d = diags
+            .iter()
+            .find(|d| d.rule_id == "Firewall.check-1")
+            .unwrap_or_else(|| panic!("{name}: Firewall.check-1 diagnostic must fire"));
+        assert_eq!(d.severity, Severity::Warn, "{name}: declared WARN must survive an F-prefixed ID (not Fatal)");
+        assert_eq!(d.source, RuleOrigin::Custom, "{name}: source");
+    }
+}
+
+#[test]
+fn custom_rule_with_arbitrary_id_is_suppressed_by_exclude_ids_in_both_engines() {
+    // An arbitrary custom ID must be filterable by exact-ID include/exclude filters
+    // identically across engines.
+    let cel = CelEngine::new(arbitrary_id_config("cel")).unwrap();
+    let rego = RegoEngine::new(arbitrary_id_config("rego")).unwrap();
+
+    let exclude_config = || ValidateConfig {
+        filters: FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig { ids: vec!["Firewall.check-1".into()], ..Default::default() },
+        ),
+        ..Default::default()
+    };
+
+    for (name, engine) in [("cel", &cel as &dyn ValidationEngine), ("rego", &rego as &dyn ValidationEngine)] {
+        // Without a filter the rule fires.
+        let unfiltered = validate_template(engine, "bad/invalid_deletion_policy.yaml");
+        assert!(unfiltered.iter().any(|d| d.rule_id == "Firewall.check-1"), "{name}: rule must fire before filtering");
+        // --exclude-ids on the arbitrary ID suppresses it.
+        let filtered = validate_template_with_config(engine, "bad/invalid_deletion_policy.yaml", exclude_config());
+        assert!(
+            !filtered.iter().any(|d| d.rule_id == "Firewall.check-1"),
+            "{name}: exclude-ids must suppress the arbitrary custom ID"
         );
     }
 }
