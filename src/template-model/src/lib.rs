@@ -8,6 +8,7 @@ pub mod diagnostic;
 pub(crate) mod graph;
 pub mod hardcoded_az;
 pub mod ir;
+pub(crate) mod language_extensions;
 pub mod model;
 pub(crate) mod nesting;
 pub(crate) mod parser;

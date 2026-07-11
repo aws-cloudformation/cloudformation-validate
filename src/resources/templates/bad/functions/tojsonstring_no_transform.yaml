@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Template using Fn::ToJsonString without declaring AWS::LanguageExtensions
+  transform. Should flag the unsupported Fn::ToJsonString at resource property,
+  output value, and metadata slots.
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::ToJsonString:
+          key: value
+    Metadata:
+      Custom:
+        Fn::ToJsonString:
+          nested: data
+Outputs:
+  JsonOutput:
+    Value:
+      Fn::ToJsonString:
+        output: value

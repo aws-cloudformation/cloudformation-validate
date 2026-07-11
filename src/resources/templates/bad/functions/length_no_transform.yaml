@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Template using Fn::Length without declaring AWS::LanguageExtensions
+  transform. Should flag the unsupported Fn::Length at every permitted value slot.
+Parameters:
+  MyList:
+    Type: CommaDelimitedList
+    Default: a,b
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds:
+        Fn::Length:
+          - !Ref MyList
