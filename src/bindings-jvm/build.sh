@@ -12,15 +12,11 @@ done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$(cd "$SCRIPT_DIR/.." && pwd)"
 GENERATED_DIR="$SCRIPT_DIR/generated"
-BUILD_DIR="$SCRIPT_DIR/build"
 RELEASE_DIR="$WORKSPACE/target/release"
 KOTLIN_SRC="$SCRIPT_DIR/src/main/kotlin"
 
 JNA_VERSION="5.19.1"
-JNA_MAVEN_URL="https://repo1.maven.org/maven2/net/java/dev/jna/jna/${JNA_VERSION}/jna-${JNA_VERSION}.jar"
-
 GSON_VERSION="2.14.0"
-GSON_MAVEN_URL="https://repo1.maven.org/maven2/com/google/code/gson/gson/${GSON_VERSION}/gson-${GSON_VERSION}.jar"
 
 ARCH="$(uname -m)"
 # Normalize to JNA's resource-prefix arch tokens (its canonical form)
@@ -36,7 +32,7 @@ case "$(uname -s)" in
     *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 
-NATIVES_DIR="$BUILD_DIR/classes/${OS}-${ARCH}"
+NATIVES_DIR="$GENERATED_DIR/natives/${OS}-${ARCH}"
 JAR_FILE="$GENERATED_DIR/cloudformation-validate.jar"
 
 cat <<EOF
@@ -44,7 +40,6 @@ Build directories:
   SCRIPT_DIR    = $SCRIPT_DIR
   WORKSPACE     = $WORKSPACE
   GENERATED_DIR = $GENERATED_DIR
-  BUILD_DIR     = $BUILD_DIR
   RELEASE_DIR   = $RELEASE_DIR
   KOTLIN_SRC    = $KOTLIN_SRC
   NATIVES_DIR   = $NATIVES_DIR
@@ -52,8 +47,7 @@ EOF
 
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 command -v ktlint &>/dev/null || { echo "Error: ktlint not found on PATH" >&2; exit 1; }
-command -v kotlinc &>/dev/null || { echo "Error: kotlinc not found on PATH" >&2; exit 1; }
-command -v jar &>/dev/null || { echo "Error: jar not found on PATH" >&2; exit 1; }
+command -v gradle &>/dev/null || { echo "Error: gradle not found on PATH" >&2; exit 1; }
 
 JAVA_VERSION=$(java -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+).*/\1/')
 if [ "$JAVA_VERSION" -lt 21 ]; then
@@ -62,8 +56,8 @@ fi
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 echo "Cleaning previous build..."
-rm -rf "$GENERATED_DIR" "$BUILD_DIR"
-mkdir -p "$GENERATED_DIR" "$BUILD_DIR/classes"
+rm -rf "$GENERATED_DIR"
+mkdir -p "$GENERATED_DIR"
 
 # ── Build native library ─────────────────────────────────────────────────────
 echo "Building native library..."
@@ -90,61 +84,35 @@ echo "Formatting Kotlin sources..."
 cd "$SCRIPT_DIR"
 ktlint --format "generated/**/*.kt"
 
-# ── Download JNA jar ─────────────────────────────────────────────────────────
-echo "Downloading JNA ${JNA_VERSION}..."
-JNA_JAR="$BUILD_DIR/jna-${JNA_VERSION}.jar"
-curl -sfL "$JNA_MAVEN_URL" -o "$JNA_JAR"
-
-# ── Download Gson jar ────────────────────────────────────────────────────────
-echo "Downloading Gson ${GSON_VERSION}..."
-GSON_JAR="$BUILD_DIR/gson-${GSON_VERSION}.jar"
-curl -sfL "$GSON_MAVEN_URL" -o "$GSON_JAR"
-
-# ── Compile Kotlin sources ───────────────────────────────────────────────────
-echo "Compiling Kotlin bindings..."
-find "$GENERATED_DIR" -name '*.kt' -type f -print0 \
-    | xargs -0 kotlinc -classpath "$JNA_JAR:$GSON_JAR" -d "$BUILD_DIR/classes" -nowarn
-
-# ── Package JAR ──────────────────────────────────────────────────────────────
-# Bundle native library at the JNA auto-extract path: <os>-<arch>/<libname>
+# ── Stage native library ──────────────────────────────────────────────────────
+# Place the host native at the JNA auto-extract path generated/natives/<os>-<arch>/
+# so the Gradle jar task bundles it. In CI, merge-jars.sh later grafts the other
+# platforms' natives into the committed all-platform jar.
+echo "Staging native library..."
+rm -rf "$GENERATED_DIR/natives"
 mkdir -p "$NATIVES_DIR"
 cp "$RELEASE_DIR/$LIB_NAME" "$NATIVES_DIR/"
 
-# Bundle Kotlin sources for IDE navigation
-find "$GENERATED_DIR" -name '*.kt' -type f | while read -r kt; do
-    REL="${kt#"$GENERATED_DIR/"}"
-    mkdir -p "$BUILD_DIR/classes/$(dirname "$REL")"
-    cp "$kt" "$BUILD_DIR/classes/$REL"
-done
-
-mkdir -p "$BUILD_DIR/classes/META-INF"
-cp "$WORKSPACE/../LICENSE" "$BUILD_DIR/classes/META-INF/LICENSE"
-cp "$SCRIPT_DIR/README.md" "$BUILD_DIR/classes/META-INF/README.md"
-cp "$SCRIPT_DIR/THIRD-PARTY-LICENSES.txt" "$BUILD_DIR/classes/META-INF/THIRD-PARTY-LICENSES.txt"
-
-# Create manifest with version and dependency info
+# ── Generate version.properties ────────────────────────────────────────────────
+# Cargo.toml is the single source of truth for the version; JNA/Gson versions are
+# owned here. The Gradle build reads these (build.gradle.kts) for the coordinates and
+# POM dependency versions, so nothing is hardcoded and versions cannot drift.
 VERSION=$(grep '^version' "$WORKSPACE/Cargo.toml" | head -1 | sed 's/.*"\(.*\)".*/\1/')
-cat > "$BUILD_DIR/MANIFEST.MF" <<EOF
-Manifest-Version: 1.0
-Implementation-Title: cloudformation-validate-jvm
-Implementation-Version: ${VERSION}
-Implementation-Vendor: Amazon Web Services (AWS)
-License: Apache-2.0
-Requires: net.java.dev.jna:jna:${JNA_VERSION}, com.google.code.gson:gson:${GSON_VERSION}
-EOF
-
-echo "Packaging JAR..."
-jar cfm "$JAR_FILE" "$BUILD_DIR/MANIFEST.MF" -C "$BUILD_DIR/classes" .
-
-rm -rf "$BUILD_DIR"
-
-echo "Generating version.properties..."
+echo "Generating version.properties (version ${VERSION})..."
 cat > "$SCRIPT_DIR/version.properties" <<EOF
 # Generated by build.sh — do not edit manually. Version from Cargo.toml; dep versions from build.sh.
 publishVersion=${VERSION}
 jnaVersion=${JNA_VERSION}
 gsonVersion=${GSON_VERSION}
 EOF
+
+# ── Compile + package JAR via Gradle ───────────────────────────────────────────
+# Gradle compiles the generated Kotlin (resolving JNA/Gson), bundles the .kt sources,
+# the staged native, and the license/readme metadata, and writes the jar to
+# generated/cloudformation-validate.jar. Gradle is the single compiler + packager so
+# the Maven publication and the GitHub-released jar are the same build.
+echo "Compiling and packaging JAR via Gradle..."
+gradle --no-daemon --console=plain jar
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 KT_SIZE=$(find "$GENERATED_DIR" -name '*.kt' -type f -exec cat {} + | wc -c | awk '{printf "%.1fM", $1/1048576}')

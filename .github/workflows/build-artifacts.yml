@@ -103,6 +103,7 @@ jobs:
         java-distribution: ${{ matrix.java-distribution || needs.get-configs.outputs.java-distribution }}
         kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
         ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+        gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
 
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
