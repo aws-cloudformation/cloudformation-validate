@@ -1,12 +1,12 @@
 {
-    "name": "bindings-wasm-example",
+    "name": "@aws/cloudformation-validate/example",
     "version": "0.1.0",
     "private": true,
     "scripts": {
         "start": "ts-node validate.ts"
     },
     "dependencies": {
-        "@aws/cloudformation-validate": "file:../dist"
+        "@aws/cloudformation-validate": "*"
     },
     "devDependencies": {
         "@types/node": "26.1.0",

@@ -1,6 +1,4 @@
 {
-    "name": "bindings-wasm-bench",
-    "version": "0.1.0",
     "private": true,
     "scripts": {
         "bench": "npx ts-node benchmark.ts"
