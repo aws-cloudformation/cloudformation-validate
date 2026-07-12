@@ -1,1 +1,1 @@
-rootProject.name = "bindings-jvm-bench"
+rootProject.name = "cloudformation-validate-bench"

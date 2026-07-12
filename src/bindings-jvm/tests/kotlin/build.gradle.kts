@@ -39,7 +39,7 @@ tasks.test {
 tasks.jacocoTestReport {
     classDirectories.setFrom(
         zipTree(bindingsJar).matching {
-            include("com/amazonaws/cloudformation/validation/**/*.class")
+            include("software/amazon/cloudformation/validate/**/*.class")
             exclude(
                 "**/FfiConverter*",
                 "**/ForeignBytes*",

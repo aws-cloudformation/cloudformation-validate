@@ -1,9 +1,9 @@
 @file:JvmName("BindingsGson")
 
-package com.amazonaws.cloudformation.validation.gson
+package software.amazon.cloudformation.validate.gson
 
-import com.amazonaws.cloudformation.validation.diagnostics.JsonValueEnum
-import com.amazonaws.cloudformation.validation.diagnostics.ViolationContext
+import software.amazon.cloudformation.validate.diagnostics.JsonValueEnum
+import software.amazon.cloudformation.validate.diagnostics.ViolationContext
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray

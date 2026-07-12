@@ -1,1 +1,1 @@
-rootProject.name = "bindings-jvm-tests"
+rootProject.name = "cloudformation-validate-tests"

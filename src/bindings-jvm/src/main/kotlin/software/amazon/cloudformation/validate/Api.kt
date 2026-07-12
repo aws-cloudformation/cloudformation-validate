@@ -1,10 +1,10 @@
-package com.amazonaws.cloudformation.validation
+package software.amazon.cloudformation.validate
 
-import com.amazonaws.cloudformation.validation.diagnostics.DetailedReport
-import com.amazonaws.cloudformation.validation.diagnostics.StandardDiagnostic
-import com.amazonaws.cloudformation.validation.diagnostics.StandardReport
-import com.amazonaws.cloudformation.validation.engine.EngineConfig
-import com.amazonaws.cloudformation.validation.rules.RuleInfo
+import software.amazon.cloudformation.validate.diagnostics.DetailedReport
+import software.amazon.cloudformation.validate.diagnostics.StandardDiagnostic
+import software.amazon.cloudformation.validate.diagnostics.StandardReport
+import software.amazon.cloudformation.validate.engine.EngineConfig
+import software.amazon.cloudformation.validate.rules.RuleInfo
 import java.io.File
 
 interface Engine {
