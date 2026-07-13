@@ -45498,15 +45498,30 @@
     "signin:authorizeoauth2access": [
       "arn:${Partition}:signin:::console/.*",
       "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/localhost",
-      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/remote"
+      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/remote",
+      "arn:${Partition}:signin:${Region}:${Account}:service-principal/.*"
     ],
     "signin:createaccount": [
       "arn:${Partition}:signin:::console/.*"
     ],
+    "signin:createoauth2publicclient": [
+      "arn:${Partition}:signin:${Region}::external-client/dcr/*"
+    ],
     "signin:createoauth2token": [
       "arn:${Partition}:signin:::console/.*",
       "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/localhost",
-      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/remote"
+      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/remote",
+      "arn:${Partition}:signin:${Region}:${Account}:service-principal/.*"
+    ],
+    "signin:introspectoauth2token": [
+      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/localhost",
+      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/remote",
+      "arn:${Partition}:signin:${Region}:${Account}:service-principal/.*"
+    ],
+    "signin:revokeoauth2token": [
+      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/localhost",
+      "arn:${Partition}:signin:${Region}:${Account}:oauth2/public-client/remote",
+      "arn:${Partition}:signin:${Region}:${Account}:service-principal/.*"
     ],
     "simspaceweaver:createsnapshot": [
       "arn:${Partition}:simspaceweaver:${Region}:${Account}:simulation/.*"
@@ -47507,6 +47522,24 @@
     ],
     "sts:tagsession": [
       "arn:${Partition}:iam::${Account}:role/.*"
+    ],
+    "supportauthz:deletesupportpermit": [
+      "arn:${Partition}:supportauthz:${Region}:${Account}:supportpermit/.*"
+    ],
+    "supportauthz:getsupportpermit": [
+      "arn:${Partition}:supportauthz:${Region}:${Account}:supportpermit/.*"
+    ],
+    "supportauthz:listtagsforresource": [
+      "arn:${Partition}:supportauthz:${Region}:${Account}:supportpermit/.*"
+    ],
+    "supportauthz:rejectsupportpermitrequest": [
+      "arn:${Partition}:supportauthz:${Region}:${Account}:supportpermitrequest/.*"
+    ],
+    "supportauthz:tagresource": [
+      "arn:${Partition}:supportauthz:${Region}:${Account}:supportpermit/.*"
+    ],
+    "supportauthz:untagresource": [
+      "arn:${Partition}:supportauthz:${Region}:${Account}:supportpermit/.*"
     ],
     "swf:canceltimer": [
       "arn:${Partition}:swf::${Account}:/domain/.*"
@@ -49535,6 +49568,12 @@
     "wellarchitected:associateprofiles": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
     ],
+    "wellarchitected:createagentcontext": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:createagentgoal": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
     "wellarchitected:createlensshare": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:lens/.*"
     ],
@@ -49552,6 +49591,15 @@
     ],
     "wellarchitected:createworkloadshare": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
+    ],
+    "wellarchitected:deleteagentcontext": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:deleteagentgoal": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:deleteagentprofile": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
     ],
     "wellarchitected:deletelens": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:lens/.*"
@@ -49586,6 +49634,21 @@
     "wellarchitected:exportlens": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:lens/.*"
     ],
+    "wellarchitected:getagentcontext": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:getagentgoal": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:getagentprofile": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:getagentrecommendation": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-recommendation/.*"
+    ],
+    "wellarchitected:getagentrecommendationgeneration": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
     "wellarchitected:getanswer": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
     ],
@@ -49619,6 +49682,21 @@
     "wellarchitected:getworkload": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
     ],
+    "wellarchitected:listagentcontexts": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:listagentgoals": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:listagentrecommendationgenerations": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:listagentrecommendationitems": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-recommendation/.*"
+    ],
+    "wellarchitected:listagentrecommendations": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
     "wellarchitected:listanswers": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
     ],
@@ -49647,6 +49725,8 @@
       "arn:${Partition}:wellarchitected:${Region}:${Account}:review-template/.*"
     ],
     "wellarchitected:listtagsforresource": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*",
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-recommendation/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:lens/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:profile/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:review-template/.*",
@@ -49658,17 +49738,39 @@
     "wellarchitected:listworkloadshares": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
     ],
+    "wellarchitected:putagentrecommendationfeedback": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-recommendation/.*"
+    ],
+    "wellarchitected:startagentrecommendationgeneration": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
     "wellarchitected:tagresource": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*",
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-recommendation/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:lens/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:profile/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:review-template/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
     ],
     "wellarchitected:untagresource": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*",
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-recommendation/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:lens/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:profile/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:review-template/.*",
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"
+    ],
+    "wellarchitected:updateagentcontext": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:updateagentgoal": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:updateagentprofile": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-profile/.*"
+    ],
+    "wellarchitected:updateagentrecommendationstatus": [
+      "arn:${Partition}:wellarchitected:${Region}:${Account}:agent-recommendation/.*"
     ],
     "wellarchitected:updateanswer": [
       "arn:${Partition}:wellarchitected:${Region}:${Account}:workload/.*"

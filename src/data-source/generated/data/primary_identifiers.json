@@ -295,6 +295,11 @@
       "InstanceId",
       "Origin"
     ],
+    "AWS::Connect::DataLakeAssociation": [
+      "InstanceId",
+      "DataSetId",
+      "TargetAccountId"
+    ],
     "AWS::Connect::IntegrationAssociation": [
       "InstanceId",
       "IntegrationType",
@@ -447,6 +452,10 @@
       "TransitGatewayMulticastDomainId",
       "GroupIpAddress",
       "NetworkInterfaceId"
+    ],
+    "AWS::EC2::TransitGatewayPolicyTableAssociation": [
+      "TransitGatewayPolicyTableId",
+      "TransitGatewayAttachmentId"
     ],
     "AWS::EC2::TransitGatewayRoute": [
       "TransitGatewayRouteTableId",
