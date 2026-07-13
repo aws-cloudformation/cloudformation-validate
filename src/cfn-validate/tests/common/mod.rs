@@ -67,7 +67,7 @@ fn walk_collect(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<Str
         } else if matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json"))
             && let Ok(rel) = path.strip_prefix(root)
         {
-            out.push(rel.to_string_lossy().to_string());
+            out.push(rel.to_string_lossy().replace('\\', "/"));
         }
     }
 }

@@ -621,7 +621,6 @@
     "AWS::ImageBuilder::ImageRecipe": [
       "AdditionalInstanceConfiguration.SystemsManagerAgent.UninstallAfterBuild",
       "AdditionalInstanceConfiguration.UserDataOverride",
-      "AmiWatermarks",
       "BlockDeviceMappings",
       "Components",
       "Description",

@@ -79901,6 +79901,10 @@
   "AWS::Config::ConformancePack": {
     "type_name": "AWS::Config::ConformancePack",
     "properties": {
+      "ConformancePackArn": {
+        "type": "string",
+        "description": "Amazon Resource Name (ARN) of the conformance pack."
+      },
       "ConformancePackInputParameters": {
         "type": "array",
         "min_items": 0,
@@ -79928,6 +79932,16 @@
         "min_length": 0,
         "max_length": 1024,
         "description": "The prefix for delivery S3 bucket."
+      },
+      "Tags": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 50,
+        "unique_items": true,
+        "description": "The tags for the conformance pack.",
+        "items": {
+          "ref_name": "Tag"
+        }
       },
       "TemplateBody": {
         "type": "string",
@@ -79991,13 +80005,38 @@
         "min_length": 0,
         "max_length": 4096,
         "description": "Value part of key-value pair with key being parameter Name"
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag. You can specify a value that is 1 to 127 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. "
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag. You can specify a value that is 1 to 255 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. "
+          }
+        },
+        "required": [
+          "Value",
+          "Key"
+        ],
+        "additional_properties": false
       }
     },
     "required": [
       "ConformancePackName"
     ],
     "additional_properties": false,
-    "read_only_properties": [],
+    "read_only_properties": [
+      "ConformancePackArn"
+    ],
     "write_only_properties": [
       "TemplateBody",
       "TemplateS3Uri",
@@ -81169,6 +81208,62 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-connect",
     "description": "Resource Type Definition for ContactFlowVersion"
   },
+  "AWS::Connect::DataLakeAssociation": {
+    "type_name": "AWS::Connect::DataLakeAssociation",
+    "properties": {
+      "DataSetId": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255,
+        "description": "The identifier of the analytics data set."
+      },
+      "InstanceId": {
+        "type": "string",
+        "pattern": "^[-a-zA-Z0-9]*$",
+        "min_length": 1,
+        "max_length": 100,
+        "description": "The identifier of the Amazon Connect instance"
+      },
+      "ResourceShareArn": {
+        "type": "string",
+        "max_length": 2048,
+        "description": "The Amazon Resource Name (ARN) of the AWS Resource Access Manager share"
+      },
+      "ResourceShareId": {
+        "type": "string",
+        "description": "The AWS Resource Access Manager share ID"
+      },
+      "TargetAccountId": {
+        "type": "string",
+        "pattern": "^\\d+$",
+        "min_length": 12,
+        "max_length": 12,
+        "description": "The identifier of the target account"
+      }
+    },
+    "definitions": {},
+    "required": [
+      "InstanceId",
+      "DataSetId"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "ResourceShareId",
+      "ResourceShareArn"
+    ],
+    "create_only_properties": [
+      "InstanceId",
+      "DataSetId",
+      "TargetAccountId"
+    ],
+    "primary_identifier": [
+      "InstanceId",
+      "DataSetId",
+      "TargetAccountId"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+    "description": "Resource schema for AWS::Connect::DataLakeAssociation"
+  },
   "AWS::Connect::DataTable": {
     "type_name": "AWS::Connect::DataTable",
     "properties": {
@@ -81960,7 +82055,8 @@
         "description": "An option for a multi-select question in an evaluation form.",
         "properties": {
           "AutomaticFail": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "The flag to mark the option as automatic fail. If an automatic fail answer is provided, the overall evaluation gets a score of 0."
           },
           "AutomaticFailConfiguration": {
             "ref_name": "AutomaticFailConfiguration"
@@ -82166,17 +82262,18 @@
       },
       "EvaluationFormQuestionScoringConfiguration": {
         "type": "object",
+        "description": "Scoring configuration for a question in an evaluation form.",
         "properties": {
           "IsExcludedFromScoring": {
             "type": "boolean",
-            "description": "Whether the question is excluded from scoring."
+            "description": "The flag to exclude the question from scoring."
           },
           "PointsConfiguration": {
             "ref_name": "QuestionPointsConfiguration"
           },
           "ScoreThresholds": {
             "type": "array",
-            "description": "The score thresholds for the question.",
+            "description": "The score thresholds for performance categories.",
             "items": {
               "ref_name": "EvaluationFormScoreThreshold"
             }
@@ -82205,18 +82302,19 @@
       },
       "EvaluationFormScoreThreshold": {
         "type": "object",
+        "description": "Information about a score threshold for a performance category.",
         "properties": {
           "MaxScorePercentage": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "The maximum score percentage for this threshold."
+            "description": "The maximum score percentage for the performance category."
           },
           "MinScorePercentage": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "The minimum score percentage for this threshold."
+            "description": "The minimum score percentage for the performance category."
           },
           "PerformanceCategory": {
             "type": "string",
@@ -82242,7 +82340,8 @@
             "description": "The instructions of the section."
           },
           "IsExcludedFromScoring": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "The flag to exclude the section from scoring."
           },
           "Items": {
             "type": "array",
@@ -82258,6 +82357,7 @@
           },
           "ScoreThresholds": {
             "type": "array",
+            "description": "The score thresholds for performance categories.",
             "items": {
               "ref_name": "EvaluationFormScoreThreshold"
             }
@@ -82539,10 +82639,11 @@
       },
       "QuestionOptionPointsConfiguration": {
         "type": "object",
+        "description": "Information about the points configuration for an answer option.",
         "properties": {
           "IsBonus": {
             "type": "boolean",
-            "description": "Whether this option is a bonus. Note: Bonus options are not supported for multi-select questions. This property should only be set to true for single-select and numeric question options."
+            "description": "The flag to mark the option as a bonus option."
           },
           "PointValue": {
             "ref_name": "PointValue"
@@ -82555,10 +82656,11 @@
       },
       "QuestionPointsConfiguration": {
         "type": "object",
+        "description": "Information about the points configuration for a question.",
         "properties": {
           "IsBonus": {
             "type": "boolean",
-            "description": "Whether the question is a bonus question."
+            "description": "The flag to mark the question as a bonus question."
           },
           "MaxPointValue": {
             "ref_name": "PointValue"
@@ -86338,6 +86440,9 @@
         "type": "object",
         "description": "After Contact Work configuration.",
         "properties": {
+          "AfterContactWorkMode": {
+            "ref_name": "AfterContactWorkMode"
+          },
           "AfterContactWorkTimeLimit": {
             "ref_name": "AfterContactWorkTimeLimit"
           }
@@ -86363,6 +86468,15 @@
           "AfterContactWorkConfig"
         ],
         "additional_properties": false
+      },
+      "AfterContactWorkMode": {
+        "type": "string",
+        "enum": [
+          "ON",
+          "OFF",
+          "ON_DEMAND"
+        ],
+        "description": "The after contact work (ACW) mode for the channel."
       },
       "AfterContactWorkTimeLimit": {
         "type": "integer",
@@ -108692,7 +108806,10 @@
             }
           },
           "McpRoleArn": {
-            "format": "AWS::IAM::Role.Arn"
+            "type": "string",
+            "pattern": "^arn:aws:iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
+            "format": "AWS::IAM::Role.Arn",
+            "description": "IAM role ARN to assume for SigV4 signing. Optional - when omitted, credentials are resolved at runtime via a monitor account association."
           },
           "Region": {
             "type": "string",
@@ -108703,7 +108820,7 @@
             "type": "string",
             "pattern": "^arn:aws:iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
             "format": "AWS::IAM::Role.Arn",
-            "description": "IAM role ARN to assume for SigV4 signing"
+            "description": "Deprecated - use McpRoleArn instead. IAM role ARN to assume for SigV4 signing"
           },
           "Service": {
             "type": "string",
@@ -108714,8 +108831,7 @@
         },
         "required": [
           "Region",
-          "Service",
-          "RoleArn"
+          "Service"
         ],
         "additional_properties": false
       },
@@ -109101,7 +109217,9 @@
             "description": "The MCP server endpoint URL"
           },
           "McpRoleArn": {
-            "format": "AWS::IAM::Role.Arn"
+            "type": "string",
+            "format": "AWS::IAM::Role.Arn",
+            "description": "IAM role ARN for SigV4 signing. Absent when no dedicated role is configured."
           },
           "Name": {
             "type": "string",
@@ -109114,7 +109232,7 @@
           "RoleArn": {
             "type": "string",
             "format": "AWS::IAM::Role.Arn",
-            "description": "IAM role ARN for SigV4 signing"
+            "description": "Deprecated - use McpRoleArn instead. IAM role ARN for SigV4 signing"
           },
           "Service": {
             "type": "string",
@@ -126647,6 +126765,102 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-myservice",
     "description": "The AWS::EC2::TransitGatewayPeeringAttachment type"
+  },
+  "AWS::EC2::TransitGatewayPolicyTable": {
+    "type_name": "AWS::EC2::TransitGatewayPolicyTable",
+    "properties": {
+      "CreationTime": {
+        "type": "string",
+        "description": "Creation time of the transit gateway policy table"
+      },
+      "State": {
+        "type": "string",
+        "description": "State of the transit gateway policy table"
+      },
+      "Tags": {
+        "type": "array",
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "TransitGatewayId": {
+        "type": "string",
+        "description": "The Id of transit gateway"
+      },
+      "TransitGatewayPolicyTableId": {
+        "type": "string",
+        "description": "The Id of transit gateway policy table."
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string"
+          },
+          "Value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Value",
+          "Key"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "TransitGatewayId"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "TransitGatewayPolicyTableId",
+      "State",
+      "CreationTime"
+    ],
+    "create_only_properties": [
+      "TransitGatewayId"
+    ],
+    "primary_identifier": [
+      "TransitGatewayPolicyTableId"
+    ],
+    "description": "AWS::EC2::TransitGatewayPolicyTable Resource Definition"
+  },
+  "AWS::EC2::TransitGatewayPolicyTableAssociation": {
+    "type_name": "AWS::EC2::TransitGatewayPolicyTableAssociation",
+    "properties": {
+      "State": {
+        "type": "string",
+        "description": "The state of the transit gateway policy table association."
+      },
+      "TransitGatewayAttachmentId": {
+        "type": "string",
+        "description": "The ID of transit gateway attachment."
+      },
+      "TransitGatewayPolicyTableId": {
+        "type": "string",
+        "description": "The ID of transit gateway policy table."
+      }
+    },
+    "definitions": {},
+    "required": [
+      "TransitGatewayPolicyTableId",
+      "TransitGatewayAttachmentId"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "State"
+    ],
+    "create_only_properties": [
+      "TransitGatewayAttachmentId",
+      "TransitGatewayPolicyTableId"
+    ],
+    "primary_identifier": [
+      "TransitGatewayPolicyTableId",
+      "TransitGatewayAttachmentId"
+    ],
+    "description": "AWS::EC2::TransitGatewayPolicyTableAssociation Resource Definition"
   },
   "AWS::EC2::TransitGatewayRoute": {
     "type_name": "AWS::EC2::TransitGatewayRoute",
@@ -156755,6 +156969,8 @@
       "BuildId": {
         "type": "string",
         "pattern": "^build-\\S+|^arn:.*:build/build-\\S+",
+        "min_length": 1,
+        "max_length": 512,
         "description": "A unique identifier for a build to be deployed on the new fleet. If you are deploying the fleet with a custom game build, you must specify this property. The build must have been successfully uploaded to Amazon GameLift and be in a READY status. This fleet setting cannot be changed once the fleet is created."
       },
       "CertificateConfiguration": {
@@ -156922,6 +157138,8 @@
       "ScriptId": {
         "type": "string",
         "pattern": "^script-\\S+|^arn:.*:script/script-\\S+",
+        "min_length": 1,
+        "max_length": 512,
         "description": "A unique identifier for a Realtime script to be deployed on a new Realtime Servers fleet. The script must have been successfully uploaded to Amazon GameLift. This fleet setting cannot be changed once the fleet is created.\n\nNote: It is not currently possible to use the !Ref command to reference a script created with a CloudFormation template for the fleet property ScriptId. Instead, use Fn::GetAtt Script.Arn or Fn::GetAtt Script.Id to retrieve either of these properties as input for ScriptId. Alternatively, enter a ScriptId string manually."
       },
       "ServerLaunchParameters": {
@@ -168132,6 +168350,8 @@
           "Name": {
             "type": "string",
             "enum": [
+              "AI_ANALYST",
+              "AI_PROTECTION",
               "EBS_MALWARE_PROTECTION",
               "EKS_AUDIT_LOGS",
               "EKS_RUNTIME_MONITORING",
@@ -201840,11 +202060,14 @@
           "dotnetcore3.1",
           "go1.x",
           "java11",
+          "java11.al2023",
           "java17",
+          "java17.al2023",
           "java21",
           "java25",
           "java8",
           "java8.al2",
+          "java8.al2023",
           "nodejs",
           "nodejs10.x",
           "nodejs12.x",
@@ -202541,11 +202764,14 @@
             "dotnetcore3.1",
             "go1.x",
             "java11",
+            "java11.al2023",
             "java17",
+            "java17.al2023",
             "java21",
             "java25",
             "java8",
             "java8.al2",
+            "java8.al2023",
             "nodejs",
             "nodejs10.x",
             "nodejs12.x",
@@ -330900,7 +331126,7 @@
       },
       "DeduplicationScope": {
         "type": "string",
-        "description": "For high throughput for FIFO queues, specifies whether message deduplication occurs at the message group or queue level. Valid values are ``messageGroup`` and ``queue``.\n To enable high throughput for a FIFO queue, set this attribute to ``messageGroup`` *and* set the ``FifoThroughputLimit`` attribute to ``perMessageGroupId``. If you set these attributes to anything other than these values, normal throughput is in effect and deduplication occurs as specified. For more information, see [High throughput for FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html) and [Quotas related to messages](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html) in the *Developer Guide*."
+        "description": "For high throughput for FIFO queues, specifies whether message deduplication occurs at the message group or queue level. Valid values are ``messageGroup`` and ``queue``.\n To enable high throughput for a FIFO queue, set this attribute to ``messageGroup``*and* set the ``FifoThroughputLimit`` attribute to ``perMessageGroupId``. If you set these attributes to anything other than these values, normal throughput is in effect and deduplication occurs as specified. For more information, see [High throughput for FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html) and [Quotas related to messages](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html) in the *Developer Guide*."
       },
       "DelaySeconds": {
         "type": "integer",
@@ -330910,11 +331136,11 @@
       },
       "FifoQueue": {
         "type": "boolean",
-        "description": "If set to true, creates a FIFO queue. If you don't specify this property, SQS creates a standard queue. For more information, see [FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html) in the *Developer Guide*."
+        "description": "If set to true, creates a FIFO queue. If you don't specify this property, SQS creates a standard queue. For more information, see [Amazon SQS FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-fifo-queues.html) in the *Developer Guide*."
       },
       "FifoThroughputLimit": {
         "type": "string",
-        "description": "For high throughput for FIFO queues, specifies whether the FIFO queue throughput quota applies to the entire queue or per message group. Valid values are ``perQueue`` and ``perMessageGroupId``.\n To enable high throughput for a FIFO queue, set this attribute to ``perMessageGroupId`` *and* set the ``DeduplicationScope`` attribute to ``messageGroup``. If you set these attributes to anything other than these values, normal throughput is in effect and deduplication occurs as specified. For more information, see [High throughput for FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html) and [Quotas related to messages](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html) in the *Developer Guide*."
+        "description": "For high throughput for FIFO queues, specifies whether the FIFO queue throughput quota applies to the entire queue or per message group. Valid values are ``perQueue`` and ``perMessageGroupId``.\n To enable high throughput for a FIFO queue, set this attribute to ``perMessageGroupId``*and* set the ``DeduplicationScope`` attribute to ``messageGroup``. If you set these attributes to anything other than these values, normal throughput is in effect and deduplication occurs as specified. For more information, see [High throughput for FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html) and [Quotas related to messages](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html) in the *Developer Guide*."
       },
       "KmsDataKeyReusePeriodSeconds": {
         "type": "integer",
@@ -330924,7 +331150,7 @@
       },
       "KmsMasterKeyId": {
         "type": "string",
-        "description": "The ID of an AWS Key Management Service (KMS) for SQS, or a custom KMS. To use the AWS managed KMS for SQS, specify a (default) alias ARN, alias name (e.g. ``alias/aws/sqs``), key ARN, or key ID. For more information, see the following:\n  +   [Encryption at rest](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-server-side-encryption.html) in the *Developer Guide* \n  +   [CreateQueue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html) in the *API Reference* \n  +   [Request Parameters](https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html#API_DescribeKey_RequestParameters) in the *Key Management Service API Reference* \n  +   The Key Management Service (KMS) section of the [Best Practices](https://docs.aws.amazon.com/https://d0.awsstatic.com/whitepapers/aws-kms-best-practices.pdf) whitepaper",
+        "description": "The ID of an AWS Key Management Service (KMS) for SQS, or a custom KMS. To use the AWS managed KMS for SQS, specify a (default) alias ARN, alias name (for example ``alias/aws/sqs``), key ARN, or key ID. For more information, see the following:\n  +  [Encryption at rest](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-server-side-encryption.html) in the *Developer Guide*\n  +  [CreateQueue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html) in the *API Reference*\n  +  [Request Parameters](https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html#API_DescribeKey_RequestParameters) in the *Key Management Service API Reference*\n  +   The Key Management Service (KMS) section of the [Security best practices for Key Management Service](https://docs.aws.amazon.com/kms/latest/developerguide/best-practices.html) in the *Key Management Service Developer Guide*",
         "any_of": [
           {},
           {},
@@ -330935,7 +331161,7 @@
         "type": "integer",
         "minimum": 1024.0,
         "maximum": 1048576.0,
-        "description": "The limit of how many bytes that a message can contain before SQS rejects it. You can specify an integer value from ``1,024`` bytes (1 KiB) to ``262,144`` bytes (256 KiB). The default value is ``262,144`` (256 KiB)."
+        "description": "The limit of how many bytes that a message can contain before SQS rejects it. You can specify an integer from 1,024 bytes (1 KiB) to 1,048,576 bytes (1 MiB). Default: 1,048,576 bytes (1 MiB)."
       },
       "MessageRetentionPeriod": {
         "type": "integer",
@@ -330945,7 +331171,7 @@
       },
       "QueueName": {
         "type": "string",
-        "description": "A name for the queue. To create a FIFO queue, the name of your FIFO queue must end with the ``.fifo`` suffix. For more information, see [FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html) in the *Developer Guide*.\n If you don't specify a name, CFN generates a unique physical ID and uses that ID for the queue name. For more information, see [Name type](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html) in the *User Guide*. \n  If you specify a name, you can't perform updates that require replacement of this resource. You can perform updates that require no or some interruption. If you must replace the resource, specify a new name."
+        "description": "A name for the queue. To create a FIFO queue, the name of your FIFO queue must end with the ``.fifo`` suffix. For more information, see [Amazon SQS FIFO queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-fifo-queues.html) in the *Developer Guide*.\n If you don't specify a name, CFN generates a unique physical ID and uses that ID for the queue name. For more information, see [Name type](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html) in the *User Guide*. \n  If you specify a name, you can't perform updates that require replacement of this resource. You can perform updates that require no or some interruption. If you must replace the resource, specify a new name."
       },
       "QueueUrl": {
         "type": "string"
@@ -330968,7 +331194,7 @@
           "object",
           "string"
         ],
-        "description": "The string that includes the parameters for the dead-letter queue functionality of the source queue as a JSON object. The parameters are as follows:\n  +  ``deadLetterTargetArn``: The Amazon Resource Name (ARN) of the dead-letter queue to which SQS moves messages after the value of ``maxReceiveCount`` is exceeded.\n  +  ``maxReceiveCount``: The number of times a message is delivered to the source queue before being moved to the dead-letter queue. When the ``ReceiveCount`` for a message exceeds the ``maxReceiveCount`` for a queue, SQS moves the message to the dead-letter-queue.\n  \n  The dead-letter queue of a FIFO queue must also be a FIFO queue. Similarly, the dead-letter queue of a standard queue must also be a standard queue.\n   *JSON* \n  ``{ \"deadLetterTargetArn\" : String, \"maxReceiveCount\" : Integer }`` \n  *YAML* \n  ``deadLetterTargetArn : String`` \n  ``maxReceiveCount : Integer``",
+        "description": "The string that includes the parameters for the dead-letter queue functionality of the source queue as a JSON object. The parameters are as follows:\n  +  ``deadLetterTargetArn``: The Amazon Resource Name (ARN) of the dead-letter queue to which SQS moves messages after the value of ``maxReceiveCount`` is exceeded.\n  +  ``maxReceiveCount``: The number of times a message is received by a consumer of the source queue before being moved to the dead-letter queue. When the ``ReceiveCount`` for a message exceeds the ``maxReceiveCount`` for a queue, SQS moves the message to the dead-letter-queue.\n  \n  The dead-letter queue of a FIFO queue must also be a FIFO queue. Similarly, the dead-letter queue of a standard queue must also be a standard queue.\n   *JSON* \n  ``{ \"deadLetterTargetArn\" : String, \"maxReceiveCount\" : Integer }`` \n  *YAML* \n  ``deadLetterTargetArn : String`` \n  ``maxReceiveCount : Integer``",
         "properties": {
           "deadLetterTargetArn": {
             "type": "string"
@@ -331002,12 +331228,10 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string",
-            "description": "The key name of the tag. You can specify a value that is 1 to 128 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -."
+            "type": "string"
           },
           "Value": {
-            "type": "string",
-            "description": "The value for the tag. You can specify a value that is 0 to 256 Unicode characters in length and cannot be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -."
+            "type": "string"
           }
         },
         "required": [
@@ -331031,7 +331255,7 @@
       "QueueUrl"
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sqs.git",
-    "description": "The ``AWS::SQS::Queue`` resource creates an SQS standard or FIFO queue.\n Keep the following caveats in mind:\n  +  If you don't specify the ``FifoQueue`` property, SQS creates a standard queue.\n  You can't change the queue type after you create it and you can't convert an existing standard queue into a FIFO queue. You must either create a new FIFO queue for your application or delete your existing standard queue and recreate it as a FIFO queue. For more information, see [Moving from a standard queue to a FIFO queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-moving.html) in the *Developer Guide*. \n   +  If you don't provide a value for a property, the queue is created with the default value for the property.\n  +  If you delete a queue, you must wait at least 60 seconds before creating a queue with the same name.\n  +  To successfully create a new queue, you must provide a queue name that adheres to the [limits related to queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/limits-queues.html) and is unique within the scope of your queues.\n  \n For more information about creating FIFO (first-in-first-out) queues, see [Creating an queue ()](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/screate-queue-cloudformation.html) in the *Developer Guide*.",
+    "description": "The ``AWS::SQS::Queue`` resource creates an SQS standard or FIFO queue.\n Keep the following caveats in mind:\n  +  If you don't specify the ``FifoQueue`` property, SQS creates a standard queue.\n  You can't change the queue type after you create it and you can't convert an existing standard queue into a FIFO queue. You must either create a new FIFO queue for your application or delete your existing standard queue and recreate it as a FIFO queue. For more information, see [Moving from a standard queue to a FIFO queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-moving.html) in the *Developer Guide*. \n   +  If you don't provide a value for a property, the queue is created with the default value for the property.\n  +  If you delete a queue, you must wait at least 60 seconds before creating a queue with the same name.\n  +  To successfully create a new queue, you must provide a queue name that adheres to the [limits related to queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/limits-queues.html) and is unique within the scope of your queues.\n  \n For more information about creating FIFO (first-in-first-out) queues, see [Creating an queue ()](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/create-queue-cloudformation.html) in the *Developer Guide*.",
     "all_of": [
       {},
       {}
@@ -354541,6 +354765,213 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-securityhub",
     "description": "The AWS::SecurityHub::ConfigurationPolicy resource represents the Central Configuration Policy in your account."
   },
+  "AWS::SecurityHub::Connector": {
+    "type_name": "AWS::SecurityHub::Connector",
+    "properties": {
+      "ConnectorArn": {
+        "type": "string",
+        "pattern": "^arn:aws\\S*:securityhub:[a-z0-9-]+:[0-9]{12}:connector/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "description": "The ARN of the connector"
+      },
+      "ConnectorId": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "description": "The ID of the connector"
+      },
+      "ConnectorStatus": {
+        "ref_name": "ConnectorStatus"
+      },
+      "CreatedAt": {
+        "ref_name": "ISO8601DateString"
+      },
+      "CreatedBy": {
+        "type": "string",
+        "description": "The principal that created the connector"
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "\\S",
+        "description": "A description of the connector"
+      },
+      "EnablementStatus": {
+        "ref_name": "EnablementStatus"
+      },
+      "Issues": {
+        "type": "array",
+        "description": "The list of health issues associated with the connector",
+        "items": {
+          "ref_name": "HealthIssue"
+        }
+      },
+      "LastCheckedAt": {
+        "ref_name": "ISO8601DateString"
+      },
+      "LastUpdatedAt": {
+        "ref_name": "ISO8601DateString"
+      },
+      "Message": {
+        "type": "string",
+        "description": "The message associated with the connector status change"
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "\\S",
+        "description": "The name of the connector"
+      },
+      "Provider": {
+        "ref_name": "Provider"
+      },
+      "Tags": {
+        "ref_name": "Tags"
+      }
+    },
+    "definitions": {
+      "AzureProviderConfiguration": {
+        "type": "object",
+        "description": "The configuration settings for an Azure CSPM provider",
+        "properties": {
+          "AWSConfigConnectorArn": {
+            "type": "string",
+            "description": "The ARN of the AWS Config connector used for the Azure integration"
+          },
+          "AzureRegions": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 100,
+            "unique_items": true,
+            "description": "The list of Azure regions to include in the connector scope",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ScopeConfiguration": {
+            "ref_name": "AzureScopeConfiguration"
+          }
+        },
+        "required": [
+          "AWSConfigConnectorArn",
+          "ScopeConfiguration",
+          "AzureRegions"
+        ],
+        "additional_properties": false
+      },
+      "AzureScopeConfiguration": {
+        "type": "object",
+        "description": "The scope configuration for an Azure connector",
+        "properties": {
+          "ScopeType": {
+            "type": "string",
+            "enum": [
+              "TENANT",
+              "SUBSCRIPTION"
+            ],
+            "description": "The scope type for the Azure connector"
+          },
+          "ScopeValues": {
+            "type": "array",
+            "min_items": 0,
+            "max_items": 100,
+            "unique_items": true,
+            "description": "The list of scope values for the Azure connector",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ScopeType"
+        ],
+        "additional_properties": false
+      },
+      "ConnectorStatus": {
+        "type": "string",
+        "description": "The status of the connector"
+      },
+      "EnablementStatus": {
+        "type": "string",
+        "description": "The enablement status of the connector"
+      },
+      "HealthIssue": {
+        "type": "object",
+        "description": "A health issue associated with the connector",
+        "properties": {
+          "Code": {
+            "ref_name": "HealthIssueCode"
+          },
+          "Message": {
+            "type": "string",
+            "description": "The message describing the health issue"
+          }
+        },
+        "required": [
+          "Code",
+          "Message"
+        ],
+        "additional_properties": false
+      },
+      "HealthIssueCode": {
+        "type": "string",
+        "description": "The code identifying the type of health issue"
+      },
+      "ISO8601DateString": {
+        "type": "string",
+        "pattern": "^(\\d\\d\\d\\d)-([0][1-9]|[1][0-2])-([0][1-9]|[1-2](\\d)|[3][0-1])[T](?:([0-1](\\d)|[2][0-3]):[0-5](\\d):[0-5](\\d)|23:59:60)(?:\\.(\\d)+)?([Z]|[+-](\\d\\d)(:?(\\d\\d))?)$",
+        "description": "The timestamp formatted in ISO8601"
+      },
+      "Provider": {
+        "type": "object",
+        "description": "The CSPM provider configuration for the connector",
+        "properties": {
+          "Azure": {
+            "ref_name": "AzureProviderConfiguration"
+          }
+        },
+        "required": [
+          "Azure"
+        ],
+        "additional_properties": false
+      },
+      "Tags": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "additional_properties": false,
+        "pattern_properties": {
+          "^(?!aws:)[a-zA-Z+-=._:/]{1,128}$": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        }
+      }
+    },
+    "required": [
+      "Name",
+      "Provider"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "ConnectorArn",
+      "ConnectorId",
+      "ConnectorStatus",
+      "Message",
+      "LastCheckedAt",
+      "CreatedAt",
+      "LastUpdatedAt",
+      "CreatedBy",
+      "EnablementStatus",
+      "Issues"
+    ],
+    "create_only_properties": [
+      "Name",
+      "Provider.Azure.AWSConfigConnectorArn"
+    ],
+    "primary_identifier": [
+      "ConnectorArn"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-securityhub",
+    "description": "Resource schema for AWS::SecurityHub::Connector"
+  },
   "AWS::SecurityHub::ConnectorV2": {
     "type_name": "AWS::SecurityHub::ConnectorV2",
     "properties": {
@@ -354556,12 +354987,6 @@
       },
       "ConnectorStatus": {
         "type": "string",
-        "enum": [
-          "CONNECTED",
-          "FAILED_TO_CONNECT",
-          "PENDING_AUTHORIZATION",
-          "PENDING_CONFIGURATION"
-        ],
         "description": "The status of the connector"
       },
       "CreatedAt": {
@@ -354573,6 +354998,21 @@
         "min_length": 0,
         "max_length": 256,
         "description": "A description of the connector"
+      },
+      "EnablementStatus": {
+        "type": "string",
+        "description": "The enablement status of the connector"
+      },
+      "EnablementStatusReason": {
+        "type": "string",
+        "description": "The reason for the enablement status of the connector"
+      },
+      "Issues": {
+        "type": "array",
+        "description": "The list of health issues associated with the connector",
+        "items": {
+          "ref_name": "HealthIssue"
+        }
       },
       "KmsKeyArn": {
         "type": "string",
@@ -354614,6 +355054,82 @@
           "FAILED"
         ],
         "description": "The authorization status of the connector"
+      },
+      "AzureProviderConfiguration": {
+        "type": "object",
+        "description": "The configuration settings required to establish an integration between AWS Security Hub and Azure",
+        "properties": {
+          "AWSConfigConnectorArn": {
+            "type": "string",
+            "description": "The ARN of the AWS Config connector used for the Azure integration"
+          },
+          "AzureRegions": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 100,
+            "unique_items": true,
+            "description": "The list of Azure regions to include in the connector scope",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ScopeConfiguration": {
+            "ref_name": "AzureScopeConfiguration"
+          }
+        },
+        "required": [
+          "AWSConfigConnectorArn",
+          "ScopeConfiguration",
+          "AzureRegions"
+        ],
+        "additional_properties": false
+      },
+      "AzureScopeConfiguration": {
+        "type": "object",
+        "description": "The scope configuration for an Azure connector",
+        "properties": {
+          "ScopeType": {
+            "type": "string",
+            "enum": [
+              "TENANT",
+              "SUBSCRIPTION"
+            ],
+            "description": "The scope type for the Azure connector"
+          },
+          "ScopeValues": {
+            "type": "array",
+            "min_items": 0,
+            "max_items": 100,
+            "unique_items": true,
+            "description": "The list of scope values for the Azure connector",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ScopeType"
+        ],
+        "additional_properties": false
+      },
+      "HealthIssue": {
+        "type": "object",
+        "description": "A health issue associated with the connector",
+        "properties": {
+          "Code": {
+            "type": "string",
+            "description": "The code identifying the type of health issue"
+          },
+          "Message": {
+            "type": "string",
+            "description": "The message describing the health issue"
+          }
+        },
+        "required": [
+          "Code",
+          "Message"
+        ],
+        "additional_properties": false
       },
       "ISO8601DateString": {
         "type": "string",
@@ -354658,6 +355174,17 @@
             "properties": {
               "ServiceNow": {
                 "ref_name": "ServiceNowProviderConfiguration"
+              }
+            },
+            "additional_properties": false
+          },
+          {
+            "required": [
+              "Azure"
+            ],
+            "properties": {
+              "Azure": {
+                "ref_name": "AzureProviderConfiguration"
               }
             },
             "additional_properties": false
@@ -354714,12 +355241,16 @@
       "ConnectorStatus",
       "LastUpdatedAt",
       "LastCheckedAt",
-      "CreatedAt"
+      "CreatedAt",
+      "EnablementStatus",
+      "EnablementStatusReason",
+      "Issues"
     ],
     "create_only_properties": [
       "Name",
       "KmsKeyArn",
-      "Provider.ServiceNow.InstanceName"
+      "Provider.ServiceNow.InstanceName",
+      "Provider.Azure.AWSConfigConnectorArn"
     ],
     "primary_identifier": [
       "ConnectorArn"
@@ -370847,7 +371378,8 @@
           "value": {
             "type": "string"
           }
-        }
+        },
+        "additional_properties": false
       }
     },
     "definitions": {

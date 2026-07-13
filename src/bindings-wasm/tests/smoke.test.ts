@@ -36,7 +36,7 @@ function discoverAllTemplates(): string[] {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(full);
             else if (/\.(yaml|yml|json)$/.test(entry.name)) {
-                templates.push(path.relative(TEMPLATES_ROOT, full));
+                templates.push(path.relative(TEMPLATES_ROOT, full).replace(/\\/g, '/'));
             }
         }
     }

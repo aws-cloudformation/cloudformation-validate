@@ -362,6 +362,7 @@
     "AWS::Connect::ContactFlowModuleAlias": "string",
     "AWS::Connect::ContactFlowModuleVersion": "string",
     "AWS::Connect::ContactFlowVersion": "string",
+    "AWS::Connect::DataLakeAssociation": "string",
     "AWS::Connect::DataTable": "string",
     "AWS::Connect::DataTableAttribute": "string",
     "AWS::Connect::DataTableRecord": "string",
@@ -591,6 +592,8 @@
     "AWS::EC2::TransitGatewayMulticastGroupMember": "string",
     "AWS::EC2::TransitGatewayMulticastGroupSource": "string",
     "AWS::EC2::TransitGatewayPeeringAttachment": "string",
+    "AWS::EC2::TransitGatewayPolicyTable": "string",
+    "AWS::EC2::TransitGatewayPolicyTableAssociation": "string",
     "AWS::EC2::TransitGatewayRoute": "string",
     "AWS::EC2::TransitGatewayRouteTable": "string",
     "AWS::EC2::TransitGatewayRouteTableAssociation": "string",
@@ -1507,6 +1510,7 @@
     "AWS::SecurityHub::AutomationRule": "string",
     "AWS::SecurityHub::AutomationRuleV2": "string",
     "AWS::SecurityHub::ConfigurationPolicy": "string",
+    "AWS::SecurityHub::Connector": "string",
     "AWS::SecurityHub::ConnectorV2": "string",
     "AWS::SecurityHub::DelegatedAdmin": "string",
     "AWS::SecurityHub::FindingAggregator": "string",
@@ -4906,10 +4910,12 @@
       "RoleARN": "string"
     },
     "AWS::Config::ConformancePack": {
+      "ConformancePackArn": "string",
       "ConformancePackInputParameters": "array",
       "ConformancePackName": "string",
       "DeliveryS3Bucket": "string",
       "DeliveryS3KeyPrefix": "string",
+      "Tags": "array",
       "TemplateBody": "string",
       "TemplateS3Uri": "string",
       "TemplateSSMDocumentDetails": "object"
@@ -5016,6 +5022,13 @@
       "Description": "string",
       "FlowContentSha256": "string",
       "Version": "integer"
+    },
+    "AWS::Connect::DataLakeAssociation": {
+      "DataSetId": "string",
+      "InstanceId": "string",
+      "ResourceShareArn": "string",
+      "ResourceShareId": "string",
+      "TargetAccountId": "string"
     },
     "AWS::Connect::DataTable": {
       "Arn": "string",
@@ -7405,6 +7418,18 @@
       "Tags": "array",
       "TransitGatewayAttachmentId": "string",
       "TransitGatewayId": "string"
+    },
+    "AWS::EC2::TransitGatewayPolicyTable": {
+      "CreationTime": "string",
+      "State": "string",
+      "Tags": "array",
+      "TransitGatewayId": "string",
+      "TransitGatewayPolicyTableId": "string"
+    },
+    "AWS::EC2::TransitGatewayPolicyTableAssociation": {
+      "State": "string",
+      "TransitGatewayAttachmentId": "string",
+      "TransitGatewayPolicyTableId": "string"
     },
     "AWS::EC2::TransitGatewayRoute": {
       "Blackhole": "boolean",
@@ -15750,11 +15775,23 @@
       "ServiceEnabled": "boolean",
       "UpdatedAt": "string"
     },
+    "AWS::SecurityHub::Connector": {
+      "ConnectorArn": "string",
+      "ConnectorId": "string",
+      "CreatedBy": "string",
+      "Description": "string",
+      "Issues": "array",
+      "Message": "string",
+      "Name": "string"
+    },
     "AWS::SecurityHub::ConnectorV2": {
       "ConnectorArn": "string",
       "ConnectorId": "string",
       "ConnectorStatus": "string",
       "Description": "string",
+      "EnablementStatus": "string",
+      "EnablementStatusReason": "string",
+      "Issues": "array",
       "KmsKeyArn": "string",
       "Message": "string",
       "Name": "string"
