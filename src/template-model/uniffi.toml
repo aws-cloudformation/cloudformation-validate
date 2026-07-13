@@ -1,7 +1,7 @@
 [bindings.kotlin]
-package_name = "com.amazonaws.cloudformation.validation.templatemodel"
+package_name = "software.amazon.cloudformation.validate.templatemodel"
 generate_immutable_records = true
 
 [bindings.kotlin.external_packages]
-diagnostics = "com.amazonaws.cloudformation.validation.diagnostics"
-rules = "com.amazonaws.cloudformation.validation.rules"
+diagnostics = "software.amazon.cloudformation.validate.diagnostics"
+rules = "software.amazon.cloudformation.validate.rules"

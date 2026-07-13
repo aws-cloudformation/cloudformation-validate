@@ -121,7 +121,7 @@ engine.free();
 ### JVM (Kotlin)
 
 ```kotlin
-import com.amazonaws.cloudformation.validation.*
+import software.amazon.cloudformation.validate.*
 import java.io.File
 
 val engine = RegoEngine()

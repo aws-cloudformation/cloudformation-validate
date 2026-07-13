@@ -3,11 +3,11 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
-import com.amazonaws.cloudformation.validation.*
-import com.amazonaws.cloudformation.validation.diagnostics.*
-import com.amazonaws.cloudformation.validation.engine.*
-import com.amazonaws.cloudformation.validation.gson.buildBindingsGson
-import com.amazonaws.cloudformation.validation.rules.*
+import software.amazon.cloudformation.validate.*
+import software.amazon.cloudformation.validate.diagnostics.*
+import software.amazon.cloudformation.validate.engine.*
+import software.amazon.cloudformation.validate.gson.buildBindingsGson
+import software.amazon.cloudformation.validate.rules.*
 import java.io.File
 
 class SmokeTest {

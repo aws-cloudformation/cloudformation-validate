@@ -4,7 +4,7 @@ JVM bindings for [`cloudformation-validate`](https://github.com/aws-cloudformati
 via [UniFFI](https://mozilla.github.io/uniffi-rs/). Compiles the full validation pipeline into a native shared library
 with auto-generated Kotlin bindings, packaged as a JAR with bundled natives.
 
-All types live in `com.amazonaws.cloudformation.validation`.
+All types live in `software.amazon.cloudformation.validate`.
 
 For a complete, runnable example, see
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-jvm/examples).
@@ -15,7 +15,7 @@ For a complete, runnable example, see
 diagnostics for the same template and config.
 
 ```kotlin
-import com.amazonaws.cloudformation.validation.*
+import software.amazon.cloudformation.validate.*
 import java.io.File
 
 val engine = RegoEngine()

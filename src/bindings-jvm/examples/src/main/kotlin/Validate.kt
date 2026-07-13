@@ -4,7 +4,7 @@
  * Run from this directory with:  gradle run
  * Optionally pass a template path: gradle run --args="path/to/template.yaml"
  */
-import com.amazonaws.cloudformation.validation.RegoEngine
+import software.amazon.cloudformation.validate.RegoEngine
 import java.io.File
 
 fun main(args: Array<String>) {

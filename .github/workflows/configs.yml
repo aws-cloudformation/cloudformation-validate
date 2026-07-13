@@ -24,6 +24,9 @@ on:
       kotlin-version:
         description: "Kotlin compiler (kotlinc) version"
         value: ${{ jobs.get-configs.outputs.kotlin-version }}
+      dokka-version:
+        description: "Dokka version for the JVM binding Javadoc jar"
+        value: ${{ jobs.get-configs.outputs.dokka-version }}
       ktlint-version:
         description: "ktlint version"
         value: ${{ jobs.get-configs.outputs.ktlint-version }}
@@ -66,6 +69,7 @@ jobs:
       JAVA_VERSION: '21'
       JAVA_DISTRIBUTION: 'corretto'
       KOTLIN_VERSION: '2.4.0'
+      DOKKA_VERSION: '1.9.20'         # keep in sync with bindings-jvm/build.gradle.kts
       KTLINT_VERSION: '1.8.0'
       GRADLE_VERSION: '8.14'
       JNA_VERSION: '5.19.1'           # keep in sync with bindings-jvm/build.sh
@@ -83,6 +87,7 @@ jobs:
       java-version: ${{ env.JAVA_VERSION }}
       java-distribution: ${{ env.JAVA_DISTRIBUTION }}
       kotlin-version: ${{ env.KOTLIN_VERSION }}
+      dokka-version: ${{ env.DOKKA_VERSION }}
       ktlint-version: ${{ env.KTLINT_VERSION }}
       gradle-version: ${{ env.GRADLE_VERSION }}
       jna-version: ${{ env.JNA_VERSION }}
@@ -102,6 +107,7 @@ jobs:
           echo "java-version        = ${{ env.JAVA_VERSION }}"
           echo "java-distribution   = ${{ env.JAVA_DISTRIBUTION }}"
           echo "kotlin-version      = ${{ env.KOTLIN_VERSION }}"
+          echo "dokka-version       = ${{ env.DOKKA_VERSION }}"
           echo "ktlint-version      = ${{ env.KTLINT_VERSION }}"
           echo "gradle-version      = ${{ env.GRADLE_VERSION }}"
           echo "jna-version         = ${{ env.JNA_VERSION }}"
