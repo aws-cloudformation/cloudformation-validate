@@ -114,6 +114,19 @@ EOF
 echo "Compiling and packaging JAR via Gradle..."
 gradle --no-daemon --console=plain jar
 
+# ── Verify the JAR carries compiled classes and sources ──────────────────────
+# A jar that bundles the .kt sources but not the compiled .class output (e.g. a
+# Gradle source-set regression that drops the compilation output) still packages,
+# uploads, and publishes successfully, then fails every consumer at class-load time.
+# Assert both are present so that failure surfaces here rather than downstream.
+# There are no .java entries by design — the bindings are Kotlin-only.
+CLASS_COUNT=$(jar tf "$JAR_FILE" | grep -c '\.class$' || true)
+KT_COUNT=$(jar tf "$JAR_FILE" | grep -c '\.kt$' || true)
+if [ "$CLASS_COUNT" -eq 0 ] || [ "$KT_COUNT" -eq 0 ]; then
+    echo "Error: $JAR_FILE is missing compiled output — $CLASS_COUNT .class and $KT_COUNT .kt entries (both must be non-zero)." >&2
+    exit 1
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 KT_SIZE=$(find "$GENERATED_DIR" -name '*.kt' -type f -exec cat {} + | wc -c | awk '{printf "%.1fM", $1/1048576}')
 LIB_SIZE=$(du -sh "$RELEASE_DIR/$LIB_NAME" | cut -f1)
@@ -121,7 +134,8 @@ JAR_SIZE=$(du -sh "$JAR_FILE" | cut -f1)
 
 echo ""
 echo "Build complete: $GENERATED_DIR"
-echo "  Kotlin sources: $KT_SIZE"
+echo "  Kotlin sources: $KT_SIZE ($KT_COUNT .kt files bundled)"
+echo "  Compiled classes: $CLASS_COUNT .class entries bundled"
 echo "  Native library: $LIB_SIZE ($LIB_NAME, bundled in jar)"
 echo "  JAR:            $JAR_SIZE ($(basename "$JAR_FILE"))"
 echo ""

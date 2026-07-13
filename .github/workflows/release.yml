@@ -264,7 +264,15 @@ jobs:
               exit 1
             fi
           done
-          echo "Committed jar carries all three platform natives."
+          if ! unzip -Z1 "$jar" | grep -q '\.class$'; then
+            echo "::error::committed jar contains no compiled .class output; the JVM build did not compile"
+            exit 1
+          fi
+          if ! unzip -Z1 "$jar" | grep -q '\.kt$'; then
+            echo "::error::committed jar contains no .kt sources; the source bundling step did not run"
+            exit 1
+          fi
+          echo "Committed jar carries all three platform natives plus compiled classes and sources."
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.2.0
