@@ -196,6 +196,26 @@ jobs:
           printf '%s\n' "$fingerprint" > release/signing-key.pem.sha256
           echo "public key SHA-256: $fingerprint"
 
+      - name: Configure AWS credentials for Maven signing key
+        if: ${{ !contains(inputs.tag, '-beta') }}
+        uses: aws-actions/configure-aws-credentials@v6.2.0
+        with:
+          role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Add Maven PGP public key to release assets
+        if: ${{ !contains(inputs.tag, '-beta') }}
+        env:
+          MAVEN_GPG_SECRET_ID: ${{ secrets.MAVEN_GPG_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          secret_json="$(aws secretsmanager get-secret-value \
+            --secret-id "$MAVEN_GPG_SECRET_ID" --query SecretString --output text)"
+          key="release/cloudformation-validate-maven-signing-key.asc"
+          printf '%s' "$secret_json" | jq -r '.publicKey'  > "$key"
+          printf '%s' "$secret_json" | jq -r '.fingerprint' > "$key.fingerprint"
+          echo "Maven PGP public key fingerprint: $(cat "$key.fingerprint")"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -204,6 +224,101 @@ jobs:
           generate_release_notes: true
           files: release/*
           fail_on_unmatched_files: true
+
+  publish-maven:
+    needs: [ get-configs, version-and-tag, release ]
+    if: ${{ !contains(inputs.tag, '-beta') }}
+    runs-on: ubuntu-latest
+    environment: release-maven
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup JVM toolchain
+        uses: ./.github/actions/setup-jvm-toolchain
+        with:
+          java-version: ${{ needs.get-configs.outputs.java-version }}
+          java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
+          kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
+          ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+          gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
+
+      - name: Verify committed jar is present and multi-platform
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        run: |
+          set -euo pipefail
+          jar="generated/cloudformation-validate.jar"
+          if [ ! -f "$jar" ]; then
+            echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          for prefix in linux-x86-64 darwin-aarch64 win32-x86-64; do
+            if ! unzip -Z1 "$jar" | grep -q "^$prefix/"; then
+              echo "::error::native library for $prefix missing from committed jar; the all-platform merge did not run"
+              exit 1
+            fi
+          done
+          echo "Committed jar carries all three platform natives."
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.0
+        with:
+          role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Fetch PGP signing key
+        id: signing-secrets
+        env:
+          MAVEN_GPG_SECRET_ID: ${{ secrets.MAVEN_GPG_SECRET_ID }}
+        run: |
+          set -euo pipefail
+
+          secret_json="$(aws secretsmanager get-secret-value \
+            --secret-id "$MAVEN_GPG_SECRET_ID" --query SecretString --output text)"
+          {
+            echo "signing_key<<__EOF_KEY__"
+            printf '%s' "$secret_json" | jq -r '.privateKey'
+            echo "__EOF_KEY__"
+            echo "signing_password<<__EOF_PASS__"
+            printf '%s' "$secret_json" | jq -r '.passphrase'
+            echo "__EOF_PASS__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build signed Central Portal bundle
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ steps.signing-secrets.outputs.signing_key }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ steps.signing-secrets.outputs.signing_password }}
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --console=plain centralBundle
+          ls -lh build/central/
+
+      - name: Verify every artifact is signed
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        run: |
+          set -euo pipefail
+          bundle="$(ls build/central/*-bundle.zip)"
+          tmp="$(mktemp -d)"
+          unzip -qo "$bundle" -d "$tmp"
+          base="$tmp/software/amazon/cloudformation/cloudformation-validate/${{ inputs.tag }}"
+          missing=0
+          for suffix in .jar -sources.jar -javadoc.jar .pom; do
+            f="cloudformation-validate-${{ inputs.tag }}${suffix}"
+            for companion in asc md5 sha1; do
+              if [ ! -f "$base/$f.$companion" ]; then
+                echo "::error::missing $f.$companion in bundle"
+                missing=1
+              fi
+            done
+          done
+          [ "$missing" -eq 0 ] && echo "All artifacts carry .asc/.md5/.sha1." || exit 1
 
   publish-npm:
     needs: [ get-configs, version-and-tag, release ]
