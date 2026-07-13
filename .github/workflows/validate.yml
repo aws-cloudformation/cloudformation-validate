@@ -95,7 +95,14 @@ jobs:
 
   test:
     needs: [ format, lint, audit, get-configs ]
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
@@ -128,7 +135,14 @@ jobs:
 
   test-jvm:
     needs: [ format, lint, audit, get-configs ]
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
@@ -166,7 +180,14 @@ jobs:
 
   test-wasm:
     needs: [ format, lint, audit, get-configs ]
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:

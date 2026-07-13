@@ -40,7 +40,7 @@ class SmokeTest {
                 val dir = File(templatesRoot, sub)
                 if (dir.isDirectory) {
                     dir.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
-                        templates.add(it.relativeTo(templatesRoot).path)
+                        templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
                     }
                 }
             }
