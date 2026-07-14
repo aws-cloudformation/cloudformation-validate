@@ -55,7 +55,7 @@ fn collect_json(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<Str
         } else if path.extension().and_then(|s| s.to_str()) == Some("json")
             && let Ok(rel) = path.strip_prefix(root)
         {
-            out.push(rel.to_string_lossy().to_string());
+            out.push(rel.to_string_lossy().replace('\\', "/"));
         }
     }
 }
