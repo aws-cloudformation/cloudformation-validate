@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Select
+        - 0
+        - !Split
+          - "{{resolve:ssm:/delimiters/comma:1}}"
+          - "a,b,c"
