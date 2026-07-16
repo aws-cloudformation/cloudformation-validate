@@ -5,13 +5,20 @@ on:
   push:
     branches: [ main ]
     paths-ignore:
-      - 'src/bindings-jvm/generated/*.jar'
+      - '.github/**'
+      - 'scripts/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.jar'
+      - 'LICENSE'
+      - 'NOTICE'
+      - 'gradlew'
+      - 'gradlew.bat'
       - 'src/bindings-jvm/version.properties'
-      - 'src/bindings-jvm/THIRD-PARTY-LICENSES.txt'
       - 'src/bindings-wasm/dist/*'
-      - 'src/bindings-wasm/THIRD-PARTY-LICENSES.txt'
       - 'src/release/*'
-      - 'src/THIRD-PARTY-LICENSES.txt'
   workflow_dispatch:
 
 concurrency:
