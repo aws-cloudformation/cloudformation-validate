@@ -28,7 +28,7 @@ jobs:
       ref: ${{ inputs.commit || 'main' }}
 
   version-and-tag:
-    needs: [ get-configs, validate ]
+    needs: [ get-configs ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -330,8 +330,10 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_signingKey: ${{ steps.signing-secrets.outputs.signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ steps.signing-secrets.outputs.signing_password }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
+          ./generate-version-properties.sh "$RELEASE_TAG"
           gradle --no-daemon --console=plain centralBundle
           ls -lh build/central/
 
