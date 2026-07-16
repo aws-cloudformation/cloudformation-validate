@@ -8,6 +8,10 @@ on:
         description: "The tag to release (1.0.0 for prod, 1.0.0-beta for beta)"
         required: true
         type: string
+      commit:
+        description: "Optional commit SHA to release from — must be on main (defaults to the head of main)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -21,7 +25,7 @@ jobs:
     permissions:
       contents: read
     with:
-      ref: main
+      ref: ${{ inputs.commit || 'main' }}
 
   version-and-tag:
     needs: [ get-configs, validate ]
@@ -36,6 +40,24 @@ jobs:
           ref: 'main'
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Resolve release commit
+        env:
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          if [ -n "$COMMIT" ]; then
+            if ! git cat-file -e "$COMMIT^{commit}" 2>/dev/null; then
+              echo "::error::Commit $COMMIT does not exist in this repository."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$COMMIT" origin/main; then
+              echo "::error::Commit $COMMIT is not on main. Releases may only be cut from commits on main."
+              exit 1
+            fi
+            git checkout --quiet "$COMMIT"
+          fi
+          echo "Releasing from commit $(git rev-parse HEAD)"
 
       - name: Get version from Cargo.toml
         id: get-version
@@ -105,7 +127,7 @@ jobs:
             echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          cp "$jar" release/
+          cp "$jar" "release/cloudformation-validate-${{ inputs.tag }}.jar"
 
           if [ ! -d "$WORKING_DIR/bindings-wasm/dist" ]; then
             echo "::error::bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
@@ -123,7 +145,7 @@ jobs:
           echo "WASM package version stamped to ${{ inputs.tag }}:"
           grep '"version"' "$WASM_PKG_JSON"
 
-          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate.zip" dist )
+          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-${{ inputs.tag }}.zip" dist )
 
           binaries=("$WORKING_DIR"/release/cfn-validate-*)
           if [ ${#binaries[@]} -eq 0 ]; then
@@ -131,7 +153,13 @@ jobs:
             exit 1
           fi
           for bin in "${binaries[@]}"; do
-            cp "$bin" release/
+            name="$(basename "$bin")"
+            platform="${name#cfn-validate-}"
+            extension=""
+            case "$platform" in
+              *.exe) platform="${platform%.exe}"; extension=".exe" ;;
+            esac
+            cp "$bin" "release/cfn-validate-${{ inputs.tag }}-${platform}${extension}"
           done
 
           ls -lh release/
@@ -227,7 +255,6 @@ jobs:
 
   publish-maven:
     needs: [ get-configs, version-and-tag, release ]
-    if: ${{ !contains(inputs.tag, '-beta') }}
     runs-on: ubuntu-latest
     environment: release-maven
     permissions:
@@ -328,6 +355,119 @@ jobs:
           done
           [ "$missing" -eq 0 ] && echo "All artifacts carry .asc/.md5/.sha1." || exit 1
 
+          committed_sha="$(sha256sum generated/cloudformation-validate.jar | awk '{print $1}')"
+          bundle_sha="$(sha256sum "$base/cloudformation-validate-${{ inputs.tag }}.jar" | awk '{print $1}')"
+          if [ "$committed_sha" != "$bundle_sha" ]; then
+            echo "::error::Maven bundle jar ($bundle_sha) differs from the committed jar ($committed_sha) that the GitHub release ships. They must be byte-identical."
+            exit 1
+          fi
+          echo "Maven bundle jar is byte-identical to the committed jar (sha256 $committed_sha)."
+
+      - name: Fetch Central Portal publishing token
+        id: portal-token
+        env:
+          CENTRAL_PORTAL_SECRET_ID: ${{ secrets.CENTRAL_PORTAL_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          secret_json="$(aws secretsmanager get-secret-value \
+            --secret-id "$CENTRAL_PORTAL_SECRET_ID" --query SecretString --output text)"
+
+          username="$(printf '%s' "$secret_json" | jq -er '.username')"
+          password="$(printf '%s' "$secret_json" | jq -er '.password')"
+          token="$(printf '%s:%s' "$username" "$password" | base64 | tr -d '\n')"
+
+          echo "::add-mask::$username"
+          echo "::add-mask::$password"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Upload bundle to Central Publisher Portal
+        id: portal-upload
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        env:
+          PORTAL_TOKEN: ${{ steps.portal-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          bundle="$(ls build/central/*-bundle.zip)"
+
+          deployment_id="$(curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $PORTAL_TOKEN" \
+            -F "bundle=@$bundle" \
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=cloudformation-validate-${{ inputs.tag }}")"
+          echo "Central Portal deployment id: $deployment_id"
+          echo "deployment-id=$deployment_id" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Central Portal publish
+        env:
+          PORTAL_TOKEN: ${{ steps.portal-token.outputs.token }}
+          DEPLOYMENT_ID: ${{ steps.portal-upload.outputs.deployment-id }}
+        run: |
+          set -euo pipefail
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            status_json="$(curl --fail-with-body -sS -X POST \
+              -H "Authorization: Bearer $PORTAL_TOKEN" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID")"
+            state="$(printf '%s' "$status_json" | jq -r '.deploymentState')"
+            echo "attempt $attempt/$max_attempts: deploymentState=$state"
+
+            case "$state" in
+              PUBLISHED)
+                echo "Deployment published to Maven Central."
+                exit 0
+                ;;
+              PUBLISHING)
+                echo "Validation passed; the Portal is publishing to Maven Central."
+                exit 0
+                ;;
+              FAILED)
+                echo "::error::Central Portal validation failed for deployment $DEPLOYMENT_ID"
+                printf '%s\n' "$status_json" | jq .
+                exit 1
+                ;;
+            esac
+            sleep 30
+          done
+
+          echo "::error::Timed out waiting for Central Portal deployment $DEPLOYMENT_ID to validate"
+          exit 1
+
+  verify-publish-maven:
+    needs: [ publish-maven ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify artifacts resolve from Maven Central
+        run: |
+          set -euo pipefail
+          base="https://repo1.maven.org/maven2/software/amazon/cloudformation/cloudformation-validate/${{ inputs.tag }}"
+          files=(
+            "cloudformation-validate-${{ inputs.tag }}.pom"
+            "cloudformation-validate-${{ inputs.tag }}.jar"
+            "cloudformation-validate-${{ inputs.tag }}-sources.jar"
+            "cloudformation-validate-${{ inputs.tag }}-javadoc.jar"
+          )
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            missing=0
+            for f in "${files[@]}"; do
+              for candidate in "$f" "$f.asc"; do
+                if ! curl -fsSIL -o /dev/null "$base/$candidate"; then
+                  echo "attempt $attempt/$max_attempts: $candidate not yet available"
+                  missing=1
+                fi
+              done
+            done
+            if [ "$missing" -eq 0 ]; then
+              echo "All artifacts and signatures resolve from Maven Central."
+              exit 0
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for artifacts to appear on repo1.maven.org"
+          exit 1
+
   publish-npm:
     needs: [ get-configs, version-and-tag, release ]
     runs-on: ubuntu-latest
@@ -412,7 +552,7 @@ jobs:
           npm publish --access public --provenance \
             $([[ "${{ inputs.tag }}" == *-beta ]] && echo "--tag beta")
 
-  verify-publish:
+  verify-publish-npm:
     needs: [ get-configs, publish-npm ]
     runs-on: ubuntu-latest
     steps:
