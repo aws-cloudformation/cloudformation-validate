@@ -171,9 +171,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Sign artifacts with KMS
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          KMS_KEY_ALIAS: ${{ secrets.KMS_KEY_ALIAS }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -183,8 +180,8 @@ jobs:
             openssl dgst -sha256 -binary "$f" > digest.bin
 
             aws kms sign \
-              --region "$AWS_REGION" \
-              --key-id "$KMS_KEY_ALIAS" \
+              --region "${{ secrets.AWS_REGION }}" \
+              --key-id "${{ secrets.KMS_KEY_ALIAS }}" \
               --message fileb://digest.bin \
               --message-type DIGEST \
               --signing-algorithm RSASSA_PKCS1_V1_5_SHA_256 \
@@ -214,7 +211,7 @@ jobs:
           done
           rm -f signing-key.pem
 
-      - name: Add public key to release assets
+      - name: Add GitHub public key
         env:
           SIGNING_PUBLIC_KEY: ${{ secrets.SIGNING_PUBLIC_KEY }}
         run: |
@@ -224,21 +221,17 @@ jobs:
           printf '%s\n' "$fingerprint" > release/signing-key.pem.sha256
           echo "public key SHA-256: $fingerprint"
 
-      - name: Configure AWS credentials for Maven signing key
-        if: ${{ !contains(inputs.tag, '-beta') }}
+      - name: Configure AWS credentials for Maven signing
         uses: aws-actions/configure-aws-credentials@v6.2.0
         with:
           role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Add Maven PGP public key to release assets
-        if: ${{ !contains(inputs.tag, '-beta') }}
-        env:
-          MAVEN_GPG_SECRET_ID: ${{ secrets.MAVEN_GPG_SECRET_ID }}
+      - name: Add Maven PGP public key
         run: |
           set -euo pipefail
           secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "$MAVEN_GPG_SECRET_ID" --query SecretString --output text)"
+            --secret-id "${{ secrets.MAVEN_GPG_PUBLIC_ID }}" --query SecretString --output text)"
           key="release/cloudformation-validate-maven-signing-key.asc"
           printf '%s' "$secret_json" | jq -r '.publicKey'  > "$key"
           printf '%s' "$secret_json" | jq -r '.fingerprint' > "$key.fingerprint"
@@ -307,32 +300,19 @@ jobs:
           role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Fetch PGP signing key
-        id: signing-secrets
+      - name: Build signed Central Portal bundle
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
         env:
-          MAVEN_GPG_SECRET_ID: ${{ secrets.MAVEN_GPG_SECRET_ID }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
 
           secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "$MAVEN_GPG_SECRET_ID" --query SecretString --output text)"
-          {
-            echo "signing_key<<__EOF_KEY__"
-            printf '%s' "$secret_json" | jq -r '.privateKey'
-            echo "__EOF_KEY__"
-            echo "signing_password<<__EOF_PASS__"
-            printf '%s' "$secret_json" | jq -r '.passphrase'
-            echo "__EOF_PASS__"
-          } >> "$GITHUB_OUTPUT"
+            --secret-id "${{ secrets.MAVEN_GPG_SECRET_ID }}" --query SecretString --output text)"
+          export ORG_GRADLE_PROJECT_signingKey="$(printf '%s' "$secret_json" | jq -r '.privateKey')"
+          export ORG_GRADLE_PROJECT_signingPassword="$(printf '%s' "$secret_json" | jq -r '.passphrase')"
+          unset secret_json
 
-      - name: Build signed Central Portal bundle
-        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
-        env:
-          ORG_GRADLE_PROJECT_signingKey: ${{ steps.signing-secrets.outputs.signing_key }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ steps.signing-secrets.outputs.signing_password }}
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: |
-          set -euo pipefail
           ./generate-version-properties.sh "$RELEASE_TAG"
           gradle --no-daemon --console=plain centralBundle
           ls -lh build/central/
@@ -365,51 +345,30 @@ jobs:
           fi
           echo "Maven bundle jar is byte-identical to the committed jar (sha256 $committed_sha)."
 
-      - name: Fetch Central Portal publishing token
-        id: portal-token
-        env:
-          CENTRAL_PORTAL_SECRET_ID: ${{ secrets.CENTRAL_PORTAL_SECRET_ID }}
-        run: |
-          set -euo pipefail
-          secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "$CENTRAL_PORTAL_SECRET_ID" --query SecretString --output text)"
-
-          username="$(printf '%s' "$secret_json" | jq -er '.username')"
-          password="$(printf '%s' "$secret_json" | jq -er '.password')"
-          token="$(printf '%s:%s' "$username" "$password" | base64 | tr -d '\n')"
-
-          echo "::add-mask::$username"
-          echo "::add-mask::$password"
-          echo "::add-mask::$token"
-          echo "token=$token" >> "$GITHUB_OUTPUT"
-
-      - name: Upload bundle to Central Publisher Portal
-        id: portal-upload
+      - name: Publish to Central Portal
         working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
-        env:
-          PORTAL_TOKEN: ${{ steps.portal-token.outputs.token }}
         run: |
           set -euo pipefail
           bundle="$(ls build/central/*-bundle.zip)"
 
+          secret_json="$(aws secretsmanager get-secret-value \
+            --secret-id "${{ secrets.CENTRAL_PORTAL_SECRET_ID }}" --query SecretString --output text)"
+          username="$(printf '%s' "$secret_json" | jq -er '.username')"
+          password="$(printf '%s' "$secret_json" | jq -er '.password')"
+          token="$(printf '%s:%s' "$username" "$password" | base64 | tr -d '\n')"
+          unset secret_json username password
+
           deployment_id="$(curl --fail-with-body -sS -X POST \
-            -H "Authorization: Bearer $PORTAL_TOKEN" \
+            -H "Authorization: Bearer $token" \
             -F "bundle=@$bundle" \
             "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=cloudformation-validate-${{ inputs.tag }}")"
           echo "Central Portal deployment id: $deployment_id"
-          echo "deployment-id=$deployment_id" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for Central Portal publish
-        env:
-          PORTAL_TOKEN: ${{ steps.portal-token.outputs.token }}
-          DEPLOYMENT_ID: ${{ steps.portal-upload.outputs.deployment-id }}
-        run: |
-          set -euo pipefail
           max_attempts=60
           for attempt in $(seq 1 "$max_attempts"); do
             status_json="$(curl --fail-with-body -sS -X POST \
-              -H "Authorization: Bearer $PORTAL_TOKEN" \
-              "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID")"
+              -H "Authorization: Bearer $token" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$deployment_id")"
             state="$(printf '%s' "$status_json" | jq -r '.deploymentState')"
             echo "attempt $attempt/$max_attempts: deploymentState=$state"
 
@@ -423,7 +382,7 @@ jobs:
                 exit 0
                 ;;
               FAILED)
-                echo "::error::Central Portal validation failed for deployment $DEPLOYMENT_ID"
+                echo "::error::Central Portal validation failed for deployment $deployment_id"
                 printf '%s\n' "$status_json" | jq .
                 exit 1
                 ;;
@@ -431,7 +390,7 @@ jobs:
             sleep 30
           done
 
-          echo "::error::Timed out waiting for Central Portal deployment $DEPLOYMENT_ID to validate"
+          echo "::error::Timed out waiting for Central Portal deployment $deployment_id to validate"
           exit 1
 
   verify-publish-maven:
