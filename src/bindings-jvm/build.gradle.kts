@@ -1,11 +1,11 @@
 import java.util.Properties
-import org.jetbrains.dokka.gradle.DokkaTask
 
 plugins {
     kotlin("jvm") version "2.4.0" // keep in sync with configs.yml kotlin-version
     `maven-publish`
     signing
-    id("org.jetbrains.dokka") version "1.9.20" // keep in sync with configs.yml dokka-version
+    id("org.jetbrains.dokka") version "2.2.0" // keep in sync with configs.yml dokka-version
+    id("org.jetbrains.dokka-javadoc") version "2.2.0" // keep in sync with configs.yml dokka-version
 }
 
 // ── Coordinates + bundled runtime dependency versions.
@@ -104,7 +104,7 @@ tasks.named<Jar>("jar") {
 // scratch dir and point Dokka at it. When build.sh just ran, generated/ still holds the
 // same sources; using the jar keeps a single, checkout-independent source of truth.
 val dokkaSources = layout.buildDirectory.dir("dokka-sources")
-val extractDokkaSources by tasks.registering(Sync::class) {
+val extractDokkaSources = tasks.register<Sync>("extractDokkaSources") {
     description = "Extracts the bundled Kotlin sources from the merged jar for Dokka."
     onlyIf {
         mergedJar.asFile.exists().also {
@@ -115,10 +115,9 @@ val extractDokkaSources by tasks.registering(Sync::class) {
     into(dokkaSources)
 }
 
-tasks.withType<DokkaTask>().configureEach {
-    dependsOn(extractDokkaSources)
-    dokkaSourceSets.configureEach {
-        sourceRoots.setFrom(dokkaSources)
+dokka {
+    dokkaSourceSets.main {
+        sourceRoots.from(dokkaSources)
         classpath.from(configurations.named("compileClasspath"))
         jdkVersion.set(21)
         reportUndocumented.set(false)
@@ -126,16 +125,24 @@ tasks.withType<DokkaTask>().configureEach {
     }
 }
 
-val javadocJar by tasks.registering(Jar::class) {
+tasks.named("dokkaGenerate") {
+    dependsOn(extractDokkaSources)
+}
+
+tasks.named("dokkaGeneratePublicationJavadoc") {
+    dependsOn(extractDokkaSources)
+}
+
+val javadocJar = tasks.register<Jar>("javadocJar") {
     archiveClassifier.set("javadoc")
-    from(tasks.named<DokkaTask>("dokkaJavadoc").flatMap { it.outputDirectory })
+    from(tasks.named("dokkaGeneratePublicationJavadoc").map { it.outputs })
     from(repoLicense) { into("META-INF") }
     from(repoNotice) { into("META-INF") }
 }
 
 // Sources jar: re-extract the .kt the merged jar bundles, so it works at a release
 // checkout where the generated sources are absent from disk (only the jar is committed).
-val sourcesJar by tasks.registering(Jar::class) {
+val sourcesJar = tasks.register<Jar>("sourcesJar") {
     archiveClassifier.set("sources")
     includeEmptyDirs = false
     onlyIf { mergedJar.asFile.exists() }
@@ -159,8 +166,9 @@ publishing {
             pom {
                 name.set("CloudFormation Validate")
                 description.set(
-                    "Fast, offline validator for AWS CloudFormation templates. JVM (Kotlin/Java) " +
-                        "bindings over the shared Rust core, with bundled native libraries.",
+                    "Fast, offline validator for AWS CloudFormation templates, for Kotlin and Java. " +
+                        "Returns structured diagnostics — schema errors, security risks, and best-practice " +
+                        "findings. Bundles native libraries for each supported platform.",
                 )
                 url.set("https://github.com/aws-cloudformation/cloudformation-validate")
                 licenses {
@@ -243,7 +251,7 @@ signing {
 // Zips the staged Maven layout into a single archive whose internal folder structure
 // follows the Maven Repository Layout, as the Portal upload API requires.
 // maven-metadata.* files are repository bookkeeping the Portal does not accept.
-val centralBundle by tasks.registering(Zip::class) {
+val centralBundle = tasks.register<Zip>("centralBundle") {
     group = "publishing"
     description = "Assembles the Central Publisher Portal upload bundle from the staged Maven layout."
     dependsOn("publishMavenPublicationToStagingRepository")

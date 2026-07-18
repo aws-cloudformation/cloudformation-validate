@@ -69,9 +69,9 @@ jobs:
       JAVA_VERSION: '21'
       JAVA_DISTRIBUTION: 'corretto'
       KOTLIN_VERSION: '2.4.0'
-      DOKKA_VERSION: '1.9.20'         # keep in sync with bindings-jvm/build.gradle.kts
+      DOKKA_VERSION: '2.2.0'          # keep in sync with bindings-jvm/build.gradle.kts
       KTLINT_VERSION: '1.8.0'
-      GRADLE_VERSION: '8.14'
+      GRADLE_VERSION: '9.6.1'
       JNA_VERSION: '5.19.1'           # keep in sync with bindings-jvm/build.sh
       GSON_VERSION: '2.14.0'          # keep in sync with bindings-jvm/build.sh
       WASM_PACK_VERSION: '0.15.0'

@@ -1,21 +1,40 @@
-# CloudFormation Validate JVM Bindings
+# CloudFormation Validate for the JVM
 
-JVM bindings for [`cloudformation-validate`](https://github.com/aws-cloudformation/cloudformation-validate)
-via [UniFFI](https://mozilla.github.io/uniffi-rs/). Compiles the full validation pipeline into a native shared library
-with auto-generated Kotlin bindings, packaged as a JAR with bundled natives.
+Validate AWS CloudFormation templates from Kotlin or Java and catch schema violations, security risks, and
+best-practice findings before deployment — in your editor, build, or CI.
 
-All types live in `software.amazon.cloudformation.validate`.
+- **Offline** — all rules and resource schemas are bundled.
+- **Fast** — sub-second validation per template.
+- **Self-contained** — native libraries for all supported platforms are included.
 
-For a complete, runnable example, see
-[examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-jvm/examples).
+All types live in the `software.amazon.cloudformation.validate` package.
 
-## Engine
+## Installation
 
-`RegoEngine` and `CelEngine` both implement the `Engine` interface. They are interchangeable — both produce identical
-diagnostics for the same template and config.
+Available on [Maven Central](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
+as `software.amazon.cloudformation:cloudformation-validate`. Both snippets below resolve the latest published version;
+substitute a specific version to pin one.
+
+Gradle:
+
+```groovy
+implementation 'software.amazon.cloudformation:cloudformation-validate:latest.release'
+```
+
+Maven:
+
+```xml
+<dependency>
+    <groupId>software.amazon.cloudformation</groupId>
+    <artifactId>cloudformation-validate</artifactId>
+    <version>[0,)</version>
+</dependency>
+```
+
+## Quick start
 
 ```kotlin
-import software.amazon.cloudformation.validate.*
+import software.amazon.cloudformation.validate.RegoEngine
 import java.io.File
 
 val engine = RegoEngine()
@@ -25,6 +44,15 @@ for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
 }
 ```
+
+Each diagnostic identifies the rule, severity, affected resource and property, and source location — see
+[StandardDiagnostic](#standarddiagnostic). A complete, runnable project is in
+[examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-jvm/examples).
+
+## Engine
+
+`RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable — they produce identical
+diagnostics for the same template and config.
 
 ### `Engine` interface
 

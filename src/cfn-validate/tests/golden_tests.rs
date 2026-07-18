@@ -155,7 +155,7 @@ fn rules_evaluated_is_full_rule_count() {
     }
 }
 
-const EXPECTED_ENGINE_VERSION: &str = "1.5.0";
+const EXPECTED_ENGINE_VERSION: &str = "1.6.0";
 
 #[test]
 fn engine_version_matches_workspace_version() {
