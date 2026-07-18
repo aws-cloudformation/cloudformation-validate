@@ -28,7 +28,7 @@ jobs:
       ref: ${{ inputs.commit || 'main' }}
 
   version-and-tag:
-    needs: [ get-configs ]
+    needs: [ get-configs, validate ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
