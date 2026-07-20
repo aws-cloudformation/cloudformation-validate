@@ -46,9 +46,14 @@ EOF
 command -v ktlint &>/dev/null || { echo "Error: ktlint not found on PATH" >&2; exit 1; }
 command -v gradle &>/dev/null || { echo "Error: gradle not found on PATH" >&2; exit 1; }
 
-JAVA_VERSION=$(java -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+).*/\1/')
+if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVA_BIN="$JAVA_HOME/bin/java"
+else
+    JAVA_BIN="java"
+fi
+JAVA_VERSION=$("$JAVA_BIN" -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+).*/\1/')
 if [ "$JAVA_VERSION" -lt 21 ]; then
-    echo "Error: JDK 21+ required, found JDK $JAVA_VERSION" >&2; exit 1
+    echo "Error: JDK 21+ required, found JDK $JAVA_VERSION (from $JAVA_BIN)" >&2; exit 1
 fi
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
