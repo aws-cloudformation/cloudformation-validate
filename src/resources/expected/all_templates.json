@@ -105687,6 +105687,25 @@
       }
     ]
   },
+  "gh-issues/issue-185.yaml": {
+    "filePath": "gh-issues/issue-185.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
   "gh-issues/issue-34-w2506-overfire.json": {
     "filePath": "gh-issues/issue-34-w2506-overfire.json",
     "status": "OK",
@@ -118999,25 +119018,6 @@
         "section": "Resources"
       }
     ]
-  },
-  "good/number_param_integer_enum.yaml": {
-    "filePath": "good/number_param_integer_enum.yaml",
-    "status": "OK",
-    "version": "1.6.0",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
   },
   "good/output_value_string.yaml": {
     "filePath": "good/output_value_string.yaml",
