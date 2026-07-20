@@ -319,9 +319,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // `Custom::` resources, modules, hook-shaped names) may be
             // registered per account/region, so they are skipped entirely
             // rather than guessed at.
-            if res.resource_type.starts_with("AWS::")
-                && !ctx.cached_data.known_types.contains(&res.resource_type)
-            {
+            if res.resource_type.starts_with("AWS::") && !ctx.cached_data.known_types.contains(&res.resource_type) {
                 out.push(make_resource_diagnostic(
                     "F3006",
                     &format!("Unknown resource type '{}'", res.resource_type),
