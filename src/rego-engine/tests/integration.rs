@@ -228,7 +228,7 @@ fn e2e_bad_security_issues() {
 #[test]
 fn e2e_bad_unknown_properties() {
     let report = validate_fixture("bad/unknown_properties.yaml");
-    assert!(has_rule(&report, "F3006"), "Expected F3006 for unknown type, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "F3006"), "Expected F3006 for unknown AWS type, got: {:?}", report.diagnostics);
     assert!(has_rule(&report, "F3002"), "Expected F3002 for unknown property, got: {:?}", report.diagnostics);
 }
 

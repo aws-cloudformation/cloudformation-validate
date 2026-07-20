@@ -86,14 +86,21 @@ pub fn coerce_port_to_string(val: &Value) -> Option<String> {
 /// Whether two values are equal under CloudFormation's loose scalar semantics.
 ///
 /// CloudFormation stringifies scalar values before comparison, so `512` and
-/// `"512"`, or `true` and `"true"`, are equal. Two values match when they are
-/// natively equal (covering arrays, objects, and null) or when both coerce to
-/// the same string. Non-scalar values have no string coercion, so distinct
-/// arrays/objects/nulls never collapse together — only native equality can make
-/// them match.
+/// `"512"`, or `true` and `"true"`, are equal. Numeric scalars compare
+/// numerically when either operand is a native number, so `30`, `30.0`, and
+/// `"30.0"` are all the same value — an integral float must never mismatch its
+/// integer form just because they stringify differently. Two string operands
+/// keep exact string comparison. Non-scalar values have no coercion, so
+/// distinct arrays/objects/nulls never collapse together — only native
+/// equality can make them match.
 pub fn scalar_eq(a: &Value, b: &Value) -> bool {
     if a == b {
         return true;
+    }
+    if (a.is_number() || b.is_number())
+        && let (Some(na), Some(nb)) = (coerce_to_number(a), coerce_to_number(b))
+    {
+        return na == nb;
     }
     match (coerce_to_string(a), coerce_to_string(b)) {
         (Some(sa), Some(sb)) => sa == sb,
@@ -325,6 +332,25 @@ mod tests {
         assert!(scalar_eq(&json!("hello"), &json!("hello")));
         assert!(!scalar_eq(&json!(512), &json!("513")));
         assert!(!scalar_eq(&json!(true), &json!("false")));
+    }
+
+    #[test]
+    fn scalar_eq_integral_float_equals_integer() {
+        // A whole number is the same value in every written form —
+        // 30, 30.0, and "30.0" must all compare equal (issue: a Number
+        // parameter resolving to 30.0 failed the integer enum [.., 30, ..]).
+        assert!(scalar_eq(&json!(30.0), &json!(30)), "30.0 must equal 30");
+        assert!(scalar_eq(&json!(30), &json!(30.0)), "30 must equal 30.0");
+        assert!(scalar_eq(&json!(30.0), &json!("30")), "30.0 must equal '30'");
+        assert!(scalar_eq(&json!("30.0"), &json!(30)), "'30.0' must equal 30");
+        assert!(!scalar_eq(&json!(30.5), &json!(30)), "30.5 must not equal 30");
+        assert!(!scalar_eq(&json!(30.0), &json!(31)), "30.0 must not equal 31");
+    }
+
+    #[test]
+    fn scalar_eq_non_numeric_string_keeps_exact_comparison() {
+        assert!(!scalar_eq(&json!("30x"), &json!(30)), "'30x' is not a number and must not equal 30");
+        assert!(!scalar_eq(&json!("tcp"), &json!("TCP")), "string comparison stays case-sensitive");
     }
 
     #[test]
