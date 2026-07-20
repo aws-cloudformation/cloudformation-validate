@@ -105398,6 +105398,295 @@
       }
     ]
   },
+  "gh-issues/issue-183.yaml": {
+    "filePath": "gh-issues/issue-183.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 4,
+        "informational": 9,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3031",
+        "severity": "FATAL",
+        "message": "'arn:aws:sqs:us-east-1:1111111111:MyQueue' does not match pattern '^arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-])+:((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1})?:(\\d{12})?:(.*)$'",
+        "source": "SCHEMA",
+        "resourceId": "PermissionInvalidAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.SourceArn",
+        "category": "Schema",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 35,
+        "endColumn": 16,
+        "ruleDescription": "Value does not match pattern",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "actualValue": "arn:aws:sqs:us-east-1:1111111111:MyQueue",
+          "expectedConstraint": "^arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-])+:((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1})?:(\\d{12})?:(.*)$"
+        }
+      },
+      {
+        "ruleId": "W3663",
+        "severity": "WARN",
+        "message": "Lambda Permission with a SourceArn that has no account id should also specify SourceAccount",
+        "source": "CFN_LINT",
+        "resourceId": "PermissionInvalidAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties",
+        "suggestedFix": "Add SourceAccount property",
+        "category": "Security",
+        "startLine": 31,
+        "startColumn": 5,
+        "endLine": 31,
+        "endColumn": 15,
+        "ruleDescription": "Validate SourceAccount is required property",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "resourceId": "PermissionWithAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.SourceArn",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 16,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "resourceId": "PermissionInvalidAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.SourceArn",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 35,
+        "endColumn": 16,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "resourceId": "PermissionWithAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "category": "Security",
+        "startLine": 19,
+        "startColumn": 3,
+        "endLine": 19,
+        "endColumn": 26,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Action' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionWithAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.Action",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 7,
+        "endLine": 22,
+        "endColumn": 13,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionWithAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt MyLambda.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Principal' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionWithAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.Principal",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 7,
+        "endLine": 24,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionWithAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.SourceArn",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Action' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionInvalidAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.Action",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 13,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionInvalidAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt MyLambda.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Principal' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionInvalidAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.Principal",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "PermissionInvalidAccountId",
+        "resourceType": "AWS::Lambda::Permission",
+        "propertyPath": "Properties.SourceArn",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 35,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyLambda",
+        "resourceType": "AWS::Lambda::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "gh-issues/issue-34-w2506-overfire.json": {
     "filePath": "gh-issues/issue-34-w2506-overfire.json",
     "status": "OK",
@@ -118710,6 +118999,25 @@
         "section": "Resources"
       }
     ]
+  },
+  "good/number_param_integer_enum.yaml": {
+    "filePath": "good/number_param_integer_enum.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
   },
   "good/output_value_string.yaml": {
     "filePath": "good/output_value_string.yaml",

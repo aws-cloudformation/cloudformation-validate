@@ -840,6 +840,32 @@ Resources:
     assert_count(&diags, "W9009", 1);
 }
 
+/// Issue #183: W3663 must not fire when a Lambda Permission's literal SourceArn
+/// carries a proper 12-digit account id — that ARN pins the calling account by
+/// itself. The issue's original ARN had a 10-digit account field, which is not
+/// a valid account id: it cannot pin the account, so W3663 fires for that
+/// resource only (and the ARN also fails the schema pattern, F3031) — matching
+/// cfn-lint, whose extension schema uses the same ':\d{12}:' trigger.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/183
+#[test]
+fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
+    let diags = validate_both("issue-183.yaml");
+    assert_count(&diags, "W3663", 1);
+    assert_fires_on_resource(&diags, "W3663", "PermissionInvalidAccountId");
+    assert_fires_with_severity(&diags, "W3663", Severity::Warn);
+    for (engine, d) in &diags {
+        let on_valid = d
+            .iter()
+            .filter(|x| x.rule_id == "W3663")
+            .any(|x| x.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("PermissionWithAccountId"));
+        assert!(!on_valid, "[{engine}] W3663 must not fire on the permission whose ARN has a 12-digit account id");
+    }
+    // The invalid 10-digit account field also fails the ARN schema pattern,
+    // and only there — the valid ARN passes it.
+    assert_count(&diags, "F3031", 1);
+    assert_fires_on_resource(&diags, "F3031", "PermissionInvalidAccountId");
+}
+
 // ---------------------------------------------------------------------------
 // Issue #36 — the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
 // partition prefix, so ADC-partition ARNs no longer false-positive and the two

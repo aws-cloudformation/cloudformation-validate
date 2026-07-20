@@ -1410,12 +1410,18 @@ fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
         );
     }
     match param_type {
+        // Parse whole numbers as integers so a Number parameter value of "30"
+        // resolves to 30, not 30.0 — the float form would fail integer enum
+        // comparisons and render as '30.0' in diagnostics.
         PARAM_TYPE_NUMBER => value
-            .parse::<f64>()
-            .map(|n| {
-                serde_json::Number::from_f64(n)
-                    .map(serde_json::Value::Number)
-                    .unwrap_or(serde_json::Value::String(value.to_string()))
+            .parse::<i64>()
+            .map(|i| serde_json::Value::Number(i.into()))
+            .or_else(|_| {
+                value.parse::<f64>().map(|n| {
+                    serde_json::Number::from_f64(n)
+                        .map(serde_json::Value::Number)
+                        .unwrap_or(serde_json::Value::String(value.to_string()))
+                })
             })
             .unwrap_or(serde_json::Value::String(value.to_string())),
         _ => serde_json::Value::String(value.to_string()),
@@ -2109,6 +2115,16 @@ fn intrinsic_name(intrinsic: &IntrinsicFn) -> &'static str {
 mod tests {
     use super::*;
     use crate::parser;
+
+    #[test]
+    fn param_number_whole_value_resolves_to_integer() {
+        // A whole-number Number parameter must resolve to a JSON integer, not a
+        // float — 30.0 fails integer enum comparisons and renders as '30.0'.
+        assert_eq!(param_string_to_json("30", "Number"), serde_json::json!(30));
+        assert!(param_string_to_json("30", "Number").is_i64(), "whole number must be an integer");
+        assert_eq!(param_string_to_json("1.5", "Number"), serde_json::json!(1.5));
+        assert_eq!(param_string_to_json("not-a-number", "Number"), serde_json::json!("not-a-number"));
+    }
 
     #[test]
     fn resolve_ref_param_with_allowed_values() {
