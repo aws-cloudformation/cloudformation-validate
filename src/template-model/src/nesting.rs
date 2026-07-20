@@ -5,16 +5,7 @@ use diagnostics::Diagnostic;
 
 const CONDITION_CHILDREN: &[&str] = &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT];
 
-const EQUALS_CHILDREN: &[&str] =
-    &[FN_REF, FN_FIND_IN_MAP, FN_SUB, FN_JOIN, FN_SELECT, FN_SPLIT, FN_LENGTH, FN_TO_JSON_STRING];
-
-const FINDINMAP_KEY_CHILDREN: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
-
-const FINDINMAP_KEY_CHILDREN_EXT: &[&str] =
-    &[FN_REF, FN_FIND_IN_MAP, FN_JOIN, FN_SUB, FN_IF, FN_SELECT, FN_LENGTH, FN_TO_JSON_STRING];
-
-pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<Diagnostic> {
-    let has_lang_ext = transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
+pub fn validate_intrinsic_nesting(arena: &Arena) -> Vec<Diagnostic> {
     let mut out = Vec::new();
 
     for idx in 0..arena.len() {
@@ -25,7 +16,7 @@ pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<D
         };
         let in_rules = spanned.path.starts_with("Rules/");
 
-        for (child_ref, allowlist) in restricted_children(intrinsic, in_rules, has_lang_ext) {
+        for (child_ref, allowlist) in restricted_children(intrinsic, in_rules) {
             if let Node::Intrinsic(child_fn) = arena.node(child_ref) {
                 let child_name = cfn_function_name(child_fn);
                 if !allowlist.contains(&child_name) {
@@ -34,7 +25,7 @@ pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<D
                     // own byte span is unassigned, span resolution walks up to the
                     // nearest enclosing element rather than leaving it unlocated.
                     out.push(crate::make_parse_diagnostic_at(
-                        "F1105",
+                        "E1101",
                         format!("'{}' is not allowed inside '{}'", child_name, parent_name),
                         arena.span(child_ref),
                         &arena.get(child_ref).path,
@@ -46,14 +37,14 @@ pub fn validate_intrinsic_nesting(arena: &Arena, transforms: &[String]) -> Vec<D
     out
 }
 
-fn restricted_children(
-    intrinsic: &IntrinsicFn,
-    in_rules: bool,
-    has_lang_ext: bool,
-) -> Vec<(NodeRef, &'static [&'static str])> {
+fn restricted_children(intrinsic: &IntrinsicFn, in_rules: bool) -> Vec<(NodeRef, &'static [&'static str])> {
     match intrinsic {
-        IntrinsicFn::Equals(a, b) => {
-            vec![(*a, EQUALS_CHILDREN), (*b, EQUALS_CHILDREN)]
+        IntrinsicFn::Equals(_, _) => {
+            // Fn::Equals operand validation is owned by the E8003 parser check
+            // (which uses the canonical allowed-function list), so the nesting
+            // check does not re-validate Equals operands — doing so would
+            // double-report the same disallowed operand under two rule IDs.
+            Vec::new()
         }
         IntrinsicFn::And(items) => {
             let allow = condition_allow(in_rules);
@@ -66,10 +57,10 @@ fn restricted_children(
         IntrinsicFn::Not(child) => {
             vec![(*child, condition_allow(in_rules))]
         }
-        IntrinsicFn::FindInMap(map_name_ref, k1, k2, _) => {
-            let allow = if has_lang_ext { FINDINMAP_KEY_CHILDREN_EXT } else { FINDINMAP_KEY_CHILDREN };
-            vec![(*map_name_ref, allow), (*k1, allow), (*k2, allow)]
-        }
+        // Fn::FindInMap operand validation is owned by the intrinsic
+        // argument-shape check, which applies the per-function operand schema
+        // (including the LanguageExtensions expansion) — re-validating the keys
+        // here would double-report the same operand under two rule IDs.
         _ => Vec::new(),
     }
 }
@@ -95,14 +86,11 @@ const CONDITION_CHILDREN_WITH_RULES: &[&str] = &[
 ];
 
 #[cfg(test)]
-const LANGUAGE_EXTENSIONS: &str = TRANSFORM_LANGUAGE_EXTENSIONS;
-
-#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn getatt_inside_equals_produces_f1105() {
+    fn equals_operands_not_checked_by_nesting() {
         let mut arena = Arena::new();
         let getatt = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::GetAtt("R".into(), "Arn".into())),
@@ -120,35 +108,8 @@ mod tests {
             path: "Conditions/C".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[]);
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.rule_id == "F1105" && d.message.contains("Fn::GetAtt") && d.message.contains("Fn::Equals"))
-        );
-    }
-
-    #[test]
-    fn ref_inside_equals_is_allowed() {
-        let mut arena = Arena::new();
-        let r = arena.alloc(SpannedNode {
-            node: Node::Intrinsic(IntrinsicFn::Ref("P".into())),
-            span: UNKNOWN_SPAN,
-            path: "Conditions/C".into(),
-        });
-        let lit = arena.alloc(SpannedNode {
-            node: Node::String("val".into()),
-            span: UNKNOWN_SPAN,
-            path: "Conditions/C".into(),
-        });
-        arena.alloc(SpannedNode {
-            node: Node::Intrinsic(IntrinsicFn::Equals(r, lit)),
-            span: UNKNOWN_SPAN,
-            path: "Conditions/C".into(),
-        });
-
-        let diags = validate_intrinsic_nesting(&arena, &[]);
-        assert!(diags.is_empty());
+        let diags = validate_intrinsic_nesting(&arena);
+        assert!(diags.is_empty(), "Fn::Equals operand validity is owned by E8003, not the nesting check");
     }
 
     #[test]
@@ -165,11 +126,11 @@ mod tests {
             path: "Conditions/C".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[]);
+        let diags = validate_intrinsic_nesting(&arena);
         assert!(
             diags
                 .iter()
-                .any(|d| d.rule_id == "F1105" && d.message.contains("Fn::GetAtt") && d.message.contains("Fn::And"))
+                .any(|d| d.rule_id == "E1101" && d.message.contains("Fn::GetAtt") && d.message.contains("Fn::And"))
         );
     }
 
@@ -188,12 +149,12 @@ mod tests {
             path: "Rules/R".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[]);
+        let diags = validate_intrinsic_nesting(&arena);
         assert!(diags.is_empty());
     }
 
     #[test]
-    fn findinmap_key_with_lang_ext_allows_sub() {
+    fn findinmap_keys_are_not_checked_by_nesting() {
         let mut arena = Arena::new();
         let sub = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::Sub("${x}".into(), None)),
@@ -208,29 +169,8 @@ mod tests {
             path: "Resources/R".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[LANGUAGE_EXTENSIONS.into()]);
-        assert!(diags.is_empty());
-    }
-
-    #[test]
-    fn findinmap_key_without_lang_ext_rejects_sub() {
-        let mut arena = Arena::new();
-        let sub = arena.alloc(SpannedNode {
-            node: Node::Intrinsic(IntrinsicFn::Sub("${x}".into(), None)),
-            span: UNKNOWN_SPAN,
-            path: "Resources/R".into(),
-        });
-        let map_name =
-            arena.alloc(SpannedNode { node: Node::String("M".into()), span: UNKNOWN_SPAN, path: "Resources/R".into() });
-        arena.alloc(SpannedNode {
-            node: Node::Intrinsic(IntrinsicFn::FindInMap(map_name, sub, sub, None)),
-            span: UNKNOWN_SPAN,
-            path: "Resources/R".into(),
-        });
-
-        let diags = validate_intrinsic_nesting(&arena, &[]);
-        assert_eq!(diags.len(), 2); // both k1 and k2
-        assert!(diags.iter().all(|d| d.rule_id == "F1105"));
+        let diags = validate_intrinsic_nesting(&arena);
+        assert!(diags.is_empty(), "Fn::FindInMap operand validity is owned by the argument-shape check");
     }
 
     #[test]
@@ -247,7 +187,7 @@ mod tests {
             path: "Conditions/C".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[]);
+        let diags = validate_intrinsic_nesting(&arena);
         assert!(diags.is_empty());
     }
 
@@ -270,7 +210,7 @@ mod tests {
             path: "Conditions/C".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[]);
+        let diags = validate_intrinsic_nesting(&arena);
         assert!(diags.is_empty());
     }
 
@@ -288,9 +228,9 @@ mod tests {
             path: "Conditions/C".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[]);
+        let diags = validate_intrinsic_nesting(&arena);
         assert!(
-            diags.iter().any(|d| d.rule_id == "F1105" && d.message.contains("Ref") && d.message.contains("Fn::Not"))
+            diags.iter().any(|d| d.rule_id == "E1101" && d.message.contains("Ref") && d.message.contains("Fn::Not"))
         );
     }
 
@@ -308,7 +248,7 @@ mod tests {
             path: "Conditions/C".into(),
         });
 
-        let diags = validate_intrinsic_nesting(&arena, &[]);
+        let diags = validate_intrinsic_nesting(&arena);
         assert!(diags.is_empty());
     }
 }

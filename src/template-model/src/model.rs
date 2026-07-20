@@ -60,6 +60,12 @@ pub struct ResourceDiagnostics {
     pub foreach_expansions: Vec<ForEachExpansion>,
     /// Occurrences of ${...} placeholders outside an Fn::Sub that will not be substituted; each pairs the property path with the placeholder text.
     pub unsubstituted_variables: Vec<PathValuePair>,
+    /// Fn::Sub map keys not referenced in the template string; each pairs the property path with the unused key name.
+    pub unused_sub_keys: Vec<PathValuePair>,
+    /// Property values that are a raw pseudo-parameter string (e.g. "AWS::Region") instead of using Ref.
+    pub raw_pseudo_params: Vec<PathValuePair>,
+    /// Property paths containing a {{resolve:secretsmanager:...}} dynamic reference.
+    pub secretsmanager_ref_paths: Vec<String>,
     /// References whose target is not a defined resource, parameter, or pseudo parameter; each pairs the property path with the missing target name.
     pub invalid_refs: Vec<PathValuePair>,
 }
@@ -341,7 +347,8 @@ impl SemanticModel {
         let total_start = web_time::Instant::now();
 
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
-        let ir = crate::parser::parse(bytes)?;
+        let mut ir = crate::parser::parse(bytes)?;
+        let foreach_diagnostics = crate::transform_expansion::expand_language_extensions(&mut ir);
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
         // A parameter's definition can reference another parameter (e.g. a
         // Default given as `!Ref OtherParam`). Such a reference still counts as
@@ -506,10 +513,13 @@ impl SemanticModel {
         }
 
         let mut diagnostics = ir.diagnostics;
+        diagnostics.extend(foreach_diagnostics);
         diagnostics.extend(mapping_diagnostics);
         diagnostics.extend(parameter_diagnostics);
 
-        diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena));
+        diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
 
         let mut fn_if_conditions: Vec<String> = Vec::new();
@@ -570,6 +580,36 @@ impl SemanticModel {
                 ir.span_index.get(&format!("Conditions/{}", cond_name)).copied().unwrap_or(UNKNOWN_SPAN),
             ));
         }
+        for (owner, undefined_ref) in conditions.undefined_condition_refs() {
+            diagnostics.push(crate::make_parse_diagnostic(
+                "E8007",
+                format!("Condition '{}' references undefined condition '{}'", owner, undefined_ref),
+                ir.span_index.get(&format!("Conditions/{}", owner)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for cycle in conditions.detect_cycles() {
+            let cycle_desc = cycle.join(" -> ");
+            let first = &cycle[0];
+            diagnostics.push(crate::make_parse_diagnostic(
+                "E1106",
+                format!("Circular dependency in conditions: {}", cycle_desc),
+                ir.span_index.get(&format!("Conditions/{}", first)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for (first, other) in conditions.detect_equivalent_conditions() {
+            diagnostics.push(crate::make_parse_diagnostic(
+                "W9053",
+                format!("Condition '{}' is equivalent to condition '{}' - consider consolidating", other, first),
+                ir.span_index.get(&format!("Conditions/{}", other)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for query in conditions.budget_exhausted_queries() {
+            diagnostics.push(crate::make_parse_diagnostic(
+                "I9052",
+                format!("Condition satisfiability analysis budget exhausted during: {}", query),
+                UNKNOWN_SPAN,
+            ));
+        }
         let model_build = phase_metric(total_start);
 
         if !diagnostics.is_empty() {
@@ -591,6 +631,16 @@ impl SemanticModel {
             if ir.template_metadata != NULL_REF { Some(node_to_json(&ir.arena, ir.template_metadata)) } else { None };
         let rules = if ir.rules != NULL_REF { Some(node_to_json(&ir.arena, ir.rules)) } else { None };
         let parsed_rules = parse_rules(&rules, &ir.arena, ir.rules);
+        let rule_implications: Vec<(String, crate::ir::NodeRef, Vec<crate::ir::NodeRef>)> = parsed_rules
+            .iter()
+            .map(|r| {
+                let assertion_nodes: Vec<crate::ir::NodeRef> = r.assertions.iter().map(|a| a.assert_node).collect();
+                (r.name.clone(), r.condition_node, assertion_nodes)
+            })
+            .collect();
+        if !rule_implications.is_empty() {
+            conditions.register_rule_implications(&ir.arena, &rule_implications);
+        }
         let rule_diagnostics = crate::rules::validate_rules(&rules, &ir.arena, ir.rules);
         diagnostics.extend(rule_diagnostics);
         let sam_globals = sam::extract_sam_globals(&ir.arena, ir.globals);
@@ -1205,6 +1255,21 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
                 .into_iter()
                 .map(|(a, b)| PathValuePair { path: a, value: b })
                 .collect(),
+            unused_sub_keys: resolver
+                .unused_sub_keys
+                .remove(name)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(a, b)| PathValuePair { path: a, value: b })
+                .collect(),
+            raw_pseudo_params: resolver
+                .raw_pseudo_params
+                .remove(name)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(a, b)| PathValuePair { path: a, value: b })
+                .collect(),
+            secretsmanager_ref_paths: resolver.secretsmanager_ref_paths.remove(name).unwrap_or_default(),
             invalid_refs: resolver
                 .invalid_refs
                 .remove(name)

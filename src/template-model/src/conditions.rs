@@ -72,6 +72,7 @@ pub struct ConditionModel {
     /// budget-truncated output reproducible. Computed once on first use and
     /// invalidated by `register_inline`.
     sorted_condition_names: OnceLock<Vec<String>>,
+    budget_exhausted_queries: std::sync::Mutex<Vec<String>>,
 }
 
 pub fn format_condition_expr(expr: &ConditionExpr) -> String {
@@ -142,6 +143,7 @@ impl ConditionModel {
             sat_iterations_used: AtomicU64::new(0),
             referenced_param_values: OnceLock::new(),
             sorted_condition_names: OnceLock::new(),
+            budget_exhausted_queries: std::sync::Mutex::new(Vec::new()),
         }
     }
 
@@ -301,6 +303,13 @@ impl ConditionModel {
             &mut iterations,
         );
         self.sat_iterations_used.fetch_add(iterations + n as u64, Ordering::Relaxed);
+        if iterations > MAX_SAT_ITERATIONS
+            && let Ok(mut guard) = self.budget_exhausted_queries.lock()
+            && guard.len() < 5
+        {
+            let query_desc = assumptions.iter().map(|(n, v)| format!("{}={}", n, v)).collect::<Vec<_>>().join(", ");
+            guard.push(query_desc);
+        }
         satisfiable
     }
 
@@ -317,6 +326,10 @@ impl ConditionModel {
     #[must_use]
     pub fn sat_iterations_used(&self) -> u64 {
         self.sat_iterations_used.load(Ordering::Relaxed)
+    }
+
+    pub fn budget_exhausted_queries(&self) -> Vec<String> {
+        self.budget_exhausted_queries.lock().unwrap_or_else(|p| p.into_inner()).clone()
     }
 
     /// Test-only: advance the cumulative satisfiability counter directly, so the
@@ -761,6 +774,187 @@ impl ConditionModel {
         // refill the budget.
         self.referenced_param_values = OnceLock::new();
         self.sorted_condition_names = OnceLock::new();
+    }
+
+    pub fn register_rule_implications(
+        &mut self,
+        arena: &crate::ir::Arena,
+        rules: &[(String, crate::ir::NodeRef, Vec<crate::ir::NodeRef>)],
+    ) {
+        for (rule_name, condition_node, assertion_nodes) in rules {
+            let antecedent = if *condition_node != crate::ir::NULL_REF {
+                let expr = parse_condition_expr(arena, *condition_node, &self.parameters);
+                let synth_name = format!("__rule_cond_{}", rule_name);
+                self.conditions.insert(synth_name.clone(), expr);
+                Some(synth_name)
+            } else {
+                None
+            };
+
+            for (idx, assert_node) in assertion_nodes.iter().enumerate() {
+                if *assert_node == crate::ir::NULL_REF {
+                    continue;
+                }
+                let assert_expr = parse_condition_expr(arena, *assert_node, &self.parameters);
+                let assert_name = format!("__rule_assert_{}_{}", rule_name, idx);
+                self.conditions.insert(assert_name.clone(), assert_expr);
+
+                if let Some(ref ante) = antecedent {
+                    self.implications.push(Implication { antecedent: ante.clone(), consequent: assert_name });
+                }
+            }
+        }
+
+        self.mutex_groups = extract_mutex_groups(&self.conditions);
+        self.implications = extract_implications(&self.conditions);
+        self.referenced_param_values = OnceLock::new();
+        self.sorted_condition_names = OnceLock::new();
+    }
+
+    pub fn undefined_condition_refs(&self) -> Vec<(String, String)> {
+        let mut result = Vec::new();
+        for (owner, expr) in &self.conditions {
+            let mut refs = Vec::new();
+            collect_condition_refs(expr, &mut refs);
+            for r in refs {
+                if !self.conditions.contains_key(&r) {
+                    result.push((owner.clone(), r));
+                }
+            }
+        }
+        result
+    }
+
+    pub fn detect_cycles(&self) -> Vec<Vec<String>> {
+        let mut adj: HashMap<String, Vec<String>> = HashMap::new();
+        for (name, expr) in &self.conditions {
+            let mut refs = Vec::new();
+            collect_condition_refs(expr, &mut refs);
+            let mut targets: Vec<String> = refs.into_iter().filter(|r| self.conditions.contains_key(r)).collect();
+            targets.sort();
+            adj.insert(name.clone(), targets);
+        }
+
+        let mut sorted_names: Vec<&String> = self.conditions.keys().collect();
+        sorted_names.sort();
+
+        let mut cycles = Vec::new();
+        let mut visited: HashSet<String> = HashSet::new();
+        let mut on_stack: HashSet<String> = HashSet::new();
+        let mut path: Vec<String> = Vec::new();
+
+        for name in &sorted_names {
+            if !visited.contains(name.as_str()) {
+                Self::dfs_cycles(name, &adj, &mut visited, &mut on_stack, &mut path, &mut cycles);
+            }
+        }
+        cycles
+    }
+
+    fn dfs_cycles(
+        node: &str,
+        adj: &HashMap<String, Vec<String>>,
+        visited: &mut HashSet<String>,
+        on_stack: &mut HashSet<String>,
+        path: &mut Vec<String>,
+        cycles: &mut Vec<Vec<String>>,
+    ) {
+        visited.insert(node.to_string());
+        on_stack.insert(node.to_string());
+        path.push(node.to_string());
+
+        if let Some(neighbors) = adj.get(node) {
+            for neighbor in neighbors {
+                if !visited.contains(neighbor.as_str()) {
+                    Self::dfs_cycles(neighbor, adj, visited, on_stack, path, cycles);
+                } else if on_stack.contains(neighbor.as_str()) {
+                    let cycle_start = path.iter().position(|n| n == neighbor).unwrap();
+                    let cycle: Vec<String> = path[cycle_start..].to_vec();
+                    cycles.push(cycle);
+                }
+            }
+        }
+
+        path.pop();
+        on_stack.remove(node);
+    }
+
+    pub fn detect_equivalent_conditions(&self) -> Vec<(String, String)> {
+        let mut canonical_groups: HashMap<String, Vec<&str>> = HashMap::new();
+        for (name, expr) in &self.conditions {
+            if name.starts_with("__") {
+                continue;
+            }
+            if expr_has_opaque_value(expr) {
+                continue;
+            }
+            let canonical = canonical_form(expr);
+            canonical_groups.entry(canonical).or_default().push(name.as_str());
+        }
+
+        let mut pairs = Vec::new();
+        for (_, mut group) in canonical_groups {
+            if group.len() < 2 {
+                continue;
+            }
+            group.sort();
+            for other in &group[1..] {
+                pairs.push((group[0].to_string(), other.to_string()));
+            }
+        }
+        pairs
+    }
+}
+
+fn expr_has_opaque_value(expr: &ConditionExpr) -> bool {
+    match expr {
+        ConditionExpr::Equals(a, b) => value_is_opaque(a) || value_is_opaque(b),
+        ConditionExpr::And(items) | ConditionExpr::Or(items) => items.iter().any(expr_has_opaque_value),
+        ConditionExpr::Not(inner) => expr_has_opaque_value(inner),
+        ConditionExpr::ConditionRef(_) => false,
+    }
+}
+
+fn value_is_opaque(val: &ValueExpr) -> bool {
+    matches!(val, ValueExpr::Other)
+}
+
+fn canonical_form(expr: &ConditionExpr) -> String {
+    match expr {
+        ConditionExpr::Equals(a, b) => {
+            let ca = canonical_value(a);
+            let cb = canonical_value(b);
+            let (left, right) = if ca <= cb { (ca, cb) } else { (cb, ca) };
+            format!("EQ({},{})", left, right)
+        }
+        ConditionExpr::And(items) => {
+            let mut parts: Vec<String> = items.iter().map(canonical_form).collect();
+            parts.sort();
+            format!("AND({})", parts.join(","))
+        }
+        ConditionExpr::Or(items) => {
+            let mut parts: Vec<String> = items.iter().map(canonical_form).collect();
+            parts.sort();
+            format!("OR({})", parts.join(","))
+        }
+        ConditionExpr::Not(inner) => {
+            format!("NOT({})", canonical_form(inner))
+        }
+        ConditionExpr::ConditionRef(name) => {
+            format!("CREF({})", name)
+        }
+    }
+}
+
+fn canonical_value(val: &ValueExpr) -> String {
+    match val {
+        ValueExpr::ParamRef(name) => format!("P({})", name),
+        ValueExpr::Literal(s) => format!("L({})", s),
+        ValueExpr::PseudoParam(name) => format!("PP({})", name),
+        ValueExpr::MappingLookup { map_name, key1, key2 } => {
+            format!("MAP({},{},{})", map_name, canonical_value(key1), canonical_value(key2))
+        }
+        ValueExpr::Other => "?".to_string(),
     }
 }
 

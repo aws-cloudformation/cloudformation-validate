@@ -226,6 +226,19 @@ fn build_resources(
                         .iter()
                         .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
                         .collect(),
+                    unused_sub_keys: res
+                        .diagnostics
+                        .unused_sub_keys
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
+                    raw_pseudo_params: res
+                        .diagnostics
+                        .raw_pseudo_params
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
+                    secretsmanager_ref_paths: res.diagnostics.secretsmanager_ref_paths.clone(),
                     invalid_refs: res
                         .diagnostics
                         .invalid_refs
@@ -240,7 +253,7 @@ fn build_resources(
 
 fn build_conditions(conditions: &crate::conditions::ConditionModel) -> HashMap<String, DiagnosticCondition> {
     let mut out = HashMap::new();
-    for name in conditions.names() {
+    for name in conditions.names().filter(|n| !n.starts_with("__")) {
         let (expression, deps) = if let Some(expr) = conditions.get(name) {
             let mut d = Vec::new();
             crate::conditions::collect_condition_deps(expr, &mut d);

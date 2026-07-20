@@ -82,6 +82,18 @@ impl Arena {
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
+
+    pub fn map_remove(&mut self, r: NodeRef, key: &str) {
+        if let Node::Map(entries) = &mut self.nodes[r as usize].node {
+            entries.retain(|(k, _)| k != key);
+        }
+    }
+
+    pub fn map_insert(&mut self, r: NodeRef, key: String, val: NodeRef) {
+        if let Node::Map(entries) = &mut self.nodes[r as usize].node {
+            entries.push((key, val));
+        }
+    }
 }
 
 impl Default for Arena {

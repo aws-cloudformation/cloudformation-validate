@@ -7,7 +7,9 @@ pub mod consts;
 pub mod diagnostic;
 pub(crate) mod graph;
 pub mod hardcoded_az;
+pub(crate) mod intrinsic_arg_shapes;
 pub mod ir;
+pub(crate) mod lang_ext_shapes;
 pub(crate) mod language_extensions;
 pub mod model;
 pub(crate) mod nesting;
@@ -19,6 +21,7 @@ pub mod resolver;
 pub(crate) mod rules;
 pub(crate) mod sam;
 pub(crate) mod serialization;
+pub(crate) mod transform_expansion;
 
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{

@@ -59,8 +59,15 @@ impl Builder {
     /// (fatal). Anchored at the function node so it lands where a property-level
     /// error would.
     fn condition_fn_error(&mut self, fn_name: &str, reason: &str, path: &str) {
+        let rule_id = match fn_name {
+            "Fn::Equals" => "E8003",
+            "Fn::And" => "E8004",
+            "Fn::Not" => "E8005",
+            "Fn::Or" => "E8006",
+            _ => "F0014",
+        };
         self.diagnostics.push(crate::make_parse_diagnostic_at(
-            "F0014",
+            rule_id,
             format!("{}: {}", fn_name, reason),
             UNKNOWN_SPAN,
             &format!("{}/{}", path, fn_name),

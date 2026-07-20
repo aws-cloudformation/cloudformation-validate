@@ -135,6 +135,9 @@ pub(crate) struct Resolver<'a> {
     pub(crate) hardcoded_partition_arns: HashMap<String, Vec<String>>,
     pub(crate) foreach_expansions: HashMap<String, Vec<(String, String, String)>>,
     pub(crate) unsubstituted_variables: HashMap<String, Vec<(String, String)>>,
+    pub(crate) unused_sub_keys: HashMap<String, Vec<(String, String)>>,
+    pub(crate) raw_pseudo_params: HashMap<String, Vec<(String, String)>>,
+    pub(crate) secretsmanager_ref_paths: HashMap<String, Vec<String>>,
     pub(crate) invalid_refs: HashMap<String, Vec<(String, String)>>,
     pub(crate) extra_condition_refs: HashMap<String, Vec<String>>,
     pub(crate) inline_conditions: Vec<(String, crate::conditions::ConditionExpr)>,
@@ -173,6 +176,9 @@ impl<'a> Resolver<'a> {
             hardcoded_partition_arns: HashMap::new(),
             foreach_expansions: HashMap::new(),
             unsubstituted_variables: HashMap::new(),
+            unused_sub_keys: HashMap::new(),
+            raw_pseudo_params: HashMap::new(),
+            secretsmanager_ref_paths: HashMap::new(),
             invalid_refs: HashMap::new(),
             extra_condition_refs: HashMap::new(),
             inline_conditions: Vec::new(),
@@ -221,6 +227,8 @@ impl<'a> Resolver<'a> {
                 // produced by Sub/Join/Select) are collapsed to a deploy-time-opaque
                 // value centrally in `resolve_node`, so no per-node guard is needed here.
                 self.detect_unsubstituted_variables(s);
+                self.detect_raw_pseudo_param(s);
+                self.detect_secretsmanager_ref(s);
                 ResolvedValue::Concrete { value: serde_json::Value::String(s.clone()).into() }
             }
             Node::List(items) => {
@@ -1132,10 +1140,14 @@ impl<'a> Resolver<'a> {
                 if i + 2 < bytes.len() && bytes[i + 2] == b'!' {
                     i += 3;
                     continue;
-                } // ${! literal escape
+                }
                 let start = i + 2;
                 if let Some(end) = s[start..].find('}') {
                     let var = s[start..start + end].trim();
+                    if var.starts_with("stageVariables.") {
+                        i = start + end + 1;
+                        continue;
+                    }
                     if !var.is_empty()
                         && (self.resource_ids.contains(var)
                             || self.parameters.contains_key(var)
@@ -1165,6 +1177,28 @@ impl<'a> Resolver<'a> {
                 i += 1;
             }
         }
+    }
+
+    fn detect_raw_pseudo_param(&mut self, s: &str) {
+        if !s.starts_with(PSEUDO_PREFIX) {
+            return;
+        }
+        let Some(ref rid) = self.current_resource else {
+            return;
+        };
+        if PSEUDO_PARAMETERS_REFABLE.contains(&s) {
+            self.raw_pseudo_params.entry(rid.clone()).or_default().push((self.current_path.clone(), s.to_string()));
+        }
+    }
+
+    fn detect_secretsmanager_ref(&mut self, s: &str) {
+        if !s.contains("{{resolve:secretsmanager:") {
+            return;
+        }
+        let Some(ref rid) = self.current_resource else {
+            return;
+        };
+        self.secretsmanager_ref_paths.entry(rid.clone()).or_default().push(self.current_path.clone());
     }
 
     /// Returns true if the Fn::Join values array can be converted to Fn::Sub.
@@ -1212,6 +1246,16 @@ impl<'a> Resolver<'a> {
         if let Some(explicit_subs) = subs {
             for (k, v) in explicit_subs {
                 sub_map.insert(k.clone(), self.resolve_node(*v));
+            }
+            if let Some(ref rid) = self.current_resource {
+                for (k, _) in explicit_subs {
+                    if !vars.iter().any(|v| v == k) {
+                        self.unused_sub_keys
+                            .entry(rid.clone())
+                            .or_default()
+                            .push((self.current_path.clone(), k.clone()));
+                    }
+                }
             }
         }
 
