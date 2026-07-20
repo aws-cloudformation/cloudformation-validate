@@ -25,7 +25,7 @@ src/data-source/generated/patched_schemas/
 src/**/reports/
 **/cdk.out/
 *.pyc
-**/coverage/**
+**/coverage/
 
 # IDE
 **/*.iml
