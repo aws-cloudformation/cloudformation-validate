@@ -822,7 +822,7 @@
         "startColumn": 3,
         "endLine": 8,
         "endColumn": 10,
-        "ruleDescription": "Resource type must be recognized",
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
@@ -913,7 +913,7 @@
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
-        "fatal": 3,
+        "fatal": 2,
         "errors": 0,
         "warnings": 2,
         "informational": 2,
@@ -932,11 +932,11 @@
         "resourceId": "BadServerless",
         "resourceType": "AWS::Serverless::NotARealType",
         "category": "Schema",
-        "startLine": 10,
+        "startLine": 11,
         "startColumn": 3,
-        "endLine": 10,
+        "endLine": 11,
         "endColumn": 16,
-        "ruleDescription": "Resource type must be recognized",
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
@@ -953,37 +953,16 @@
         "resourceId": "BadCloudFormation",
         "resourceType": "AWS::CloudFormation::NotARealType",
         "category": "Schema",
-        "startLine": 15,
+        "startLine": 16,
         "startColumn": 3,
-        "endLine": 15,
+        "endLine": 16,
         "endColumn": 20,
-        "ruleDescription": "Resource type must be recognized",
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
           "extra": {
             "resource_type": "AWS::CloudFormation::NotARealType"
-          }
-        }
-      },
-      {
-        "ruleId": "F3006",
-        "severity": "FATAL",
-        "message": "Unknown resource type 'My::Org::MODULE::Thing'",
-        "source": "SCHEMA",
-        "resourceId": "MidStringModule",
-        "resourceType": "My::Org::MODULE::Thing",
-        "category": "Schema",
-        "startLine": 19,
-        "startColumn": 3,
-        "endLine": 19,
-        "endColumn": 18,
-        "ruleDescription": "Resource type must be recognized",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "resource_type": "My::Org::MODULE::Thing"
           }
         }
       },
@@ -995,9 +974,9 @@
         "resourceId": "GoodCustomResource",
         "resourceType": "AWS::CloudFormation::CustomResource",
         "category": "Security",
-        "startLine": 29,
+        "startLine": 31,
         "startColumn": 3,
-        "endLine": 29,
+        "endLine": 31,
         "endColumn": 21,
         "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
@@ -1011,9 +990,9 @@
         "resourceId": "GoodCustom",
         "resourceType": "Custom::MyThing",
         "category": "Security",
-        "startLine": 36,
+        "startLine": 38,
         "startColumn": 3,
-        "endLine": 36,
+        "endLine": 38,
         "endColumn": 13,
         "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
@@ -1028,9 +1007,9 @@
         "resourceType": "AWS::CloudFormation::CustomResource",
         "propertyPath": "Properties.ServiceToken",
         "category": "Best Practice",
-        "startLine": 32,
+        "startLine": 34,
         "startColumn": 7,
-        "endLine": 32,
+        "endLine": 34,
         "endColumn": 19,
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
@@ -1049,9 +1028,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 25,
+        "startLine": 27,
         "startColumn": 5,
-        "endLine": 25,
+        "endLine": 27,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
@@ -12317,7 +12296,7 @@
         "startColumn": 3,
         "endLine": 23,
         "endColumn": 17,
-        "ruleDescription": "Resource type must be recognized",
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
@@ -37016,7 +36995,7 @@
         "startColumn": 3,
         "endLine": 3,
         "endColumn": 15,
-        "ruleDescription": "Resource type must be recognized",
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
@@ -101829,7 +101808,7 @@
         "startColumn": 3,
         "endLine": 11,
         "endColumn": 20,
-        "ruleDescription": "Resource type must be recognized",
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
         "phase": "SCHEMA",
         "section": "Resources",
         "context": {
@@ -126842,7 +126821,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 0,
         "informational": 0,
@@ -126852,29 +126831,7 @@
       "strict": false,
       "severityLevel": "DEBUG"
     },
-    "diagnostics": [
-      {
-        "ruleId": "F3006",
-        "severity": "FATAL",
-        "message": "Unknown resource type 'Initech::TPS::Report'",
-        "source": "SCHEMA",
-        "resourceId": "MyReport",
-        "resourceType": "Initech::TPS::Report",
-        "category": "Schema",
-        "startLine": 2,
-        "startColumn": 3,
-        "endLine": 2,
-        "endColumn": 11,
-        "ruleDescription": "Resource type must be recognized",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "extra": {
-            "resource_type": "Initech::TPS::Report"
-          }
-        }
-      }
-    ]
+    "diagnostics": []
   },
   "good/schema_valid_resources.yaml": {
     "filePath": "good/schema_valid_resources.yaml",
@@ -128823,6 +128780,25 @@
         "section": "Resources"
       }
     ]
+  },
+  "good/unknown_resource_types_ignored.yaml": {
+    "filePath": "good/unknown_resource_types_ignored.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
   },
   "good/vpc_subnets.yaml": {
     "filePath": "good/vpc_subnets.yaml",
