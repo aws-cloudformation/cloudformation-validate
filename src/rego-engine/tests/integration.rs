@@ -584,7 +584,7 @@ fn e2e_invalid_mapping_structure() {
 #[test]
 fn e2e_undefined_condition() {
     let report = validate_fixture("bad/undefined_condition.yaml");
-    assert!(has_rule(&report, "F8002"), "Undefined condition should trigger F8002, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "E8002"), "Undefined condition should trigger E8002, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -651,8 +651,8 @@ fn e2e_if_wrong_arity() {
 fn e2e_equals_wrong_arity() {
     let report = validate_fixture("bad/equals_wrong_arity.yaml");
     assert!(
-        has_rule(&report, "F0014"),
-        "Fn::Equals with 3 elements should trigger parse error, got: {:?}",
+        has_rule(&report, "E8003"),
+        "Fn::Equals with 3 elements should trigger E8003 shape error, got: {:?}",
         report.diagnostics
     );
 }
@@ -710,7 +710,7 @@ fn e2e_w1020_prefix_sub_no_trigger() {
 #[test]
 fn e2e_e1029_nested_intrinsic_syntax() {
     let report = validate_fixture("bad/sub_nested_intrinsic.yaml");
-    assert!(!has_rule(&report, "F1029"), "${{! is valid literal escape syntax in Fn::Sub, not an error");
+    assert!(!has_rule(&report, "E1029"), "${{! is valid literal escape syntax in Fn::Sub, not an error");
 }
 
 #[test]

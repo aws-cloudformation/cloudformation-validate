@@ -2239,7 +2239,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, res) in &m.resources {
         for s in &res.diagnostics.unsubstituted_variables {
             out.push(make_resource_diagnostic(
-                "F1029",
+                "E1029",
                 &format!("Found an embedded parameter '{}' outside of an 'Fn::Sub' at {}", s.value, s.path),
                 m,
                 name,

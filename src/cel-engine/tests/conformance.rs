@@ -449,7 +449,7 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_sub_needed() {
         let ids = validate_file("bad/sub_needed.yaml");
-        assert!(has_rule(&ids, "F1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
+        assert!(has_rule(&ids, "E1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
     }
 
     #[test]
@@ -537,13 +537,13 @@ mod rule_category_tests {
     #[test]
     fn conditions_undefined_condition() {
         let ids = validate_file("bad/undefined_condition.yaml");
-        assert!(has_rule(&ids, "F8002"), "Expected condition error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8002"), "Expected condition error, got: {:?}", ids);
     }
 
     #[test]
     fn conditions_equals_wrong_arity() {
         let ids = validate_file("bad/equals_wrong_arity.yaml");
-        assert!(has_rule(&ids, "F0014") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8003") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
     }
 
     #[test]

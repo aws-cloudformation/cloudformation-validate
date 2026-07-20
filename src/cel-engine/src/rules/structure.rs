@@ -322,13 +322,29 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 && !defined_conditions.contains(cond.as_str())
             {
                 out.push(make_resource_diagnostic(
-                    "F8002",
+                    "E8002",
                     &format!("Condition '{}' referenced by resource '{}' is not defined", cond, rname),
                     m,
                     rname,
                     "",
                     None,
                 ));
+            }
+        }
+        if let Some(outputs_obj) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
+            for (oname, out_val) in outputs_obj {
+                if let Some(cond) = out_val.get("condition").and_then(|c| c.as_str())
+                    && !defined_conditions.contains(cond)
+                {
+                    out.push(make_resource_diagnostic(
+                        "E8002",
+                        &format!("Condition '{}' referenced by output '{}' is not defined", cond, oname),
+                        m,
+                        "",
+                        "",
+                        None,
+                    ));
+                }
             }
         }
     }

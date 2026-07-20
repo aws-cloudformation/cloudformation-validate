@@ -20,6 +20,10 @@ pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(Category::Intrinsic, eval_intrinsics);
     reg.add(Category::Intrinsic, eval_intrinsic_params);
     reg.add(Category::Intrinsic, eval_dynamic_references);
+    reg.add(Category::Intrinsic, eval_unused_sub_keys);
+    reg.add(Category::Intrinsic, eval_raw_pseudo_params);
+    reg.add(Category::Intrinsic, eval_secretsmanager_arn);
+    reg.add(Category::Intrinsic, eval_dynref_format);
 }
 
 fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -197,13 +201,15 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(crefs) = res.get("conditionRefs").and_then(|r| r.as_array()) {
+        if !cond_keys.is_empty()
+            && let Some(crefs) = res.get("conditionRefs").and_then(|r| r.as_array())
+        {
             for cref in crefs {
                 if let Some(cname) = cref.as_str()
                     && !cond_keys.contains(cname)
                 {
                     out.push(make_resource_diagnostic(
-                        "F1060",
+                        "E1028",
                         &format!("Fn::If condition '{}' does not exist in Conditions section", cname),
                         m,
                         name,
@@ -545,4 +551,188 @@ fn scan_for_dynamic_refs_in_section(
         }
         _ => {}
     }
+}
+
+fn eval_unused_sub_keys(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+    let input = ctx.input;
+
+    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
+        Some(r) => r,
+        None => return out,
+    };
+
+    for (name, res) in resources {
+        if let Some(entries) = res.get("unusedSubKeys").and_then(|v| v.as_array()) {
+            for entry in entries {
+                let path = entry.get("path").and_then(|p| p.as_str()).unwrap_or("");
+                let variable = entry.get("variable").and_then(|v| v.as_str()).unwrap_or("");
+                out.push(make_resource_diagnostic(
+                    "W1019",
+                    &format!("Parameter '{}' not used in Fn::Sub template string", variable),
+                    m,
+                    name,
+                    path,
+                    Some("Remove the unused key from the Fn::Sub variable map or reference it in the template string"),
+                ));
+            }
+        }
+    }
+
+    out
+}
+
+fn eval_raw_pseudo_params(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+    let input = ctx.input;
+
+    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
+        Some(r) => r,
+        None => return out,
+    };
+
+    for (name, res) in resources {
+        if let Some(entries) = res.get("rawPseudoParams").and_then(|v| v.as_array()) {
+            for entry in entries {
+                let path = entry.get("path").and_then(|p| p.as_str()).unwrap_or("");
+                let variable = entry.get("variable").and_then(|v| v.as_str()).unwrap_or("");
+                out.push(make_resource_diagnostic(
+                    "W1054",
+                    &format!(
+                        "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
+                        variable, variable
+                    ),
+                    m,
+                    name,
+                    path,
+                    Some("Use Ref to reference pseudo parameters instead of embedding them as literal strings"),
+                ));
+            }
+        }
+    }
+
+    out
+}
+
+fn eval_secretsmanager_arn(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+    let input = ctx.input;
+    let arn_fields = &ctx.cached_data.secretsmanager_arn_fields;
+
+    if arn_fields.is_empty() {
+        return out;
+    }
+
+    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
+        Some(r) => r,
+        None => return out,
+    };
+
+    for (name, res) in resources {
+        if let Some(paths) = res.get("secretsmanagerRefPaths").and_then(|v| v.as_array()) {
+            for path_val in paths {
+                let path = path_val.as_str().unwrap_or("");
+                if arn_fields.iter().any(|field| path_segment_matches(path, field)) {
+                    out.push(make_resource_diagnostic(
+                        "W1051",
+                        "Dynamic reference resolves the secret value but this property expects the secret ARN",
+                        m,
+                        name,
+                        path,
+                        Some("Use the secret ARN directly or retrieve it from Fn::GetAtt instead of using a resolve reference"),
+                    ));
+                }
+            }
+        }
+    }
+
+    out
+}
+
+fn path_segment_matches(path: &str, field: &str) -> bool {
+    path.split('.').any(|segment| segment == field)
+}
+
+
+static SSM_FORMAT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"^\{\{resolve:ssm(?:-secure)?:[a-zA-Z0-9_.\-/]+(?::\d+)?\}\}$").expect("Invalid SSM_FORMAT_RE")
+});
+
+static SM_FORMAT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(
+        r"^\{\{resolve:secretsmanager:(?:arn:[^:]+:[^:]*:[^:]*:[^:]*:secret:[^:]+(?::[^}]*)*|[^:}]+(?::(?:SecretString|)(?::[^:}]*(?::[^:}]*)?)?)?)\}\}$",
+    )
+    .expect("Invalid SM_FORMAT_RE")
+});
+
+static DYNREF_EXTRACT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"\{\{resolve:(ssm-secure|ssm|secretsmanager):[^}]*\}\}").expect("Invalid DYNREF_EXTRACT_RE")
+});
+
+fn eval_dynref_format(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+    let input = ctx.input;
+
+    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
+        Some(r) => r,
+        None => return out,
+    };
+
+    for (name, res) in resources {
+        if let Some(props) = res.get(FIELD_PROPERTIES).and_then(|p| p.as_object()) {
+            for (prop, val) in props {
+                let path = format!("Properties.{}", prop);
+                if let Some((match_str, ref_type)) = find_first_malformed_dynref(val) {
+                    out.push(make_resource_diagnostic(
+                        "E1050",
+                        &format!(
+                            "Dynamic reference '{}' does not match the required format for '{}'",
+                            match_str, ref_type
+                        ),
+                        m,
+                        name,
+                        &path,
+                        Some("Check the dynamic reference syntax"),
+                    ));
+                }
+            }
+        }
+    }
+
+    out
+}
+
+fn find_first_malformed_dynref(val: &serde_json::Value) -> Option<(String, String)> {
+    match val {
+        serde_json::Value::String(s) => find_malformed_dynref_in_str(s),
+        serde_json::Value::Array(arr) => arr.iter().find_map(find_first_malformed_dynref),
+        serde_json::Value::Object(obj) => {
+            if let Some(reason) = obj.get("__dynamic").and_then(|v| v.as_str()) {
+                find_malformed_dynref_in_str(reason)
+            } else {
+                obj.values().find_map(find_first_malformed_dynref)
+            }
+        }
+        _ => None,
+    }
+}
+
+fn find_malformed_dynref_in_str(s: &str) -> Option<(String, String)> {
+    for cap in DYNREF_EXTRACT_RE.captures_iter(s) {
+        let full_match = cap.get(0).map(|m| m.as_str()).unwrap_or("");
+        let ref_type = &cap[1];
+        let valid = match ref_type {
+            "ssm" | "ssm-secure" => SSM_FORMAT_RE.is_match(full_match),
+            "secretsmanager" => SM_FORMAT_RE.is_match(full_match),
+            _ => true,
+        };
+        if !valid {
+            return Some((full_match.to_string(), ref_type.to_string()));
+        }
+    }
+    None
 }
