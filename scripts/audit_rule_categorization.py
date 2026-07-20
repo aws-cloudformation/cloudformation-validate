@@ -180,7 +180,7 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E1020": "F1020",   # Ref target must exist
         "E1022": "F1020",   # GetAtt target must exist (incl. inside Fn::Join)
         "E1028": "F0013",   # Fn::If must have exactly 3 elements
-        "E1029": "F1029",   # Sub required when a variable is used
+        "E1029": "E1029",   # Sub required when a variable is used
         "E1030": "F1030",   # Fn::Length requires the AWS::LanguageExtensions transform
         "E1031": "F1031",   # Fn::ToJsonString requires the AWS::LanguageExtensions transform
         "E1032": "F1032",   # Fn::ForEach requires the AWS::LanguageExtensions transform
@@ -195,7 +195,7 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E3007": "F3007",   # Unique resource / parameter names
         "E3012": "F3012",   # Property type mismatch
         "E3014": "F3014",   # Exactly one of (requiredXor)
-        "E3015": "F8002",   # Resource Condition must exist
+        "E3015": "E8002",   # Resource Condition must exist
         "E3017": "F3017",   # anyOf
         "E3018": "F3018",   # oneOf
         "E3020": "F3020",   # mutually exclusive properties
@@ -214,12 +214,12 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E6101": "F6101",   # Output value must be a string
         "E6102": "F6005",   # Output Export validation
         "E7002": "F7002",   # Mapping name length
-        "E8002": "F8002",   # Condition reference must exist
+        "E8002": "E8002",   # Condition reference must exist
         "E8001": "F0013",   # Fn::If structure inside a Condition (engine emits F0013)
-        "E8003": "F0014",   # Fn::Equals element count
-        "E8004": "F0014",   # Fn::And element count
-        "E8005": "F0014",   # Fn::Not element count
-        "E8006": "F0014",   # Fn::Or element count
+        "E8003": "E8003",   # Fn::Equals structure
+        "E8004": "E8004",   # Fn::And structure
+        "E8005": "E8005",   # Fn::Not structure
+        "E8006": "E8006",   # Fn::Or structure
         # SAM transform pre-flight: engine emits cfn-lint's E0001 directly
         "E0001": "E0001",
         # cfn-lint Error → our Error under a different ID (no Fatal divergence):
@@ -294,6 +294,18 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # Resources) is intentionally NOT linked — cfn-lint does not flag it, so it
     # stays a genuine engine-extra finding.
     _link("E1001", "F0002", "F0005")
+    # Fn::If: cfn-lint's E1028 covers both structure (3-element) and the
+    # condition-name-must-exist check. The engine splits: F0013 (structure)
+    # and E1028 (condition exists). Link so either engine rule matches.
+    _link("E1028", "F0013")
+    # Condition reference in Conditions section: cfn-lint's E8002 covers
+    # resource condition key + outputs condition, now emitted as E8002 by us.
+    _link("E8002", "E3015")
+    # cfn-lint's E8004/E8005/E8006 also cover undefined condition refs inside
+    # And/Not/Or; the engine splits the "must exist" check into E8007.
+    _link("E8004", "E8007")
+    _link("E8005", "E8007")
+    _link("E8006", "E8007")
 
     engine_to_cfnlint = {}
     for cid, eid in cfnlint_to_engine.items():
@@ -442,6 +454,12 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         if (diag.get("rule_id") == "W3030"
                 and (diag.get("resource_id") == "myBucketFirstAndLastPass"
                      or "Fn::If" in diag.get("message", ""))):
+            return True
+        # E1028: engine reports all undefined condition refs in a resource;
+        # cfn-lint short-circuits after the first invalid condition in a nested
+        # Fn::If chain. Extra findings past the first are engine-extra (correct
+        # but cfn-lint won't produce them).
+        if diag.get("rule_id") == "E1028":
             return True
         return False
 
@@ -788,12 +806,12 @@ def build_report(origins: RuleOrigins) -> str:
         "E1019": ("F1018", "Sub variable resolution"),
         "E1021": ("F1101", "Base64 structural validation (template-model parser)"),
         "E1022": ("F1101", "Join structural validation (template-model parser)"),
-        "E1028": ("F0013", "Fn::If must have 3 elements"),
+        "E1028": ("E1028/F0013", "Fn::If condition + structure"),
         "E1700": ("F8600", "Rules section config"),
         "E1701": ("F8603", "Rule Assertions required"),
         "E1702": ("F8606", "Rule RuleCondition validation"),
         "E2010": ("F0003", "Parameter limit 200"),
-        "E3015": ("F8002", "Condition reference on resource"),
+        "E3015": ("E8002", "Condition reference on resource"),
         # E3008: prefixItems array validation — handled by schema-validator
         # through compiled JSON Schema (prefixItems is a standard JSON Schema keyword).
         "E3008": ("schema-patch", "Array prefixItems validation (compiled schema)"),
@@ -807,16 +825,16 @@ def build_report(origins: RuleOrigins) -> str:
         "E6010": ("F0004", "Output limit 200"),
         "E6102": ("F6005/F6101", "Output Export validation"),
         "E7010": ("F0008", "Mappings limit 200"),
-        "E8004": ("F0014", "Fn::And structure"),
-        "E8005": ("F0014", "Fn::Not structure"),
-        "E8006": ("F0014", "Fn::Or structure"),
-        "E8007": ("F8002", "Condition reference validation"),
+        "E8004": ("E8004", "Fn::And structure"),
+        "E8005": ("E8005", "Fn::Not structure"),
+        "E8006": ("E8006", "Fn::Or structure"),
+        "E8007": ("E8007", "Condition reference validation"),
         # Info approaching-limits rules — covered by I-prefix equivalents:
         "I1002": ("I2010/I6010", "approaching template size (via parameter/output limit warns)"),
         "I3010": ("I2010", "resource limit approach"),
         # Intrinsic resolved-value rules — our engine does resolution during
         # SemanticModel build; resolved-value errors surface via schema rules:
-        "W1019": ("F1018/F1029", "Fn::Sub parameter usage"),
+        "W1019": ("F1018/E1029", "Fn::Sub parameter usage"),
         "W1031": ("F3012+W9003", "Fn::Sub resolved values (via resolver)"),
         "W1032": ("F3012+W9003", "Fn::Join resolved values"),
         "W1033": ("F3012+W9003", "Fn::Split resolved values"),
