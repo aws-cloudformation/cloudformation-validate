@@ -1,30 +1,45 @@
-# CloudFormation Validate WASM Bindings
+# CloudFormation Validate for Node.js
 
-WASM bindings for [`cloudformation-validate`](https://github.com/aws-cloudformation/cloudformation-validate). Compiles
-the full validation pipeline —
-template parser, schema validator, Rego engine, and CEL engine — into a single `.wasm` module for Node.js.
+Validate AWS CloudFormation templates from JavaScript or TypeScript and catch schema violations, security risks, and
+best-practice findings before deployment — in your editor, build, or CI.
 
-All WASM objects must be explicitly freed via `.free()` to release memory.
+- **Offline** — all rules and resource schemas are bundled.
+- **Fast** — sub-second validation per template.
 
-For a complete, runnable example, see
+## Installation
+
+Available on [npm](https://www.npmjs.com/package/@aws/cloudformation-validate) as `@aws/cloudformation-validate`.
+
+```bash
+npm install @aws/cloudformation-validate
+```
+
+## Quick start
+
+Engines, models, and validators hold off-heap memory — call `.free()` when done with each object:
+
+```typescript
+import { RegoEngine, TemplateFile } from "@aws/cloudformation-validate";
+
+const engine = new RegoEngine();
+try {
+    const report = engine.validateStandard(new TemplateFile("template.yaml"));
+    for (const d of report.diagnostics) {
+        console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
+    }
+} finally {
+    engine.free();
+}
+```
+
+Each diagnostic identifies the rule, severity, affected resource and property, and source location — see
+[StandardDiagnostic](#standarddiagnostic). A complete, runnable project is in
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-wasm/examples).
 
 ## Engine
 
-`RegoEngine` and `CelEngine` both implement the `Engine` interface. They are interchangeable — both produce identical
+`RegoEngine` and `CelEngine` both implement the `Engine` interface and are interchangeable — they produce identical
 diagnostics for the same template and config.
-
-```typescript
-import { RegoEngine, CelEngine, TemplateFile } from "@aws/cloudformation-validate";
-
-const engine = new RegoEngine();
-const report = engine.validateStandard(new TemplateFile("template.yaml"));
-
-for (const d of report.diagnostics) {
-    console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
-}
-engine.free();
-```
 
 ### `Engine` interface
 
@@ -34,7 +49,7 @@ engine.free();
 | `validateDetailed(template, config?)` | `DetailedReport` | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
 | `listRules()`                         | `RuleInfo[]`     | Returns metadata for every built-in and loaded custom rule                                                       |
 | `engineName()`                        | `string`         | `"rego"` or `"cel"`                                                                                              |
-| `free()`                              | `void`           | Releases WASM memory                                                                                             |
+| `free()`                              | `void`           | Releases the engine's off-heap memory                                                                            |
 
 ### `EngineConfig`
 
