@@ -7,12 +7,8 @@ repositories {
     mavenCentral()
 }
 
-val bindingsJar = file("${rootProject.projectDir}/../generated/cloudformation-validate.jar")
-
 dependencies {
-    implementation(files(bindingsJar))
-    implementation("net.java.dev.jna:jna:5.19.1")
-    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("software.amazon.cloudformation:cloudformation-validate:latest.release")
 }
 
 application {
