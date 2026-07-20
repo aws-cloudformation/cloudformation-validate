@@ -744,12 +744,12 @@ pub(crate) fn build_context(
         "I9001" => {
             lifecycle = Some("create-only".into());
         }
-        "W3041" => {
+        "W9054" => {
             lifecycle = Some("write-only".into());
         }
         // Lambda runtime lifecycle: surface the offending runtime string and the
         // stage of its lifecycle, mirroring how resource-type deprecation (W9009)
-        // and property lifecycle (I9001/W3041) carry a lifecycle marker. The runtime
+        // and property lifecycle (I9001/W9054) carry a lifecycle marker. The runtime
         // is emitted once per condition branch, so only attach the value when every
         // branch agrees — otherwise the message alone names the branch's runtime.
         "E2533" => {
@@ -1888,7 +1888,7 @@ Resources:
     #[test]
     fn build_context_w3041_sets_write_only_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("W3041", Some("Bucket"), "", &model).expect("W3041 should return context");
+        let ctx = build_context("W9054", Some("Bucket"), "", &model).expect("W3041 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("write-only"));
     }
 
