@@ -1,4 +1,4 @@
-# CloudFormation Validate for the JVM
+# CloudFormation Validate for JVM
 
 Validate AWS CloudFormation templates from Kotlin or Java and catch schema violations, security risks, and
 best-practice findings before deployment — in your editor, build, or CI.
