@@ -16,6 +16,7 @@ struct LoadedYaml {
     docs: Vec<Yaml>,
     span_map: HashMap<String, (u32, u32)>,
     dup_key_diagnostics: Vec<diagnostics::Diagnostic>,
+    merge_key_spans: Vec<SourceSpan>,
 }
 
 /// One open container while the event stream is being consumed. The frame stack
@@ -62,6 +63,8 @@ struct CfnYamlLoader {
     /// are detected here at load time — matching how the JSON front-end pre-scans for
     /// them. One diagnostic per occurrence after the first, like the JSON path.
     dup_key_diagnostics: Vec<diagnostics::Diagnostic>,
+    /// Source positions of YAML merge keys (`<<`) encountered during loading.
+    merge_key_spans: Vec<SourceSpan>,
 }
 
 impl CfnYamlLoader {
@@ -78,6 +81,7 @@ impl CfnYamlLoader {
             pending_dup_diagnostics: Vec::new(),
             mapping_uses_merge: Vec::new(),
             dup_key_diagnostics: Vec::new(),
+            merge_key_spans: Vec::new(),
         }
     }
 
@@ -91,7 +95,12 @@ impl CfnYamlLoader {
             let (line, column) = Self::mark_position(*e.marker());
             ParseError { message: format!("YAML parse error: {}", e), line: Some(line), column: Some(column) }
         })?;
-        Ok(LoadedYaml { docs: loader.docs, span_map: loader.span_map, dup_key_diagnostics: loader.dup_key_diagnostics })
+        Ok(LoadedYaml {
+            docs: loader.docs,
+            span_map: loader.span_map,
+            dup_key_diagnostics: loader.dup_key_diagnostics,
+            merge_key_spans: loader.merge_key_spans,
+        })
     }
 
     /// The canonical `/`-separated path of the value the innermost frame is about to
@@ -237,6 +246,14 @@ impl CfnYamlLoader {
                         && let Some(flag) = self.mapping_uses_merge.last_mut()
                     {
                         *flag = true;
+                        if let Some(Some((line, col))) = self.key_marks.last() {
+                            self.merge_key_spans.push(SourceSpan {
+                                start_line: *line,
+                                start_column: *col,
+                                end_line: *line,
+                                end_column: *col + 2,
+                            });
+                        }
                     }
                     // A returned old value means this key already existed: yaml_rust2
                     // would silently overwrite it, so flag the duplicate (one per
@@ -561,7 +578,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         column: None,
     })?;
 
-    let LoadedYaml { mut docs, span_map: raw_spans, dup_key_diagnostics } = CfnYamlLoader::load(text)?;
+    let LoadedYaml { mut docs, span_map: raw_spans, dup_key_diagnostics, merge_key_spans } = CfnYamlLoader::load(text)?;
 
     if docs.is_empty() {
         return Err(ParseError { message: "Empty YAML document".into(), line: Some(1), column: Some(1) });
@@ -581,6 +598,14 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
 
     let mut builder = Builder::new();
     builder.diagnostics = dup_key_diagnostics;
+    for span in merge_key_spans {
+        builder.diagnostics.push(crate::make_parse_diagnostic(
+            "W1100",
+            "YAML merge key '<<' is not supported by CloudFormation - use 'aws cloudformation package' to pre-process"
+                .to_string(),
+            span,
+        ));
+    }
     let root = builder.build_map(&YamlValue(&docs[0]), "");
 
     let sections = TemplateSections::extract(&builder.arena, root);
@@ -768,22 +793,22 @@ mod tests {
     /// a type error — `Fn::Contains` is a boolean-producing Rules-section
     /// intrinsic, not a non-boolean expression.
     #[test]
-    fn fn_not_accepts_fn_contains_argument_no_f0014() {
+    fn fn_not_accepts_fn_contains_argument_no_e8005() {
         let input = "Parameters:\n  BootstrapVersion:\n    Type: String\nResources:\n  B:\n    Type: AWS::S3::Bucket\nRules:\n  CheckBootstrapVersion:\n    Assertions:\n      - Assert:\n          Fn::Not:\n            - Fn::Contains:\n                - [\"1\", \"2\", \"3\", \"4\", \"5\"]\n                - Ref: BootstrapVersion\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
-        assert!(f0014.is_empty(), "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}", f0014);
+        let shape_errors: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "E8005").collect();
+        assert!(shape_errors.is_empty(), "Expected no E8005 for Fn::Not(Fn::Contains), got: {:?}", shape_errors);
     }
 
     #[test]
-    fn fn_not_with_string_argument_still_produces_f0014() {
+    fn fn_not_with_string_argument_produces_e8005() {
         let input = "Resources:\n  B:\n    Type: AWS::S3::Bucket\nConditions:\n  Bad:\n    Fn::Not:\n      - definitely-not-boolean\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics.iter().any(|d| d.rule_id == "F0014"
+            ir.diagnostics.iter().any(|d| d.rule_id == "E8005"
                 && d.message.contains("Fn::Not")
                 && d.message.contains("is not of type 'boolean'")),
-            "Expected F0014 for Fn::Not with string arg, got: {:?}",
+            "Expected E8005 for Fn::Not with string arg, got: {:?}",
             ir.diagnostics
         );
     }

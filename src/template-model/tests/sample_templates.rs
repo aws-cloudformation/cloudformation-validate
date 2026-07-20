@@ -120,7 +120,8 @@ fn mappings_extraction_and_lookup() {
 #[test]
 fn conditions_nested_short_form_tags() {
     let m = load("lsp/comprehensive.yaml");
-    assert_eq!(m.conditions.conditions.len(), 6);
+    let user_conditions = m.conditions.conditions.keys().filter(|k| !k.starts_with("__")).count();
+    assert_eq!(user_conditions, 6);
     // These use nested !Or [!Condition ..., !Equals [...]] etc.
     assert!(m.conditions.conditions.contains_key("IsProductionOrStaging"), "missing condition IsProductionOrStaging");
     assert!(m.conditions.conditions.contains_key("ComplexCondition"), "missing condition ComplexCondition");

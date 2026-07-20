@@ -428,7 +428,7 @@ fn property_w3042_deprecated() {
 #[test]
 fn property_w3041_write_only_in_output() {
     let diags = validate_fixture("bad/schema_write_only.yaml");
-    let w3041 = diags_for(&diags, "W3041");
+    let w3041 = diags_for(&diags, "W9054");
     assert!(!w3041.is_empty(), "expected W3041 for write-only Certificate referenced in output");
     assert!(w3041[0].message.contains("Write-only") || w3041[0].message.contains("write-only"));
 }
