@@ -380,9 +380,17 @@ def load_engine_results():
             rule_id = d.get("ruleId", "")
             severity = d.get("severity", "")
             severity = _ENGINE_SEV_MAP.get(severity, severity)
-            resource_id = d.get("resourceId", "")
+            entity = d.get("entity") or {}
+            resource_id = entity.get("logicalId", "") if entity.get("entityType") == "Resource" else ""
+            resource_type = entity.get("resourceType", "")
             resource_path = d.get("propertyPath", "")
-            if resource_path.startswith("Outputs/"):
+            if rule_id == "F0000":
+                # cfn-lint's E0000 parse-error records never carry a Path, so the
+                # engine's richer identity (entity + duplicated-key path) would
+                # defeat both matching passes; compare on the bare rule instead.
+                resource_id = ""
+                resource_path = ""
+            elif resource_path.startswith("Outputs/"):
                 resource_path = resource_path.replace("/", ".")
                 resource_id = ""
             elif resource_id and resource_path.startswith("Outputs."):
@@ -394,7 +402,7 @@ def load_engine_results():
                 "severity": severity,
                 "message": d.get("message", ""),
                 "resource_id": resource_id,
-                "resource_type": d.get("resourceType", ""),
+                "resource_type": resource_type,
                 "resource_path": resource_path,
                 "line": d.get("startLine", 0),
                 "end_line": d.get("endLine", 0),

@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-21 16:41:08  
+> Generated: 2026-07-21 19:22:54  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -24,7 +24,7 @@
 |--------|------:|
 | True Positives | 2039 |
 | False Positives (engine bugs) | 1 |
-| Engine Extra (correct, cfn-lint gap) | 5794 |
+| Engine Extra (correct, cfn-lint gap) | 5793 |
 | False Negatives (engine misses) | 343 |
 | Precision | 99.95% |
 | Recall | 85.60% |
@@ -39,32 +39,32 @@
 |----------|---:|---:|---:|---:|----------:|-------:|
 | Fatal | 418 | 0 | 63 | 113 | 100.00% | 78.72% |
 | Error | 383 | 1 | 3 | 151 | 99.74% | 71.72% |
-| Warning | 736 | 0 | 343 | 60 | 100.00% | 92.46% |
+| Warning | 736 | 0 | 342 | 60 | 100.00% | 92.46% |
 | Info | 502 | 0 | 5385 | 19 | 100.00% | 96.35% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 31665.8396 ms |
-| Throughput | 89.37 validations/sec |
-| Templates | 566 ok, 8 failed |
+| Total wall time | 23982.9935 ms |
+| Throughput | 118.21 validations/sec |
+| Templates | 567 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 101.4117 ms |
-| Engine init (max) | 102.4737 ms |
-| Schema init (p99) | 96.2862 ms |
-| Schema init (max) | 96.7687 ms |
+| Engine init (p99) | 60.3339 ms |
+| Engine init (max) | 60.5424 ms |
+| Schema init (p99) | 71.9970 ms |
+| Schema init (max) | 72.3610 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0025 | 0.2235 | 0.0452 | 0.7023 | 1.0118 | 2.0951 | 3.3000 |
-| Schema Validate | 0.0000 | 0.4913 | 0.1699 | 1.3757 | 2.0316 | 3.8006 | 7.1660 |
-| Rule Evaluation | 1.0268 | 8.7397 | 3.1556 | 21.9790 | 33.5358 | 71.0345 | 191.8216 |
-| Diagnostic Finalize | 0.0007 | 0.0118 | 0.0051 | 0.0302 | 0.0439 | 0.0890 | 0.1845 |
-| Engine Internal | 1.0421 | 9.6822 | 3.4813 | 25.3439 | 37.0951 | 72.1678 | 194.2697 |
-| Wall Clock | 1.0424 | 9.6830 | 3.4821 | 25.3450 | 37.0965 | 72.1693 | 194.2705 |
+| Model Build | 0.0027 | 0.2163 | 0.0436 | 0.6821 | 0.9954 | 1.9032 | 3.1927 |
+| Schema Validate | 0.0000 | 0.4560 | 0.1579 | 1.3099 | 1.8818 | 3.5745 | 8.0033 |
+| Rule Evaluation | 0.9585 | 7.2192 | 2.3928 | 18.6782 | 27.4797 | 54.0605 | 142.3546 |
+| Diagnostic Finalize | 0.0004 | 0.0106 | 0.0041 | 0.0255 | 0.0437 | 0.0863 | 0.2009 |
+| Engine Internal | 0.9718 | 7.9613 | 2.7009 | 20.7133 | 30.6836 | 56.9307 | 144.6723 |
+| Wall Clock | 0.9719 | 7.9618 | 2.7010 | 20.7143 | 30.6842 | 56.9319 | 144.6735 |
 
 ## False Negatives — 343 missed findings across 83 rules
 
@@ -658,14 +658,14 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 ### E2001 — 4 missed — Parameters have appropriate properties
 
-- **E2001** → `Parameters.allowedValuesAListofBadTypes.AllowedValues.0` L10-11 in `bad_parameters_configuration_yaml`
-  > {'key': 'value'} is not of type 'string'
-- **E2001** → `Parameters.maxLengthIsNotString.MaxLength` L16 in `bad_parameters_configuration_yaml`
-  > 'MaxLength' is not one of ['AllowedValues', 'ConstraintDescription', 'Default', 'Description', 'MaxValue', 'MinValue', 'NoEcho', 'Type']
-- **E2001** → `Parameters.myInvalidParameter.NotType` L27 in `bad_parameters_configuration_yaml`
-  > Additional properties are not allowed ('NotType' was unexpected)
-- **E2001** → `Parameters.NullParamType` L35 in `bad_parameters_configuration_yaml`
-  > 'Type' is a required property
+- **E2001** → `Parameters.NullParamMinValue.MinValue` L48 in `bad_parameters_configuration_yaml`
+  > None is not of type 'number'
+- **E2001** → `Parameters.NullParamMaxLength.MaxLength` L51 in `bad_parameters_configuration_yaml`
+  > None is not of type 'integer'
+- **E2001** → `Parameters.NullParamMinLength.MinLength` L54 in `bad_parameters_configuration_yaml`
+  > None is not of type 'integer'
+- **E2001** → `Parameters.NullParamNoEcho.NoEcho` L57 in `bad_parameters_configuration_yaml`
+  > None is not of type 'boolean'
 
 ### E3023 — 4 missed — Validate Route53 RecordSets
 
@@ -1011,10 +1011,10 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 
 ### E0001 — 1 extra — Error found when transforming the template
 
-- **E0001** `Layer` → `Properties` L5 in `bad_sam_layerversion_invalid_compatible_architectures_yaml`
+- **E0001** `Layer` (AWS::Serverless::LayerVersion) → `Properties` L5 in `bad_sam_layerversion_invalid_compatible_architectures_yaml`
   > Error transforming template: Resource with id [Layer] is invalid. CompatibleArchitectures needs to be a list of 'x86_64' or 'arm64'
 
-## Engine Extra — 5794 correct findings across 38 rules
+## Engine Extra — 5793 correct findings across 38 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -12526,17 +12526,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F2012 — 6 findings
 
-- **F2012** L2 in `bad_param_number_default_yaml`
+- **F2012** → `Parameters/Port/Default` L5 in `bad_param_number_default_yaml`
   > Parameter 'Port' Default 'not-a-number' is not in AllowedValues ['abc', 'def']
-- **F2012** L3 in `bad_parameters_default_yaml`
-  > Parameter 'CDLAllowedValues' Default 'three' is not in AllowedValues ['one', 'two', 'three,four']
-- **F2012** L3 in `bad_parameters_default_yaml`
-  > Parameter 'CDLAllowedValuesWithSpaces' Default 'three,four' is not in AllowedValues ['one', 'two', 'three, four']
-- **F2012** L3 in `bad_parameters_default_yaml`
+- **F2012** → `Parameters/myAllowedValue/Default` L18 in `bad_parameters_default_yaml`
   > Parameter 'myAllowedValue' Default 'us-east-1a' is not in AllowedValues ['us-east-1b', 'us-east-1c', 'us-east-1d']
-- **F2012** L3 in `good_parameters_default_yaml`
+- **F2012** → `Parameters/CDLAllowedValues/Default` L47 in `bad_parameters_default_yaml`
+  > Parameter 'CDLAllowedValues' Default 'three' is not in AllowedValues ['one', 'two', 'three,four']
+- **F2012** → `Parameters/CDLAllowedValuesWithSpaces/Default` L56 in `bad_parameters_default_yaml`
+  > Parameter 'CDLAllowedValuesWithSpaces' Default 'three,four' is not in AllowedValues ['one', 'two', 'three, four']
+- **F2012** → `Parameters/CDLAllowedPatternWithSpaceInDefault/Default` L57 in `good_parameters_default_yaml`
   > Parameter 'CDLAllowedPatternWithSpaceInDefault' Default 'one, two' is not in AllowedValues ['one', 'two', 'three,four']
-- **F2012** L3 in `good_parameters_default_yaml`
+- **F2012** → `Parameters/CDLAllowedValuesWithSpaceInDefault/Default` L71 in `good_parameters_default_yaml`
   > Parameter 'CDLAllowedValuesWithSpaceInDefault' Default 'one, two' is not in AllowedValues ['one', 'two', 'three,four']
 
 ### F1020 — 5 findings — Ref validation of value
@@ -12603,7 +12603,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F1105 — 3 findings
 
-- **F1105** `myInstance` → `Properties.ImageId.Fn::FindInMap.2` L9 in `bad_functions_base64_yaml`
+- **F1105** `myInstance` (AWS::EC2::Instance) → `Properties.ImageId.Fn::FindInMap.2` L9 in `bad_functions_base64_yaml`
   > 'Fn::GetAtt' is not allowed inside 'Fn::FindInMap'
 - **F1105** → `Conditions/primaryRegion/Fn::Equals/1` L4 in `bad_functions_import_value_yaml`
   > 'Fn::ImportValue' is not allowed inside 'Fn::Equals'
@@ -12612,11 +12612,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### W2509 — 3 findings
 
-- **W2509** L5 in `bad_properties_password_yaml`
-  > Parameter 'MyNewPassword' appears to be a password but does not have NoEcho set to true
-- **W2509** L5 in `bad_properties_password_yaml`
+- **W2509** → `Parameters/MyPassword` L6 in `bad_properties_password_yaml`
   > Parameter 'MyPassword' appears to be a password but does not have NoEcho set to true
-- **W2509** L1 in `integration_resources-cloudformation-init_yaml`
+- **W2509** → `Parameters/MyNewPassword` L10 in `bad_properties_password_yaml`
+  > Parameter 'MyNewPassword' appears to be a password but does not have NoEcho set to true
+- **W2509** → `Parameters/DBPassword` L6 in `integration_resources-cloudformation-init_yaml`
   > Parameter 'DBPassword' appears to be a password but does not have NoEcho set to true
 
 ### W1020 — 2 findings — Sub isn't needed if it doesn't have a variable defined
@@ -12640,18 +12640,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F1012** `myInstance` (AWS::EC2::Instance) L6 in `bad_functions_base64_yaml`
   > Fn::FindInMap references non-existent mapping 'amimap'
 
-### W1102 — 2 findings
-
-- **W1102** in `bad_functions_select_yaml`
-  > Fn::Select: index (first argument) must be an integer or an intrinsic function
-- **W1102** in `quickstart_vpc_json`
-  > Fn::Select: index (first argument) must be an integer or an intrinsic function
-
 ### F0016 — 2 findings
 
-- **F0016** L2 in `bad_param_number_default_yaml`
+- **F0016** → `Parameters/Port/AllowedValues` L6 in `bad_param_number_default_yaml`
   > Parameter 'Port' AllowedValues entry 'abc' is not a valid number
-- **F0016** L2 in `bad_param_number_default_yaml`
+- **F0016** → `Parameters/Port/AllowedValues` L6 in `bad_param_number_default_yaml`
   > Parameter 'Port' AllowedValues entry 'def' is not a valid number
 
 ### I9002 — 2 findings
@@ -12670,9 +12663,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F8611 — 2 findings
 
-- **F8611** L196 in `lsp_comprehensive_json`
+- **F8611** → `Rules/ValidateRegionAndEnvironment` L197 in `lsp_comprehensive_json`
   > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
-- **F8611** L109 in `lsp_comprehensive_yaml`
+- **F8611** → `Rules/ValidateRegionAndEnvironment` L110 in `lsp_comprehensive_yaml`
   > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
 
 ### W3030 — 1 findings
@@ -12682,8 +12675,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F1101 — 1 findings
 
-- **F1101** `Topic` → `Properties.DisplayName` L14 in `bad_functions_findinmap_default_value_no_transform_yaml`
+- **F1101** `Topic` (AWS::SNS::Topic) → `Properties.DisplayName` L14 in `bad_functions_findinmap_default_value_no_transform_yaml`
   > Fn::FindInMap: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements
+
+### W1102 — 1 findings
+
+- **W1102** `myInstance` (AWS::EC2::Instance) → `Properties.AvailabilityZone.Fn::Select` L10 in `bad_functions_select_yaml`
+  > Fn::Select: index (first argument) must be an integer or an intrinsic function
 
 ### W3515 — 1 findings
 
@@ -12692,12 +12690,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F0017 — 1 findings
 
-- **F0017** L2 in `bad_invalid_mapping_structure_yaml`
+- **F0017** → `Mappings/BadMap/Key1` L4 in `bad_invalid_mapping_structure_yaml`
   > Mapping 'BadMap' second level key 'Key1' must be a map
 
 ### F0015 — 1 findings
 
-- **F0015** L2 in `bad_param_number_default_yaml`
+- **F0015** → `Parameters/Port/Default` L5 in `bad_param_number_default_yaml`
   > Parameter 'Port' Default 'not-a-number' is not a valid number
 
 ### W9011 — 1 findings

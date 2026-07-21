@@ -380,7 +380,13 @@ impl Builder {
     }
 
     fn check_select_index<V: ParseValue>(&mut self, first: &V, path: &str) {
-        if !matches!(first.kind(), ValueKind::Number | ValueKind::Object) {
+        // CloudFormation coerces a numeric string index — the official
+        // Fn::Select documentation itself uses `"1"` — so only a value that is
+        // neither a number, an intrinsic, nor an integer-valued string is
+        // reported.
+        let is_integer_string = matches!(first.kind(), ValueKind::String)
+            && first.as_coerced_str().is_some_and(|s| crate::coercion::coerce_str_to_integer(&s).is_some());
+        if !matches!(first.kind(), ValueKind::Number | ValueKind::Object) && !is_integer_string {
             self.type_warning(FN_SELECT, "index (first argument) must be an integer or an intrinsic function", path);
         }
     }
