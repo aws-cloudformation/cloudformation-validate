@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-20 04:07:38  
+> Generated: 2026-07-21 16:41:08  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,22 +22,22 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 2041 |
+| True Positives | 2039 |
 | False Positives (engine bugs) | 1 |
 | Engine Extra (correct, cfn-lint gap) | 5794 |
-| False Negatives (engine misses) | 341 |
+| False Negatives (engine misses) | 343 |
 | Precision | 99.95% |
-| Recall | 85.68% |
-| F1 | 92.27% |
+| Recall | 85.60% |
+| F1 | 92.22% |
 | Unique rules detected | 215 |
-| Perfect templates | 443/559 |
+| Perfect templates | 441/559 |
 | Location mismatches (matched pairs) | 16 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 420 | 0 | 63 | 111 | 100.00% | 79.10% |
+| Fatal | 418 | 0 | 63 | 113 | 100.00% | 78.72% |
 | Error | 383 | 1 | 3 | 151 | 99.74% | 71.72% |
 | Warning | 736 | 0 | 343 | 60 | 100.00% | 92.46% |
 | Info | 502 | 0 | 5385 | 19 | 100.00% | 96.35% |
@@ -46,27 +46,27 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 23081.6923 ms |
-| Throughput | 121.96 validations/sec |
-| Templates | 563 ok, 8 failed |
+| Total wall time | 31665.8396 ms |
+| Throughput | 89.37 validations/sec |
+| Templates | 566 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 53.4800 ms |
-| Engine init (max) | 53.7139 ms |
-| Schema init (p99) | 71.9291 ms |
-| Schema init (max) | 72.6527 ms |
+| Engine init (p99) | 101.4117 ms |
+| Engine init (max) | 102.4737 ms |
+| Schema init (p99) | 96.2862 ms |
+| Schema init (max) | 96.7687 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0027 | 0.2102 | 0.0435 | 0.6835 | 1.0009 | 1.8524 | 3.2668 |
-| Schema Validate | 0.0000 | 0.4339 | 0.1608 | 1.2604 | 1.7909 | 3.1348 | 6.8734 |
-| Rule Evaluation | 0.9639 | 6.9655 | 2.3452 | 18.3428 | 26.7125 | 53.5219 | 134.9728 |
-| Diagnostic Finalize | 0.0004 | 0.0104 | 0.0040 | 0.0265 | 0.0407 | 0.0825 | 0.1778 |
-| Engine Internal | 0.9763 | 7.6787 | 2.6009 | 19.6635 | 29.4404 | 55.2720 | 137.2350 |
-| Wall Clock | 0.9764 | 7.6793 | 2.6013 | 19.6647 | 29.4419 | 55.2736 | 137.2364 |
+| Model Build | 0.0025 | 0.2235 | 0.0452 | 0.7023 | 1.0118 | 2.0951 | 3.3000 |
+| Schema Validate | 0.0000 | 0.4913 | 0.1699 | 1.3757 | 2.0316 | 3.8006 | 7.1660 |
+| Rule Evaluation | 1.0268 | 8.7397 | 3.1556 | 21.9790 | 33.5358 | 71.0345 | 191.8216 |
+| Diagnostic Finalize | 0.0007 | 0.0118 | 0.0051 | 0.0302 | 0.0439 | 0.0890 | 0.1845 |
+| Engine Internal | 1.0421 | 9.6822 | 3.4813 | 25.3439 | 37.0951 | 72.1678 | 194.2697 |
+| Wall Clock | 1.0424 | 9.6830 | 3.4821 | 25.3450 | 37.0965 | 72.1693 | 194.2705 |
 
-## False Negatives — 341 missed findings across 82 rules
+## False Negatives — 343 missed findings across 83 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -763,6 +763,13 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E1005** → `Transform.key` L3 in `bad_templates_base_yaml`
   > Additional properties are not allowed ('key' was unexpected)
 
+### F3006 — 2 missed — Validate the CloudFormation resource type
+
+- **F3006** (cfn-lint: E3006) `MidStringModule` → `Resources.MidStringModule.Type` L20 in `bad_F3006_invalid_aws_namespaces_yaml`
+  > Resource type 'My::Org::MODULE::Thing' does not exist in 'us-east-1'
+- **F3006** (cfn-lint: E3006) `MyReport` → `Resources.MyReport.Type` L3 in `good_schema_resource_yaml`
+  > Resource type 'Initech::TPS::Report' does not exist in 'us-east-1'
+
 ### E3707 — 2 missed — Validate RDS DBInstance Engine matches DBCluster Engine
 
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `bad_aurora_with_allocated_storage_yaml`
@@ -1051,7 +1058,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'HttpMethod' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L11 in `bad_F2002_ssm_parameter_type_invalid_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `GoodCustomResource` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L32 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **I9001** `GoodCustomResource` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L34 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Property 'ServiceToken' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L27 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -8528,7 +8535,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'RestApiB' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `bad_F2002_ssm_parameter_type_invalid_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `GoodFunction` (AWS::Serverless::Function) → `Properties.Tags` L25 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **I9040** `GoodFunction` (AWS::Serverless::Function) → `Properties.Tags` L27 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Resource 'GoodFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L26 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -12109,9 +12116,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### W9013 — 44 findings
 
-- **W9013** `GoodCustomResource` (AWS::CloudFormation::CustomResource) L29 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **W9013** `GoodCustomResource` (AWS::CloudFormation::CustomResource) L31 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
-- **W9013** `GoodCustom` (Custom::MyThing) L36 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **W9013** `GoodCustom` (Custom::MyThing) L38 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L3 in `bad_codepipeline_bad_artifacts_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
@@ -12713,7 +12720,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L6 in `bad_unique_items_yaml`
   > Array property 'AvailabilityZones' contains duplicate values
 
-## Per-Template Breakdown — 116 templates with mismatches
+## Per-Template Breakdown — 118 templates with mismatches
 
 ### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 5 EE, 18 FN)
 
@@ -13054,6 +13061,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F1020`
 - EE: `I9001`, `I9040`
 
+### `bad_F3006_invalid_aws_namespaces_yaml` — 1 mismatches (2 TP, 0 FP, 4 EE, 1 FN)
+
+- FN: `F3006`
+- EE: `W9013` ×2, `I9001`, `I9040`
+
 ### `bad_conditions_and_yaml` — 1 mismatches (12 TP, 0 FP, 1 EE, 1 FN)
 
 - FN: `E1001`
@@ -13271,6 +13283,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W3005`
 - EE: `I9040` ×3
 
+### `good_schema_resource_yaml` — 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
+
+- FN: `F3006`
+
 ### `integration_getatt-types_yaml` — 1 mismatches (8 TP, 0 FP, 17 EE, 1 FN)
 
 - FN: `E9004`
@@ -13308,11 +13324,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 129 | 37.83% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 93 | 27.27% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 60 | 17.60% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3005, W3037, W3045, W3691, W3698, W6001, W8001 |
-| Intrinsic function validation | 40 | 11.73% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 19 | 5.57% | I2530, I3010, I3011, I3510 |
+| Other | 131 | 38.19% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 93 | 27.11% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 60 | 17.49% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3005, W3037, W3045, W3691, W3698, W6001, W8001 |
+| Intrinsic function validation | 40 | 11.66% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 19 | 5.54% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
 
