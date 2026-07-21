@@ -507,6 +507,7 @@ violation contains v if {
         let config = EngineConfig {
             custom_rules: vec![ExternalRuleSource { name: "custom_test.rego".into(), content: custom_rego.into() }],
             guard_rules: vec![],
+            ..Default::default()
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(
@@ -535,6 +536,7 @@ rule check_bucket_name {
         let config = EngineConfig {
             custom_rules: vec![],
             guard_rules: vec![ExternalRuleSource { name: "test.guard".into(), content: guard_source.into() }],
+            ..Default::default()
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(
@@ -567,6 +569,7 @@ rule check_bucket_name {
         let config = EngineConfig {
             custom_rules: vec![],
             guard_rules: vec![ExternalRuleSource { name: "test.guard".into(), content: guard_source.into() }],
+            ..Default::default()
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(
@@ -678,6 +681,7 @@ Transform: AWS::Serverless-2016-10-31
         let config = EngineConfig {
             custom_rules: vec![ExternalRuleSource { name: "builtin_test.rego".into(), content: rego_source.into() }],
             guard_rules: vec![],
+            ..Default::default()
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
@@ -1116,6 +1120,7 @@ violation contains v if {
         let config = EngineConfig {
             custom_rules: vec![ExternalRuleSource { name: "region_test.rego".into(), content: custom_rego.into() }],
             guard_rules: vec![],
+            ..Default::default()
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
@@ -1148,6 +1153,7 @@ violation contains v if {
                 ExternalRuleSource { name: "b.rego".into(), content: pkg_b.into() },
             ],
             guard_rules: vec![],
+            ..Default::default()
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
@@ -1171,6 +1177,7 @@ violation contains v if {
                 ExternalRuleSource { name: "b.rego".into(), content: source.into() },
             ],
             guard_rules: vec![],
+            ..Default::default()
         };
         let engine = RegoEngine::new(config).unwrap();
         assert_eq!(

@@ -127,6 +127,61 @@ pub struct EngineConfig {
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub guard_rules: Vec<ExternalRuleSource>,
+    /// Additional CloudFormation resource provider schemas to merge on top of the
+    /// bundled schemas before schema validation.
+    ///
+    /// Each entry extends or overrides the bundled schema for its resource type:
+    /// new properties/definitions are deep-merged, `required` is unioned, and enum
+    /// values replace the bundled enum for that property path. This lets templates
+    /// that use pre-GA CloudFormation properties — not yet in the published
+    /// registry — validate without false `F3002`/`W3030` violations.
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub additional_schemas: Vec<AdditionalSchemaSource>,
+}
+
+/// A single additional CloudFormation resource provider schema to overlay on top
+/// of the bundled schemas. See [`EngineConfig::additional_schemas`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
+#[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
+pub struct AdditionalSchemaSource {
+    /// The resource type name (e.g., `"AWS::Lambda::Function"`). When empty, the
+    /// `typeName` field of the schema JSON is used instead.
+    pub type_name: String,
+    /// The complete resource provider schema as a JSON string, in the standard
+    /// CloudFormation registry format.
+    pub schema: String,
+}
+
+impl AdditionalSchemaSource {
+    /// Parse the schema JSON and resolve the effective resource type name into the
+    /// `(type_name, schema)` pair that
+    /// [`SchemaValidator::with_additional_schemas`](schema_validator::SchemaValidator::with_additional_schemas)
+    /// consumes.
+    ///
+    /// This is where overlay input is validated, so the validator constructor
+    /// itself stays infallible. Returns an error when the schema is not valid
+    /// JSON, or when neither an explicit [`type_name`](Self::type_name) nor a
+    /// `typeName` field in the schema provides a resource type name.
+    pub fn resolve(&self) -> Result<(String, serde_json::Value), String> {
+        let schema: serde_json::Value = serde_json::from_str(&self.schema)
+            .map_err(|e| format!("Invalid additional schema for '{}': {e}", self.type_name))?;
+        let type_name = if self.type_name.is_empty() {
+            schema.get("typeName").and_then(|v| v.as_str()).unwrap_or_default().to_string()
+        } else {
+            self.type_name.clone()
+        };
+        if type_name.is_empty() {
+            return Err(
+                "Additional schema is missing a resource type name (no explicit typeName and none in the schema)"
+                    .to_string(),
+            );
+        }
+        Ok((type_name, schema))
+    }
 }
 
 #[derive(Clone, Default)]
@@ -931,6 +986,41 @@ mod tests {
     use super::*;
     use diagnostics::{Phase, SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
     use rules::{Category, build_rule_metadata_map, lookup_rule};
+
+    #[test]
+    fn additional_schema_resolve_uses_explicit_type_name() {
+        let src = AdditionalSchemaSource {
+            type_name: "AWS::Lambda::Function".into(),
+            schema: r#"{"typeName":"AWS::Other::Type","properties":{}}"#.into(),
+        };
+        let (type_name, schema) = src.resolve().expect("valid schema resolves");
+        assert_eq!(type_name, "AWS::Lambda::Function", "explicit type_name wins over the schema body");
+        assert!(schema.is_object());
+    }
+
+    #[test]
+    fn additional_schema_resolve_falls_back_to_schema_type_name() {
+        let src = AdditionalSchemaSource {
+            type_name: String::new(),
+            schema: r#"{"typeName":"AWS::Lambda::Function","properties":{}}"#.into(),
+        };
+        let (type_name, _) = src.resolve().expect("valid schema resolves");
+        assert_eq!(type_name, "AWS::Lambda::Function", "empty type_name falls back to the schema's typeName");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_invalid_json() {
+        let src = AdditionalSchemaSource { type_name: "AWS::Lambda::Function".into(), schema: "{ not json ".into() };
+        let err = src.resolve().expect_err("invalid JSON must fail");
+        assert!(err.contains("Invalid additional schema"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_missing_type_name() {
+        let src = AdditionalSchemaSource { type_name: String::new(), schema: r#"{"properties":{}}"#.into() };
+        let err = src.resolve().expect_err("missing type name must fail");
+        assert!(err.contains("missing a resource type name"), "unexpected error: {err}");
+    }
 
     fn minimal_model() -> SemanticModel {
         let yaml = br#"

@@ -46,7 +46,7 @@ fn custom_config(engine: &str) -> EngineConfig {
     } else {
         ("cel_custom.json", load_rule("cel_custom.json"))
     };
-    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![] }
+    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![], ..Default::default() }
 }
 
 fn arbitrary_id_config(engine: &str) -> EngineConfig {
@@ -55,7 +55,7 @@ fn arbitrary_id_config(engine: &str) -> EngineConfig {
     } else {
         ("cel_arbitrary_id.json", load_rule("cel_arbitrary_id.json"))
     };
-    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![] }
+    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![], ..Default::default() }
 }
 
 fn guard_config() -> EngineConfig {
@@ -65,6 +65,7 @@ fn guard_config() -> EngineConfig {
             name: "guard_encryption.guard".into(),
             content: load_rule("guard_encryption.guard"),
         }],
+        ..Default::default()
     }
 }
 
@@ -80,6 +81,7 @@ fn single_combined_config(engine: &str) -> EngineConfig {
             name: "guard_encryption.guard".into(),
             content: load_rule("guard_encryption.guard"),
         }],
+        ..Default::default()
     }
 }
 
@@ -95,6 +97,7 @@ fn multi_combined_config(engine: &str) -> EngineConfig {
             ExternalRuleSource { name: "guard_encryption.guard".into(), content: load_rule("guard_encryption.guard") },
             ExternalRuleSource { name: "guard_multi.guard".into(), content: load_rule("guard_multi.guard") },
         ],
+        ..Default::default()
     }
 }
 

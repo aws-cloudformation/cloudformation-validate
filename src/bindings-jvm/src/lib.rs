@@ -22,7 +22,7 @@ pub use template_model::model::{
     ConditionalNullEntry, ForEachExpansion, PathValuePair, ResolvedOutput, ResolvedResource, ResourceDiagnostics,
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
-pub use validation_engine::{EngineConfig, EngineType, ExternalRuleSource};
+pub use validation_engine::{AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource};
 
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ValidateConfig {
@@ -131,9 +131,16 @@ macro_rules! impl_jvm_engine {
             pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
+                        let overlays = config
+                            .additional_schemas
+                            .iter()
+                            .map(|s| s.resolve())
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|msg| ValidationError::Engine { msg })?;
+                        let schema_validator = schema_validator::SchemaValidator::with_additional_schemas(overlays);
                         let engine =
                             $constructor(config).map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(Arc::new(Self { engine, schema_validator: schema_validator::SchemaValidator::new() }))
+                        Ok(Arc::new(Self { engine, schema_validator }))
                     },
                     panic_to_error,
                 )

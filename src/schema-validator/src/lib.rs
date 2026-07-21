@@ -1,4 +1,5 @@
 pub(crate) mod compiled;
+pub(crate) mod overlay;
 pub mod store;
 pub mod validate;
 
@@ -38,6 +39,40 @@ impl SchemaValidator {
         let store = CompiledSchemaStore::new();
         let init_metric = phase_metric(start);
         info!("SchemaValidator initialized: {} schemas loaded", store.len());
+        SchemaValidator { store, init_metric }
+    }
+
+    /// Construct a validator whose schema store has `additional_schemas` merged on
+    /// top of the bundled schemas.
+    ///
+    /// Each item is a `(type_name, schema)` pair where `schema` is an
+    /// already-parsed CloudFormation resource provider schema (registry JSON, the
+    /// same shape consumed by the build-time schema compiler) and `type_name` is
+    /// the resolved, non-empty resource type name. Overlays are applied in order;
+    /// see [`crate::overlay`] for the merge semantics.
+    ///
+    /// This constructor is infallible: parsing the JSON and resolving the type
+    /// name are the caller's responsibility, so only well-formed input reaches
+    /// here. Bindings use [`validation_engine::AdditionalSchemaSource::resolve`]
+    /// to turn raw config into the pairs this method expects.
+    pub fn with_additional_schemas<I, S>(additional_schemas: I) -> Self
+    where
+        I: IntoIterator<Item = (S, serde_json::Value)>,
+        S: AsRef<str>,
+    {
+        let start = web_time::Instant::now();
+        let mut store = CompiledSchemaStore::new();
+        let mut applied = 0usize;
+        for (type_name, schema) in additional_schemas {
+            store.apply_overlay(type_name.as_ref(), &schema);
+            applied += 1;
+        }
+        let init_metric = phase_metric(start);
+        if applied > 0 {
+            info!("SchemaValidator initialized: {} schemas loaded, {applied} overlay schema(s) applied", store.len());
+        } else {
+            info!("SchemaValidator initialized: {} schemas loaded", store.len());
+        }
         SchemaValidator { store, init_metric }
     }
 

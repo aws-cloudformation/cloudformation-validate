@@ -210,7 +210,7 @@ fn main() {
         Vec::new()
     };
 
-    let engine_config = EngineConfig { custom_rules, guard_rules };
+    let engine_config = EngineConfig { custom_rules, guard_rules, ..Default::default() };
 
     let schema_validator = SchemaValidator::new();
 

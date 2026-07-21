@@ -70,6 +70,24 @@ impl CompiledSchemaStore {
         self.schemas.get(type_name)
     }
 
+    /// Merge an overlay CloudFormation resource provider schema (raw registry
+    /// JSON) into the store under `type_name`.
+    ///
+    /// The raw schema is compiled with the same transformation used at build
+    /// time, then deep-merged into the bundled schema for that type (properties
+    /// and definitions merged, `required` unioned, enum values replaced). When no
+    /// bundled schema exists for `type_name`, the compiled overlay is inserted as
+    /// a new schema. See [`crate::overlay`] for the full merge semantics.
+    pub fn apply_overlay(&mut self, type_name: &str, raw: &serde_json::Value) {
+        let overlay = crate::overlay::compile(type_name, raw);
+        match self.schemas.get_mut(type_name) {
+            Some(existing) => crate::overlay::merge_into(existing, overlay),
+            None => {
+                self.schemas.insert(type_name.to_string(), overlay);
+            }
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.schemas.len()
     }

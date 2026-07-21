@@ -187,6 +187,7 @@ fn custom_rule_reaching_a_host_builtin_is_a_hard_error_not_a_diagnostic() {
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_escape.rego".into(), content: escape_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let engine = RegoEngine::new(config).expect("engine must build even with a host-builtin-reaching custom rule");
     let schema_validator = SchemaValidator::new();
@@ -224,6 +225,7 @@ violation contains make_diag(\"CTRL001\", \"WARN\", name, \"control rule fired\"
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_control.rego".into(), content: control_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let engine = RegoEngine::new(config).expect("engine must build");
     let schema_validator = SchemaValidator::new();
@@ -263,6 +265,7 @@ fn custom_cel_rule_reaching_an_unknown_function_is_a_hard_error_not_a_diagnostic
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_escape.celrules.json".into(), content: escape_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let error = CelEngine::new(config).err().expect(
         "a custom CEL rule referencing an unknown function must fail the engine build with an error, \
@@ -294,6 +297,7 @@ fn benign_custom_cel_rule_runs_and_fires() {
     let config = EngineConfig {
         custom_rules: vec![ExternalRuleSource { name: "sandbox_control.celrules.json".into(), content: control_rule }],
         guard_rules: vec![],
+        ..Default::default()
     };
     let engine = CelEngine::new(config).expect("engine must build");
     let schema_validator = SchemaValidator::new();
