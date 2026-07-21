@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-21 19:22:54  
+> Generated: 2026-07-21 19:39:18  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -46,25 +46,25 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 23982.9935 ms |
-| Throughput | 118.21 validations/sec |
-| Templates | 567 ok, 8 failed |
+| Total wall time | 23928.2587 ms |
+| Throughput | 118.69 validations/sec |
+| Templates | 568 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 60.3339 ms |
-| Engine init (max) | 60.5424 ms |
-| Schema init (p99) | 71.9970 ms |
-| Schema init (max) | 72.3610 ms |
+| Engine init (p99) | 52.4486 ms |
+| Engine init (max) | 52.6466 ms |
+| Schema init (p99) | 79.9916 ms |
+| Schema init (max) | 80.9779 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0027 | 0.2163 | 0.0436 | 0.6821 | 0.9954 | 1.9032 | 3.1927 |
-| Schema Validate | 0.0000 | 0.4560 | 0.1579 | 1.3099 | 1.8818 | 3.5745 | 8.0033 |
-| Rule Evaluation | 0.9585 | 7.2192 | 2.3928 | 18.6782 | 27.4797 | 54.0605 | 142.3546 |
-| Diagnostic Finalize | 0.0004 | 0.0106 | 0.0041 | 0.0255 | 0.0437 | 0.0863 | 0.2009 |
-| Engine Internal | 0.9718 | 7.9613 | 2.7009 | 20.7133 | 30.6836 | 56.9307 | 144.6723 |
-| Wall Clock | 0.9719 | 7.9618 | 2.7010 | 20.7143 | 30.6842 | 56.9319 | 144.6735 |
+| Model Build | 0.0028 | 0.2116 | 0.0456 | 0.6560 | 0.9749 | 1.8318 | 3.2517 |
+| Schema Validate | 0.0000 | 0.4490 | 0.1651 | 1.2901 | 1.8597 | 3.3425 | 7.7466 |
+| Rule Evaluation | 0.9950 | 7.1789 | 2.5346 | 18.5893 | 25.7530 | 55.3506 | 139.3780 |
+| Diagnostic Finalize | 0.0003 | 0.0114 | 0.0043 | 0.0285 | 0.0423 | 0.0873 | 0.1845 |
+| Engine Internal | 1.0047 | 7.9042 | 2.8446 | 20.3667 | 29.3240 | 58.7091 | 143.1289 |
+| Wall Clock | 1.0048 | 7.9048 | 2.8449 | 20.3685 | 29.3250 | 58.7103 | 143.1300 |
 
 ## False Negatives — 343 missed findings across 83 rules
 

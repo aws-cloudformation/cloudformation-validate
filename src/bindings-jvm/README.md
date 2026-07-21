@@ -125,19 +125,26 @@ data class RuleFilterConfig(
     val idRanges: List<IdRange> = emptyList(),                 // numeric ranges, e.g. IdRange("E", 3000, 3099)
     val idPatterns: List<String> = emptyList(),                // regex patterns matched against rule IDs
     val resourceIds: List<ResourceIdFilter> = emptyList(),     // a rule (or every rule) on a logical resource ID
+    val logicalIds: List<LogicalIdFilter> = emptyList(),       // a rule (or every rule) on a named template entity
     val resourceTypes: List<ResourceTypeFilter> = emptyList(), // a rule (or every rule) on a resource type
     val services: List<ServiceFilter> = emptyList(),           // a rule (or every rule) on a service, e.g. "AWS::AutoScaling"
 )
 
-// resourceIds / resourceTypes / services each carry a nullable ruleId:
+// resourceIds / logicalIds / resourceTypes / services each carry a nullable ruleId:
 // set it to scope the filter to one rule, or leave it null for every rule on the target.
 data class ResourceIdFilter(val ruleId: String? = null, val resourceId: String)
+data class LogicalIdFilter(val ruleId: String? = null, val logicalId: String, val entityType: EntityType? = null)
 data class ResourceTypeFilter(val ruleId: String? = null, val resourceType: String)
 data class ServiceFilter(val ruleId: String? = null, val service: String)
 ```
 
 The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
+
+The `resourceIds` dimension matches only diagnostics attributed to a resource; `logicalIds` additionally matches
+diagnostics on parameters, outputs, mappings, conditions, and template rules (for resource diagnostics the two carry
+the same value). A non-null `entityType` scopes a `LogicalIdFilter` to entities of one type, so `MyThing` as a
+`PARAMETER` is matched without touching a same-named entity of another type.
 
 ### PseudoParameterOverrides
 
@@ -209,7 +216,7 @@ data class StandardReport(
 ```
 
 `DetailedReport` has the same structure but its diagnostics include additional fields: `documentationUrl`,
-`ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), `section`, and `context` (`ViolationContext` with
+`ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
 `actualValue`, `expectedConstraint`, `resolutionSource`, etc.).
 
 ### StandardDiagnostic
@@ -220,9 +227,8 @@ data class StandardDiagnostic(
     val severity: Severity,                // FATAL, ERROR, WARN, INFO, DEBUG
     val message: String,
     val source: RuleOrigin,                // SCHEMA, CFN_LINT, ENGINE, CUSTOM, GUARD
-    val resourceId: String?,               // logical resource ID
-    val resourceType: String?,             // e.g. "AWS::S3::Bucket"
-    val propertyPath: String?,             // e.g. "Properties/BucketName"
+    val entity: Entity?,                   // the named template entity the finding targets, if any
+    val propertyPath: String?,             // e.g. "Properties.BucketName", or section-absolute like "Parameters/MyParam/Type"
     val suggestedFix: String?,
     val category: String?,
     val startLine: UInt?,
@@ -232,4 +238,17 @@ data class StandardDiagnostic(
     val relatedResources: List<RelatedResource>?,
     val conditionScenario: Map<String, Boolean>?,  // condition truth assignment that triggers this
 )
+
+// The named template entity a diagnostic is attributed to. The entity type is the
+// singular form of the top-level template section the entity is declared in.
+data class Entity(
+    val logicalId: String,                 // logical ID as declared in the template
+    val entityType: EntityType,
+    val resourceType: String? = null,      // CloudFormation type, when the entity is a resource whose type is known
+)
+
+enum class EntityType {
+    RESOURCE, PARAMETER, OUTPUT, MAPPING, METADATA,
+    RULE, CONDITION, TRANSFORM, FORMAT_VERSION, DESCRIPTION,
+}
 ```
