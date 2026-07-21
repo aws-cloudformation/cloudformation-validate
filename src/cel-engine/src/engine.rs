@@ -259,6 +259,7 @@ fn emit_custom_diagnostic(
                 resource_type: model.resources.get(rid).map(|r| r.resource_type.clone()),
             })
         },
+        logical_id: None,
         property_path: rule.prop_path.clone(),
         suggested_fix: rule.suggested_fix.clone(),
         documentation_url: None,

@@ -96,6 +96,8 @@ pub struct Diagnostic {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resource: Option<ResourceRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logical_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub property_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suggested_fix: Option<String>,
@@ -132,6 +134,9 @@ impl Filterable for Diagnostic {
     fn resource_type(&self) -> Option<&str> {
         self.resource.as_ref().and_then(|r| r.resource_type.as_deref())
     }
+    fn logical_id(&self) -> Option<&str> {
+        self.logical_id.as_deref()
+    }
 }
 
 /// Generates a flattened diagnostic struct that inlines `resource` into
@@ -158,6 +163,10 @@ macro_rules! define_flattened_diagnostic {
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
             pub resource_type: Option<String>,
+            /// Logical ID of the named template entity this finding targets — a resource, parameter, output, mapping, condition, or template rule.
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+            pub logical_id: Option<String>,
             /// Path to the offending property within the resource, such as 'Properties.Name'.
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
@@ -229,6 +238,7 @@ macro_rules! flatten_diagnostic {
             $self.message.clone(),
             resource_id,
             resource_type,
+            $self.logical_id.clone(),
             $self.property_path.clone(),
             $self.suggested_fix.clone(),
             $self.category.clone(),
@@ -252,6 +262,7 @@ impl Diagnostic {
             message,
             resource_id,
             resource_type,
+            logical_id,
             property_path,
             suggested_fix,
             category,
@@ -269,6 +280,7 @@ impl Diagnostic {
             message,
             resource_id,
             resource_type,
+            logical_id,
             property_path,
             suggested_fix,
             category,
@@ -289,6 +301,7 @@ impl Diagnostic {
             message,
             resource_id,
             resource_type,
+            logical_id,
             property_path,
             suggested_fix,
             category,
@@ -311,6 +324,7 @@ impl Diagnostic {
             message,
             resource_id,
             resource_type,
+            logical_id,
             property_path,
             suggested_fix,
             category,
@@ -466,6 +480,7 @@ mod tests {
             severity: Severity::Error,
             message: "Property not allowed".into(),
             resource: Some(ResourceRef { id: Some("MyBucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            logical_id: Some("MyBucket".into()),
             property_path: Some("/Resources/MyBucket/Properties/Foo".into()),
             suggested_fix: Some("Remove the property".into()),
             documentation_url: Some("https://example.com/E3012".into()),
@@ -501,6 +516,7 @@ mod tests {
             severity: Severity::Info,
             message: String::new(),
             resource: None,
+            logical_id: None,
             property_path: None,
             suggested_fix: None,
             documentation_url: None,

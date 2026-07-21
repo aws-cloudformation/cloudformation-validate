@@ -1,7 +1,7 @@
 use diagnostics::{
     DetailLevel, Diagnostic, JsonValue, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext,
-    apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
+    apply_filters, entity_identity, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
 };
 use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
@@ -222,6 +222,7 @@ pub(crate) fn validate(
     gate_cdk_suppressed_rules(&mut all_diagnostics, &model);
 
     backfill_locations(&mut all_diagnostics, &model);
+    backfill_logical_ids(&mut all_diagnostics);
 
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
@@ -435,7 +436,9 @@ pub(crate) fn parse_diagnostic(
                 end_line: val.get("end_line").and_then(|v| v.as_u64()).unwrap_or(l) as u32,
                 end_column: val.get("end_column").and_then(|v| v.as_u64()).unwrap_or(c) as u32,
             },
-            _ => resolve_section_span(&rule_id, model),
+            _ => model
+                .diagnostic_span(None, property_path.as_deref().unwrap_or(""))
+                .unwrap_or_else(|| resolve_section_span(&rule_id, model)),
         }
     };
 
@@ -491,6 +494,7 @@ pub(crate) fn parse_diagnostic(
             severity,
             message,
             resource,
+            logical_id: None,
             property_path,
             suggested_fix,
             documentation_url,
@@ -846,6 +850,24 @@ fn backfill_locations(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
     }
 }
 
+/// Fills the logical ID of every diagnostic that targets a named template
+/// entity. Resource findings inherit their resource's logical ID; findings on
+/// other sections (Parameters, Outputs, Mappings, Conditions, Rules) derive it
+/// from their section-absolute property path. Like `backfill_locations`, the
+/// resolution is monotonic — an already-set logical ID is never overridden.
+fn backfill_logical_ids(diagnostics: &mut [Diagnostic]) {
+    for d in diagnostics.iter_mut() {
+        if d.logical_id.is_some() {
+            continue;
+        }
+        d.logical_id = d
+            .resource
+            .as_ref()
+            .and_then(|r| r.id.clone())
+            .or_else(|| d.property_path.as_deref().and_then(entity_identity).map(|(_, id)| id.to_string()));
+    }
+}
+
 pub(crate) fn enrich_diagnostics(
     diagnostics: &mut [Diagnostic],
     model: &SemanticModel,
@@ -861,7 +883,15 @@ pub(crate) fn enrich_diagnostics(
     for d in diagnostics.iter_mut() {
         if d.section.is_none() {
             let rid = d.resource.as_ref().and_then(|r| r.id.as_deref());
-            d.section = section_for_rule_id(rid, &d.rule_id).map(Into::into);
+            // A section-absolute property path names the section directly and is
+            // more precise than the rule-ID table, which only knows one section
+            // per rule.
+            d.section = d
+                .property_path
+                .as_deref()
+                .and_then(entity_identity)
+                .map(|(section, _)| section.into())
+                .or_else(|| section_for_rule_id(rid, &d.rule_id).map(Into::into));
         }
         // Custom and Guard rules are user-supplied and have no built-in evaluation
         // phase, so leave their phase unset rather than forcing one. Built-in rules
@@ -913,8 +943,14 @@ pub fn make_resource_diagnostic(
     prop_path: &str,
     suggested_fix: Option<&str>,
 ) -> Diagnostic {
+    // With no resource, a section-absolute path (`Parameters/MyParam/Type`)
+    // anchors the finding at the named entity; without one the section span from
+    // the rule-ID table is the closest known location.
     let span = if resource_id.is_empty() {
-        resolve_section_span(rule_id, model)
+        match model.diagnostic_span(None, prop_path) {
+            Some(found) => found,
+            None => resolve_section_span(rule_id, model),
+        }
     } else {
         model.resource_span(resource_id, prop_path)
     };
@@ -954,6 +990,7 @@ Resources:
             severity: Severity::Info,
             message: String::new(),
             resource: None,
+            logical_id: None,
             property_path: None,
             suggested_fix: None,
             documentation_url: None,
@@ -1854,6 +1891,44 @@ Resources:
         assert!(diags[0].location.is_some(), "missing location should be backfilled");
         assert_ne!(diags[0].location, Some(UNKNOWN_SPAN), "backfilled location must be a real span");
         assert_eq!(diags[1].location, Some(existing), "existing location must be preserved");
+    }
+
+    #[test]
+    fn backfill_logical_ids_inherits_resource_id_and_derives_from_entity_paths() {
+        let mut diags = vec![
+            // Resource finding: logical id mirrors the resource id.
+            Diagnostic {
+                rule_id: "E3012".into(),
+                severity: Severity::Error,
+                message: "x".into(),
+                resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: None }),
+                ..default_diag()
+            },
+            // Non-resource entity finding: derived from the section-absolute path.
+            Diagnostic {
+                rule_id: "W2001".into(),
+                severity: Severity::Warn,
+                message: "y".into(),
+                property_path: Some("Parameters/MyParam".into()),
+                ..default_diag()
+            },
+            // Template-level finding: no entity, no logical id.
+            Diagnostic { rule_id: "F0001".into(), severity: Severity::Fatal, message: "z".into(), ..default_diag() },
+            // Already set: must be left untouched.
+            Diagnostic {
+                rule_id: "W7001".into(),
+                severity: Severity::Warn,
+                message: "w".into(),
+                logical_id: Some("Preset".into()),
+                property_path: Some("Mappings/Other".into()),
+                ..default_diag()
+            },
+        ];
+        backfill_logical_ids(&mut diags);
+        assert_eq!(diags[0].logical_id.as_deref(), Some("Bucket"), "resource finding mirrors resource id");
+        assert_eq!(diags[1].logical_id.as_deref(), Some("MyParam"), "entity finding derives from path");
+        assert_eq!(diags[2].logical_id, None, "template-level finding has no logical id");
+        assert_eq!(diags[3].logical_id.as_deref(), Some("Preset"), "existing logical id must be preserved");
     }
 
     #[test]

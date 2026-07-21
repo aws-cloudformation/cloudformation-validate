@@ -19,6 +19,7 @@ export type {
     RuleOrigin,
     IdRange,
     ResourceIdFilter,
+    LogicalIdFilter,
     ResourceTypeFilter,
     ServiceFilter,
     RuleFilterConfig,

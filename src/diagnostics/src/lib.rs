@@ -20,8 +20,8 @@ pub use diagnostic::{
 };
 pub use filter::{Filterable, apply_filters};
 pub use helpers::{
-    SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID, is_sam_transform_error_message, resolve_section_span,
-    source_for_rule,
+    SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID, entity_identity, is_sam_transform_error_message,
+    resolve_section_span, source_for_rule,
 };
 pub use json_value::JsonValue;
 pub use message::{quote, render_str_list, render_value, render_value_list};

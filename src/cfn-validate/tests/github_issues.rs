@@ -1277,3 +1277,62 @@ Outputs:
     let diags = validate_both_bytes(template);
     assert_absent(&diags, "F6101");
 }
+
+/// Issue #201: diagnostics on non-resource entities (here a Parameter) must
+/// carry a structured `logical_id` — not just the entity name buried in the
+/// message — and must anchor at the entity's own span, not the section key.
+#[test]
+fn issue_201_parameter_diagnostics_carry_logical_id() {
+    let by_engine = validate_both("issue-201.json");
+    for (engine, diags) in &by_engine {
+        for rule_id in ["F2002", "W2001"] {
+            let matched: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == rule_id).collect();
+            assert_eq!(matched.len(), 1, "[{engine}] expected exactly one {rule_id}");
+            let d = matched[0];
+            assert_eq!(d.logical_id.as_deref(), Some("MyParam"), "[{engine}] {rule_id} must identify the parameter");
+            assert!(d.resource.is_none(), "[{engine}] {rule_id}: a parameter is not a resource");
+            assert!(d.location.is_some(), "[{engine}] {rule_id} must carry the parameter's span");
+        }
+        let f2002 = diags.iter().find(|d| d.rule_id == "F2002").expect("F2002 fired");
+        assert_eq!(
+            f2002.property_path.as_deref(),
+            Some("Parameters/MyParam/Type"),
+            "[{engine}] F2002 anchors at the Type value"
+        );
+        // cfn-lint reports the invalid type at Parameters/MyParam/Type (line 4)
+        // and the unused parameter at Parameters/MyParam (line 3).
+        assert_eq!(f2002.location.expect("F2002 location").start_line, 4, "[{engine}]");
+        let w2001 = diags.iter().find(|d| d.rule_id == "W2001").expect("W2001 fired");
+        assert_eq!(w2001.property_path.as_deref(), Some("Parameters/MyParam"), "[{engine}]");
+        assert_eq!(w2001.location.expect("W2001 location").start_line, 3, "[{engine}]");
+    }
+}
+
+/// Issue #201 companion: a resource-targeted diagnostic carries `logical_id`
+/// equal to its resource ID, so consumers have one uniform lookup key across
+/// every template section.
+#[test]
+fn issue_201_resource_diagnostics_mirror_resource_id_into_logical_id() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Q:
+    Type: AWS::SQS::Queue
+    Properties:
+      NotAProperty: x
+"#;
+    let by_engine = validate_both_bytes(template);
+    for (engine, diags) in &by_engine {
+        let on_q: Vec<&Diagnostic> =
+            diags.iter().filter(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Q")).collect();
+        assert!(!on_q.is_empty(), "[{engine}] expected diagnostics on resource Q");
+        for d in on_q {
+            assert_eq!(
+                d.logical_id.as_deref(),
+                Some("Q"),
+                "[{engine}] {}: logical_id must mirror the resource ID",
+                d.rule_id
+            );
+        }
+    }
+}

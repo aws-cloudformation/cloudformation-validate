@@ -32,6 +32,26 @@ pub fn resolve_section_span(rule_id: &str, span_provider: &dyn SpanProvider) -> 
     }
 }
 
+/// Top-level template sections whose immediate children are named entities
+/// addressable by a logical ID.
+const ENTITY_SECTIONS: [&str; 6] = ["Resources", "Parameters", "Outputs", "Mappings", "Conditions", "Rules"];
+
+/// Splits a section-absolute, slash-separated template path (such as
+/// `Parameters/MyParam/Type` or `Outputs/MyOutput/Value`) into its top-level
+/// section and the logical ID of the named entity it addresses. Returns `None`
+/// for paths that are not section-absolute — resource-relative dotted paths
+/// like `Properties.BucketName` — or that address a section without named
+/// entities.
+pub fn entity_identity(path: &str) -> Option<(&str, &str)> {
+    let mut segments = path.split('/');
+    let section = segments.next()?;
+    if !ENTITY_SECTIONS.contains(&section) {
+        return None;
+    }
+    let logical_id = segments.next().filter(|id| !id.is_empty())?;
+    Some((section, logical_id))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,5 +98,33 @@ mod tests {
         };
         let result = resolve_section_span("ZZZZZ", &provider);
         assert_eq!(result, UNKNOWN_SPAN);
+    }
+
+    #[test]
+    fn entity_identity_splits_section_absolute_paths() {
+        assert_eq!(entity_identity("Parameters/MyParam/Type"), Some(("Parameters", "MyParam")));
+        assert_eq!(entity_identity("Parameters/MyParam"), Some(("Parameters", "MyParam")));
+        assert_eq!(entity_identity("Outputs/MyOutput/Value"), Some(("Outputs", "MyOutput")));
+        assert_eq!(entity_identity("Mappings/MyMap/Key1/Key2"), Some(("Mappings", "MyMap")));
+        assert_eq!(entity_identity("Conditions/IsProd"), Some(("Conditions", "IsProd")));
+        assert_eq!(entity_identity("Rules/MyRule/Assertions/0"), Some(("Rules", "MyRule")));
+        assert_eq!(entity_identity("Resources/MyBucket/Properties/Name"), Some(("Resources", "MyBucket")));
+    }
+
+    #[test]
+    fn entity_identity_handles_mixed_dot_segments_after_the_entity() {
+        // Builder-style paths mix slash and dot separators past the entity;
+        // only the first two slash segments matter for identity.
+        assert_eq!(entity_identity("Outputs/X/Value.Fn::If.1"), Some(("Outputs", "X")));
+    }
+
+    #[test]
+    fn entity_identity_rejects_non_entity_paths() {
+        assert_eq!(entity_identity("Properties.BucketName"), None, "resource-relative dotted path");
+        assert_eq!(entity_identity("Parameters"), None, "bare section has no entity");
+        assert_eq!(entity_identity("Description"), None, "section without named entities");
+        assert_eq!(entity_identity("AWSTemplateFormatVersion"), None);
+        assert_eq!(entity_identity(""), None);
+        assert_eq!(entity_identity("Parameters//Type"), None, "empty entity segment");
     }
 }

@@ -45,6 +45,7 @@ Each `Diagnostic` contains:
 | `message`            | `String`                        | Human-readable description                                    |
 | `source`             | `RuleOrigin`                    | Where the rule originates (Schema, CfnLint, Engine, etc.)     |
 | `resource`           | `Option<ResourceRef>`           | Logical resource ID and type                                  |
+| `logical_id`         | `Option<String>`                | Logical ID of the named template entity the finding targets — a resource, parameter, output, mapping, condition, or rule |
 | `property_path`      | `Option<String>`                | JSON path to offending property                               |
 | `location`           | `Option<SourceSpan>`            | Start/end line and column in source file                      |
 | `category`           | `Option<String>`                | Rule category (Schema, Structure, Intrinsic Function, etc.)   |

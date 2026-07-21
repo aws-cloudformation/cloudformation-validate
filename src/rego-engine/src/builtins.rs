@@ -1724,7 +1724,7 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
             let resource_id = params[2].as_string()?;
             let prop_path = params[3].as_string()?;
             let message = params[4].as_string()?;
-            let span = if resource_id.is_empty() { UNKNOWN_SPAN } else { model.resource_span(resource_id, prop_path) };
+            let span = resolve_span(&model, resource_id, prop_path);
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
                 "message": message.as_ref(), "resource_id": resource_id.as_ref(),
@@ -1952,12 +1952,13 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedMo
                         None => vec![],
                     };
                     let mut results = Vec::new();
-                    // An output is not a resource; anchor the diagnostic at the
-                    // full "Outputs/<name>/Value" path rather than a bare "Value".
+                    // An output is not a resource; leave the resource slot empty
+                    // and anchor the diagnostic at the full "Outputs/<name>/Value"
+                    // path rather than a bare "Value".
                     let path_prefix = format!("Outputs/{}/Value", output_name);
                     collect_unreachable_branches(
                         &model,
-                        output_name,
+                        "",
                         &output.value,
                         &path_prefix,
                         &base_assumptions,

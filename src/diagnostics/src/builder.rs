@@ -109,6 +109,7 @@ impl RegisteredDiagnostic {
             severity: definition.severity(),
             message: self.message,
             resource: self.resource,
+            logical_id: None,
             property_path: self.property_path,
             suggested_fix: self.suggested_fix,
             documentation_url: None,
