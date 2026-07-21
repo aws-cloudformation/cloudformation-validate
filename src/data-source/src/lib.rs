@@ -18,6 +18,7 @@ pub mod process;
 pub mod regions;
 #[cfg(feature = "full")]
 pub mod schema;
+pub mod compiled_schema;
 pub mod types;
 
 #[cfg(feature = "full")]
