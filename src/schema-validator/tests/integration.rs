@@ -204,7 +204,7 @@ fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
         .iter()
         .filter(|d| {
             matches!(d.rule_id.as_str(), "E1150" | "E1151" | "E1152" | "E1154")
-                && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Subnet2")
+                && d.resource_logical_id() == Some("Subnet2")
         })
         .collect();
     assert!(
@@ -217,8 +217,7 @@ fn ref_to_wrong_arn_format_is_not_a_schema_format_violation() {
 #[test]
 fn getatt_type_mismatch_detected() {
     let diags = validate_fixture("integration/getatt-types.yaml");
-    let ssm_diags: Vec<_> =
-        diags.iter().filter(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("SsmParameter")).collect();
+    let ssm_diags: Vec<_> = diags.iter().filter(|d| d.resource_logical_id() == Some("SsmParameter")).collect();
     let type_diag = ssm_diags.iter().any(|d| d.rule_id == "F3012" || d.rule_id == "W9003");
     if !type_diag {
         assert!(
@@ -301,20 +300,16 @@ fn lifecycle_w2531_deprecated_runtime() {
 #[test]
 fn structural_f3020_dependent_excluded() {
     let diags = validate_fixture("bad/schema_structural.yaml");
-    let f3020: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3020" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("AlarmBothStats"))
-        .collect();
+    let f3020: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3020" && d.resource_logical_id() == Some("AlarmBothStats")).collect();
     assert!(!f3020.is_empty(), "expected F3020 for ExtendedStatistic + Statistic on CloudWatch Alarm");
 }
 
 #[test]
 fn structural_f3058_required_or() {
     let diags = validate_fixture("bad/schema_structural.yaml");
-    let f3058: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3058" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("SubnetNoCidr"))
-        .collect();
+    let f3058: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3058" && d.resource_logical_id() == Some("SubnetNoCidr")).collect();
     assert!(!f3058.is_empty(), "expected F3058 for Subnet missing CidrBlock/Ipv4IpamPoolId/etc");
 }
 
@@ -323,9 +318,7 @@ fn structural_f3014_required_xor() {
     let diags = validate_fixture("bad/schema_structural.yaml");
     let f3014: Vec<_> = diags
         .iter()
-        .filter(|d| {
-            d.rule_id == "F3014" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ScalingPolicyBothIds")
-        })
+        .filter(|d| d.rule_id == "F3014" && d.resource_logical_id() == Some("ScalingPolicyBothIds"))
         .collect();
     assert!(!f3014.is_empty(), "expected F3014 for ScalingPolicy with both ScalingTargetId and ResourceId");
 }
@@ -336,10 +329,8 @@ fn f3014_excludes_novalue_from_exclusive_count() {
     // exclusive source properties (SourceSecurityGroupId), so the
     // mutual-exclusivity check must not fire.
     let diags = validate_fixture("good/resources/properties/exclusive.yaml");
-    let f3014: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3014" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Ingress"))
-        .collect();
+    let f3014: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3014" && d.resource_logical_id() == Some("Ingress")).collect();
     assert!(f3014.is_empty(), "AWS::NoValue property must not count toward the exclusive-one tally");
 }
 
@@ -350,10 +341,7 @@ fn f3037_ignores_novalue_collapsed_list_items() {
     let diags = validate_fixture("good/resources/properties/list_duplicates.yaml");
     let f3037: Vec<_> = diags
         .iter()
-        .filter(|d| {
-            d.rule_id == "F3037"
-                && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("IamRoleWithNestedConditions")
-        })
+        .filter(|d| d.rule_id == "F3037" && d.resource_logical_id() == Some("IamRoleWithNestedConditions"))
         .collect();
     assert!(f3037.is_empty(), "null (AWS::NoValue) list items must not be treated as duplicates");
 }
@@ -363,10 +351,8 @@ fn f3012_property_type_error_reported_once_across_conditional_branches() {
     // PolicyDocument is a list (wrong type) wrapping an Fn::If; the branch
     // expansion must not multiply the single property-level type error.
     let diags = validate_fixture("bad/resources/iam/iam_policy.yaml");
-    let f3012: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3012" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("rIamPolicy"))
-        .collect();
+    let f3012: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3012" && d.resource_logical_id() == Some("rIamPolicy")).collect();
     assert_eq!(f3012.len(), 1, "expected a single F3012 for the list-typed PolicyDocument, got {}", f3012.len());
 }
 
@@ -375,10 +361,7 @@ fn structural_f3021_dependent_required() {
     let diags = validate_fixture("bad/schema_structural.yaml");
     let f3021: Vec<_> = diags
         .iter()
-        .filter(|d| {
-            d.rule_id == "F3021"
-                && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ScalingPolicyMissingDeps")
-        })
+        .filter(|d| d.rule_id == "F3021" && d.resource_logical_id() == Some("ScalingPolicyMissingDeps"))
         .collect();
     assert!(!f3021.is_empty(), "expected F3021 for ResourceId without ScalableDimension/ServiceNamespace");
 }
@@ -386,10 +369,8 @@ fn structural_f3021_dependent_required() {
 #[test]
 fn property_f3031_pattern_violation() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let f3031: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3031" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("PatternBucket"))
-        .collect();
+    let f3031: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3031" && d.resource_logical_id() == Some("PatternBucket")).collect();
     assert!(!f3031.is_empty(), "expected F3031 for uppercase S3 BucketName");
     assert!(f3031[0].message.contains("does not match pattern"));
 }
@@ -406,10 +387,8 @@ fn read_only_property_not_flagged() {
 #[test]
 fn property_i3043_create_only() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let i3043: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "I9001" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ReadOnlyProp"))
-        .collect();
+    let i3043: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "I9001" && d.resource_logical_id() == Some("ReadOnlyProp")).collect();
     assert!(!i3043.is_empty(), "expected I9001 for create-only properties on ACMPCA Certificate");
     assert!(i3043[0].message.contains("create-only"));
 }
@@ -417,10 +396,8 @@ fn property_i3043_create_only() {
 #[test]
 fn property_w3042_deprecated() {
     let diags = validate_fixture("bad/schema_property_constraints.yaml");
-    let w3042: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "W9009" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("DeprecatedProp"))
-        .collect();
+    let w3042: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "W9009" && d.resource_logical_id() == Some("DeprecatedProp")).collect();
     assert!(!w3042.is_empty(), "expected W9009 for deprecated WorkGroupConfigurationUpdates");
     assert!(w3042[0].message.contains("deprecated"));
 }
@@ -515,20 +492,16 @@ fn type_mismatch_array_for_object() {
 #[test]
 fn composition_f3018_one_of_zero_matches() {
     let diags = validate_fixture("bad/schema_composition.yaml");
-    let f3018: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3018" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("NoImage"))
-        .collect();
+    let f3018: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3018" && d.resource_logical_id() == Some("NoImage")).collect();
     assert!(!f3018.is_empty(), "expected F3018 for ImageBuilder missing both ImageName and ImageArn");
 }
 
 #[test]
 fn composition_f3017_any_of_no_match() {
     let diags = validate_fixture("bad/schema_composition.yaml");
-    let f3017: Vec<_> = diags
-        .iter()
-        .filter(|d| d.rule_id == "F3017" && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("NoAZ"))
-        .collect();
+    let f3017: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3017" && d.resource_logical_id() == Some("NoAZ")).collect();
     assert!(!f3017.is_empty(), "expected F3017 for Volume missing all required AZ/Size/Snapshot combos");
 }
 

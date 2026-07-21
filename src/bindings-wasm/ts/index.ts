@@ -25,6 +25,8 @@ export type {
     RuleFilterConfig,
     RuleInfo,
     SourceSpan,
+    Entity,
+    EntityType,
     ResourceRef,
     RelatedResource,
     ViolationContext,

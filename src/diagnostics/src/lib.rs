@@ -15,8 +15,8 @@ pub mod span;
 pub use builder::RegisteredDiagnostic;
 pub use detail_level::DetailLevel;
 pub use diagnostic::{
-    DetailedDiagnostic, DetailedReport, Diagnostic, PerformanceMetrics, RelatedResource, ReportMetadata, ReportStatus,
-    ResourceRef, StandardDiagnostic, StandardReport, Summary, ValidationReport, ViolationContext,
+    DetailedDiagnostic, DetailedReport, Diagnostic, Entity, PerformanceMetrics, RelatedResource, ReportMetadata,
+    ReportStatus, ResourceRef, StandardDiagnostic, StandardReport, Summary, ValidationReport, ViolationContext,
 };
 pub use filter::{Filterable, apply_filters};
 pub use helpers::{
@@ -27,4 +27,5 @@ pub use json_value::JsonValue;
 pub use message::{quote, render_str_list, render_value, render_value_list};
 pub use metrics::{PhaseMetric, phase_metric};
 pub use phase::Phase;
+pub use rules::{EntityType, TopLevelSection};
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};

@@ -8,6 +8,7 @@ pub mod pattern;
 pub mod registry;
 pub mod schedule;
 pub mod severity;
+pub mod template_section;
 
 pub use category::Category;
 pub use filter::{
@@ -26,3 +27,4 @@ pub use registry::{
 };
 pub use schedule::schedule_expression_errors;
 pub use severity::Severity;
+pub use template_section::{EntityType, TopLevelSection};

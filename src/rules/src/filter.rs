@@ -1,3 +1,4 @@
+use crate::template_section::EntityType;
 use log::warn;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -35,7 +36,8 @@ pub struct ResourceIdFilter {
 /// Suppress a rule for a specific named template entity — a resource,
 /// parameter, output, mapping, condition, or template rule — identified by its
 /// logical ID. An absent `rule_id` scopes the filter to every rule on that
-/// entity.
+/// entity; an absent `entity_type` scopes it to entities of every type with
+/// that logical ID.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm-bindings", tsify(from_wasm_abi))]
@@ -47,6 +49,10 @@ pub struct LogicalIdFilter {
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub rule_id: Option<String>,
     pub logical_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub entity_type: Option<EntityType>,
 }
 
 /// Suppress a rule for a specific resource type. An absent `rule_id` scopes the
@@ -138,6 +144,7 @@ impl RuleFilterConfig {
         resource_id: Option<&str>,
         resource_type: Option<&str>,
         logical_id: Option<&str>,
+        entity_type: Option<EntityType>,
         compiled: &CompiledPatterns,
     ) -> bool {
         if self.ids.iter().any(|id| id == rule_id) {
@@ -160,7 +167,11 @@ impl RuleFilterConfig {
             return true;
         }
         if let Some(lid) = logical_id
-            && self.logical_ids.iter().any(|f| f.logical_id == lid && rule_scope_matches(&f.rule_id, rule_id))
+            && self.logical_ids.iter().any(|f| {
+                f.logical_id == lid
+                    && rule_scope_matches(&f.rule_id, rule_id)
+                    && f.entity_type.is_none_or(|scoped| entity_type == Some(scoped))
+            })
         {
             return true;
         }
@@ -245,14 +256,31 @@ impl FilterConfig {
         resource_id: Option<&str>,
         resource_type: Option<&str>,
         logical_id: Option<&str>,
+        entity_type: Option<EntityType>,
     ) -> bool {
         let compiled = self.compiled();
         if !self.include.is_empty()
-            && !self.include.matches(rule_id, category, resource_id, resource_type, logical_id, &compiled.include)
+            && !self.include.matches(
+                rule_id,
+                category,
+                resource_id,
+                resource_type,
+                logical_id,
+                entity_type,
+                &compiled.include,
+            )
         {
             return false;
         }
-        if self.exclude.matches(rule_id, category, resource_id, resource_type, logical_id, &compiled.exclude) {
+        if self.exclude.matches(
+            rule_id,
+            category,
+            resource_id,
+            resource_type,
+            logical_id,
+            entity_type,
+            &compiled.exclude,
+        ) {
             return false;
         }
         true
@@ -329,8 +357,8 @@ mod tests {
     #[test]
     fn empty_filter_matches_all_rules() {
         let f = FilterConfig::default();
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(f.matches_rule("W9037", Some("security"), Some("Bucket"), Some("AWS::S3::Bucket"), None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(f.matches_rule("W9037", Some("security"), Some("Bucket"), Some("AWS::S3::Bucket"), None, None));
     }
 
     #[test]
@@ -339,8 +367,8 @@ mod tests {
             include: RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(!f.matches_rule("E3013", Some("schema"), None, None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(!f.matches_rule("E3013", Some("schema"), None, None, None, None));
     }
 
     #[test]
@@ -349,8 +377,8 @@ mod tests {
             exclude: RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(f.matches_rule("E3013", Some("schema"), None, None, None));
+        assert!(!f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(f.matches_rule("E3013", Some("schema"), None, None, None, None));
     }
 
     #[test]
@@ -359,8 +387,8 @@ mod tests {
             include: RuleFilterConfig { categories: vec!["schema".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(!f.matches_rule("W9501", Some("security"), None, None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(!f.matches_rule("W9501", Some("security"), None, None, None, None));
     }
 
     #[test]
@@ -369,8 +397,8 @@ mod tests {
             exclude: RuleFilterConfig { categories: vec!["best-practice".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(!f.matches_rule("I9040", Some("best-practice"), None, None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(!f.matches_rule("I9040", Some("best-practice"), None, None, None, None));
     }
 
     #[test]
@@ -382,9 +410,9 @@ mod tests {
             },
             ..Default::default()
         };
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(f.matches_rule("E3099", Some("schema"), None, None, None));
-        assert!(!f.matches_rule("E3100", Some("schema"), None, None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(f.matches_rule("E3099", Some("schema"), None, None, None, None));
+        assert!(!f.matches_rule("E3100", Some("schema"), None, None, None, None));
     }
 
     #[test]
@@ -393,8 +421,8 @@ mod tests {
             include: RuleFilterConfig { id_patterns: vec!["^E3\\d{3}$".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(!f.matches_rule("W9037", Some("security"), None, None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(!f.matches_rule("W9037", Some("security"), None, None, None, None));
     }
 
     #[test]
@@ -406,8 +434,8 @@ mod tests {
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), Some("MyBucket"), Some("AWS::S3::Bucket"), None));
-        assert!(f.matches_rule("E3012", Some("schema"), Some("OtherBucket"), Some("AWS::S3::Bucket"), None));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("MyBucket"), Some("AWS::S3::Bucket"), None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("OtherBucket"), Some("AWS::S3::Bucket"), None, None));
     }
 
     #[test]
@@ -420,56 +448,124 @@ mod tests {
             ..Default::default()
         };
         // Every rule on MyBucket is suppressed, regardless of rule id.
-        assert!(!f.matches_rule("E3012", Some("schema"), Some("MyBucket"), Some("AWS::S3::Bucket"), None));
-        assert!(!f.matches_rule("W3697", Some("best-practice"), Some("MyBucket"), Some("AWS::S3::Bucket"), None));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("MyBucket"), Some("AWS::S3::Bucket"), None, None));
+        assert!(!f.matches_rule("W3697", Some("best-practice"), Some("MyBucket"), Some("AWS::S3::Bucket"), None, None));
         // A different resource is untouched.
-        assert!(f.matches_rule("E3012", Some("schema"), Some("OtherBucket"), Some("AWS::S3::Bucket"), None));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("OtherBucket"), Some("AWS::S3::Bucket"), None, None));
     }
 
     #[test]
     fn exclude_by_logical_id_suppresses_specific_rule_on_entity() {
         let f = FilterConfig {
             exclude: RuleFilterConfig {
-                logical_ids: vec![LogicalIdFilter { rule_id: Some("W2001".into()), logical_id: "MyParam".into() }],
+                logical_ids: vec![LogicalIdFilter {
+                    rule_id: Some("W2001".into()),
+                    logical_id: "MyParam".into(),
+                    entity_type: None,
+                }],
                 ..Default::default()
             },
             ..Default::default()
         };
         // The scoped rule on the parameter is suppressed; other rules on the
         // same entity and the same rule on other entities still fire.
-        assert!(!f.matches_rule("W2001", Some("best-practice"), None, None, Some("MyParam")));
-        assert!(f.matches_rule("F2002", Some("parameter"), None, None, Some("MyParam")));
-        assert!(f.matches_rule("W2001", Some("best-practice"), None, None, Some("OtherParam")));
+        assert!(!f.matches_rule("W2001", Some("best-practice"), None, None, Some("MyParam"), None));
+        assert!(f.matches_rule("F2002", Some("parameter"), None, None, Some("MyParam"), None));
+        assert!(f.matches_rule("W2001", Some("best-practice"), None, None, Some("OtherParam"), None));
     }
 
     #[test]
     fn exclude_by_logical_id_without_rule_id_suppresses_every_rule_on_entity() {
         let f = FilterConfig {
             exclude: RuleFilterConfig {
-                logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyParam".into() }],
+                logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyParam".into(), entity_type: None }],
                 ..Default::default()
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule("W2001", Some("best-practice"), None, None, Some("MyParam")));
-        assert!(!f.matches_rule("F2002", Some("parameter"), None, None, Some("MyParam")));
-        assert!(f.matches_rule("W2001", Some("best-practice"), None, None, Some("OtherParam")));
+        assert!(!f.matches_rule("W2001", Some("best-practice"), None, None, Some("MyParam"), None));
+        assert!(!f.matches_rule("F2002", Some("parameter"), None, None, Some("MyParam"), None));
+        assert!(f.matches_rule("W2001", Some("best-practice"), None, None, Some("OtherParam"), None));
         // A diagnostic with no logical id is never matched by a logical-id filter.
-        assert!(f.matches_rule("F0001", Some("structure"), None, None, None));
+        assert!(f.matches_rule("F0001", Some("structure"), None, None, None, None));
     }
 
     #[test]
     fn include_by_logical_id_accepts_matching_entity_only() {
         let f = FilterConfig {
             include: RuleFilterConfig {
-                logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyParam".into() }],
+                logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyParam".into(), entity_type: None }],
                 ..Default::default()
             },
             ..Default::default()
         };
-        assert!(f.matches_rule("W2001", Some("best-practice"), None, None, Some("MyParam")));
-        assert!(!f.matches_rule("W2001", Some("best-practice"), None, None, Some("OtherParam")));
-        assert!(!f.matches_rule("F0001", Some("structure"), None, None, None));
+        assert!(f.matches_rule("W2001", Some("best-practice"), None, None, Some("MyParam"), None));
+        assert!(!f.matches_rule("W2001", Some("best-practice"), None, None, Some("OtherParam"), None));
+        assert!(!f.matches_rule("F0001", Some("structure"), None, None, None, None));
+    }
+
+    #[test]
+    fn logical_id_filter_with_entity_type_matches_only_that_type() {
+        // Same logical ID could name both a parameter and (in another template)
+        // a resource; the type scope keeps the filter from spilling over.
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                logical_ids: vec![LogicalIdFilter {
+                    rule_id: None,
+                    logical_id: "MyThing".into(),
+                    entity_type: Some(EntityType::Parameter),
+                }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule(
+            "W2001",
+            Some("best-practice"),
+            None,
+            None,
+            Some("MyThing"),
+            Some(EntityType::Parameter)
+        ));
+        assert!(f.matches_rule(
+            "E3012",
+            Some("schema"),
+            Some("MyThing"),
+            Some("AWS::S3::Bucket"),
+            Some("MyThing"),
+            Some(EntityType::Resource),
+        ));
+    }
+
+    #[test]
+    fn logical_id_filter_without_entity_type_matches_every_type() {
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyThing".into(), entity_type: None }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule("W2001", None, None, None, Some("MyThing"), Some(EntityType::Parameter)));
+        assert!(!f.matches_rule("E3012", None, Some("MyThing"), None, Some("MyThing"), Some(EntityType::Resource)));
+    }
+
+    #[test]
+    fn logical_id_filter_combines_entity_type_and_rule_scope() {
+        let f = FilterConfig {
+            exclude: RuleFilterConfig {
+                logical_ids: vec![LogicalIdFilter {
+                    rule_id: Some("W2001".into()),
+                    logical_id: "MyParam".into(),
+                    entity_type: Some(EntityType::Parameter),
+                }],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(!f.matches_rule("W2001", None, None, None, Some("MyParam"), Some(EntityType::Parameter)));
+        // Different rule on the same entity still fires.
+        assert!(f.matches_rule("F2002", None, None, None, Some("MyParam"), Some(EntityType::Parameter)));
     }
 
     #[test]
@@ -478,12 +574,19 @@ mod tests {
         // filter dimension suppresses it — the resource-id filter is unchanged.
         let f = FilterConfig {
             exclude: RuleFilterConfig {
-                logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyBucket".into() }],
+                logical_ids: vec![LogicalIdFilter { rule_id: None, logical_id: "MyBucket".into(), entity_type: None }],
                 ..Default::default()
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), Some("MyBucket"), Some("AWS::S3::Bucket"), Some("MyBucket")));
+        assert!(!f.matches_rule(
+            "E3012",
+            Some("schema"),
+            Some("MyBucket"),
+            Some("AWS::S3::Bucket"),
+            Some("MyBucket"),
+            None
+        ));
     }
 
     #[test]
@@ -498,8 +601,8 @@ mod tests {
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), Some("B"), Some("AWS::S3::Bucket"), None));
-        assert!(f.matches_rule("E3012", Some("schema"), Some("I"), Some("AWS::EC2::Instance"), None));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("B"), Some("AWS::S3::Bucket"), None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("I"), Some("AWS::EC2::Instance"), None, None));
     }
 
     #[test]
@@ -511,9 +614,9 @@ mod tests {
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), Some("B"), Some("AWS::S3::Bucket"), None));
-        assert!(!f.matches_rule("W9037", Some("security"), Some("B"), Some("AWS::S3::Bucket"), None));
-        assert!(f.matches_rule("E3012", Some("schema"), Some("I"), Some("AWS::EC2::Instance"), None));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("B"), Some("AWS::S3::Bucket"), None, None));
+        assert!(!f.matches_rule("W9037", Some("security"), Some("B"), Some("AWS::S3::Bucket"), None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("I"), Some("AWS::EC2::Instance"), None, None));
     }
 
     #[test]
@@ -533,6 +636,7 @@ mod tests {
             Some("best-practice"),
             Some("Lc"),
             Some("AWS::AutoScaling::LaunchConfiguration"),
+            None,
             None
         ));
         assert!(!f.matches_rule(
@@ -540,6 +644,7 @@ mod tests {
             Some("best-practice"),
             Some("Asg"),
             Some("AWS::AutoScaling::AutoScalingGroup"),
+            None,
             None
         ));
         // A different rule on the same service still fires.
@@ -548,10 +653,11 @@ mod tests {
             Some("schema"),
             Some("Lc"),
             Some("AWS::AutoScaling::LaunchConfiguration"),
+            None,
             None
         ));
         // The same rule on a different service still fires.
-        assert!(f.matches_rule("W3697", Some("best-practice"), Some("Q"), Some("AWS::SQS::Queue"), None));
+        assert!(f.matches_rule("W3697", Some("best-practice"), Some("Q"), Some("AWS::SQS::Queue"), None, None));
     }
 
     #[test]
@@ -568,6 +674,7 @@ mod tests {
             Some("best-practice"),
             Some("Lc"),
             Some("AWS::AutoScaling::LaunchConfiguration"),
+            None,
             None
         ));
         assert!(!f.matches_rule(
@@ -575,9 +682,10 @@ mod tests {
             Some("schema"),
             Some("Lc"),
             Some("AWS::AutoScaling::LaunchConfiguration"),
+            None,
             None
         ));
-        assert!(f.matches_rule("E3012", Some("schema"), Some("Q"), Some("AWS::SQS::Queue"), None));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("Q"), Some("AWS::SQS::Queue"), None, None));
     }
 
     #[test]
@@ -594,9 +702,10 @@ mod tests {
             Some("best-practice"),
             Some("Lc"),
             Some("AWS::AutoScaling::LaunchConfiguration"),
+            None,
             None
         ));
-        assert!(!f.matches_rule("W3697", Some("best-practice"), Some("Q"), Some("AWS::SQS::Queue"), None));
+        assert!(!f.matches_rule("W3697", Some("best-practice"), Some("Q"), Some("AWS::SQS::Queue"), None, None));
     }
 
     #[test]
@@ -616,6 +725,7 @@ mod tests {
             Some("best-practice"),
             Some("Lc"),
             Some("AWS::AutoScaling::LaunchConfiguration"),
+            None,
             None
         ));
     }
@@ -630,12 +740,13 @@ mod tests {
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), Some("S"), Some("Alexa::ASK::Skill"), None));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("S"), Some("Alexa::ASK::Skill"), None, None));
         assert!(f.matches_rule(
             "E3012",
             Some("schema"),
             Some("Lc"),
             Some("AWS::AutoScaling::LaunchConfiguration"),
+            None,
             None
         ));
     }
@@ -651,8 +762,8 @@ mod tests {
             },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), Some("R"), Some("AWS::MadeUpService::Widget"), None));
-        assert!(f.matches_rule("E3012", Some("schema"), Some("R"), Some("Custom::MadeUpService::Thing"), None));
+        assert!(!f.matches_rule("E3012", Some("schema"), Some("R"), Some("AWS::MadeUpService::Widget"), None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("R"), Some("Custom::MadeUpService::Thing"), None, None));
     }
 
     #[test]
@@ -665,7 +776,7 @@ mod tests {
             ..Default::default()
         };
         // A single-segment type has no service prefix, so the service filter never matches it.
-        assert!(f.matches_rule("E3012", Some("schema"), Some("R"), Some("Bucket"), None));
+        assert!(f.matches_rule("E3012", Some("schema"), Some("R"), Some("Bucket"), None, None));
     }
 
     #[test]
@@ -675,9 +786,9 @@ mod tests {
             exclude: RuleFilterConfig { ids: vec!["E3012".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(!f.matches_rule("E3012", Some("schema"), None, None, None));
-        assert!(f.matches_rule("E3013", Some("schema"), None, None, None));
-        assert!(!f.matches_rule("W9501", Some("security"), None, None, None));
+        assert!(!f.matches_rule("E3012", Some("schema"), None, None, None, None));
+        assert!(f.matches_rule("E3013", Some("schema"), None, None, None, None));
+        assert!(!f.matches_rule("W9501", Some("security"), None, None, None, None));
     }
 
     #[test]
@@ -701,7 +812,7 @@ mod tests {
             include: RuleFilterConfig { id_patterns: vec!["[invalid".into(), "^E3\\d+$".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
     }
 
     #[test]
@@ -750,8 +861,8 @@ mod tests {
             include: RuleFilterConfig { id_patterns: vec!["^E3\\d+$".into()], ..Default::default() },
             ..Default::default()
         };
-        assert!(f.matches_rule("E3012", Some("schema"), None, None, None));
+        assert!(f.matches_rule("E3012", Some("schema"), None, None, None, None));
         let f2 = f.clone();
-        assert!(f2.matches_rule("E3012", Some("schema"), None, None, None));
+        assert!(f2.matches_rule("E3012", Some("schema"), None, None, None, None));
     }
 }

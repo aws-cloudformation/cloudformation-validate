@@ -1,3 +1,5 @@
+use rules::TopLevelSection;
+
 pub const PSEUDO_PREFIX: &str = "AWS::";
 pub const PSEUDO_NO_VALUE: &str = "AWS::NoValue";
 pub const PSEUDO_ACCOUNT_ID: &str = "AWS::AccountId";
@@ -22,17 +24,20 @@ pub const PSEUDO_PARAMETERS: &[&str] = &[
 pub const DEFAULT_ACCOUNT_ID: &str = "123456789012";
 pub const DEFAULT_STACK_NAME: &str = "teststack";
 
-pub const SECTION_PARAMETERS: &str = "Parameters";
-pub const SECTION_MAPPINGS: &str = "Mappings";
-pub const SECTION_CONDITIONS: &str = "Conditions";
-pub const SECTION_RESOURCES: &str = "Resources";
-pub const SECTION_OUTPUTS: &str = "Outputs";
-pub const SECTION_RULES: &str = "Rules";
-pub const SECTION_METADATA: &str = "Metadata";
+// Section keys derive from the shared `TopLevelSection` enum — the single
+// definition of the documented template sections. `Globals` is SAM-only and
+// not part of the documented template anatomy, so it stays a plain constant.
+pub const SECTION_PARAMETERS: &str = TopLevelSection::Parameters.name();
+pub const SECTION_MAPPINGS: &str = TopLevelSection::Mappings.name();
+pub const SECTION_CONDITIONS: &str = TopLevelSection::Conditions.name();
+pub const SECTION_RESOURCES: &str = TopLevelSection::Resources.name();
+pub const SECTION_OUTPUTS: &str = TopLevelSection::Outputs.name();
+pub const SECTION_RULES: &str = TopLevelSection::Rules.name();
+pub const SECTION_METADATA: &str = TopLevelSection::Metadata.name();
 pub const SECTION_GLOBALS: &str = "Globals";
-pub const SECTION_FORMAT_VERSION: &str = "AWSTemplateFormatVersion";
-pub const SECTION_DESCRIPTION: &str = "Description";
-pub const SECTION_TRANSFORM: &str = "Transform";
+pub const SECTION_FORMAT_VERSION: &str = TopLevelSection::FormatVersion.name();
+pub const SECTION_DESCRIPTION: &str = TopLevelSection::Description.name();
+pub const SECTION_TRANSFORM: &str = TopLevelSection::Transform.name();
 
 pub const KEY_TYPE: &str = "Type";
 pub const KEY_CONDITION: &str = "Condition";

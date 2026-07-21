@@ -16,7 +16,7 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::load_template;
-use diagnostics::Diagnostic;
+use diagnostics::{Diagnostic, EntityType};
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
@@ -87,10 +87,8 @@ fn assert_fires_with_severity(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &s
 /// Assert `rule_id` fires on the resource with logical id `resource_id` in every engine.
 fn assert_fires_on_resource(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, resource_id: &str) {
     for (engine, diags) in by_engine {
-        let on_resource = diags
-            .iter()
-            .filter(|d| d.rule_id == rule_id)
-            .any(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(resource_id));
+        let on_resource =
+            diags.iter().filter(|d| d.rule_id == rule_id).any(|d| d.resource_logical_id() == Some(resource_id));
         assert!(on_resource, "[{engine}] expected {rule_id} on resource {resource_id}, but it did not fire there");
     }
 }
@@ -219,9 +217,9 @@ fn issue_37_service_filter_without_rule_id_silences_whole_service() {
     for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
         let diags = validate_with(engine, "issue-37.yaml", config.clone());
         let on_autoscaling = diags.iter().any(|d| {
-            d.resource
+            d.entity
                 .as_ref()
-                .and_then(|r| r.resource_type.as_deref())
+                .and_then(|e| e.resource_type.as_deref())
                 .is_some_and(|t| t.starts_with("AWS::AutoScaling::"))
         });
         assert!(
@@ -516,10 +514,7 @@ fn issue_53_f3004_fires_on_real_dependson_cycle() {
     for (engine, ds) in &diags {
         let barrier = ds
             .iter()
-            .find(|d| {
-                d.rule_id == "F3004"
-                    && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ClusterKubectlReadyBarrier200052AF")
-            })
+            .find(|d| d.rule_id == "F3004" && d.resource_logical_id() == Some("ClusterKubectlReadyBarrier200052AF"))
             .expect("F3004 on the kubectl ready barrier");
         assert!(
             barrier.message.contains(
@@ -899,7 +894,7 @@ fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
         let on_valid = d
             .iter()
             .filter(|x| x.rule_id == "W3663")
-            .any(|x| x.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("PermissionWithAccountId"));
+            .any(|x| x.resource_logical_id() == Some("PermissionWithAccountId"));
         assert!(!on_valid, "[{engine}] W3663 must not fire on the permission whose ARN has a 12-digit account id");
     }
     // The invalid 10-digit account field also fails the ARN schema pattern,
@@ -1026,7 +1021,7 @@ fn invalid_account_id_override_emits_single_w9012() {
     assert_count(&diags, "W9012", 1);
     for (engine, d) in &diags {
         let w = d.iter().find(|x| x.rule_id == "W9012").expect("W9012 expected");
-        assert!(w.resource.is_none(), "[{engine}] W9012 is a config warning with no resource");
+        assert!(w.entity.is_none(), "[{engine}] W9012 is a config warning with no entity");
         assert!(w.message.contains("unknown-account"), "[{engine}] message names the bad value: {}", w.message);
     }
 }
@@ -1279,18 +1274,20 @@ Outputs:
 }
 
 /// Issue #201: diagnostics on non-resource entities (here a Parameter) must
-/// carry a structured `logical_id` — not just the entity name buried in the
+/// carry a structured `entity` — not just the entity name buried in the
 /// message — and must anchor at the entity's own span, not the section key.
 #[test]
-fn issue_201_parameter_diagnostics_carry_logical_id() {
+fn issue_201_parameter_diagnostics_carry_entity() {
     let by_engine = validate_both("issue-201.json");
     for (engine, diags) in &by_engine {
         for rule_id in ["F2002", "W2001"] {
             let matched: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == rule_id).collect();
             assert_eq!(matched.len(), 1, "[{engine}] expected exactly one {rule_id}");
             let d = matched[0];
-            assert_eq!(d.logical_id.as_deref(), Some("MyParam"), "[{engine}] {rule_id} must identify the parameter");
-            assert!(d.resource.is_none(), "[{engine}] {rule_id}: a parameter is not a resource");
+            let entity = d.entity.as_ref().unwrap_or_else(|| panic!("[{engine}] {rule_id} must carry an entity"));
+            assert_eq!(entity.logical_id, "MyParam", "[{engine}] {rule_id} must identify the parameter");
+            assert_eq!(entity.entity_type, EntityType::Parameter, "[{engine}] {rule_id} targets a parameter");
+            assert_eq!(entity.resource_type, None, "[{engine}] {rule_id}: a parameter has no resource type");
             assert!(d.location.is_some(), "[{engine}] {rule_id} must carry the parameter's span");
         }
         let f2002 = diags.iter().find(|d| d.rule_id == "F2002").expect("F2002 fired");
@@ -1308,11 +1305,11 @@ fn issue_201_parameter_diagnostics_carry_logical_id() {
     }
 }
 
-/// Issue #201 companion: a resource-targeted diagnostic carries `logical_id`
-/// equal to its resource ID, so consumers have one uniform lookup key across
-/// every template section.
+/// Issue #201 companion: a resource-targeted diagnostic carries a
+/// Resource-typed entity with the CloudFormation type attached, so consumers
+/// have one uniform lookup key across every template section.
 #[test]
-fn issue_201_resource_diagnostics_mirror_resource_id_into_logical_id() {
+fn issue_201_resource_diagnostics_carry_resource_entity() {
     let template = br#"
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
@@ -1323,14 +1320,15 @@ Resources:
 "#;
     let by_engine = validate_both_bytes(template);
     for (engine, diags) in &by_engine {
-        let on_q: Vec<&Diagnostic> =
-            diags.iter().filter(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("Q")).collect();
+        let on_q: Vec<&Diagnostic> = diags.iter().filter(|d| d.resource_logical_id() == Some("Q")).collect();
         assert!(!on_q.is_empty(), "[{engine}] expected diagnostics on resource Q");
         for d in on_q {
+            let entity = d.entity.as_ref().expect("resource diagnostics carry an entity");
+            assert_eq!(entity.entity_type, EntityType::Resource, "[{engine}] {}", d.rule_id);
             assert_eq!(
-                d.logical_id.as_deref(),
-                Some("Q"),
-                "[{engine}] {}: logical_id must mirror the resource ID",
+                entity.resource_type.as_deref(),
+                Some("AWS::SQS::Queue"),
+                "[{engine}] {}: resource entity carries the CloudFormation type",
                 d.rule_id
             );
         }

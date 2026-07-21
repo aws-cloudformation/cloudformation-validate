@@ -128,11 +128,10 @@ pub fn format_rule_for_format(format: &str) -> Option<&'static str> {
     }
 }
 
-/// Derive the top-level CloudFormation template section from diagnostic context.
-pub fn section_for_rule_id(resource_id: Option<&str>, rule_id: &str) -> Option<&'static str> {
-    if resource_id.is_some() {
-        return Some("Resources");
-    }
+/// Derive the top-level CloudFormation template section a rule reports on.
+/// Used to fall back to the section's span when a diagnostic has no more
+/// precise location.
+pub fn section_for_rule_id(rule_id: &str) -> Option<&'static str> {
     match rule_id {
         "F0040" | "F6005" | "F6101" | "F6004" | "F6011" | "I6011" | "I6010" => Some("Outputs"),
         "W8001" => Some("Conditions"),
@@ -232,36 +231,31 @@ mod tests {
     }
 
     #[test]
-    fn section_for_rule_id_returns_resources_when_resource_id_present() {
-        assert_eq!(section_for_rule_id(Some("Bucket"), "E3012"), Some("Resources"));
-    }
-
-    #[test]
     fn section_for_rule_id_maps_output_rules_to_outputs() {
-        assert_eq!(section_for_rule_id(None, "F0040"), Some("Outputs"));
-        assert_eq!(section_for_rule_id(None, "F0004"), Some("Outputs"));
+        assert_eq!(section_for_rule_id("F0040"), Some("Outputs"));
+        assert_eq!(section_for_rule_id("F0004"), Some("Outputs"));
     }
 
     #[test]
     fn section_for_rule_id_maps_parameter_rules_to_parameters() {
-        assert_eq!(section_for_rule_id(None, "F0003"), Some("Parameters"));
-        assert_eq!(section_for_rule_id(None, "W2001"), Some("Parameters"));
+        assert_eq!(section_for_rule_id("F0003"), Some("Parameters"));
+        assert_eq!(section_for_rule_id("W2001"), Some("Parameters"));
     }
 
     #[test]
     fn section_for_rule_id_maps_condition_rules_to_conditions() {
-        assert_eq!(section_for_rule_id(None, "F0009"), Some("Conditions"));
-        assert_eq!(section_for_rule_id(None, "W8001"), Some("Conditions"));
+        assert_eq!(section_for_rule_id("F0009"), Some("Conditions"));
+        assert_eq!(section_for_rule_id("W8001"), Some("Conditions"));
     }
 
     #[test]
     fn section_for_rule_id_maps_rules_section_rules() {
-        assert_eq!(section_for_rule_id(None, "F8600"), Some("Rules"));
+        assert_eq!(section_for_rule_id("F8600"), Some("Rules"));
     }
 
     #[test]
     fn section_for_rule_id_returns_none_for_unmapped_rule() {
-        assert_eq!(section_for_rule_id(None, "Z9999"), None);
+        assert_eq!(section_for_rule_id("Z9999"), None);
     }
 
     #[test]
