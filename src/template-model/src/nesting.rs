@@ -40,9 +40,9 @@ pub fn validate_intrinsic_nesting(arena: &Arena) -> Vec<Diagnostic> {
 fn restricted_children(intrinsic: &IntrinsicFn, in_rules: bool) -> Vec<(NodeRef, &'static [&'static str])> {
     match intrinsic {
         IntrinsicFn::Equals(_, _) => {
-            // Fn::Equals operand validation is owned by the E8003 parser check
-            // (which uses the canonical allowed-function list), so the nesting
-            // check does not re-validate Equals operands — doing so would
+            // Fn::Equals operand validation is owned by the condition-function
+            // parser check, which rejects any operand whose function does not
+            // produce a scalar. Re-validating the operands here would
             // double-report the same disallowed operand under two rule IDs.
             Vec::new()
         }
@@ -109,11 +109,11 @@ mod tests {
         });
 
         let diags = validate_intrinsic_nesting(&arena);
-        assert!(diags.is_empty(), "Fn::Equals operand validity is owned by E8003, not the nesting check");
+        assert!(diags.is_empty(), "Fn::Equals operand validity is owned by the parser check, not the nesting check");
     }
 
     #[test]
-    fn getatt_inside_and_produces_f1105() {
+    fn getatt_inside_and_produces_invalid_nesting() {
         let mut arena = Arena::new();
         let getatt = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::GetAtt("R".into(), "Arn".into())),
@@ -215,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn ref_inside_not_produces_f1105() {
+    fn ref_inside_not_produces_invalid_nesting() {
         let mut arena = Arena::new();
         let r = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::Ref("Param".into())),

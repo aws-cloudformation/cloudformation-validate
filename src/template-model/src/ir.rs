@@ -94,6 +94,15 @@ impl Arena {
             entries.push((key, val));
         }
     }
+
+    /// Overwrites the node at `r` with `node`. Used by the language-extensions
+    /// transform to install a rewritten section over the ref the model holds,
+    /// without threading a new ref back to every caller.
+    pub fn set(&mut self, r: NodeRef, node: SpannedNode) {
+        if (r as usize) < self.nodes.len() {
+            self.nodes[r as usize] = node;
+        }
+    }
 }
 
 impl Default for Arena {

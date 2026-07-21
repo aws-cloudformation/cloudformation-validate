@@ -45,16 +45,24 @@ impl SemanticModel {
                 .collect(),
             conditions,
             condition_param_refs: self.conditions.referenced_params(),
+            // Synthetic conditions (`__`-prefixed, added for inline Fn::If and
+            // Rules-section assertions) drive the internal SAT model but are
+            // filtered out of the serialized `conditions` map, so they must be
+            // filtered out of every serialized structure that names conditions —
+            // otherwise engines and language bindings see implications/mutex
+            // groups referencing condition names that do not exist in the model.
             condition_implications: self
                 .conditions
                 .implications
                 .iter()
+                .filter(|i| !i.antecedent.starts_with("__") && !i.consequent.starts_with("__"))
                 .map(|i| DiagnosticImplication { antecedent: i.antecedent.clone(), consequent: i.consequent.clone() })
                 .collect(),
             condition_mutex_groups: self
                 .conditions
                 .mutex_groups
                 .iter()
+                .filter(|g| !g.conditions.iter().any(|c| c.starts_with("__")))
                 .map(|g| DiagnosticMutexGroup {
                     conditions: g.conditions.clone(),
                     parameter: g.parameter.clone(),
@@ -70,7 +78,8 @@ impl SemanticModel {
                 // budget-truncated output deterministic and engine-identical,
                 // mirroring the deterministic per-type resource ordering in
                 // `model`.
-                let mut cond_names: Vec<&String> = self.conditions.conditions.keys().collect();
+                let mut cond_names: Vec<&String> =
+                    self.conditions.conditions.keys().filter(|n| !n.starts_with("__")).collect();
                 cond_names.sort();
                 let mut exclusions = Vec::new();
                 'pairs: for i in 0..cond_names.len() {

@@ -19,16 +19,6 @@ pub const PSEUDO_PARAMETERS: &[&str] = &[
     PSEUDO_URL_SUFFIX,
 ];
 
-pub const PSEUDO_PARAMETERS_REFABLE: &[&str] = &[
-    PSEUDO_ACCOUNT_ID,
-    PSEUDO_NOTIFICATION_ARNS,
-    PSEUDO_PARTITION,
-    PSEUDO_REGION,
-    PSEUDO_STACK_ID,
-    PSEUDO_STACK_NAME,
-    PSEUDO_URL_SUFFIX,
-];
-
 pub const DEFAULT_ACCOUNT_ID: &str = "123456789012";
 pub const DEFAULT_STACK_NAME: &str = "teststack";
 
@@ -412,34 +402,15 @@ pub const BOOLEAN_FN_KEYS: &[&str] =
 
 /// Intrinsic functions whose output can stand in for an `Fn::Equals` argument.
 /// An `Fn::Equals` argument that is a single-key mapping must use one of these
-/// keys to be considered well-formed. This includes the string/value-producing
-/// functions as well as the boolean-producing condition functions (`Fn::And`,
-/// `Fn::Or`, `Fn::Not`, a nested `Fn::Equals`, `Condition`, and the Rules-section
-/// membership functions), since CloudFormation permits comparing a boolean result
-/// against another value.
-pub const EQUALS_ARG_FN_KEYS: &[&str] = &[
-    FN_REF,
-    FN_FIND_IN_MAP,
-    FN_SUB,
-    FN_JOIN,
-    FN_SELECT,
-    FN_SPLIT,
-    FN_LENGTH,
-    FN_TO_JSON_STRING,
-    FN_IF,
-    FN_BASE64,
-    FN_GET_ATT,
-    FN_GET_AZS,
-    FN_IMPORT_VALUE,
-    FN_AND,
-    FN_OR,
-    FN_NOT,
-    FN_EQUALS,
-    FN_CONDITION,
-    FN_CONTAINS,
-    FN_EACH_MEMBER_EQUALS,
-    FN_EACH_MEMBER_IN,
-];
+/// keys to be considered well-formed. An `Fn::Equals` operand must resolve to a
+/// scalar, so only the string/value-producing functions are permitted. Boolean
+/// and reference-shaped functions (`Fn::And`/`Fn::Or`/`Fn::Not`, a nested
+/// `Fn::Equals`, `Condition`, `Fn::GetAtt`, `Fn::GetAZs`, `Fn::ImportValue`,
+/// `Fn::Base64`, and the Rules-section membership functions) produce a
+/// non-scalar and are rejected here, matching CloudFormation's own restriction
+/// on comparison operands.
+pub const EQUALS_ARG_FN_KEYS: &[&str] =
+    &[FN_REF, FN_FIND_IN_MAP, FN_SUB, FN_JOIN, FN_SELECT, FN_SPLIT, FN_LENGTH, FN_TO_JSON_STRING];
 
 // Edge kind values used in the serialized reference graph.
 // These are distinct from FN_* names (e.g. EDGE_KIND_GET_ATT = "GetAtt" vs FN_GET_ATT = "Fn::GetAtt").

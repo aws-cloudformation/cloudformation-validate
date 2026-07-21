@@ -5,6 +5,7 @@ pub mod coercion;
 pub mod conditions;
 pub mod consts;
 pub mod diagnostic;
+pub(crate) mod dynamic_ref;
 pub(crate) mod graph;
 pub mod hardcoded_az;
 pub(crate) mod intrinsic_arg_shapes;
@@ -36,6 +37,18 @@ pub use regions::{
 };
 
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, SourceSpan};
+
+/// A parse-time diagnostic anchored to a specific resource (or output pseudo-
+/// resource), so consumers and the accuracy comparison can key it by resource id
+/// the same way an engine-emitted resource diagnostic would.
+pub(crate) fn make_parse_diagnostic_for_resource(
+    rule_id: &str,
+    message: String,
+    span: SourceSpan,
+    resource_id: &str,
+) -> Diagnostic {
+    RegisteredDiagnostic::new(rule_id, message).location(span).resource(resource_id, None).phase(Phase::Parse).build()
+}
 
 pub(crate) fn make_parse_diagnostic(rule_id: &str, message: String, span: SourceSpan) -> Diagnostic {
     RegisteredDiagnostic::new(rule_id, message).location(span).phase(Phase::Parse).build()

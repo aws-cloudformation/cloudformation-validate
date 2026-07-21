@@ -666,12 +666,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "F1104",
-        category: Category::Structure,
-        description: "Duplicate logical ID in template",
-        origin: RuleOrigin::Schema,
-    },
-    RuleDefinition {
         id: "E1150",
         category: Category::Intrinsic,
         description: "Validate security group format",
@@ -1476,6 +1470,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E6005",
+        category: Category::Structure,
+        description: "Condition referenced by an output must exist in the Conditions section",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E7001",
         category: Category::Structure,
         description: "Mappings are appropriately configured",
@@ -1713,6 +1713,18 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E1027",
         category: Category::Intrinsic,
         description: "Check dynamic references secure strings are in supported locations",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E1030",
+        category: Category::Intrinsic,
+        description: "Fn::Length argument must be an array or a list-producing function",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E1031",
+        category: Category::Intrinsic,
+        description: "Fn::ToJsonString argument must be a non-empty array/object or a supported function",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {

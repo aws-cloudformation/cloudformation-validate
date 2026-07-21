@@ -521,6 +521,7 @@ impl SemanticModel {
         diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::dynamic_ref::validate_dynamic_references(&ir.arena));
 
         let mut fn_if_conditions: Vec<String> = Vec::new();
         for idx in 0..ir.arena.len() {
@@ -528,9 +529,15 @@ impl SemanticModel {
                 Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) => {
                     fn_if_conditions.push(cond_name.clone());
                     if !conditions.conditions.contains_key(cond_name) {
+                        // A single owner for the undefined-Fn::If-condition
+                        // finding. Emitting it here (during the arena scan, which
+                        // sees every Fn::If regardless of nesting) rather than in
+                        // each engine keeps the two engines identical and covers
+                        // the no-Conditions-section case, where a condition-name
+                        // reference is still invalid.
                         diagnostics.push(crate::make_parse_diagnostic(
-                            "F1104",
-                            format!("Fn::If references undefined condition '{}'", cond_name),
+                            "E1028",
+                            format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                             ir.arena.span(idx as NodeRef),
                         ));
                     }
@@ -559,6 +566,55 @@ impl SemanticModel {
                 output_empty_joins.extend(joins.iter().cloned());
             }
         }
+
+        // Raw pseudo-parameter strings in the Outputs section. Such findings are
+        // collected against the `__output__`/`__outputs__` pseudo-resources,
+        // which are filtered out of the serialized model the engines scan, so
+        // the engine rule never sees them. Emit them here (both engines share
+        // this parse-time output) so a pseudo-parameter used as a plain string
+        // in an output Value is reported the same as one in a resource.
+        {
+            let mut output_raw_pseudo: Vec<(String, String)> = Vec::new();
+            for (key, entries) in &resolver.raw_pseudo_params {
+                if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
+                    for (path, value) in entries {
+                        output_raw_pseudo.push((path.clone(), value.clone()));
+                    }
+                }
+            }
+            output_raw_pseudo.sort();
+            for (path, value) in output_raw_pseudo {
+                diagnostics.push(crate::make_parse_diagnostic(
+                    "W1054",
+                    format!(
+                        "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
+                        value, value
+                    ),
+                    ir.span_index.get(&path).copied().unwrap_or(UNKNOWN_SPAN),
+                ));
+            }
+        }
+
+        // Raw pseudo-parameter strings in parameter Default values: a Default
+        // that is exactly a pseudo-parameter string (e.g. "AWS::Region") is
+        // almost certainly a mistake. Parameters are not walked by the resolver,
+        // so check the raw default strings directly.
+        {
+            let mut param_names: Vec<&String> = parameters.keys().collect();
+            param_names.sort();
+            for pname in param_names {
+                if let Some(default) = &parameters[pname].default
+                    && PSEUDO_PARAMETERS.contains(&default.as_str())
+                {
+                    diagnostics.push(crate::make_parse_diagnostic(
+                        "W1054",
+                        format!("Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead", default, default),
+                        ir.span_index.get(&format!("Parameters/{}/Default", pname)).copied().unwrap_or(UNKNOWN_SPAN),
+                    ));
+                }
+            }
+        }
+
         diagnostics.extend(resolver.diagnostics);
         // SAM handling keys on the exact transform id, matching how the engines
         // detect the transform. A substring match would misclassify a non-SAM
@@ -580,7 +636,55 @@ impl SemanticModel {
                 ir.span_index.get(&format!("Conditions/{}", cond_name)).copied().unwrap_or(UNKNOWN_SPAN),
             ));
         }
+        // A `Condition:` key that names a condition absent from the Conditions
+        // section is reported here — a distinct rule for the resource case and
+        // the output case, since they are separate concerns. Emitting both
+        // during model build anchors each at its own source location and keeps
+        // the two engines identical. Names are sorted for deterministic
+        // ordering.
+        {
+            let mut resource_ids_sorted: Vec<&String> = resources.keys().collect();
+            resource_ids_sorted.sort();
+            for rid in resource_ids_sorted {
+                if let Some(cond) = &resources[rid].condition
+                    && !conditions.conditions.contains_key(cond)
+                {
+                    diagnostics.push(crate::make_parse_diagnostic_for_resource(
+                        "E8002",
+                        format!("Condition '{}' referenced by resource '{}' is not defined", cond, rid),
+                        ir.span_index.get(&format!("Resources/{}", rid)).copied().unwrap_or(UNKNOWN_SPAN),
+                        rid,
+                    ));
+                }
+            }
+            let mut output_names_sorted: Vec<&String> = outputs.keys().collect();
+            output_names_sorted.sort();
+            for oname in output_names_sorted {
+                if let Some(cond) = &outputs[oname].condition
+                    && !conditions.conditions.contains_key(cond)
+                {
+                    diagnostics.push(crate::make_parse_diagnostic_for_resource(
+                        "E6005",
+                        format!("Condition '{}' referenced by output '{}' is not defined", cond, oname),
+                        ir.span_index.get(&format!("Outputs/{}", oname)).copied().unwrap_or(UNKNOWN_SPAN),
+                        oname,
+                    ));
+                }
+            }
+        }
+        for invalid in conditions.invalid_condition_bodies() {
+            diagnostics.push(crate::make_parse_diagnostic(
+                "E8001",
+                format!("Condition '{}' must be a boolean expression", invalid),
+                ir.span_index.get(&format!("Conditions/{}", invalid)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
         for (owner, undefined_ref) in conditions.undefined_condition_refs() {
+            // Synthetic conditions (`__`-prefixed, inserted for inline Fn::If and
+            // Rules-section assertions) are internal; never surface their names.
+            if owner.starts_with("__") || undefined_ref.starts_with("__") {
+                continue;
+            }
             diagnostics.push(crate::make_parse_diagnostic(
                 "E8007",
                 format!("Condition '{}' references undefined condition '{}'", owner, undefined_ref),
@@ -603,13 +707,11 @@ impl SemanticModel {
                 ir.span_index.get(&format!("Conditions/{}", other)).copied().unwrap_or(UNKNOWN_SPAN),
             ));
         }
-        for query in conditions.budget_exhausted_queries() {
-            diagnostics.push(crate::make_parse_diagnostic(
-                "I9052",
-                format!("Condition satisfiability analysis budget exhausted during: {}", query),
-                UNKNOWN_SPAN,
-            ));
-        }
+        // The satisfiability-budget-exhaustion advisory is deliberately NOT
+        // emitted here: almost every satisfiability query runs later, during
+        // engine rule evaluation, so the budget-exhausted set is still empty at
+        // model-build time. The validation engine emits it after rule
+        // evaluation, once those queries have run.
         let model_build = phase_metric(total_start);
 
         if !diagnostics.is_empty() {

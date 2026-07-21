@@ -91,3 +91,65 @@ fn check_to_json_string_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNod
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::SemanticModel;
+
+    /// The shape-check rule IDs must be present in the rule registry; a
+    /// diagnostic carrying an unregistered ID panics while the report is built.
+    /// Exercise the full public path (parse → build → serialize) so the emit
+    /// path is covered, not just the arena-level helper.
+    fn rule_ids(template: &str) -> Vec<String> {
+        let model = SemanticModel::from_bytes(template.as_bytes()).expect("model builds without panicking");
+        model.diagnostics.iter().map(|d| d.rule_id.clone()).collect()
+    }
+
+    #[test]
+    fn length_shape_error_does_not_panic_and_reports_e1030() {
+        let template = "\
+Transform: AWS::LanguageExtensions
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Length \"not-a-list\"
+";
+        assert!(rule_ids(template).iter().any(|id| id == "E1030"), "expected E1030 for a scalar Fn::Length argument");
+    }
+
+    #[test]
+    fn to_json_string_shape_error_does_not_panic_and_reports_e1031() {
+        // Fn::ToJsonString over a disallowed function (Fn::Base64 is not in the
+        // allowed set) must produce a shape error, not a panic.
+        let template = "\
+Transform: AWS::LanguageExtensions
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::ToJsonString:
+          Fn::Base64: \"abc\"
+";
+        assert!(
+            rule_ids(template).iter().any(|id| id == "E1031"),
+            "expected E1031 for an unsupported Fn::ToJsonString argument"
+        );
+    }
+
+    #[test]
+    fn shape_checks_are_gated_on_language_extensions_transform() {
+        // Without the transform, Fn::Length/Fn::ToJsonString are rejected by the
+        // transform-required check, not the argument-shape check.
+        let template = "\
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Length \"not-a-list\"
+";
+        let ids = rule_ids(template);
+        assert!(!ids.iter().any(|id| id == "E1030"), "E1030 must not fire without the LanguageExtensions transform");
+    }
+}

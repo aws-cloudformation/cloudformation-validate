@@ -55,15 +55,15 @@ impl Builder {
         ));
     }
 
-    /// A malformed boolean condition function — `Fn::And`/`Or`/`Not`/`Equals`
-    /// (fatal). Anchored at the function node so it lands where a property-level
-    /// error would.
+    /// A malformed boolean condition function — `Fn::And`/`Or`/`Not`/`Equals`.
+    /// Anchored at the function node so it lands where a property-level error
+    /// would.
     fn condition_fn_error(&mut self, fn_name: &str, reason: &str, path: &str) {
         let rule_id = match fn_name {
-            "Fn::Equals" => "E8003",
-            "Fn::And" => "E8004",
-            "Fn::Not" => "E8005",
-            "Fn::Or" => "E8006",
+            FN_EQUALS => "E8003",
+            FN_AND => "E8004",
+            FN_NOT => "E8005",
+            FN_OR => "E8006",
             _ => "F0014",
         };
         self.diagnostics.push(crate::make_parse_diagnostic_at(
@@ -625,9 +625,17 @@ impl Builder {
             );
             return None;
         }
-        for (idx, elem) in arr.iter().enumerate() {
-            if let Some(reason) = equals_argument_error(elem) {
-                self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason), path);
+        // The strict operand-type check (an Fn::Equals operand must produce a
+        // scalar) applies only where the Equals is evaluated as a boolean
+        // condition function: a Conditions-section definition or a Rules-section
+        // assertion. Inside an Fn::If value expression (a resource property or
+        // output), CloudFormation accepts a broader set of operands, so applying
+        // the strict check there would be a false positive.
+        if path.starts_with("Conditions/") || path.starts_with("Rules/") {
+            for (idx, elem) in arr.iter().enumerate() {
+                if let Some(reason) = equals_argument_error(elem) {
+                    self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason), path);
+                }
             }
         }
         let a = self.build(&arr[0], &format!("{}/{}/0", path, FN_EQUALS));

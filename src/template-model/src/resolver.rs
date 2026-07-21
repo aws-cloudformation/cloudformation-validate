@@ -1186,7 +1186,7 @@ impl<'a> Resolver<'a> {
         let Some(ref rid) = self.current_resource else {
             return;
         };
-        if PSEUDO_PARAMETERS_REFABLE.contains(&s) {
+        if PSEUDO_PARAMETERS.contains(&s) {
             self.raw_pseudo_params.entry(rid.clone()).or_default().push((self.current_path.clone(), s.to_string()));
         }
     }
@@ -1198,6 +1198,14 @@ impl<'a> Resolver<'a> {
         let Some(ref rid) = self.current_resource else {
             return;
         };
+        // The "secret value where an ARN is expected" warning only applies
+        // inside a resource's `Properties`. A secretsmanager dynamic reference
+        // elsewhere (Metadata, DependsOn, etc.) is governed by the
+        // not-supported-location check, not this one, so restrict collection to
+        // property paths.
+        if !self.current_path.starts_with("Properties.") && self.current_path != "Properties" {
+            return;
+        }
         self.secretsmanager_ref_paths.entry(rid.clone()).or_default().push(self.current_path.clone());
     }
 

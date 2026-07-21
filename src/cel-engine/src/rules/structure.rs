@@ -315,40 +315,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(conds_obj) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
-        let defined_conditions: HashSet<&str> = conds_obj.keys().map(|k| k.as_str()).collect();
-        for (rname, res) in &m.resources {
-            if let Some(cond) = &res.condition
-                && !defined_conditions.contains(cond.as_str())
-            {
-                out.push(make_resource_diagnostic(
-                    "E8002",
-                    &format!("Condition '{}' referenced by resource '{}' is not defined", cond, rname),
-                    m,
-                    rname,
-                    "",
-                    None,
-                ));
-            }
-        }
-        if let Some(outputs_obj) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
-            for (oname, out_val) in outputs_obj {
-                if let Some(cond) = out_val.get("condition").and_then(|c| c.as_str())
-                    && !defined_conditions.contains(cond)
-                {
-                    out.push(make_resource_diagnostic(
-                        "E8002",
-                        &format!("Condition '{}' referenced by output '{}' is not defined", cond, oname),
-                        m,
-                        "",
-                        "",
-                        None,
-                    ));
-                }
-            }
-        }
-    }
-
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
         && desc.len() > 1024
     {

@@ -23,7 +23,6 @@ pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(Category::Intrinsic, eval_unused_sub_keys);
     reg.add(Category::Intrinsic, eval_raw_pseudo_params);
     reg.add(Category::Intrinsic, eval_secretsmanager_arn);
-    reg.add(Category::Intrinsic, eval_dynref_format);
 }
 
 fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -41,11 +40,6 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
         .map(|p| p.keys().map(|k| k.as_str()).collect())
         .unwrap_or_default();
     let pseudo: HashSet<&str> = PSEUDO_PARAMETERS.iter().copied().collect();
-    let cond_keys: HashSet<&str> = input
-        .get(FIELD_CONDITIONS)
-        .and_then(|c| c.as_object())
-        .map(|c| c.keys().map(|k| k.as_str()).collect())
-        .unwrap_or_default();
     let sam_implicit: HashSet<&str> = input
         .get("samImplicitResources")
         .and_then(|s| s.as_array())
@@ -195,25 +189,6 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                         m,
                         name,
                         p,
-                        None,
-                    ));
-                }
-            }
-        }
-
-        if !cond_keys.is_empty()
-            && let Some(crefs) = res.get("conditionRefs").and_then(|r| r.as_array())
-        {
-            for cref in crefs {
-                if let Some(cname) = cref.as_str()
-                    && !cond_keys.contains(cname)
-                {
-                    out.push(make_resource_diagnostic(
-                        "E1028",
-                        &format!("Fn::If condition '{}' does not exist in Conditions section", cname),
-                        m,
-                        name,
-                        "",
                         None,
                     ));
                 }
@@ -654,85 +629,4 @@ fn eval_secretsmanager_arn(ctx: &EvalContext) -> Vec<Diagnostic> {
 
 fn path_segment_matches(path: &str, field: &str) -> bool {
     path.split('.').any(|segment| segment == field)
-}
-
-
-static SSM_FORMAT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"^\{\{resolve:ssm(?:-secure)?:[a-zA-Z0-9_.\-/]+(?::\d+)?\}\}$").expect("Invalid SSM_FORMAT_RE")
-});
-
-static SM_FORMAT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(
-        r"^\{\{resolve:secretsmanager:(?:arn:[^:]+:[^:]*:[^:]*:[^:]*:secret:[^:]+(?::[^}]*)*|[^:}]+(?::(?:SecretString|)(?::[^:}]*(?::[^:}]*)?)?)?)\}\}$",
-    )
-    .expect("Invalid SM_FORMAT_RE")
-});
-
-static DYNREF_EXTRACT_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"\{\{resolve:(ssm-secure|ssm|secretsmanager):[^}]*\}\}").expect("Invalid DYNREF_EXTRACT_RE")
-});
-
-fn eval_dynref_format(ctx: &EvalContext) -> Vec<Diagnostic> {
-    let mut out = Vec::new();
-    let m = ctx.model;
-    let input = ctx.input;
-
-    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        Some(r) => r,
-        None => return out,
-    };
-
-    for (name, res) in resources {
-        if let Some(props) = res.get(FIELD_PROPERTIES).and_then(|p| p.as_object()) {
-            for (prop, val) in props {
-                let path = format!("Properties.{}", prop);
-                if let Some((match_str, ref_type)) = find_first_malformed_dynref(val) {
-                    out.push(make_resource_diagnostic(
-                        "E1050",
-                        &format!(
-                            "Dynamic reference '{}' does not match the required format for '{}'",
-                            match_str, ref_type
-                        ),
-                        m,
-                        name,
-                        &path,
-                        Some("Check the dynamic reference syntax"),
-                    ));
-                }
-            }
-        }
-    }
-
-    out
-}
-
-fn find_first_malformed_dynref(val: &serde_json::Value) -> Option<(String, String)> {
-    match val {
-        serde_json::Value::String(s) => find_malformed_dynref_in_str(s),
-        serde_json::Value::Array(arr) => arr.iter().find_map(find_first_malformed_dynref),
-        serde_json::Value::Object(obj) => {
-            if let Some(reason) = obj.get("__dynamic").and_then(|v| v.as_str()) {
-                find_malformed_dynref_in_str(reason)
-            } else {
-                obj.values().find_map(find_first_malformed_dynref)
-            }
-        }
-        _ => None,
-    }
-}
-
-fn find_malformed_dynref_in_str(s: &str) -> Option<(String, String)> {
-    for cap in DYNREF_EXTRACT_RE.captures_iter(s) {
-        let full_match = cap.get(0).map(|m| m.as_str()).unwrap_or("");
-        let ref_type = &cap[1];
-        let valid = match ref_type {
-            "ssm" | "ssm-secure" => SSM_FORMAT_RE.is_match(full_match),
-            "secretsmanager" => SM_FORMAT_RE.is_match(full_match),
-            _ => true,
-        };
-        if !valid {
-            return Some((full_match.to_string(), ref_type.to_string()));
-        }
-    }
-    None
 }

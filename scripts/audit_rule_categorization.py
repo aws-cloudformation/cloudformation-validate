@@ -298,8 +298,9 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # condition-name-must-exist check. The engine splits: F0013 (structure)
     # and E1028 (condition exists). Link so either engine rule matches.
     _link("E1028", "F0013")
-    # Condition reference in Conditions section: cfn-lint's E8002 covers
-    # resource condition key + outputs condition, now emitted as E8002 by us.
+    # A resource `Condition:` referencing an undefined condition: cfn-lint emits
+    # E3015, the engine emits E8002. (An undefined output `Condition:` is E6005
+    # in both, so it needs no alias.)
     _link("E8002", "E3015")
     # cfn-lint's E8004/E8005/E8006 also cover undefined condition refs inside
     # And/Not/Or; the engine splits the "must exist" check into E8007.
@@ -407,6 +408,13 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # W9003 is intentional strictness. It still aliases F3012/E3012 so a
     # strict-mode E3012 finding matches.
     engine_extra.add("W9003")
+    # W1019 (unused Fn::Sub variable-map key) is a legitimate warning, but
+    # cfn-lint's own W1019 is dormant in the current release: its child-rule
+    # invocation path is not reached during property validation, so it fires in
+    # no template-level case and has no snapshot fixtures. The engine emits the
+    # warning where it is genuinely useful, so an unmatched W1019 is intentional
+    # and not a false positive.
+    engine_extra.add("W1019")
 
     # Engine rules that implement a cfn-lint check under a different (split or
     # generic) ID. Reported by the audit; they participate in parity matching

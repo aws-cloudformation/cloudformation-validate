@@ -246,12 +246,15 @@ impl CfnYamlLoader {
                         && let Some(flag) = self.mapping_uses_merge.last_mut()
                     {
                         *flag = true;
-                        if let Some(Some((line, col))) = self.key_marks.last() {
+                        // Use the mark captured above; `self.key_marks.last()` was
+                        // already emptied by the `.take()` on the line that set
+                        // `key_mark`, so re-reading it here would never match.
+                        if let Some((line, col)) = key_mark {
                             self.merge_key_spans.push(SourceSpan {
-                                start_line: *line,
-                                start_column: *col,
-                                end_line: *line,
-                                end_column: *col + 2,
+                                start_line: line,
+                                start_column: col,
+                                end_line: line,
+                                end_column: col + 2,
                             });
                         }
                     }

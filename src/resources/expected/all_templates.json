@@ -1,4 +1,128 @@
 {
+  "bad/E1050_dynamic_ref_malformed.yaml": {
+    "filePath": "bad/E1050_dynamic_ref_malformed.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1050",
+        "severity": "ERROR",
+        "message": "'notanum' does not match '\\d+'",
+        "source": "CFN_LINT",
+        "resourceId": "MyBucket",
+        "propertyPath": "Properties.BucketName",
+        "category": "Intrinsic Function",
+        "startLine": 7,
+        "startColumn": 7,
+        "endLine": 7,
+        "endColumn": 17,
+        "ruleDescription": "Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E1050",
+        "severity": "ERROR",
+        "message": "'notsecret' was expected to be 'secret'",
+        "source": "CFN_LINT",
+        "resourceId": "MyBucket",
+        "propertyPath": "Properties.Tags.0.Value",
+        "category": "Intrinsic Function",
+        "startLine": 12,
+        "startColumn": 11,
+        "endLine": 12,
+        "endColumn": 16,
+        "ruleDescription": "Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MyBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 7,
+        "endLine": 7,
+        "endColumn": 17,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/my/param:notanum}}' (type String)"
+        }
+      }
+    ]
+  },
+  "bad/E1106_condition_cycle.yaml": {
+    "filePath": "bad/E1106_condition_cycle.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1106",
+        "severity": "ERROR",
+        "message": "Circular dependency in conditions: CondA -> CondB",
+        "source": "ENGINE",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 3,
+        "endLine": 6,
+        "endColumn": 8,
+        "ruleDescription": "Circular dependency in condition definitions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 3,
+        "endLine": 15,
+        "endColumn": 11,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/E1150_network_interfaces_groupset_multi.yaml": {
     "filePath": "bad/E1150_network_interfaces_groupset_multi.yaml",
     "status": "OK",
@@ -792,6 +916,57 @@
       }
     ]
   },
+  "bad/E8007_condition_undefined_in_expr.yaml": {
+    "filePath": "bad/E8007_condition_undefined_in_expr.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E8007",
+        "severity": "ERROR",
+        "message": "Condition 'IsHighAvailability' references undefined condition 'DoesNotExist'",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 3,
+        "endLine": 11,
+        "endColumn": 21,
+        "ruleDescription": "Condition function value must be a string referencing a defined condition",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 3,
+        "endLine": 16,
+        "endColumn": 11,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/E9001_unknown_resource_type.yaml": {
     "filePath": "bad/E9001_unknown_resource_type.yaml",
     "status": "OK",
@@ -1059,6 +1234,82 @@
       }
     ]
   },
+  "bad/W1019_sub_unused_key.yaml": {
+    "filePath": "bad/W1019_sub_unused_key.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1019",
+        "severity": "WARN",
+        "message": "Parameter 'UnusedKey' not used in Fn::Sub template string",
+        "source": "CFN_LINT",
+        "resourceId": "MyBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.BucketName",
+        "suggestedFix": "Remove the unused key from the Fn::Sub variable map or reference it in the template string",
+        "category": "Intrinsic Function",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 17,
+        "ruleDescription": "Parameter in Fn::Sub variable map is not used in the template string",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MyBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 17,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/W1028_allowedvalues_excludes_literal.yaml": {
     "filePath": "bad/W1028_allowedvalues_excludes_literal.yaml",
     "status": "OK",
@@ -1111,6 +1362,174 @@
         "startLine": 26,
         "startColumn": 5,
         "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/W1051_secretsmanager_at_arn.yaml": {
+    "filePath": "bad/W1051_secretsmanager_at_arn.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1051",
+        "severity": "WARN",
+        "message": "Dynamic reference resolves the secret value but this property expects the secret ARN",
+        "source": "CFN_LINT",
+        "resourceId": "MyConnection",
+        "resourceType": "AWS::DMS::Endpoint",
+        "propertyPath": "Properties.MySqlSettings.SecretsManagerSecretId",
+        "suggestedFix": "Use the secret ARN directly or retrieve it from Fn::GetAtt instead of using a resolve reference",
+        "category": "Intrinsic Function",
+        "startLine": 9,
+        "startColumn": 9,
+        "endLine": 9,
+        "endColumn": 31,
+        "ruleDescription": "Dynamic reference resolves secret value but property expects the secret ARN",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyConnection' of type 'AWS::DMS::Endpoint' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyConnection",
+        "resourceType": "AWS::DMS::Endpoint",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "bad/W1054_raw_pseudo_param.yaml": {
+    "filePath": "bad/W1054_raw_pseudo_param.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 2,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Role' is a required property",
+        "source": "SCHEMA",
+        "resourceId": "MyFunction",
+        "resourceType": "AWS::Lambda::Function",
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'Role'",
+        "category": "Schema",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W1054",
+        "severity": "WARN",
+        "message": "Found a string 'AWS::Region' that appears to be a pseudo parameter reference; use 'Ref: AWS::Region' instead",
+        "source": "CFN_LINT",
+        "resourceId": "MyFunction",
+        "resourceType": "AWS::Lambda::Function",
+        "propertyPath": "Properties.Environment.Variables.REGION",
+        "suggestedFix": "Use Ref to reference pseudo parameters instead of embedding them as literal strings",
+        "category": "Intrinsic Function",
+        "startLine": 15,
+        "startColumn": 11,
+        "endLine": 15,
+        "endColumn": 17,
+        "ruleDescription": "String value matches a pseudo parameter; use Ref instead",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W1054",
+        "severity": "WARN",
+        "message": "Found a string 'AWS::AccountId' that appears to be a pseudo parameter reference; use 'Ref: AWS::AccountId' instead",
+        "source": "CFN_LINT",
+        "resourceId": "MyFunction",
+        "resourceType": "AWS::Lambda::Function",
+        "propertyPath": "Properties.Environment.Variables.ACCOUNT",
+        "suggestedFix": "Use Ref to reference pseudo parameters instead of embedding them as literal strings",
+        "category": "Intrinsic Function",
+        "startLine": 16,
+        "startColumn": 11,
+        "endLine": 16,
+        "endColumn": 18,
+        "ruleDescription": "String value matches a pseudo parameter; use Ref instead",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "resourceId": "MyFunction",
+        "resourceType": "AWS::Lambda::Function",
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "MyFunction",
+        "resourceType": "AWS::Lambda::Function",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
@@ -1780,6 +2199,71 @@
       }
     ]
   },
+  "bad/W9053_equivalent_conditions.yaml": {
+    "filePath": "bad/W9053_equivalent_conditions.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 2,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'IsProd' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 1,
+        "endLine": 5,
+        "endColumn": 11,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT",
+        "section": "Conditions"
+      },
+      {
+        "ruleId": "W9053",
+        "severity": "WARN",
+        "message": "Condition 'IsProduction' is equivalent to condition 'IsProd' - consider consolidating",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 3,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Conditions are semantically equivalent and can be consolidated",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "Bucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 3,
+        "endLine": 11,
+        "endColumn": 9,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
   "bad/aurora_with_allocated_storage.yaml": {
     "filePath": "bad/aurora_with_allocated_storage.yaml",
     "status": "OK",
@@ -2227,9 +2711,9 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 9,
-        "errors": 0,
-        "warnings": 8,
+        "fatal": 5,
+        "errors": 2,
+        "warnings": 9,
         "informational": 8,
         "debug": 0
       },
@@ -2238,68 +2722,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F1060",
-        "severity": "FATAL",
-        "message": "Fn::If condition 'isDev' does not exist in Conditions section",
-        "source": "SCHEMA",
-        "resourceId": "EC2Instance",
-        "resourceType": "AWS::EC2::Instance",
-        "category": "Intrinsic Function",
-        "startLine": 53,
-        "startColumn": 3,
-        "endLine": 53,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Fn::If condition must exist in Conditions",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F1060",
-        "severity": "FATAL",
-        "message": "Fn::If condition 'isProd' does not exist in Conditions section",
-        "source": "SCHEMA",
-        "resourceId": "EC2Instance",
-        "resourceType": "AWS::EC2::Instance",
-        "category": "Intrinsic Function",
-        "startLine": 53,
-        "startColumn": 3,
-        "endLine": 53,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Fn::If condition must exist in Conditions",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F1104",
-        "severity": "FATAL",
-        "message": "Fn::If references undefined condition 'isDev'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 52,
-        "startColumn": 1,
-        "endLine": 52,
-        "endColumn": 10,
-        "ruleDescription": "Duplicate logical ID in template",
-        "phase": "PARSE",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F1104",
-        "severity": "FATAL",
-        "message": "Fn::If references undefined condition 'isProd'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 52,
-        "startColumn": 1,
-        "endLine": 52,
-        "endColumn": 10,
-        "ruleDescription": "Duplicate logical ID in template",
-        "phase": "PARSE",
-        "section": "Resources"
-      },
       {
         "ruleId": "F3002",
         "severity": "FATAL",
@@ -2519,6 +2941,34 @@
         }
       },
       {
+        "ruleId": "E1028",
+        "severity": "ERROR",
+        "message": "Fn::If condition 'isDev' does not exist in Conditions section",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "startLine": 52,
+        "startColumn": 1,
+        "endLine": 52,
+        "endColumn": 10,
+        "ruleDescription": "Fn::If condition must exist in Conditions section",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E1028",
+        "severity": "ERROR",
+        "message": "Fn::If condition 'isProd' does not exist in Conditions section",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "startLine": 52,
+        "startColumn": 1,
+        "endLine": 52,
+        "endColumn": 10,
+        "ruleDescription": "Fn::If condition must exist in Conditions section",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
+      {
         "ruleId": "W1103",
         "severity": "WARN",
         "message": "'Fn::Of' is not a supported function",
@@ -2650,6 +3100,19 @@
         "ruleDescription": "Hardcoded AMI ID",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "W9053",
+        "severity": "WARN",
+        "message": "Condition 'UnusedCondition' is equivalent to condition 'CreateProdResources' - consider consolidating",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "startLine": 42,
+        "startColumn": 3,
+        "endLine": 42,
+        "endColumn": 18,
+        "ruleDescription": "Conditions are semantically equivalent and can be consolidated",
+        "phase": "PARSE"
       },
       {
         "ruleId": "I3011",
@@ -2814,13 +3277,13 @@
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
-        "fatal": 9,
-        "errors": 0,
+        "fatal": 1,
+        "errors": 9,
         "warnings": 4,
         "informational": 0,
         "debug": 0
       },
-      "suppressed": 0,
+      "suppressed": 10,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -2840,8 +3303,21 @@
         "section": "Resources"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E1106",
+        "severity": "ERROR",
+        "message": "Circular dependency in conditions: TestAndToLittle -> TestAndToMany",
+        "source": "ENGINE",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 3,
+        "endLine": 5,
+        "endColumn": 18,
+        "ruleDescription": "Circular dependency in condition definitions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: 'And' is not of type 'array'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndString/Fn::And",
@@ -2850,12 +3326,12 @@
         "startColumn": 3,
         "endLine": 4,
         "endColumn": 16,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: expected minimum item count: 2, found: 1",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndToLittle/Fn::And",
@@ -2864,12 +3340,12 @@
         "startColumn": 3,
         "endLine": 5,
         "endColumn": 18,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: expected maximum item count: 10, found: 11",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndToMany/Fn::And",
@@ -2878,12 +3354,12 @@
         "startColumn": 5,
         "endLine": 7,
         "endColumn": 12,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: element 0: {'Condition': 'TestAndToMany', 'Extra': 'ThisIsBad'} is not of type 'boolean'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
@@ -2892,12 +3368,12 @@
         "startColumn": 3,
         "endLine": 19,
         "endColumn": 22,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: element 1: {'Bad': 'TestAndToMany'} is not of type 'boolean'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
@@ -2906,12 +3382,12 @@
         "startColumn": 3,
         "endLine": 19,
         "endColumn": 22,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: element 0: 'Test' is not of type 'boolean'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndBadArray/Fn::And",
@@ -2920,12 +3396,12 @@
         "startColumn": 3,
         "endLine": 20,
         "endColumn": 18,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: element 1: 'Test2' is not of type 'boolean'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndBadArray/Fn::And",
@@ -2934,12 +3410,12 @@
         "startColumn": 3,
         "endLine": 20,
         "endColumn": 18,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
         "message": "Fn::And: null is not of type 'array'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestAndNull/Fn::And",
@@ -2948,7 +3424,7 @@
         "startColumn": 5,
         "endLine": 22,
         "endColumn": 12,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
       {
@@ -3016,8 +3492,8 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 17,
-        "errors": 0,
+        "fatal": 2,
+        "errors": 15,
         "warnings": 14,
         "informational": 1,
         "debug": 0
@@ -3056,106 +3532,8 @@
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::And: 'And' is not of type 'array'",
-        "source": "SCHEMA",
-        "propertyPath": "Conditions/TestAndString/Fn::And",
-        "category": "Intrinsic Function",
-        "startLine": 9,
-        "startColumn": 27,
-        "endLine": 9,
-        "endColumn": 35,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::And: expected minimum item count: 2, found: 1",
-        "source": "SCHEMA",
-        "propertyPath": "Conditions/TestAndToLittle/Fn::And",
-        "category": "Intrinsic Function",
-        "startLine": 10,
-        "startColumn": 29,
-        "endLine": 10,
-        "endColumn": 37,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::And: element 0: 'Test' is not of type 'boolean'",
-        "source": "SCHEMA",
-        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
-        "category": "Intrinsic Function",
-        "startLine": 11,
-        "startColumn": 29,
-        "endLine": 11,
-        "endColumn": 37,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::And: element 1: 'Test2' is not of type 'boolean'",
-        "source": "SCHEMA",
-        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
-        "category": "Intrinsic Function",
-        "startLine": 11,
-        "startColumn": 29,
-        "endLine": 11,
-        "endColumn": 37,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::And: element 0: {'Condition': 'TestAndString', 'Extra': 'ThisIsBad'} is not of type 'boolean'",
-        "source": "SCHEMA",
-        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
-        "category": "Intrinsic Function",
-        "startLine": 13,
-        "startColumn": 13,
-        "endLine": 13,
-        "endColumn": 21,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::And: element 1: {'Bad': 'TestAndString'} is not of type 'boolean'",
-        "source": "SCHEMA",
-        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
-        "category": "Intrinsic Function",
-        "startLine": 13,
-        "startColumn": 13,
-        "endLine": 13,
-        "endColumn": 21,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
-        "message": "Fn::And: null is not of type 'array'",
-        "source": "SCHEMA",
-        "propertyPath": "Conditions/TestAndNull/Fn::And",
-        "category": "Intrinsic Function",
-        "startLine": 18,
-        "startColumn": 25,
-        "endLine": 18,
-        "endColumn": 33,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: 'Value' is not of type 'array'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualNotArray/Fn::Equals",
@@ -3164,12 +3542,12 @@
         "startColumn": 31,
         "endLine": 19,
         "endColumn": 42,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: expected minimum item count: 2, found: 1",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualTooShort/Fn::Equals",
@@ -3178,12 +3556,12 @@
         "startColumn": 31,
         "endLine": 20,
         "endColumn": 42,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: expected maximum item count: 2, found: 3",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualTooLong/Fn::Equals",
@@ -3192,12 +3570,12 @@
         "startColumn": 30,
         "endLine": 21,
         "endColumn": 41,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: argument 0: [{'Ref': 'AWS::Region'}] is not of type 'string'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualBadArgs/Fn::Equals",
@@ -3206,12 +3584,12 @@
         "startColumn": 13,
         "endLine": 23,
         "endColumn": 24,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: argument 1: {'Bad': 'Value'} is not of type 'string'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualBadArgs/Fn::Equals",
@@ -3220,12 +3598,12 @@
         "startColumn": 13,
         "endLine": 23,
         "endColumn": 24,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: null is not of type 'array'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualNull/Fn::Equals",
@@ -3234,12 +3612,110 @@
         "startColumn": 27,
         "endLine": 28,
         "endColumn": 38,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8004",
+        "severity": "ERROR",
+        "message": "Fn::And: 'And' is not of type 'array'",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions/TestAndString/Fn::And",
+        "category": "Intrinsic Function",
+        "startLine": 9,
+        "startColumn": 27,
+        "endLine": 9,
+        "endColumn": 35,
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8004",
+        "severity": "ERROR",
+        "message": "Fn::And: expected minimum item count: 2, found: 1",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions/TestAndToLittle/Fn::And",
+        "category": "Intrinsic Function",
+        "startLine": 10,
+        "startColumn": 29,
+        "endLine": 10,
+        "endColumn": 37,
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8004",
+        "severity": "ERROR",
+        "message": "Fn::And: element 0: 'Test' is not of type 'boolean'",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 29,
+        "endLine": 11,
+        "endColumn": 37,
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8004",
+        "severity": "ERROR",
+        "message": "Fn::And: element 1: 'Test2' is not of type 'boolean'",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 29,
+        "endLine": 11,
+        "endColumn": 37,
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8004",
+        "severity": "ERROR",
+        "message": "Fn::And: element 0: {'Condition': 'TestAndString', 'Extra': 'ThisIsBad'} is not of type 'boolean'",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
+        "category": "Intrinsic Function",
+        "startLine": 13,
+        "startColumn": 13,
+        "endLine": 13,
+        "endColumn": 21,
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8004",
+        "severity": "ERROR",
+        "message": "Fn::And: element 1: {'Bad': 'TestAndString'} is not of type 'boolean'",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
+        "category": "Intrinsic Function",
+        "startLine": 13,
+        "startColumn": 13,
+        "endLine": 13,
+        "endColumn": 21,
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8004",
+        "severity": "ERROR",
+        "message": "Fn::And: null is not of type 'array'",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions/TestAndNull/Fn::And",
+        "category": "Intrinsic Function",
+        "startLine": 18,
+        "startColumn": 25,
+        "endLine": 18,
+        "endColumn": 33,
+        "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E8005",
+        "severity": "ERROR",
         "message": "Fn::Not: must have exactly 1 element, got 0",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestNotEmpty/Fn::Not",
@@ -3248,12 +3724,12 @@
         "startColumn": 26,
         "endLine": 29,
         "endColumn": 34,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Not must take exactly one boolean condition",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8005",
+        "severity": "ERROR",
         "message": "Fn::Not: null is not of type 'array'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestNotNull/Fn::Not",
@@ -3262,7 +3738,7 @@
         "startColumn": 25,
         "endLine": 30,
         "endColumn": 33,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Not must take exactly one boolean condition",
         "phase": "PARSE"
       },
       {
@@ -3488,8 +3964,8 @@
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
-        "fatal": 9,
-        "errors": 0,
+        "fatal": 1,
+        "errors": 8,
         "warnings": 8,
         "informational": 0,
         "debug": 0
@@ -3514,8 +3990,8 @@
         "section": "Resources"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: 'Value' is not of type 'array'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqual/Fn::Equals",
@@ -3524,12 +4000,12 @@
         "startColumn": 3,
         "endLine": 8,
         "endColumn": 12,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: expected minimum item count: 2, found: 1",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualToShort/Fn::Equals",
@@ -3538,12 +4014,12 @@
         "startColumn": 3,
         "endLine": 9,
         "endColumn": 19,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: expected maximum item count: 2, found: 3",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestEqualToLong/Fn::Equals",
@@ -3552,12 +4028,12 @@
         "startColumn": 3,
         "endLine": 10,
         "endColumn": 18,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: argument 0: [{'Ref': 'AWS::Region'}] is not of type 'string'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/Test/Fn::Equals",
@@ -3566,12 +4042,12 @@
         "startColumn": 3,
         "endLine": 11,
         "endColumn": 7,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: argument 1: {'Bad': 'Value'} is not of type 'string'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/Test/Fn::Equals",
@@ -3580,12 +4056,12 @@
         "startColumn": 3,
         "endLine": 11,
         "endColumn": 7,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: argument 1: ['Not a List'] is not of type 'string'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/TestWrongType/Fn::Equals",
@@ -3594,12 +4070,12 @@
         "startColumn": 3,
         "endLine": 12,
         "endColumn": 16,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: argument 0: {'Ref': 'AWS::Region', 'Fn::Select': ['Environments', 0]} is not of type 'string'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/ToManyFunctions/Fn::Equals",
@@ -3608,12 +4084,12 @@
         "startColumn": 5,
         "endLine": 18,
         "endColumn": 15,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: null is not of type 'array'",
         "source": "SCHEMA",
         "propertyPath": "Conditions/NullEquals/Fn::Equals",
@@ -3622,7 +4098,7 @@
         "startColumn": 5,
         "endLine": 23,
         "endColumn": 15,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
@@ -4652,7 +5128,7 @@
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
-        "errors": 0,
+        "errors": 1,
         "warnings": 1,
         "informational": 0,
         "debug": 0
@@ -4675,6 +5151,19 @@
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA",
         "section": "Resources"
+      },
+      {
+        "ruleId": "E8007",
+        "severity": "ERROR",
+        "message": "Condition 'isPrimaryAndProduction' references undefined condition 'isPrimary'",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 25,
+        "ruleDescription": "Condition function value must be a string referencing a defined condition",
+        "phase": "PARSE"
       },
       {
         "ruleId": "W8001",
@@ -8003,8 +8492,8 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 1,
         "warnings": 1,
         "informational": 1,
         "debug": 0
@@ -8015,8 +8504,8 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F0014",
-        "severity": "FATAL",
+        "ruleId": "E8003",
+        "severity": "ERROR",
         "message": "Fn::Equals: expected maximum item count: 2, found: 3",
         "source": "SCHEMA",
         "propertyPath": "Conditions/Bad/Fn::Equals",
@@ -8025,7 +8514,7 @@
         "startColumn": 5,
         "endLine": 4,
         "endColumn": 15,
-        "ruleDescription": "Boolean condition function (Fn::Equals/Fn::And/Fn::Or/Fn::Not) has invalid structure",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
@@ -9231,8 +9720,8 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 1,
         "warnings": 1,
         "informational": 3,
         "debug": 0
@@ -9243,17 +9732,17 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F1105",
-        "severity": "FATAL",
-        "message": "'Fn::ImportValue' is not allowed inside 'Fn::Equals'",
+        "ruleId": "E8003",
+        "severity": "ERROR",
+        "message": "Fn::Equals: argument 1: {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'",
         "source": "SCHEMA",
-        "propertyPath": "Conditions/primaryRegion/Fn::Equals/1",
+        "propertyPath": "Conditions/primaryRegion/Fn::Equals",
         "category": "Intrinsic Function",
         "startLine": 4,
         "startColumn": 3,
         "endLine": 4,
         "endColumn": 16,
-        "ruleDescription": "Invalid nesting of intrinsic functions",
+        "ruleDescription": "Fn::Equals must take exactly two operands of compatible types",
         "phase": "PARSE"
       },
       {
@@ -9713,8 +10202,8 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 5,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 5,
         "warnings": 4,
         "informational": 8,
         "debug": 0
@@ -9725,10 +10214,10 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F1029",
-        "severity": "FATAL",
+        "ruleId": "E1029",
+        "severity": "ERROR",
         "message": "Found an embedded parameter '${AMIId}' outside of an 'Fn::Sub' at Properties.ImageId",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
         "resourceId": "myInstance",
         "resourceType": "AWS::EC2::Instance",
         "propertyPath": "Properties.ImageId",
@@ -9738,16 +10227,15 @@
         "startColumn": 7,
         "endLine": 11,
         "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Sub is required if a variable is used in a string",
-        "phase": "SCHEMA",
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
-        "ruleId": "F1029",
-        "severity": "FATAL",
+        "ruleId": "E1029",
+        "severity": "ERROR",
         "message": "Found an embedded parameter '${AMIId}' outside of an 'Fn::Sub' at Properties.PolicyDocument.Statement.0.Resource",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
         "resourceId": "myPolicy",
         "resourceType": "AWS::IAM::Policy",
         "propertyPath": "Properties.PolicyDocument.Statement.0.Resource",
@@ -9757,16 +10245,15 @@
         "startColumn": 11,
         "endLine": 25,
         "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Sub is required if a variable is used in a string",
-        "phase": "SCHEMA",
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
-        "ruleId": "F1029",
-        "severity": "FATAL",
+        "ruleId": "E1029",
+        "severity": "ERROR",
         "message": "Found an embedded parameter '${AWS::AccountId}' outside of an 'Fn::Sub' at Properties.PolicyDocument.Statement.0.Resource",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
         "resourceId": "myPolicy",
         "resourceType": "AWS::IAM::Policy",
         "propertyPath": "Properties.PolicyDocument.Statement.0.Resource",
@@ -9776,16 +10263,15 @@
         "startColumn": 11,
         "endLine": 25,
         "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Sub is required if a variable is used in a string",
-        "phase": "SCHEMA",
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
-        "ruleId": "F1029",
-        "severity": "FATAL",
+        "ruleId": "E1029",
+        "severity": "ERROR",
         "message": "Found an embedded parameter '${AMIId}' outside of an 'Fn::Sub' at Properties.PolicyDocument.Statement.1.NotResource",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
         "resourceId": "myPolicy",
         "resourceType": "AWS::IAM::Policy",
         "propertyPath": "Properties.PolicyDocument.Statement.1.NotResource",
@@ -9795,16 +10281,15 @@
         "startColumn": 11,
         "endLine": 29,
         "endColumn": 22,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Sub is required if a variable is used in a string",
-        "phase": "SCHEMA",
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
-        "ruleId": "F1029",
-        "severity": "FATAL",
+        "ruleId": "E1029",
+        "severity": "ERROR",
         "message": "Found an embedded parameter '${AWS::AccountId}' outside of an 'Fn::Sub' at Properties.PolicyDocument.Statement.1.NotResource",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
         "resourceId": "myPolicy",
         "resourceType": "AWS::IAM::Policy",
         "propertyPath": "Properties.PolicyDocument.Statement.1.NotResource",
@@ -9814,9 +10299,8 @@
         "startColumn": 11,
         "endLine": 29,
         "endColumn": 22,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Sub is required if a variable is used in a string",
-        "phase": "SCHEMA",
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
@@ -10126,8 +10610,8 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 3,
-        "errors": 0,
+        "fatal": 2,
+        "errors": 1,
         "warnings": 0,
         "informational": 2,
         "debug": 0
@@ -10155,22 +10639,6 @@
         "section": "Resources"
       },
       {
-        "ruleId": "F1105",
-        "severity": "FATAL",
-        "message": "'Fn::GetAtt' is not allowed inside 'Fn::FindInMap'",
-        "source": "SCHEMA",
-        "resourceId": "myInstance",
-        "propertyPath": "Properties.ImageId.Fn::FindInMap.2",
-        "category": "Intrinsic Function",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 14,
-        "ruleDescription": "Invalid nesting of intrinsic functions",
-        "phase": "PARSE",
-        "section": "Resources"
-      },
-      {
         "ruleId": "F3004",
         "severity": "FATAL",
         "message": "Circular Dependencies for resource myInstance. Circular dependency with [myInstance -> myInstance]",
@@ -10184,6 +10652,22 @@
         "endColumn": 13,
         "ruleDescription": "Circular dependency detected",
         "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "E1011",
+        "severity": "ERROR",
+        "message": "'Fn::GetAtt' is not supported as an argument to 'Fn::FindInMap'",
+        "source": "SCHEMA",
+        "resourceId": "myInstance",
+        "propertyPath": "Properties.ImageId.Fn::FindInMap.2",
+        "category": "Intrinsic Function",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 14,
+        "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE",
         "section": "Resources"
       },
       {
@@ -11385,7 +11869,7 @@
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
-        "errors": 4,
+        "errors": 5,
         "warnings": 1,
         "informational": 12,
         "debug": 0
@@ -11395,6 +11879,22 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'Fn::Join' is not supported as an argument to 'Fn::Select'",
+        "source": "SCHEMA",
+        "resourceId": "myInstance2",
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select.1",
+        "category": "Intrinsic Function",
+        "startLine": 30,
+        "startColumn": 17,
+        "endLine": 30,
+        "endColumn": 18,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE",
+        "section": "Resources"
+      },
       {
         "ruleId": "E1152",
         "severity": "ERROR",
@@ -19092,8 +19592,8 @@
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
-        "fatal": 2,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 2,
         "warnings": 0,
         "informational": 13,
         "debug": 0
@@ -19104,37 +19604,33 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F8002",
-        "severity": "FATAL",
+        "ruleId": "E8002",
+        "severity": "ERROR",
         "message": "Condition 'CreateAuxiliaryNetworks' referenced by resource 'AuxiliaryPublicSubnetRouteTableAssociation1' is not defined",
         "source": "SCHEMA",
         "resourceId": "AuxiliaryPublicSubnetRouteTableAssociation1",
-        "resourceType": "AWS::EC2::SubnetRouteTableAssociation",
         "category": "Structure",
         "startLine": 38,
         "startColumn": 3,
         "endLine": 38,
         "endColumn": 46,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Condition referenced by resource is not defined",
-        "phase": "SCHEMA",
+        "ruleDescription": "Condition referenced by resource or output is not defined",
+        "phase": "PARSE",
         "section": "Resources"
       },
       {
-        "ruleId": "F8002",
-        "severity": "FATAL",
+        "ruleId": "E8002",
+        "severity": "ERROR",
         "message": "Condition 'CreateAuxiliaryNetworks' referenced by resource 'AuxilliaryCustomSubnetRouteTableAssociation' is not defined",
         "source": "SCHEMA",
         "resourceId": "AuxilliaryCustomSubnetRouteTableAssociation",
-        "resourceType": "AWS::EC2::SubnetRouteTableAssociation",
         "category": "Structure",
         "startLine": 68,
         "startColumn": 3,
         "endLine": 68,
         "endColumn": 46,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Condition referenced by resource is not defined",
-        "phase": "SCHEMA",
+        "ruleDescription": "Condition referenced by resource or output is not defined",
+        "phase": "PARSE",
         "section": "Resources"
       },
       {
@@ -22677,8 +23173,8 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 6,
-        "errors": 1,
+        "fatal": 4,
+        "errors": 2,
         "warnings": 1,
         "informational": 2,
         "debug": 0
@@ -22688,37 +23184,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F1060",
-        "severity": "FATAL",
-        "message": "Fn::If condition 'cCondition' does not exist in Conditions section",
-        "source": "SCHEMA",
-        "resourceId": "rIamPolicy",
-        "resourceType": "AWS::IAM::Policy",
-        "category": "Intrinsic Function",
-        "startLine": 35,
-        "startColumn": 3,
-        "endLine": 35,
-        "endColumn": 13,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Fn::If condition must exist in Conditions",
-        "phase": "SCHEMA",
-        "section": "Resources"
-      },
-      {
-        "ruleId": "F1104",
-        "severity": "FATAL",
-        "message": "Fn::If references undefined condition 'cCondition'",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 5,
-        "startColumn": 1,
-        "endLine": 5,
-        "endColumn": 10,
-        "ruleDescription": "Duplicate logical ID in template",
-        "phase": "PARSE",
-        "section": "Resources"
-      },
       {
         "ruleId": "F3003",
         "severity": "FATAL",
@@ -22810,6 +23275,20 @@
             "min_length": 1
           }
         }
+      },
+      {
+        "ruleId": "E1028",
+        "severity": "ERROR",
+        "message": "Fn::If condition 'cCondition' does not exist in Conditions section",
+        "source": "SCHEMA",
+        "category": "Intrinsic Function",
+        "startLine": 5,
+        "startColumn": 1,
+        "endLine": 5,
+        "endColumn": 10,
+        "ruleDescription": "Fn::If condition must exist in Conditions section",
+        "phase": "PARSE",
+        "section": "Resources"
       },
       {
         "ruleId": "E3530",
@@ -28794,7 +29273,7 @@
       "counts": {
         "fatal": 0,
         "errors": 29,
-        "warnings": 0,
+        "warnings": 1,
         "informational": 20,
         "debug": 0
       },
@@ -29293,6 +29772,24 @@
         "endLine": 113,
         "endColumn": 10,
         "ruleDescription": "Validate Route53 record set aliases",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "W1054",
+        "severity": "WARN",
+        "message": "Found a string 'AWS::Region' that appears to be a pseudo parameter reference; use 'Ref: AWS::Region' instead",
+        "source": "CFN_LINT",
+        "resourceId": "MyHostedZone",
+        "resourceType": "AWS::Route53::HostedZone",
+        "propertyPath": "Properties.VPCs.0.VPCRegion",
+        "suggestedFix": "Use Ref to reference pseudo parameters instead of embedding them as literal strings",
+        "category": "Intrinsic Function",
+        "startLine": 22,
+        "startColumn": 11,
+        "endLine": 22,
+        "endColumn": 20,
+        "ruleDescription": "String value matches a pseudo parameter; use Ref instead",
         "phase": "LINT",
         "section": "Resources"
       },
@@ -33712,27 +34209,6 @@
     },
     "diagnostics": [
       {
-        "ruleId": "W3041",
-        "severity": "WARN",
-        "message": "Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'",
-        "source": "ENGINE",
-        "resourceId": "CertAuth",
-        "resourceType": "AWS::ACMPCA::CertificateAuthorityActivation",
-        "propertyPath": "Properties.Certificate",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ACMPCA.html",
-        "ruleDescription": "Write-only property referenced in output",
-        "phase": "SCHEMA",
-        "section": "Resources",
-        "context": {
-          "lifecycle": "write-only"
-        }
-      },
-      {
         "ruleId": "W9002",
         "severity": "WARN",
         "message": "Property 'CertificateAuthorityArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
@@ -33764,6 +34240,27 @@
         "ruleDescription": "Hardcoded account ID in ARN",
         "phase": "LINT",
         "section": "Resources"
+      },
+      {
+        "ruleId": "W9054",
+        "severity": "WARN",
+        "message": "Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'",
+        "source": "ENGINE",
+        "resourceId": "CertAuth",
+        "resourceType": "AWS::ACMPCA::CertificateAuthorityActivation",
+        "propertyPath": "Properties.Certificate",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 7,
+        "endLine": 8,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ACMPCA.html",
+        "ruleDescription": "Write-only property referenced in output",
+        "phase": "SCHEMA",
+        "section": "Resources",
+        "context": {
+          "lifecycle": "write-only"
+        }
       },
       {
         "ruleId": "I9001",
@@ -35307,8 +35804,8 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 1,
         "warnings": 1,
         "informational": 2,
         "debug": 0
@@ -35319,10 +35816,10 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F1029",
-        "severity": "FATAL",
+        "ruleId": "E1029",
+        "severity": "ERROR",
         "message": "Found an embedded parameter '${MyParam}' outside of an 'Fn::Sub' at Properties.BucketName",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
         "resourceId": "Bucket",
         "resourceType": "AWS::S3::Bucket",
         "propertyPath": "Properties.BucketName",
@@ -35332,8 +35829,8 @@
         "startColumn": 7,
         "endLine": 9,
         "endColumn": 17,
-        "ruleDescription": "Sub is required if a variable is used in a string",
-        "phase": "SCHEMA",
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
@@ -36823,8 +37320,8 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 1,
         "warnings": 0,
         "informational": 1,
         "debug": 0
@@ -36835,19 +37332,18 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F8002",
-        "severity": "FATAL",
+        "ruleId": "E8002",
+        "severity": "ERROR",
         "message": "Condition 'DoesNotExist' referenced by resource 'R' is not defined",
         "source": "SCHEMA",
         "resourceId": "R",
-        "resourceType": "AWS::S3::Bucket",
         "category": "Structure",
         "startLine": 3,
         "startColumn": 3,
         "endLine": 3,
         "endColumn": 4,
-        "ruleDescription": "Condition referenced by resource is not defined",
-        "phase": "SCHEMA",
+        "ruleDescription": "Condition referenced by resource or output is not defined",
+        "phase": "PARSE",
         "section": "Resources"
       },
       {
@@ -111165,7 +111661,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 2,
         "informational": 2,
         "debug": 0
       },
@@ -111187,6 +111683,19 @@
         "ruleDescription": "Check if Conditions are Used",
         "phase": "LINT",
         "section": "Conditions"
+      },
+      {
+        "ruleId": "W9053",
+        "severity": "WARN",
+        "message": "Condition 'IsProdShort' is equivalent to condition 'IsProd' - consider consolidating",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 3,
+        "endLine": 11,
+        "endColumn": 14,
+        "ruleDescription": "Conditions are semantically equivalent and can be consolidated",
+        "phase": "PARSE"
       },
       {
         "ruleId": "I9001",
@@ -114563,19 +115072,56 @@
     "status": "OK",
     "version": "1.6.0",
     "metadata": {
-      "resourcesScanned": 1,
+      "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 0,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
-    "diagnostics": []
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'S3BucketForEachValue0' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "S3BucketForEachValue0",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 1,
+        "endLine": 10,
+        "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'S3BucketForEachValue1' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "S3BucketForEachValue1",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 1,
+        "endLine": 10,
+        "endColumn": 10,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
   },
   "good/functions/get_stack_output.yaml": {
     "filePath": "good/functions/get_stack_output.yaml",
@@ -115809,8 +116355,8 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 0,
+        "errors": 1,
         "warnings": 1,
         "informational": 2,
         "debug": 0
@@ -115821,10 +116367,10 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F1029",
-        "severity": "FATAL",
+        "ruleId": "E1029",
+        "severity": "ERROR",
         "message": "Found an embedded parameter '${Stage}' outside of an 'Fn::Sub' at Properties.RoleName",
-        "source": "SCHEMA",
+        "source": "CFN_LINT",
         "resourceId": "TestRole",
         "resourceType": "AWS::IAM::Role",
         "propertyPath": "Properties.RoleName",
@@ -115834,9 +116380,8 @@
         "startColumn": 7,
         "endLine": 10,
         "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Sub is required if a variable is used in a string",
-        "phase": "SCHEMA",
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT",
         "section": "Resources"
       },
       {
@@ -117490,6 +118035,58 @@
         "startColumn": 5,
         "endLine": 15,
         "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT",
+        "section": "Resources"
+      }
+    ]
+  },
+  "good/good_conditions_valid_refs.yaml": {
+    "filePath": "good/good_conditions_valid_refs.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'IsDev' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 1,
+        "endLine": 10,
+        "endColumn": 11,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT",
+        "section": "Conditions"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ProdBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "resourceId": "ProdBucket",
+        "resourceType": "AWS::S3::Bucket",
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 22,
+        "endColumn": 13,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT",
         "section": "Resources"
@@ -119523,7 +120120,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 4,
         "informational": 0,
         "debug": 0
       },
@@ -119535,7 +120132,49 @@
       {
         "ruleId": "W8001",
         "severity": "WARN",
-        "message": "Condition 'Fn::ForEach::CheckTrue' is not used by any resource or Fn::If",
+        "message": "Condition 'IsParamAEnabled' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 5,
+        "endLine": 34,
+        "endColumn": 16,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT",
+        "section": "Conditions"
+      },
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'IsParamBEnabled' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 5,
+        "endLine": 34,
+        "endColumn": 16,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT",
+        "section": "Conditions"
+      },
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'IsParamCEnabled' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 5,
+        "endLine": 34,
+        "endColumn": 16,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT",
+        "section": "Conditions"
+      },
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'IsParamDEnabled' is not used by any resource or Fn::If",
         "source": "CFN_LINT",
         "category": "Best Practice",
         "startLine": 34,
@@ -136587,7 +137226,7 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 7,
         "informational": 19,
@@ -136598,20 +137237,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F1105",
-        "severity": "FATAL",
-        "message": "'Fn::And' is not allowed inside 'Fn::Equals'",
-        "source": "SCHEMA",
-        "propertyPath": "Outputs/EdgeCaseOutput/Value/Fn::If/0/Fn::Equals/0",
-        "category": "Intrinsic Function",
-        "startLine": 250,
-        "startColumn": 5,
-        "endLine": 250,
-        "endColumn": 10,
-        "ruleDescription": "Invalid nesting of intrinsic functions",
-        "phase": "PARSE"
-      },
       {
         "ruleId": "W1028",
         "severity": "WARN",

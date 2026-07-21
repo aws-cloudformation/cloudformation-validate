@@ -17,6 +17,12 @@ pub enum ConditionExpr {
     Or(Vec<ConditionExpr>),
     Not(Box<ConditionExpr>),
     ConditionRef(String),
+    /// A condition body that does not produce a boolean (e.g. a bare `Fn::Ref`,
+    /// a scalar, or a value-producing function). CloudFormation rejects it; it is
+    /// reported as a not-a-boolean error and is deliberately opaque to the SAT
+    /// model and to the undefined-reference check (it is not a condition
+    /// reference).
+    Invalid,
 }
 
 #[derive(Debug, Clone)]
@@ -90,6 +96,7 @@ pub fn format_condition_expr(expr: &ConditionExpr) -> String {
         }
         ConditionExpr::Not(e) => format!("Not({})", format_condition_expr(e)),
         ConditionExpr::ConditionRef(name) => format!("Condition({})", name),
+        ConditionExpr::Invalid => "Invalid".to_string(),
     }
 }
 
@@ -666,6 +673,9 @@ impl ConditionModel {
                 iterations,
             )?),
             ConditionExpr::ConditionRef(name) => name_to_idx.get(name.as_str()).map(|&i| cond_assignment[i]),
+            // An invalid (non-boolean) condition body has no truth value; leave
+            // it unconstrained so it never falsifies a satisfiability query.
+            ConditionExpr::Invalid => None,
         }
     }
 
@@ -747,7 +757,7 @@ impl ConditionModel {
                 }
             }
             ConditionExpr::Not(child) => Self::find_tautological(child, cond_name, out),
-            ConditionExpr::ConditionRef(_) => {}
+            ConditionExpr::ConditionRef(_) | ConditionExpr::Invalid => {}
         }
     }
 
@@ -781,6 +791,12 @@ impl ConditionModel {
         arena: &crate::ir::Arena,
         rules: &[(String, crate::ir::NodeRef, Vec<crate::ir::NodeRef>)],
     ) {
+        // A Rules-section `RuleCondition => Assertions` relationship becomes a set
+        // of implications `__rule_cond_<rule> => __rule_assert_<rule>_<i>`. These
+        // are collected separately because `extract_implications` (below) only
+        // derives implications from `And`/`Or` structure and cannot re-derive
+        // them — appending after the structural pass keeps both.
+        let mut rule_implications: Vec<Implication> = Vec::new();
         for (rule_name, condition_node, assertion_nodes) in rules {
             let antecedent = if *condition_node != crate::ir::NULL_REF {
                 let expr = parse_condition_expr(arena, *condition_node, &self.parameters);
@@ -800,13 +816,14 @@ impl ConditionModel {
                 self.conditions.insert(assert_name.clone(), assert_expr);
 
                 if let Some(ref ante) = antecedent {
-                    self.implications.push(Implication { antecedent: ante.clone(), consequent: assert_name });
+                    rule_implications.push(Implication { antecedent: ante.clone(), consequent: assert_name });
                 }
             }
         }
 
         self.mutex_groups = extract_mutex_groups(&self.conditions);
         self.implications = extract_implications(&self.conditions);
+        self.implications.extend(rule_implications);
         self.referenced_param_values = OnceLock::new();
         self.sorted_condition_names = OnceLock::new();
     }
@@ -823,6 +840,21 @@ impl ConditionModel {
             }
         }
         result
+    }
+
+    /// Names of top-level conditions whose body does not produce a boolean
+    /// (e.g. a bare `Fn::Ref`), for the not-a-boolean condition diagnostic.
+    /// Synthetic conditions (`__`-prefixed) are excluded — they are never
+    /// user-visible. Returned sorted for deterministic diagnostic ordering.
+    pub fn invalid_condition_bodies(&self) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .conditions
+            .iter()
+            .filter(|(name, expr)| matches!(expr, ConditionExpr::Invalid) && !name.starts_with("__"))
+            .map(|(name, _)| name.clone())
+            .collect();
+        names.sort();
+        names
     }
 
     pub fn detect_cycles(&self) -> Vec<Vec<String>> {
@@ -911,12 +943,24 @@ fn expr_has_opaque_value(expr: &ConditionExpr) -> bool {
         ConditionExpr::Equals(a, b) => value_is_opaque(a) || value_is_opaque(b),
         ConditionExpr::And(items) | ConditionExpr::Or(items) => items.iter().any(expr_has_opaque_value),
         ConditionExpr::Not(inner) => expr_has_opaque_value(inner),
+        // An invalid (non-boolean) body is reported by its own diagnostic and
+        // never participates in equivalence detection, so treat it as opaque to
+        // exclude it.
+        ConditionExpr::Invalid => true,
         ConditionExpr::ConditionRef(_) => false,
     }
 }
 
 fn value_is_opaque(val: &ValueExpr) -> bool {
-    matches!(val, ValueExpr::Other)
+    match val {
+        ValueExpr::Other => true,
+        // A mapping lookup whose keys contain an opaque sub-expression cannot be
+        // compared for equivalence: two lookups that differ only in an opaque key
+        // (e.g. `Fn::Select` over different indices) would otherwise canonicalize
+        // to the same "?" and be wrongly reported as equivalent.
+        ValueExpr::MappingLookup { key1, key2, .. } => value_is_opaque(key1) || value_is_opaque(key2),
+        _ => false,
+    }
 }
 
 fn canonical_form(expr: &ConditionExpr) -> String {
@@ -943,6 +987,7 @@ fn canonical_form(expr: &ConditionExpr) -> String {
         ConditionExpr::ConditionRef(name) => {
             format!("CREF({})", name)
         }
+        ConditionExpr::Invalid => "INVALID".to_string(),
     }
 }
 
@@ -970,7 +1015,7 @@ fn collect_param_refs_from_expr(expr: &ConditionExpr, out: &mut Vec<String>) {
             }
         }
         ConditionExpr::Not(e) => collect_param_refs_from_expr(e, out),
-        ConditionExpr::ConditionRef(_) => {}
+        ConditionExpr::ConditionRef(_) | ConditionExpr::Invalid => {}
     }
 }
 
@@ -1012,8 +1057,10 @@ pub fn parse_condition_expr(
             if let Some(name) = target.strip_prefix(CONDITION_REF_PREFIX) {
                 ConditionExpr::ConditionRef(name.to_string())
             } else {
-                // Treat as a value expression wrapped in an implicit Equals(Ref, "true")
-                ConditionExpr::ConditionRef(target.clone())
+                // A bare `Fn::Ref` (to a parameter, resource, or pseudo-parameter)
+                // is not a boolean and is not a condition reference, so it is an
+                // invalid condition body.
+                ConditionExpr::Invalid
             }
         }
         _ => {
@@ -1118,7 +1165,7 @@ fn collect_equals_pairs(expr: &ConditionExpr, out: &mut HashMap<String, Vec<Stri
             }
         }
         ConditionExpr::Not(e) => collect_equals_pairs(e, out),
-        ConditionExpr::ConditionRef(_) => {}
+        ConditionExpr::ConditionRef(_) | ConditionExpr::Invalid => {}
     }
 }
 
@@ -1159,7 +1206,7 @@ fn collect_condition_refs(expr: &ConditionExpr, out: &mut Vec<String>) {
             }
         }
         ConditionExpr::Not(e) => collect_condition_refs(e, out),
-        ConditionExpr::Equals(_, _) => {}
+        ConditionExpr::Equals(_, _) | ConditionExpr::Invalid => {}
     }
 }
 
