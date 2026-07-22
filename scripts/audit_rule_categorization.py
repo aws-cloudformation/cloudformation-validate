@@ -49,38 +49,6 @@ DEFAULT_OUTPUT = SCRIPT_DIR / "snapshots" / "rule_categorization_audit.md"
 
 SEV_MAP = {"F": "Fatal", "E": "Error", "W": "Warn", "I": "Info", "D": "Debug"}
 
-# ── Structural rules whose origin is Schema, not CfnLint ────────────────────
-# A rule belongs here when its check is a structural / syntax / shape error
-# that CloudFormation itself rejects (a guaranteed deployment failure): an
-# undefined condition reference, a malformed condition function, an
-# unsupported operand inside an intrinsic, an invalid intrinsic nesting, a
-# condition cycle. The authority for such a check is CloudFormation's own
-# template-language definitions — NOT cfn-lint — so its true origin is Schema
-# even when cfn-lint defines the exact same rule ID. The cfn-lint-compatible
-# ID is kept purely so parity matching can pair findings one-to-one (the same
-# way F1020 keeps its Schema origin while covering cfn-lint's E1020/E1022).
-#
-# Membership here changes ONLY the reported origin. It does NOT affect parity
-# matching or the engine-extra set: any rule with a cfn-lint equivalent
-# (exact ID or alias) still participates in parity, and an unmatched firing of
-# it is still a false positive.
-STRUCTURAL_SCHEMA_RULES = {
-    # Conditions section: structure, arity/shape of condition functions, and
-    # condition-reference existence (resource/output/Fn::If/Condition-fn).
-    "E8001", "E8002", "E8003", "E8004", "E8005", "E8006", "E8007",
-    "E1028",  # Fn::If names an undefined condition
-    "E6005",  # Output Condition names an undefined condition
-    # Intrinsic operand shape: which functions/values an intrinsic accepts.
-    "E1011", "E1015", "E1016", "E1017", "E1018", "E1019", "E1021", "E1022",
-    "E1024", "E1030", "E1031", "E1033",
-    # GetAtt attribute must exist on the target resource type (provable
-    # against the compiled resource schemas).
-    "E9004",
-    # Engine-numbered rules of the same class (no cfn-lint ID at all):
-    "E9101",  # invalid intrinsic nesting
-    "E9106",  # circular condition dependency
-}
-
 ALLOWED_CATS = {
     "Fatal": {"Structure", "Schema", "Intrinsic",
               "Parameter", "Reference", "Parse"},
@@ -351,13 +319,7 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # Every one of OUR rule IDs that implements (or is a 1:1 / split / generic
     # alias of) a cfn-lint rule. These PARTICIPATE in parity matching; an
     # UNMATCHED firing of any of them is a FALSE POSITIVE, never engine-extra.
-    #
-    # Membership is independent of the registry's origin: field. A Schema-origin
-    # rule that shares its exact ID with a cfn-lint rule (see
-    # STRUCTURAL_SCHEMA_RULES) is still parity-matched by that ID.
     cfnlint_equivalent = {eid for eid in cfnlint_to_engine.values() if eid in reg_ids}
-    # Exact-ID matches: any registered ID cfn-lint also defines.
-    cfnlint_equivalent |= reg_ids & set(cfnlint_ids)
     cfnlint_equivalent.add("E9003")  # second half of the cfn-lint E1010 GetAtt split
     # Open-world half of the enum split: the const check stays Fatal (its ID is
     # already a mapping target and thus cfnlint_equivalent), while the soft enum
@@ -376,24 +338,17 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     cfnlint_equivalent.update({"F0002", "F0005", "F0006"})
 
     # ── True origin (for the audit report) ───────────────────────────────
-    # Origin answers one question: where does the rule's AUTHORITY come from?
-    #   Schema  — CloudFormation's own definitions: the compiled resource
-    #             schemas or the template language's structural rules. Anything
-    #             CloudFormation itself rejects. Covers every F-prefixed rule
-    #             (structural, surfaced via E→F promotion when a cfn-lint
-    #             number exists) and every STRUCTURAL_SCHEMA_RULES member
-    #             (structural checks that keep an E-prefixed cfn-lint ID for
-    #             parity — cfn-lint also defining the check does not change
-    #             where the check comes from).
-    #   CfnLint — a lint judgment sourced from cfn-lint: the template would
-    #             deploy, or the check's data/semantics originate in cfn-lint
-    #             rather than in CloudFormation's definitions.
-    #   Engine  — a genuinely new check with no cfn-lint equivalent.
+    # Priority: a structural rule is Schema first. F-prefix marks a structural
+    # rule (Fatal), so it classifies as Schema regardless of any cfn-lint
+    # equivalent — a structural check that cfn-lint also performs is still
+    # Schema, surfaced under an F-numbered ID via E→F promotion. Only then does
+    # an exact or aliased cfn-lint ID classify as CfnLint; everything else is
+    # an engine-only rule.
     true_origins = {}
     for rid, sev, _cat, reg_origin, desc in registry:
         prefix = rid[0]
         num = rid[1:]
-        if prefix == "F" or rid in STRUCTURAL_SCHEMA_RULES:
+        if prefix == "F":
             true_origins[rid] = "Schema"
         elif rid in cfnlint_ids:
             true_origins[rid] = "CfnLint"
@@ -412,45 +367,38 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
             true_origins[rid] = "Engine(collision)" if collision else "Engine"
 
     # ── Origin-correctness issues (alias-aware) ──────────────────────────
-    # The registry's origin: field must equal the computed true origin:
-    #   * Schema  — F-prefixed structural rules and STRUCTURAL_SCHEMA_RULES
-    #               members (structural even when cfn-lint shares the ID)
-    #   * CfnLint — a non-structural rule with a cfn-lint equivalent
-    #               (exact ID or alias)
+    # The registry's origin: field must reflect reality:
+    #   * CfnLint — exact cfn-lint ID, OR an engine ID that aliases a cfn-lint rule
+    #   * Schema  — Fatal structural rule (cfn-only or promoted from a cfn-lint Error)
     #   * Engine  — a genuinely NEW check with NO cfn-lint equivalent
-    # Both directions are enforced: an Engine-origin rule that aliases a
-    # cfn-lint rule is flagged (should be CfnLint), and a structural rule
-    # registered as CfnLint is flagged (should be Schema).
+    # An Engine-origin rule that actually aliases a cfn-lint rule IS flagged (it
+    # should be CfnLint); this enforces "engine-extra == truly new rules, not
+    # aliases of cfn-lint rules".
     origin_issues = []
     for rid, sev, _cat, reg_origin, desc in registry:
-        true_o = true_origins[rid]
-        expected = "Engine" if true_o == "Engine(collision)" else true_o
-        if reg_origin != expected:
-            if rid in STRUCTURAL_SCHEMA_RULES:
-                note = "structural CloudFormation check (STRUCTURAL_SCHEMA_RULES)"
-            elif rid in cfnlint_ids:
-                note = "cfn-lint has this exact ID"
-            elif rid in cfnlint_equivalent:
-                cfn_aliases = sorted(({rid} | rule_aliases.get(rid, set())) & set(cfnlint_ids))
-                note = f"aliases cfn-lint rule(s) {cfn_aliases}"
-            else:
-                note = "no cfn-lint equivalent (exact ID or alias) exists"
-            origin_issues.append((rid, reg_origin, expected,
-                f"registry says {reg_origin}; {note}"))
+        has_equiv = rid in cfnlint_ids or rid in cfnlint_equivalent
+        if has_equiv:
+            if reg_origin not in ("CfnLint", "Schema"):
+                if rid in cfnlint_ids:
+                    note = "cfn-lint has this exact ID"
+                else:
+                    cfn_aliases = sorted(({rid} | rule_aliases.get(rid, set())) & set(cfnlint_ids))
+                    note = f"aliases cfn-lint rule(s) {cfn_aliases}"
+                origin_issues.append((rid, reg_origin, "CfnLint",
+                    f"registry says {reg_origin}; {note}"))
+        elif reg_origin == "CfnLint":
+            origin_issues.append((rid, reg_origin, "Engine",
+                "registry says CfnLint but no cfn-lint equivalent (exact ID or alias) exists"))
 
     # ── Engine-extra set (computed after all equivalences) ───────────────
     # A correct engine finding that cfn-lint never emits. A rule qualifies only
     # when cfn-lint has no equivalent at all:
     #   * true origin Engine / Engine(collision), or
-    #   * a Schema rule with no cfn-lint counterpart — neither a promotion
-    #     target (engine_to_cfnlint) nor an exact shared ID (both covered by
-    #     the cfnlint_equivalent subtraction below).
+    #   * a Schema Fatal with no cfn-lint promotion.
     # A rule with any cfn-lint equivalent is then removed: an unmatched firing
     # of such a rule is a false positive and must surface, not be excused. A
     # rule cfn-lint also implements is never waved through by ID — a
     # "deeper-resolution" extra is verified per-template, not assumed correct.
-    # Origin is irrelevant here: a STRUCTURAL_SCHEMA_RULES member with a shared
-    # cfn-lint ID participates in parity exactly like a CfnLint-origin rule.
     engine_extra = set()
     for rid, true_o in true_origins.items():
         if true_o in ("Engine", "Engine(collision)"):
@@ -463,14 +411,12 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # W9003 is intentional strictness. It still aliases F3012/E3012 so a
     # strict-mode E3012 finding matches.
     engine_extra.add("W9003")
-    # W1019 (unused Fn::Sub variable-map key): the engine emits this warning;
-    # cfn-lint 1.x registers the same rule but never actually fires it — its
-    # W1019 is wired up as a child rule of the Fn::Sub validator, and that
-    # invocation path is never reached during property validation (verified
-    # empirically: cfn-lint reports nothing even on a canonical unused-key
-    # template). With no cfn-lint firing to match against, every engine W1019
-    # would otherwise count as a false positive, so it is engine-extra: a
-    # deliberate warning cfn-lint cannot currently produce.
+    # W1019 (unused Fn::Sub variable-map key) is a legitimate warning, but
+    # cfn-lint's own W1019 is dormant in the current release: its child-rule
+    # invocation path is not reached during property validation, so it fires in
+    # no template-level case and has no snapshot fixtures. The engine emits the
+    # warning where it is genuinely useful, so an unmatched W1019 is intentional
+    # and not a false positive.
     engine_extra.add("W1019")
     # F3006 deliberately does NOT flag non-AWS-namespace resource types the
     # way cfn-lint's E3006 does ("Initech::TPS::Report does not exist"): a
