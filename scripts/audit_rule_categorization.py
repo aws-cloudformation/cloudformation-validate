@@ -293,7 +293,10 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # emits F0002 (format version) / F0005 (top-level section). F0001 (empty
     # Resources) is intentionally NOT linked — cfn-lint does not flag it, so it
     # stays a genuine engine-extra finding.
-    _link("E1001", "F0002", "F0005")
+    # cfn-lint's E1001 also covers null condition-function operands ("None is
+    # not of type ...") that the engine reports per-function: a null condition
+    # body is E8001, and null Equals/And/Not/Or operands are E8003-E8006.
+    _link("E1001", "F0002", "F0005", "E8001", "E8003", "E8004", "E8005", "E8006")
     # Fn::If: cfn-lint's E1028 covers both structure (3-element) and the
     # condition-name-must-exist check. The engine splits: F0013 (structure)
     # and E1028 (condition exists). Link so either engine rule matches.
@@ -415,6 +418,13 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # warning where it is genuinely useful, so an unmatched W1019 is intentional
     # and not a false positive.
     engine_extra.add("W1019")
+    # F3006 deliberately does NOT flag non-AWS-namespace resource types the
+    # way cfn-lint's E3006 does ("Initech::TPS::Report does not exist"): a
+    # non-AWS type may be privately registered, and flagging it would false
+    # positive for every private-registry user. The corpus counts those
+    # cfn-lint findings as false negatives by design (see
+    # resources/templates/good/unknown_resource_types_ignored.yaml, which
+    # requires the engine to stay silent).
 
     # Engine rules that implement a cfn-lint check under a different (split or
     # generic) ID. Reported by the audit; they participate in parity matching

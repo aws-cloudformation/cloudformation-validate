@@ -347,6 +347,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "Mapping name exceeds maximum length",
         origin: RuleOrigin::Schema,
     },
+    // E8002/E1028 severity note: an undefined condition reference is a
+    // guaranteed deploy failure, which the local taxonomy would make Fatal —
+    // but these IDs are exact reference-linter rules, and ID parity fixes the
+    // severity prefix to Error. The structural halves of these checks (F0013,
+    // F8602-family) remain Fatal, so `--level fatal` still catches the
+    // template shapes CloudFormation rejects outright.
     RuleDefinition {
         id: "E8002",
         category: Category::Structure,

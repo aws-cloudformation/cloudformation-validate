@@ -496,6 +496,7 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
         "bad/E9106_condition_cycle.yaml",
         "bad/W9053_equivalent_conditions.yaml",
         "bad/W1019_sub_unused_key.yaml",
+        "bad/W1053_dynref_spaces.yaml",
         "good/good_conditions_valid_refs.yaml",
     ];
     for name in fixtures {

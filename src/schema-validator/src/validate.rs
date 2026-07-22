@@ -10,8 +10,9 @@ use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::consts::{
-    FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES, KEY_TYPE, PARAM_TYPE_COMMA_DELIMITED_LIST,
-    PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
+    FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
+    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE,
+    SAM_SERVERLESS_TYPE_PREFIX,
 };
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
@@ -41,15 +42,22 @@ const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
     ("AWS::Lambda::Function", "Properties.Environment"),
 ];
 
-/// Returns true if the value is an unresolved or malformed intrinsic function.
-/// These are JSON objects with a single key that starts with "Fn::" or is "Ref"/"Condition".
+/// Returns true if the value is an unresolved or malformed intrinsic function:
+/// a JSON object with a single *known* function key (`Fn::<name>`, `Ref`,
+/// `Condition`, or an `Fn::ForEach::` loop key). Only known names are skipped —
+/// a single-key object whose key merely starts with `Fn::` (e.g. a map entry
+/// literally named `Fn::Custom`) is plain data and must be schema-validated
+/// like any other object, exactly as the reference implementation does.
 fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
     let Some(obj) = val.as_object() else { return false };
     if obj.len() != 1 {
         return false;
     }
     let key = obj.keys().next().unwrap();
-    key.starts_with(FN_PREFIX) || key == FN_REF || key == FN_CONDITION
+    INTRINSIC_FN_PATH_SEGMENTS.contains(&key.as_str())
+        || key == FN_REF
+        || key == FN_CONDITION
+        || key.starts_with(FN_FOR_EACH_KEY_PREFIX)
 }
 
 pub fn validate_all_resources(

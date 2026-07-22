@@ -194,10 +194,19 @@ impl Builder {
                 IntrinsicFn::Ref(format!("{}{}", CONDITION_REF_PREFIX, self.required_string(val, FN_CONDITION, path)?))
             }
             _ => {
-                if key.starts_with(FN_PREFIX) && !key.starts_with(FN_FOR_EACH_KEY_PREFIX) {
+                // An unknown `Fn::`-prefixed key is only *probably* a function:
+                // it may equally be a data key (e.g. a Lambda environment
+                // variable named `Fn::Custom`), which the schema validator
+                // handles as a plain object. Warn only when the name is a
+                // near-miss of a real function — a case slip or small typo —
+                // where the author almost certainly meant the function.
+                if key.starts_with(FN_PREFIX)
+                    && !key.starts_with(FN_FOR_EACH_KEY_PREFIX)
+                    && let Some(intended) = closest_function_name(key)
+                {
                     self.diagnostics.push(crate::make_parse_diagnostic_at(
                         "W1103",
-                        format!("'{}' is not a supported function", key),
+                        format!("'{}' is not a supported function - did you mean '{}'?", key, intended),
                         UNKNOWN_SPAN,
                         &format!("{}/{}", path, key),
                     ));
@@ -338,13 +347,32 @@ impl Builder {
         check: fn(&mut Self, &V, &str),
         ctor: fn(NodeRef, NodeRef) -> IntrinsicFn,
     ) -> Option<IntrinsicFn> {
+        // Fn::Select's shape errors mirror the reference implementation; the
+        // other two-argument functions keep their own error paths.
+        let strict_shape = fn_name == FN_SELECT;
         let Some(arr) = val.as_array() else {
             if reject_scalar && !val.is_object() {
                 self.structural_error(fn_name, &format!("{} value must be an array", fn_name), path);
+            } else if strict_shape && !val.is_object() {
+                self.diagnostics.push(crate::make_parse_diagnostic_at(
+                    "E1017",
+                    format!("{} is not of type 'array'", val.describe()),
+                    UNKNOWN_SPAN,
+                    &format!("{}/{}", path, fn_name),
+                ));
             }
             return None;
         };
         if arr.len() != 2 {
+            if strict_shape {
+                let bound = if arr.len() > 2 { "maximum" } else { "minimum" };
+                self.diagnostics.push(crate::make_parse_diagnostic_at(
+                    "E1017",
+                    format!("expected {} item count: 2, found: {}", bound, arr.len()),
+                    UNKNOWN_SPAN,
+                    &format!("{}/{}", path, fn_name),
+                ));
+            }
             return None;
         }
         check(self, &arr[0], path);
@@ -390,11 +418,16 @@ impl Builder {
         // CloudFormation coerces a numeric string index — the official
         // Fn::Select documentation itself uses `"1"` — so only a value that is
         // neither a number, an intrinsic, nor an integer-valued string is
-        // reported.
+        // reported. The reference implementation rejects this as an error.
         let is_integer_string = matches!(first.kind(), ValueKind::String)
             && first.as_coerced_str().is_some_and(|s| crate::coercion::coerce_str_to_integer(&s).is_some());
         if !matches!(first.kind(), ValueKind::Number | ValueKind::Object) && !is_integer_string {
-            self.type_warning(FN_SELECT, "index (first argument) must be an integer or an intrinsic function", path);
+            self.diagnostics.push(crate::make_parse_diagnostic_at(
+                "E1017",
+                format!("{} is not of type 'integer'", first.describe()),
+                UNKNOWN_SPAN,
+                &format!("{}/{}/0", path, FN_SELECT),
+            ));
         }
     }
 
@@ -842,4 +875,36 @@ fn equals_argument_error<V: ParseValue>(val: &V) -> Option<String> {
         Some((key, _)) if EQUALS_ARG_FN_KEYS.contains(&key.as_str()) => None,
         _ => Some(format!("{} is not of type 'string'", val.describe())),
     }
+}
+
+/// The known function whose name is within a small edit distance of `key`
+/// (case-insensitive), if any. Distance 2 catches doubled/missed letters and
+/// transpositions (`Fn::GetAttt`, `Fn::Slect`) without matching unrelated
+/// data keys (`Fn::Custom`).
+pub(crate) fn closest_function_name(key: &str) -> Option<&'static str> {
+    const MAX_TYPO_DISTANCE: usize = 2;
+    let key_lower = key.to_ascii_lowercase();
+    crate::consts::INTRINSIC_FN_PATH_SEGMENTS
+        .iter()
+        .map(|known| (known, edit_distance(&key_lower, &known.to_ascii_lowercase())))
+        .filter(|(_, distance)| *distance <= MAX_TYPO_DISTANCE)
+        .min_by_key(|(_, distance)| *distance)
+        .map(|(known, _)| *known)
+}
+
+/// Levenshtein distance over ASCII-lowercased byte strings. Both inputs are
+/// short function names, so the O(len a x len b) matrix is negligible.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    let mut previous: Vec<usize> = (0..=b.len()).collect();
+    let mut current = vec![0usize; b.len() + 1];
+    for (i, &ca) in a.iter().enumerate() {
+        current[0] = i + 1;
+        for (j, &cb) in b.iter().enumerate() {
+            let substitution = previous[j] + usize::from(ca != cb);
+            current[j + 1] = substitution.min(previous[j + 1] + 1).min(current[j] + 1);
+        }
+        std::mem::swap(&mut previous, &mut current);
+    }
+    previous[b.len()]
 }

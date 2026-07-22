@@ -150,7 +150,10 @@ pub(crate) struct Resolver<'a> {
     current_path: String,
     depth: u32,
     local_bindings: HashMap<String, ResolvedValue>,
-    pub(crate) def_subs_resources: HashSet<String>,
+    /// Per-resource `DefinitionSubstitutions` keys: a `${var}` placeholder in a
+    /// Step Functions definition is legitimate exactly when `var` is one of the
+    /// resource's substitution keys.
+    pub(crate) def_subs_resources: HashMap<String, HashSet<String>>,
 }
 
 impl<'a> Resolver<'a> {
@@ -191,7 +194,7 @@ impl<'a> Resolver<'a> {
             current_path: String::new(),
             depth: 0,
             local_bindings: HashMap::new(),
-            def_subs_resources: HashSet::new(),
+            def_subs_resources: HashMap::new(),
         }
     }
 
@@ -1111,8 +1114,13 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn has_definition_substitutions(&self) -> bool {
-        self.current_resource.as_ref().and_then(|rid| self.def_subs_resources.contains(rid).then_some(())).is_some()
+    /// Whether the current resource declares `var` as a
+    /// `DefinitionSubstitutions` key.
+    fn is_definition_substitution(&self, var: &str) -> bool {
+        self.current_resource
+            .as_ref()
+            .and_then(|rid| self.def_subs_resources.get(rid))
+            .is_some_and(|keys| keys.contains(var))
     }
 
     fn detect_unsubstituted_variables(&mut self, s: &str) {
@@ -1127,12 +1135,7 @@ impl<'a> Resolver<'a> {
         if path.contains("TemplateBody") {
             return;
         }
-        // Skip DefinitionString/Definition only when the resource also has
-        // DefinitionSubstitutions (Step Functions injects variables via substitutions)
-        if (path.ends_with("DefinitionString") || path.ends_with("Definition")) && self.has_definition_substitutions() {
-            return;
-        }
-        let pseudo = PSEUDO_PARAMETERS;
+
         let mut i = 0;
         let bytes = s.as_bytes();
         while i < bytes.len() {
@@ -1148,22 +1151,30 @@ impl<'a> Resolver<'a> {
                         i = start + end + 1;
                         continue;
                     }
-                    if !var.is_empty()
-                        && (self.resource_ids.contains(var)
-                            || self.parameters.contains_key(var)
-                            || pseudo.contains(&var)
-                            || {
-                                // For dotted variables like ${Resource.Attr}, only flag if the part
-                                // before the dot is a known resource ID. This avoids false positives
-                                // on JavaScript template literals like ${c.firstname} or ${process.env.X}.
-                                var.contains('.')
-                                    && var
-                                        .split('.')
-                                        .next()
-                                        .map(|prefix| self.resource_ids.contains(prefix))
-                                        .unwrap_or(false)
-                            })
-                    {
+                    // Mirrors the reference implementation's gate: a variable
+                    // fires when it names a known ref target (parameter,
+                    // resource, pseudo-parameter, or `Resource.Attr`) — or,
+                    // regardless of target validity, inside a Step Functions
+                    // `DefinitionString`, where every `${...}` placeholder is
+                    // expected to come from `DefinitionSubstitutions` (that
+                    // resource-level exemption is applied above).
+                    let is_sub_style_variable = !var.is_empty()
+                        && var.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | ':' | '.'));
+                    let names_known_target = self.resource_ids.contains(var)
+                        || self.parameters.contains_key(var)
+                        || PSEUDO_PARAMETERS.contains(&var)
+                        || (var.contains('.')
+                            && var.split('.').next().map(|prefix| self.resource_ids.contains(prefix)).unwrap_or(false));
+                    // A Step Functions definition placeholder is exempt when it
+                    // names one of the resource's DefinitionSubstitutions keys
+                    // — and reportable otherwise, whether or not it names a
+                    // known ref target.
+                    let in_definition = path.contains("DefinitionString") || path.contains("Definition");
+                    if in_definition && self.is_definition_substitution(var) {
+                        i = start + end + 1;
+                        continue;
+                    }
+                    if is_sub_style_variable && (names_known_target || in_definition) {
                         self.unsubstituted_variables
                             .entry(rid.clone())
                             .or_default()

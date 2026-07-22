@@ -382,15 +382,22 @@ impl SemanticModel {
         if ir.resources != NULL_REF
             && let Some(entries) = ir.arena.as_map(ir.resources)
         {
-            // Pre-scan: identify resources with DefinitionSubstitutions
+            // Pre-scan: record each resource's DefinitionSubstitutions keys so
+            // definition placeholders can be checked for membership per variable.
             for (rname, rnode) in entries {
                 if let Some(props) = ir.arena.as_map(*rnode) {
                     for (key, val) in props {
                         if key == KEY_PROPERTIES
                             && let Some(prop_entries) = ir.arena.as_map(*val)
-                            && prop_entries.iter().any(|(k, _)| k == "DefinitionSubstitutions")
+                            && let Some((_, subs_ref)) =
+                                prop_entries.iter().find(|(k, _)| k == "DefinitionSubstitutions")
+                            && let Some(subs) = ir.arena.as_map(*subs_ref)
                         {
-                            resolver.def_subs_resources.insert(rname.clone());
+                            resolver
+                                .def_subs_resources
+                                .entry(rname.clone())
+                                .or_default()
+                                .extend(subs.iter().map(|(k, _)| k.clone()));
                         }
                     }
                 }

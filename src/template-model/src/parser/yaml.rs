@@ -206,6 +206,32 @@ impl CfnYamlLoader {
     /// themselves); any other suffix becomes `{ Fn::<suffix>: value }` so a
     /// misspelled or unknown tag surfaces as an unsupported function rather than
     /// being silently discarded.
+    /// Emits the unknown-function warning when a shorthand tag does not name a
+    /// known intrinsic (after the short-name mapping, e.g. `!GetAtt` →
+    /// `Fn::GetAtt`). `Condition` and the `ForEach::<id>` loop tags are valid
+    /// non-`Fn::` forms.
+    fn warn_unknown_tag(&mut self, tag_name: &str) {
+        let fn_key = SHORT_TAG_TO_FN_KEY
+            .iter()
+            .find(|(short, _)| *short == tag_name)
+            .map(|(_, fn_key)| (*fn_key).to_string())
+            .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name));
+        let known = crate::consts::INTRINSIC_FN_PATH_SEGMENTS.contains(&fn_key.as_str())
+            || fn_key == FN_REF
+            || fn_key == crate::consts::FN_CONDITION
+            || fn_key.starts_with(crate::consts::FN_FOR_EACH_KEY_PREFIX);
+        // A near-miss of a known function is warned (with a suggestion) by the
+        // builder when it sees the wrapped map, so only warn here for names far
+        // from every function — otherwise the same tag would warn twice.
+        if !known && super::builder::closest_function_name(&fn_key).is_none() {
+            self.dup_key_diagnostics.push(crate::make_parse_diagnostic(
+                "W1103",
+                format!("'!{}' is not a supported function", tag_name),
+                diagnostics::UNKNOWN_SPAN,
+            ));
+        }
+    }
+
     fn wrap_with_tag(tag_name: &str, value: Yaml) -> Yaml {
         let fn_key = SHORT_TAG_TO_FN_KEY
             .iter()
@@ -223,6 +249,11 @@ impl CfnYamlLoader {
             && self.doc_stack.len() == *depth
         {
             let (tag_name, _) = self.pending_tags.pop().unwrap();
+            // A `!Name` shorthand tag is unambiguously a function invocation —
+            // unlike a long-form `Fn::Name` map key, which may be a data key —
+            // so any unknown tag warrants the unknown-function warning here,
+            // where the tag context still exists.
+            self.warn_unknown_tag(&tag_name);
             let wrapped = Self::wrap_with_tag(&tag_name, node_val);
             node_val = wrapped;
         }
@@ -383,6 +414,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 }
 
                 if let Some(tag_name) = cfn_tag {
+                    self.warn_unknown_tag(&tag_name);
                     let wrapped = Self::wrap_with_tag(&tag_name, node);
                     self.insert_new_node((wrapped, aid), mark);
                 } else {
@@ -981,12 +1013,14 @@ mod tests {
     }
 
     #[test]
-    fn unknown_fn_long_form_emits_w1103() {
-        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName:\n        Fn::Bogus: hello\n";
+    fn unknown_fn_long_form_far_from_any_function_is_data() {
+        // The long map-key form is ambiguous (it may be a data key), so only
+        // near-miss typos warn; `Fn::Bogus` is left to schema validation.
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P:\n        Fn::Bogus: hello\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+        assert!(w1103.is_empty(), "got: {:?}", w1103);
     }
 
     /// A misspelled or unknown `!`-shorthand tag (`!Bogus`) is wrapped into
@@ -995,11 +1029,13 @@ mod tests {
     /// behavior) would hide a real authoring mistake.
     #[test]
     fn unknown_fn_short_tag_form_emits_w1103() {
-        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !Bogus hello\n";
+        // A `!Name` tag is unambiguously a function attempt, so any unknown
+        // tag warns — unlike the ambiguous long map-key form.
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P: !Bogus hello\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+        assert_eq!(w1103, ["'!Bogus' is not a supported function"]);
     }
 
     /// A wrong-case shorthand tag (`!GetAttt`, a typo of `!GetAtt`) is not in the
@@ -1012,27 +1048,23 @@ mod tests {
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function"]);
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
     }
 
     /// The unknown-tag YAML shorthand and the equivalent JSON long form emit the
     /// identical W1103 — the shared builder guarantees the diagnostic cannot drift
     /// between formats once the tag is wrapped.
     #[test]
-    fn unknown_short_tag_matches_json_long_form_w1103() {
-        let yaml = parse_yaml(
-            "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !Bogus hello\n".as_bytes(),
-        )
-        .unwrap();
-        let json = super::super::json::parse_json(
-            br#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#,
-        )
-        .unwrap();
-        let w1103 = |ir: &TemplateIR| -> Vec<String> {
-            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.clone()).collect()
-        };
-        assert_eq!(w1103(&yaml), w1103(&json));
-        assert_eq!(w1103(&yaml), ["'Fn::Bogus' is not a supported function"]);
+    fn unknown_short_tag_warns_where_long_form_is_data() {
+        // The tag form is unambiguous function syntax and warns; the long
+        // map-key form is potentially a data key and stays silent (schema
+        // validation owns any type mismatch there).
+        let tag_input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P: !Bogus x\n";
+        let tag_ir = parse_yaml(tag_input.as_bytes()).unwrap();
+        assert!(tag_ir.diagnostics.iter().any(|d| d.rule_id == "W1103"), "tag form warns");
+        let long_input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P:\n        Fn::Bogus: x\n";
+        let long_ir = parse_yaml(long_input.as_bytes()).unwrap();
+        assert!(long_ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "long form is data");
     }
 
     /// A secondary-handle tag (`!!str`) is not a CloudFormation intrinsic shorthand

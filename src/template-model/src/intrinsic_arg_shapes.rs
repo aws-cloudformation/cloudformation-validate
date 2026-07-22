@@ -91,6 +91,25 @@ pub fn validate_intrinsic_arg_shapes(arena: &Arena, transforms: &[String]) -> Ve
             continue;
         };
 
+        // Fn::GetAZs with a literal argument: it must be the empty string
+        // (current region) or a known region name. The reference linter
+        // attributes the finding to the enclosing Fn::Select's rule when
+        // nested (its usual usage) and to the GetAZs rule when standalone.
+        if let IntrinsicFn::GetAZs(arg_ref) = intrinsic
+            && let Node::String(region) = arena.node(*arg_ref)
+            && !region.is_empty()
+            && !crate::regions::is_known_region(region)
+        {
+            let spanned = arena.get(*arg_ref);
+            let rule_id = if spanned.path.contains(FN_SELECT) { "E1017" } else { "E1015" };
+            out.push(crate::make_parse_diagnostic_at(
+                rule_id,
+                format!("'{}' is not a valid region for Fn::GetAZs (use '' for the current region)", region),
+                spanned.span,
+                &spanned.path,
+            ));
+        }
+
         for (rule_id, operand_ref, allowed_functions) in operand_constraints(intrinsic, arena, has_lang_ext) {
             if let Node::Intrinsic(operand_fn) = arena.node(operand_ref) {
                 let operand_name = cfn_function_name(operand_fn);

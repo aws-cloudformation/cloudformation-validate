@@ -115,7 +115,7 @@ fn fixture_both_intrinsic_forms() {
     }
 
     assert!(model.conditions.conditions.contains_key("IsProd"));
-    assert!(model.conditions.conditions.contains_key("IsProdShort"));
+    assert!(model.conditions.conditions.contains_key("IsDevShort"));
     assert!(model.conditions.conditions.contains_key("Combined"));
 
     assert!(model.mappings.contains_key("MyMap"));

@@ -686,13 +686,18 @@ mod tests {
     }
 
     #[test]
-    fn unknown_fn_prefix_emits_w1103() {
+    fn unknown_fn_prefix_far_from_any_function_is_data_not_w1103() {
+        // `Fn::Bogus` is not a near-miss of any real function, so it is treated
+        // as a data key: no parse warning — the schema validator reports the
+        // type mismatch where one exists (matching the reference linter).
         let input =
             r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let w1103: Vec<&str> =
-            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "W1103"),
+            "far-from-any-function keys are data: {:?}",
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -702,7 +707,7 @@ mod tests {
         let ir = parse_json(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function"]);
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
     }
 
     #[test]

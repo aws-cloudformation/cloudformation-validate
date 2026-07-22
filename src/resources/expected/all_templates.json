@@ -1524,6 +1524,88 @@
       }
     ]
   },
+  "bad/W1053_dynref_spaces.yaml": {
+    "filePath": "bad/W1053_dynref_spaces.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 1,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1053",
+        "severity": "WARN",
+        "message": "'{{ resolve:ssm:/my/param }}' has spaces and will not be resolved as a dynamic reference. Remove spaces from '{{resolve:...}}'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "suggestedFix": "Remove spaces from the dynamic reference",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 7,
+        "endLine": 8,
+        "endColumn": 17,
+        "ruleDescription": "Dynamic references should not contain spaces",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 7,
+        "endLine": 8,
+        "endColumn": 17,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/W1054_raw_pseudo_param.yaml": {
     "filePath": "bad/W1054_raw_pseudo_param.yaml",
     "status": "OK",
@@ -3202,7 +3284,7 @@
       {
         "ruleId": "W1103",
         "severity": "WARN",
-        "message": "'Fn::Of' is not a supported function",
+        "message": "'Fn::Of' is not a supported function - did you mean 'Fn::If'?",
         "source": "ENGINE",
         "entity": {
           "logicalId": "HasParam",
@@ -11287,7 +11369,7 @@
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
-        "errors": 5,
+        "errors": 7,
         "warnings": 4,
         "informational": 8,
         "debug": 0
@@ -11394,6 +11476,46 @@
         "startColumn": 11,
         "endLine": 29,
         "endColumn": 22,
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E1029",
+        "severity": "ERROR",
+        "message": "Found an embedded parameter '${definition_substitution_1}' outside of an 'Fn::Sub' at Properties.DefinitionString.Fn::Join.1.5",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TestBadStateMachine1",
+          "entityType": "Resource",
+          "resourceType": "AWS::StepFunctions::StateMachine"
+        },
+        "propertyPath": "Properties.DefinitionString.Fn::Join.1.5",
+        "suggestedFix": "Wrap the string with Fn::Sub",
+        "category": "Intrinsic Function",
+        "startLine": 46,
+        "startColumn": 13,
+        "endLine": 46,
+        "endColumn": 14,
+        "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E1029",
+        "severity": "ERROR",
+        "message": "Found an embedded parameter '${definition_substitution_1}' outside of an 'Fn::Sub' at Properties.DefinitionString.Fn::Join.1.5",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TestBadStateMachine2",
+          "entityType": "Resource",
+          "resourceType": "AWS::StepFunctions::StateMachine"
+        },
+        "propertyPath": "Properties.DefinitionString.Fn::Join.1.5",
+        "suggestedFix": "Wrap the string with Fn::Sub",
+        "category": "Intrinsic Function",
+        "startLine": 67,
+        "startColumn": 13,
+        "endLine": 67,
+        "endColumn": 14,
         "ruleDescription": "Substitution variable ${X} requires Fn::Sub",
         "phase": "LINT"
       },
@@ -11862,7 +11984,7 @@
       "resourcesScanned": 3,
       "counts": {
         "fatal": 1,
-        "errors": 3,
+        "errors": 4,
         "warnings": 3,
         "informational": 12,
         "debug": 0
@@ -11890,6 +12012,25 @@
         "endColumn": 12,
         "ruleDescription": "Circular dependency detected",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'us-east-1a' is not a valid region for Fn::GetAZs (use '' for the current region)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "mySubnet2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs",
+        "category": "Intrinsic Function",
+        "startLine": 27,
+        "startColumn": 13,
+        "endLine": 27,
+        "endColumn": 23,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
       },
       {
         "ruleId": "E3060",
@@ -13124,8 +13265,8 @@
       "resourcesScanned": 4,
       "counts": {
         "fatal": 0,
-        "errors": 5,
-        "warnings": 1,
+        "errors": 8,
+        "warnings": 0,
         "informational": 12,
         "debug": 0
       },
@@ -13134,6 +13275,44 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'a' is not of type 'integer'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select.0",
+        "category": "Intrinsic Function",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 23,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "expected maximum item count: 2, found: 3",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select",
+        "category": "Intrinsic Function",
+        "startLine": 19,
+        "startColumn": 9,
+        "endLine": 19,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "E1017",
         "severity": "ERROR",
@@ -13150,6 +13329,25 @@
         "startColumn": 17,
         "endLine": 30,
         "endColumn": 18,
+        "ruleDescription": "Fn::Select requires exactly two operands and a list source",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1017",
+        "severity": "ERROR",
+        "message": "'foo' is not of type 'array'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone.Fn::Select",
+        "category": "Intrinsic Function",
+        "startLine": 36,
+        "startColumn": 9,
+        "endLine": 36,
+        "endColumn": 19,
         "ruleDescription": "Fn::Select requires exactly two operands and a list source",
         "phase": "PARSE"
       },
@@ -13244,25 +13442,6 @@
         "context": {
           "actualValue": "String"
         }
-      },
-      {
-        "ruleId": "W1102",
-        "severity": "WARN",
-        "message": "Fn::Select: index (first argument) must be an integer or an intrinsic function",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "myInstance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.AvailabilityZone.Fn::Select",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 23,
-        "ruleDescription": "Invalid intrinsic function usage",
-        "phase": "PARSE"
       },
       {
         "ruleId": "I9001",
@@ -122944,7 +123123,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 2,
         "debug": 0
       },
@@ -122970,19 +123149,6 @@
         "endColumn": 11,
         "ruleDescription": "Check if Conditions are Used",
         "phase": "LINT"
-      },
-      {
-        "ruleId": "W9053",
-        "severity": "WARN",
-        "message": "Condition 'IsProdShort' is equivalent to condition 'IsProd' - consider consolidating",
-        "source": "ENGINE",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 3,
-        "endLine": 11,
-        "endColumn": 14,
-        "ruleDescription": "Conditions are semantically equivalent and can be consolidated",
-        "phase": "PARSE"
       },
       {
         "ruleId": "I9001",
@@ -145942,7 +146108,7 @@
         "informational": 11,
         "debug": 0
       },
-      "suppressed": 0,
+      "suppressed": 1,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -149250,7 +149416,7 @@
       "counts": {
         "fatal": 3,
         "errors": 1,
-        "warnings": 8,
+        "warnings": 7,
         "informational": 24,
         "debug": 0
       },
@@ -149373,24 +149539,6 @@
         "endColumn": 23,
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT"
-      },
-      {
-        "ruleId": "W1103",
-        "severity": "WARN",
-        "message": "'Fn::Implies' is not a supported function",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ValidateParameterCombinations",
-          "entityType": "Rule"
-        },
-        "propertyPath": "Rules/ValidateParameterCombinations/Assertions/1/Assert/Fn::Implies",
-        "category": "Intrinsic Function",
-        "startLine": 313,
-        "startColumn": 13,
-        "endLine": 313,
-        "endColumn": 25,
-        "ruleDescription": "Unknown intrinsic function name",
-        "phase": "PARSE"
       },
       {
         "ruleId": "W2508",
@@ -150161,18 +150309,9 @@
       {
         "ruleId": "W1103",
         "severity": "WARN",
-        "message": "'Fn::Implies' is not a supported function",
+        "message": "'!Implies' is not a supported function",
         "source": "ENGINE",
-        "entity": {
-          "logicalId": "ValidateParameterCombinations",
-          "entityType": "Rule"
-        },
-        "propertyPath": "Rules/ValidateParameterCombinations/Assertions/1/Assert/Fn::Implies",
         "category": "Intrinsic Function",
-        "startLine": 130,
-        "startColumn": 9,
-        "endLine": 130,
-        "endColumn": 15,
         "ruleDescription": "Unknown intrinsic function name",
         "phase": "PARSE"
       },

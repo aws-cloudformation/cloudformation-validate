@@ -39,6 +39,7 @@ const RULE_DYNAMIC_REFERENCE: &str = "E1050";
 const RULE_SSM_SECURE_LOCATION: &str = "E1027";
 const RULE_SECRETSMANAGER_LOCATION: &str = "E1051";
 const RULE_SSM_LOCATION: &str = "E1052";
+const RULE_DYNAMIC_REFERENCE_SPACES: &str = "W1053";
 
 const ALLOWED_SERVICES: &[&str] = &["ssm", "ssm-secure", "secretsmanager"];
 
@@ -64,8 +65,50 @@ pub fn validate_dynamic_references(arena: &Arena, resources: NodeRef) -> Vec<Dia
         if let Some((rule, message)) = dynamic_reference_location_error(s, &spanned.path, &resource_types) {
             out.push(crate::make_parse_diagnostic_at(rule, message, spanned.span, &spanned.path));
         }
+        if let Some(message) = dynamic_reference_spaces_warning(s) {
+            out.push(crate::make_parse_diagnostic_at(
+                RULE_DYNAMIC_REFERENCE_SPACES,
+                message,
+                spanned.span,
+                &spanned.path,
+            ));
+        }
     }
     out
+}
+
+/// Returns the warning message when `s` contains what looks like a dynamic
+/// reference with whitespace after `{{` (e.g. `{{ resolve:ssm:name }}`).
+/// CloudFormation only resolves the exact `{{resolve:...}}` form; a spaced
+/// variant is passed through as a literal string, which is almost never what
+/// the author intended. Mirrors the reference implementation's spaced-reference
+/// pattern (`{{\s+resolve\s*:\s*(ssm|ssm-secure|secretsmanager)\s*:`), which
+/// applies regardless of the enclosing function.
+fn dynamic_reference_spaces_warning(s: &str) -> Option<String> {
+    let mut search_from = 0;
+    while let Some(open_rel) = s[search_from..].find("{{") {
+        let after_open = &s[search_from + open_rel + 2..];
+        let trimmed = after_open.trim_start();
+        // At least one whitespace character after `{{`, then `resolve`,
+        // optional spaces around the two colons, then a known service.
+        if trimmed.len() != after_open.len()
+            && let Some(after_resolve) = trimmed.strip_prefix("resolve")
+        {
+            let after_colon = after_resolve.trim_start().strip_prefix(':').map(str::trim_start);
+            if let Some(rest) = after_colon
+                && ALLOWED_SERVICES
+                    .iter()
+                    .any(|svc| rest.strip_prefix(svc).map(|tail| tail.trim_start().starts_with(':')).unwrap_or(false))
+            {
+                return Some(format!(
+                    "'{}' has spaces and will not be resolved as a dynamic reference. Remove spaces from '{{{{resolve:...}}}}'",
+                    s
+                ));
+            }
+        }
+        search_from += open_rel + 2;
+    }
+    None
 }
 
 /// Maps each resource logical ID to its `Type` string, for resolving the
@@ -391,6 +434,27 @@ mod tests {
     fn plain_string_without_reference_is_ignored() {
         assert!(err("just a normal string").is_none());
         assert!(err("").is_none());
+    }
+
+    #[test]
+    fn spaced_dynamic_reference_is_warned() {
+        assert!(dynamic_reference_spaces_warning("{{ resolve:ssm:/my/param }}").is_some());
+        assert!(dynamic_reference_spaces_warning("{{  resolve : secretsmanager : secret}}").is_some());
+        assert!(dynamic_reference_spaces_warning("prefix {{ resolve:ssm-secure:/p}} suffix").is_some());
+        // The exact form is a real dynamic reference, not a spaced literal.
+        assert!(dynamic_reference_spaces_warning("{{resolve:ssm:/my/param}}").is_none());
+        // Spaces but not a resolve reference.
+        assert!(dynamic_reference_spaces_warning("{{ mustache template }}").is_none());
+        // Unknown service is the format rule's concern, not the spaces rule's.
+        assert!(dynamic_reference_spaces_warning("{{ resolve:unknown:thing}}").is_none());
+    }
+
+    #[test]
+    fn spaced_dynamic_reference_fires_w1053_from_model() {
+        let ids = model_rule_ids(
+            "Resources:\n  B:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: \"{{ resolve:ssm:/p }}\"\n",
+        );
+        assert!(ids.contains(&"W1053".to_string()), "spaced reference must warn: {:?}", ids);
     }
 
     fn model_rule_ids(yaml: &str) -> Vec<String> {

@@ -439,11 +439,10 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_select() {
         let ids = validate_file("bad/functions_select.yaml");
-        // The parser no longer emits a structural error for a malformed Select —
-        // it falls through to a plain map node. A type warning fires instead for a
-        // non-integer index in a valid 2-element Select.
-        let has_select_warning = ids.iter().any(|id| id == "W1102");
-        assert!(has_select_warning, "Expected W1102 Select type warning, got: {:?}", ids);
+        // Malformed Select shapes (non-integer index, wrong arity, non-array
+        // value) are errors under the reference implementation's Select rule.
+        let select_errors = ids.iter().filter(|id| *id == "E1017").count();
+        assert!(select_errors >= 3, "Expected E1017 Select shape errors, got: {:?}", ids);
     }
 
     #[test]

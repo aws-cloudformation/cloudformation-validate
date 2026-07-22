@@ -332,7 +332,14 @@ impl ConditionModel {
             && let Ok(mut guard) = self.budget_exhausted_queries.lock()
             && guard.len() < 5
         {
-            let query_desc = assumptions.iter().map(|(n, v)| format!("{}={}", n, v)).collect::<Vec<_>>().join(", ");
+            // Synthetic condition names (inline Fn::If expressions and
+            // Rules-section conditions) are internal; describe them generically
+            // rather than leaking `__`-prefixed identifiers into the advisory.
+            let describe = |name: &str| -> String {
+                if name.starts_with("__") { "<inline condition>".to_string() } else { name.to_string() }
+            };
+            let query_desc =
+                assumptions.iter().map(|(n, v)| format!("{}={}", describe(n), v)).collect::<Vec<_>>().join(", ");
             guard.push(query_desc);
         }
         satisfiable
@@ -877,6 +884,9 @@ impl ConditionModel {
                 }
             }
         }
+        // The conditions map iterates in arbitrary order; sort so diagnostic
+        // emission order is deterministic across runs.
+        result.sort();
         result
     }
 

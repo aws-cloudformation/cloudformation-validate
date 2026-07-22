@@ -561,6 +561,46 @@ def compare_template(cfnlint_diags, engine_diags):
             consumed_act.add(id(act[i]))
         fn.extend(exp[n:])
 
+    # Pass 3: SAM-transformed resource IDs. cfn-lint's SAM transform renames
+    # generated resources with a 10-hex-digit hash suffix (`Layer` becomes
+    # `Layer7f955f606e`); the engine keeps the template's logical ID. A
+    # remaining pair with the same rule where one ID is the other plus such a
+    # suffix is the same finding.
+    def _sam_id_match(exp_id, act_id):
+        if not exp_id or not act_id or exp_id == act_id:
+            return False
+        long_id, short_id = (exp_id, act_id) if len(exp_id) > len(act_id) else (act_id, exp_id)
+        suffix = long_id[len(short_id):]
+        return (long_id.startswith(short_id) and len(suffix) == 10
+                and all(c in "0123456789abcdef" for c in suffix))
+
+    def _strip_hash_suffix(message):
+        # `[Layer7f955f606e]` and `[Layer]` describe the same resource; the
+        # hash suffix comes from the reference SAM transform's renaming.
+        return re.sub(r"\[(\w+?)[0-9a-f]{10}\]", r"[\1]", message)
+
+    def _pass3_match(d, a):
+        if a["rule_id"] != d["rule_id"]:
+            return False
+        if _sam_id_match(d.get("resource_id", ""), a.get("resource_id", "")):
+            return True
+        # Transform errors carry the resource ID only in the message.
+        return (d["rule_id"] == "E0001"
+                and _strip_hash_suffix(d.get("message", "")) == _strip_hash_suffix(a.get("message", "")))
+
+    still_fn = []
+    for d in fn:
+        partner = next(
+            (a for a in remaining_act if id(a) not in consumed_act and _pass3_match(d, a)),
+            None,
+        )
+        if partner is not None:
+            matched.append((d, partner))
+            consumed_act.add(id(partner))
+        else:
+            still_fn.append(d)
+    fn = still_fn
+
     for d in remaining_act:
         if id(d) not in consumed_act:
             fp.append(d)
@@ -1006,6 +1046,11 @@ def run_single():
         w("")
         w("Same rule ID + resource + path, but the engine start line differs from")
         w("the reference. (Messages are not compared — wording may differ freely.)")
+        w("")
+        w("Known benign class: on transformed (SAM) templates the reference")
+        w("linter anchors findings at the resource's first line because the")
+        w("transform loses property line fidelity; the engine anchors at the")
+        w("actual property line — deliberately more precise, not a defect.")
         w("")
         for key, exp, act in sorted(location_mismatches, key=lambda x: (x[1]["rule_id"], x[0])):
             w(f"- **{exp['rule_id']}** `{exp.get('resource_id','')}` → "
