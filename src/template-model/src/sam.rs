@@ -1345,11 +1345,7 @@ Resources:
              Missing required property 'ContentUri'."
         );
         assert_eq!(diag.rule_id, "E0001");
-        assert_eq!(
-            diag.resource.as_ref().and_then(|r| r.id.as_deref()),
-            Some("Layer"),
-            "diagnostic must carry the offending resource id"
-        );
+        assert_eq!(diag.resource_logical_id(), Some("Layer"), "diagnostic must carry the offending resource id");
         assert_eq!(
             diag.property_path.as_deref(),
             Some("Properties/ContentUri"),
@@ -1388,7 +1384,7 @@ Resources:
             "Error transforming template: Resource with id [App] is invalid. \
              Resource is missing the required [Location] property."
         );
-        assert_eq!(diag.resource.as_ref().and_then(|r| r.id.as_deref()), Some("App"));
+        assert_eq!(diag.resource_logical_id(), Some("App"));
         assert_eq!(diag.property_path.as_deref(), Some("Properties/Location"));
     }
 
@@ -1438,7 +1434,7 @@ Resources:
              Missing required property 'Schedule'."
         );
         assert_eq!(
-            diag.resource.as_ref().and_then(|r| r.id.as_deref()),
+            diag.resource_logical_id(),
             Some("Fn"),
             "diagnostic must point at the parent function, not the synthetic event id"
         );

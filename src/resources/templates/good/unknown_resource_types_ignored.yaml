@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Resource types outside the reserved AWS:: namespace (private registry
+  types, third-party namespaces, hook-shaped names, legacy custom resources,
+  and modules) have no compiled provider schema and may be registered per
+  account/region. They are not validated and must produce no diagnostics in
+  either engine.
+Resources:
+  PrivateRegistryType:
+    Type: Initech::TPS::Report
+    Properties:
+      Title: anything-goes-here
+  UnbundledAmznType:
+    Type: AMZN::Internal::UnbundledType
+    Properties:
+      Foo: bar
+  HookShapedType:
+    Type: MyCompany::Testing::MyTestHook
+    Properties:
+      Foo: bar
+  LegacyCustom:
+    Type: Custom::MyThing
+    Properties:
+      ServiceToken: !Sub arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:topic
+      ArbitraryProperty:
+        Nested: value
+  OrgModule:
+    Type: My::Org::Resource::MODULE
+    Properties:
+      Anything: 42

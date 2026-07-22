@@ -2,7 +2,7 @@ use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use diagnostics::{Diagnostic, PhaseMetric, ResourceRef, UNKNOWN_SPAN, phase_metric};
+use diagnostics::{Diagnostic, Entity, PhaseMetric, UNKNOWN_SPAN, phase_metric};
 use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map, is_valid_custom_rule_id};
 use template_model::SemanticModel;
@@ -251,14 +251,7 @@ fn emit_custom_diagnostic(
         rule_id: rule.rule_id.clone(),
         severity: rule.severity,
         message: msg.to_string(),
-        resource: if rid.is_empty() {
-            None
-        } else {
-            Some(ResourceRef {
-                id: Some(rid.to_string()),
-                resource_type: model.resources.get(rid).map(|r| r.resource_type.clone()),
-            })
-        },
+        entity: Entity::resource(rid, model.resources.get(rid).map(|r| r.resource_type.clone())),
         property_path: rule.prop_path.clone(),
         suggested_fix: rule.suggested_fix.clone(),
         documentation_url: None,
@@ -268,7 +261,6 @@ fn emit_custom_diagnostic(
         condition_scenario: None,
         rule_description: None,
         phase: None,
-        section: None,
         context: None,
         source: rule.source,
     });

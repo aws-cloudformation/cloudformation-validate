@@ -178,13 +178,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (pname, param) in &m.parameters {
+        let param_path = format!("{}/{}", SECTION_PARAMETERS, pname);
         if !ALPHANUM_RE.is_match(pname) {
             out.push(make_resource_diagnostic(
                 "F2003",
                 &format!("Parameter name '{}' must be alphanumeric", pname),
                 m,
                 "",
-                "",
+                &param_path,
                 None,
             ));
         }
@@ -195,7 +196,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter name '{}' exceeds maximum length of 255", pname),
                 m,
                 "",
-                "",
+                &param_path,
                 None,
             ));
         } else if pname.len() > 229 {
@@ -204,7 +205,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter name '{}' is approaching maximum length of 255", pname),
                 m,
                 "",
-                "",
+                &param_path,
                 None,
             ));
         }
@@ -215,7 +216,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter '{}' has invalid Type '{}'", pname, param.param_type),
                 m,
                 "",
-                "",
+                &format!("{}/Type", param_path),
                 None,
             ));
         }
@@ -223,6 +224,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if let Some(outputs_obj) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
         for oname in outputs_obj.keys() {
+            let output_path = format!("{}/{}", SECTION_OUTPUTS, oname);
             if !ALPHANUM_RE.is_match(oname) {
                 // Fn::ForEach:: prefixed keys are ForEach constructs, not literal output names
                 if oname.starts_with(FN_FOR_EACH_KEY_PREFIX) {
@@ -233,7 +235,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output name '{}' must be alphanumeric", oname),
                     m,
                     "",
-                    "",
+                    &output_path,
                     None,
                 ));
             }
@@ -243,7 +245,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output name '{}' exceeds maximum length of 255", oname),
                     m,
                     "",
-                    "",
+                    &output_path,
                     None,
                 ));
             } else if oname.len() > 229 {
@@ -252,7 +254,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output name '{}' is approaching maximum length of 255", oname),
                     m,
                     "",
-                    "",
+                    &output_path,
                     None,
                 ));
             }
@@ -260,13 +262,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for mname in m.mappings.keys() {
+        let mapping_path = format!("{}/{}", SECTION_MAPPINGS, mname);
         if mname.len() > 255 {
             out.push(make_resource_diagnostic(
                 "F7002",
                 &format!("Mapping name '{}' exceeds maximum length of 255", mname),
                 m,
                 "",
-                "",
+                &mapping_path,
                 None,
             ));
         } else if mname.len() > 229 {
@@ -275,7 +278,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Mapping name '{}' is approaching maximum length of 255", mname),
                 m,
                 "",
-                "",
+                &mapping_path,
                 None,
             ));
         }
@@ -350,7 +353,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output '{}' is missing required 'Value' property", name),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_OUTPUTS, name),
                     None,
                 ));
             }
@@ -364,7 +367,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Mapping '{}' has {} top-level keys, maximum is 200", map_name, level1.len()),
                 m,
                 "",
-                "",
+                &format!("{}/{}", SECTION_MAPPINGS, map_name),
                 None,
             ));
         }
@@ -375,7 +378,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Mapping '{}'.'{}'  has {} attributes, maximum is 200", map_name, key1, level2.len()),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}/{}", SECTION_MAPPINGS, map_name, key1),
                     None,
                 ));
             }
@@ -390,7 +393,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Mapping '{}' key '{}' does not match format '^[a-zA-Z0-9.-]+$'", map_name, k1),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}/{}", SECTION_MAPPINGS, map_name, k1),
                     None,
                 ));
             }
@@ -401,7 +404,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Mapping '{}'.'{}' key '{}' does not match format '^[a-zA-Z0-9]+$'", map_name, k1, k2),
                         m,
                         "",
-                        "",
+                        &format!("{}/{}/{}/{}", SECTION_MAPPINGS, map_name, k1, k2),
                         None,
                     ));
                 }
@@ -597,7 +600,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Parameter '{}' is not referenced anywhere in the template", pname),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_PARAMETERS, pname),
                     None,
                 ));
             }
@@ -624,7 +627,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Mapping '{}' is not referenced by any Fn::FindInMap", mname),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_MAPPINGS, mname),
                     None,
                 ));
             }
@@ -652,7 +655,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Condition '{}' is not used by any resource or Fn::If", cname),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}", SECTION_CONDITIONS, cname),
                     None,
                 ));
             }
@@ -674,7 +677,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ),
                 m,
                 "",
-                "",
+                &format!("{}/{}/Default", SECTION_PARAMETERS, name),
                 None,
             ));
         }
@@ -706,8 +709,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 name, resource, attribute, ret_type
                             ),
                             m,
-                            name,
-                            &format!("Outputs/{}/Value", name),
+                            "",
+                            &format!("{}/{}/Value", SECTION_OUTPUTS, name),
                             None,
                         ));
                     }
@@ -726,7 +729,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter '{}' Default '{}' is not a valid number", name, def),
                 m,
                 "",
-                "",
+                &format!("{}/{}/Default", SECTION_PARAMETERS, name),
                 None,
             ));
         }
@@ -743,7 +746,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Parameter '{}' AllowedValues entry '{}' is not a valid number", name, val),
                         m,
                         "",
-                        "",
+                        &format!("{}/{}/AllowedValues", SECTION_PARAMETERS, name),
                         None,
                     ));
                 }
@@ -761,7 +764,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Output '{}' Export Name must not be empty", name),
                     m,
                     "",
-                    "",
+                    &format!("{}/{}/Export/Name", SECTION_OUTPUTS, name),
                     None,
                 ));
             }
@@ -783,7 +786,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                         && !APPROPRIATE_IMAGE_ID_PARAM_TYPES.contains(&param.param_type.as_str())
                         && flagged_image_params.insert(target)
                     {
-                        out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' - consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", "",
+                        out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' - consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", &format!("{}/{}", SECTION_PARAMETERS, target),
             None));
                     }
                 }
@@ -802,7 +805,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter '{}' appears to be a password but does not have NoEcho set to true", name),
                 m,
                 "",
-                "",
+                &format!("{}/{}", SECTION_PARAMETERS, name),
                 None,
             ));
         }
@@ -958,7 +961,7 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
                 &format!("Parameter '{}' AllowedPattern '{}' is not a valid regular expression", pname, pattern),
                 m,
                 "",
-                "",
+                &format!("{}/{}/AllowedPattern", SECTION_PARAMETERS, pname),
                 None,
             ));
         }

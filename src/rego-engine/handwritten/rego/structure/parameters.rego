@@ -30,7 +30,8 @@ valid_param_types := {
     "List<AWS::Route53::HostedZone::Id>"
 }
 
-violation contains make_diag("F2002", "FATAL", "",
+violation contains make_diag_at("F2002", "FATAL", "",
+    sprintf("Parameters/%s/Type", [name]),
     sprintf("Parameter '%s' has invalid Type '%s'", [name, ptype])) if {
     some name, param in input.parameters
     ptype := param.type
@@ -40,7 +41,8 @@ violation contains make_diag("F2002", "FATAL", "",
 }
 
 # F0015: Default value must be numeric when parameter Type is Number
-violation contains make_diag("F0015", "FATAL", "",
+violation contains make_diag_at("F0015", "FATAL", "",
+    sprintf("Parameters/%s/Default", [name]),
     sprintf("Parameter '%s' Default '%s' is not a valid number", [name, def])) if {
     some name, param in input.parameters
     param.type == "Number"
@@ -51,7 +53,8 @@ violation contains make_diag("F0015", "FATAL", "",
 }
 
 # F0016: AllowedValues entries must be numeric when parameter Type is Number
-violation contains make_diag("F0016", "FATAL", "",
+violation contains make_diag_at("F0016", "FATAL", "",
+    sprintf("Parameters/%s/AllowedValues", [name]),
     sprintf("Parameter '%s' AllowedValues entry '%s' is not a valid number", [name, val])) if {
     some name, param in input.parameters
     param.type == "Number"
@@ -111,7 +114,8 @@ _image_id_slots := {
     "AWS::ImageBuilder::Image": {`^Properties\.ImageId$`},
 }
 
-violation contains make_diag("W2506", "WARN", "",
+violation contains make_diag_at("W2506", "WARN", "",
+    sprintf("Parameters/%s", [pname]),
     sprintf("Parameter '%s' is used as an ImageId but has Type '%s' - consider using 'AWS::EC2::Image::Id'", [pname, ptype])) if {
     some name, res in input.resources
     patterns := _image_id_slots[res.resourceType]

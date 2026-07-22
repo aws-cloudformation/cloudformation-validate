@@ -32,6 +32,31 @@ enum PathFrame {
     Seq(usize),
 }
 
+/// See [`CfnYamlLoader::current_path`]. A free function over the frames so the
+/// path can be computed while a sibling field of the loader is mutably
+/// borrowed (as during duplicate-key detection inside `insert_new_node`).
+fn path_from_frames(frames: &[PathFrame]) -> String {
+    let mut path = String::new();
+    for frame in frames {
+        let segment = match frame {
+            PathFrame::Map(Some(key)) => key.as_str(),
+            PathFrame::Map(None) => continue,
+            PathFrame::Seq(idx) => {
+                if !path.is_empty() {
+                    path.push('/');
+                }
+                path.push_str(&idx.to_string());
+                continue;
+            }
+        };
+        if !path.is_empty() {
+            path.push('/');
+        }
+        path.push_str(segment);
+    }
+    path
+}
+
 /// Converts YAML shorthand tags (!Ref, !Sub, etc.) into map-form intrinsics.
 struct CfnYamlLoader {
     docs: Vec<Yaml>,
@@ -108,25 +133,7 @@ impl CfnYamlLoader {
     /// A mapping frame still awaiting its key contributes nothing (that key becomes the
     /// slot once seen), so the path names the value node the builder will allocate.
     fn current_path(&self) -> String {
-        let mut path = String::new();
-        for frame in &self.path_frames {
-            let segment = match frame {
-                PathFrame::Map(Some(key)) => key.as_str(),
-                PathFrame::Map(None) => continue,
-                PathFrame::Seq(idx) => {
-                    if !path.is_empty() {
-                        path.push('/');
-                    }
-                    path.push_str(&idx.to_string());
-                    continue;
-                }
-            };
-            if !path.is_empty() {
-                path.push('/');
-            }
-            path.push_str(segment);
-        }
-        path
+        path_from_frames(&self.path_frames)
     }
 
     /// The `(line, column)` a Marker points at, in the 1-based/1-based convention the
@@ -273,8 +280,17 @@ impl CfnYamlLoader {
                                 end_column: col + name.len() as u32,
                             })
                             .unwrap_or(UNKNOWN_SPAN);
-                        let diagnostic =
-                            crate::make_parse_diagnostic("F0000", format!("Duplicate key '{}'", name), span);
+                        // At this point every enclosing frame's slot is committed and
+                        // the innermost slot holds the duplicated key, so the path
+                        // names the duplicated entry itself — anchoring the diagnostic
+                        // at the entity it duplicates.
+                        let duplicated_path = path_from_frames(&self.path_frames);
+                        let diagnostic = crate::make_parse_diagnostic_at(
+                            "F0000",
+                            format!("Duplicate key '{}'", name),
+                            span,
+                            &duplicated_path,
+                        );
                         if let Some(buffer) = self.pending_dup_diagnostics.last_mut() {
                             buffer.push(diagnostic);
                         }

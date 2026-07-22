@@ -848,7 +848,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "F3006",
         category: Category::Schema,
-        description: "Resource type must be recognized",
+        description: "AWS resource type must be recognized and available in the configured region",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {

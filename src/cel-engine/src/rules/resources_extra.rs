@@ -312,19 +312,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if !ctx.cached_data.known_types.is_empty() {
         for (name, res) in &m.resources {
-            if res.resource_type.is_empty() {
-                continue;
-            }
-            // Only custom resources (`Custom::` prefix) and modules (`::MODULE`
-            // suffix) are exempt from the known-type set; every other type —
-            // including all AWS-namespaced types such as `AWS::Serverless::*` and
-            // `AWS::CloudFormation::*` — must be a recognized type. Valid
-            // transform/service types already appear in `known_types`, so no
-            // namespace is exempted wholesale.
-            if !ctx.cached_data.known_types.contains(&res.resource_type)
-                && !res.resource_type.starts_with("Custom::")
-                && !res.resource_type.ends_with("::MODULE")
-            {
+            // An AWS-namespaced type absent from the compiled schema set is a
+            // typo or nonexistent type — CloudFormation owns the reserved
+            // `AWS::` namespace, so the embedded catalog is authoritative for
+            // it. Types in any other namespace (private registry types,
+            // `Custom::` resources, modules, hook-shaped names) may be
+            // registered per account/region, so they are skipped entirely
+            // rather than guessed at.
+            if res.resource_type.starts_with("AWS::") && !ctx.cached_data.known_types.contains(&res.resource_type) {
                 out.push(make_resource_diagnostic(
                     "F3006",
                     &format!("Unknown resource type '{}'", res.resource_type),
@@ -1716,7 +1711,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Mapping '{}' must be a map", map_name),
                     m,
                     "",
-                    "",
+                    &format!("Mappings/{}", map_name),
                     None,
                 ));
             } else if let Some(obj) = level1.as_object() {
@@ -1727,7 +1722,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             &format!("Mapping '{}' second level key '{}' must be a map", map_name, k1),
                             m,
                             "",
-                            "",
+                            &format!("Mappings/{}/{}", map_name, k1),
                             None,
                         ));
                     }

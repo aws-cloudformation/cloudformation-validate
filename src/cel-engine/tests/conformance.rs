@@ -447,6 +447,14 @@ mod rule_category_tests {
     }
 
     #[test]
+    fn intrinsics_select_integer_string_index_is_not_warned() {
+        // CloudFormation coerces a numeric string index ("0", "1"), so the
+        // Select type warning must not fire on it.
+        let ids = validate_file("good/functions/select_string_index.yaml");
+        assert!(!ids.iter().any(|id| id == "W1102"), "W1102 must not fire on an integer-string index, got: {:?}", ids);
+    }
+
+    #[test]
     fn intrinsics_bad_sub_needed() {
         let ids = validate_file("bad/sub_needed.yaml");
         assert!(has_rule(&ids, "E1029"), "Expected E1029 for Sub needed, got: {:?}", ids);

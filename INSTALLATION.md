@@ -139,12 +139,12 @@ cargo audit
 
 ## Download and verify release artifacts
 
-Each GitHub release attaches the prebuilt artifacts as signed assets:
+Each GitHub release attaches the prebuilt artifacts as signed assets (`<version>` is the release tag, e.g. `1.6.0`):
 
-- `cloudformation-validate.jar` — the JVM (Kotlin/Java) binding
-- `cloudformation-validate.zip` — the Node.js (WASM) binding package
-- `cfn-validate-<os>-<arch>` — the CLI binary, one per supported platform (e.g. `cfn-validate-linux-x64`,
-  `cfn-validate-darwin-aarch64`)
+- `cloudformation-validate-<version>.jar` — the JVM (Kotlin/Java) binding
+- `cloudformation-validate-wasm-<version>.zip` — the Node.js (WASM) binding
+- `cfn-validate-<version>-<os>-<arch>` — the CLI binary, one per supported platform (e.g.
+  `cfn-validate-1.6.0-linux-x64`, `cfn-validate-1.6.0-darwin-aarch64`)
 
 Alongside each artifact are a detached signature (`<artifact>.sig`), the public key (`signing-key.pem`), and the key's
 SHA-256 fingerprint (`signing-key.pem.sha256`). Artifacts are signed with an AWS KMS RSA key
@@ -154,7 +154,7 @@ Download the artifact you want, its `.sig`, and `signing-key.pem` from the same 
 
 ```bash
 openssl dgst -sha256 -verify signing-key.pem -signature <artifact>.sig <artifact>
-# e.g. openssl dgst -sha256 -verify signing-key.pem -signature cloudformation-validate.zip.sig cloudformation-validate.zip
+# e.g. openssl dgst -sha256 -verify signing-key.pem -signature cloudformation-validate-wasm-1.6.0.zip.sig cloudformation-validate-wasm-1.6.0.zip
 ```
 
 A valid artifact prints `Verified OK`. Any other output means verification failed — do not use the artifact.

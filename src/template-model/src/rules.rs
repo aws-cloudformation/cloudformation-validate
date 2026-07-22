@@ -42,7 +42,7 @@ fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<Diag
         return;
     };
     let Some(rules_obj) = rules.as_object() else {
-        out.push(rule_diag("F8600", "Rules section must be an object".into()));
+        out.push(rule_diag("F8600", "Rules section must be an object".into(), ""));
         return;
     };
 
@@ -52,8 +52,9 @@ fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<Diag
 }
 
 fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &mut Vec<Diagnostic>) {
+    let rule_path = format!("Rules/{}", rule_name);
     let Some(rule_obj) = rule_value.as_object() else {
-        out.push(rule_diag("F8601", format!("Rule '{}' must be an object", rule_name)));
+        out.push(rule_diag("F8601", format!("Rule '{}' must be an object", rule_name), &rule_path));
         return;
     };
 
@@ -67,22 +68,35 @@ fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &m
                     key,
                     render_str_list(VALID_RULE_KEYS)
                 ),
+                &format!("{}/{}", rule_path, key),
             ));
         }
     }
 
     let Some(assertions_val) = rule_obj.get(KEY_ASSERTIONS) else {
-        out.push(rule_diag("F8603", format!("Rule '{}' is missing required '{}' property", rule_name, KEY_ASSERTIONS)));
+        out.push(rule_diag(
+            "F8603",
+            format!("Rule '{}' is missing required '{}' property", rule_name, KEY_ASSERTIONS),
+            &rule_path,
+        ));
         return;
     };
 
     let Some(assertions_arr) = assertions_val.as_array() else {
-        out.push(rule_diag("F8604", format!("Rule '{}' {} must be an array", rule_name, KEY_ASSERTIONS)));
+        out.push(rule_diag(
+            "F8604",
+            format!("Rule '{}' {} must be an array", rule_name, KEY_ASSERTIONS),
+            &format!("{}/{}", rule_path, KEY_ASSERTIONS),
+        ));
         return;
     };
 
     if assertions_arr.is_empty() {
-        out.push(rule_diag("F8605", format!("Rule '{}' {} must not be empty", rule_name, KEY_ASSERTIONS)));
+        out.push(rule_diag(
+            "F8605",
+            format!("Rule '{}' {} must not be empty", rule_name, KEY_ASSERTIONS),
+            &format!("{}/{}", rule_path, KEY_ASSERTIONS),
+        ));
         return;
     }
 
@@ -101,13 +115,19 @@ fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &m
                 KEY_RULE_CONDITION,
                 json_type_name(condition)
             ),
+            &format!("{}/{}", rule_path, KEY_RULE_CONDITION),
         ));
     }
 }
 
 fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json::Value, out: &mut Vec<Diagnostic>) {
+    let assertion_path = format!("Rules/{}/{}/{}", rule_name, KEY_ASSERTIONS, idx);
     let Some(assertion_obj) = assertion.as_object() else {
-        out.push(rule_diag("F8607", format!("Rule '{}' {}[{}] must be an object", rule_name, KEY_ASSERTIONS, idx)));
+        out.push(rule_diag(
+            "F8607",
+            format!("Rule '{}' {}[{}] must be an object", rule_name, KEY_ASSERTIONS, idx),
+            &assertion_path,
+        ));
         return;
     };
 
@@ -123,6 +143,7 @@ fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json
                     key,
                     render_str_list(VALID_ASSERTION_KEYS)
                 ),
+                &format!("{}/{}", assertion_path, key),
             ));
         }
     }
@@ -131,6 +152,7 @@ fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json
         out.push(rule_diag(
             "F8609",
             format!("Rule '{}' {}[{}] is missing required '{}' property", rule_name, KEY_ASSERTIONS, idx, KEY_ASSERT),
+            &assertion_path,
         ));
         return;
     };
@@ -146,6 +168,7 @@ fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json
                 KEY_ASSERT,
                 json_type_name(assert_val)
             ),
+            &format!("{}/{}", assertion_path, KEY_ASSERT),
         ));
     }
 }
@@ -154,10 +177,18 @@ fn validate_allowed_functions(arena: &Arena, rules_node: NodeRef, out: &mut Vec<
     if rules_node == NULL_REF {
         return;
     }
-    walk_for_disallowed_functions(arena, rules_node, out);
+    // Walk each named rule separately so a disallowed function is attributed to
+    // the rule it appears in.
+    if let Some(entries) = arena.as_map(rules_node) {
+        for (rule_name, child_ref) in entries {
+            walk_for_disallowed_functions(arena, *child_ref, &format!("Rules/{}", rule_name), out);
+        }
+        return;
+    }
+    walk_for_disallowed_functions(arena, rules_node, "", out);
 }
 
-fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec<Diagnostic>) {
+fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, rule_path: &str, out: &mut Vec<Diagnostic>) {
     if !arena.is_valid(node_ref) {
         return;
     }
@@ -172,25 +203,26 @@ fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, out: &mut Vec
                         fn_name,
                         render_str_list(ALLOWED_RULE_FUNCTIONS)
                     ),
+                    rule_path,
                 ));
             }
-            walk_intrinsic_children(arena, intrinsic, out);
+            walk_intrinsic_children(arena, intrinsic, rule_path, out);
         }
         Node::Map(entries) => {
             for (_, child_ref) in entries {
-                walk_for_disallowed_functions(arena, *child_ref, out);
+                walk_for_disallowed_functions(arena, *child_ref, rule_path, out);
             }
         }
         Node::List(items) => {
             for child_ref in items {
-                walk_for_disallowed_functions(arena, *child_ref, out);
+                walk_for_disallowed_functions(arena, *child_ref, rule_path, out);
             }
         }
         _ => {}
     }
 }
 
-fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, out: &mut Vec<Diagnostic>) {
+fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, rule_path: &str, out: &mut Vec<Diagnostic>) {
     let mut children = Vec::new();
     match intrinsic {
         IntrinsicFn::Ref(_)
@@ -250,7 +282,7 @@ fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, out: &mut Vec
         }
     }
     for child in children {
-        walk_for_disallowed_functions(arena, child, out);
+        walk_for_disallowed_functions(arena, child, rule_path, out);
     }
 }
 
@@ -265,8 +297,8 @@ fn json_type_name(val: &serde_json::Value) -> &'static str {
     }
 }
 
-fn rule_diag(rule_id: &str, message: String) -> Diagnostic {
-    RegisteredDiagnostic::new(rule_id, message).phase(Phase::Parse).build()
+fn rule_diag(rule_id: &str, message: String, entity_path: &str) -> Diagnostic {
+    RegisteredDiagnostic::new(rule_id, message).property_path(entity_path).phase(Phase::Parse).build()
 }
 
 #[cfg(test)]

@@ -11,48 +11,6 @@ import software.amazon.cloudformation.validate.rules.*
 import java.io.File
 
 class SmokeTest {
-    companion object {
-        private val resourcesRoot: File = listOf(
-            File("${System.getProperty("user.dir")}/../../resources"),
-            File("${System.getProperty("user.dir")}/../../../resources"),
-        ).first { it.exists() }
-        private val templatesRoot = File(resourcesRoot, "templates")
-        private val expectedDir = File(resourcesRoot, "expected")
-        private val rulesDir = File(resourcesRoot, "rules")
-
-        private val gson = buildBindingsGson()
-
-        private val EXPECTED_TEMPLATES: List<String>
-        private val COMBINED_GOLDEN: Map<String, Any?>
-
-        private val GOLDEN_DIRS = listOf("bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart")
-
-        init {
-            val goldenFile = File(expectedDir, "all_templates.json")
-            @Suppress("UNCHECKED_CAST")
-            COMBINED_GOLDEN = JsonParser(goldenFile.readText()).parseValue() as Map<String, Any?>
-            EXPECTED_TEMPLATES = discoverAllTemplates()
-        }
-
-        private fun discoverAllTemplates(): List<String> {
-            val templates = mutableListOf<String>()
-            for (sub in GOLDEN_DIRS) {
-                val dir = File(templatesRoot, sub)
-                if (dir.isDirectory) {
-                    dir.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
-                        templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
-                    }
-                }
-            }
-            return templates.sorted()
-        }
-
-        private val FULL_ONLY_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
-
-        private val CEL = CelEngine(EngineConfig())
-        private val REGO = RegoEngine(EngineConfig())
-    }
-
     private fun templateFile(rel: String): File = File(templatesRoot, rel)
     private fun templateBytes(rel: String): ByteArray = templateFile(rel).readBytes()
     private fun loadRule(filename: String): String = File(rulesDir, filename).readText()
@@ -449,6 +407,48 @@ class SmokeTest {
         for (phase in phases) {
             assertTrue(phase.durationMs >= 0.0, "phase durationMs must be present and non-negative")
         }
+    }
+
+    companion object {
+        private val resourcesRoot: File = listOf(
+            File("${System.getProperty("user.dir")}/../../resources"),
+            File("${System.getProperty("user.dir")}/../../../resources"),
+        ).first { it.exists() }
+        private val templatesRoot = File(resourcesRoot, "templates")
+        private val expectedDir = File(resourcesRoot, "expected")
+        private val rulesDir = File(resourcesRoot, "rules")
+
+        private val gson = buildBindingsGson()
+
+        private val EXPECTED_TEMPLATES: List<String>
+        private val COMBINED_GOLDEN: Map<String, Any?>
+
+        private val GOLDEN_DIRS = listOf("bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart")
+
+        init {
+            val goldenFile = File(expectedDir, "all_templates.json")
+            @Suppress("UNCHECKED_CAST")
+            COMBINED_GOLDEN = JsonParser(goldenFile.readText()).parseValue() as Map<String, Any?>
+            EXPECTED_TEMPLATES = discoverAllTemplates()
+        }
+
+        private fun discoverAllTemplates(): List<String> {
+            val templates = mutableListOf<String>()
+            for (sub in GOLDEN_DIRS) {
+                val dir = File(templatesRoot, sub)
+                if (dir.isDirectory) {
+                    dir.walkTopDown().filter { it.isFile && it.extension in listOf("yaml", "yml", "json") }.forEach {
+                        templates.add(it.relativeTo(templatesRoot).path.replace('\\', '/'))
+                    }
+                }
+            }
+            return templates.sorted()
+        }
+
+        private val FULL_ONLY_FIELDS = listOf("documentationUrl", "context", "ruleDescription", "phase", "section")
+
+        private val CEL = CelEngine(EngineConfig())
+        private val REGO = RegoEngine(EngineConfig())
     }
 }
 

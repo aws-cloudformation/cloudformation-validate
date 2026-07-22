@@ -8,6 +8,10 @@ on:
         description: "The tag to release (1.0.0 for prod, 1.0.0-beta for beta)"
         required: true
         type: string
+      commit:
+        description: "Optional commit SHA to release from — must be on main (defaults to the head of main)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -21,7 +25,7 @@ jobs:
     permissions:
       contents: read
     with:
-      ref: main
+      ref: ${{ inputs.commit || 'main' }}
 
   version-and-tag:
     needs: [ get-configs, validate ]
@@ -36,6 +40,24 @@ jobs:
           ref: 'main'
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Resolve release commit
+        env:
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          if [ -n "$COMMIT" ]; then
+            if ! git cat-file -e "$COMMIT^{commit}" 2>/dev/null; then
+              echo "::error::Commit $COMMIT does not exist in this repository."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$COMMIT" origin/main; then
+              echo "::error::Commit $COMMIT is not on main. Releases may only be cut from commits on main."
+              exit 1
+            fi
+            git checkout --quiet "$COMMIT"
+          fi
+          echo "Releasing from commit $(git rev-parse HEAD)"
 
       - name: Get version from Cargo.toml
         id: get-version
@@ -105,7 +127,7 @@ jobs:
             echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          cp "$jar" release/
+          cp "$jar" "release/cloudformation-validate-${{ inputs.tag }}.jar"
 
           if [ ! -d "$WORKING_DIR/bindings-wasm/dist" ]; then
             echo "::error::bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
@@ -123,7 +145,7 @@ jobs:
           echo "WASM package version stamped to ${{ inputs.tag }}:"
           grep '"version"' "$WASM_PKG_JSON"
 
-          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate.zip" dist )
+          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-${{ inputs.tag }}.zip" dist )
 
           binaries=("$WORKING_DIR"/release/cfn-validate-*)
           if [ ${#binaries[@]} -eq 0 ]; then
@@ -131,7 +153,13 @@ jobs:
             exit 1
           fi
           for bin in "${binaries[@]}"; do
-            cp "$bin" release/
+            name="$(basename "$bin")"
+            platform="${name#cfn-validate-}"
+            extension=""
+            case "$platform" in
+              *.exe) platform="${platform%.exe}"; extension=".exe" ;;
+            esac
+            cp "$bin" "release/cfn-validate-${{ inputs.tag }}-${platform}${extension}"
           done
 
           ls -lh release/
@@ -143,9 +171,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Sign artifacts with KMS
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          KMS_KEY_ALIAS: ${{ secrets.KMS_KEY_ALIAS }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -155,8 +180,8 @@ jobs:
             openssl dgst -sha256 -binary "$f" > digest.bin
 
             aws kms sign \
-              --region "$AWS_REGION" \
-              --key-id "$KMS_KEY_ALIAS" \
+              --region "${{ secrets.AWS_REGION }}" \
+              --key-id "${{ secrets.KMS_KEY_ALIAS }}" \
               --message fileb://digest.bin \
               --message-type DIGEST \
               --signing-algorithm RSASSA_PKCS1_V1_5_SHA_256 \
@@ -186,7 +211,7 @@ jobs:
           done
           rm -f signing-key.pem
 
-      - name: Add public key to release assets
+      - name: Add GitHub public key
         env:
           SIGNING_PUBLIC_KEY: ${{ secrets.SIGNING_PUBLIC_KEY }}
         run: |
@@ -196,21 +221,17 @@ jobs:
           printf '%s\n' "$fingerprint" > release/signing-key.pem.sha256
           echo "public key SHA-256: $fingerprint"
 
-      - name: Configure AWS credentials for Maven signing key
-        if: ${{ !contains(inputs.tag, '-beta') }}
+      - name: Configure AWS credentials for Maven signing
         uses: aws-actions/configure-aws-credentials@v6.2.0
         with:
           role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Add Maven PGP public key to release assets
-        if: ${{ !contains(inputs.tag, '-beta') }}
-        env:
-          MAVEN_GPG_SECRET_ID: ${{ secrets.MAVEN_GPG_SECRET_ID }}
+      - name: Add Maven PGP public key
         run: |
           set -euo pipefail
           secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "$MAVEN_GPG_SECRET_ID" --query SecretString --output text)"
+            --secret-id "${{ secrets.MAVEN_GPG_PUBLIC_ID }}" --query SecretString --output text)"
           key="release/cloudformation-validate-maven-signing-key.asc"
           printf '%s' "$secret_json" | jq -r '.publicKey'  > "$key"
           printf '%s' "$secret_json" | jq -r '.fingerprint' > "$key.fingerprint"
@@ -227,7 +248,6 @@ jobs:
 
   publish-maven:
     needs: [ get-configs, version-and-tag, release ]
-    if: ${{ !contains(inputs.tag, '-beta') }}
     runs-on: ubuntu-latest
     environment: release-maven
     permissions:
@@ -280,31 +300,20 @@ jobs:
           role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Fetch PGP signing key
-        id: signing-secrets
+      - name: Build signed Central Portal bundle
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
         env:
-          MAVEN_GPG_SECRET_ID: ${{ secrets.MAVEN_GPG_SECRET_ID }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
 
           secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "$MAVEN_GPG_SECRET_ID" --query SecretString --output text)"
-          {
-            echo "signing_key<<__EOF_KEY__"
-            printf '%s' "$secret_json" | jq -r '.privateKey'
-            echo "__EOF_KEY__"
-            echo "signing_password<<__EOF_PASS__"
-            printf '%s' "$secret_json" | jq -r '.passphrase'
-            echo "__EOF_PASS__"
-          } >> "$GITHUB_OUTPUT"
+            --secret-id "${{ secrets.MAVEN_GPG_SECRET_ID }}" --query SecretString --output text)"
+          export ORG_GRADLE_PROJECT_signingKey="$(printf '%s' "$secret_json" | jq -r '.privateKey')"
+          export ORG_GRADLE_PROJECT_signingPassword="$(printf '%s' "$secret_json" | jq -r '.passphrase')"
+          unset secret_json
 
-      - name: Build signed Central Portal bundle
-        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
-        env:
-          ORG_GRADLE_PROJECT_signingKey: ${{ steps.signing-secrets.outputs.signing_key }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ steps.signing-secrets.outputs.signing_password }}
-        run: |
-          set -euo pipefail
+          ./generate-version-properties.sh "$RELEASE_TAG"
           gradle --no-daemon --console=plain centralBundle
           ls -lh build/central/
 
@@ -327,6 +336,98 @@ jobs:
             done
           done
           [ "$missing" -eq 0 ] && echo "All artifacts carry .asc/.md5/.sha1." || exit 1
+
+          committed_sha="$(sha256sum generated/cloudformation-validate.jar | awk '{print $1}')"
+          bundle_sha="$(sha256sum "$base/cloudformation-validate-${{ inputs.tag }}.jar" | awk '{print $1}')"
+          if [ "$committed_sha" != "$bundle_sha" ]; then
+            echo "::error::Maven bundle jar ($bundle_sha) differs from the committed jar ($committed_sha) that the GitHub release ships. They must be byte-identical."
+            exit 1
+          fi
+          echo "Maven bundle jar is byte-identical to the committed jar (sha256 $committed_sha)."
+
+      - name: Publish to Central Portal
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        run: |
+          set -euo pipefail
+          bundle="$(ls build/central/*-bundle.zip)"
+
+          secret_json="$(aws secretsmanager get-secret-value \
+            --secret-id "${{ secrets.CENTRAL_PORTAL_SECRET_ID }}" --query SecretString --output text)"
+          username="$(printf '%s' "$secret_json" | jq -er '.username')"
+          password="$(printf '%s' "$secret_json" | jq -er '.password')"
+          token="$(printf '%s:%s' "$username" "$password" | base64 | tr -d '\n')"
+          unset secret_json username password
+
+          deployment_id="$(curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $token" \
+            -F "bundle=@$bundle" \
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=cloudformation-validate-${{ inputs.tag }}")"
+          echo "Central Portal deployment id: $deployment_id"
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            status_json="$(curl --fail-with-body -sS -X POST \
+              -H "Authorization: Bearer $token" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$deployment_id")"
+            state="$(printf '%s' "$status_json" | jq -r '.deploymentState')"
+            echo "attempt $attempt/$max_attempts: deploymentState=$state"
+
+            case "$state" in
+              PUBLISHED)
+                echo "Deployment published to Maven Central."
+                exit 0
+                ;;
+              PUBLISHING)
+                echo "Validation passed; the Portal is publishing to Maven Central."
+                exit 0
+                ;;
+              FAILED)
+                echo "::error::Central Portal validation failed for deployment $deployment_id"
+                printf '%s\n' "$status_json" | jq .
+                exit 1
+                ;;
+            esac
+            sleep 30
+          done
+
+          echo "::error::Timed out waiting for Central Portal deployment $deployment_id to validate"
+          exit 1
+
+  verify-publish-maven:
+    needs: [ publish-maven ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify artifacts resolve from Maven Central
+        run: |
+          set -euo pipefail
+          base="https://repo1.maven.org/maven2/software/amazon/cloudformation/cloudformation-validate/${{ inputs.tag }}"
+          files=(
+            "cloudformation-validate-${{ inputs.tag }}.pom"
+            "cloudformation-validate-${{ inputs.tag }}.jar"
+            "cloudformation-validate-${{ inputs.tag }}-sources.jar"
+            "cloudformation-validate-${{ inputs.tag }}-javadoc.jar"
+          )
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            missing=0
+            for f in "${files[@]}"; do
+              for candidate in "$f" "$f.asc"; do
+                if ! curl -fsSIL -o /dev/null "$base/$candidate"; then
+                  echo "attempt $attempt/$max_attempts: $candidate not yet available"
+                  missing=1
+                fi
+              done
+            done
+            if [ "$missing" -eq 0 ]; then
+              echo "All artifacts and signatures resolve from Maven Central."
+              exit 0
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for artifacts to appear on repo1.maven.org"
+          exit 1
 
   publish-npm:
     needs: [ get-configs, version-and-tag, release ]
@@ -412,7 +513,7 @@ jobs:
           npm publish --access public --provenance \
             $([[ "${{ inputs.tag }}" == *-beta ]] && echo "--tag beta")
 
-  verify-publish:
+  verify-publish-npm:
     needs: [ get-configs, publish-npm ]
     runs-on: ubuntu-latest
     steps:

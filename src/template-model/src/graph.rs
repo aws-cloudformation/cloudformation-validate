@@ -422,7 +422,7 @@ mod tests {
         diags
             .iter()
             .map(|d| {
-                let resource = d.resource.as_ref().and_then(|r| r.id.clone()).unwrap_or_default();
+                let resource = d.resource_logical_id().map(String::from).unwrap_or_default();
                 let path = d
                     .message
                     .split_once('[')
@@ -525,7 +525,7 @@ mod tests {
         let by_resource = |id: &str| {
             diags
                 .iter()
-                .find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(id))
+                .find(|d| d.resource_logical_id() == Some(id))
                 .unwrap_or_else(|| panic!("expected an F3004 for {id}"))
         };
         assert!(by_resource("A").message.contains("Circular Dependencies for resource A"));
@@ -546,7 +546,7 @@ mod tests {
         for (id, expected) in [("A", "[A -> B -> C -> A]"), ("B", "[B -> C -> A -> B]"), ("C", "[C -> A -> B -> C]")] {
             let d = diags
                 .iter()
-                .find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(id))
+                .find(|d| d.resource_logical_id() == Some(id))
                 .unwrap_or_else(|| panic!("expected an F3004 for {id}"));
             assert!(d.message.contains(expected), "{id}: got {}", d.message);
         }
@@ -621,7 +621,7 @@ mod tests {
         let graph = ReferenceGraph::build(edges, &ids);
         let diags = graph.cycle_diagnostics(&HashMap::new());
         let mut resources: Vec<String> =
-            diags.iter().filter_map(|d| d.resource.as_ref().and_then(|r| r.id.clone())).collect();
+            diags.iter().filter_map(|d| d.resource_logical_id().map(String::from)).collect();
         resources.sort();
         assert_eq!(resources, vec!["A".to_string(), "B".to_string()], "X only feeds the cycle and must not be flagged");
     }
@@ -760,8 +760,7 @@ mod tests {
         let mut span_index = HashMap::new();
         span_index.insert("Resources/A".to_string(), span);
         let diags = graph.cycle_diagnostics(&span_index);
-        let a =
-            diags.iter().find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("A")).expect("F3004 for A");
+        let a = diags.iter().find(|d| d.resource_logical_id() == Some("A")).expect("F3004 for A");
         assert_eq!(a.location.expect("A has a span").start_line, 42);
         assert_eq!(a.property_path.as_deref(), Some("Resources/A"));
     }

@@ -319,13 +319,14 @@ def _per_template_dir(engine, fmt, binding):
 def _diag_sort_key(d):
     """Stable ordering for pairing diagnostics between binding outputs — identity
     that should be binding-invariant (rule id + source span + message)."""
+    entity = d.get("entity") or {}
     return (
         d.get("ruleId") or "",
         d.get("startLine") or 0,
         d.get("startColumn") or 0,
         d.get("endLine") or 0,
         d.get("endColumn") or 0,
-        d.get("resourceId") or "",
+        entity.get("logicalId") or "",
         d.get("propertyPath") or "",
         d.get("message") or "",
     )

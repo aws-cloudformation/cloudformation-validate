@@ -135,9 +135,9 @@ fn custom_rule_list_rules_and_validate_match_between_engines() {
             .find(|d| d.rule_id == "CUSTOM001")
             .unwrap_or_else(|| panic!("{name}: CUSTOM001 diagnostic must fire"));
         assert_eq!(d.severity, Severity::Error, "{name}: diagnostic severity");
-        assert_eq!(d.resource.as_ref().and_then(|r| r.id.as_deref()), Some("Bucket"), "{name}: resource_id");
+        assert_eq!(d.resource_logical_id(), Some("Bucket"), "{name}: resource_id");
         assert_eq!(
-            d.resource.as_ref().and_then(|r| r.resource_type.as_deref()),
+            d.entity.as_ref().and_then(|e| e.resource_type.as_deref()),
             Some("AWS::S3::Bucket"),
             "{name}: resource_type"
         );
@@ -221,7 +221,7 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
             .unwrap_or_else(|| panic!("{name}: check_bucket_encryption diagnostic must fire"));
         assert_eq!(d.severity, Severity::Error, "{name}: diagnostic severity");
         assert_eq!(d.source, RuleOrigin::Guard, "{name}: diagnostic source");
-        assert_eq!(d.resource.as_ref().and_then(|r| r.id.as_deref()), Some("Bucket"), "{name}: resource_id");
+        assert_eq!(d.resource_logical_id(), Some("Bucket"), "{name}: resource_id");
     }
 }
 

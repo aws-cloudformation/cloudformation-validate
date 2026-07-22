@@ -117,13 +117,12 @@ d.rule_id           // e.g. "E3012", "F3002", "W3045"
 d.severity          // Fatal | Error | Warn | Info | Debug
 d.message           // human-readable description
 d.source            // RuleOrigin: Schema | CfnLint | Engine | Custom | Guard
-d.resource          // Option<ResourceRef> { id, resource_type }
+d.entity            // Option<Entity> { logical_id, entity_type, resource_type }
 d.property_path     // e.g. "Properties.BucketName"
 d.location          // Option<SourceSpan> { start_line, start_column, end_line, end_column }
 d.suggested_fix     // Option<String>
 d.documentation_url // Option<String>
 d.category          // Option<String> — e.g. "Schema", "Best Practice", "Structure"
-d.section           // Option<String> — template section (Resources, Parameters, etc.)
 d.phase             // Option<Phase> — Parse, Schema, or Lint
 d.rule_description  // Option<String> — human-readable rule description
 d.related_resources // Option<Vec<RelatedResource>> — cross-resource references

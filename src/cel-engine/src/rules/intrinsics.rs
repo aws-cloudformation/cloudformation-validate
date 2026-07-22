@@ -9,7 +9,7 @@ use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITIONS, FIELD_DEPENDS_ON, FIELD_KIND,
     FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
     FIELD_SOURCE_PATH, FIELD_TARGET, FN_GET_AZS, FN_IMPORT_VALUE, KEY_DEFAULT, KEY_DEPENDS_ON, KEY_PROPERTIES,
-    OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, SECTION_CONDITIONS, SECTION_OUTPUTS,
+    OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, SECTION_CONDITIONS, SECTION_OUTPUTS, SECTION_PARAMETERS,
     TRANSFORM_LANGUAGE_EXTENSIONS,
 };
 use template_model::resolver::RefKind;
@@ -357,15 +357,27 @@ fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Dynamic references in Conditions
     if let Some(conds) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
-        for (_cname, cval) in conds {
-            scan_for_dynamic_refs_in_section(&mut out, m, cval, SECTION_CONDITIONS, "E1051", "E1052");
+        for (cname, cval) in conds {
+            scan_for_dynamic_refs_in_section(
+                &mut out,
+                m,
+                cval,
+                SECTION_CONDITIONS,
+                &format!("{}/{}", SECTION_CONDITIONS, cname),
+            );
         }
     }
 
     // Dynamic references in Outputs
     if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
-        for (_oname, oval) in outputs {
-            scan_for_dynamic_refs_in_section(&mut out, m, oval, SECTION_OUTPUTS, "E1051", "E1052");
+        for (oname, oval) in outputs {
+            scan_for_dynamic_refs_in_section(
+                &mut out,
+                m,
+                oval,
+                SECTION_OUTPUTS,
+                &format!("{}/{}", SECTION_OUTPUTS, oname),
+            );
         }
     }
 
@@ -373,6 +385,7 @@ fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     if let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object()) {
         for (pname, pval) in params {
             if let Some(def) = pval.get("default").and_then(|d| d.as_str()) {
+                let default_path = format!("{}/{}/Default", SECTION_PARAMETERS, pname);
                 for cap in DYNAMIC_REF_RE.captures_iter(def) {
                     let ref_type = &cap[1];
                     match ref_type {
@@ -380,14 +393,14 @@ fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                             out.push(make_resource_diagnostic(
                                 "E1027",
                                 &format!("Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in parameter Default for '{}'", pname),
-                                m, "", "", None,
+                                m, "", &default_path, None,
                             ));
                         }
                         "secretsmanager" => {
                             out.push(make_resource_diagnostic(
                                 "E1051",
                                 &format!("Dynamic reference '{{{{resolve:secretsmanager:...}}}}' is not supported in parameter Default for '{}'", pname),
-                                m, "", "", None,
+                                m, "", &default_path, None,
                             ));
                         }
                         // SSM in parameter Default is allowed
@@ -466,8 +479,7 @@ fn scan_for_dynamic_refs_in_section(
     m: &Arc<SemanticModel>,
     val: &serde_json::Value,
     section: &str,
-    _sm_rule: &str,
-    _ssm_rule: &str,
+    entity_path: &str,
 ) {
     match val {
         serde_json::Value::String(s) => {
@@ -483,7 +495,7 @@ fn scan_for_dynamic_refs_in_section(
                             ),
                             m,
                             "",
-                            "",
+                            entity_path,
                             None,
                         ));
                     }
@@ -496,7 +508,7 @@ fn scan_for_dynamic_refs_in_section(
                             ),
                             m,
                             "",
-                            "",
+                            entity_path,
                             None,
                         ));
                     }
@@ -506,7 +518,7 @@ fn scan_for_dynamic_refs_in_section(
                             &format!("Dynamic reference '{{{{resolve:ssm:...}}}}' is not supported in {}", section),
                             m,
                             "",
-                            "",
+                            entity_path,
                             None,
                         ));
                     }
@@ -516,12 +528,12 @@ fn scan_for_dynamic_refs_in_section(
         }
         serde_json::Value::Array(arr) => {
             for item in arr {
-                scan_for_dynamic_refs_in_section(out, m, item, section, _sm_rule, _ssm_rule);
+                scan_for_dynamic_refs_in_section(out, m, item, section, entity_path);
             }
         }
         serde_json::Value::Object(obj) => {
             for (_, v) in obj {
-                scan_for_dynamic_refs_in_section(out, m, v, section, _sm_rule, _ssm_rule);
+                scan_for_dynamic_refs_in_section(out, m, v, section, entity_path);
             }
         }
         _ => {}

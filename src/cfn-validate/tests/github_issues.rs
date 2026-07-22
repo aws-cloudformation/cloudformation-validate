@@ -16,7 +16,7 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::load_template;
-use diagnostics::Diagnostic;
+use diagnostics::{Diagnostic, EntityType};
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
@@ -87,10 +87,8 @@ fn assert_fires_with_severity(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &s
 /// Assert `rule_id` fires on the resource with logical id `resource_id` in every engine.
 fn assert_fires_on_resource(by_engine: &[(&str, Vec<Diagnostic>)], rule_id: &str, resource_id: &str) {
     for (engine, diags) in by_engine {
-        let on_resource = diags
-            .iter()
-            .filter(|d| d.rule_id == rule_id)
-            .any(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(resource_id));
+        let on_resource =
+            diags.iter().filter(|d| d.rule_id == rule_id).any(|d| d.resource_logical_id() == Some(resource_id));
         assert!(on_resource, "[{engine}] expected {rule_id} on resource {resource_id}, but it did not fire there");
     }
 }
@@ -219,9 +217,9 @@ fn issue_37_service_filter_without_rule_id_silences_whole_service() {
     for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
         let diags = validate_with(engine, "issue-37.yaml", config.clone());
         let on_autoscaling = diags.iter().any(|d| {
-            d.resource
+            d.entity
                 .as_ref()
-                .and_then(|r| r.resource_type.as_deref())
+                .and_then(|e| e.resource_type.as_deref())
                 .is_some_and(|t| t.starts_with("AWS::AutoScaling::"))
         });
         assert!(
@@ -516,10 +514,7 @@ fn issue_53_f3004_fires_on_real_dependson_cycle() {
     for (engine, ds) in &diags {
         let barrier = ds
             .iter()
-            .find(|d| {
-                d.rule_id == "F3004"
-                    && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("ClusterKubectlReadyBarrier200052AF")
-            })
+            .find(|d| d.rule_id == "F3004" && d.resource_logical_id() == Some("ClusterKubectlReadyBarrier200052AF"))
             .expect("F3004 on the kubectl ready barrier");
         assert!(
             barrier.message.contains(
@@ -840,6 +835,74 @@ Resources:
     assert_count(&diags, "W9009", 1);
 }
 
+/// Issue #185: a whole-number `Number` parameter default (30) reaching an
+/// integer enum (LogGroup RetentionInDays) used to resolve as the float 30.0
+/// and fail the enum comparison ("30.0 is not one of [1, 3, ..., 30, ...]").
+/// Whole numbers now stay integers through the parameter path and numeric
+/// scalars compare numerically, so W3030 must not fire on either the
+/// parameter-sourced or the literal 30.0 form — cfn-lint is clean on both.
+/// Handled in template-model, so both engines agree.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
+#[test]
+fn issue_185_no_w3030_on_number_parameter_default() {
+    let diags = validate_both("issue-185.yaml");
+    assert_absent(&diags, "W3030");
+    // The float-vs-integer confusion must not surface as a type finding either.
+    assert_absent(&diags, "F3012");
+    assert_absent(&diags, "W9003");
+}
+
+/// Issue #185 (positive boundary): a genuinely invalid retention value coming
+/// through the same Number-parameter path must still fire W3030 — the numeric
+/// equality fix must not silence real enum violations.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
+#[test]
+fn issue_185_w3030_still_fires_on_invalid_retention_via_parameter() {
+    const TEMPLATE: &[u8] = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  RetentionInDays:
+    Type: Number
+    Default: 31
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Ref RetentionInDays
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
+    assert_count(&diags, "W3030", 1);
+}
+
+/// Issue #183: W3663 must not fire when a Lambda Permission's literal SourceArn
+/// carries a proper 12-digit account id — that ARN pins the calling account by
+/// itself. The issue's original ARN had a 10-digit account field, which is not
+/// a valid account id: it cannot pin the account, so W3663 fires for that
+/// resource only (and the ARN also fails the schema pattern, F3031) — matching
+/// cfn-lint, whose extension schema uses the same ':\d{12}:' trigger.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/183
+#[test]
+fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
+    let diags = validate_both("issue-183.yaml");
+    assert_count(&diags, "W3663", 1);
+    assert_fires_on_resource(&diags, "W3663", "PermissionInvalidAccountId");
+    assert_fires_with_severity(&diags, "W3663", Severity::Warn);
+    for (engine, d) in &diags {
+        let on_valid = d
+            .iter()
+            .filter(|x| x.rule_id == "W3663")
+            .any(|x| x.resource_logical_id() == Some("PermissionWithAccountId"));
+        assert!(!on_valid, "[{engine}] W3663 must not fire on the permission whose ARN has a 12-digit account id");
+    }
+    // The invalid 10-digit account field also fails the ARN schema pattern,
+    // and only there — the valid ARN passes it.
+    assert_count(&diags, "F3031", 1);
+    assert_fires_on_resource(&diags, "F3031", "PermissionInvalidAccountId");
+}
+
 // ---------------------------------------------------------------------------
 // Issue #36 — the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
 // partition prefix, so ADC-partition ARNs no longer false-positive and the two
@@ -958,7 +1021,7 @@ fn invalid_account_id_override_emits_single_w9012() {
     assert_count(&diags, "W9012", 1);
     for (engine, d) in &diags {
         let w = d.iter().find(|x| x.rule_id == "W9012").expect("W9012 expected");
-        assert!(w.resource.is_none(), "[{engine}] W9012 is a config warning with no resource");
+        assert!(w.entity.is_none(), "[{engine}] W9012 is a config warning with no entity");
         assert!(w.message.contains("unknown-account"), "[{engine}] message names the bad value: {}", w.message);
     }
 }
@@ -1208,4 +1271,66 @@ Outputs:
 "#;
     let diags = validate_both_bytes(template);
     assert_absent(&diags, "F6101");
+}
+
+/// Issue #201: diagnostics on non-resource entities (here a Parameter) must
+/// carry a structured `entity` — not just the entity name buried in the
+/// message — and must anchor at the entity's own span, not the section key.
+#[test]
+fn issue_201_parameter_diagnostics_carry_entity() {
+    let by_engine = validate_both("issue-201.json");
+    for (engine, diags) in &by_engine {
+        for rule_id in ["F2002", "W2001"] {
+            let matched: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == rule_id).collect();
+            assert_eq!(matched.len(), 1, "[{engine}] expected exactly one {rule_id}");
+            let d = matched[0];
+            let entity = d.entity.as_ref().unwrap_or_else(|| panic!("[{engine}] {rule_id} must carry an entity"));
+            assert_eq!(entity.logical_id, "MyParam", "[{engine}] {rule_id} must identify the parameter");
+            assert_eq!(entity.entity_type, EntityType::Parameter, "[{engine}] {rule_id} targets a parameter");
+            assert_eq!(entity.resource_type, None, "[{engine}] {rule_id}: a parameter has no resource type");
+            assert!(d.location.is_some(), "[{engine}] {rule_id} must carry the parameter's span");
+        }
+        let f2002 = diags.iter().find(|d| d.rule_id == "F2002").expect("F2002 fired");
+        assert_eq!(
+            f2002.property_path.as_deref(),
+            Some("Parameters/MyParam/Type"),
+            "[{engine}] F2002 anchors at the Type value"
+        );
+        // cfn-lint reports the invalid type at Parameters/MyParam/Type (line 4)
+        // and the unused parameter at Parameters/MyParam (line 3).
+        assert_eq!(f2002.location.expect("F2002 location").start_line, 4, "[{engine}]");
+        let w2001 = diags.iter().find(|d| d.rule_id == "W2001").expect("W2001 fired");
+        assert_eq!(w2001.property_path.as_deref(), Some("Parameters/MyParam"), "[{engine}]");
+        assert_eq!(w2001.location.expect("W2001 location").start_line, 3, "[{engine}]");
+    }
+}
+
+/// Issue #201 companion: a resource-targeted diagnostic carries a
+/// Resource-typed entity with the CloudFormation type attached, so consumers
+/// have one uniform lookup key across every template section.
+#[test]
+fn issue_201_resource_diagnostics_carry_resource_entity() {
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Q:
+    Type: AWS::SQS::Queue
+    Properties:
+      NotAProperty: x
+"#;
+    let by_engine = validate_both_bytes(template);
+    for (engine, diags) in &by_engine {
+        let on_q: Vec<&Diagnostic> = diags.iter().filter(|d| d.resource_logical_id() == Some("Q")).collect();
+        assert!(!on_q.is_empty(), "[{engine}] expected diagnostics on resource Q");
+        for d in on_q {
+            let entity = d.entity.as_ref().expect("resource diagnostics carry an entity");
+            assert_eq!(entity.entity_type, EntityType::Resource, "[{engine}] {}", d.rule_id);
+            assert_eq!(
+                entity.resource_type.as_deref(),
+                Some("AWS::SQS::Queue"),
+                "[{engine}] {}: resource entity carries the CloudFormation type",
+                d.rule_id
+            );
+        }
+    }
 }

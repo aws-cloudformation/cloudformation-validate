@@ -5,12 +5,20 @@ on:
   push:
     branches: [ main ]
     paths-ignore:
-      - 'src/bindings-jvm/generated/*.jar'
-      - 'src/bindings-jvm/THIRD-PARTY-LICENSES.txt'
+      - '.github/**'
+      - 'scripts/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.jar'
+      - 'LICENSE'
+      - 'NOTICE'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'src/bindings-jvm/version.properties'
       - 'src/bindings-wasm/dist/*'
-      - 'src/bindings-wasm/THIRD-PARTY-LICENSES.txt'
       - 'src/release/*'
-      - 'src/THIRD-PARTY-LICENSES.txt'
   workflow_dispatch:
 
 concurrency:
@@ -304,6 +312,8 @@ jobs:
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-wasm/THIRD-PARTY-LICENSES.txt" bindings-wasm/THIRD-PARTY-LICENSES.txt
         echo "Staged THIRD-PARTY-LICENSES.txt files."
 
+        bindings-jvm/generate-version-properties.sh
+
         echo "Merged JVM jar:"; ls -1 bindings-jvm/generated
 
     - name: Create Pull Request
@@ -331,6 +341,7 @@ jobs:
         labels: automated, build-artifacts
         add-paths: |
           ${{ env.WORKING_DIR }}/bindings-jvm/generated/**
+          ${{ env.WORKING_DIR }}/bindings-jvm/version.properties
           ${{ env.WORKING_DIR }}/bindings-jvm/THIRD-PARTY-LICENSES.txt
           ${{ env.WORKING_DIR }}/bindings-wasm/dist/**
           ${{ env.WORKING_DIR }}/bindings-wasm/THIRD-PARTY-LICENSES.txt

@@ -58,9 +58,16 @@ Custom and guard rules use freeform category strings.
 | `Custom`  | User-supplied custom rule                    |
 | `Guard`   | CloudFormation Guard rule                    |
 
+## Shared template vocabulary
+
+`TopLevelSection` and `EntityType` model the documented template anatomy — one variant per top-level section
+(Resources, Parameters, Outputs, Mappings, Metadata, Rules, Conditions, Transform, AWSTemplateFormatVersion,
+Description) and its singular entity form. They are defined here, at the base of the crate graph, so `diagnostics`,
+`template-model`, and the engines share one canonical set of section names (`TopLevelSection::name()`).
+
 ## Filtering
 
-`FilterConfig` holds `include` and `exclude` filters across 7 dimensions:
+`FilterConfig` holds `include` and `exclude` filters across 8 dimensions:
 
 | Dimension        | Match logic                                              |
 |------------------|----------------------------------------------------------|
@@ -69,13 +76,20 @@ Custom and guard rules use freeform category strings.
 | By ID range      | Numeric range with prefix (e.g. `E3000`–`E3099`)         |
 | By regex         | Regex against rule ID                                    |
 | By resource ID   | A rule (or every rule) on a specific logical resource    |
+| By logical ID    | A rule (or every rule) on a named template entity, optionally scoped to one entity type |
 | By resource type | A rule (or every rule) on a resource type                |
 | By service       | A rule (or every rule) on a service (provider + service) |
 
-The resource-ID, resource-type, and service dimensions each carry an optional `rule_id`: set it to scope the filter to
-a single rule, or omit it to scope the filter to every rule on that resource, type, or service. The service is matched
-verbatim against the `service-provider::service-name` prefix of the resource type — its first two `::`-delimited
-segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
+The resource-ID, logical-ID, resource-type, and service dimensions each carry an optional `rule_id`: set it to scope
+the filter to a single rule, or omit it to scope the filter to every rule on that entity, resource, type, or service.
+The service is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
+
+The resource-ID dimension matches only diagnostics attributed to a resource; the logical-ID dimension additionally
+matches diagnostics on Parameters, Outputs, Mappings, Conditions, and template Rules (for resource diagnostics the two
+carry the same value). A `LogicalIdFilter` also carries an optional `entity_type`: set it to match only entities of
+that type (so `MyThing` as a Parameter is suppressed without touching a same-named Resource), or omit it to match
+entities of every type.
 
 Include-then-exclude: if include filters are non-empty, a diagnostic must match at least one; any diagnostic matching
 an exclude filter is removed.

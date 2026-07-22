@@ -630,10 +630,11 @@ impl SemanticModel {
         }
         for (cond_name, always_val) in conditions.tautological_equals() {
             let result_str = if always_val { "True" } else { "False" };
-            diagnostics.push(crate::make_parse_diagnostic(
+            diagnostics.push(crate::make_parse_diagnostic_at(
                 "W8003",
                 format!("Fn::Equals in condition '{}' will always return {}", cond_name, result_str),
                 ir.span_index.get(&format!("Conditions/{}", cond_name)).copied().unwrap_or(UNKNOWN_SPAN),
+                &format!("Conditions/{}", cond_name),
             ));
         }
         // A `Condition:` key that names a condition absent from the Conditions

@@ -2,19 +2,17 @@ package resources
 
 import rego.v1
 
-# F3006: Resource Type must be known. Only custom resources (`Custom::` prefix)
-# and modules (`::MODULE` suffix) are exempt from the known-type set; every other
-# type — including all AWS-namespaced types such as `AWS::Serverless::*` and
-# `AWS::CloudFormation::*` — must be a recognized type. Valid transform/service
-# types already appear in `known_resource_types`, so no namespace is exempted
-# wholesale.
+# F3006: An AWS-namespaced resource type that is not in the compiled schema
+# set is a typo or nonexistent type — CloudFormation owns the reserved `AWS::`
+# namespace, so the embedded schema catalog is authoritative for it. Types in
+# any other namespace (private registry types, `Custom::` resources, modules,
+# hook-shaped names) may be registered per account/region, so they are skipped
+# entirely rather than guessed at.
 violation contains make_diag("F3006", "FATAL", name,
     sprintf("Unknown resource type '%s'", [rtype])) if {
     some name, res in input.resources
     rtype := res.resourceType
     is_string(rtype)
-    rtype != ""
+    startswith(rtype, "AWS::")
     not rtype in data.known_resource_types
-    not startswith(rtype, "Custom::")
-    not endswith(rtype, "::MODULE")
 }
