@@ -94,7 +94,7 @@ jobs:
       run: cargo audit
 
   test:
-    needs: [ format, lint, audit, get-configs ]
+    needs: [ get-configs ]
     strategy:
       fail-fast: false
       matrix:
@@ -134,7 +134,7 @@ jobs:
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
   test-jvm:
-    needs: [ format, lint, audit, get-configs ]
+    needs: [ get-configs ]
     strategy:
       fail-fast: false
       matrix:
@@ -179,7 +179,7 @@ jobs:
       run: ./run.sh
 
   test-wasm:
-    needs: [ format, lint, audit, get-configs ]
+    needs: [ get-configs ]
     strategy:
       fail-fast: false
       matrix:

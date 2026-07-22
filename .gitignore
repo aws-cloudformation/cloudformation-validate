@@ -39,3 +39,11 @@ pyproject.toml
 # Others
 **/tmp/
 **/docs/
+
+# AI
+.kiro/*
+!.kiro/skills/
+!.kiro/skills/**
+!.kiro/steering/
+!.kiro/steering/**
+!CLAUDE.md
