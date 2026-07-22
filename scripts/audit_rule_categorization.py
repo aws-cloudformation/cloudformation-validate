@@ -191,7 +191,12 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E3002": "F3002",   # Additional properties not allowed
         "E3003": "F3003",   # Required property missing
         "E3004": "F3004",   # Circular dependency
-        "E3006": "F3006",   # Resource type must exist in the compiled schemas
+        "E3006": "F3006",   # Resource type must exist in the compiled schemas.
+                            # Intentional divergence: F3006 stays silent on
+                            # non-AWS namespaces (possibly privately registered
+                            # types) that cfn-lint's E3006 flags; those corpus
+                            # findings count as false negatives by design (see
+                            # good/unknown_resource_types_ignored.yaml).
         "E3007": "F3007",   # Unique resource / parameter names
         "E3012": "F3012",   # Property type mismatch
         "E3014": "F3014",   # Exactly one of (requiredXor)
@@ -411,20 +416,11 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # W9003 is intentional strictness. It still aliases F3012/E3012 so a
     # strict-mode E3012 finding matches.
     engine_extra.add("W9003")
-    # W1019 (unused Fn::Sub variable-map key) is a legitimate warning, but
-    # cfn-lint's own W1019 is dormant in the current release: its child-rule
-    # invocation path is not reached during property validation, so it fires in
-    # no template-level case and has no snapshot fixtures. The engine emits the
-    # warning where it is genuinely useful, so an unmatched W1019 is intentional
-    # and not a false positive.
+    # W1019 (unused Fn::Sub variable-map key): cfn-lint registers the same rule
+    # but never fires it — its child-rule hook is not invoked during property
+    # validation in the current release — so there is never a cfn-lint W1019 to
+    # match against. The engine's W1019 is deliberate extra coverage.
     engine_extra.add("W1019")
-    # F3006 deliberately does NOT flag non-AWS-namespace resource types the
-    # way cfn-lint's E3006 does ("Initech::TPS::Report does not exist"): a
-    # non-AWS type may be privately registered, and flagging it would false
-    # positive for every private-registry user. The corpus counts those
-    # cfn-lint findings as false negatives by design (see
-    # resources/templates/good/unknown_resource_types_ignored.yaml, which
-    # requires the engine to stay silent).
 
     # Engine rules that implement a cfn-lint check under a different (split or
     # generic) ID. Reported by the audit; they participate in parity matching
@@ -473,12 +469,8 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
                 and (diag.get("resource_id") == "myBucketFirstAndLastPass"
                      or "Fn::If" in diag.get("message", ""))):
             return True
-        # E1028 is deliberately NOT exempted here: the engine reports all
-        # undefined condition refs while cfn-lint short-circuits after the
-        # first, but that excuse only holds when cfn-lint fired E1028 on the
-        # same template at all. The comparison driver applies that
-        # template-scoped exemption; a blanket exemption here would hide
-        # genuine E1028 false positives.
+        # No E1028 clause here: its exemption is template-scoped and lives in
+        # the comparison driver; a blanket by-ID exemption would hide real FPs.
         return False
 
     return RuleOrigins(

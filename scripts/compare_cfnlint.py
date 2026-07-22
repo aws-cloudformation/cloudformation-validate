@@ -576,10 +576,10 @@ def compare_template(cfnlint_diags, engine_diags):
 
     def _strip_hash_suffix(message):
         # `[Layer7f955f606e]` and `[Layer]` describe the same resource; the
-        # hash suffix comes from the reference SAM transform's renaming.
+        # hash suffix comes from cfn-lint's SAM transform renaming.
         return re.sub(r"\[(\w+?)[0-9a-f]{10}\]", r"[\1]", message)
 
-    def _pass3_match(d, a):
+    def _sam_renamed_match(d, a):
         if a["rule_id"] != d["rule_id"]:
             return False
         if _sam_id_match(d.get("resource_id", ""), a.get("resource_id", "")):
@@ -591,7 +591,7 @@ def compare_template(cfnlint_diags, engine_diags):
     still_fn = []
     for d in fn:
         partner = next(
-            (a for a in remaining_act if id(a) not in consumed_act and _pass3_match(d, a)),
+            (a for a in remaining_act if id(a) not in consumed_act and _sam_renamed_match(d, a)),
             None,
         )
         if partner is not None:
@@ -668,15 +668,14 @@ def run_single():
         cfnlint_has_parse_error = any(
             d.get("rule_id") == "F0000" for d in cfnlint_all[key]
         )
-        # E1028: the engine reports every undefined Fn::If condition while
-        # cfn-lint (a) short-circuits after the first invalid one in a nested
-        # chain and (b) stops descending into subtrees whose parent already
-        # failed schema validation, never reaching the Fn::If inside. Both are
-        # engine-extra: (a) when cfn-lint fired E1028 on the template at all,
-        # (b) when a cfn-lint finding on the template embeds the same Fn::If
-        # (its type-mismatch messages quote the offending object, condition
-        # name included). An unmatched E1028 matching neither is a genuine
-        # false positive.
+        # E1028: the engine reports every undefined Fn::If condition; cfn-lint
+        # under-reports in two ways. An unmatched engine E1028 is engine-extra
+        # only when:
+        #   (a) cfn-lint fired E1028 somewhere on this template — it saw the
+        #       problem but short-circuited the rest of a nested chain, or
+        #   (b) a cfn-lint finding quotes the same Fn::If (condition name
+        #       included) — it refused to descend past a parent schema failure.
+        # Anything else is a genuine false positive.
         cfnlint_fired_e1028 = any(
             d.get("rule_id") == "E1028" for d in cfnlint_all[key]
         )
@@ -1047,8 +1046,8 @@ def run_single():
         w("Same rule ID + resource + path, but the engine start line differs from")
         w("the reference. (Messages are not compared — wording may differ freely.)")
         w("")
-        w("Known benign class: on transformed (SAM) templates the reference")
-        w("linter anchors findings at the resource's first line because the")
+        w("Known benign class: on transformed (SAM) templates cfn-lint anchors")
+        w("findings at the resource's first line because the")
         w("transform loses property line fidelity; the engine anchors at the")
         w("actual property line — deliberately more precise, not a defect.")
         w("")

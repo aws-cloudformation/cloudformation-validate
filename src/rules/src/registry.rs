@@ -353,7 +353,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E8002",
         category: Category::Structure,
-        description: "Condition referenced by resource or output is not defined",
+        description: "Condition referenced by resource is not defined",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {

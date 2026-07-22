@@ -21927,7 +21927,7 @@
         "startColumn": 3,
         "endLine": 38,
         "endColumn": 46,
-        "ruleDescription": "Condition referenced by resource or output is not defined",
+        "ruleDescription": "Condition referenced by resource is not defined",
         "phase": "PARSE"
       },
       {
@@ -21945,7 +21945,7 @@
         "startColumn": 3,
         "endLine": 68,
         "endColumn": 46,
-        "ruleDescription": "Condition referenced by resource or output is not defined",
+        "ruleDescription": "Condition referenced by resource is not defined",
         "phase": "PARSE"
       },
       {
@@ -41335,7 +41335,7 @@
         "startColumn": 3,
         "endLine": 3,
         "endColumn": 4,
-        "ruleDescription": "Condition referenced by resource or output is not defined",
+        "ruleDescription": "Condition referenced by resource is not defined",
         "phase": "PARSE"
       },
       {
