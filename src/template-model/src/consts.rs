@@ -353,8 +353,8 @@ pub const INTRINSIC_FN_PATH_SEGMENTS: &[&str] = &[
 ];
 
 /// Resource property paths where an `ssm-secure` dynamic reference is
-/// supported, from the reference implementation's secure-string rule
-/// (`DynamicReferenceSecureString.exceptions`). Paths use the resource *type*
+/// supported — the fixed set CloudFormation documents for secure-string
+/// resolution. Paths use the resource *type*
 /// (not the logical ID) and `*` for array indices.
 pub const SSM_SECURE_ALLOWED_PROPERTY_PATHS: &[&str] = &[
     "Resources/AWS::DirectoryService::MicrosoftAD/Properties/Password",

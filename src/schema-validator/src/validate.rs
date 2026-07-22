@@ -47,7 +47,7 @@ const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
 /// `Condition`, or an `Fn::ForEach::` loop key). Only known names are skipped —
 /// a single-key object whose key merely starts with `Fn::` (e.g. a map entry
 /// literally named `Fn::Custom`) is plain data and must be schema-validated
-/// like any other object, exactly as the reference implementation does.
+/// like any other object.
 fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
     let Some(obj) = val.as_object() else { return false };
     if obj.len() != 1 {

@@ -536,8 +536,8 @@ impl SemanticModel {
                     fn_if_conditions.push(cond_name.clone());
                     // Inside a Conditions-section body, Fn::If is not a valid
                     // condition function at all — that is the not-a-boolean
-                    // finding's territory, and the reference implementation
-                    // never name-checks a function it rejects there.
+                    // finding's territory, so the name of a function that is
+                    // itself rejected there is not checked.
                     let in_conditions_body =
                         ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
                     if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
@@ -566,10 +566,10 @@ impl SemanticModel {
                     {
                         fn_if_conditions.push(cond_name.to_string());
                         // The structure error is reported separately; the
-                        // undefined condition name is its own finding, matching
-                        // the reference implementation, which flags both on a
-                        // malformed Fn::If. Conditions-section bodies are
-                        // excluded for the same reason as the well-formed arm.
+                        // undefined condition name is its own finding — a
+                        // malformed Fn::If gets both. Conditions-section
+                        // bodies are excluded for the same reason as the
+                        // well-formed arm.
                         let in_conditions_body =
                             ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
                         if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {

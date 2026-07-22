@@ -689,7 +689,7 @@ mod tests {
     fn unknown_fn_prefix_far_from_any_function_is_data_not_w1103() {
         // `Fn::Bogus` is not a near-miss of any real function, so it is treated
         // as a data key: no parse warning — the schema validator reports the
-        // type mismatch where one exists (matching the reference linter).
+        // type mismatch where one exists.
         let input =
             r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#;
         let ir = parse_json(input.as_bytes()).unwrap();

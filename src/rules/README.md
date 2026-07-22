@@ -50,13 +50,13 @@ Custom and guard rules use freeform category strings.
 
 ## RuleOrigin
 
-| Variant   | Meaning                                      |
-|-----------|----------------------------------------------|
-| `Schema`  | Derived from CloudFormation provider schemas |
-| `CfnLint` | Ported from cfn-lint                         |
-| `Engine`  | Implemented in this validation engine        |
-| `Custom`  | User-supplied custom rule                    |
-| `Guard`   | CloudFormation Guard rule                    |
+| Variant   | Meaning                                                                                          |
+|-----------|--------------------------------------------------------------------------------------------------|
+| `Schema`  | From CloudFormation's own definitions — provider schemas or template-language structure/syntax/shape rules that CloudFormation itself rejects |
+| `CfnLint` | Lint judgment ported from cfn-lint (the template would still deploy, or the check's data originates in cfn-lint) |
+| `Engine`  | Implemented in this validation engine                                                            |
+| `Custom`  | User-supplied custom rule                                                                        |
+| `Guard`   | CloudFormation Guard rule                                                                        |
 
 ## Shared template vocabulary
 

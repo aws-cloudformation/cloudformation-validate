@@ -430,7 +430,8 @@ fn placeholder(index: usize) -> String {
 
 /// Returns the comma-delimited list value of a parameter when it is a
 /// `CommaDelimitedList` (or `List<...>`): the `Default` when present, else the
-/// first `AllowedValues` entry (the reference implementation's fallback order).
+/// first `AllowedValues` entry — the same fallback order the transform uses
+/// when it expands a loop over a parameter collection.
 fn parameter_collection(arena: &Arena, name: &str, parameters: NodeRef) -> Option<Vec<String>> {
     if parameters == NULL_REF {
         return None;
@@ -451,7 +452,7 @@ fn parameter_collection(arena: &Arena, name: &str, parameters: NodeRef) -> Optio
 }
 
 /// Resolves a `Fn::FindInMap[map, top, second]` to a literal list when the
-/// mapping value is a list of scalars. Mirrors the reference implementation's
+/// mapping value is a list of scalars. The transform's
 /// fallbacks: an unresolvable *top* key is satisfied by scanning the mapping's
 /// top-level entries for one that contains the (literal) second key, preferring
 /// the entry with the longest list — so `!FindInMap [M, !Ref Env, Names]`
@@ -740,7 +741,7 @@ Resources:
 
     #[test]
     fn mappings_section_loops_expand() {
-        // The reference implementation expands Fn::ForEach in Mappings; the
+        // The LanguageExtensions transform expands Fn::ForEach in Mappings; the
         // generated maps must exist and the raw macro key must not trip the
         // Mappings shape check.
         let m = model(

@@ -35,9 +35,12 @@ pub struct RuleInfo {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RuleOrigin {
-    /// Derived from the CloudFormation resource provider schema
+    /// From CloudFormation's own definitions: the resource provider schemas or
+    /// the template language's structural/syntax/shape rules — anything
+    /// CloudFormation itself rejects, regardless of whether cfn-lint also
+    /// implements the check
     Schema,
-    /// Ported from cfn-lint
+    /// Lint judgment ported from cfn-lint
     CfnLint,
     /// Implemented in this validation engine
     Engine,
@@ -347,17 +350,11 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "Mapping name exceeds maximum length",
         origin: RuleOrigin::Schema,
     },
-    // E8002/E1028 severity note: an undefined condition reference is a
-    // guaranteed deploy failure, which the local taxonomy would make Fatal —
-    // but these IDs are exact reference-linter rules, and ID parity fixes the
-    // severity prefix to Error. The structural halves of these checks (F0013,
-    // F8602-family) remain Fatal, so `--level fatal` still catches the
-    // template shapes CloudFormation rejects outright.
     RuleDefinition {
         id: "E8002",
         category: Category::Structure,
         description: "Condition referenced by resource or output is not defined",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "I1003",
@@ -423,31 +420,31 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E8001",
         category: Category::Structure,
         description: "Conditions section must have valid structure",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E8003",
         category: Category::Intrinsic,
         description: "Fn::Equals must take exactly two scalar operands",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E8004",
         category: Category::Intrinsic,
         description: "Fn::And must take between 2 and 10 boolean conditions",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E8005",
         category: Category::Intrinsic,
         description: "Fn::Not must take exactly one boolean condition",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E8006",
         category: Category::Intrinsic,
         description: "Fn::Or must take between 2 and 10 boolean conditions",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "W8001",
@@ -465,7 +462,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E8007",
         category: Category::Intrinsic,
         description: "Condition function value must be a string referencing a defined condition",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "F8600",
@@ -573,7 +570,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E9004",
         category: Category::Intrinsic,
         description: "GetAtt attribute must exist on target resource type",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1029",
@@ -603,7 +600,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E1028",
         category: Category::Intrinsic,
         description: "Fn::If condition must exist in Conditions section",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1050",
@@ -639,13 +636,13 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E9101",
         category: Category::Intrinsic,
         description: "Invalid nesting of intrinsic functions",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E9106",
         category: Category::Structure,
         description: "Circular dependency in condition definitions",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "F1101",
@@ -1479,7 +1476,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E6005",
         category: Category::Structure,
         description: "Condition referenced by an output must exist in the Conditions section",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E7001",
@@ -1665,55 +1662,55 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E1015",
         category: Category::Intrinsic,
         description: "GetAz validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1016",
         category: Category::Intrinsic,
         description: "ImportValue validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1011",
         category: Category::Intrinsic,
         description: "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1017",
         category: Category::Intrinsic,
         description: "Fn::Select requires exactly two operands and a list source",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1018",
         category: Category::Intrinsic,
         description: "Fn::Split source must be a string or a string-producing intrinsic",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1019",
         category: Category::Intrinsic,
         description: "Fn::Sub variable map values must be strings or string-producing intrinsics",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1021",
         category: Category::Intrinsic,
         description: "Fn::Base64 argument must be a string or a string-producing intrinsic",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1022",
         category: Category::Intrinsic,
         description: "Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1024",
         category: Category::Intrinsic,
         description: "Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1027",
@@ -1725,13 +1722,13 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E1030",
         category: Category::Intrinsic,
         description: "Fn::Length argument must be an array or a list-producing function",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1031",
         category: Category::Intrinsic,
         description: "Fn::ToJsonString argument must be a non-empty array/object or a supported function",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "F1030",
@@ -1755,7 +1752,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E1033",
         category: Category::Intrinsic,
         description: "GetStackOutput validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1051",

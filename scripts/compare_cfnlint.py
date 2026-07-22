@@ -668,15 +668,25 @@ def run_single():
         cfnlint_has_parse_error = any(
             d.get("rule_id") == "F0000" for d in cfnlint_all[key]
         )
-        # E1028: the engine reports every undefined Fn::If condition while
-        # cfn-lint (a) short-circuits after the first invalid one in a nested
-        # chain and (b) stops descending into subtrees whose parent already
-        # failed schema validation, never reaching the Fn::If inside. Both are
-        # engine-extra: (a) when cfn-lint fired E1028 on the template at all,
-        # (b) when a cfn-lint finding on the template embeds the same Fn::If
-        # (its type-mismatch messages quote the offending object, condition
-        # name included). An unmatched E1028 matching neither is a genuine
-        # false positive.
+        # E1028 (undefined Fn::If condition): the engine reports EVERY
+        # undefined condition in a template; cfn-lint under-reports in two
+        # known ways, so a subset of unmatched engine E1028s are engine-extra
+        # rather than false positives:
+        #
+        #   1. In a nested Fn::If chain, cfn-lint stops after the FIRST
+        #      undefined condition. Excuse the engine's additional E1028s only
+        #      when cfn-lint fired at least one E1028 on this template
+        #      (cfnlint_fired_e1028) — proof it saw the same problem and
+        #      short-circuited.
+        #   2. When a parent object already failed schema validation, cfn-lint
+        #      never descends to the Fn::If inside it. Its type-mismatch
+        #      message quotes the offending object verbatim — condition name
+        #      included — so excuse an engine E1028 whose condition name
+        #      appears inside such a cfn-lint message (_cfnlint_saw_condition).
+        #
+        # An unmatched E1028 matching neither case is a genuine false positive
+        # and is counted as one. A blanket by-ID exemption would hide real
+        # E1028 regressions.
         cfnlint_fired_e1028 = any(
             d.get("rule_id") == "E1028" for d in cfnlint_all[key]
         )

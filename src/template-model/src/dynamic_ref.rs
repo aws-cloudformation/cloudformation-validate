@@ -14,14 +14,13 @@
 //! * The `resolve:` payload is split on `:` and validated per service:
 //!   `ssm`/`ssm-secure`, `secretsmanager` (bare secret-id form), and
 //!   `secretsmanager` ARN form.
-//! * Location rules mirror the reference implementation's allowlists:
-//!   `ssm-secure` is only supported at a fixed set of resource property paths,
-//!   `secretsmanager` only in resource properties and parameter defaults, and
-//!   plain `ssm` only in parameter defaults/allowed values, resource
-//!   properties/metadata, and output values. Sections the reference
-//!   implementation never walks for dynamic references (Conditions, DependsOn,
-//!   Mappings) are not checked, so no finding is produced where it produces
-//!   none.
+//! * Location rules follow CloudFormation's documented support for each
+//!   service: `ssm-secure` is only supported at a fixed set of resource
+//!   property paths, `secretsmanager` only in resource properties and
+//!   parameter defaults, and plain `ssm` only in parameter defaults/allowed
+//!   values, resource properties/metadata, and output values. Other sections
+//!   (Conditions, DependsOn, Mappings) are not checked, so no location
+//!   finding is produced for strings there.
 //!
 //! The checks run over the raw IR arena so both engines surface identical
 //! diagnostics from the shared model, rather than each re-deriving the format
@@ -81,8 +80,9 @@ pub fn validate_dynamic_references(arena: &Arena, resources: NodeRef) -> Vec<Dia
 /// reference with whitespace after `{{` (e.g. `{{ resolve:ssm:name }}`).
 /// CloudFormation only resolves the exact `{{resolve:...}}` form; a spaced
 /// variant is passed through as a literal string, which is almost never what
-/// the author intended. Mirrors the reference implementation's spaced-reference
-/// pattern (`{{\s+resolve\s*:\s*(ssm|ssm-secure|secretsmanager)\s*:`), which
+/// the author intended. The detection pattern
+/// (`{{\s+resolve\s*:\s*(ssm|ssm-secure|secretsmanager)\s*:`) requires
+/// whitespace after `{{` and tolerates it around the service name, and it
 /// applies regardless of the enclosing function.
 fn dynamic_reference_spaces_warning(s: &str) -> Option<String> {
     let mut search_from = 0;
@@ -140,12 +140,13 @@ fn string_is_function_argument(path: &str) -> bool {
 }
 
 /// Checks the *location* of every dynamic reference in `s` against the
-/// reference implementation's per-service allowlists. Returns the rule ID and
-/// message for the first violation.
+/// per-service supported locations. Returns the rule ID and message for the
+/// first violation.
 ///
-/// Only sections the reference implementation walks are checked — parameter
-/// `Default`/`AllowedValues`, resource `Properties`/`Metadata`, and output
-/// `Value`/`Export` — so no finding is produced in sections it never validates
+/// Only the sections where CloudFormation resolves dynamic references are
+/// checked — parameter `Default`/`AllowedValues`, resource
+/// `Properties`/`Metadata`, and output `Value`/`Export` — so no finding is
+/// produced in other sections
 /// (Conditions, DependsOn, Mappings). `Fn::Sub` and `Fn::If` wrappers are
 /// transparent (the location of the string is what matters); any other
 /// enclosing function owns its arguments and is skipped.
@@ -183,7 +184,7 @@ fn dynamic_reference_location_error(
     None
 }
 
-/// A location the reference implementation walks for dynamic references,
+/// A template location where dynamic references are resolved,
 /// classified from a build path.
 enum DynRefLocation {
     /// `Parameters/<name>/Default` or `Parameters/<name>/AllowedValues/...`.
@@ -210,7 +211,7 @@ fn classify_location(path: &str, resource_types: &HashMap<String, String>) -> Op
             let resource_type = resource_types.get(segments[1]).map(String::as_str).unwrap_or("");
             let mut normalized = format!("{}/{}/Properties", SECTION_RESOURCES, resource_type);
             // Function wrappers are transparent for the property path (the
-            // reference implementation's path is schema-based), and so are their
+            // allowlist paths are schema-shaped), and so are their
             // argument indices (e.g. the branch index after `Fn::If`). A numeric
             // segment that follows a plain property name is a real array
             // position and generalizes to `*`.
@@ -533,7 +534,7 @@ mod tests {
         );
         assert!(!ids.contains(&"E1052".to_string()), "ssm in an output value is allowed: {:?}", ids);
 
-        // Not walked by the reference implementation: Conditions — no finding.
+        // Conditions are not a dynamic-reference location — no finding.
         let ids = model_rule_ids(
             "Parameters:\n  P:\n    Type: String\nConditions:\n  C: !Equals [\"{{resolve:ssm:/p}}\", x]\nResources:\n  B:\n    Type: AWS::S3::Bucket\n    Condition: C\n",
         );

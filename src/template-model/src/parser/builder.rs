@@ -347,8 +347,9 @@ impl Builder {
         check: fn(&mut Self, &V, &str),
         ctor: fn(NodeRef, NodeRef) -> IntrinsicFn,
     ) -> Option<IntrinsicFn> {
-        // Fn::Select's shape errors mirror the reference implementation; the
-        // other two-argument functions keep their own error paths.
+        // Fn::Select is validated with strict shape errors (wrong arity,
+        // non-array value); the other two-argument functions keep their own
+        // error paths.
         let strict_shape = fn_name == FN_SELECT;
         let Some(arr) = val.as_array() else {
             if reject_scalar && !val.is_object() {
@@ -418,7 +419,7 @@ impl Builder {
         // CloudFormation coerces a numeric string index — the official
         // Fn::Select documentation itself uses `"1"` — so only a value that is
         // neither a number, an intrinsic, nor an integer-valued string is
-        // reported. The reference implementation rejects this as an error.
+        // reported as an error.
         let is_integer_string = matches!(first.kind(), ValueKind::String)
             && first.as_coerced_str().is_some_and(|s| crate::coercion::coerce_str_to_integer(&s).is_some());
         if !matches!(first.kind(), ValueKind::Number | ValueKind::Object) && !is_integer_string {

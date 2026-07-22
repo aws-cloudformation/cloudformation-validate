@@ -440,7 +440,7 @@ mod rule_category_tests {
     fn intrinsics_bad_select() {
         let ids = validate_file("bad/functions_select.yaml");
         // Malformed Select shapes (non-integer index, wrong arity, non-array
-        // value) are errors under the reference implementation's Select rule.
+        // value) are errors under the Select rule.
         let select_errors = ids.iter().filter(|id| *id == "E1017").count();
         assert!(select_errors >= 3, "Expected E1017 Select shape errors, got: {:?}", ids);
     }

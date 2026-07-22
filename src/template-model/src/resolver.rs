@@ -1151,8 +1151,8 @@ impl<'a> Resolver<'a> {
                         i = start + end + 1;
                         continue;
                     }
-                    // Mirrors the reference implementation's gate: a variable
-                    // fires when it names a known ref target (parameter,
+                    // A variable fires when it names a known ref target
+                    // (parameter,
                     // resource, pseudo-parameter, or `Resource.Attr`) — or,
                     // regardless of target validity, inside a Step Functions
                     // `DefinitionString`, where every `${...}` placeholder is

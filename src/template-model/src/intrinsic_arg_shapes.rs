@@ -92,9 +92,9 @@ pub fn validate_intrinsic_arg_shapes(arena: &Arena, transforms: &[String]) -> Ve
         };
 
         // Fn::GetAZs with a literal argument: it must be the empty string
-        // (current region) or a known region name. The reference linter
-        // attributes the finding to the enclosing Fn::Select's rule when
-        // nested (its usual usage) and to the GetAZs rule when standalone.
+        // (current region) or a known region name. The finding is attributed
+        // to the enclosing Fn::Select's rule when nested (its usual usage)
+        // and to the GetAZs rule when standalone.
         if let IntrinsicFn::GetAZs(arg_ref) = intrinsic
             && let Node::String(region) = arena.node(*arg_ref)
             && !region.is_empty()

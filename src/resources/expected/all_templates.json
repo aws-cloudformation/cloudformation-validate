@@ -967,7 +967,7 @@
         "ruleId": "E8007",
         "severity": "ERROR",
         "message": "Condition 'IsHighAvailability' references undefined condition 'DoesNotExist'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "category": "Intrinsic Function",
         "startLine": 11,
         "startColumn": 3,
@@ -1063,7 +1063,7 @@
         "ruleId": "E9106",
         "severity": "ERROR",
         "message": "Circular dependency in conditions: CondA -> CondB",
-        "source": "ENGINE",
+        "source": "SCHEMA",
         "category": "Structure",
         "startLine": 6,
         "startColumn": 3,
@@ -3259,7 +3259,7 @@
         "ruleId": "E1028",
         "severity": "ERROR",
         "message": "Fn::If condition 'isDev' does not exist in Conditions section",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "category": "Intrinsic Function",
         "startLine": 52,
         "startColumn": 1,
@@ -3272,7 +3272,7 @@
         "ruleId": "E1028",
         "severity": "ERROR",
         "message": "Fn::If condition 'isProd' does not exist in Conditions section",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "category": "Intrinsic Function",
         "startLine": 52,
         "startColumn": 1,
@@ -3662,7 +3662,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: 'And' is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndString",
           "entityType": "Condition"
@@ -3680,7 +3680,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: expected minimum item count: 2, found: 1",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndToLittle",
           "entityType": "Condition"
@@ -3698,7 +3698,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: expected maximum item count: 10, found: 11",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndToMany",
           "entityType": "Condition"
@@ -3716,7 +3716,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 0: {'Condition': 'TestAndToMany', 'Extra': 'ThisIsBad'} is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
@@ -3734,7 +3734,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 1: {'Bad': 'TestAndToMany'} is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
@@ -3752,7 +3752,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 0: 'Test' is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
@@ -3770,7 +3770,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 1: 'Test2' is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
@@ -3788,7 +3788,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: null is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndNull",
           "entityType": "Condition"
@@ -3806,7 +3806,7 @@
         "ruleId": "E9106",
         "severity": "ERROR",
         "message": "Circular dependency in conditions: TestAndToLittle -> TestAndToMany",
-        "source": "ENGINE",
+        "source": "SCHEMA",
         "category": "Structure",
         "startLine": 5,
         "startColumn": 3,
@@ -3947,7 +3947,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: 'Value' is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualNotArray",
           "entityType": "Condition"
@@ -3965,7 +3965,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: expected minimum item count: 2, found: 1",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualTooShort",
           "entityType": "Condition"
@@ -3983,7 +3983,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: expected maximum item count: 2, found: 3",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualTooLong",
           "entityType": "Condition"
@@ -4001,7 +4001,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: argument 0: [{'Ref': 'AWS::Region'}] is not of type 'string'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualBadArgs",
           "entityType": "Condition"
@@ -4019,7 +4019,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: argument 1: {'Bad': 'Value'} is not of type 'string'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualBadArgs",
           "entityType": "Condition"
@@ -4037,7 +4037,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: null is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualNull",
           "entityType": "Condition"
@@ -4055,7 +4055,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: 'And' is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndString",
           "entityType": "Condition"
@@ -4073,7 +4073,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: expected minimum item count: 2, found: 1",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndToLittle",
           "entityType": "Condition"
@@ -4091,7 +4091,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 0: 'Test' is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
@@ -4109,7 +4109,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 1: 'Test2' is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
@@ -4127,7 +4127,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 0: {'Condition': 'TestAndString', 'Extra': 'ThisIsBad'} is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
@@ -4145,7 +4145,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: element 1: {'Bad': 'TestAndString'} is not of type 'boolean'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
@@ -4163,7 +4163,7 @@
         "ruleId": "E8004",
         "severity": "ERROR",
         "message": "Fn::And: null is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestAndNull",
           "entityType": "Condition"
@@ -4181,7 +4181,7 @@
         "ruleId": "E8005",
         "severity": "ERROR",
         "message": "Fn::Not: must have exactly 1 element, got 0",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestNotEmpty",
           "entityType": "Condition"
@@ -4199,7 +4199,7 @@
         "ruleId": "E8005",
         "severity": "ERROR",
         "message": "Fn::Not: null is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestNotNull",
           "entityType": "Condition"
@@ -4522,7 +4522,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: 'Value' is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqual",
           "entityType": "Condition"
@@ -4540,7 +4540,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: expected minimum item count: 2, found: 1",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualToShort",
           "entityType": "Condition"
@@ -4558,7 +4558,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: expected maximum item count: 2, found: 3",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestEqualToLong",
           "entityType": "Condition"
@@ -4576,7 +4576,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: argument 0: [{'Ref': 'AWS::Region'}] is not of type 'string'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Test",
           "entityType": "Condition"
@@ -4594,7 +4594,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: argument 1: {'Bad': 'Value'} is not of type 'string'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Test",
           "entityType": "Condition"
@@ -4612,7 +4612,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: argument 1: ['Not a List'] is not of type 'string'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "TestWrongType",
           "entityType": "Condition"
@@ -4630,7 +4630,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: argument 0: {'Ref': 'AWS::Region', 'Fn::Select': ['Environments', 0]} is not of type 'string'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "ToManyFunctions",
           "entityType": "Condition"
@@ -4648,7 +4648,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: null is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "NullEquals",
           "entityType": "Condition"
@@ -5849,7 +5849,7 @@
         "ruleId": "E8007",
         "severity": "ERROR",
         "message": "Condition 'isPrimaryAndProduction' references undefined condition 'isPrimary'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "category": "Intrinsic Function",
         "startLine": 8,
         "startColumn": 3,
@@ -9482,7 +9482,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: expected maximum item count: 2, found: 3",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Bad",
           "entityType": "Condition"
@@ -10417,7 +10417,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "'OutputName' is a required property",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic1",
           "entityType": "Resource",
@@ -10436,7 +10436,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "'StackName' is a required property",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic2",
           "entityType": "Resource",
@@ -10455,7 +10455,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "'invalid' is not of type 'object'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic3",
           "entityType": "Resource",
@@ -10474,7 +10474,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "Additional properties are not allowed ('BadKey' was unexpected)",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic4",
           "entityType": "Resource",
@@ -10593,7 +10593,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "'OutputName' is a required property",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic1",
           "entityType": "Resource",
@@ -10612,7 +10612,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "'StackName' is a required property",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic2",
           "entityType": "Resource",
@@ -10631,7 +10631,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "'invalid' is not of type 'object'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic3",
           "entityType": "Resource",
@@ -10650,7 +10650,7 @@
         "ruleId": "E1033",
         "severity": "ERROR",
         "message": "Additional properties are not allowed ('BadKey' was unexpected)",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Topic4",
           "entityType": "Resource",
@@ -10844,7 +10844,7 @@
         "ruleId": "E8003",
         "severity": "ERROR",
         "message": "Fn::Equals: argument 1: {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "primaryRegion",
           "entityType": "Condition"
@@ -11915,7 +11915,7 @@
         "ruleId": "E1011",
         "severity": "ERROR",
         "message": "'Fn::GetAtt' is not supported as an argument to 'Fn::FindInMap'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "myInstance",
           "entityType": "Resource",
@@ -12017,7 +12017,7 @@
         "ruleId": "E1017",
         "severity": "ERROR",
         "message": "'us-east-1a' is not a valid region for Fn::GetAZs (use '' for the current region)",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "mySubnet2",
           "entityType": "Resource",
@@ -12114,7 +12114,7 @@
         "ruleId": "E9004",
         "severity": "ERROR",
         "message": "'AvailbilityZone' is not one of ['AssignIpv6AddressOnCreation', 'AvailabilityZone', 'AvailabilityZoneId', 'BlockPublicAccessStates', 'BlockPublicAccessStates.InternetGatewayBlockMode', 'CidrBlock', 'EnableDns64', 'EnableLniAtDeviceIndex', 'Ipv4IpamPoolId', 'Ipv4NetmaskLength', 'Ipv6CidrBlock', 'Ipv6CidrBlocks', 'Ipv6IpamPoolId', 'Ipv6Native', 'Ipv6NetmaskLength', 'MapPublicIpOnLaunch', 'NetworkAclAssociationId', 'OutpostArn', 'PrivateDnsNameOptionsOnLaunch.EnableResourceNameDnsAAAARecord', 'PrivateDnsNameOptionsOnLaunch.EnableResourceNameDnsARecord', 'PrivateDnsNameOptionsOnLaunch.HostnameType', 'SubnetId', 'Tags', 'VpcId']",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "mySubnet3",
           "entityType": "Resource",
@@ -13279,7 +13279,7 @@
         "ruleId": "E1017",
         "severity": "ERROR",
         "message": "'a' is not of type 'integer'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "myInstance",
           "entityType": "Resource",
@@ -13298,7 +13298,7 @@
         "ruleId": "E1017",
         "severity": "ERROR",
         "message": "expected maximum item count: 2, found: 3",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "myInstance1",
           "entityType": "Resource",
@@ -13317,7 +13317,7 @@
         "ruleId": "E1017",
         "severity": "ERROR",
         "message": "'Fn::Join' is not supported as an argument to 'Fn::Select'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "myInstance2",
           "entityType": "Resource",
@@ -13336,7 +13336,7 @@
         "ruleId": "E1017",
         "severity": "ERROR",
         "message": "'foo' is not of type 'array'",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "myInstance3",
           "entityType": "Resource",
@@ -15342,7 +15342,7 @@
         "ruleId": "E9004",
         "severity": "ERROR",
         "message": "'Tags.0' is not one of ['Arn', 'DomainName', 'DualStackDomainName', 'MetadataConfiguration.AnnotationTableConfiguration.TableArn', 'MetadataConfiguration.AnnotationTableConfiguration.TableName', 'MetadataConfiguration.Destination', 'MetadataConfiguration.InventoryTableConfiguration.TableArn', 'MetadataConfiguration.InventoryTableConfiguration.TableName', 'MetadataConfiguration.JournalTableConfiguration.TableArn', 'MetadataConfiguration.JournalTableConfiguration.TableName', 'MetadataTableConfiguration.S3TablesDestination.TableArn', 'MetadataTableConfiguration.S3TablesDestination.TableNamespace', 'RegionalDomainName', 'WebsiteURL']",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "Param",
           "entityType": "Resource",
@@ -21916,7 +21916,7 @@
         "ruleId": "E8002",
         "severity": "ERROR",
         "message": "Condition 'CreateAuxiliaryNetworks' referenced by resource 'AuxiliaryPublicSubnetRouteTableAssociation1' is not defined",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "AuxiliaryPublicSubnetRouteTableAssociation1",
           "entityType": "Resource",
@@ -21934,7 +21934,7 @@
         "ruleId": "E8002",
         "severity": "ERROR",
         "message": "Condition 'CreateAuxiliaryNetworks' referenced by resource 'AuxilliaryCustomSubnetRouteTableAssociation' is not defined",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "AuxilliaryCustomSubnetRouteTableAssociation",
           "entityType": "Resource",
@@ -25940,7 +25940,7 @@
         "ruleId": "E1028",
         "severity": "ERROR",
         "message": "Fn::If condition 'cCondition' does not exist in Conditions section",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "category": "Intrinsic Function",
         "startLine": 5,
         "startColumn": 1,
@@ -41324,7 +41324,7 @@
         "ruleId": "E8002",
         "severity": "ERROR",
         "message": "Condition 'DoesNotExist' referenced by resource 'R' is not defined",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "R",
           "entityType": "Resource",
@@ -145809,7 +145809,7 @@
         "ruleId": "E9004",
         "severity": "ERROR",
         "message": "'ArnA' is not one of ['Arn', 'KeyId']",
-        "source": "CFN_LINT",
+        "source": "SCHEMA",
         "entity": {
           "logicalId": "CustomResource",
           "entityType": "Resource",

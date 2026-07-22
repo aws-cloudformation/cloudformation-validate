@@ -146,8 +146,8 @@ impl CfnYamlLoader {
 
     /// Anchors a mapping value at its key's position, overwriting any earlier entry so
     /// a duplicate key resolves to the surviving (last) occurrence — matching how the
-    /// loaded `Hash` keeps the last value written for a repeated key. cfn-lint anchors
-    /// object-property diagnostics at the key, so this is where the value's span lives.
+    /// loaded `Hash` keeps the last value written for a repeated key. Object-property
+    /// diagnostics anchor at the key, so this is where the value's span lives.
     fn record_key_span(&mut self, mark: Marker) {
         let path = self.current_path();
         if !path.is_empty() {
@@ -398,7 +398,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 if is_key {
                     // This scalar names the slot its sibling value will occupy; put it in
                     // the frame so the value's path is complete, then anchor the property
-                    // at the key (cfn-lint anchors object-property diagnostics at the key).
+                    // at the key (object-property diagnostics anchor at the key).
                     if let Some(PathFrame::Map(slot)) = self.path_frames.last_mut() {
                         *slot = Some(v.clone());
                     }
