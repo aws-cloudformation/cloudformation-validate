@@ -561,11 +561,10 @@ def compare_template(cfnlint_diags, engine_diags):
             consumed_act.add(id(act[i]))
         fn.extend(exp[n:])
 
-    # Pass 3: SAM-transformed resource IDs. cfn-lint's SAM transform renames
-    # generated resources with a 10-hex-digit hash suffix (`Layer` becomes
-    # `Layer7f955f606e`); the engine keeps the template's logical ID. A
-    # remaining pair with the same rule where one ID is the other plus such a
-    # suffix is the same finding.
+    # Pass 3: cfn-lint's SAM transform renames generated resources with a
+    # 10-hex-digit hash suffix (`Layer` -> `Layer7f955f606e`); the engine keeps
+    # the template's logical ID. Pair remaining same-rule findings that differ
+    # only by that suffix.
     def _sam_id_match(exp_id, act_id):
         if not exp_id or not act_id or exp_id == act_id:
             return False
@@ -575,8 +574,6 @@ def compare_template(cfnlint_diags, engine_diags):
                 and all(c in "0123456789abcdef" for c in suffix))
 
     def _strip_hash_suffix(message):
-        # `[Layer7f955f606e]` and `[Layer]` describe the same resource; the
-        # hash suffix comes from cfn-lint's SAM transform renaming.
         return re.sub(r"\[(\w+?)[0-9a-f]{10}\]", r"[\1]", message)
 
     def _sam_renamed_match(d, a):
@@ -669,13 +666,9 @@ def run_single():
             d.get("rule_id") == "F0000" for d in cfnlint_all[key]
         )
         # E1028: the engine reports every undefined Fn::If condition; cfn-lint
-        # under-reports in two ways. An unmatched engine E1028 is engine-extra
-        # only when:
-        #   (a) cfn-lint fired E1028 somewhere on this template — it saw the
-        #       problem but short-circuited the rest of a nested chain, or
-        #   (b) a cfn-lint finding quotes the same Fn::If (condition name
-        #       included) — it refused to descend past a parent schema failure.
-        # Anything else is a genuine false positive.
+        # short-circuits nested chains and skips branches under parent schema
+        # failures. Unmatched engine E1028 is engine-extra only when cfn-lint
+        # fired E1028 on this template or quotes the same condition; else FP.
         cfnlint_fired_e1028 = any(
             d.get("rule_id") == "E1028" for d in cfnlint_all[key]
         )

@@ -191,12 +191,7 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         "E3002": "F3002",   # Additional properties not allowed
         "E3003": "F3003",   # Required property missing
         "E3004": "F3004",   # Circular dependency
-        "E3006": "F3006",   # Resource type must exist in the compiled schemas.
-                            # Intentional divergence: F3006 stays silent on
-                            # non-AWS namespaces (possibly privately registered
-                            # types) that cfn-lint's E3006 flags; those corpus
-                            # findings count as false negatives by design (see
-                            # good/unknown_resource_types_ignored.yaml).
+        "E3006": "F3006",   # Resource type must exist in the compiled schemas
         "E3007": "F3007",   # Unique resource / parameter names
         "E3012": "F3012",   # Property type mismatch
         "E3014": "F3014",   # Exactly one of (requiredXor)
@@ -298,20 +293,13 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # emits F0002 (format version) / F0005 (top-level section). F0001 (empty
     # Resources) is intentionally NOT linked — cfn-lint does not flag it, so it
     # stays a genuine engine-extra finding.
-    # cfn-lint's E1001 also covers null condition-function operands ("None is
-    # not of type ...") that the engine reports per-function: a null condition
-    # body is E8001, and null Equals/And/Not/Or operands are E8003-E8006.
+    # E1001 also covers null condition-function operands (engine: E8001, E8003-E8006).
     _link("E1001", "F0002", "F0005", "E8001", "E8003", "E8004", "E8005", "E8006")
-    # Fn::If: cfn-lint's E1028 covers both structure (3-element) and the
-    # condition-name-must-exist check. The engine splits: F0013 (structure)
-    # and E1028 (condition exists). Link so either engine rule matches.
+    # cfn-lint E1028 covers Fn::If structure + condition existence; engine splits (F0013/E1028).
     _link("E1028", "F0013")
-    # A resource `Condition:` referencing an undefined condition: cfn-lint emits
-    # E3015, the engine emits E8002. (An undefined output `Condition:` is E6005
-    # in both, so it needs no alias.)
+    # Undefined resource `Condition:` — cfn-lint E3015, engine E8002.
     _link("E8002", "E3015")
-    # cfn-lint's E8004/E8005/E8006 also cover undefined condition refs inside
-    # And/Not/Or; the engine splits the "must exist" check into E8007.
+    # Undefined condition refs inside And/Not/Or — engine splits into E8007.
     _link("E8004", "E8007")
     _link("E8005", "E8007")
     _link("E8006", "E8007")
@@ -416,10 +404,8 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # W9003 is intentional strictness. It still aliases F3012/E3012 so a
     # strict-mode E3012 finding matches.
     engine_extra.add("W9003")
-    # W1019 (unused Fn::Sub variable-map key): cfn-lint registers the same rule
-    # but never fires it — its child-rule hook is not invoked during property
-    # validation in the current release — so there is never a cfn-lint W1019 to
-    # match against. The engine's W1019 is deliberate extra coverage.
+    # W1019: cfn-lint registers this rule but never wires its child-rule hook,
+    # so it never fires; the engine's W1019 is deliberate extra coverage.
     engine_extra.add("W1019")
 
     # Engine rules that implement a cfn-lint check under a different (split or
@@ -469,8 +455,6 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
                 and (diag.get("resource_id") == "myBucketFirstAndLastPass"
                      or "Fn::If" in diag.get("message", ""))):
             return True
-        # No E1028 clause here: its exemption is template-scoped and lives in
-        # the comparison driver; a blanket by-ID exemption would hide real FPs.
         return False
 
     return RuleOrigins(
