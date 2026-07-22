@@ -171,6 +171,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None => false,
                 };
                 if !implies {
+                    // An output is not a resource — the edge's section-absolute
+                    // source path identifies it.
                     out.push(make_resource_diagnostic(
                         "W1001",
                         &format!(
@@ -178,7 +180,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                             edge.target, target_cond
                         ),
                         m,
-                        out_name,
+                        "",
                         &edge.source_path,
                         Some("Add a Condition to the output that implies the target's condition"),
                     ));

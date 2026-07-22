@@ -1,4 +1,4 @@
-use crate::diagnostic::{Diagnostic, RelatedResource, ResourceRef};
+use crate::diagnostic::{Diagnostic, Entity, RelatedResource};
 use crate::phase::Phase;
 use crate::span::{SourceSpan, span_to_option};
 use rules::lookup_rule;
@@ -20,7 +20,7 @@ use std::collections::HashMap;
 pub struct RegisteredDiagnostic {
     rule_id: String,
     message: String,
-    resource: Option<ResourceRef>,
+    entity: Option<Entity>,
     property_path: Option<String>,
     location: Option<SourceSpan>,
     suggested_fix: Option<String>,
@@ -36,7 +36,7 @@ impl RegisteredDiagnostic {
         Self {
             rule_id: rule_id.into(),
             message: message.into(),
-            resource: None,
+            entity: None,
             property_path: None,
             location: None,
             suggested_fix: None,
@@ -46,14 +46,12 @@ impl RegisteredDiagnostic {
         }
     }
 
-    /// Attaches the offending resource: its logical ID and, when known, its
-    /// CloudFormation type. An empty ID is dropped so callers can pass through
-    /// an ID that may be blank — mirrors [`property_path`](Self::property_path).
+    /// Attaches the offending resource as the targeted entity: its logical ID
+    /// and, when known, its CloudFormation type. An empty ID is dropped so
+    /// callers can pass through an ID that may be blank — mirrors
+    /// [`property_path`](Self::property_path).
     pub fn resource(mut self, resource_id: impl Into<String>, resource_type: Option<String>) -> Self {
-        let id = resource_id.into();
-        if !id.is_empty() {
-            self.resource = Some(ResourceRef { id: Some(id), resource_type });
-        }
+        self.entity = Entity::resource(resource_id, resource_type);
         self
     }
 
@@ -108,7 +106,7 @@ impl RegisteredDiagnostic {
             rule_id: self.rule_id,
             severity: definition.severity(),
             message: self.message,
-            resource: self.resource,
+            entity: self.entity,
             property_path: self.property_path,
             suggested_fix: self.suggested_fix,
             documentation_url: None,
@@ -118,7 +116,6 @@ impl RegisteredDiagnostic {
             condition_scenario: self.condition_scenario,
             rule_description: Some(definition.description.into()),
             phase: self.phase,
-            section: None,
             context: None,
             source: definition.origin,
         }
@@ -160,10 +157,17 @@ mod tests {
             .property_path("Properties.BucketName")
             .build();
 
-        let resource = diagnostic.resource.expect("resource should be set");
-        assert_eq!(resource.id.as_deref(), Some("MyBucket"));
-        assert_eq!(resource.resource_type.as_deref(), Some("AWS::S3::Bucket"));
+        let entity = diagnostic.entity.expect("entity should be set");
+        assert_eq!(entity.logical_id, "MyBucket");
+        assert_eq!(entity.entity_type, rules::EntityType::Resource);
+        assert_eq!(entity.resource_type.as_deref(), Some("AWS::S3::Bucket"));
         assert_eq!(diagnostic.property_path.as_deref(), Some("Properties.BucketName"));
+    }
+
+    #[test]
+    fn empty_resource_id_yields_no_entity() {
+        let diagnostic = RegisteredDiagnostic::new("F0001", "msg").resource("", None).build();
+        assert!(diagnostic.entity.is_none(), "an empty resource ID must not create an entity");
     }
 
     #[test]

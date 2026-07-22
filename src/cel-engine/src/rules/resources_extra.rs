@@ -1711,7 +1711,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Mapping '{}' must be a map", map_name),
                     m,
                     "",
-                    "",
+                    &format!("Mappings/{}", map_name),
                     None,
                 ));
             } else if let Some(obj) = level1.as_object() {
@@ -1722,7 +1722,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             &format!("Mapping '{}' second level key '{}' must be a map", map_name, k1),
                             m,
                             "",
-                            "",
+                            &format!("Mappings/{}/{}", map_name, k1),
                             None,
                         ));
                     }

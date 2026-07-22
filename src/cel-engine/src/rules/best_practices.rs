@@ -360,7 +360,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Parameter {} used as {}, therefore NoEcho should be True", target, prop),
                         m,
                         "",
-                        &format!("Parameters.{}", target),
+                        &format!("Parameters/{}", target),
                         None,
                     ));
                 }

@@ -4,7 +4,10 @@ use cel_engine::CelEngine;
 use diagnostics::{DetailLevel, ValidationReport};
 use log::{error, info};
 use rego_engine::RegoEngine;
-use rules::{FilterConfig, IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter, Severity};
+use rules::{
+    EntityType, FilterConfig, IdRange, LogicalIdFilter, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig,
+    ServiceFilter, Severity,
+};
 use schema_validator::SchemaValidator;
 use template_model::PseudoParameterOverrides;
 use validation_engine::{
@@ -29,6 +32,8 @@ fn main() {
     let mut include_ranges: Vec<IdRange> = Vec::new();
     let mut include_resource_ids: Vec<ResourceIdFilter> = Vec::new();
     let mut exclude_resource_ids: Vec<ResourceIdFilter> = Vec::new();
+    let mut include_logical_ids: Vec<LogicalIdFilter> = Vec::new();
+    let mut exclude_logical_ids: Vec<LogicalIdFilter> = Vec::new();
     let mut include_resource_types: Vec<ResourceTypeFilter> = Vec::new();
     let mut exclude_resource_types: Vec<ResourceTypeFilter> = Vec::new();
     let mut include_services: Vec<ServiceFilter> = Vec::new();
@@ -81,6 +86,18 @@ fn main() {
                 i += 1;
                 let (resource_id, rule_id) = parse_scoped_arg(args.get(i), "--exclude-resource-id");
                 exclude_resource_ids.push(ResourceIdFilter { rule_id, resource_id });
+            }
+            "--include-logical-id" => {
+                i += 1;
+                let (target, rule_id) = parse_scoped_arg(args.get(i), "--include-logical-id");
+                let (logical_id, entity_type) = parse_logical_id_target(&target, "--include-logical-id");
+                include_logical_ids.push(LogicalIdFilter { rule_id, logical_id, entity_type });
+            }
+            "--exclude-logical-id" => {
+                i += 1;
+                let (target, rule_id) = parse_scoped_arg(args.get(i), "--exclude-logical-id");
+                let (logical_id, entity_type) = parse_logical_id_target(&target, "--exclude-logical-id");
+                exclude_logical_ids.push(LogicalIdFilter { rule_id, logical_id, entity_type });
             }
             "--include-resource-type" => {
                 i += 1;
@@ -273,6 +290,7 @@ fn main() {
             categories: include_categories,
             id_ranges: include_ranges,
             resource_ids: include_resource_ids,
+            logical_ids: include_logical_ids,
             resource_types: include_resource_types,
             services: include_services,
             ..Default::default()
@@ -282,6 +300,7 @@ fn main() {
             categories: exclude_categories,
             id_ranges: exclude_ranges,
             resource_ids: exclude_resource_ids,
+            logical_ids: exclude_logical_ids,
             resource_types: exclude_resource_types,
             services: exclude_services,
             ..Default::default()
@@ -354,6 +373,22 @@ fn parse_scoped_arg(raw: Option<&String>, flag: &str) -> (String, Option<String>
     }
 }
 
+/// Splits a logical-id filter target (`ID` or `ID:ENTITY_TYPE`) into the
+/// logical ID and its optional entity-type scope, exiting with an error on an
+/// unknown entity type. `None` = entities of every type.
+fn parse_logical_id_target(target: &str, flag: &str) -> (String, Option<EntityType>) {
+    match target.split_once(':') {
+        None => (target.to_string(), None),
+        Some((logical_id, entity_type)) => match entity_type.parse::<EntityType>() {
+            Ok(parsed) => (logical_id.to_string(), Some(parsed)),
+            Err(message) => {
+                error!("{flag}: {message}");
+                process::exit(2);
+            }
+        },
+    }
+}
+
 fn print_report(report: &ValidationReport, format: &DetailLevel) -> Result<(), serde_json::Error> {
     let json = match format {
         DetailLevel::Standard => serde_json::to_string_pretty(&report.to_standard())?,
@@ -379,6 +414,10 @@ fn print_help() {
     eprintln!("Resource-scoped filters (TARGET, or TARGET=RULE_ID for one rule; repeatable):");
     eprintln!("  --include-resource-id ID[=RULE]      Only report rules on a logical resource ID");
     eprintln!("  --exclude-resource-id ID[=RULE]      Suppress rules on a logical resource ID");
+    eprintln!("  --include-logical-id ID[:TYPE][=RULE]  Only report rules on a named template entity (resource,");
+    eprintln!("                                       parameter, output, mapping, condition, or rule); an optional");
+    eprintln!("                                       :TYPE (e.g. :Parameter) scopes it to one entity type");
+    eprintln!("  --exclude-logical-id ID[:TYPE][=RULE]  Suppress rules on a named template entity");
     eprintln!("  --include-resource-type TYPE[=RULE]  Only report rules on a resource type");
     eprintln!("  --exclude-resource-type TYPE[=RULE]  Suppress rules on a resource type");
     eprintln!("  --include-service SERVICE[=RULE]     Only report rules on a service (e.g. AWS::AutoScaling)");

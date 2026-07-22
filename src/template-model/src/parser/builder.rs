@@ -34,24 +34,44 @@ impl Builder {
         self.arena.alloc(SpannedNode { node, span: UNKNOWN_SPAN, path: path.to_string() })
     }
 
+    /// The anchor path for a diagnostic on an intrinsic node: the function key
+    /// under the builder path, or the bare function name at the template root.
+    fn intrinsic_anchor(path: &str, fn_name: &str) -> String {
+        if path.is_empty() { fn_name.to_string() } else { format!("{}/{}", path, fn_name) }
+    }
+
     /// A structural defect CloudFormation rejects at deploy time (fatal). The
-    /// message is prefixed with the function name, so callers pass only the reason.
-    fn structural_error(&mut self, fn_name: &str, reason: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("F1101", format!("{}: {}", fn_name, reason), UNKNOWN_SPAN));
+    /// message is prefixed with the function name, so callers pass only the
+    /// reason. Anchored at the function node so downstream span and entity
+    /// resolution can attribute it.
+    fn structural_error(&mut self, fn_name: &str, reason: &str, path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at(
+            "F1101",
+            format!("{}: {}", fn_name, reason),
+            UNKNOWN_SPAN,
+            &Self::intrinsic_anchor(path, fn_name),
+        ));
     }
 
     /// An intrinsic argument has the wrong scalar type, but the template is not
-    /// structurally rejected (warning). Prefixed with the function name.
-    fn type_warning(&mut self, fn_name: &str, reason: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic("W1102", format!("{}: {}", fn_name, reason), UNKNOWN_SPAN));
+    /// structurally rejected (warning). Prefixed with the function name and
+    /// anchored at the function node.
+    fn type_warning(&mut self, fn_name: &str, reason: &str, path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at(
+            "W1102",
+            format!("{}: {}", fn_name, reason),
+            UNKNOWN_SPAN,
+            &Self::intrinsic_anchor(path, fn_name),
+        ));
     }
 
     /// `Fn::Sub`'s second argument must be a variable map (fatal).
-    fn sub_map_error(&mut self) {
-        self.diagnostics.push(crate::make_parse_diagnostic(
+    fn sub_map_error(&mut self, path: &str) {
+        self.diagnostics.push(crate::make_parse_diagnostic_at(
             "F0010",
             "Fn::Sub second argument must be a map with string keys".to_string(),
             UNKNOWN_SPAN,
+            &format!("{}/1", Self::intrinsic_anchor(path, FN_SUB)),
         ));
     }
 
@@ -127,8 +147,8 @@ impl Builder {
     /// kept as a plain map) — those cases are commented inline.
     fn try_intrinsic<V: ParseValue>(&mut self, key: &str, val: &V, path: &str) -> Option<NodeRef> {
         let intrinsic = match key {
-            FN_REF => IntrinsicFn::Ref(self.required_string(val, FN_REF)?),
-            FN_GET_ATT => self.build_get_att(val)?,
+            FN_REF => IntrinsicFn::Ref(self.required_string(val, FN_REF, path)?),
+            FN_GET_ATT => self.build_get_att(val, path)?,
             FN_SUB => self.build_sub(val, path)?,
             // Join rejects a scalar value (it requires an array); Select stays
             // silent on a non-list value, which is reported downstream once the
@@ -155,16 +175,16 @@ impl Builder {
             FN_TO_JSON_STRING => IntrinsicFn::ToJsonString(self.build(val, &format!("{}/{}", path, FN_TO_JSON_STRING))),
             FN_LENGTH => IntrinsicFn::Length(self.build(val, &format!("{}/{}", path, FN_LENGTH))),
             FN_FOR_EACH => self.build_for_each(val, path)?,
-            FN_VALUE_OF => self.build_value_of(val, FN_VALUE_OF, IntrinsicFn::ValueOf)?,
-            FN_VALUE_OF_ALL => self.build_value_of(val, FN_VALUE_OF_ALL, IntrinsicFn::ValueOfAll)?,
-            FN_REF_ALL => IntrinsicFn::RefAll(self.required_string(val, FN_REF_ALL)?),
+            FN_VALUE_OF => self.build_value_of(val, FN_VALUE_OF, IntrinsicFn::ValueOf, path)?,
+            FN_VALUE_OF_ALL => self.build_value_of(val, FN_VALUE_OF_ALL, IntrinsicFn::ValueOfAll, path)?,
+            FN_REF_ALL => IntrinsicFn::RefAll(self.required_string(val, FN_REF_ALL, path)?),
             FN_CONTAINS => self.build_strict_pair(val, path, FN_CONTAINS, IntrinsicFn::Contains)?,
             FN_EACH_MEMBER_EQUALS => {
                 self.build_strict_pair(val, path, FN_EACH_MEMBER_EQUALS, IntrinsicFn::EachMemberEquals)?
             }
             FN_EACH_MEMBER_IN => self.build_strict_pair(val, path, FN_EACH_MEMBER_IN, IntrinsicFn::EachMemberIn)?,
             FN_CONDITION => {
-                IntrinsicFn::Ref(format!("{}{}", CONDITION_REF_PREFIX, self.required_string(val, FN_CONDITION)?))
+                IntrinsicFn::Ref(format!("{}{}", CONDITION_REF_PREFIX, self.required_string(val, FN_CONDITION, path)?))
             }
             _ => {
                 if key.starts_with(FN_PREFIX) && !key.starts_with(FN_FOR_EACH_KEY_PREFIX) {
@@ -186,31 +206,31 @@ impl Builder {
     /// *without* a diagnostic so a wrapping intrinsic (e.g. `Ref` whose value is an
     /// `Fn::Sub` under LanguageExtensions) falls through to a plain map and resolves
     /// dynamically.
-    fn required_string<V: ParseValue>(&mut self, val: &V, fn_name: &str) -> Option<String> {
+    fn required_string<V: ParseValue>(&mut self, val: &V, fn_name: &str, path: &str) -> Option<String> {
         match val.as_coerced_str() {
             Some(s) => Some(s),
             None => {
                 if !val.is_object() {
-                    self.structural_error(fn_name, &format!("{} value must be a string", fn_name));
+                    self.structural_error(fn_name, &format!("{} value must be a string", fn_name), path);
                 }
                 None
             }
         }
     }
 
-    fn build_get_att<V: ParseValue>(&mut self, val: &V) -> Option<IntrinsicFn> {
+    fn build_get_att<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
         const MSG: &str = "Fn::GetAtt value must be a two-element string array or a dotted string";
         match val.kind() {
             ValueKind::Array => {
                 let arr = val.as_array().unwrap_or_default();
                 if arr.len() != 2 {
-                    self.structural_error(FN_GET_ATT, MSG);
+                    self.structural_error(FN_GET_ATT, MSG, path);
                     return None;
                 }
                 // An object element is a dynamic resource/attribute name (e.g. Fn::Sub
                 // in ForEach); fall through to a plain map rather than reject.
-                let resource = self.getatt_segment(&arr[0])?;
-                let attr = self.getatt_segment(&arr[1])?;
+                let resource = self.getatt_segment(&arr[0], path)?;
+                let attr = self.getatt_segment(&arr[1], path)?;
                 Some(IntrinsicFn::GetAtt(resource, attr))
             }
             ValueKind::String => {
@@ -218,13 +238,13 @@ impl Builder {
                 match s.split_once('.') {
                     Some((resource, attr)) => Some(IntrinsicFn::GetAtt(resource.to_string(), attr.to_string())),
                     None => {
-                        self.structural_error(FN_GET_ATT, MSG);
+                        self.structural_error(FN_GET_ATT, MSG, path);
                         None
                     }
                 }
             }
             _ => {
-                self.structural_error(FN_GET_ATT, MSG);
+                self.structural_error(FN_GET_ATT, MSG, path);
                 None
             }
         }
@@ -233,7 +253,7 @@ impl Builder {
     /// One element of `Fn::GetAtt`'s array form: a string (coerced) names a
     /// resource/attribute; an object is dynamic (returns `None`, no diagnostic);
     /// anything else is rejected with a fatal structural error.
-    fn getatt_segment<V: ParseValue>(&mut self, val: &V) -> Option<String> {
+    fn getatt_segment<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<String> {
         if val.is_object() {
             return None;
         }
@@ -243,6 +263,7 @@ impl Builder {
                 self.structural_error(
                     FN_GET_ATT,
                     "Fn::GetAtt value must be a two-element string array or a dotted string",
+                    path,
                 );
                 None
             }
@@ -256,11 +277,11 @@ impl Builder {
             ValueKind::Array => {
                 let arr = val.as_array().unwrap_or_default();
                 if arr.is_empty() {
-                    self.structural_error(FN_SUB, MSG);
+                    self.structural_error(FN_SUB, MSG, path);
                     return None;
                 }
                 let Some(template) = arr[0].as_coerced_str() else {
-                    self.structural_error(FN_SUB, MSG);
+                    self.structural_error(FN_SUB, MSG, path);
                     return None;
                 };
                 let subs = if arr.len() > 1 {
@@ -275,7 +296,7 @@ impl Builder {
                                 .collect(),
                         ),
                         None => {
-                            self.sub_map_error();
+                            self.sub_map_error(path);
                             None
                         }
                     }
@@ -288,7 +309,7 @@ impl Builder {
             // through to a plain map so it resolves dynamically.
             ValueKind::Object => None,
             _ => {
-                self.structural_error(FN_SUB, MSG);
+                self.structural_error(FN_SUB, MSG, path);
                 None
             }
         }
@@ -307,19 +328,19 @@ impl Builder {
         path: &str,
         fn_name: &str,
         reject_scalar: bool,
-        check: fn(&mut Self, &V),
+        check: fn(&mut Self, &V, &str),
         ctor: fn(NodeRef, NodeRef) -> IntrinsicFn,
     ) -> Option<IntrinsicFn> {
         let Some(arr) = val.as_array() else {
             if reject_scalar && !val.is_object() {
-                self.structural_error(fn_name, &format!("{} value must be an array", fn_name));
+                self.structural_error(fn_name, &format!("{} value must be an array", fn_name), path);
             }
             return None;
         };
         if arr.len() != 2 {
             return None;
         }
-        check(self, &arr[0]);
+        check(self, &arr[0], path);
         let first = self.build(&arr[0], &format!("{}/{}/0", path, fn_name));
         let second = self.build(&arr[1], &format!("{}/{}/1", path, fn_name));
         Some(ctor(first, second))
@@ -336,11 +357,15 @@ impl Builder {
         ctor: fn(NodeRef, NodeRef) -> IntrinsicFn,
     ) -> Option<IntrinsicFn> {
         let Some(arr) = val.as_array() else {
-            self.structural_error(fn_name, &format!("{} value must be an array", fn_name));
+            self.structural_error(fn_name, &format!("{} value must be an array", fn_name), path);
             return None;
         };
         if arr.len() != 2 {
-            self.structural_error(fn_name, &format!("{} requires exactly 2 elements, got {}", fn_name, arr.len()));
+            self.structural_error(
+                fn_name,
+                &format!("{} requires exactly 2 elements, got {}", fn_name, arr.len()),
+                path,
+            );
             return None;
         }
         let first = self.build(&arr[0], &format!("{}/{}/0", path, fn_name));
@@ -348,15 +373,21 @@ impl Builder {
         Some(ctor(first, second))
     }
 
-    fn check_join_delimiter<V: ParseValue>(&mut self, first: &V) {
+    fn check_join_delimiter<V: ParseValue>(&mut self, first: &V, path: &str) {
         if !matches!(first.kind(), ValueKind::String | ValueKind::Object) {
-            self.type_warning(FN_JOIN, "delimiter (first argument) must be a string or an intrinsic function");
+            self.type_warning(FN_JOIN, "delimiter (first argument) must be a string or an intrinsic function", path);
         }
     }
 
-    fn check_select_index<V: ParseValue>(&mut self, first: &V) {
-        if !matches!(first.kind(), ValueKind::Number | ValueKind::Object) {
-            self.type_warning(FN_SELECT, "index (first argument) must be an integer or an intrinsic function");
+    fn check_select_index<V: ParseValue>(&mut self, first: &V, path: &str) {
+        // CloudFormation coerces a numeric string index — the official
+        // Fn::Select documentation itself uses `"1"` — so only a value that is
+        // neither a number, an intrinsic, nor an integer-valued string is
+        // reported.
+        let is_integer_string = matches!(first.kind(), ValueKind::String)
+            && first.as_coerced_str().is_some_and(|s| crate::coercion::coerce_str_to_integer(&s).is_some());
+        if !matches!(first.kind(), ValueKind::Number | ValueKind::Object) && !is_integer_string {
+            self.type_warning(FN_SELECT, "index (first argument) must be an integer or an intrinsic function", path);
         }
     }
 
@@ -385,7 +416,7 @@ impl Builder {
 
     fn build_find_in_map<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
         let Some(arr) = val.as_array() else {
-            self.structural_error(FN_FIND_IN_MAP, "Fn::FindInMap value must be an array");
+            self.structural_error(FN_FIND_IN_MAP, "Fn::FindInMap value must be an array", path);
             return None;
         };
         // 3-arg form, or 4-arg with a trailing { DefaultValue: ... }.
@@ -393,6 +424,7 @@ impl Builder {
             self.structural_error(
                 FN_FIND_IN_MAP,
                 &format!("Fn::FindInMap requires 3 or 4 elements, got {}", arr.len()),
+                path,
             );
             return None;
         }
@@ -412,15 +444,15 @@ impl Builder {
 
     fn build_split<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
         let Some(arr) = val.as_array() else {
-            self.structural_error(FN_SPLIT, "Fn::Split value must be an array");
+            self.structural_error(FN_SPLIT, "Fn::Split value must be an array", path);
             return None;
         };
         if arr.len() != 2 {
-            self.structural_error(FN_SPLIT, &format!("Fn::Split requires exactly 2 elements, got {}", arr.len()));
+            self.structural_error(FN_SPLIT, &format!("Fn::Split requires exactly 2 elements, got {}", arr.len()), path);
             return None;
         }
         if !matches!(arr[0].kind(), ValueKind::String | ValueKind::Object) {
-            self.type_warning(FN_SPLIT, "delimiter (first argument) must be a string or an intrinsic function");
+            self.type_warning(FN_SPLIT, "delimiter (first argument) must be a string or an intrinsic function", path);
         }
         let delim = self.build(&arr[0], &format!("{}/{}/0", path, FN_SPLIT));
         let source = self.build(&arr[1], &format!("{}/{}/1", path, FN_SPLIT));
@@ -429,23 +461,23 @@ impl Builder {
 
     fn build_cidr<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
         let Some(arr) = val.as_array() else {
-            self.structural_error(FN_CIDR, "Fn::Cidr value must be an array");
+            self.structural_error(FN_CIDR, "Fn::Cidr value must be an array", path);
             return None;
         };
         if arr.len() != 3 {
-            self.structural_error(FN_CIDR, &format!("Fn::Cidr requires exactly 3 elements, got {}", arr.len()));
+            self.structural_error(FN_CIDR, &format!("Fn::Cidr requires exactly 3 elements, got {}", arr.len()), path);
             return None;
         }
         // CloudFormation bounds: count must be 1..=256, cidrBits 1..=128.
         if let Some(n) = arr[1].as_integer()
             && !(1..=256).contains(&n)
         {
-            self.type_warning(FN_CIDR, "count (second argument) must be between 1 and 256");
+            self.type_warning(FN_CIDR, "count (second argument) must be between 1 and 256", path);
         }
         if let Some(n) = arr[2].as_integer()
             && !(1..=128).contains(&n)
         {
-            self.type_warning(FN_CIDR, "cidrBits (third argument) must be between 1 and 128");
+            self.type_warning(FN_CIDR, "cidrBits (third argument) must be between 1 and 128", path);
         }
         let ip = self.build(&arr[0], &format!("{}/{}/0", path, FN_CIDR));
         let count = self.build(&arr[1], &format!("{}/{}/1", path, FN_CIDR));
@@ -455,16 +487,16 @@ impl Builder {
 
     fn build_transform<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
         let Some(entries) = val.as_object() else {
-            self.structural_error(FN_TRANSFORM, "Fn::Transform value must be an object");
+            self.structural_error(FN_TRANSFORM, "Fn::Transform value must be an object", path);
             return None;
         };
         let Some((_, name_val)) = entries.iter().find(|(k, _)| k == KEY_NAME) else {
-            self.structural_error(FN_TRANSFORM, "Fn::Transform requires a 'Name' property");
+            self.structural_error(FN_TRANSFORM, "Fn::Transform requires a 'Name' property", path);
             return None;
         };
         // Name is strict: a macro name is genuinely a string, never coerced.
         let Some(name) = name_val.as_coerced_str().filter(|_| name_val.kind() == ValueKind::String) else {
-            self.structural_error(FN_TRANSFORM, "Fn::Transform 'Name' must be a string");
+            self.structural_error(FN_TRANSFORM, "Fn::Transform 'Name' must be a string", path);
             return None;
         };
         let params = entries
@@ -630,19 +662,23 @@ impl Builder {
 
     fn build_for_each<V: ParseValue>(&mut self, val: &V, path: &str) -> Option<IntrinsicFn> {
         let Some(arr) = val.as_array() else {
-            self.structural_error(FN_FOR_EACH, "Fn::ForEach value must be an array");
+            self.structural_error(FN_FOR_EACH, "Fn::ForEach value must be an array", path);
             return None;
         };
         if arr.len() != 4 {
-            self.structural_error(FN_FOR_EACH, &format!("Fn::ForEach requires exactly 4 elements, got {}", arr.len()));
+            self.structural_error(
+                FN_FOR_EACH,
+                &format!("Fn::ForEach requires exactly 4 elements, got {}", arr.len()),
+                path,
+            );
             return None;
         }
         let Some(unique_id) = arr[0].as_coerced_str() else {
-            self.structural_error(FN_FOR_EACH, "Fn::ForEach first element must be a string");
+            self.structural_error(FN_FOR_EACH, "Fn::ForEach first element must be a string", path);
             return None;
         };
         let Some(identifier) = arr[1].as_coerced_str() else {
-            self.structural_error(FN_FOR_EACH, "Fn::ForEach second element must be a string");
+            self.structural_error(FN_FOR_EACH, "Fn::ForEach second element must be a string", path);
             return None;
         };
         let collection = self.build(&arr[2], &format!("{}/{}/2", path, FN_FOR_EACH));
@@ -655,21 +691,26 @@ impl Builder {
         val: &V,
         fn_name: &str,
         ctor: fn(String, String) -> IntrinsicFn,
+        path: &str,
     ) -> Option<IntrinsicFn> {
         let Some(arr) = val.as_array() else {
-            self.structural_error(fn_name, &format!("{} value must be an array", fn_name));
+            self.structural_error(fn_name, &format!("{} value must be an array", fn_name), path);
             return None;
         };
         if arr.len() != 2 {
-            self.structural_error(fn_name, &format!("{} requires exactly 2 elements, got {}", fn_name, arr.len()));
+            self.structural_error(
+                fn_name,
+                &format!("{} requires exactly 2 elements, got {}", fn_name, arr.len()),
+                path,
+            );
             return None;
         }
         let Some(first) = arr[0].as_coerced_str() else {
-            self.structural_error(fn_name, &format!("{} first element must be a string", fn_name));
+            self.structural_error(fn_name, &format!("{} first element must be a string", fn_name), path);
             return None;
         };
         let Some(second) = arr[1].as_coerced_str() else {
-            self.structural_error(fn_name, &format!("{} second element must be a string", fn_name));
+            self.structural_error(fn_name, &format!("{} second element must be a string", fn_name), path);
             return None;
         };
         Some(ctor(first, second))

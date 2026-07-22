@@ -8,9 +8,12 @@ pub mod pattern;
 pub mod registry;
 pub mod schedule;
 pub mod severity;
+pub mod template_section;
 
 pub use category::Category;
-pub use filter::{FilterConfig, IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter};
+pub use filter::{
+    FilterConfig, IdRange, LogicalIdFilter, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter,
+};
 pub use helpers::{
     AMI_ID_PATTERN, AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, CUSTOM_RULE_ID_SEPARATORS, IAM_ROLE_ARN_PATTERN,
     IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN, SECURITY_GROUP_NAME_PATTERN, category_for_rule_id,
@@ -24,3 +27,4 @@ pub use registry::{
 };
 pub use schedule::schedule_expression_errors;
 pub use severity::Severity;
+pub use template_section::{EntityType, TopLevelSection};

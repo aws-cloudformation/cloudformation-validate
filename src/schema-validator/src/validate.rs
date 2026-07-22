@@ -155,14 +155,10 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
         if d.phase != Some(Phase::Schema) {
             continue;
         }
-        let Some(ref res_ref) = d.resource else {
+        let Some(rid) = d.resource_logical_id().map(String::from) else {
             continue;
         };
-        let rid = match res_ref.id.as_deref() {
-            Some(id) => id,
-            None => continue,
-        };
-        let Some(res) = model.resources.get(rid) else {
+        let Some(res) = model.resources.get(rid.as_str()) else {
             continue;
         };
         let Some(schema) = store.get(&res.resource_type) else {
@@ -177,7 +173,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
             }
         }
 
-        if let Some(source) = describe_resolution(model, rid, d.property_path.as_deref().unwrap_or("")) {
+        if let Some(source) = describe_resolution(model, &rid, d.property_path.as_deref().unwrap_or("")) {
             let ctx = d.context.get_or_insert_with(|| ViolationContext {
                 actual_value: None,
                 expected_constraint: None,
@@ -2105,7 +2101,7 @@ fn validate_extension_if_then_else(
                 // requirements). Skip to avoid double-reporting.
                 let already_reported = out.iter().any(|d| {
                     d.rule_id == "F3003"
-                        && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(rid)
+                        && d.resource_logical_id() == Some(rid)
                         && d.message.contains(&format!("'{}' is a required property", prop_name))
                 });
                 if already_reported {

@@ -1741,9 +1741,11 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
     };
 
     let e2001 = |msg: String, param_name: &str, prop: Option<&str>, span: SourceSpan| -> Diagnostic {
+        // Section-absolute slash form, so identity and span derivation can
+        // attribute the finding to the parameter.
         let path = match prop {
-            Some(p) => format!("Parameters.{}.{}", param_name, p),
-            None => format!("Parameters.{}", param_name),
+            Some(p) => format!("Parameters/{}/{}", param_name, p),
+            None => format!("Parameters/{}", param_name),
         };
         let mut d = crate::make_parse_diagnostic("E2001", msg, span);
         d.property_path = Some(path);
@@ -2023,20 +2025,22 @@ pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<Diagnostic>) {
     };
     for (map_name, map_ref) in entries {
         let Some(level1) = ir.arena.as_map(*map_ref) else {
-            diagnostics.push(crate::make_parse_diagnostic(
+            diagnostics.push(crate::make_parse_diagnostic_at(
                 "F0017",
                 format!("Mapping '{}' must be a map, not a scalar value", map_name),
                 ir.arena.span(*map_ref),
+                &format!("Mappings/{}", map_name),
             ));
             continue;
         };
         let mut l1_map = HashMap::new();
         for (k1, k1_ref) in level1 {
             let Some(level2) = ir.arena.as_map(*k1_ref) else {
-                diagnostics.push(crate::make_parse_diagnostic(
+                diagnostics.push(crate::make_parse_diagnostic_at(
                     "F0017",
                     format!("Mapping '{}' second level key '{}' must be a map", map_name, k1),
                     ir.arena.span(*k1_ref),
+                    &format!("Mappings/{}/{}", map_name, k1),
                 ));
                 continue;
             };

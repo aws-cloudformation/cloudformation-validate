@@ -2,8 +2,7 @@ use crate::ir::*;
 use crate::parser::builder::{Builder, TemplateSections};
 use crate::parser::value::{ParseValue, ValueKind};
 use log::{debug, info, warn};
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::str::from_utf8;
 
 fn build_line_offsets(bytes: &[u8]) -> Vec<usize> {
@@ -117,12 +116,22 @@ fn record_array_element_span(
     });
 }
 
-fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, bytes: &[u8]) {
+/// Walks the raw bytes once, assigning source spans to every path and
+/// detecting duplicate object keys. Duplicates are diagnosed here — rather
+/// than in a second walker — because this scan already tracks the full path of
+/// every key, which anchors each duplicate at the entry it duplicates.
+fn scan_json_byte_spans(
+    _arena: &mut Arena,
+    span_index: &mut SourceSpanIndex,
+    bytes: &[u8],
+    diagnostics: &mut Vec<Diagnostic>,
+) {
     let line_offsets = build_line_offsets(bytes);
     let mut path_stack: Vec<String> = Vec::new();
     let mut path_to_span: HashMap<String, SourceSpan> = HashMap::new();
     let mut in_array: Vec<bool> = Vec::new();
     let mut array_idx: Vec<usize> = Vec::new();
+    let mut seen_keys: Vec<HashSet<String>> = Vec::new();
 
     let mut i = 0;
     while i < bytes.len() {
@@ -137,12 +146,14 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
                 in_array.push(false);
                 array_idx.push(0);
                 path_stack.push(String::new());
+                seen_keys.push(HashSet::new());
                 i += 1;
             }
             b'}' => {
                 path_stack.pop();
                 in_array.pop();
                 array_idx.pop();
+                seen_keys.pop();
                 i += 1;
             }
             b'[' => {
@@ -195,6 +206,24 @@ fn scan_json_byte_spans(_arena: &mut Arena, span_index: &mut SourceSpanIndex, by
                     let full_path = path_stack.iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join("/");
                     let (sl, sc) = offset_to_line_col(&line_offsets, start);
                     let (el, ec) = offset_to_line_col(&line_offsets, end);
+                    // Key identity uses the decoded string so escaped and literal
+                    // spellings collide exactly as serde_json deduplicates them.
+                    let decoded = decode_json_key(&bytes[start..=end]);
+                    if let Some(keys) = seen_keys.last_mut()
+                        && !keys.insert(decoded.clone())
+                    {
+                        diagnostics.push(crate::make_parse_diagnostic_at(
+                            "F0000",
+                            format!("Duplicate key '{}'", decoded),
+                            SourceSpan {
+                                start_line: sl,
+                                start_column: sc,
+                                end_line: sl,
+                                end_column: sc + (end - start) as u32,
+                            },
+                            &full_path,
+                        ));
+                    }
                     path_to_span.insert(
                         full_path,
                         SourceSpan { start_line: sl, start_column: sc, end_line: el, end_column: ec },
@@ -241,79 +270,6 @@ fn decode_json_key(quoted: &[u8]) -> String {
 
 /// Pre-parse scan for duplicate keys in JSON. serde_json silently deduplicates,
 /// so we must scan raw bytes before parsing.
-fn detect_duplicate_keys(bytes: &[u8]) -> Vec<Diagnostic> {
-    let line_offsets = build_line_offsets(bytes);
-    let mut diagnostics = Vec::new();
-    let mut key_stacks: Vec<HashMap<String, usize>> = Vec::new();
-    let mut i = 0;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'{' => {
-                key_stacks.push(HashMap::new());
-                i += 1;
-            }
-            b'}' => {
-                key_stacks.pop();
-                i += 1;
-            }
-            b'[' | b']' | b',' | b':' => {
-                i += 1;
-            }
-            b'"' => {
-                let start = i;
-                i += 1;
-                while i < bytes.len() {
-                    if bytes[i] == b'\\' {
-                        i += 1;
-                        if i >= bytes.len() {
-                            break;
-                        }
-                    } else if bytes[i] == b'"' {
-                        break;
-                    }
-                    i += 1;
-                }
-                let end = i;
-                i += 1;
-                let mut j = i;
-                while j < bytes.len() && bytes[j].is_ascii_whitespace() {
-                    j += 1;
-                }
-                if j < bytes.len() && bytes[j] == b':' {
-                    // Decode the quoted token (quotes included) so escaped and
-                    // literal spellings of the same key collide exactly as
-                    // serde_json deduplicates them when building the object.
-                    let key = decode_json_key(&bytes[start..=end]);
-                    if let Some(current) = key_stacks.last_mut() {
-                        match current.entry(key) {
-                            Entry::Occupied(occupied) => {
-                                let (sl, sc) = offset_to_line_col(&line_offsets, start);
-                                diagnostics.push(crate::make_parse_diagnostic(
-                                    "F0000",
-                                    format!("Duplicate key '{}'", occupied.key()),
-                                    SourceSpan {
-                                        start_line: sl,
-                                        start_column: sc,
-                                        end_line: sl,
-                                        end_column: sc + (end - start) as u32,
-                                    },
-                                ));
-                            }
-                            Entry::Vacant(vacant) => {
-                                vacant.insert(start);
-                            }
-                        }
-                    }
-                }
-            }
-            _ => {
-                i += 1;
-            }
-        }
-    }
-    diagnostics
-}
-
 pub fn parse_json(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     let text = from_utf8(bytes).map_err(|e| ParseError {
         message: format!("Invalid UTF-8: {}", e),
@@ -336,7 +292,6 @@ pub fn parse_json(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     }
 
     let mut builder = Builder::new();
-    builder.diagnostics = detect_duplicate_keys(bytes);
     let root = builder.build_map(&JsonValue(&value), "");
 
     let sections = TemplateSections::extract(&builder.arena, root);
@@ -358,7 +313,7 @@ pub fn parse_json(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         builder.span_index.entry(path.clone()).or_insert(UNKNOWN_SPAN);
     }
 
-    scan_json_byte_spans(&mut builder.arena, &mut builder.span_index, bytes);
+    scan_json_byte_spans(&mut builder.arena, &mut builder.span_index, bytes, &mut builder.diagnostics);
     info!("JSON span assignment complete: {} entries", builder.span_index.len());
 
     Ok(sections.into_ir(builder))

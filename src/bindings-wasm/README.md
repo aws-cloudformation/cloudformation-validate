@@ -105,19 +105,26 @@ interface RuleFilterConfig {
     idRanges?: IdRange[];              // numeric ranges, e.g. { prefix: "E", start: 3000, end: 3099 }
     idPatterns?: string[];             // regex patterns matched against rule IDs
     resourceIds?: ResourceIdFilter[];  // a rule (or every rule) on a logical resource ID
+    logicalIds?: LogicalIdFilter[];    // a rule (or every rule) on a named template entity
     resourceTypes?: ResourceTypeFilter[]; // a rule (or every rule) on a resource type
     services?: ServiceFilter[];        // a rule (or every rule) on a service, e.g. "AWS::AutoScaling"
 }
 
-// resourceIds / resourceTypes / services each carry an optional ruleId:
+// resourceIds / logicalIds / resourceTypes / services each carry an optional ruleId:
 // set it to scope the filter to one rule, or omit it for every rule on the target.
 interface ResourceIdFilter   { ruleId?: string; resourceId: string; }
+interface LogicalIdFilter    { ruleId?: string; logicalId: string; entityType?: EntityType; }
 interface ResourceTypeFilter { ruleId?: string; resourceType: string; }
 interface ServiceFilter      { ruleId?: string; service: string; }
 ```
 
 The `service` is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
+
+The `resourceIds` dimension matches only diagnostics attributed to a resource; `logicalIds` additionally matches
+diagnostics on parameters, outputs, mappings, conditions, and template rules (for resource diagnostics the two carry
+the same value). An optional `entityType` scopes a `LogicalIdFilter` to entities of one type, so `MyThing` as a
+`"Parameter"` is matched without touching a same-named entity of another type.
 
 ### PseudoParameterOverrides
 
@@ -200,7 +207,7 @@ interface StandardReport {
 ```
 
 `DetailedReport` has the same structure but its diagnostics include additional fields: `documentationUrl`,
-`ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), `section`, and `context` (`ViolationContext` with
+`ruleDescription`, `phase` (`PARSE` | `SCHEMA` | `LINT`), and `context` (`ViolationContext` with
 `actualValue`, `expectedConstraint`, `resolutionSource`, etc.).
 
 ### StandardDiagnostic
@@ -211,9 +218,8 @@ interface StandardDiagnostic {
     severity: Severity;                // "FATAL" | "ERROR" | "WARN" | "INFO" | "DEBUG"
     message: string;
     source: RuleOrigin;                // "SCHEMA" | "CFN_LINT" | "ENGINE" | "CUSTOM" | "GUARD"
-    resourceId?: string;               // logical resource ID
-    resourceType?: string;             // e.g. "AWS::S3::Bucket"
-    propertyPath?: string;             // e.g. "Properties/BucketName"
+    entity?: Entity;                   // the named template entity the finding targets, if any
+    propertyPath?: string;             // e.g. "Properties.BucketName", or section-absolute like "Parameters/MyParam/Type"
     suggestedFix?: string;
     category?: string;
     startLine?: number;
@@ -223,4 +229,15 @@ interface StandardDiagnostic {
     relatedResources?: RelatedResource[];
     conditionScenario?: Record<string, boolean>;  // condition truth assignment that triggers this diagnostic
 }
+
+// The named template entity a diagnostic is attributed to. The entity type is the
+// singular form of the top-level template section the entity is declared in.
+interface Entity {
+    logicalId: string;                 // logical ID as declared in the template
+    entityType: EntityType;
+    resourceType?: string;             // CloudFormation type, when the entity is a resource whose type is known
+}
+
+type EntityType = "Resource" | "Parameter" | "Output" | "Mapping" | "Metadata"
+                | "Rule" | "Condition" | "Transform" | "FormatVersion" | "Description";
 ```
