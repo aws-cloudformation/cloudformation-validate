@@ -628,7 +628,7 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
     // are distinct even when they share a span, message, and path. This happens
     // with `Fn::ForEach`-expanded resources, which are separate resources built
     // from one template body and therefore carry the same source span.
-    let resource_id = |d: &Diagnostic| d.resource.as_ref().and_then(|r| r.id.clone()).unwrap_or_default();
+    let resource_id = |d: &Diagnostic| d.entity.as_ref().map(|e| e.logical_id.clone()).unwrap_or_default();
     diagnostics.sort_by(|a, b| {
         b.severity
             .cmp(&a.severity)

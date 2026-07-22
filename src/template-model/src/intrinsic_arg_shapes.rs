@@ -10,6 +10,13 @@ use diagnostics::Diagnostic;
 
 const SELECT_SOURCE_FUNCTIONS: &[&str] = &[FN_FIND_IN_MAP, FN_GET_ATT, FN_GET_AZS, FN_IF, FN_SPLIT, FN_CIDR, FN_REF];
 
+// The Fn::Select *index* accepts a narrower set than the source: only
+// reference/lookup functions that can produce an integer, plus Fn::Length under
+// the LanguageExtensions transform (from the published select schema's
+// if/then/else on the transform).
+const SELECT_INDEX_FUNCTIONS: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
+const SELECT_INDEX_FUNCTIONS_EXT: &[&str] = &[FN_REF, FN_FIND_IN_MAP, FN_LENGTH];
+
 const SPLIT_SOURCE_FUNCTIONS: &[&str] =
     &[FN_BASE64, FN_FIND_IN_MAP, FN_GET_ATT, FN_GET_AZS, FN_IF, FN_IMPORT_VALUE, FN_JOIN, FN_SELECT, FN_SUB, FN_REF];
 
@@ -114,7 +121,10 @@ fn operand_constraints(
     has_lang_ext: bool,
 ) -> Vec<(&'static str, NodeRef, &'static [&'static str])> {
     match intrinsic {
-        IntrinsicFn::Select(_, source) => vec![("E1017", *source, SELECT_SOURCE_FUNCTIONS)],
+        IntrinsicFn::Select(index, source) => {
+            let index_allowed = if has_lang_ext { SELECT_INDEX_FUNCTIONS_EXT } else { SELECT_INDEX_FUNCTIONS };
+            vec![("E1017", *index, index_allowed), ("E1017", *source, SELECT_SOURCE_FUNCTIONS)]
+        }
         IntrinsicFn::Split(_, source) => vec![("E1018", *source, SPLIT_SOURCE_FUNCTIONS)],
         IntrinsicFn::Sub(_, Some(variables)) => {
             variables.iter().map(|(_, value)| ("E1019", *value, SUB_VARIABLE_FUNCTIONS)).collect()
@@ -161,6 +171,11 @@ mod tests {
         arena.alloc(SpannedNode { node: Node::Intrinsic(intrinsic), span: UNKNOWN_SPAN, path: PROPERTY_PATH.into() })
     }
 
+    fn alloc_string_list(arena: &mut Arena, values: &[&str]) -> NodeRef {
+        let items: Vec<NodeRef> = values.iter().map(|v| alloc_string(arena, v)).collect();
+        arena.alloc(SpannedNode { node: Node::List(items), span: UNKNOWN_SPAN, path: PROPERTY_PATH.into() })
+    }
+
     fn alloc_sub(arena: &mut Arena) -> NodeRef {
         alloc_intrinsic(arena, IntrinsicFn::Sub("${x}".into(), None))
     }
@@ -169,6 +184,43 @@ mod tests {
         let block = alloc_string(arena, "10.0.0.0/16");
         let count = arena.alloc(SpannedNode { node: Node::Int(6), span: UNKNOWN_SPAN, path: PROPERTY_PATH.into() });
         alloc_intrinsic(arena, IntrinsicFn::Cidr(block, count, count))
+    }
+
+    #[test]
+    fn select_index_disallowed_function_fires() {
+        // Fn::Base64 cannot produce the Select index.
+        let mut arena = Arena::new();
+        let arg = alloc_string(&mut arena, "0");
+        let index = alloc_intrinsic(&mut arena, IntrinsicFn::Base64(arg));
+        let source = alloc_string_list(&mut arena, &["a", "b"]);
+        alloc_intrinsic(&mut arena, IntrinsicFn::Select(index, source));
+        let diags = validate_intrinsic_arg_shapes(&arena, &[]);
+        assert_eq!(diags.len(), 1, "{:?}", diags);
+        assert_eq!(diags[0].rule_id, "E1017");
+        assert_eq!(diags[0].message, "'Fn::Base64' is not supported as an argument to 'Fn::Select'");
+    }
+
+    #[test]
+    fn select_index_ref_is_accepted() {
+        let mut arena = Arena::new();
+        let index = alloc_intrinsic(&mut arena, IntrinsicFn::Ref("IndexParam".into()));
+        let source = alloc_string_list(&mut arena, &["a", "b"]);
+        alloc_intrinsic(&mut arena, IntrinsicFn::Select(index, source));
+        assert!(validate_intrinsic_arg_shapes(&arena, &[]).is_empty());
+    }
+
+    #[test]
+    fn select_index_length_requires_language_extensions() {
+        let mut arena = Arena::new();
+        let list = alloc_string_list(&mut arena, &["a"]);
+        let index = alloc_intrinsic(&mut arena, IntrinsicFn::Length(list));
+        let source = alloc_string_list(&mut arena, &["a", "b"]);
+        alloc_intrinsic(&mut arena, IntrinsicFn::Select(index, source));
+        assert_eq!(validate_intrinsic_arg_shapes(&arena, &[]).len(), 1, "Length index needs the transform");
+        assert!(
+            validate_intrinsic_arg_shapes(&arena, &[TRANSFORM_LANGUAGE_EXTENSIONS.to_string()]).is_empty(),
+            "Length index is allowed with LanguageExtensions"
+        );
     }
 
     #[test]

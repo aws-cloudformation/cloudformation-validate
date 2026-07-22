@@ -803,3 +803,24 @@ fn rules_section_ref_appears_in_diagnostic_edges_array() {
         "diagnostic edges array must contain a Ref to BootstrapVersion sourced from a Rules pseudo-resource"
     );
 }
+
+#[test]
+fn rules_equals_getatt_operand_reports_once() {
+    // A GetAtt operand of Fn::Equals in a Rules assertion is the parser's
+    // not-a-string finding; the Rules-section allowlist walk must not report
+    // the same operand a second time.
+    let yaml = b"
+Rules:
+  R1:
+    Assertions:
+      - Assert: !Equals [!GetAtt B.Arn, x]
+Resources:
+  B:
+    Type: AWS::S3::Bucket
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let e8003 = model.diagnostics.iter().filter(|d| d.rule_id == "E8003").count();
+    let f8611 = model.diagnostics.iter().filter(|d| d.rule_id == "F8611").count();
+    assert_eq!(e8003, 1, "operand type finding fires once: {:?}", model.diagnostics);
+    assert_eq!(f8611, 0, "allowlist walk must not double-report the operand: {:?}", model.diagnostics);
+}

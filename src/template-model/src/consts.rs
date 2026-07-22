@@ -318,6 +318,58 @@ pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
 
 pub const FN_FOR_EACH_KEY_PREFIX: &str = "Fn::ForEach::";
 
+/// Every intrinsic-function key that the parser can write into a node's build
+/// path. Path-based checks that ask "is this string nested inside a function?"
+/// must match against this list rather than the bare `Fn::` prefix: a user map
+/// key may legitimately start with `Fn::` (e.g. a Lambda environment variable
+/// named `Fn::Custom`) without being a function.
+pub const INTRINSIC_FN_PATH_SEGMENTS: &[&str] = &[
+    FN_GET_ATT,
+    FN_SUB,
+    FN_JOIN,
+    FN_SELECT,
+    FN_IF,
+    FN_FIND_IN_MAP,
+    FN_SPLIT,
+    FN_BASE64,
+    FN_CIDR,
+    FN_GET_AZS,
+    FN_GET_STACK_OUTPUT,
+    FN_IMPORT_VALUE,
+    FN_TRANSFORM,
+    FN_AND,
+    FN_OR,
+    FN_NOT,
+    FN_EQUALS,
+    FN_TO_JSON_STRING,
+    FN_LENGTH,
+    FN_FOR_EACH,
+    FN_VALUE_OF,
+    FN_VALUE_OF_ALL,
+    FN_REF_ALL,
+    FN_CONTAINS,
+    FN_EACH_MEMBER_EQUALS,
+    FN_EACH_MEMBER_IN,
+];
+
+/// Resource property paths where an `ssm-secure` dynamic reference is
+/// supported, from the reference implementation's secure-string rule
+/// (`DynamicReferenceSecureString.exceptions`). Paths use the resource *type*
+/// (not the logical ID) and `*` for array indices.
+pub const SSM_SECURE_ALLOWED_PROPERTY_PATHS: &[&str] = &[
+    "Resources/AWS::DirectoryService::MicrosoftAD/Properties/Password",
+    "Resources/AWS::DirectoryService::SimpleAD/Properties/Password",
+    "Resources/AWS::ElastiCache::ReplicationGroup/Properties/AuthToken",
+    "Resources/AWS::IAM::User/Properties/LoginProfile/Password",
+    "Resources/AWS::KinesisFirehose::DeliveryStream/Properties/RedshiftDestinationConfiguration/Password",
+    "Resources/AWS::OpsWorks::App/Properties/AppSource/Password",
+    "Resources/AWS::OpsWorks::Stack/Properties/RdsDbInstances/*/DbPassword",
+    "Resources/AWS::OpsWorks::Stack/Properties/CustomCookbooksSource/Password",
+    "Resources/AWS::RDS::DBCluster/Properties/MasterUserPassword",
+    "Resources/AWS::RDS::DBInstance/Properties/MasterUserPassword",
+    "Resources/AWS::Redshift::Cluster/Properties/MasterUserPassword",
+];
+
 /// The YAML 1.1 merge key. A mapping entry `<<: <alias-or-list-of-aliases>` splices
 /// the referenced mapping(s) into the enclosing mapping, with explicit keys winning
 /// over merged ones and earlier merge sources winning over later ones.

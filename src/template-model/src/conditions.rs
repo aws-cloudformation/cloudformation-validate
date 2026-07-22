@@ -298,17 +298,35 @@ impl ConditionModel {
         for (&idx, &val) in &assumption_map {
             assignment[idx] = val;
         }
-        let mut iterations = 0u64;
-        let satisfiable = self.search_relevant(
-            0,
-            &mut assignment,
+        // Implications restricted to the relevant set, as index pairs, plus
+        // each index's position in the (sorted) relevant order. The search
+        // consults these per assigned node; precomputing keeps that check
+        // O(implications touching the node) instead of a scan of every
+        // implication times a scan of the relevant prefix.
+        let position_of: HashMap<usize, usize> =
+            relevant_indices.iter().enumerate().map(|(pos, &idx)| (idx, pos)).collect();
+        let mut implication_pairs: Vec<(usize, usize)> = self
+            .implications
+            .iter()
+            .filter_map(|imp| {
+                let a = name_to_idx.get(imp.antecedent.as_str()).copied()?;
+                let c = name_to_idx.get(imp.consequent.as_str()).copied()?;
+                (position_of.contains_key(&a) && position_of.contains_key(&c)).then_some((a, c))
+            })
+            .collect();
+        implication_pairs.sort_unstable();
+        implication_pairs.dedup();
+        let search = SearchContext {
             cond_names,
-            &name_to_idx,
-            &assumption_map,
-            &relevant_indices,
-            &relevant_param_values,
-            &mut iterations,
-        );
+            name_to_idx: &name_to_idx,
+            assumptions: &assumption_map,
+            relevant: &relevant_indices,
+            param_values: &relevant_param_values,
+            implication_pairs: &implication_pairs,
+            position_of: &position_of,
+        };
+        let mut iterations = 0u64;
+        let satisfiable = self.search_relevant(0, &mut assignment, &search, &mut iterations);
         self.sat_iterations_used.fetch_add(iterations + n as u64, Ordering::Relaxed);
         if iterations > MAX_SAT_ITERATIONS
             && let Ok(mut guard) = self.budget_exhausted_queries.lock()
@@ -369,19 +387,22 @@ impl ConditionModel {
                 }
             }
         }
+        // Implication endpoints are deliberately NOT pulled into the closure:
+        // conditions over the same parameters already join through their mutex
+        // groups (which is how Rules-section synthetic conditions enter), and
+        // expanding through the implication graph would fuse every derived
+        // condition into one giant closure on templates with many And/Or
+        // conditions, exploding the search space. An implication whose
+        // endpoint is outside the closure is simply not enforced for this
+        // query — the conservative direction.
         relevant
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn search_relevant(
         &self,
         rel_idx: usize,
         assignment: &mut Vec<bool>,
-        cond_names: &[String],
-        name_to_idx: &HashMap<&str, usize>,
-        assumptions: &HashMap<usize, bool>,
-        relevant: &[usize],
-        param_values: &HashMap<String, Vec<String>>,
+        search: &SearchContext<'_>,
         iterations: &mut u64,
     ) -> bool {
         *iterations += 1;
@@ -390,21 +411,26 @@ impl ConditionModel {
             return true;
         }
 
-        if rel_idx == relevant.len() {
+        if rel_idx == search.relevant.len() {
             return self.assignment_consistent_with_parameters(
                 assignment,
-                cond_names,
-                name_to_idx,
-                relevant,
-                param_values,
+                search.cond_names,
+                search.name_to_idx,
+                search.relevant,
+                search.param_values,
                 iterations,
             );
         }
 
-        let idx = relevant[rel_idx];
+        let idx = search.relevant[rel_idx];
+        // An index is assigned once its position in the relevant order has been
+        // reached; positions above `rel_idx` still hold stale values.
+        let assigned = |i: usize, assignment: &[bool]| {
+            search.position_of.get(&i).is_some_and(|&p| p <= rel_idx).then(|| assignment[i])
+        };
 
         for &val in &[false, true] {
-            if let Some(&required) = assumptions.get(&idx)
+            if let Some(&required) = search.assumptions.get(&idx)
                 && val != required
             {
                 continue;
@@ -422,9 +448,10 @@ impl ConditionModel {
                     // equivalent and may all hold together.
                     let mut true_values: HashSet<&str> = HashSet::new();
                     for (position, condition_name) in group.conditions.iter().enumerate() {
-                        let condition_holds = name_to_idx
+                        let condition_holds = search
+                            .name_to_idx
                             .get(condition_name.as_str())
-                            .map(|&i| relevant[..=rel_idx].contains(&i) && assignment[i])
+                            .and_then(|&i| assigned(i, assignment))
                             .unwrap_or(false);
                         if condition_holds {
                             true_values.insert(group.values[position].as_str());
@@ -440,16 +467,22 @@ impl ConditionModel {
                 }
             }
 
-            if self.search_relevant(
-                rel_idx + 1,
-                assignment,
-                cond_names,
-                name_to_idx,
-                assumptions,
-                relevant,
-                param_values,
-                iterations,
-            ) {
+            // Check implication constraints: `antecedent => consequent` prunes
+            // any assignment with the antecedent true and the consequent false
+            // once both endpoints have been assigned. This is what makes
+            // Rules-section assertions (registered as implications over
+            // synthetic conditions) actually constrain satisfiability. Only
+            // pairs whose endpoints are both in the relevant set are checked
+            // (precomputed), so the per-node cost is bounded by the number of
+            // implications actually in play.
+            let implication_violated = search.implication_pairs.iter().any(|&(ante, cons)| {
+                assigned(ante, assignment) == Some(true) && assigned(cons, assignment) == Some(false)
+            });
+            if implication_violated {
+                continue;
+            }
+
+            if self.search_relevant(rel_idx + 1, assignment, search, iterations) {
                 return true;
             }
         }
@@ -772,7 +805,16 @@ impl ConditionModel {
     }
 
     pub fn register_inline(&mut self, name: String, expr: ConditionExpr) {
-        self.conditions.insert(name, expr);
+        self.register_inline_batch(std::iter::once((name, expr)));
+    }
+
+    /// Registers many inline conditions at once, recomputing the derived mutex
+    /// groups and implications a single time. Registering a large batch through
+    /// `register_inline` would recompute them per insertion (quadratic).
+    pub fn register_inline_batch(&mut self, items: impl IntoIterator<Item = (String, ConditionExpr)>) {
+        for (name, expr) in items {
+            self.conditions.insert(name, expr);
+        }
         self.mutex_groups = extract_mutex_groups(&self.conditions);
         self.implications = extract_implications(&self.conditions);
         // Inserting a condition can introduce parameter references the cached
@@ -786,11 +828,7 @@ impl ConditionModel {
         self.sorted_condition_names = OnceLock::new();
     }
 
-    pub fn register_rule_implications(
-        &mut self,
-        arena: &crate::ir::Arena,
-        rules: &[(String, crate::ir::NodeRef, Vec<crate::ir::NodeRef>)],
-    ) {
+    pub fn register_rule_implications(&mut self, arena: &Arena, rules: &[(String, NodeRef, Vec<NodeRef>)]) {
         // A Rules-section `RuleCondition => Assertions` relationship becomes a set
         // of implications `__rule_cond_<rule> => __rule_assert_<rule>_<i>`. These
         // are collected separately because `extract_implications` (below) only
@@ -798,7 +836,7 @@ impl ConditionModel {
         // them — appending after the structural pass keeps both.
         let mut rule_implications: Vec<Implication> = Vec::new();
         for (rule_name, condition_node, assertion_nodes) in rules {
-            let antecedent = if *condition_node != crate::ir::NULL_REF {
+            let antecedent = if *condition_node != NULL_REF {
                 let expr = parse_condition_expr(arena, *condition_node, &self.parameters);
                 let synth_name = format!("__rule_cond_{}", rule_name);
                 self.conditions.insert(synth_name.clone(), expr);
@@ -808,7 +846,7 @@ impl ConditionModel {
             };
 
             for (idx, assert_node) in assertion_nodes.iter().enumerate() {
-                if *assert_node == crate::ir::NULL_REF {
+                if *assert_node == NULL_REF {
                     continue;
                 }
                 let assert_expr = parse_condition_expr(arena, *assert_node, &self.parameters);
@@ -1262,23 +1300,45 @@ fn extract_equals_test(expr: &ConditionExpr) -> Option<(String, String, bool)> {
     }
 }
 
+/// Immutable inputs of one satisfiability search, bundled so the recursive
+/// walk carries a single reference instead of seven parameters.
+struct SearchContext<'a> {
+    cond_names: &'a [String],
+    name_to_idx: &'a HashMap<&'a str, usize>,
+    assumptions: &'a HashMap<usize, bool>,
+    relevant: &'a [usize],
+    param_values: &'a HashMap<String, Vec<String>>,
+    /// Implications with both endpoints relevant, as `cond_names` index pairs.
+    implication_pairs: &'a [(usize, usize)],
+    /// Each relevant index's position in the sorted relevant order.
+    position_of: &'a HashMap<usize, usize>,
+}
+
+/// Derives `antecedent => consequent` pairs from `And`/`Or` condition
+/// structure. These are *enforced* by the satisfiability search, so only
+/// logically sound pairs may be produced:
+///
+/// * `X = And(...)` implies each condition reference reachable through nested
+///   `And`s (`And(And(A, B), C)` implies `A`, `B`, and `C`) — but nothing
+///   under an `Or` or `Not` child, whose references are not individually
+///   entailed.
+/// * Symmetrically, each condition reference reachable through nested `Or`s
+///   implies `X = Or(...)`, and nothing under an `And` or `Not` child does.
 fn extract_implications(conditions: &HashMap<String, ConditionExpr>) -> Vec<Implication> {
     let mut implications = Vec::new();
 
     for (name, expr) in conditions {
         match expr {
             ConditionExpr::And(children) => {
-                // And(A, B, ...) = true implies each child is true
                 let mut refs = Vec::new();
-                collect_nested_condition_refs_from_list(children, &mut refs);
+                collect_same_operator_refs(children, true, &mut refs);
                 for ref_name in refs {
                     implications.push(Implication { antecedent: name.clone(), consequent: ref_name });
                 }
             }
             ConditionExpr::Or(children) => {
-                // If any child is true, the Or is true — each child implies the Or
                 let mut refs = Vec::new();
-                collect_nested_condition_refs_from_list(children, &mut refs);
+                collect_same_operator_refs(children, false, &mut refs);
                 for ref_name in refs {
                     implications.push(Implication { antecedent: ref_name, consequent: name.clone() });
                 }
@@ -1290,21 +1350,17 @@ fn extract_implications(conditions: &HashMap<String, ConditionExpr>) -> Vec<Impl
     implications
 }
 
-fn collect_nested_condition_refs_from_list(exprs: &[ConditionExpr], out: &mut Vec<String>) {
+/// Collects condition references reachable through nested operators of the
+/// *same* kind only (`in_and` selects which). Crossing into the other operator
+/// or a `Not` breaks entailment, so those subtrees are skipped.
+fn collect_same_operator_refs(exprs: &[ConditionExpr], in_and: bool, out: &mut Vec<String>) {
     for child in exprs {
-        collect_nested_condition_refs(child, out);
-    }
-}
-
-fn collect_nested_condition_refs(expr: &ConditionExpr, out: &mut Vec<String>) {
-    match expr {
-        ConditionExpr::ConditionRef(name) => out.push(name.clone()),
-        ConditionExpr::And(children) | ConditionExpr::Or(children) => {
-            for child in children {
-                collect_nested_condition_refs(child, out);
-            }
+        match child {
+            ConditionExpr::ConditionRef(name) => out.push(name.clone()),
+            ConditionExpr::And(children) if in_and => collect_same_operator_refs(children, in_and, out),
+            ConditionExpr::Or(children) if !in_and => collect_same_operator_refs(children, in_and, out),
+            _ => {}
         }
-        _ => {}
     }
 }
 
@@ -2118,6 +2174,13 @@ Resources:
     /// by an unsatisfiable `Contra = And(Top, Not(Top))`. `Top` transitively
     /// depends on the whole chain, so deciding `Contra` forces the solver to
     /// reason over every condition in the chain.
+    ///
+    /// Each link is written in De Morgan form (`Not(Or(Not(a), Not(b)))` for
+    /// `And`, `Not(And(Not(a), Not(b)))` for `Or`) so the implication extractor
+    /// — which only reads top-level `And`/`Or` structure — derives nothing from
+    /// the chain. That keeps implication pruning out of the search, which is
+    /// the point: this test exercises the *raw iteration budget*, not the
+    /// implication constraints (covered by their own tests).
     fn chain_with_contradiction(chain_len: usize) -> String {
         let mut s = String::from(
             "Parameters:\n  P0:\n    Type: String\n    AllowedValues: [yes, no]\n  \
@@ -2126,12 +2189,13 @@ Resources:
              C001:\n    Fn::Equals: [!Ref P1, yes]\n",
         );
         for i in 2..chain_len {
-            let op = if i % 2 == 0 { "Fn::And" } else { "Fn::Or" };
+            // De Morgan: even links are And(a, b), odd links are Or(a, b).
+            let outer_inner = if i % 2 == 0 { "Fn::Or" } else { "Fn::And" };
             let _ = write!(
                 s,
-                "  C{:03}:\n    {}:\n      - Condition: C{:03}\n      - Condition: C{:03}\n",
+                "  C{:03}:\n    Fn::Not:\n      - {}:\n          - Fn::Not:\n              - Condition: C{:03}\n          - Fn::Not:\n              - Condition: C{:03}\n",
                 i,
-                op,
+                outer_inner,
                 i - 1,
                 i - 2
             );
@@ -2320,6 +2384,101 @@ Resources:
             before_short_circuit,
             "an exhausted-budget query must short-circuit without performing or charging further \
              search work"
+        );
+    }
+
+    #[test]
+    fn rules_section_implication_eliminates_impossible_scenario() {
+        // Rules: when Env == prod, an assertion requires Env == dev — so a
+        // condition equivalent to Env == prod can never hold. The implication
+        // must actually constrain the SAT search, not merely be recorded.
+        let yaml = b"
+Parameters:
+  Env:
+    Type: String
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+Rules:
+  RejectProd:
+    RuleCondition: !Equals [!Ref Env, prod]
+    Assertions:
+      - Assert: !Equals [!Ref Env, dev]
+Resources:
+  B:
+    Type: AWS::S3::Bucket
+    Condition: IsProd
+";
+        let model = crate::SemanticModel::from_bytes(yaml).expect("model builds");
+        assert!(
+            !model.conditions.is_satisfiable(&[("IsProd".to_string(), true)]),
+            "IsProd=true contradicts the Rules assertion and must be unsatisfiable"
+        );
+        assert!(model.conditions.is_satisfiable(&[("IsProd".to_string(), false)]), "IsProd=false remains satisfiable");
+    }
+
+    #[test]
+    fn rules_without_rule_condition_do_not_constrain_unrelated_queries() {
+        // An unconditional assertion has no antecedent implication; unrelated
+        // conditions stay satisfiable both ways.
+        let yaml = b"
+Parameters:
+  Env:
+    Type: String
+  Other:
+    Type: String
+Conditions:
+  UsesOther: !Equals [!Ref Other, x]
+Rules:
+  AlwaysDev:
+    Assertions:
+      - Assert: !Equals [!Ref Env, dev]
+Resources:
+  B:
+    Type: AWS::S3::Bucket
+    Condition: UsesOther
+";
+        let model = crate::SemanticModel::from_bytes(yaml).expect("model builds");
+        assert!(model.conditions.is_satisfiable(&[("UsesOther".to_string(), true)]));
+        assert!(model.conditions.is_satisfiable(&[("UsesOther".to_string(), false)]));
+    }
+
+    #[test]
+    fn mixed_nesting_produces_no_unsound_implications() {
+        // `Complex = And(Or(A, B), Not(C))` entails none of A, B, C
+        // individually, and none of them entails Complex. An unsound
+        // implication here would be enforced by the search and wrongly prune
+        // satisfiable scenarios (a real false-positive source for the
+        // unreachable-branch rule).
+        let yaml = b"
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [dev, prod]
+  Flag:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  A: !Equals [!Ref Env, prod]
+  B: !Equals [!Ref Env, dev]
+  C: !Equals [!Ref Flag, 'true']
+  Complex: !And [!Or [!Condition A, !Condition B], !Not [!Condition C]]
+  Inline: !And [!Condition B, !Condition C]
+  NotA: !Not [!Condition A]
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+    Condition: NotA
+";
+        let model = crate::SemanticModel::from_bytes(yaml).expect("model builds");
+        assert!(
+            !model.conditions.implications.iter().any(|i| i.antecedent == "Complex" || i.consequent == "Complex"),
+            "no implication may involve the mixed-nesting condition: {:?}",
+            model.conditions.implications
+        );
+        // Env=dev, Flag=false satisfies NotA=true with Inline=false.
+        assert!(
+            model.conditions.is_satisfiable(&[("NotA".to_string(), true), ("Inline".to_string(), false)]),
+            "sound implications must not prune this satisfiable scenario"
         );
     }
 }

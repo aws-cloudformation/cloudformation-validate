@@ -21,7 +21,7 @@
 use crate::consts::{FN_FOR_EACH_KEY_PREFIX, MAX_RESOLVE_DEPTH, TRANSFORM_LANGUAGE_EXTENSIONS};
 use crate::ir::{Arena, IntrinsicFn, NULL_REF, Node, NodeRef, SpannedNode, TemplateIR};
 use diagnostics::{Diagnostic, SourceSpan, UNKNOWN_SPAN};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Recursion ceiling for the expansion tree walk. This walk traverses the same
 /// IR the resolver walks immediately afterwards, so it shares the resolver's
@@ -33,8 +33,11 @@ const MAX_EXPANSION_DEPTH: u32 = MAX_RESOLVE_DEPTH;
 
 /// The loop-variable bindings in scope during expansion. Each `Fn::ForEach`
 /// iteration binds its identifier to a single scalar value (the current
-/// collection element), so a binding is always a scalar string.
-type Bindings = HashMap<String, String>;
+/// collection element), so a binding is always a scalar string. A `BTreeMap`
+/// keeps substitution order deterministic: when one binding's value textually
+/// contains another binding's placeholder, iteration order decides the result,
+/// and a hash map would make that vary run to run.
+type Bindings = BTreeMap<String, String>;
 
 pub(crate) fn expand_language_extensions(ir: &mut TemplateIR) -> Vec<Diagnostic> {
     if !ir.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS) {
@@ -43,10 +46,10 @@ pub(crate) fn expand_language_extensions(ir: &mut TemplateIR) -> Vec<Diagnostic>
 
     let mut diagnostics = Vec::new();
     let bindings = Bindings::new();
-    // `Fn::ForEach` is only expanded where CloudFormation applies it: the
-    // Conditions, Resources, and Outputs top-level maps. The walk recurses into
-    // nested maps/lists from there, so nested loops are covered.
-    for section_ref in [ir.conditions, ir.resources, ir.outputs] {
+    // `Fn::ForEach` is expanded where CloudFormation applies it: the
+    // Conditions, Mappings, Resources, and Outputs top-level maps. The walk
+    // recurses into nested maps/lists from there, so nested loops are covered.
+    for section_ref in [ir.conditions, ir.mappings, ir.resources, ir.outputs] {
         if section_ref != NULL_REF {
             let rewritten =
                 walk(&mut ir.arena, section_ref, &bindings, 0, &mut diagnostics, ir.parameters, ir.mappings);
@@ -175,7 +178,10 @@ fn walk_intrinsic(
             let no_map = new_subs.as_ref().map(|s| s.is_empty()).unwrap_or(true);
             if no_map && !contains_sub_variable(&new_template) {
                 arena.alloc(SpannedNode {
-                    node: Node::String(new_template),
+                    // `Fn::Sub` renders the literal escape `${!Name}` as
+                    // `${Name}`; apply that here so the collapsed string equals
+                    // what CloudFormation would produce.
+                    node: Node::String(unescape_sub_literals(&new_template)),
                     span: spanned.span,
                     path: spanned.path.clone(),
                 })
@@ -380,9 +386,11 @@ fn resolve_collection(
                         values.push(v.clone());
                     }
                 }
-                // A non-literal member cannot be resolved offline; fall back to a
-                // placeholder so the body is still expanded once.
-                _ => values.push(placeholder(0)),
+                // A non-literal member cannot be resolved offline; fall back to
+                // a placeholder. Placeholders are indexed so distinct members
+                // stay distinct — a shared placeholder would collapse the
+                // generated keys and report a duplicate that does not exist.
+                _ => values.push(placeholder(values.len())),
             }
         }
         return values;
@@ -420,8 +428,9 @@ fn placeholder(index: usize) -> String {
     format!("ForEachValue{}", index)
 }
 
-/// Returns the comma-delimited list value of a parameter default / first allowed
-/// value when it is a `CommaDelimitedList` (or `List<...>`), else `None`.
+/// Returns the comma-delimited list value of a parameter when it is a
+/// `CommaDelimitedList` (or `List<...>`): the `Default` when present, else the
+/// first `AllowedValues` entry (the reference implementation's fallback order).
 fn parameter_collection(arena: &Arena, name: &str, parameters: NodeRef) -> Option<Vec<String>> {
     if parameters == NULL_REF {
         return None;
@@ -433,13 +442,20 @@ fn parameter_collection(arena: &Arena, name: &str, parameters: NodeRef) -> Optio
     if !(param_type == "CommaDelimitedList" || param_type.starts_with("List<")) {
         return None;
     }
-    let default_ref = entries.iter().find(|(k, _)| k == "Default").map(|(_, v)| *v)?;
-    let default = arena.as_str(default_ref)?;
-    Some(default.split(',').map(|s| s.trim().to_string()).collect())
+    let scalar = entries.iter().find(|(k, _)| k == "Default").and_then(|(_, v)| arena.as_str(*v)).or_else(|| {
+        let allowed_ref = entries.iter().find(|(k, _)| k == "AllowedValues").map(|(_, v)| *v)?;
+        let first = arena.as_list(allowed_ref)?.first().copied()?;
+        arena.as_str(first)
+    })?;
+    Some(scalar.split(',').map(|s| s.trim().to_string()).collect())
 }
 
-/// Resolves a `Fn::FindInMap[map, top, second]` to a literal list when all keys
-/// are literal strings and the mapping value is a list of scalars.
+/// Resolves a `Fn::FindInMap[map, top, second]` to a literal list when the
+/// mapping value is a list of scalars. Mirrors the reference implementation's
+/// fallbacks: an unresolvable *top* key is satisfied by scanning the mapping's
+/// top-level entries for one that contains the (literal) second key, preferring
+/// the entry with the longest list — so `!FindInMap [M, !Ref Env, Names]`
+/// resolves through whichever environment block defines `Names`.
 fn findinmap_list(
     arena: &Arena,
     map: NodeRef,
@@ -451,10 +467,26 @@ fn findinmap_list(
         return None;
     }
     let map_name = arena.as_str(map)?;
-    let top_key = arena.as_str(top)?;
     let second_key = arena.as_str(second)?;
     let map_node = arena.map_get(mappings, map_name)?;
-    let top_node = arena.map_get(map_node, top_key)?;
+    let top_node = match arena.as_str(top) {
+        Some(top_key) => arena.map_get(map_node, top_key)?,
+        // Top key not a literal (e.g. `!Ref Environment`): fall back to the
+        // top-level entry containing the second key with the longest list.
+        None => {
+            let entries = arena.as_map(map_node)?;
+            let mut best: Option<(usize, NodeRef)> = None;
+            for (_, entry_ref) in entries {
+                if let Some(value_ref) = arena.map_get(*entry_ref, second_key)
+                    && let Some(items) = arena.as_list(value_ref)
+                    && best.map(|(len, _)| items.len() > len).unwrap_or(true)
+                {
+                    best = Some((items.len(), *entry_ref));
+                }
+            }
+            best.map(|(_, entry)| entry)?
+        }
+    };
     let value_node = arena.map_get(top_node, second_key)?;
     let items = arena.as_list(value_node)?;
     let mut values = Vec::with_capacity(items.len());
@@ -551,6 +583,12 @@ fn contains_sub_variable(s: &str) -> bool {
         }
     }
     false
+}
+
+/// Renders `Fn::Sub`'s literal escape sequences: every `${!` becomes `${`,
+/// which is how CloudFormation produces the final string.
+fn unescape_sub_literals(s: &str) -> String {
+    s.replace("${!", "${")
 }
 
 fn transform_error(message: &str, span: SourceSpan, build_path: &str) -> Diagnostic {
@@ -698,5 +736,106 @@ Resources:
         );
         let ids = resource_ids(&m);
         assert_eq!(ids, vec!["Bucketa1", "Bucketa2", "Bucketb1", "Bucketb2"]);
+    }
+
+    #[test]
+    fn mappings_section_loops_expand() {
+        // The reference implementation expands Fn::ForEach in Mappings; the
+        // generated maps must exist and the raw macro key must not trip the
+        // Mappings shape check.
+        let m = model(
+            "\
+Transform: AWS::LanguageExtensions
+Mappings:
+  Fn::ForEach::MapLoop:
+    - X
+    - [a, b]
+    - Map${X}:
+        k:
+          v: value
+Resources:
+  B:
+    Type: AWS::S3::Bucket
+",
+        );
+        assert!(!m.diagnostics.iter().any(|d| d.rule_id == "F0017"), "no Mappings shape error: {:?}", m.diagnostics);
+    }
+
+    #[test]
+    fn unresolvable_collection_members_stay_distinct() {
+        // Two unresolvable members must produce two distinct placeholder values,
+        // not a duplicate-key transform error.
+        let m = model(
+            "\
+Transform: AWS::LanguageExtensions
+Parameters:
+  A:
+    Type: String
+  B:
+    Type: String
+Resources:
+  Fn::ForEach::Loop:
+    - X
+    - [!Ref A, !Ref B]
+    - Topic${X}:
+        Type: AWS::SNS::Topic
+",
+        );
+        assert!(
+            !m.diagnostics.iter().any(|d| d.rule_id == "E0001"),
+            "distinct placeholders must not collide: {:?}",
+            m.diagnostics
+        );
+        assert_eq!(m.resources.len(), 2, "both iterations materialize");
+    }
+
+    #[test]
+    fn findinmap_collection_resolves_through_unresolvable_top_key() {
+        // `!FindInMap [M, !Ref Env, Names]` with a single environment block:
+        // the collection resolves through the block containing `Names`, so the
+        // generated logical IDs use the real mapping values.
+        let m = model(
+            "\
+Transform: AWS::LanguageExtensions
+Parameters:
+  Env:
+    Type: String
+Mappings:
+  M:
+    prod:
+      Names: [One, Two]
+Resources:
+  Fn::ForEach::Loop:
+    - N
+    - !FindInMap [M, !Ref Env, Names]
+    - Topic${N}:
+        Type: AWS::SNS::Topic
+",
+        );
+        let ids = resource_ids(&m);
+        assert_eq!(ids, vec!["TopicOne", "TopicTwo"], "mapping fallback must resolve the collection");
+    }
+
+    #[test]
+    fn collapsed_sub_unescapes_literal_placeholders() {
+        let m = model(
+            "\
+Transform: AWS::LanguageExtensions
+Resources:
+  Fn::ForEach::Loop:
+    - X
+    - [a]
+    - Topic${X}:
+        Type: AWS::SNS::Topic
+        Properties:
+          DisplayName: !Sub \"lit-${!NotAVar}-end\"
+",
+        );
+        let topic = m.resources.get("Topica").expect("expanded");
+        let resolved = match topic.properties.get("DisplayName") {
+            Some(crate::resolver::ResolvedValue::Concrete { value }) => value.0.as_str().map(str::to_string),
+            _ => None,
+        };
+        assert_eq!(resolved.as_deref(), Some("lit-${NotAVar}-end"), "escape must render as CloudFormation does");
     }
 }

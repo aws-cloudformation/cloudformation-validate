@@ -19,13 +19,23 @@ pub fn validate_intrinsic_nesting(arena: &Arena) -> Vec<Diagnostic> {
         for (child_ref, allowlist) in restricted_children(intrinsic, in_rules) {
             if let Node::Intrinsic(child_fn) = arena.node(child_ref) {
                 let child_name = cfn_function_name(child_fn);
+                // A child the parser's boolean-operand check already rejects
+                // (anything outside `BOOLEAN_FN_KEYS`) is that check's finding;
+                // re-reporting it here would flag the same operand under two
+                // rule IDs. The nesting check owns only the context-sensitive
+                // remainder: boolean functions that are valid somewhere (e.g.
+                // the Rules-section membership functions) but not in this
+                // context.
+                if !BOOLEAN_FN_KEYS.contains(&child_name) {
+                    continue;
+                }
                 if !allowlist.contains(&child_name) {
                     let parent_name = cfn_function_name(intrinsic);
                     // Anchor at the offending child node's build path so that when its
                     // own byte span is unassigned, span resolution walks up to the
                     // nearest enclosing element rather than leaving it unlocated.
                     out.push(crate::make_parse_diagnostic_at(
-                        "E1101",
+                        "E9101",
                         format!("'{}' is not allowed inside '{}'", child_name, parent_name),
                         arena.span(child_ref),
                         &arena.get(child_ref).path,
@@ -113,25 +123,28 @@ mod tests {
     }
 
     #[test]
-    fn getatt_inside_and_produces_invalid_nesting() {
+    fn getatt_inside_and_is_parser_owned_not_nesting() {
+        // A GetAtt operand of Fn::And is rejected by the parser's boolean-operand
+        // check; the nesting check must stay silent so the operand is reported
+        // exactly once.
         let mut arena = Arena::new();
         let getatt = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::GetAtt("R".into(), "Arn".into())),
             span: UNKNOWN_SPAN,
-            path: "Conditions/C".into(),
+            path: "Conditions/C/Fn::And/0".into(),
+        });
+        let other = arena.alloc(SpannedNode {
+            node: Node::Intrinsic(IntrinsicFn::Equals(getatt, getatt)),
+            span: UNKNOWN_SPAN,
+            path: "Conditions/C/Fn::And/1".into(),
         });
         arena.alloc(SpannedNode {
-            node: Node::Intrinsic(IntrinsicFn::And(vec![getatt])),
+            node: Node::Intrinsic(IntrinsicFn::And(vec![getatt, other])),
             span: UNKNOWN_SPAN,
             path: "Conditions/C".into(),
         });
-
         let diags = validate_intrinsic_nesting(&arena);
-        assert!(
-            diags
-                .iter()
-                .any(|d| d.rule_id == "E1101" && d.message.contains("Fn::GetAtt") && d.message.contains("Fn::And"))
-        );
+        assert!(diags.is_empty(), "parser owns non-boolean operands: {:?}", diags);
     }
 
     #[test]
@@ -215,23 +228,46 @@ mod tests {
     }
 
     #[test]
-    fn ref_inside_not_produces_invalid_nesting() {
+    fn ref_inside_not_is_parser_owned_not_nesting() {
         let mut arena = Arena::new();
         let r = arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::Ref("Param".into())),
             span: UNKNOWN_SPAN,
-            path: "Conditions/C".into(),
+            path: "Conditions/C/Fn::Not/0".into(),
         });
         arena.alloc(SpannedNode {
             node: Node::Intrinsic(IntrinsicFn::Not(r)),
             span: UNKNOWN_SPAN,
             path: "Conditions/C".into(),
         });
-
         let diags = validate_intrinsic_nesting(&arena);
-        assert!(
-            diags.iter().any(|d| d.rule_id == "E1101" && d.message.contains("Ref") && d.message.contains("Fn::Not"))
-        );
+        assert!(diags.is_empty(), "parser owns non-boolean operands: {:?}", diags);
+    }
+
+    #[test]
+    fn rules_only_function_outside_rules_produces_invalid_nesting() {
+        // Fn::Contains is a boolean function, but only valid in the Rules
+        // section — in a Conditions-section Fn::And it is the nesting check's
+        // finding (the parser's boolean-operand check accepts it everywhere).
+        let mut arena = Arena::new();
+        let a = arena.alloc(SpannedNode {
+            node: Node::String("x".into()),
+            span: UNKNOWN_SPAN,
+            path: "Conditions/C/Fn::Contains/0".into(),
+        });
+        let contains = arena.alloc(SpannedNode {
+            node: Node::Intrinsic(IntrinsicFn::Contains(a, a)),
+            span: UNKNOWN_SPAN,
+            path: "Conditions/C/Fn::And/0".into(),
+        });
+        arena.alloc(SpannedNode {
+            node: Node::Intrinsic(IntrinsicFn::And(vec![contains])),
+            span: UNKNOWN_SPAN,
+            path: "Conditions/C".into(),
+        });
+        let diags = validate_intrinsic_nesting(&arena);
+        assert_eq!(diags.len(), 1, "{:?}", diags);
+        assert_eq!(diags[0].rule_id, "E9101");
     }
 
     #[test]

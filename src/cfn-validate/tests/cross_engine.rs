@@ -493,7 +493,7 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
         "bad/W1051_secretsmanager_at_arn.yaml",
         "bad/W1054_raw_pseudo_param.yaml",
         "bad/E8007_condition_undefined_in_expr.yaml",
-        "bad/E1106_condition_cycle.yaml",
+        "bad/E9106_condition_cycle.yaml",
         "bad/W9053_equivalent_conditions.yaml",
         "bad/W1019_sub_unused_key.yaml",
         "good/good_conditions_valid_refs.yaml",

@@ -628,10 +628,38 @@ def run_single():
         cfnlint_has_parse_error = any(
             d.get("rule_id") == "F0000" for d in cfnlint_all[key]
         )
-        fp = [d for d in fp_all if not _is_engine_extra(d)
-              and not cfnlint_has_parse_error]
-        ee = [d for d in fp_all if _is_engine_extra(d)
-              or cfnlint_has_parse_error]
+        # E1028: the engine reports every undefined Fn::If condition while
+        # cfn-lint (a) short-circuits after the first invalid one in a nested
+        # chain and (b) stops descending into subtrees whose parent already
+        # failed schema validation, never reaching the Fn::If inside. Both are
+        # engine-extra: (a) when cfn-lint fired E1028 on the template at all,
+        # (b) when a cfn-lint finding on the template embeds the same Fn::If
+        # (its type-mismatch messages quote the offending object, condition
+        # name included). An unmatched E1028 matching neither is a genuine
+        # false positive.
+        cfnlint_fired_e1028 = any(
+            d.get("rule_id") == "E1028" for d in cfnlint_all[key]
+        )
+
+        def _cfnlint_saw_condition(engine_diag):
+            m = re.search(r"Fn::If condition '([^']+)'", engine_diag.get("message", ""))
+            if not m:
+                return False
+            name = m.group(1)
+            return any(
+                "Fn::If" in d.get("message", "") and name in d.get("message", "")
+                for d in cfnlint_all[key]
+            )
+
+        def _extra(d):
+            if _is_engine_extra(d) or cfnlint_has_parse_error:
+                return True
+            if d.get("rule_id") != "E1028":
+                return False
+            return cfnlint_fired_e1028 or _cfnlint_saw_condition(d)
+
+        fp = [d for d in fp_all if not _extra(d)]
+        ee = [d for d in fp_all if _extra(d)]
         total_tp += len(m)
         total_fp += len(fp)
         total_ee += len(ee)

@@ -463,12 +463,12 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
                 and (diag.get("resource_id") == "myBucketFirstAndLastPass"
                      or "Fn::If" in diag.get("message", ""))):
             return True
-        # E1028: engine reports all undefined condition refs in a resource;
-        # cfn-lint short-circuits after the first invalid condition in a nested
-        # Fn::If chain. Extra findings past the first are engine-extra (correct
-        # but cfn-lint won't produce them).
-        if diag.get("rule_id") == "E1028":
-            return True
+        # E1028 is deliberately NOT exempted here: the engine reports all
+        # undefined condition refs while cfn-lint short-circuits after the
+        # first, but that excuse only holds when cfn-lint fired E1028 on the
+        # same template at all. The comparison driver applies that
+        # template-scoped exemption; a blanket exemption here would hide
+        # genuine E1028 false positives.
         return False
 
     return RuleOrigins(
