@@ -59,8 +59,11 @@ const GENERATED_JSON: &[(&str, &str)] = &[
 /// faithful cfn-lint source: deprecated_resource_types and sensitive_ports are
 /// engine-specific, getatt_return_type_overrides corrects CloudFormation's
 /// GetAtt stringification (consumed at generate time, not embedded).
-const HANDWRITTEN_JSON: &[(&str, &str)] =
-    &[("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"), ("sensitive_ports", "SENSITIVE_PORTS")];
+const HANDWRITTEN_JSON: &[(&str, &str)] = &[
+    ("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"),
+    ("sensitive_ports", "SENSITIVE_PORTS"),
+    ("secretsmanager_arn_fields", "SECRETSMANAGER_ARN_FIELDS"),
+];
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());

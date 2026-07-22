@@ -706,8 +706,8 @@ fn issue_62_f3032_fatal_on_empty_unconstrained_array() {
 /// retention properties (`SuccessRetentionPeriod` and `FailureRetentionPeriod`).
 /// When both are missing, exactly one I3013 fires — for the first missing
 /// property in declaration order, anchored on the properties object — rather than
-/// one per property, matching how the reference linter collapses the
-/// required-property check to a single best match.
+/// one per property: the retention check collapses to a single finding per
+/// resource.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/62
 #[test]
 fn issue_62_i3013_reports_single_retention_finding() {
@@ -840,7 +840,7 @@ Resources:
 /// and fail the enum comparison ("30.0 is not one of [1, 3, ..., 30, ...]").
 /// Whole numbers now stay integers through the parameter path and numeric
 /// scalars compare numerically, so W3030 must not fire on either the
-/// parameter-sourced or the literal 30.0 form — cfn-lint is clean on both.
+/// parameter-sourced or the literal 30.0 form — both are valid values.
 /// Handled in template-model, so both engines agree.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
 #[test]
@@ -881,8 +881,8 @@ Resources:
 /// carries a proper 12-digit account id — that ARN pins the calling account by
 /// itself. The issue's original ARN had a 10-digit account field, which is not
 /// a valid account id: it cannot pin the account, so W3663 fires for that
-/// resource only (and the ARN also fails the schema pattern, F3031) — matching
-/// cfn-lint, whose extension schema uses the same ':\d{12}:' trigger.
+/// resource only (and the ARN also fails the schema pattern, F3031) — the
+/// extension schema uses the ':\d{12}:' trigger.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/183
 #[test]
 fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
@@ -1296,7 +1296,7 @@ fn issue_201_parameter_diagnostics_carry_entity() {
             Some("Parameters/MyParam/Type"),
             "[{engine}] F2002 anchors at the Type value"
         );
-        // cfn-lint reports the invalid type at Parameters/MyParam/Type (line 4)
+        // The invalid type anchors at Parameters/MyParam/Type (line 4)
         // and the unused parameter at Parameters/MyParam (line 3).
         assert_eq!(f2002.location.expect("F2002 location").start_line, 4, "[{engine}]");
         let w2001 = diags.iter().find(|d| d.rule_id == "W2001").expect("W2001 fired");

@@ -585,12 +585,12 @@ mod tests {
             }
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
-        assert!(f0014.is_empty(), "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}", f0014);
+        let shape_errors: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "E8005").collect();
+        assert!(shape_errors.is_empty(), "Expected no E8005 for Fn::Not(Fn::Contains), got: {:?}", shape_errors);
     }
 
     #[test]
-    fn fn_and_accepts_rules_section_boolean_intrinsics_no_f0014() {
+    fn fn_and_accepts_rules_section_boolean_intrinsics_no_shape_error() {
         let input = r#"{
             "Resources": {"B": {"Type": "AWS::S3::Bucket"}},
             "Rules": {
@@ -608,15 +608,16 @@ mod tests {
             }
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
-        assert!(f0014.is_empty(), "Expected no F0014 for Fn::And of rule-section booleans, got: {:?}", f0014);
+        let shape_errors: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "E8004").collect();
+        assert!(
+            shape_errors.is_empty(),
+            "Expected no E8004 for Fn::And of rule-section booleans, got: {:?}",
+            shape_errors
+        );
     }
 
-    /// Genuinely-invalid input is still rejected — bare strings and
-    /// non-boolean-producing intrinsics like Fn::Sub remain a condition-function
-    /// error.
     #[test]
-    fn fn_not_with_string_argument_still_produces_f0014() {
+    fn fn_not_with_string_argument_produces_e8005() {
         let input = r#"{
             "Resources": {"B": {"Type": "AWS::S3::Bucket"}},
             "Conditions": {
@@ -625,16 +626,16 @@ mod tests {
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics.iter().any(|d| d.rule_id == "F0014"
+            ir.diagnostics.iter().any(|d| d.rule_id == "E8005"
                 && d.message.contains("Fn::Not")
                 && d.message.contains("is not of type 'boolean'")),
-            "Expected F0014 for Fn::Not with string arg, got: {:?}",
+            "Expected E8005 for Fn::Not with string arg, got: {:?}",
             ir.diagnostics
         );
     }
 
     #[test]
-    fn fn_not_with_non_boolean_intrinsic_still_produces_f0014() {
+    fn fn_not_with_non_boolean_intrinsic_produces_e8005() {
         let input = r#"{
             "Resources": {"B": {"Type": "AWS::S3::Bucket"}},
             "Conditions": {
@@ -643,8 +644,8 @@ mod tests {
         }"#;
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics.iter().any(|d| d.rule_id == "F0014" && d.message.contains("Fn::Not")),
-            "Expected F0014 for Fn::Not wrapping Fn::Sub, got: {:?}",
+            ir.diagnostics.iter().any(|d| d.rule_id == "E8005" && d.message.contains("Fn::Not")),
+            "Expected E8005 for Fn::Not wrapping Fn::Sub, got: {:?}",
             ir.diagnostics
         );
     }
@@ -685,13 +686,18 @@ mod tests {
     }
 
     #[test]
-    fn unknown_fn_prefix_emits_w1103() {
+    fn unknown_fn_prefix_far_from_any_function_is_data_not_w1103() {
+        // `Fn::Bogus` is not a near-miss of any real function, so it is treated
+        // as a data key: no parse warning — the schema validator reports the
+        // type mismatch where one exists.
         let input =
             r#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#;
         let ir = parse_json(input.as_bytes()).unwrap();
-        let w1103: Vec<&str> =
-            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+        assert!(
+            ir.diagnostics.iter().all(|d| d.rule_id != "W1103"),
+            "far-from-any-function keys are data: {:?}",
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -701,7 +707,7 @@ mod tests {
         let ir = parse_json(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function"]);
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
     }
 
     #[test]

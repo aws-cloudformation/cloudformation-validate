@@ -139,7 +139,7 @@ pub fn section_for_rule_id(rule_id: &str) -> Option<&'static str> {
         "F0009" => Some("Conditions"),
         "F0003" | "F0015" | "F0016" | "F2012" | "W2506" | "W2509" | "W2001" | "E2001" | "F2002" | "F2003" | "F2011"
         | "I2011" | "F2015" | "W2501" | "I2010" => Some("Parameters"),
-        "F0001" | "F0007" | "F0011" | "E0001" | "F0005" | "F1104" => Some("Resources"),
+        "F0001" | "F0007" | "F0011" | "E0001" | "F0005" | "E1028" => Some("Resources"),
         "F0002" => Some("AWSTemplateFormatVersion"),
         "F0004" => Some("Outputs"),
         "F8600" | "F8601" | "W8602" | "F8603" | "F8604" | "F8605" | "F8606" | "F8607" | "W8608" | "F8609" | "F8610"

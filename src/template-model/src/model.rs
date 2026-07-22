@@ -60,6 +60,12 @@ pub struct ResourceDiagnostics {
     pub foreach_expansions: Vec<ForEachExpansion>,
     /// Occurrences of ${...} placeholders outside an Fn::Sub that will not be substituted; each pairs the property path with the placeholder text.
     pub unsubstituted_variables: Vec<PathValuePair>,
+    /// Fn::Sub map keys not referenced in the template string; each pairs the property path with the unused key name.
+    pub unused_sub_keys: Vec<PathValuePair>,
+    /// Property values that are a raw pseudo-parameter string (e.g. "AWS::Region") instead of using Ref.
+    pub raw_pseudo_params: Vec<PathValuePair>,
+    /// Property paths containing a {{resolve:secretsmanager:...}} dynamic reference.
+    pub secretsmanager_ref_paths: Vec<String>,
     /// References whose target is not a defined resource, parameter, or pseudo parameter; each pairs the property path with the missing target name.
     pub invalid_refs: Vec<PathValuePair>,
 }
@@ -341,7 +347,8 @@ impl SemanticModel {
         let total_start = web_time::Instant::now();
 
         info!("Phase 1: Parsing IR ({} bytes)", bytes.len());
-        let ir = crate::parser::parse(bytes)?;
+        let mut ir = crate::parser::parse(bytes)?;
+        let foreach_diagnostics = crate::transform_expansion::expand_language_extensions(&mut ir);
         let (parameters, parameter_diagnostics) = extract_parameters(&ir);
         // A parameter's definition can reference another parameter (e.g. a
         // Default given as `!Ref OtherParam`). Such a reference still counts as
@@ -375,15 +382,22 @@ impl SemanticModel {
         if ir.resources != NULL_REF
             && let Some(entries) = ir.arena.as_map(ir.resources)
         {
-            // Pre-scan: identify resources with DefinitionSubstitutions
+            // Pre-scan: record each resource's DefinitionSubstitutions keys so
+            // definition placeholders can be checked for membership per variable.
             for (rname, rnode) in entries {
                 if let Some(props) = ir.arena.as_map(*rnode) {
                     for (key, val) in props {
                         if key == KEY_PROPERTIES
                             && let Some(prop_entries) = ir.arena.as_map(*val)
-                            && prop_entries.iter().any(|(k, _)| k == "DefinitionSubstitutions")
+                            && let Some((_, subs_ref)) =
+                                prop_entries.iter().find(|(k, _)| k == "DefinitionSubstitutions")
+                            && let Some(subs) = ir.arena.as_map(*subs_ref)
                         {
-                            resolver.def_subs_resources.insert(rname.clone());
+                            resolver
+                                .def_subs_resources
+                                .entry(rname.clone())
+                                .or_default()
+                                .extend(subs.iter().map(|(k, _)| k.clone()));
                         }
                     }
                 }
@@ -450,10 +464,9 @@ impl SemanticModel {
 
         info!("Phase 3: Building reference graph from {} resolver edges", resolver.edges.len());
 
-        // Register inline conditions (from IfExpr) into the condition model
-        for (name, expr) in resolver.inline_conditions.drain(..) {
-            conditions.register_inline(name, expr);
-        }
+        // Register inline conditions (from IfExpr) into the condition model in
+        // one batch, so the derived mutex/implication passes run once.
+        conditions.register_inline_batch(resolver.inline_conditions.drain(..));
 
         // Collect every mapping name referenced by an Fn::FindInMap anywhere in
         // the template (resources, outputs, conditions, ForEach bodies). A literal
@@ -506,21 +519,37 @@ impl SemanticModel {
         }
 
         let mut diagnostics = ir.diagnostics;
+        diagnostics.extend(foreach_diagnostics);
         diagnostics.extend(mapping_diagnostics);
         diagnostics.extend(parameter_diagnostics);
 
-        diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::nesting::validate_intrinsic_nesting(&ir.arena));
+        diagnostics.extend(crate::intrinsic_arg_shapes::validate_intrinsic_arg_shapes(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::lang_ext_shapes::validate_lang_ext_parameter_shapes(&ir.arena, &ir.transforms));
         diagnostics.extend(crate::language_extensions::validate_language_extensions(&ir.arena, &ir.transforms));
+        diagnostics.extend(crate::dynamic_ref::validate_dynamic_references(&ir.arena, ir.resources));
 
         let mut fn_if_conditions: Vec<String> = Vec::new();
         for idx in 0..ir.arena.len() {
             match ir.arena.node(idx as NodeRef) {
                 Node::Intrinsic(IntrinsicFn::If(cond_name, _, _)) => {
                     fn_if_conditions.push(cond_name.clone());
-                    if !conditions.conditions.contains_key(cond_name) {
+                    // Inside a Conditions-section body, Fn::If is not a valid
+                    // condition function at all — that is the not-a-boolean
+                    // finding's territory, so the name of a function that is
+                    // itself rejected there is not checked.
+                    let in_conditions_body =
+                        ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
+                    if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
+                        // A single owner for the undefined-Fn::If-condition
+                        // finding. Emitting it here (during the arena scan, which
+                        // sees every Fn::If regardless of nesting) rather than in
+                        // each engine keeps the two engines identical and covers
+                        // the no-Conditions-section case, where a condition-name
+                        // reference is still invalid.
                         diagnostics.push(crate::make_parse_diagnostic(
-                            "F1104",
-                            format!("Fn::If references undefined condition '{}'", cond_name),
+                            "E1028",
+                            format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                             ir.arena.span(idx as NodeRef),
                         ));
                     }
@@ -536,6 +565,20 @@ impl SemanticModel {
                         && let Some(cond_name) = ir.arena.as_str(*first)
                     {
                         fn_if_conditions.push(cond_name.to_string());
+                        // The structure error is reported separately; the
+                        // undefined condition name is its own finding — a
+                        // malformed Fn::If gets both. Conditions-section
+                        // bodies are excluded for the same reason as the
+                        // well-formed arm.
+                        let in_conditions_body =
+                            ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
+                        if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
+                            diagnostics.push(crate::make_parse_diagnostic(
+                                "E1028",
+                                format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
+                                ir.arena.span(idx as NodeRef),
+                            ));
+                        }
                     }
                 }
                 _ => {}
@@ -549,6 +592,109 @@ impl SemanticModel {
                 output_empty_joins.extend(joins.iter().cloned());
             }
         }
+
+        // Raw pseudo-parameter strings in the Outputs section. Such findings are
+        // collected against the `__output__`/`__outputs__` pseudo-resources,
+        // which are filtered out of the serialized model the engines scan, so
+        // the engine rule never sees them. Emit them here (both engines share
+        // this parse-time output) so a pseudo-parameter used as a plain string
+        // in an output Value is reported the same as one in a resource.
+        {
+            let mut output_raw_pseudo: Vec<(String, String)> = Vec::new();
+            for (key, entries) in &resolver.raw_pseudo_params {
+                if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
+                    for (path, value) in entries {
+                        output_raw_pseudo.push((path.clone(), value.clone()));
+                    }
+                }
+            }
+            output_raw_pseudo.sort();
+            for (path, value) in output_raw_pseudo {
+                diagnostics.push(crate::make_parse_diagnostic(
+                    "W1054",
+                    format!(
+                        "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
+                        value, value
+                    ),
+                    ir.span_index.get(&path).copied().unwrap_or(UNKNOWN_SPAN),
+                ));
+            }
+        }
+
+        // Raw pseudo-parameter strings in parameter Default values: a Default
+        // that is exactly a pseudo-parameter string (e.g. "AWS::Region") is
+        // almost certainly a mistake. Parameters are not walked by the resolver,
+        // so check the raw default strings directly.
+        {
+            let mut param_names: Vec<&String> = parameters.keys().collect();
+            param_names.sort();
+            for pname in param_names {
+                if let Some(default) = &parameters[pname].default
+                    && PSEUDO_PARAMETERS.contains(&default.as_str())
+                {
+                    diagnostics.push(crate::make_parse_diagnostic(
+                        "W1054",
+                        format!("Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead", default, default),
+                        ir.span_index.get(&format!("Parameters/{}/Default", pname)).copied().unwrap_or(UNKNOWN_SPAN),
+                    ));
+                }
+            }
+        }
+
+        // Raw pseudo-parameter strings in Mappings values and Conditions.
+        // Neither section is walked by the resolver (it only visits resources
+        // and outputs), so scan their string nodes directly. `Ref` targets are
+        // not string nodes in the arena, so `Ref: AWS::Region` is naturally
+        // exempt — only a pseudo-parameter used as plain string data fires.
+        for idx in 0..ir.arena.len() {
+            let spanned = ir.arena.get(idx as NodeRef);
+            let Node::String(s) = &spanned.node else {
+                continue;
+            };
+            let section = spanned.path.split('/').next().unwrap_or("");
+            // A string that is a `Ref` target (path ends in the Ref key, e.g. a
+            // raw `{"Ref": "AWS::Region"}` map the parser could not
+            // canonicalize) is already a reference — only plain string *data*
+            // warrants the use-Ref-instead advice.
+            let is_ref_target = spanned.path.rsplit('/').next() == Some(FN_REF);
+            if (section == SECTION_MAPPINGS || section == SECTION_CONDITIONS)
+                && !is_ref_target
+                && PSEUDO_PARAMETERS.contains(&s.as_str())
+            {
+                diagnostics.push(crate::make_parse_diagnostic(
+                    "W1054",
+                    format!(
+                        "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
+                        s, s
+                    ),
+                    spanned.span,
+                ));
+            }
+        }
+
+        // Unsubstituted `${Variable}` strings in the Outputs section. Like the
+        // raw-pseudo-parameter case above, these are collected against the
+        // `__output__` pseudo-resources that never reach the engines, so the
+        // Sub-needed finding must be emitted here.
+        {
+            let mut output_unsubstituted: Vec<(String, String)> = Vec::new();
+            for (key, entries) in &resolver.unsubstituted_variables {
+                if key.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX) || key == OUTPUTS_PSEUDO_RESOURCE {
+                    for (path, variable) in entries {
+                        output_unsubstituted.push((path.clone(), variable.clone()));
+                    }
+                }
+            }
+            output_unsubstituted.sort();
+            for (path, variable) in output_unsubstituted {
+                diagnostics.push(crate::make_parse_diagnostic(
+                    "E1029",
+                    format!("Found an embedded parameter '{}' outside of an 'Fn::Sub' at {}", variable, path),
+                    ir.span_index.get(&path).copied().unwrap_or(UNKNOWN_SPAN),
+                ));
+            }
+        }
+
         diagnostics.extend(resolver.diagnostics);
         // SAM handling keys on the exact transform id, matching how the engines
         // detect the transform. A substring match would misclassify a non-SAM
@@ -571,6 +717,82 @@ impl SemanticModel {
                 &format!("Conditions/{}", cond_name),
             ));
         }
+        // A `Condition:` key that names a condition absent from the Conditions
+        // section is reported here — a distinct rule for the resource case and
+        // the output case, since they are separate concerns. Emitting both
+        // during model build anchors each at its own source location and keeps
+        // the two engines identical. Names are sorted for deterministic
+        // ordering.
+        {
+            let mut resource_ids_sorted: Vec<&String> = resources.keys().collect();
+            resource_ids_sorted.sort();
+            for rid in resource_ids_sorted {
+                if let Some(cond) = &resources[rid].condition
+                    && !conditions.conditions.contains_key(cond)
+                {
+                    diagnostics.push(crate::make_parse_diagnostic_for_resource(
+                        "E8002",
+                        format!("Condition '{}' referenced by resource '{}' is not defined", cond, rid),
+                        ir.span_index.get(&format!("Resources/{}", rid)).copied().unwrap_or(UNKNOWN_SPAN),
+                        rid,
+                    ));
+                }
+            }
+            let mut output_names_sorted: Vec<&String> = outputs.keys().collect();
+            output_names_sorted.sort();
+            for oname in output_names_sorted {
+                if let Some(cond) = &outputs[oname].condition
+                    && !conditions.conditions.contains_key(cond)
+                {
+                    diagnostics.push(crate::make_parse_diagnostic_for_resource(
+                        "E6005",
+                        format!("Condition '{}' referenced by output '{}' is not defined", cond, oname),
+                        ir.span_index.get(&format!("Outputs/{}", oname)).copied().unwrap_or(UNKNOWN_SPAN),
+                        oname,
+                    ));
+                }
+            }
+        }
+        for invalid in conditions.invalid_condition_bodies() {
+            diagnostics.push(crate::make_parse_diagnostic(
+                "E8001",
+                format!("Condition '{}' must be a boolean expression", invalid),
+                ir.span_index.get(&format!("Conditions/{}", invalid)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for (owner, undefined_ref) in conditions.undefined_condition_refs() {
+            // Synthetic conditions (`__`-prefixed, inserted for inline Fn::If and
+            // Rules-section assertions) are internal; never surface their names.
+            if owner.starts_with("__") || undefined_ref.starts_with("__") {
+                continue;
+            }
+            diagnostics.push(crate::make_parse_diagnostic(
+                "E8007",
+                format!("Condition '{}' references undefined condition '{}'", owner, undefined_ref),
+                ir.span_index.get(&format!("Conditions/{}", owner)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for cycle in conditions.detect_cycles() {
+            let cycle_desc = cycle.join(" -> ");
+            let first = &cycle[0];
+            diagnostics.push(crate::make_parse_diagnostic(
+                "E9106",
+                format!("Circular dependency in conditions: {}", cycle_desc),
+                ir.span_index.get(&format!("Conditions/{}", first)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        for (first, other) in conditions.detect_equivalent_conditions() {
+            diagnostics.push(crate::make_parse_diagnostic(
+                "W9053",
+                format!("Condition '{}' is equivalent to condition '{}' - consider consolidating", other, first),
+                ir.span_index.get(&format!("Conditions/{}", other)).copied().unwrap_or(UNKNOWN_SPAN),
+            ));
+        }
+        // The satisfiability-budget-exhaustion advisory is deliberately NOT
+        // emitted here: almost every satisfiability query runs later, during
+        // engine rule evaluation, so the budget-exhausted set is still empty at
+        // model-build time. The validation engine emits it after rule
+        // evaluation, once those queries have run.
         let model_build = phase_metric(total_start);
 
         if !diagnostics.is_empty() {
@@ -592,6 +814,16 @@ impl SemanticModel {
             if ir.template_metadata != NULL_REF { Some(node_to_json(&ir.arena, ir.template_metadata)) } else { None };
         let rules = if ir.rules != NULL_REF { Some(node_to_json(&ir.arena, ir.rules)) } else { None };
         let parsed_rules = parse_rules(&rules, &ir.arena, ir.rules);
+        let rule_implications: Vec<(String, crate::ir::NodeRef, Vec<crate::ir::NodeRef>)> = parsed_rules
+            .iter()
+            .map(|r| {
+                let assertion_nodes: Vec<crate::ir::NodeRef> = r.assertions.iter().map(|a| a.assert_node).collect();
+                (r.name.clone(), r.condition_node, assertion_nodes)
+            })
+            .collect();
+        if !rule_implications.is_empty() {
+            conditions.register_rule_implications(&ir.arena, &rule_implications);
+        }
         let rule_diagnostics = crate::rules::validate_rules(&rules, &ir.arena, ir.rules);
         diagnostics.extend(rule_diagnostics);
         let sam_globals = sam::extract_sam_globals(&ir.arena, ir.globals);
@@ -1206,6 +1438,21 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
                 .into_iter()
                 .map(|(a, b)| PathValuePair { path: a, value: b })
                 .collect(),
+            unused_sub_keys: resolver
+                .unused_sub_keys
+                .remove(name)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(a, b)| PathValuePair { path: a, value: b })
+                .collect(),
+            raw_pseudo_params: resolver
+                .raw_pseudo_params
+                .remove(name)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(a, b)| PathValuePair { path: a, value: b })
+                .collect(),
+            secretsmanager_ref_paths: resolver.secretsmanager_ref_paths.remove(name).unwrap_or_default(),
             invalid_refs: resolver
                 .invalid_refs
                 .remove(name)

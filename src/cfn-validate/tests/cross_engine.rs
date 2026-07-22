@@ -482,6 +482,36 @@ fn bad_sam_templates_fire_identically_on_both_engines() {
     }
 }
 
+#[test]
+fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
+    // The intrinsic/condition rules reworked to emit from the shared model must
+    // produce byte-identical diagnostics on both engines. Assert full parity
+    // (all severities) on the fixtures that exercise them.
+    let sv = SchemaValidator::new();
+    let fixtures = [
+        "bad/E1050_dynamic_ref_malformed.yaml",
+        "bad/W1051_secretsmanager_at_arn.yaml",
+        "bad/W1054_raw_pseudo_param.yaml",
+        "bad/E8007_condition_undefined_in_expr.yaml",
+        "bad/E9106_condition_cycle.yaml",
+        "bad/W9053_equivalent_conditions.yaml",
+        "bad/W1019_sub_unused_key.yaml",
+        "bad/W1053_dynref_spaces.yaml",
+        "good/good_conditions_valid_refs.yaml",
+    ];
+    for name in fixtures {
+        let bytes = load_template(name);
+        let ids = |engine: &dyn ValidationEngine| -> Vec<String> {
+            let report = validate_bytes(engine, &sv, &bytes, Default::default()).unwrap();
+            let mut out: Vec<String> =
+                report.diagnostics.iter().map(|d| format!("{}|{:?}|{}", d.rule_id, d.severity, d.message)).collect();
+            out.sort();
+            out
+        };
+        assert_eq!(ids(&*CEL), ids(&*REGO), "{name}: engines diverge");
+    }
+}
+
 fn walkdir(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut out = Vec::new();
     walk_recursive(dir, &mut out);

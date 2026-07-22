@@ -93,11 +93,3 @@ _property_format(path) := "AWS::EC2::SecurityGroup.Id" if {
 _property_format(path) := "AWS::Logs::LogGroup.Name" if {
     contains(path, "awslogs-group")
 }
-
-# E1060: If condition name must exist in Conditions section
-violation contains make_diag("F1060", "FATAL", name,
-    sprintf("Fn::If condition '%s' does not exist in Conditions section", [cond])) if {
-    some name, res in input.resources
-    some cond in res.conditionRefs
-    not cond in object.keys(input.conditions)
-}

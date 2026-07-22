@@ -238,12 +238,27 @@ fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, rule_path: &s
         IntrinsicFn::Join(a, b)
         | IntrinsicFn::Select(a, b)
         | IntrinsicFn::Split(a, b)
-        | IntrinsicFn::Equals(a, b)
         | IntrinsicFn::Contains(a, b)
         | IntrinsicFn::EachMemberEquals(a, b)
         | IntrinsicFn::EachMemberIn(a, b) => {
             children.push(*a);
             children.push(*b);
+        }
+        IntrinsicFn::Equals(a, b) => {
+            // An Equals operand outside the Equals operand allowlist is the
+            // parser's finding (the not-a-string operand check); walking into it
+            // here would report the same function a second time under the
+            // Rules-section allowlist rule. Operands the parser accepts are
+            // still walked for their own nested functions.
+            for operand in [*a, *b] {
+                let operand_is_parser_owned = matches!(
+                    arena.node(operand),
+                    Node::Intrinsic(operand_fn) if !EQUALS_ARG_FN_KEYS.contains(&cfn_function_name(operand_fn))
+                );
+                if !operand_is_parser_owned {
+                    children.push(operand);
+                }
+            }
         }
         IntrinsicFn::If(_, t, f) => {
             children.push(*t);

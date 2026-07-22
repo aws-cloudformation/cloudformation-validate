@@ -205,6 +205,20 @@ pub(crate) fn validate(
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
         all_diagnostics.extend(model.diagnostics.iter().cloned());
 
+        // The satisfiability budget is consumed almost entirely by the rule
+        // evaluation that just ran, so this is the earliest point the exhausted
+        // queries are observable. Emitting it here (rather than at model build)
+        // is what lets the diagnostic actually fire.
+        for query in model.conditions.budget_exhausted_queries() {
+            all_diagnostics.push(
+                RegisteredDiagnostic::new(
+                    "I9052",
+                    format!("Condition satisfiability analysis budget exhausted during: {}", query),
+                )
+                .build(),
+            );
+        }
+
         if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
         {
             all_diagnostics.push(
@@ -610,6 +624,11 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
     // native HashMap iteration order put them in [A, B, A] layout, dedup skipped.
     let line = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_line).unwrap_or(0);
     let column = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_column).unwrap_or(0);
+    // The resource id is part of both keys: two findings on *different* resources
+    // are distinct even when they share a span, message, and path. This happens
+    // with `Fn::ForEach`-expanded resources, which are separate resources built
+    // from one template body and therefore carry the same source span.
+    let resource_id = |d: &Diagnostic| d.entity.as_ref().map(|e| e.logical_id.clone()).unwrap_or_default();
     diagnostics.sort_by(|a, b| {
         b.severity
             .cmp(&a.severity)
@@ -617,6 +636,7 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
             .then_with(|| a.rule_id.cmp(&b.rule_id))
             .then_with(|| line(a).cmp(&line(b)))
             .then_with(|| column(a).cmp(&column(b)))
+            .then_with(|| resource_id(a).cmp(&resource_id(b)))
             .then_with(|| a.property_path.cmp(&b.property_path))
             .then_with(|| a.message.cmp(&b.message))
     });
@@ -625,6 +645,7 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
             && a.location.as_ref().map(|l| l.start_column).unwrap_or(0)
                 == b.location.as_ref().map(|l| l.start_column).unwrap_or(0)
             && a.rule_id == b.rule_id
+            && resource_id(a) == resource_id(b)
             && a.message == b.message
             && a.property_path == b.property_path
     });
@@ -745,12 +766,12 @@ pub(crate) fn build_context(
         "I9001" => {
             lifecycle = Some("create-only".into());
         }
-        "W3041" => {
+        "W9054" => {
             lifecycle = Some("write-only".into());
         }
         // Lambda runtime lifecycle: surface the offending runtime string and the
         // stage of its lifecycle, mirroring how resource-type deprecation (W9009)
-        // and property lifecycle (I9001/W3041) carry a lifecycle marker. The runtime
+        // and property lifecycle (I9001/W9054) carry a lifecycle marker. The runtime
         // is emitted once per condition branch, so only attach the value when every
         // branch agrees — otherwise the message alone names the branch's runtime.
         "E2533" => {
@@ -1947,9 +1968,9 @@ Resources:
     }
 
     #[test]
-    fn build_context_w3041_sets_write_only_lifecycle() {
+    fn build_context_w9054_sets_write_only_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("W3041", Some("Bucket"), "", &model).expect("W3041 should return context");
+        let ctx = build_context("W9054", Some("Bucket"), "", &model).expect("W9054 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("write-only"));
     }
 

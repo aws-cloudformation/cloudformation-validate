@@ -82,6 +82,27 @@ impl Arena {
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
+
+    pub fn map_remove(&mut self, r: NodeRef, key: &str) {
+        if let Node::Map(entries) = &mut self.nodes[r as usize].node {
+            entries.retain(|(k, _)| k != key);
+        }
+    }
+
+    pub fn map_insert(&mut self, r: NodeRef, key: String, val: NodeRef) {
+        if let Node::Map(entries) = &mut self.nodes[r as usize].node {
+            entries.push((key, val));
+        }
+    }
+
+    /// Overwrites the node at `r` with `node`. Used by the language-extensions
+    /// transform to install a rewritten section over the ref the model holds,
+    /// without threading a new ref back to every caller.
+    pub fn set(&mut self, r: NodeRef, node: SpannedNode) {
+        if (r as usize) < self.nodes.len() {
+            self.nodes[r as usize] = node;
+        }
+    }
 }
 
 impl Default for Arena {

@@ -4,13 +4,11 @@ use diagnostics::Phase;
 use diagnostics::message::render_str_list;
 use rules::{Category, Severity};
 use std::collections::HashSet;
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 use template_model::consts::{
-    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITIONS, FIELD_DEPENDS_ON, FIELD_KIND,
-    FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FN_GET_AZS, FN_IMPORT_VALUE, KEY_DEFAULT, KEY_DEPENDS_ON, KEY_PROPERTIES,
-    OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, SECTION_CONDITIONS, SECTION_OUTPUTS, SECTION_PARAMETERS,
-    TRANSFORM_LANGUAGE_EXTENSIONS,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PARAMETERS,
+    FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_GET_AZS,
+    FN_IMPORT_VALUE, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, TRANSFORM_LANGUAGE_EXTENSIONS,
 };
 use template_model::resolver::RefKind;
 use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_known_region};
@@ -19,7 +17,9 @@ use validation_engine::make_resource_diagnostic;
 pub fn register(reg: &mut NativeRuleRegistry) {
     reg.add(Category::Intrinsic, eval_intrinsics);
     reg.add(Category::Intrinsic, eval_intrinsic_params);
-    reg.add(Category::Intrinsic, eval_dynamic_references);
+    reg.add(Category::Intrinsic, eval_unused_sub_keys);
+    reg.add(Category::Intrinsic, eval_raw_pseudo_params);
+    reg.add(Category::Intrinsic, eval_secretsmanager_arn);
 }
 
 fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -37,11 +37,6 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
         .map(|p| p.keys().map(|k| k.as_str()).collect())
         .unwrap_or_default();
     let pseudo: HashSet<&str> = PSEUDO_PARAMETERS.iter().copied().collect();
-    let cond_keys: HashSet<&str> = input
-        .get(FIELD_CONDITIONS)
-        .and_then(|c| c.as_object())
-        .map(|c| c.keys().map(|k| k.as_str()).collect())
-        .unwrap_or_default();
     let sam_implicit: HashSet<&str> = input
         .get("samImplicitResources")
         .and_then(|s| s.as_array())
@@ -196,23 +191,6 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
                 }
             }
         }
-
-        if let Some(crefs) = res.get("conditionRefs").and_then(|r| r.as_array()) {
-            for cref in crefs {
-                if let Some(cname) = cref.as_str()
-                    && !cond_keys.contains(cname)
-                {
-                    out.push(make_resource_diagnostic(
-                        "F1060",
-                        &format!("Fn::If condition '{}' does not exist in Conditions section", cname),
-                        m,
-                        name,
-                        "",
-                        None,
-                    ));
-                }
-            }
-        }
     }
 
     if let Some(joins) = input.get("outputEmptyJoins").and_then(|j| j.as_array()) {
@@ -358,73 +336,97 @@ fn scan_value_for_intrinsics(
     }
 }
 
-static DYNAMIC_REF_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"\{\{resolve:(ssm-secure|ssm|secretsmanager):([^}]*)\}\}").expect("Invalid DYNAMIC_REF_RE")
-});
-
-fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
+fn eval_unused_sub_keys(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
     let input = ctx.input;
 
-    // Scan resources for dynamic references in non-Properties locations
-    if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        for (name, res) in resources {
-            check_dynamic_ref_in_attributes(&mut out, m, name, res);
+    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
+        Some(r) => r,
+        None => return out,
+    };
+
+    for (name, res) in resources {
+        if let Some(entries) = res.get("unusedSubKeys").and_then(|v| v.as_array()) {
+            for entry in entries {
+                let path = entry.get("path").and_then(|p| p.as_str()).unwrap_or("");
+                let variable = entry.get("variable").and_then(|v| v.as_str()).unwrap_or("");
+                out.push(make_resource_diagnostic(
+                    "W1019",
+                    &format!("Parameter '{}' not used in Fn::Sub template string", variable),
+                    m,
+                    name,
+                    path,
+                    Some("Remove the unused key from the Fn::Sub variable map or reference it in the template string"),
+                ));
+            }
         }
     }
 
-    // Dynamic references in Conditions
-    if let Some(conds) = input.get(FIELD_CONDITIONS).and_then(|c| c.as_object()) {
-        for (cname, cval) in conds {
-            scan_for_dynamic_refs_in_section(
-                &mut out,
-                m,
-                cval,
-                SECTION_CONDITIONS,
-                &format!("{}/{}", SECTION_CONDITIONS, cname),
-            );
+    out
+}
+
+fn eval_raw_pseudo_params(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+    let input = ctx.input;
+
+    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
+        Some(r) => r,
+        None => return out,
+    };
+
+    for (name, res) in resources {
+        if let Some(entries) = res.get("rawPseudoParams").and_then(|v| v.as_array()) {
+            for entry in entries {
+                let path = entry.get("path").and_then(|p| p.as_str()).unwrap_or("");
+                let variable = entry.get("variable").and_then(|v| v.as_str()).unwrap_or("");
+                out.push(make_resource_diagnostic(
+                    "W1054",
+                    &format!(
+                        "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
+                        variable, variable
+                    ),
+                    m,
+                    name,
+                    path,
+                    Some("Use Ref to reference pseudo parameters instead of embedding them as literal strings"),
+                ));
+            }
         }
     }
 
-    // Dynamic references in Outputs
-    if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
-        for (oname, oval) in outputs {
-            scan_for_dynamic_refs_in_section(
-                &mut out,
-                m,
-                oval,
-                SECTION_OUTPUTS,
-                &format!("{}/{}", SECTION_OUTPUTS, oname),
-            );
-        }
+    out
+}
+
+fn eval_secretsmanager_arn(ctx: &EvalContext) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let m = ctx.model;
+    let input = ctx.input;
+    let arn_fields = &ctx.cached_data.secretsmanager_arn_fields;
+
+    if arn_fields.is_empty() {
+        return out;
     }
 
-    // Dynamic references to SSM in parameter Defaults
-    if let Some(params) = input.get(FIELD_PARAMETERS).and_then(|p| p.as_object()) {
-        for (pname, pval) in params {
-            if let Some(def) = pval.get("default").and_then(|d| d.as_str()) {
-                let default_path = format!("{}/{}/Default", SECTION_PARAMETERS, pname);
-                for cap in DYNAMIC_REF_RE.captures_iter(def) {
-                    let ref_type = &cap[1];
-                    match ref_type {
-                        "ssm-secure" => {
-                            out.push(make_resource_diagnostic(
-                                "E1027",
-                                &format!("Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in parameter Default for '{}'", pname),
-                                m, "", &default_path, None,
-                            ));
-                        }
-                        "secretsmanager" => {
-                            out.push(make_resource_diagnostic(
-                                "E1051",
-                                &format!("Dynamic reference '{{{{resolve:secretsmanager:...}}}}' is not supported in parameter Default for '{}'", pname),
-                                m, "", &default_path, None,
-                            ));
-                        }
-                        // SSM in parameter Default is allowed
-                        _ => {}
-                    }
+    let resources = match input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
+        Some(r) => r,
+        None => return out,
+    };
+
+    for (name, res) in resources {
+        if let Some(paths) = res.get("secretsmanagerRefPaths").and_then(|v| v.as_array()) {
+            for path_val in paths {
+                let path = path_val.as_str().unwrap_or("");
+                if arn_fields.iter().any(|field| path_segment_matches(path, field)) {
+                    out.push(make_resource_diagnostic(
+                        "W1051",
+                        "Dynamic reference resolves the secret value but this property expects the secret ARN",
+                        m,
+                        name,
+                        path,
+                        Some("Use the secret ARN directly or retrieve it from Fn::GetAtt instead of using a resolve reference"),
+                    ));
                 }
             }
         }
@@ -433,128 +435,6 @@ fn eval_dynamic_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     out
 }
 
-fn check_dynamic_ref_in_attributes(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    resource_id: &str,
-    res: &serde_json::Value,
-) {
-    if let Some(deps) = res.get(FIELD_DEPENDS_ON).and_then(|d| d.as_array()) {
-        for dep in deps {
-            if let Some(s) = dep.as_str() {
-                check_dynamic_ref_string(out, m, resource_id, s, KEY_DEPENDS_ON);
-            }
-        }
-    }
-}
-
-fn check_dynamic_ref_string(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    resource_id: &str,
-    val: &str,
-    location: &str,
-) {
-    for cap in DYNAMIC_REF_RE.captures_iter(val) {
-        let ref_type = &cap[1];
-        match ref_type {
-            "ssm-secure" => {
-                out.push(make_resource_diagnostic(
-                    "E1027",
-                    &format!("Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in {}", location),
-                    m,
-                    resource_id,
-                    "",
-                    None,
-                ));
-            }
-            "secretsmanager" => {
-                out.push(make_resource_diagnostic(
-                    "E1051",
-                    &format!("Dynamic reference '{{{{resolve:secretsmanager:...}}}}' is not supported in {}", location),
-                    m,
-                    resource_id,
-                    "",
-                    None,
-                ));
-            }
-            "ssm" if location != KEY_DEFAULT => {
-                out.push(make_resource_diagnostic(
-                    "E1052",
-                    &format!("Dynamic reference '{{{{resolve:ssm:...}}}}' is not supported in {}", location),
-                    m,
-                    resource_id,
-                    "",
-                    None,
-                ));
-            }
-            _ => {}
-        }
-    }
-}
-
-fn scan_for_dynamic_refs_in_section(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    val: &serde_json::Value,
-    section: &str,
-    entity_path: &str,
-) {
-    match val {
-        serde_json::Value::String(s) => {
-            for cap in DYNAMIC_REF_RE.captures_iter(s) {
-                let ref_type = &cap[1];
-                match ref_type {
-                    "ssm-secure" => {
-                        out.push(make_resource_diagnostic(
-                            "E1027",
-                            &format!(
-                                "Dynamic reference '{{{{resolve:ssm-secure:...}}}}' is not supported in {}",
-                                section
-                            ),
-                            m,
-                            "",
-                            entity_path,
-                            None,
-                        ));
-                    }
-                    "secretsmanager" => {
-                        out.push(make_resource_diagnostic(
-                            "E1051",
-                            &format!(
-                                "Dynamic reference '{{{{resolve:secretsmanager:...}}}}' is not supported in {}",
-                                section
-                            ),
-                            m,
-                            "",
-                            entity_path,
-                            None,
-                        ));
-                    }
-                    "ssm" => {
-                        out.push(make_resource_diagnostic(
-                            "E1052",
-                            &format!("Dynamic reference '{{{{resolve:ssm:...}}}}' is not supported in {}", section),
-                            m,
-                            "",
-                            entity_path,
-                            None,
-                        ));
-                    }
-                    _ => {}
-                }
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            for item in arr {
-                scan_for_dynamic_refs_in_section(out, m, item, section, entity_path);
-            }
-        }
-        serde_json::Value::Object(obj) => {
-            for (_, v) in obj {
-                scan_for_dynamic_refs_in_section(out, m, v, section, entity_path);
-            }
-        }
-        _ => {}
-    }
+fn path_segment_matches(path: &str, field: &str) -> bool {
+    path.split('.').any(|segment| segment == field)
 }

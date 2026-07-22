@@ -16,6 +16,7 @@ struct LoadedYaml {
     docs: Vec<Yaml>,
     span_map: HashMap<String, (u32, u32)>,
     dup_key_diagnostics: Vec<diagnostics::Diagnostic>,
+    merge_key_spans: Vec<SourceSpan>,
 }
 
 /// One open container while the event stream is being consumed. The frame stack
@@ -87,6 +88,8 @@ struct CfnYamlLoader {
     /// are detected here at load time — matching how the JSON front-end pre-scans for
     /// them. One diagnostic per occurrence after the first, like the JSON path.
     dup_key_diagnostics: Vec<diagnostics::Diagnostic>,
+    /// Source positions of YAML merge keys (`<<`) encountered during loading.
+    merge_key_spans: Vec<SourceSpan>,
 }
 
 impl CfnYamlLoader {
@@ -103,6 +106,7 @@ impl CfnYamlLoader {
             pending_dup_diagnostics: Vec::new(),
             mapping_uses_merge: Vec::new(),
             dup_key_diagnostics: Vec::new(),
+            merge_key_spans: Vec::new(),
         }
     }
 
@@ -116,7 +120,12 @@ impl CfnYamlLoader {
             let (line, column) = Self::mark_position(*e.marker());
             ParseError { message: format!("YAML parse error: {}", e), line: Some(line), column: Some(column) }
         })?;
-        Ok(LoadedYaml { docs: loader.docs, span_map: loader.span_map, dup_key_diagnostics: loader.dup_key_diagnostics })
+        Ok(LoadedYaml {
+            docs: loader.docs,
+            span_map: loader.span_map,
+            dup_key_diagnostics: loader.dup_key_diagnostics,
+            merge_key_spans: loader.merge_key_spans,
+        })
     }
 
     /// The canonical `/`-separated path of the value the innermost frame is about to
@@ -137,8 +146,8 @@ impl CfnYamlLoader {
 
     /// Anchors a mapping value at its key's position, overwriting any earlier entry so
     /// a duplicate key resolves to the surviving (last) occurrence — matching how the
-    /// loaded `Hash` keeps the last value written for a repeated key. cfn-lint anchors
-    /// object-property diagnostics at the key, so this is where the value's span lives.
+    /// loaded `Hash` keeps the last value written for a repeated key. Object-property
+    /// diagnostics anchor at the key, so this is where the value's span lives.
     fn record_key_span(&mut self, mark: Marker) {
         let path = self.current_path();
         if !path.is_empty() {
@@ -197,6 +206,32 @@ impl CfnYamlLoader {
     /// themselves); any other suffix becomes `{ Fn::<suffix>: value }` so a
     /// misspelled or unknown tag surfaces as an unsupported function rather than
     /// being silently discarded.
+    /// Emits the unknown-function warning when a shorthand tag does not name a
+    /// known intrinsic (after the short-name mapping, e.g. `!GetAtt` →
+    /// `Fn::GetAtt`). `Condition` and the `ForEach::<id>` loop tags are valid
+    /// non-`Fn::` forms.
+    fn warn_unknown_tag(&mut self, tag_name: &str) {
+        let fn_key = SHORT_TAG_TO_FN_KEY
+            .iter()
+            .find(|(short, _)| *short == tag_name)
+            .map(|(_, fn_key)| (*fn_key).to_string())
+            .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name));
+        let known = crate::consts::INTRINSIC_FN_PATH_SEGMENTS.contains(&fn_key.as_str())
+            || fn_key == FN_REF
+            || fn_key == crate::consts::FN_CONDITION
+            || fn_key.starts_with(crate::consts::FN_FOR_EACH_KEY_PREFIX);
+        // A near-miss of a known function is warned (with a suggestion) by the
+        // builder when it sees the wrapped map, so only warn here for names far
+        // from every function — otherwise the same tag would warn twice.
+        if !known && super::builder::closest_function_name(&fn_key).is_none() {
+            self.dup_key_diagnostics.push(crate::make_parse_diagnostic(
+                "W1103",
+                format!("'!{}' is not a supported function", tag_name),
+                diagnostics::UNKNOWN_SPAN,
+            ));
+        }
+    }
+
     fn wrap_with_tag(tag_name: &str, value: Yaml) -> Yaml {
         let fn_key = SHORT_TAG_TO_FN_KEY
             .iter()
@@ -214,6 +249,11 @@ impl CfnYamlLoader {
             && self.doc_stack.len() == *depth
         {
             let (tag_name, _) = self.pending_tags.pop().unwrap();
+            // A `!Name` shorthand tag is unambiguously a function invocation —
+            // unlike a long-form `Fn::Name` map key, which may be a data key —
+            // so any unknown tag warrants the unknown-function warning here,
+            // where the tag context still exists.
+            self.warn_unknown_tag(&tag_name);
             let wrapped = Self::wrap_with_tag(&tag_name, node_val);
             node_val = wrapped;
         }
@@ -244,6 +284,17 @@ impl CfnYamlLoader {
                         && let Some(flag) = self.mapping_uses_merge.last_mut()
                     {
                         *flag = true;
+                        // Use the mark captured above; `self.key_marks.last()` was
+                        // already emptied by the `.take()` on the line that set
+                        // `key_mark`, so re-reading it here would never match.
+                        if let Some((line, col)) = key_mark {
+                            self.merge_key_spans.push(SourceSpan {
+                                start_line: line,
+                                start_column: col,
+                                end_line: line,
+                                end_column: col + 2,
+                            });
+                        }
                     }
                     // A returned old value means this key already existed: yaml_rust2
                     // would silently overwrite it, so flag the duplicate (one per
@@ -347,7 +398,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 if is_key {
                     // This scalar names the slot its sibling value will occupy; put it in
                     // the frame so the value's path is complete, then anchor the property
-                    // at the key (cfn-lint anchors object-property diagnostics at the key).
+                    // at the key (object-property diagnostics anchor at the key).
                     if let Some(PathFrame::Map(slot)) = self.path_frames.last_mut() {
                         *slot = Some(v.clone());
                     }
@@ -363,6 +414,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 }
 
                 if let Some(tag_name) = cfn_tag {
+                    self.warn_unknown_tag(&tag_name);
                     let wrapped = Self::wrap_with_tag(&tag_name, node);
                     self.insert_new_node((wrapped, aid), mark);
                 } else {
@@ -577,7 +629,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
         column: None,
     })?;
 
-    let LoadedYaml { mut docs, span_map: raw_spans, dup_key_diagnostics } = CfnYamlLoader::load(text)?;
+    let LoadedYaml { mut docs, span_map: raw_spans, dup_key_diagnostics, merge_key_spans } = CfnYamlLoader::load(text)?;
 
     if docs.is_empty() {
         return Err(ParseError { message: "Empty YAML document".into(), line: Some(1), column: Some(1) });
@@ -597,6 +649,14 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
 
     let mut builder = Builder::new();
     builder.diagnostics = dup_key_diagnostics;
+    for span in merge_key_spans {
+        builder.diagnostics.push(crate::make_parse_diagnostic(
+            "W1100",
+            "YAML merge key '<<' is not supported by CloudFormation - use 'aws cloudformation package' to pre-process"
+                .to_string(),
+            span,
+        ));
+    }
     let root = builder.build_map(&YamlValue(&docs[0]), "");
 
     let sections = TemplateSections::extract(&builder.arena, root);
@@ -784,22 +844,22 @@ mod tests {
     /// a type error — `Fn::Contains` is a boolean-producing Rules-section
     /// intrinsic, not a non-boolean expression.
     #[test]
-    fn fn_not_accepts_fn_contains_argument_no_f0014() {
+    fn fn_not_accepts_fn_contains_argument_no_e8005() {
         let input = "Parameters:\n  BootstrapVersion:\n    Type: String\nResources:\n  B:\n    Type: AWS::S3::Bucket\nRules:\n  CheckBootstrapVersion:\n    Assertions:\n      - Assert:\n          Fn::Not:\n            - Fn::Contains:\n                - [\"1\", \"2\", \"3\", \"4\", \"5\"]\n                - Ref: BootstrapVersion\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
-        let f0014: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "F0014").collect();
-        assert!(f0014.is_empty(), "Expected no F0014 for Fn::Not(Fn::Contains), got: {:?}", f0014);
+        let shape_errors: Vec<_> = ir.diagnostics.iter().filter(|d| d.rule_id == "E8005").collect();
+        assert!(shape_errors.is_empty(), "Expected no E8005 for Fn::Not(Fn::Contains), got: {:?}", shape_errors);
     }
 
     #[test]
-    fn fn_not_with_string_argument_still_produces_f0014() {
+    fn fn_not_with_string_argument_produces_e8005() {
         let input = "Resources:\n  B:\n    Type: AWS::S3::Bucket\nConditions:\n  Bad:\n    Fn::Not:\n      - definitely-not-boolean\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         assert!(
-            ir.diagnostics.iter().any(|d| d.rule_id == "F0014"
+            ir.diagnostics.iter().any(|d| d.rule_id == "E8005"
                 && d.message.contains("Fn::Not")
                 && d.message.contains("is not of type 'boolean'")),
-            "Expected F0014 for Fn::Not with string arg, got: {:?}",
+            "Expected E8005 for Fn::Not with string arg, got: {:?}",
             ir.diagnostics
         );
     }
@@ -953,12 +1013,14 @@ mod tests {
     }
 
     #[test]
-    fn unknown_fn_long_form_emits_w1103() {
-        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName:\n        Fn::Bogus: hello\n";
+    fn unknown_fn_long_form_far_from_any_function_is_data() {
+        // The long map-key form is ambiguous (it may be a data key), so only
+        // near-miss typos warn; `Fn::Bogus` is left to schema validation.
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P:\n        Fn::Bogus: hello\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+        assert!(w1103.is_empty(), "got: {:?}", w1103);
     }
 
     /// A misspelled or unknown `!`-shorthand tag (`!Bogus`) is wrapped into
@@ -967,11 +1029,13 @@ mod tests {
     /// behavior) would hide a real authoring mistake.
     #[test]
     fn unknown_fn_short_tag_form_emits_w1103() {
-        let input = "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !Bogus hello\n";
+        // A `!Name` tag is unambiguously a function attempt, so any unknown
+        // tag warns — unlike the ambiguous long map-key form.
+        let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P: !Bogus hello\n";
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::Bogus' is not a supported function"]);
+        assert_eq!(w1103, ["'!Bogus' is not a supported function"]);
     }
 
     /// A wrong-case shorthand tag (`!GetAttt`, a typo of `!GetAtt`) is not in the
@@ -984,27 +1048,23 @@ mod tests {
         let ir = parse_yaml(input.as_bytes()).unwrap();
         let w1103: Vec<&str> =
             ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
-        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function"]);
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
     }
 
     /// The unknown-tag YAML shorthand and the equivalent JSON long form emit the
     /// identical W1103 — the shared builder guarantees the diagnostic cannot drift
     /// between formats once the tag is wrapped.
     #[test]
-    fn unknown_short_tag_matches_json_long_form_w1103() {
-        let yaml = parse_yaml(
-            "Resources:\n  R:\n    Type: AWS::SNS::Topic\n    Properties:\n      TopicName: !Bogus hello\n".as_bytes(),
-        )
-        .unwrap();
-        let json = super::super::json::parse_json(
-            br#"{"Resources":{"R":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::Bogus":"hello"}}}}}"#,
-        )
-        .unwrap();
-        let w1103 = |ir: &TemplateIR| -> Vec<String> {
-            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.clone()).collect()
-        };
-        assert_eq!(w1103(&yaml), w1103(&json));
-        assert_eq!(w1103(&yaml), ["'Fn::Bogus' is not a supported function"]);
+    fn unknown_short_tag_warns_where_long_form_is_data() {
+        // The tag form is unambiguous function syntax and warns; the long
+        // map-key form is potentially a data key and stays silent (schema
+        // validation owns any type mismatch there).
+        let tag_input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P: !Bogus x\n";
+        let tag_ir = parse_yaml(tag_input.as_bytes()).unwrap();
+        assert!(tag_ir.diagnostics.iter().any(|d| d.rule_id == "W1103"), "tag form warns");
+        let long_input = "Resources:\n  R:\n    Type: T\n    Properties:\n      P:\n        Fn::Bogus: x\n";
+        let long_ir = parse_yaml(long_input.as_bytes()).unwrap();
+        assert!(long_ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "long form is data");
     }
 
     /// A secondary-handle tag (`!!str`) is not a CloudFormation intrinsic shorthand
