@@ -16,7 +16,7 @@ fun main(args: Array<String>) {
 
     println("${report.filePath}: ${report.status}")
     for (d in report.diagnostics) {
-        val where = d.resourceId?.let { " ($it)" } ?: ""
+        val where = d.entity?.let { " (${it.logicalId})" } ?: ""
         println("  [${d.severity}] ${d.ruleId}$where: ${d.message}")
     }
 

@@ -16,7 +16,7 @@ try {
 
     console.log(`${report.filePath}: ${report.status}`);
     for (const d of report.diagnostics) {
-        const where = d.resourceId ? ` (${d.resourceId})` : '';
+        const where = d.entity ? ` (${d.entity.logicalId})` : '';
         console.log(`  [${d.severity}] ${d.ruleId}${where}: ${d.message}`);
     }
 
