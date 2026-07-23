@@ -1,5 +1,6 @@
 use log::debug;
-use rules::{EntityType, FilterConfig};
+use rules::FilterConfig;
+use template_model::EntityType;
 
 /// Trait for types that can be filtered by rule ID, category, resource ID,
 /// resource type, or entity (logical ID and entity type).

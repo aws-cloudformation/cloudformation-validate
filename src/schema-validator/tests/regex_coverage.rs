@@ -1,8 +1,8 @@
-use rules::{
+use serde_json::Value;
+use template_model::{
     AMI_ID_PATTERN, AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_PATTERN, MX_RECORD_PATTERN,
     SECURITY_GROUP_NAME_PATTERN, compile_pattern,
 };
-use serde_json::Value;
 
 /// Collect every string value stored under a `"pattern"` key anywhere in the JSON tree.
 fn collect_patterns(node: &Value, out: &mut Vec<String>) {
@@ -44,8 +44,8 @@ fn every_shipped_schema_pattern_compiles() {
 
     assert!(
         uncompilable.is_empty(),
-        "{} shipped schema pattern(s) cannot be compiled by rules::compile_pattern and would have \
-         their constraint silently dropped; add the necessary normalization in rules::pattern:\n{}",
+        "{} shipped schema pattern(s) cannot be compiled by template_model::compile_pattern and would have \
+         their constraint silently dropped; add the necessary normalization in template_model::pattern:\n{}",
         uncompilable.len(),
         uncompilable.iter().take(20).map(|p| format!("  - {p}")).collect::<Vec<_>>().join("\n")
     );

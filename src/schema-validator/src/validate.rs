@@ -1,22 +1,22 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
-use diagnostics::message::{render_str_list, render_value, render_value_list};
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
-use rules::{
-    CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, compile_pattern, format_rule_for_format,
-};
+use rules::format_rule_for_format;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
-use template_model::SemanticModel;
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
     PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE,
     SAM_SERVERLESS_TYPE_PREFIX,
 };
+use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::{
+    CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
+};
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
 /// Type checks are skipped for these paths when the value is a string.

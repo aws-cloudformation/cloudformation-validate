@@ -4,8 +4,8 @@
 use crate::consts::KEY_PROPERTIES;
 use crate::model::SemanticModel;
 use crate::resolver::ResolvedValue;
+use crate::value_patterns::AVAILABILITY_ZONE_PATTERN;
 use regex::Regex;
-use rules::AVAILABILITY_ZONE_PATTERN;
 use std::sync::LazyLock;
 
 /// Resource types mapped to the property descriptor whose value is a hardcoded

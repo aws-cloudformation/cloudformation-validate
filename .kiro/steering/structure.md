@@ -8,11 +8,15 @@ src/
 ├── rust-toolchain.toml         # Pinned toolchain + wasm32 target
 ├── cfn-validate/               # CLI binary (`cfn-validate`) and library facade
 ├── validation-engine/          # ValidationEngine trait, orchestration pipeline, Step Functions validation
-├── template-model/             # Parser (JSON/YAML), SemanticModel, intrinsic resolver, condition SAT
-│                               # solver, reference graph, SAM transform, nesting; `inspect` example
-├── diagnostics/                # Shared types: Diagnostic, Severity, SourceSpan, ValidationReport, metrics
+├── template-model/             # LEAF crate — parser (JSON/YAML), SemanticModel, intrinsic resolver,
+│                               # condition SAT solver, reference graph, SAM transform, nesting, template
+│                               # vocabulary (TopLevelSection/EntityType, SourceSpan, JsonValue), ParseDefect
+│                               # parse findings; `inspect` example
+├── diagnostics/                # Shared reporting types: Diagnostic, ValidationReport, metrics,
+│                               # ParseDefect→Diagnostic conversion (depends on rules + template-model)
 ├── rules/                      # Rule registry (single source of truth for rule IDs, metadata,
 │                               # severity, category, descriptions), filter, category/severity enums
+│                               # (depends on template-model)
 ├── schema-validator/           # Compiled JSON Schema validation against provider schemas
 ├── rego-engine/                # Rego evaluation via Regorus + custom builtins + Guard→Rego translation
 │   └── handwritten/rego/       # Hand-written Rego policies (structure, intrinsics, references,

@@ -1,11 +1,11 @@
 use crate::consts::*;
+use crate::defect::ParseDefect;
 use crate::ir::cfn_function_name;
 use crate::ir::*;
-use diagnostics::Diagnostic;
 
 const CONDITION_CHILDREN: &[&str] = &[FN_CONDITION, FN_EQUALS, FN_AND, FN_OR, FN_NOT];
 
-pub fn validate_intrinsic_nesting(arena: &Arena) -> Vec<Diagnostic> {
+pub fn validate_intrinsic_nesting(arena: &Arena) -> Vec<ParseDefect> {
     let mut out = Vec::new();
 
     for idx in 0..arena.len() {
@@ -34,7 +34,7 @@ pub fn validate_intrinsic_nesting(arena: &Arena) -> Vec<Diagnostic> {
                     // Anchor at the offending child node's build path so that when its
                     // own byte span is unassigned, span resolution walks up to the
                     // nearest enclosing element rather than leaving it unlocated.
-                    out.push(crate::make_parse_diagnostic_at(
+                    out.push(crate::make_parse_defect_at(
                         "E9101",
                         format!("'{}' is not allowed inside '{}'", child_name, parent_name),
                         arena.span(child_ref),

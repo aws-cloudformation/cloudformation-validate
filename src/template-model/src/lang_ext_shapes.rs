@@ -1,6 +1,6 @@
 use crate::consts::*;
+use crate::defect::ParseDefect;
 use crate::ir::*;
-use diagnostics::Diagnostic;
 
 const RULE_LENGTH_SHAPE: &str = "E1030";
 const RULE_TO_JSON_STRING_SHAPE: &str = "E1031";
@@ -10,7 +10,7 @@ const LENGTH_ALLOWED_FNS: &[&str] = &[FN_REF, FN_FIND_IN_MAP, FN_SPLIT, FN_IF, F
 const TO_JSON_STRING_ALLOWED_FNS: &[&str] =
     &[FN_FIND_IN_MAP, FN_GET_ATT, FN_GET_AZS, FN_IF, FN_SELECT, FN_SPLIT, FN_REF];
 
-pub fn validate_lang_ext_parameter_shapes(arena: &Arena, transforms: &[String]) -> Vec<Diagnostic> {
+pub fn validate_lang_ext_parameter_shapes(arena: &Arena, transforms: &[String]) -> Vec<ParseDefect> {
     if !transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS) {
         return Vec::new();
     }
@@ -31,14 +31,14 @@ pub fn validate_lang_ext_parameter_shapes(arena: &Arena, transforms: &[String]) 
     out
 }
 
-fn check_length_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNode, out: &mut Vec<Diagnostic>) {
+fn check_length_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNode, out: &mut Vec<ParseDefect>) {
     let arg_node = arena.node(arg_ref);
     match arg_node {
         Node::List(_) => {}
         Node::Intrinsic(inner) => {
             let fn_name = cfn_function_name(inner);
             if !LENGTH_ALLOWED_FNS.contains(&fn_name) {
-                out.push(crate::make_parse_diagnostic_at(
+                out.push(crate::make_parse_defect_at(
                     RULE_LENGTH_SHAPE,
                     format!(
                         "'{}' is not supported as an argument to 'Fn::Length' - must be an array or one of {}",
@@ -51,7 +51,7 @@ fn check_length_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNode, out: 
             }
         }
         _ => {
-            out.push(crate::make_parse_diagnostic_at(
+            out.push(crate::make_parse_defect_at(
                 RULE_LENGTH_SHAPE,
                 "Fn::Length argument must be an array or a list-producing intrinsic".to_string(),
                 parent.span,
@@ -61,7 +61,7 @@ fn check_length_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNode, out: 
     }
 }
 
-fn check_to_json_string_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNode, out: &mut Vec<Diagnostic>) {
+fn check_to_json_string_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNode, out: &mut Vec<ParseDefect>) {
     let arg_node = arena.node(arg_ref);
     match arg_node {
         Node::List(items) if !items.is_empty() => {}
@@ -69,7 +69,7 @@ fn check_to_json_string_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNod
         Node::Intrinsic(inner) => {
             let fn_name = cfn_function_name(inner);
             if !TO_JSON_STRING_ALLOWED_FNS.contains(&fn_name) {
-                out.push(crate::make_parse_diagnostic_at(
+                out.push(crate::make_parse_defect_at(
                     RULE_TO_JSON_STRING_SHAPE,
                     format!(
                         "'{}' is not supported as an argument to 'Fn::ToJsonString' - must be a non-empty array/object or one of {}",
@@ -82,7 +82,7 @@ fn check_to_json_string_arg(arena: &Arena, arg_ref: NodeRef, parent: &SpannedNod
             }
         }
         _ => {
-            out.push(crate::make_parse_diagnostic_at(
+            out.push(crate::make_parse_defect_at(
                 RULE_TO_JSON_STRING_SHAPE,
                 "Fn::ToJsonString argument must be a non-empty array or object, or a supported intrinsic".to_string(),
                 parent.span,

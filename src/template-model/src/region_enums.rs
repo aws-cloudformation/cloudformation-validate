@@ -18,11 +18,11 @@
 //!   a value is valid in a region only when it is in the intersection of every
 //!   matching branch's enum.
 
+use crate::message::render_str_list;
 use crate::model::SemanticModel;
 use crate::regions::AWS_REGIONS;
 use crate::resolved_value::resolved_value_at_path;
 use crate::resolver::ResolvedValue;
-use diagnostics::message::render_str_list;
 use std::collections::{BTreeSet, HashSet};
 
 /// Resource types and property paths whose instance-type / node-type value is
@@ -132,7 +132,7 @@ pub fn region_label(region: Option<&str>) -> &str {
     region.unwrap_or(ANY_REGION_LABEL)
 }
 
-/// Diagnostic message for a flat instance-type / node-type enum value that is not
+/// ParseDefect message for a flat instance-type / node-type enum value that is not
 /// valid for the effective scope. With a region configured this is today's
 /// message verbatim; with none configured it states the value is valid in no
 /// region. Built here so both engines emit byte-identical text.
@@ -143,7 +143,7 @@ pub fn flat_invalid_message(value: &str, region: Option<&str>) -> String {
     }
 }
 
-/// Diagnostic message for a conditional RDS instance-class value that is not one
+/// ParseDefect message for a conditional RDS instance-class value that is not one
 /// of the allowed classes for the effective scope, rendering the candidate enum.
 /// With a region configured this is today's message verbatim; with none
 /// configured it states the value is one of none in any region.

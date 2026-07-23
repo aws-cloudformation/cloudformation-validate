@@ -16,11 +16,12 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::load_template;
-use diagnostics::{Diagnostic, EntityType};
+use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
+use template_model::EntityType;
 use template_model::PseudoParameterOverrides;
 use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 

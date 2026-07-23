@@ -1,9 +1,9 @@
 use crate::make_resource_diagnostic;
 use diagnostics::Diagnostic;
-use diagnostics::message::render_str_list;
 use std::sync::Arc;
 use template_model::SemanticModel;
 use template_model::consts::KEY_TYPE;
+use template_model::message::render_str_list;
 use template_model::resolver::ResolvedValue;
 
 pub fn validate_definition(

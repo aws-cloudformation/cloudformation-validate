@@ -1,12 +1,14 @@
 use crate::conditions::ConditionModel;
 use crate::consts::*;
+use crate::defect::ParseDefect;
 use crate::graph::ReferenceGraph;
 use crate::ir::*;
+use crate::json_value::JsonValue;
 use crate::regions::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
 use crate::sam;
-use diagnostics::{Diagnostic, JsonValue, PhaseMetric, SpanProvider, phase_metric};
+use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -174,7 +176,7 @@ pub struct SemanticModel {
     pub outputs: HashMap<String, ResolvedOutput>,
     pub graph: ReferenceGraph,
     pub resources_by_type: HashMap<String, Vec<String>>,
-    pub diagnostics: Vec<Diagnostic>,
+    pub diagnostics: Vec<ParseDefect>,
     pub output_empty_joins: Vec<String>,
     pub sam_globals: HashMap<String, HashMap<String, serde_json::Value>>,
     pub sam_implicit_resources: HashSet<String>,
@@ -327,7 +329,8 @@ pub struct ParseConfig {
 #[must_use]
 pub struct ParseResult {
     pub model: SemanticModel,
-    pub model_build: PhaseMetric,
+    /// Wall-clock time spent building the model, in milliseconds.
+    pub model_build_ms: f64,
 }
 
 impl SemanticModel {
@@ -547,7 +550,7 @@ impl SemanticModel {
                         // each engine keeps the two engines identical and covers
                         // the no-Conditions-section case, where a condition-name
                         // reference is still invalid.
-                        diagnostics.push(crate::make_parse_diagnostic(
+                        diagnostics.push(crate::make_parse_defect(
                             "E1028",
                             format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                             ir.arena.span(idx as NodeRef),
@@ -573,7 +576,7 @@ impl SemanticModel {
                         let in_conditions_body =
                             ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
                         if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
-                            diagnostics.push(crate::make_parse_diagnostic(
+                            diagnostics.push(crate::make_parse_defect(
                                 "E1028",
                                 format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                                 ir.arena.span(idx as NodeRef),
@@ -610,7 +613,7 @@ impl SemanticModel {
             }
             output_raw_pseudo.sort();
             for (path, value) in output_raw_pseudo {
-                diagnostics.push(crate::make_parse_diagnostic(
+                diagnostics.push(crate::make_parse_defect(
                     "W1054",
                     format!(
                         "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
@@ -632,7 +635,7 @@ impl SemanticModel {
                 if let Some(default) = &parameters[pname].default
                     && PSEUDO_PARAMETERS.contains(&default.as_str())
                 {
-                    diagnostics.push(crate::make_parse_diagnostic(
+                    diagnostics.push(crate::make_parse_defect(
                         "W1054",
                         format!("Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead", default, default),
                         ir.span_index.get(&format!("Parameters/{}/Default", pname)).copied().unwrap_or(UNKNOWN_SPAN),
@@ -661,7 +664,7 @@ impl SemanticModel {
                 && !is_ref_target
                 && PSEUDO_PARAMETERS.contains(&s.as_str())
             {
-                diagnostics.push(crate::make_parse_diagnostic(
+                diagnostics.push(crate::make_parse_defect(
                     "W1054",
                     format!(
                         "Found a string '{}' that appears to be a pseudo parameter reference; use 'Ref: {}' instead",
@@ -687,7 +690,7 @@ impl SemanticModel {
             }
             output_unsubstituted.sort();
             for (path, variable) in output_unsubstituted {
-                diagnostics.push(crate::make_parse_diagnostic(
+                diagnostics.push(crate::make_parse_defect(
                     "E1029",
                     format!("Found an embedded parameter '{}' outside of an 'Fn::Sub' at {}", variable, path),
                     ir.span_index.get(&path).copied().unwrap_or(UNKNOWN_SPAN),
@@ -710,7 +713,7 @@ impl SemanticModel {
         }
         for (cond_name, always_val) in conditions.tautological_equals() {
             let result_str = if always_val { "True" } else { "False" };
-            diagnostics.push(crate::make_parse_diagnostic_at(
+            diagnostics.push(crate::make_parse_defect_at(
                 "W8003",
                 format!("Fn::Equals in condition '{}' will always return {}", cond_name, result_str),
                 ir.span_index.get(&format!("Conditions/{}", cond_name)).copied().unwrap_or(UNKNOWN_SPAN),
@@ -730,7 +733,7 @@ impl SemanticModel {
                 if let Some(cond) = &resources[rid].condition
                     && !conditions.conditions.contains_key(cond)
                 {
-                    diagnostics.push(crate::make_parse_diagnostic_for_resource(
+                    diagnostics.push(crate::make_parse_defect_for_resource(
                         "E8002",
                         format!("Condition '{}' referenced by resource '{}' is not defined", cond, rid),
                         ir.span_index.get(&format!("Resources/{}", rid)).copied().unwrap_or(UNKNOWN_SPAN),
@@ -744,7 +747,7 @@ impl SemanticModel {
                 if let Some(cond) = &outputs[oname].condition
                     && !conditions.conditions.contains_key(cond)
                 {
-                    diagnostics.push(crate::make_parse_diagnostic_for_resource(
+                    diagnostics.push(crate::make_parse_defect_for_resource(
                         "E6005",
                         format!("Condition '{}' referenced by output '{}' is not defined", cond, oname),
                         ir.span_index.get(&format!("Outputs/{}", oname)).copied().unwrap_or(UNKNOWN_SPAN),
@@ -754,7 +757,7 @@ impl SemanticModel {
             }
         }
         for invalid in conditions.invalid_condition_bodies() {
-            diagnostics.push(crate::make_parse_diagnostic(
+            diagnostics.push(crate::make_parse_defect(
                 "E8001",
                 format!("Condition '{}' must be a boolean expression", invalid),
                 ir.span_index.get(&format!("Conditions/{}", invalid)).copied().unwrap_or(UNKNOWN_SPAN),
@@ -766,7 +769,7 @@ impl SemanticModel {
             if owner.starts_with("__") || undefined_ref.starts_with("__") {
                 continue;
             }
-            diagnostics.push(crate::make_parse_diagnostic(
+            diagnostics.push(crate::make_parse_defect(
                 "E8007",
                 format!("Condition '{}' references undefined condition '{}'", owner, undefined_ref),
                 ir.span_index.get(&format!("Conditions/{}", owner)).copied().unwrap_or(UNKNOWN_SPAN),
@@ -775,14 +778,14 @@ impl SemanticModel {
         for cycle in conditions.detect_cycles() {
             let cycle_desc = cycle.join(" -> ");
             let first = &cycle[0];
-            diagnostics.push(crate::make_parse_diagnostic(
+            diagnostics.push(crate::make_parse_defect(
                 "E9106",
                 format!("Circular dependency in conditions: {}", cycle_desc),
                 ir.span_index.get(&format!("Conditions/{}", first)).copied().unwrap_or(UNKNOWN_SPAN),
             ));
         }
         for (first, other) in conditions.detect_equivalent_conditions() {
-            diagnostics.push(crate::make_parse_diagnostic(
+            diagnostics.push(crate::make_parse_defect(
                 "W9053",
                 format!("Condition '{}' is equivalent to condition '{}' - consider consolidating", other, first),
                 ir.span_index.get(&format!("Conditions/{}", other)).copied().unwrap_or(UNKNOWN_SPAN),
@@ -793,7 +796,7 @@ impl SemanticModel {
         // engine rule evaluation, so the budget-exhausted set is still empty at
         // model-build time. The validation engine emits it after rule
         // evaluation, once those queries have run.
-        let model_build = phase_metric(total_start);
+        let model_build_ms = total_start.elapsed().as_secs_f64() * 1000.0;
 
         if !diagnostics.is_empty() {
             warn!("{} parse-time diagnostics", diagnostics.len());
@@ -880,7 +883,7 @@ impl SemanticModel {
                 scenario_memo: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
             },
-            model_build,
+            model_build_ms,
         })
     }
 
@@ -1541,7 +1544,7 @@ fn check_output_value_node(
     let span = arena.span(value_ref);
     match arena.node(value_ref) {
         Node::List(items) if !items.is_empty() => {
-            resolver.diagnostics.push(crate::make_parse_diagnostic_at(
+            resolver.diagnostics.push(crate::make_parse_defect_at(
                 "F6101",
                 format!("Output '{}' value must be a string, not a list", output_name),
                 span,
@@ -1549,7 +1552,7 @@ fn check_output_value_node(
             ));
         }
         Node::Map(entries) if !entries.is_empty() => {
-            resolver.diagnostics.push(crate::make_parse_diagnostic_at(
+            resolver.diagnostics.push(crate::make_parse_defect_at(
                 "F6101",
                 format!("Output '{}' value must be a string, not an object", output_name),
                 span,
@@ -1562,7 +1565,7 @@ fn check_output_value_node(
             check_output_value_node(arena, if_false, output_name, &format!("{}/{}/2", build_path, FN_IF), resolver);
         }
         Node::Intrinsic(intrinsic) if returns_list(intrinsic) => {
-            resolver.diagnostics.push(crate::make_parse_diagnostic_at(
+            resolver.diagnostics.push(crate::make_parse_defect_at(
                 "F6101",
                 format!("Output '{}' value must be a string, not a list", output_name),
                 span,
@@ -1590,7 +1593,7 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
     let display_name = output_name.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX).unwrap_or(output_name);
     for (key, _) in entries {
         if !VALID_OUTPUT_KEYS.contains(&key.as_str()) {
-            resolver.diagnostics.push(crate::make_parse_diagnostic(
+            resolver.diagnostics.push(crate::make_parse_defect(
                 "E6001",
                 format!(
                     "Output '{}' has invalid property '{}'. Valid properties: Value, Description, Condition, Export",

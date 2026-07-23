@@ -5,7 +5,7 @@
 //! parsers funnel through this one implementation, so JSON and YAML cannot diverge
 //! on which intrinsics they accept, what they reject, or what diagnostics they emit.
 //!
-//! Diagnostic spans are filled in later from source-position scans (JSON byte scan,
+//! ParseDefect spans are filled in later from source-position scans (JSON byte scan,
 //! YAML marker tracking), so every node is allocated with `UNKNOWN_SPAN` here.
 
 use crate::consts::*;
@@ -17,7 +17,7 @@ pub struct Builder {
     pub arena: Arena,
     pub global_index: GlobalIndex,
     pub span_index: SourceSpanIndex,
-    pub diagnostics: Vec<Diagnostic>,
+    pub diagnostics: Vec<ParseDefect>,
 }
 
 impl Builder {
@@ -45,7 +45,7 @@ impl Builder {
     /// reason. Anchored at the function node so downstream span and entity
     /// resolution can attribute it.
     fn structural_error(&mut self, fn_name: &str, reason: &str, path: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic_at(
+        self.diagnostics.push(crate::make_parse_defect_at(
             "F1101",
             format!("{}: {}", fn_name, reason),
             UNKNOWN_SPAN,
@@ -57,7 +57,7 @@ impl Builder {
     /// structurally rejected (warning). Prefixed with the function name and
     /// anchored at the function node.
     fn type_warning(&mut self, fn_name: &str, reason: &str, path: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic_at(
+        self.diagnostics.push(crate::make_parse_defect_at(
             "W1102",
             format!("{}: {}", fn_name, reason),
             UNKNOWN_SPAN,
@@ -67,7 +67,7 @@ impl Builder {
 
     /// `Fn::Sub`'s second argument must be a variable map (fatal).
     fn sub_map_error(&mut self, path: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic_at(
+        self.diagnostics.push(crate::make_parse_defect_at(
             "F0010",
             "Fn::Sub second argument must be a map with string keys".to_string(),
             UNKNOWN_SPAN,
@@ -86,7 +86,7 @@ impl Builder {
             FN_OR => "E8006",
             _ => "F0014",
         };
-        self.diagnostics.push(crate::make_parse_diagnostic_at(
+        self.diagnostics.push(crate::make_parse_defect_at(
             rule_id,
             format!("{}: {}", fn_name, reason),
             UNKNOWN_SPAN,
@@ -99,12 +99,12 @@ impl Builder {
     /// Anchored at `at_path` (the function node, or a specific offending key) so it
     /// lands exactly where the offending value is written.
     fn get_stack_output_error(&mut self, message: String, at_path: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic_at("E1033", message, UNKNOWN_SPAN, at_path));
+        self.diagnostics.push(crate::make_parse_defect_at("E1033", message, UNKNOWN_SPAN, at_path));
     }
 
     /// A malformed `Fn::If` (fatal). Anchored at the `Fn::If` node.
     fn fn_if_error(&mut self, reason: &str, path: &str) {
-        self.diagnostics.push(crate::make_parse_diagnostic_at(
+        self.diagnostics.push(crate::make_parse_defect_at(
             "F0013",
             format!("{}: {}", FN_IF, reason),
             UNKNOWN_SPAN,
@@ -204,7 +204,7 @@ impl Builder {
                     && !key.starts_with(FN_FOR_EACH_KEY_PREFIX)
                     && let Some(intended) = closest_function_name(key)
                 {
-                    self.diagnostics.push(crate::make_parse_diagnostic_at(
+                    self.diagnostics.push(crate::make_parse_defect_at(
                         "W1103",
                         format!("'{}' is not a supported function - did you mean '{}'?", key, intended),
                         UNKNOWN_SPAN,
@@ -355,7 +355,7 @@ impl Builder {
             if reject_scalar && !val.is_object() {
                 self.structural_error(fn_name, &format!("{} value must be an array", fn_name), path);
             } else if strict_shape && !val.is_object() {
-                self.diagnostics.push(crate::make_parse_diagnostic_at(
+                self.diagnostics.push(crate::make_parse_defect_at(
                     "E1017",
                     format!("{} is not of type 'array'", val.describe()),
                     UNKNOWN_SPAN,
@@ -367,7 +367,7 @@ impl Builder {
         if arr.len() != 2 {
             if strict_shape {
                 let bound = if arr.len() > 2 { "maximum" } else { "minimum" };
-                self.diagnostics.push(crate::make_parse_diagnostic_at(
+                self.diagnostics.push(crate::make_parse_defect_at(
                     "E1017",
                     format!("expected {} item count: 2, found: {}", bound, arr.len()),
                     UNKNOWN_SPAN,
@@ -423,7 +423,7 @@ impl Builder {
         let is_integer_string = matches!(first.kind(), ValueKind::String)
             && first.as_coerced_str().is_some_and(|s| crate::coercion::coerce_str_to_integer(&s).is_some());
         if !matches!(first.kind(), ValueKind::Number | ValueKind::Object) && !is_integer_string {
-            self.diagnostics.push(crate::make_parse_diagnostic_at(
+            self.diagnostics.push(crate::make_parse_defect_at(
                 "E1017",
                 format!("{} is not of type 'integer'", first.describe()),
                 UNKNOWN_SPAN,

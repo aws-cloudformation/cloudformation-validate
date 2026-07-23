@@ -1,9 +1,10 @@
 use super::{EvalContext, NativeRuleRegistry};
-use diagnostics::{Diagnostic, RelatedResource, ResourceRef, SourceSpan};
+use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
 use rules::Category;
 use std::collections::HashMap;
 use std::sync::Arc;
 use template_model::SemanticModel;
+use template_model::SourceSpan;
 use template_model::consts::KEY_DEPENDS_ON;
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;

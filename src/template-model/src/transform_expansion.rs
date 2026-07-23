@@ -19,8 +19,9 @@
 //!   the body is still shape-checked without inventing concrete names.
 
 use crate::consts::{FN_FOR_EACH_KEY_PREFIX, MAX_RESOLVE_DEPTH, TRANSFORM_LANGUAGE_EXTENSIONS};
+use crate::defect::ParseDefect;
 use crate::ir::{Arena, IntrinsicFn, NULL_REF, Node, NodeRef, SpannedNode, TemplateIR};
-use diagnostics::{Diagnostic, SourceSpan, UNKNOWN_SPAN};
+use crate::span::{SourceSpan, UNKNOWN_SPAN};
 use std::collections::BTreeMap;
 
 /// Recursion ceiling for the expansion tree walk. This walk traverses the same
@@ -39,7 +40,7 @@ const MAX_EXPANSION_DEPTH: u32 = MAX_RESOLVE_DEPTH;
 /// and a hash map would make that vary run to run.
 type Bindings = BTreeMap<String, String>;
 
-pub(crate) fn expand_language_extensions(ir: &mut TemplateIR) -> Vec<Diagnostic> {
+pub(crate) fn expand_language_extensions(ir: &mut TemplateIR) -> Vec<ParseDefect> {
     if !ir.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS) {
         return Vec::new();
     }
@@ -78,7 +79,7 @@ fn walk(
     node_ref: NodeRef,
     bindings: &Bindings,
     depth: u32,
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
 ) -> NodeRef {
@@ -126,7 +127,7 @@ fn walk_intrinsic(
     spanned: &SpannedNode,
     bindings: &Bindings,
     depth: u32,
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
 ) -> NodeRef {
@@ -219,7 +220,7 @@ fn walk_map(
     spanned: &SpannedNode,
     bindings: &Bindings,
     depth: u32,
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
 ) -> NodeRef {
@@ -293,7 +294,7 @@ fn expand_foreach(
     macro_ref: NodeRef,
     bindings: &Bindings,
     depth: u32,
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
     parent: &SpannedNode,
@@ -354,7 +355,7 @@ fn insert_unique(
     key: String,
     value: NodeRef,
     span: SourceSpan,
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Vec<ParseDefect>,
 ) {
     if entries.iter().any(|(k, _)| k == &key) {
         diagnostics.push(transform_error(&format!("Duplicate {} while doing transformation", key), span, ""));
@@ -502,7 +503,7 @@ fn rebuild_intrinsic(
     intrinsic: &IntrinsicFn,
     bindings: &Bindings,
     depth: u32,
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Vec<ParseDefect>,
     parameters: NodeRef,
     mappings: NodeRef,
 ) -> IntrinsicFn {
@@ -592,9 +593,9 @@ fn unescape_sub_literals(s: &str) -> String {
     s.replace("${!", "${")
 }
 
-fn transform_error(message: &str, span: SourceSpan, build_path: &str) -> Diagnostic {
+fn transform_error(message: &str, span: SourceSpan, build_path: &str) -> ParseDefect {
     let located = if span == UNKNOWN_SPAN && build_path.is_empty() { UNKNOWN_SPAN } else { span };
-    crate::make_parse_diagnostic_at("E0001", format!("Error transforming template: {}", message), located, build_path)
+    crate::make_parse_defect_at("E0001", format!("Error transforming template: {}", message), located, build_path)
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use template_model::DefectPhase;
 
 /// Validation pipeline phase a diagnostic originates from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -18,6 +19,15 @@ impl Phase {
             Phase::Parse => "parse",
             Phase::Schema => "schema",
             Phase::Lint => "lint",
+        }
+    }
+}
+
+impl From<DefectPhase> for Phase {
+    fn from(phase: DefectPhase) -> Self {
+        match phase {
+            DefectPhase::Parse => Phase::Parse,
+            DefectPhase::Lint => Phase::Lint,
         }
     }
 }

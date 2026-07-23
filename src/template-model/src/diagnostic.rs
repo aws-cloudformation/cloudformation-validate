@@ -1,4 +1,4 @@
-use diagnostics::JsonValue;
+use crate::json_value::JsonValue;
 use serde::Serialize;
 use std::collections::HashMap;
 
