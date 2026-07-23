@@ -6994,7 +6994,7 @@
         "fatal": 1,
         "errors": 6,
         "warnings": 3,
-        "informational": 27,
+        "informational": 28,
         "debug": 0
       },
       "suppressed": 0,
@@ -7601,6 +7601,26 @@
         "startLine": 7,
         "startColumn": 5,
         "endLine": 7,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BadListener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BadListener",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -9357,7 +9377,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 1,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -9424,6 +9444,26 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Listener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Listener",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
       }
     ]
   },
@@ -49288,7 +49328,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 5,
-        "informational": 68,
+        "informational": 69,
         "debug": 0
       },
       "suppressed": 0,
@@ -50963,6 +51003,26 @@
         "startLine": 735,
         "startColumn": 4,
         "endLine": 735,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LBListener49E825B4' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LBListener49E825B4",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 780,
+        "startColumn": 4,
+        "endLine": 780,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -58357,7 +58417,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 4,
-        "informational": 109,
+        "informational": 110,
         "debug": 0
       },
       "suppressed": 0,
@@ -60583,6 +60643,26 @@
         "startLine": 1710,
         "startColumn": 4,
         "endLine": 1710,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PublicAlbAlbListener804C1B2779' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PublicAlbAlbListener804C1B2779",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 1748,
+        "startColumn": 4,
+        "endLine": 1748,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -66521,7 +66601,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 30,
+        "informational": 31,
         "debug": 0
       },
       "suppressed": 0,
@@ -67209,6 +67289,26 @@
       {
         "ruleId": "I9040",
         "severity": "INFO",
+        "message": "Resource 'Listener828B0E81' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Listener828B0E81",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 191,
+        "startColumn": 4,
+        "endLine": 191,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
         "message": "Resource 'ListenerECSGroup2EA4A011' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured",
         "source": "ENGINE",
         "entity": {
@@ -67238,7 +67338,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 12,
+        "informational": 13,
         "debug": 0
       },
       "suppressed": 0,
@@ -67486,6 +67586,26 @@
         "startLine": 37,
         "startColumn": 4,
         "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LoadBalancerListenerE1A099B9' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LoadBalancerListenerE1A099B9",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 58,
+        "startColumn": 4,
+        "endLine": 58,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -72943,7 +73063,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 78,
+        "informational": 79,
         "debug": 0
       },
       "suppressed": 0,
@@ -74635,6 +74755,26 @@
       {
         "ruleId": "I9040",
         "severity": "INFO",
+        "message": "Resource 'FargateServiceLBPublicListener4B4929CA' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FargateServiceLBPublicListener4B4929CA",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 554,
+        "startColumn": 4,
+        "endLine": 554,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
         "message": "Resource 'FargateServiceLBPublicListenerECSGroupBE57E081' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured",
         "source": "ENGINE",
         "entity": {
@@ -74784,7 +74924,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 70,
+        "informational": 71,
         "debug": 0
       },
       "suppressed": 0,
@@ -76287,6 +76427,26 @@
         "startLine": 471,
         "startColumn": 4,
         "endLine": 471,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'sampleappLBPublicListenerC4DF6480' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "sampleappLBPublicListenerC4DF6480",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 501,
+        "startColumn": 4,
+        "endLine": 501,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -101227,7 +101387,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 35,
+        "informational": 36,
         "debug": 0
       },
       "suppressed": 0,
@@ -102021,6 +102181,26 @@
         "startLine": 249,
         "startColumn": 4,
         "endLine": 249,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ALBListener3B99FF85' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ALBListener3B99FF85",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 281,
+        "startColumn": 4,
+        "endLine": 281,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -106630,7 +106810,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 57,
+        "informational": 59,
         "debug": 0
       },
       "suppressed": 0,
@@ -107899,6 +108079,46 @@
         "startLine": 591,
         "startColumn": 4,
         "endLine": 591,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FrontendLBListener230479D8' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FrontendLBListener230479D8",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 627,
+        "startColumn": 4,
+        "endLine": 627,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ListenerRule73F9AC5E' of type 'AWS::ElasticLoadBalancingV2::ListenerRule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ListenerRule73F9AC5E",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::ListenerRule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 648,
+        "startColumn": 4,
+        "endLine": 648,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
