@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       branch:
-        description: "Branch to release from — main for regular releases, a hotfix branch for patch releases. Always dispatch this workflow on main; this input selects what gets released."
+        description: "Branch to release from — main for regular releases, a hotfix branch for patch releases."
         required: false
         type: string
         default: 'main'
