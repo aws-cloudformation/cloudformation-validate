@@ -29,14 +29,15 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, res) in &m.resources {
         for dep in &res.depends_on {
             if !m.resources.contains_key(dep.as_str()) && !m.sam_implicit_resources.contains(dep.as_str()) {
-                out.push(make_resource_diagnostic(
-                    "E3005",
-                    &format!("DependsOn target '{}' does not exist as a resource", dep),
-                    m,
-                    name,
-                    "",
-                    None,
-                ));
+                // A dynamic reference cannot name a resource: DependsOn takes
+                // literal logical IDs only, so say that rather than implying a
+                // resource of that name could be added.
+                let message = if dep.contains("{{resolve:") {
+                    format!("DependsOn must be a resource logical ID, not a dynamic reference: '{}'", dep)
+                } else {
+                    format!("DependsOn target '{}' does not exist as a resource", dep)
+                };
+                out.push(make_resource_diagnostic("E3005", &message, m, name, "", None));
             }
         }
     }
@@ -171,6 +172,8 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None => false,
                 };
                 if !implies {
+                    // An output is not a resource — the edge's section-absolute
+                    // source path identifies it.
                     out.push(make_resource_diagnostic(
                         "W1001",
                         &format!(
@@ -178,7 +181,7 @@ fn eval_references(ctx: &EvalContext) -> Vec<Diagnostic> {
                             edge.target, target_cond
                         ),
                         m,
-                        out_name,
+                        "",
                         &edge.source_path,
                         Some("Add a Condition to the output that implies the target's condition"),
                     ));

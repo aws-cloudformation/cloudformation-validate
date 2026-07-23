@@ -190,6 +190,7 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
     "deprecated_resource_types",
     "getatt_return_type_overrides",
     "schema_dependent_excluded_overrides",
+    "secretsmanager_arn_fields",
     "sensitive_ports",
 ];
 

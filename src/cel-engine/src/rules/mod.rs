@@ -1,7 +1,7 @@
 use data_source::embedded;
 use data_source::types::{
     ArtifactCountEntry, CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, KnownResourceTypes,
-    PrimaryIdentifiers, RetentionPeriodRequirements, SensitivePorts, StatefulResourceTypes,
+    PrimaryIdentifiers, RetentionPeriodRequirements, SecretsManagerArnFields, SensitivePorts, StatefulResourceTypes,
 };
 use diagnostics::Diagnostic;
 use rules::Category;
@@ -37,6 +37,8 @@ pub struct CachedData {
     pub deprecated_resource_types: HashSet<String>,
     /// Ports that should not be open to 0.0.0.0/0
     pub sensitive_ports: Vec<u16>,
+    /// Property names that expect a Secrets Manager ARN rather than a resolved secret value
+    pub secretsmanager_arn_fields: Vec<String>,
 }
 
 /// Enum data files and their embedded byte constants.
@@ -129,6 +131,11 @@ impl CachedData {
             .map_err(|e| anyhow::anyhow!("Failed to parse embedded sensitive_ports data: {}", e))?;
         let sensitive_ports = sensitive_data.sensitive_ports;
 
+        let sm_arn_data: SecretsManagerArnFields =
+            serde_json::from_slice(&embedded::SECRETSMANAGER_ARN_FIELDS_BYTES)
+                .map_err(|e| anyhow::anyhow!("Failed to parse embedded secretsmanager_arn_fields data: {}", e))?;
+        let secretsmanager_arn_fields = sm_arn_data.secretsmanager_arn_fields;
+
         let mut enum_data = HashMap::new();
         for (name, bytes) in ENUM_DATA.iter() {
             let v: serde_json::Value = serde_json::from_slice(bytes)
@@ -152,6 +159,7 @@ impl CachedData {
             codepipeline_artifact_counts,
             deprecated_resource_types,
             sensitive_ports,
+            secretsmanager_arn_fields,
         })
     }
 

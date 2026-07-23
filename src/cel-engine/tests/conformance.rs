@@ -439,17 +439,24 @@ mod rule_category_tests {
     #[test]
     fn intrinsics_bad_select() {
         let ids = validate_file("bad/functions_select.yaml");
-        // The parser no longer emits a structural error for a malformed Select —
-        // it falls through to a plain map node. A type warning fires instead for a
-        // non-integer index in a valid 2-element Select.
-        let has_select_warning = ids.iter().any(|id| id == "W1102");
-        assert!(has_select_warning, "Expected W1102 Select type warning, got: {:?}", ids);
+        // Malformed Select shapes (non-integer index, wrong arity, non-array
+        // value) are errors under the Select rule.
+        let select_errors = ids.iter().filter(|id| *id == "E1017").count();
+        assert!(select_errors >= 3, "Expected E1017 Select shape errors, got: {:?}", ids);
+    }
+
+    #[test]
+    fn intrinsics_select_integer_string_index_is_not_warned() {
+        // CloudFormation coerces a numeric string index ("0", "1"), so the
+        // Select type warning must not fire on it.
+        let ids = validate_file("good/functions/select_string_index.yaml");
+        assert!(!ids.iter().any(|id| id == "W1102"), "W1102 must not fire on an integer-string index, got: {:?}", ids);
     }
 
     #[test]
     fn intrinsics_bad_sub_needed() {
         let ids = validate_file("bad/sub_needed.yaml");
-        assert!(has_rule(&ids, "F1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
+        assert!(has_rule(&ids, "E1029"), "Expected E1029 for Sub needed, got: {:?}", ids);
     }
 
     #[test]
@@ -537,13 +544,13 @@ mod rule_category_tests {
     #[test]
     fn conditions_undefined_condition() {
         let ids = validate_file("bad/undefined_condition.yaml");
-        assert!(has_rule(&ids, "F8002"), "Expected condition error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8002"), "Expected condition error, got: {:?}", ids);
     }
 
     #[test]
     fn conditions_equals_wrong_arity() {
         let ids = validate_file("bad/equals_wrong_arity.yaml");
-        assert!(has_rule(&ids, "F0014") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
+        assert!(has_rule(&ids, "E8003") || has_rule(&ids, "W8001"), "Expected Equals arity error, got: {:?}", ids);
     }
 
     #[test]

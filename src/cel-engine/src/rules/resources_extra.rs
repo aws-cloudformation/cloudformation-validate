@@ -3,9 +3,6 @@ use super::patterns::AMI_ID_RE;
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
-use diagnostics::SourceSpan;
-use diagnostics::message::{render_str_list, render_value};
-use rules::{CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
@@ -16,8 +13,10 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
+use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
-use template_model::{hardcoded_az, region_enums};
+use template_model::{CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN, SourceSpan};
+use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::make_resource_diagnostic;
 
 static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
@@ -1711,7 +1710,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("Mapping '{}' must be a map", map_name),
                     m,
                     "",
-                    "",
+                    &format!("Mappings/{}", map_name),
                     None,
                 ));
             } else if let Some(obj) = level1.as_object() {
@@ -1722,7 +1721,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             &format!("Mapping '{}' second level key '{}' must be a map", map_name, k1),
                             m,
                             "",
-                            "",
+                            &format!("Mappings/{}/{}", map_name, k1),
                             None,
                         ));
                     }
@@ -2234,7 +2233,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, res) in &m.resources {
         for s in &res.diagnostics.unsubstituted_variables {
             out.push(make_resource_diagnostic(
-                "F1029",
+                "E1029",
                 &format!("Found an embedded parameter '{}' outside of an 'Fn::Sub' at {}", s.value, s.path),
                 m,
                 name,
@@ -3333,7 +3332,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             continue;
         }
         if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path) {
-            for message in rules::schedule_expression_errors(&val) {
+            for message in schedule_expression_errors(&val) {
                 out.push(make_resource_diagnostic("E3027", &message, m, name, path, None));
             }
         }

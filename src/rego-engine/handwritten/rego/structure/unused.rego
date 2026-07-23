@@ -8,7 +8,8 @@ import rego.v1
 # referenced from a section the parser could not read - an unexpanded Fn::ForEach
 # key or a malformed Conditions section - since the reference graph is then
 # incomplete.
-violation contains make_diag("W2001", "WARN", "",
+violation contains make_diag_at("W2001", "WARN", "",
+    sprintf("Parameters/%s", [pname]),
     sprintf("Parameter '%s' is not referenced anywhere in the template", [pname])) if {
     count(object.get(input.template, "transforms", [])) == 0
     not _unreadable_reference_section
@@ -77,7 +78,8 @@ _param_referenced(pname) if {
 }
 
 # W8001: Unused conditions (not referenced by any resource Condition or Fn::If)
-violation contains make_diag("W8001", "WARN", "",
+violation contains make_diag_at("W8001", "WARN", "",
+    sprintf("Conditions/%s", [cname]),
     sprintf("Condition '%s' is not used by any resource or Fn::If", [cname])) if {
     some cname in object.keys(input.conditions)
     not _condition_used(cname)
@@ -129,7 +131,8 @@ _condition_used(cname) if {
 # entirely. Otherwise a mapping is "used" when its
 # name is the literal first argument of any Fn::FindInMap anywhere in the
 # template, which findInMapNames collects template-wide.
-violation contains make_diag("W7001", "WARN", "",
+violation contains make_diag_at("W7001", "WARN", "",
+    sprintf("Mappings/%s", [mname]),
     sprintf("Mapping '%s' is not referenced by any Fn::FindInMap", [mname])) if {
     not object.get(input, "hasDynamicFindinmapName", false)
     some mname in object.keys(input.mappings)

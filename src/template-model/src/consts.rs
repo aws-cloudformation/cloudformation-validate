@@ -1,3 +1,5 @@
+use crate::template_section::TopLevelSection;
+
 pub const PSEUDO_PREFIX: &str = "AWS::";
 pub const PSEUDO_NO_VALUE: &str = "AWS::NoValue";
 pub const PSEUDO_ACCOUNT_ID: &str = "AWS::AccountId";
@@ -22,17 +24,20 @@ pub const PSEUDO_PARAMETERS: &[&str] = &[
 pub const DEFAULT_ACCOUNT_ID: &str = "123456789012";
 pub const DEFAULT_STACK_NAME: &str = "teststack";
 
-pub const SECTION_PARAMETERS: &str = "Parameters";
-pub const SECTION_MAPPINGS: &str = "Mappings";
-pub const SECTION_CONDITIONS: &str = "Conditions";
-pub const SECTION_RESOURCES: &str = "Resources";
-pub const SECTION_OUTPUTS: &str = "Outputs";
-pub const SECTION_RULES: &str = "Rules";
-pub const SECTION_METADATA: &str = "Metadata";
+// Section keys derive from the shared `TopLevelSection` enum — the single
+// definition of the documented template sections. `Globals` is SAM-only and
+// not part of the documented template anatomy, so it stays a plain constant.
+pub const SECTION_PARAMETERS: &str = TopLevelSection::Parameters.name();
+pub const SECTION_MAPPINGS: &str = TopLevelSection::Mappings.name();
+pub const SECTION_CONDITIONS: &str = TopLevelSection::Conditions.name();
+pub const SECTION_RESOURCES: &str = TopLevelSection::Resources.name();
+pub const SECTION_OUTPUTS: &str = TopLevelSection::Outputs.name();
+pub const SECTION_RULES: &str = TopLevelSection::Rules.name();
+pub const SECTION_METADATA: &str = TopLevelSection::Metadata.name();
 pub const SECTION_GLOBALS: &str = "Globals";
-pub const SECTION_FORMAT_VERSION: &str = "AWSTemplateFormatVersion";
-pub const SECTION_DESCRIPTION: &str = "Description";
-pub const SECTION_TRANSFORM: &str = "Transform";
+pub const SECTION_FORMAT_VERSION: &str = TopLevelSection::FormatVersion.name();
+pub const SECTION_DESCRIPTION: &str = TopLevelSection::Description.name();
+pub const SECTION_TRANSFORM: &str = TopLevelSection::Transform.name();
 
 pub const KEY_TYPE: &str = "Type";
 pub const KEY_CONDITION: &str = "Condition";
@@ -313,6 +318,58 @@ pub const FN_EACH_MEMBER_IN: &str = "Fn::EachMemberIn";
 
 pub const FN_FOR_EACH_KEY_PREFIX: &str = "Fn::ForEach::";
 
+/// Every intrinsic-function key that the parser can write into a node's build
+/// path. Path-based checks that ask "is this string nested inside a function?"
+/// must match against this list rather than the bare `Fn::` prefix: a user map
+/// key may legitimately start with `Fn::` (e.g. a Lambda environment variable
+/// named `Fn::Custom`) without being a function.
+pub const INTRINSIC_FN_PATH_SEGMENTS: &[&str] = &[
+    FN_GET_ATT,
+    FN_SUB,
+    FN_JOIN,
+    FN_SELECT,
+    FN_IF,
+    FN_FIND_IN_MAP,
+    FN_SPLIT,
+    FN_BASE64,
+    FN_CIDR,
+    FN_GET_AZS,
+    FN_GET_STACK_OUTPUT,
+    FN_IMPORT_VALUE,
+    FN_TRANSFORM,
+    FN_AND,
+    FN_OR,
+    FN_NOT,
+    FN_EQUALS,
+    FN_TO_JSON_STRING,
+    FN_LENGTH,
+    FN_FOR_EACH,
+    FN_VALUE_OF,
+    FN_VALUE_OF_ALL,
+    FN_REF_ALL,
+    FN_CONTAINS,
+    FN_EACH_MEMBER_EQUALS,
+    FN_EACH_MEMBER_IN,
+];
+
+/// Resource property paths where an `ssm-secure` dynamic reference is
+/// supported — the fixed set CloudFormation documents for secure-string
+/// resolution. Paths use the resource *type*
+/// (not the logical ID) and `*` for array indices.
+pub const SSM_SECURE_ALLOWED_PROPERTY_PATHS: &[&str] = &[
+    "Resources/AWS::DirectoryService::MicrosoftAD/Properties/Password",
+    "Resources/AWS::DirectoryService::SimpleAD/Properties/Password",
+    "Resources/AWS::ElastiCache::ReplicationGroup/Properties/AuthToken",
+    "Resources/AWS::IAM::User/Properties/LoginProfile/Password",
+    "Resources/AWS::KinesisFirehose::DeliveryStream/Properties/RedshiftDestinationConfiguration/Password",
+    "Resources/AWS::OpsWorks::App/Properties/AppSource/Password",
+    "Resources/AWS::OpsWorks::Stack/Properties/RdsDbInstances/*/DbPassword",
+    "Resources/AWS::OpsWorks::Stack/Properties/CustomCookbooksSource/Password",
+    "Resources/AWS::RDS::DBCluster/Properties/MasterUserPassword",
+    "Resources/AWS::RDS::DBInstance/Properties/MasterUserPassword",
+    "Resources/AWS::Redshift::Cluster/Properties/MasterUserPassword",
+];
+
 /// The YAML 1.1 merge key. A mapping entry `<<: <alias-or-list-of-aliases>` splices
 /// the referenced mapping(s) into the enclosing mapping, with explicit keys winning
 /// over merged ones and earlier merge sources winning over later ones.
@@ -402,34 +459,15 @@ pub const BOOLEAN_FN_KEYS: &[&str] =
 
 /// Intrinsic functions whose output can stand in for an `Fn::Equals` argument.
 /// An `Fn::Equals` argument that is a single-key mapping must use one of these
-/// keys to be considered well-formed. This includes the string/value-producing
-/// functions as well as the boolean-producing condition functions (`Fn::And`,
-/// `Fn::Or`, `Fn::Not`, a nested `Fn::Equals`, `Condition`, and the Rules-section
-/// membership functions), since CloudFormation permits comparing a boolean result
-/// against another value.
-pub const EQUALS_ARG_FN_KEYS: &[&str] = &[
-    FN_REF,
-    FN_FIND_IN_MAP,
-    FN_SUB,
-    FN_JOIN,
-    FN_SELECT,
-    FN_SPLIT,
-    FN_LENGTH,
-    FN_TO_JSON_STRING,
-    FN_IF,
-    FN_BASE64,
-    FN_GET_ATT,
-    FN_GET_AZS,
-    FN_IMPORT_VALUE,
-    FN_AND,
-    FN_OR,
-    FN_NOT,
-    FN_EQUALS,
-    FN_CONDITION,
-    FN_CONTAINS,
-    FN_EACH_MEMBER_EQUALS,
-    FN_EACH_MEMBER_IN,
-];
+/// keys to be considered well-formed. An `Fn::Equals` operand must resolve to a
+/// scalar, so only the string/value-producing functions are permitted. Boolean
+/// and reference-shaped functions (`Fn::And`/`Fn::Or`/`Fn::Not`, a nested
+/// `Fn::Equals`, `Condition`, `Fn::GetAtt`, `Fn::GetAZs`, `Fn::ImportValue`,
+/// `Fn::Base64`, and the Rules-section membership functions) produce a
+/// non-scalar and are rejected here, matching CloudFormation's own restriction
+/// on comparison operands.
+pub const EQUALS_ARG_FN_KEYS: &[&str] =
+    &[FN_REF, FN_FIND_IN_MAP, FN_SUB, FN_JOIN, FN_SELECT, FN_SPLIT, FN_LENGTH, FN_TO_JSON_STRING];
 
 // Edge kind values used in the serialized reference graph.
 // These are distinct from FN_* names (e.g. EDGE_KIND_GET_ATT = "GetAtt" vs FN_GET_ATT = "Fn::GetAtt").
@@ -482,3 +520,18 @@ pub const CONDITION_REF_PREFIX: &str = "Condition:";
 pub const PARAM_TYPE_STRING: &str = "String";
 pub const PARAM_TYPE_NUMBER: &str = "Number";
 pub const PARAM_TYPE_COMMA_DELIMITED_LIST: &str = "CommaDelimitedList";
+
+// SAM transform-error identity. The transform is applied while building the
+// semantic model, so this crate owns the rule ID and message prefix that mark
+// a failed transform; downstream layers gate on them because a failed SAM
+// transform stops CloudFormation before resource validation.
+pub const SAM_TRANSFORM_ERROR_RULE_ID: &str = "E0001";
+
+/// Message prefix shared by every SAM transform-error finding, regardless of
+/// which layer produced it.
+pub const SAM_TRANSFORM_ERROR_PREFIX: &str = "Error transforming template:";
+
+/// Returns `true` when `message` belongs to a SAM transform-error finding.
+pub fn is_sam_transform_error_message(message: &str) -> bool {
+    message.starts_with(SAM_TRANSFORM_ERROR_PREFIX)
+}

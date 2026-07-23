@@ -1,4 +1,4 @@
-use diagnostics::JsonValue;
+use crate::json_value::JsonValue;
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -228,6 +228,12 @@ pub struct DiagnosticResource {
     pub for_each_expansions: Vec<DiagnosticForEachExpansion>,
     /// Property paths containing ${...} text that is not an Fn::Sub variable and is left as a literal.
     pub unsubstituted_variables: Vec<PathVariable>,
+    /// Fn::Sub map keys not referenced in the template string, each with its path and the unused key name.
+    pub unused_sub_keys: Vec<PathVariable>,
+    /// Property values that are a raw pseudo-parameter string instead of using Ref, each with its path and the pseudo-parameter name.
+    pub raw_pseudo_params: Vec<PathVariable>,
+    /// Property paths containing a {{resolve:secretsmanager:...}} dynamic reference.
+    pub secretsmanager_ref_paths: Vec<String>,
     /// References whose target does not resolve to any resource or parameter, each with its path and unresolved target.
     pub invalid_refs: Vec<PathTarget>,
 }

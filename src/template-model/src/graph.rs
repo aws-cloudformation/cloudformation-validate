@@ -1,6 +1,6 @@
+use crate::defect::{DefectPhase, ParseDefect};
 use crate::ir::*;
 use crate::resolver::{RefKind, ResolverEdge};
-use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic};
 use log::{info, warn};
 use std::collections::{BTreeSet, HashMap, VecDeque};
 
@@ -126,7 +126,7 @@ impl ReferenceGraph {
     /// than flagging every member of the strongly connected component, which would
     /// over-report a large tangled component as dozens of findings for a single
     /// underlying problem.
-    pub fn cycle_diagnostics(&self, span_index: &HashMap<String, SourceSpan>) -> Vec<Diagnostic> {
+    pub fn cycle_diagnostics(&self, span_index: &HashMap<String, SourceSpan>) -> Vec<ParseDefect> {
         let adjacency = self.cycle_adjacency();
         let mut reported_edges: Vec<(&str, &str)> = Vec::new();
         for start in &self.resource_order {
@@ -146,15 +146,14 @@ impl ReferenceGraph {
             .map(|(source, target)| {
                 let path = render_cycle(source, target, &adjacency);
                 let span = span_index.get(&format!("Resources/{}", source)).copied().unwrap_or(UNKNOWN_SPAN);
-                RegisteredDiagnostic::new(
+                ParseDefect::new(
                     "F3004",
                     format!("Circular Dependencies for resource {source}. Circular dependency with [{path}]"),
                 )
-                .resource(source.to_string(), None)
+                .resource(source.to_string())
                 .property_path(format!("Resources/{}", source))
                 .location(span)
-                .phase(Phase::Lint)
-                .build()
+                .phase(DefectPhase::Lint)
             })
             .collect()
     }
@@ -418,11 +417,11 @@ mod tests {
     /// Collects each diagnostic's resource id together with the loop rendered in
     /// its message, so a test can assert both which resource a finding is anchored
     /// on and the path it traces.
-    fn diagnostic_resources_and_paths(diags: &[Diagnostic]) -> Vec<(String, String)> {
+    fn diagnostic_resources_and_paths(diags: &[ParseDefect]) -> Vec<(String, String)> {
         diags
             .iter()
             .map(|d| {
-                let resource = d.resource.as_ref().and_then(|r| r.id.clone()).unwrap_or_default();
+                let resource = d.resource_logical_id().map(String::from).unwrap_or_default();
                 let path = d
                     .message
                     .split_once('[')
@@ -525,7 +524,7 @@ mod tests {
         let by_resource = |id: &str| {
             diags
                 .iter()
-                .find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(id))
+                .find(|d| d.resource_logical_id() == Some(id))
                 .unwrap_or_else(|| panic!("expected an F3004 for {id}"))
         };
         assert!(by_resource("A").message.contains("Circular Dependencies for resource A"));
@@ -546,7 +545,7 @@ mod tests {
         for (id, expected) in [("A", "[A -> B -> C -> A]"), ("B", "[B -> C -> A -> B]"), ("C", "[C -> A -> B -> C]")] {
             let d = diags
                 .iter()
-                .find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(id))
+                .find(|d| d.resource_logical_id() == Some(id))
                 .unwrap_or_else(|| panic!("expected an F3004 for {id}"));
             assert!(d.message.contains(expected), "{id}: got {}", d.message);
         }
@@ -621,7 +620,7 @@ mod tests {
         let graph = ReferenceGraph::build(edges, &ids);
         let diags = graph.cycle_diagnostics(&HashMap::new());
         let mut resources: Vec<String> =
-            diags.iter().filter_map(|d| d.resource.as_ref().and_then(|r| r.id.clone())).collect();
+            diags.iter().filter_map(|d| d.resource_logical_id().map(String::from)).collect();
         resources.sort();
         assert_eq!(resources, vec!["A".to_string(), "B".to_string()], "X only feeds the cycle and must not be flagged");
     }
@@ -760,9 +759,8 @@ mod tests {
         let mut span_index = HashMap::new();
         span_index.insert("Resources/A".to_string(), span);
         let diags = graph.cycle_diagnostics(&span_index);
-        let a =
-            diags.iter().find(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("A")).expect("F3004 for A");
-        assert_eq!(a.location.expect("A has a span").start_line, 42);
+        let a = diags.iter().find(|d| d.resource_logical_id() == Some("A")).expect("F3004 for A");
+        assert_eq!(a.span.start_line, 42);
         assert_eq!(a.property_path.as_deref(), Some("Resources/A"));
     }
 }

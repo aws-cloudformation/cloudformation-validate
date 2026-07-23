@@ -1,21 +1,22 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
-use diagnostics::message::{render_str_list, render_value, render_value_list};
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
-use rules::{
-    CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, compile_pattern, format_rule_for_format,
-};
+use rules::format_rule_for_format;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
-use template_model::SemanticModel;
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::consts::{
-    FN_CONDITION, FN_IF, FN_PREFIX, FN_REF, KEY_PROPERTIES, KEY_TYPE, PARAM_TYPE_COMMA_DELIMITED_LIST,
-    PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
+    FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
+    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE,
+    SAM_SERVERLESS_TYPE_PREFIX,
 };
+use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::{
+    CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
+};
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
 /// Type checks are skipped for these paths when the value is a string.
@@ -41,15 +42,22 @@ const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
     ("AWS::Lambda::Function", "Properties.Environment"),
 ];
 
-/// Returns true if the value is an unresolved or malformed intrinsic function.
-/// These are JSON objects with a single key that starts with "Fn::" or is "Ref"/"Condition".
+/// Returns true if the value is an unresolved or malformed intrinsic function:
+/// a JSON object with a single *known* function key (`Fn::<name>`, `Ref`,
+/// `Condition`, or an `Fn::ForEach::` loop key). Only known names are skipped —
+/// a single-key object whose key merely starts with `Fn::` (e.g. a map entry
+/// literally named `Fn::Custom`) is plain data and must be schema-validated
+/// like any other object.
 fn is_unresolved_intrinsic(val: &serde_json::Value) -> bool {
     let Some(obj) = val.as_object() else { return false };
     if obj.len() != 1 {
         return false;
     }
     let key = obj.keys().next().unwrap();
-    key.starts_with(FN_PREFIX) || key == FN_REF || key == FN_CONDITION
+    INTRINSIC_FN_PATH_SEGMENTS.contains(&key.as_str())
+        || key == FN_REF
+        || key == FN_CONDITION
+        || key.starts_with(FN_FOR_EACH_KEY_PREFIX)
 }
 
 pub fn validate_all_resources(
@@ -155,14 +163,10 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
         if d.phase != Some(Phase::Schema) {
             continue;
         }
-        let Some(ref res_ref) = d.resource else {
+        let Some(rid) = d.resource_logical_id().map(String::from) else {
             continue;
         };
-        let rid = match res_ref.id.as_deref() {
-            Some(id) => id,
-            None => continue,
-        };
-        let Some(res) = model.resources.get(rid) else {
+        let Some(res) = model.resources.get(rid.as_str()) else {
             continue;
         };
         let Some(schema) = store.get(&res.resource_type) else {
@@ -177,7 +181,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
             }
         }
 
-        if let Some(source) = describe_resolution(model, rid, d.property_path.as_deref().unwrap_or("")) {
+        if let Some(source) = describe_resolution(model, &rid, d.property_path.as_deref().unwrap_or("")) {
             let ctx = d.context.get_or_insert_with(|| ViolationContext {
                 actual_value: None,
                 expected_constraint: None,
@@ -308,7 +312,7 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
                         .insert("replacement_strategy".into(), serde_json::json!(rs).into());
                 }
             }
-            "W3041" => {
+            "W9054" => {
                 ensure_ctx!(d).lifecycle = Some("write-only".into());
             }
             _ => {}
@@ -439,7 +443,7 @@ fn validate_resource(
             {
                 let output_name = edge.source_resource.strip_prefix("__output__").unwrap_or(&edge.source_resource);
                 out.push(build_diagnostic(
-                    "W3041",
+                    "W9054",
                     &format!("Write-only property '{}' of '{}' is referenced in output '{}'", wo, rid, output_name),
                     m,
                     rid,
@@ -2105,7 +2109,7 @@ fn validate_extension_if_then_else(
                 // requirements). Skip to avoid double-reporting.
                 let already_reported = out.iter().any(|d| {
                     d.rule_id == "F3003"
-                        && d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some(rid)
+                        && d.resource_logical_id() == Some(rid)
                         && d.message.contains(&format!("'{}' is a required property", prop_name))
                 });
                 if already_reported {

@@ -94,10 +94,7 @@ fn e2e_integration_ref_no_value() {
     let allowed_resources = ["IamRole1", "IamRole2", "IamRole3", "CloudFront1", "CloudFront2"];
     assert!(
         report.diagnostics.iter().all(|d| d.severity != Severity::Error
-            || d.resource
-                .as_ref()
-                .map(|r| r.id.as_deref().is_some_and(|id| allowed_resources.contains(&id)))
-                .unwrap_or(false)),
+            || d.resource_logical_id().is_some_and(|id| allowed_resources.contains(&id))),
         "Unexpected resource with errors, got: {:?}",
         report.diagnostics.iter().filter(|d| d.severity == Severity::Error).collect::<Vec<_>>()
     );
@@ -110,7 +107,7 @@ fn e2e_integration_dynamic_references() {
     // which correctly triggers pattern validation (not recognized as a resolve: ref)
     assert!(
         report.diagnostics.iter().all(|d| d.severity != Severity::Error
-            || d.resource.as_ref().and_then(|r| r.id.as_deref()) == Some("SESEventSourceMappingBadDynamicReference")),
+            || d.resource_logical_id() == Some("SESEventSourceMappingBadDynamicReference")),
         "Expected errors only on bad dynamic ref resource, got: {:?}",
         report.diagnostics.iter().filter(|d| d.severity == Severity::Error).collect::<Vec<_>>()
     );
@@ -388,7 +385,7 @@ fn e2e_bad_rds_public() {
 #[test]
 fn e2e_diagnostics_have_source_locations() {
     let report = validate_fixture("bad/generic.yaml");
-    let with_resource: Vec<_> = report.diagnostics.iter().filter(|d| d.resource.is_some()).collect();
+    let with_resource: Vec<_> = report.diagnostics.iter().filter(|d| d.resource_logical_id().is_some()).collect();
     assert!(!with_resource.is_empty(), "Expected diagnostics with resource_id for bad/generic.yaml");
     let with_location = with_resource.iter().filter(|d| d.location.as_ref().is_some_and(|l| l.start_line > 0)).count();
     assert!(
@@ -584,7 +581,7 @@ fn e2e_invalid_mapping_structure() {
 #[test]
 fn e2e_undefined_condition() {
     let report = validate_fixture("bad/undefined_condition.yaml");
-    assert!(has_rule(&report, "F8002"), "Undefined condition should trigger F8002, got: {:?}", report.diagnostics);
+    assert!(has_rule(&report, "E8002"), "Undefined condition should trigger E8002, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -624,12 +621,8 @@ fn e2e_lambda_runtime_from_data() {
 fn e2e_schema_violations_from_multiple_services() {
     let input = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      NotReal: bad\n  VPC:\n    Type: AWS::EC2::VPC\n    Properties:\n      NotReal: bad\n";
     let report = validate_bytes(&*SHARED_ENGINE, &SHARED_SV, input, ValidateConfig::default()).unwrap();
-    let f3002_resources: Vec<&str> = report
-        .diagnostics
-        .iter()
-        .filter(|d| d.rule_id == "F3002")
-        .filter_map(|d| d.resource.as_ref().and_then(|r| r.id.as_deref()))
-        .collect();
+    let f3002_resources: Vec<&str> =
+        report.diagnostics.iter().filter(|d| d.rule_id == "F3002").filter_map(|d| d.resource_logical_id()).collect();
     assert!(
         f3002_resources.contains(&"Bucket") && f3002_resources.contains(&"VPC"),
         "F3002 should flag unknown properties from both S3 and EC2, got: {:?}",
@@ -651,8 +644,8 @@ fn e2e_if_wrong_arity() {
 fn e2e_equals_wrong_arity() {
     let report = validate_fixture("bad/equals_wrong_arity.yaml");
     assert!(
-        has_rule(&report, "F0014"),
-        "Fn::Equals with 3 elements should trigger parse error, got: {:?}",
+        has_rule(&report, "E8003"),
+        "Fn::Equals with 3 elements should trigger E8003 shape error, got: {:?}",
         report.diagnostics
     );
 }
@@ -710,7 +703,7 @@ fn e2e_w1020_prefix_sub_no_trigger() {
 #[test]
 fn e2e_e1029_nested_intrinsic_syntax() {
     let report = validate_fixture("bad/sub_nested_intrinsic.yaml");
-    assert!(!has_rule(&report, "F1029"), "${{! is valid literal escape syntax in Fn::Sub, not an error");
+    assert!(!has_rule(&report, "E1029"), "${{! is valid literal escape syntax in Fn::Sub, not an error");
 }
 
 #[test]

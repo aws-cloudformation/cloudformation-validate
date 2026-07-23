@@ -138,9 +138,9 @@ fn custom_rule_list_rules_and_validate_match_between_engines() {
             .find(|d| d.rule_id == "CUSTOM001")
             .unwrap_or_else(|| panic!("{name}: CUSTOM001 diagnostic must fire"));
         assert_eq!(d.severity, Severity::Error, "{name}: diagnostic severity");
-        assert_eq!(d.resource.as_ref().and_then(|r| r.id.as_deref()), Some("Bucket"), "{name}: resource_id");
+        assert_eq!(d.resource_logical_id(), Some("Bucket"), "{name}: resource_id");
         assert_eq!(
-            d.resource.as_ref().and_then(|r| r.resource_type.as_deref()),
+            d.entity.as_ref().and_then(|e| e.resource_type.as_deref()),
             Some("AWS::S3::Bucket"),
             "{name}: resource_type"
         );
@@ -224,7 +224,7 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
             .unwrap_or_else(|| panic!("{name}: check_bucket_encryption diagnostic must fire"));
         assert_eq!(d.severity, Severity::Error, "{name}: diagnostic severity");
         assert_eq!(d.source, RuleOrigin::Guard, "{name}: diagnostic source");
-        assert_eq!(d.resource.as_ref().and_then(|r| r.id.as_deref()), Some("Bucket"), "{name}: resource_id");
+        assert_eq!(d.resource_logical_id(), Some("Bucket"), "{name}: resource_id");
     }
 }
 
@@ -482,6 +482,36 @@ fn bad_sam_templates_fire_identically_on_both_engines() {
             cel_ids.iter().any(|d| d.starts_with("E0001|") || d.starts_with("E3038|")),
             "{name}: expected a SAM transform error (E0001/E3038), got {cel_ids:?}"
         );
+    }
+}
+
+#[test]
+fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
+    // The intrinsic/condition rules reworked to emit from the shared model must
+    // produce byte-identical diagnostics on both engines. Assert full parity
+    // (all severities) on the fixtures that exercise them.
+    let sv = SchemaValidator::new();
+    let fixtures = [
+        "bad/E1050_dynamic_ref_malformed.yaml",
+        "bad/W1051_secretsmanager_at_arn.yaml",
+        "bad/W1054_raw_pseudo_param.yaml",
+        "bad/E8007_condition_undefined_in_expr.yaml",
+        "bad/E9106_condition_cycle.yaml",
+        "bad/W9053_equivalent_conditions.yaml",
+        "bad/W1019_sub_unused_key.yaml",
+        "bad/W1053_dynref_spaces.yaml",
+        "good/good_conditions_valid_refs.yaml",
+    ];
+    for name in fixtures {
+        let bytes = load_template(name);
+        let ids = |engine: &dyn ValidationEngine| -> Vec<String> {
+            let report = validate_bytes(engine, &sv, &bytes, Default::default()).unwrap();
+            let mut out: Vec<String> =
+                report.diagnostics.iter().map(|d| format!("{}|{:?}|{}", d.rule_id, d.severity, d.message)).collect();
+            out.sort();
+            out
+        };
+        assert_eq!(ids(&*CEL), ids(&*REGO), "{name}: engines diverge");
     }
 }
 

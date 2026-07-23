@@ -45,8 +45,9 @@ _edge_guarded_by(edge, source_cond, target_cond) if {
     conjunction_implies(source_cond, part, target_cond)
 }
 
-# W1001: Output reference to conditional resource that may not exist
-violation contains make_diag_full("W1001", "WARN", out_name, edge.sourcePath,
+# W1001: Output reference to conditional resource that may not exist.
+# An output is not a resource - its section-absolute source path identifies it.
+violation contains make_diag_full("W1001", "WARN", "", edge.sourcePath,
     sprintf("Reference to '%s' which is conditional on '%s' - target may not exist",
         [target, target_cond]),
     "Add a Condition to the output that implies the target's condition",

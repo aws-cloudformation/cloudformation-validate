@@ -1,7 +1,8 @@
 import type {
     DetailedReport,
     DiagnosticModel,
-    EngineConfig,
+    EngineConfig as WasmEngineConfig,
+    ExternalRuleSource,
     ParameterInfo,
     ResolvedOutput,
     ResolvedResource,
@@ -19,11 +20,14 @@ export type {
     RuleOrigin,
     IdRange,
     ResourceIdFilter,
+    LogicalIdFilter,
     ResourceTypeFilter,
     ServiceFilter,
     RuleFilterConfig,
     RuleInfo,
     SourceSpan,
+    Entity,
+    EntityType,
     ResourceRef,
     RelatedResource,
     ViolationContext,
@@ -36,7 +40,6 @@ export type {
     StandardReport,
     DetailedReport,
     PseudoParameterOverrides,
-    EngineConfig,
     ValidateConfig,
     ExternalRuleSource,
     ResolvedValue,
@@ -86,6 +89,36 @@ export class TemplateFile {
     readBytes(): Uint8Array {
         return readFileSync(this.path);
     }
+}
+
+export class RuleFile {
+    constructor(public readonly path: string) {}
+
+    readContent(): string {
+        return readFileSync(this.path, 'utf8');
+    }
+}
+
+export type RuleSource = ExternalRuleSource | RuleFile;
+
+export interface EngineConfig {
+    /** Engine-native rules (Rego for RegoEngine, CEL for CelEngine). */
+    customRules?: RuleSource[];
+    /** CloudFormation Guard DSL rules, usable with either engine. */
+    guardRules?: RuleSource[];
+}
+
+function toExternalRuleSources(sources?: RuleSource[]): ExternalRuleSource[] {
+    return (sources ?? []).map((source) =>
+        source instanceof RuleFile ? { name: source.path, content: source.readContent() } : source,
+    );
+}
+
+function toWasmEngineConfig(config?: EngineConfig): WasmEngineConfig {
+    return {
+        customRules: toExternalRuleSources(config?.customRules),
+        guardRules: toExternalRuleSources(config?.guardRules),
+    };
 }
 
 export class TemplateModel {
@@ -162,13 +195,13 @@ interface WasmEngineInstance {
 }
 
 function createEngineClass(
-    WasmClass: new (config: EngineConfig) => WasmEngineInstance,
+    WasmClass: new (config: WasmEngineConfig) => WasmEngineInstance,
 ): new (config?: EngineConfig) => Engine {
     return class implements Engine {
         private readonly inner: WasmEngineInstance;
 
         constructor(config?: EngineConfig) {
-            this.inner = new WasmClass(config ?? {});
+            this.inner = new WasmClass(toWasmEngineConfig(config));
         }
 
         validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport {

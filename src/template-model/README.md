@@ -14,7 +14,7 @@ resource schemas — it is purely a modeling library.
    Resources, Outputs, Rules, Metadata, Transforms, Globals).
 2. **Resolve** — Walks each resource and output, resolving all intrinsic functions into `ResolvedValue` variants.
 3. **Validate** — Builds a reference graph, detects cycles, validates intrinsic function nesting, and emits parse-time
-   diagnostics (`F3004` cycles, `F1104` undefined conditions, `F1105` invalid nesting, `W8003` tautological conditions).
+   diagnostics (`F3004` cycles, `E1028` undefined conditions, `E1101` invalid nesting, `W8003` tautological conditions).
 
 ## Intrinsic Function Support
 
@@ -103,7 +103,7 @@ let model = result.model;
 | `outputs`           | `HashMap<String, ResolvedOutput>` — resolved outputs                      |
 | `graph`             | `ReferenceGraph` with cycle information                                   |
 | `resources_by_type` | `HashMap<String, Vec<String>>` — logical IDs grouped by resource type     |
-| `diagnostics`       | All parse-time diagnostics                                                |
+| `diagnostics`       | All parse-time findings, as plain `ParseDefect` values                    |
 | `template_metadata` | Raw JSON of the Metadata section                                          |
 
 ### ParseConfig

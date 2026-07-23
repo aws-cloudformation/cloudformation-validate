@@ -76,43 +76,6 @@ pub fn category_for_rule_id(rule_id: &str) -> Category {
     Category::Resource
 }
 
-/// Regex for the `AWS::IAM::Role.Arn` schema *format* (the E1156 check): the partition must be
-/// `aws`-prefixed and the role name is unrestricted (`.+`), so a role name containing a space or
-/// other legal-but-unusual character is accepted here.
-pub const IAM_ROLE_ARN_PATTERN: &str = r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$";
-
-/// Regex for the resource-property IAM role-ARN *rule* (the E3511 check): the partition group is
-/// optional and the role name is constrained to the IAM role-name character class. This is
-/// intentionally stricter than [`IAM_ROLE_ARN_PATTERN`] — the two correspond to two distinct checks
-/// and must not be conflated.
-pub const IAM_ROLE_ARN_RULE_PATTERN: &str = r"^arn:(aws[a-zA-Z-]*)?:iam::\d{12}:role/[a-zA-Z_0-9+=,.@\-_/]+$";
-
-/// Regex for a valid EC2 Security Group name. The class mirrors the character set the service
-/// accepts; the `+` requires at least one character.
-pub const SECURITY_GROUP_NAME_PATTERN: &str = r"^[a-zA-Z0-9 \._\-:/()#,@\[\]+=&;\{\}!\$\*]+$";
-
-/// Regex for a Route53 `MX` record value: a preference `0`–`65535`, a single whitespace, then the
-/// mail-exchange host. The bounded-preference alternation enforces the 16-bit range (an unbounded
-/// `\d+` would wrongly accept `70000`), and the single `\s` rejects the double-space form the
-/// service rejects.
-pub const MX_RECORD_PATTERN: &str =
-    r"^(0|[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\s\S+$";
-
-/// Regex for a Route53 `CAA` record value: a flag `0` or `128`, a tag, and a quoted value, each
-/// separated by a single whitespace. The single `\s` (not `\s+`) matches the service's own
-/// single-separator requirement.
-pub const CAA_RECORD_PATTERN: &str = r#"^(0|128)\s([a-zA-Z0-9]+)\s(".+")$"#;
-
-/// Regex recognizing a hardcoded EC2 Availability Zone name (e.g. `us-east-1a`, `us-gov-west-1a`,
-/// `us-iso-east-1a`). The repeated `(-[a-z]+)+` segment matches partition-qualified zones
-/// (GovCloud/ISO) a single-segment pattern would miss.
-pub const AVAILABILITY_ZONE_PATTERN: &str = r"^[a-z]{2}(-[a-z]+)+-[0-9][a-z]$";
-
-/// Regex for an EC2 AMI identifier: `ami-` followed by an 8- or 17-character hex id. The two fixed
-/// lengths (not a `{8,17}` range) reflect the only id widths EC2 issues, so a 9–16 character string
-/// is not mistaken for an AMI id.
-pub const AMI_ID_PATTERN: &str = r"^ami-([0-9a-f]{8}|[0-9a-f]{17})$";
-
 /// Map a CloudFormation schema format string to the rule ID that validates it.
 /// Returns `None` for formats without a dedicated rule.
 pub fn format_rule_for_format(format: &str) -> Option<&'static str> {
@@ -128,11 +91,10 @@ pub fn format_rule_for_format(format: &str) -> Option<&'static str> {
     }
 }
 
-/// Derive the top-level CloudFormation template section from diagnostic context.
-pub fn section_for_rule_id(resource_id: Option<&str>, rule_id: &str) -> Option<&'static str> {
-    if resource_id.is_some() {
-        return Some("Resources");
-    }
+/// Derive the top-level CloudFormation template section a rule reports on.
+/// Used to fall back to the section's span when a diagnostic has no more
+/// precise location.
+pub fn section_for_rule_id(rule_id: &str) -> Option<&'static str> {
     match rule_id {
         "F0040" | "F6005" | "F6101" | "F6004" | "F6011" | "I6011" | "I6010" => Some("Outputs"),
         "W8001" => Some("Conditions"),
@@ -140,7 +102,7 @@ pub fn section_for_rule_id(resource_id: Option<&str>, rule_id: &str) -> Option<&
         "F0009" => Some("Conditions"),
         "F0003" | "F0015" | "F0016" | "F2012" | "W2506" | "W2509" | "W2001" | "E2001" | "F2002" | "F2003" | "F2011"
         | "I2011" | "F2015" | "W2501" | "I2010" => Some("Parameters"),
-        "F0001" | "F0007" | "F0011" | "E0001" | "F0005" | "F1104" => Some("Resources"),
+        "F0001" | "F0007" | "F0011" | "E0001" | "F0005" | "E1028" => Some("Resources"),
         "F0002" => Some("AWSTemplateFormatVersion"),
         "F0004" => Some("Outputs"),
         "F8600" | "F8601" | "W8602" | "F8603" | "F8604" | "F8605" | "F8606" | "F8607" | "W8608" | "F8609" | "F8610"
@@ -232,36 +194,31 @@ mod tests {
     }
 
     #[test]
-    fn section_for_rule_id_returns_resources_when_resource_id_present() {
-        assert_eq!(section_for_rule_id(Some("Bucket"), "E3012"), Some("Resources"));
-    }
-
-    #[test]
     fn section_for_rule_id_maps_output_rules_to_outputs() {
-        assert_eq!(section_for_rule_id(None, "F0040"), Some("Outputs"));
-        assert_eq!(section_for_rule_id(None, "F0004"), Some("Outputs"));
+        assert_eq!(section_for_rule_id("F0040"), Some("Outputs"));
+        assert_eq!(section_for_rule_id("F0004"), Some("Outputs"));
     }
 
     #[test]
     fn section_for_rule_id_maps_parameter_rules_to_parameters() {
-        assert_eq!(section_for_rule_id(None, "F0003"), Some("Parameters"));
-        assert_eq!(section_for_rule_id(None, "W2001"), Some("Parameters"));
+        assert_eq!(section_for_rule_id("F0003"), Some("Parameters"));
+        assert_eq!(section_for_rule_id("W2001"), Some("Parameters"));
     }
 
     #[test]
     fn section_for_rule_id_maps_condition_rules_to_conditions() {
-        assert_eq!(section_for_rule_id(None, "F0009"), Some("Conditions"));
-        assert_eq!(section_for_rule_id(None, "W8001"), Some("Conditions"));
+        assert_eq!(section_for_rule_id("F0009"), Some("Conditions"));
+        assert_eq!(section_for_rule_id("W8001"), Some("Conditions"));
     }
 
     #[test]
     fn section_for_rule_id_maps_rules_section_rules() {
-        assert_eq!(section_for_rule_id(None, "F8600"), Some("Rules"));
+        assert_eq!(section_for_rule_id("F8600"), Some("Rules"));
     }
 
     #[test]
     fn section_for_rule_id_returns_none_for_unmapped_rule() {
-        assert_eq!(section_for_rule_id(None, "Z9999"), None);
+        assert_eq!(section_for_rule_id("Z9999"), None);
     }
 
     #[test]

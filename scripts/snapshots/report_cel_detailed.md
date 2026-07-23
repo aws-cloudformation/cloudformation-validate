@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-20 04:08:21  
+> Generated: 2026-07-22 18:51:37  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **559**  
+> Templates compared: **573**  
 
 ## Terminology
 
@@ -22,51 +22,51 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 2041 |
-| False Positives (engine bugs) | 1 |
-| Engine Extra (correct, cfn-lint gap) | 5794 |
-| False Negatives (engine misses) | 341 |
-| Precision | 99.95% |
-| Recall | 85.68% |
-| F1 | 92.27% |
-| Unique rules detected | 215 |
-| Perfect templates | 443/559 |
-| Location mismatches (matched pairs) | 16 |
+| True Positives | 2070 |
+| False Positives (engine bugs) | 0 |
+| Engine Extra (correct, cfn-lint gap) | 5826 |
+| False Negatives (engine misses) | 328 |
+| Precision | 100.00% |
+| Recall | 86.32% |
+| F1 | 92.66% |
+| Unique rules detected | 219 |
+| Perfect templates | 458/573 |
+| Location mismatches (matched pairs) | 17 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 420 | 0 | 63 | 111 | 100.00% | 79.10% |
-| Error | 383 | 1 | 3 | 151 | 99.74% | 71.72% |
-| Warning | 736 | 0 | 343 | 60 | 100.00% | 92.46% |
-| Info | 502 | 0 | 5385 | 19 | 100.00% | 96.35% |
+| Fatal | 381 | 0 | 55 | 110 | 100.00% | 77.60% |
+| Error | 439 | 0 | 6 | 144 | 100.00% | 75.30% |
+| Warning | 748 | 0 | 346 | 55 | 100.00% | 93.15% |
+| Info | 502 | 0 | 5419 | 19 | 100.00% | 96.35% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 39753.2775 ms |
-| Throughput | 70.81 validations/sec |
-| Templates | 563 ok, 8 failed |
+| Total wall time | 56092.1966 ms |
+| Throughput | 51.43 validations/sec |
+| Templates | 577 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 36.9444 ms |
-| Engine init (max) | 37.2057 ms |
-| Schema init (p99) | 71.2067 ms |
-| Schema init (max) | 71.8697 ms |
+| Engine init (p99) | 38.7761 ms |
+| Engine init (max) | 39.0918 ms |
+| Schema init (p99) | 77.9438 ms |
+| Schema init (max) | 78.8196 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0030 | 0.2258 | 0.0497 | 0.7226 | 1.0108 | 1.9585 | 3.6982 |
-| Schema Validate | 0.0001 | 0.4777 | 0.1922 | 1.3033 | 1.8776 | 3.6879 | 6.9478 |
-| Rule Evaluation | 10.8701 | 12.7031 | 12.4886 | 13.4857 | 14.0653 | 16.2796 | 57.5302 |
-| Diagnostic Finalize | 0.0015 | 0.0133 | 0.0076 | 0.0307 | 0.0435 | 0.0845 | 0.1712 |
-| Engine Internal | 10.9984 | 13.4843 | 12.9812 | 15.5164 | 16.4952 | 20.6216 | 64.7048 |
-| Wall Clock | 10.9990 | 13.4853 | 12.9818 | 15.5175 | 16.4962 | 20.6236 | 64.7060 |
+| Model Build | 0.0035 | 0.2353 | 0.0539 | 0.7465 | 1.1215 | 2.0898 | 3.6163 |
+| Schema Validate | 0.0004 | 0.4786 | 0.1925 | 1.3458 | 1.9255 | 3.7147 | 7.6516 |
+| Rule Evaluation | 11.2809 | 15.1695 | 13.5999 | 19.0671 | 25.9402 | 34.4194 | 50.6717 |
+| Diagnostic Finalize | 0.0030 | 0.0172 | 0.0103 | 0.0382 | 0.0532 | 0.0956 | 0.1811 |
+| Engine Internal | 11.4102 | 16.2601 | 14.2245 | 22.9632 | 28.9182 | 38.6796 | 51.7837 |
+| Wall Clock | 11.4111 | 16.2615 | 14.2265 | 22.9645 | 28.9197 | 38.6810 | 51.7851 |
 
-## False Negatives — 341 missed findings across 82 rules
+## False Negatives — 328 missed findings across 77 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -217,33 +217,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **I3011** `AppName` → `Resources.AppName` L18 in `good_transform_yaml`
   > 'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)
 
-### F0013 — 12 missed — Conditions have appropriate properties
-
-- **F0013** (cfn-lint: E8001) → `Conditions.BadCondition` L41 in `bad_conditions_yaml`
-  > 'String' is not of type 'boolean'
-- **F0013** (cfn-lint: E8001) → `Conditions.TooManyConditions` L43 in `bad_conditions_yaml`
-  > {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod'], 'Fn::Not': {'Fn::Equals': [{'Ref': 'EnvType'}, 'prod']}} is not of type 'boolean'
-- **F0013** (cfn-lint: E8001) → `Conditions.HasParam` L47 in `bad_conditions_yaml`
-  > {'Fn::Of': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnvType'}, '']}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnableGeoBlocking'}, '']}]}]} is not of type 'boolean'
-- **F0013** (cfn-lint: E8001) → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
-  > None is not of type 'boolean'
-- **F0013** (cfn-lint: E1028) `EC2Instance` → `Properties.Tags.1.Fn::If.0` L61 in `bad_conditions_yaml`
-  > 'isProd' is not one of ['CreateProdResources', 'BadCondition', 'UnusedCondition', 'TooManyConditions', 'EnableGeoBlocking', 'HasParam', 'NullCondition']
-- **F0013** (cfn-lint: E8001) → `Conditions` L6 in `bad_core_conditions_list_yaml`
-  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
-- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.AlarmName.Fn::If.0` L172-175 in `lsp_condition-usage_yaml`
-  > {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB'
-- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.AlarmName.Fn::If.0` L172-175 in `lsp_condition-usage_yaml`
-  > {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
-- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.Threshold.Fn::If.0` L184-187 in `lsp_condition-usage_yaml`
-  > {'Fn::Or': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB',
-- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.Threshold.Fn::If.0` L184-187 in `lsp_condition-usage_yaml`
-  > {'Fn::Or': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
-- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.TreatMissingData.Fn::If.0` L192-194 in `lsp_condition-usage_yaml`
-  > {'Fn::Not': [{'Condition': 'IsProduction'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB', 'NotProduction', 'ComplexCondition']
-- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.TreatMissingData.Fn::If.0` L192-194 in `lsp_condition-usage_yaml`
-  > {'Fn::Not': [{'Condition': 'IsProduction'}]} is not of type 'string'
-
 ### W1031 — 12 missed — Validate the values that come from a Fn::Sub function
 
 - **W1031** `Bucket` → `Properties.BucketName.Fn::Sub` L6 in `bad_sub_nested_intrinsic_yaml`
@@ -294,13 +267,32 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.Ebs` L49 in `good_core_conditions_yaml`
   > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
 
-### E1001 — 10 missed — Basic CloudFormation Template Configuration
+### F0013 — 10 missed — Conditions have appropriate properties
+
+- **F0013** (cfn-lint: E8001) → `Conditions.HasParam` L47 in `bad_conditions_yaml`
+  > {'Fn::Of': [{'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnvType'}, '']}]}, {'Fn::Not': [{'Fn::Equals': [{'Ref': 'EnableGeoBlocking'}, '']}]}]} is not of type 'boolean'
+- **F0013** (cfn-lint: E8001) → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
+  > None is not of type 'boolean'
+- **F0013** (cfn-lint: E1028) `EC2Instance` → `Properties.Tags.1.Fn::If.0` L61 in `bad_conditions_yaml`
+  > 'isProd' is not one of ['CreateProdResources', 'BadCondition', 'UnusedCondition', 'TooManyConditions', 'EnableGeoBlocking', 'HasParam', 'NullCondition']
+- **F0013** (cfn-lint: E8001) → `Conditions` L6 in `bad_core_conditions_list_yaml`
+  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
+- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.AlarmName.Fn::If.0` L172-175 in `lsp_condition-usage_yaml`
+  > {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB'
+- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.AlarmName.Fn::If.0` L172-175 in `lsp_condition-usage_yaml`
+  > {'Fn::And': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
+- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.Threshold.Fn::If.0` L184-187 in `lsp_condition-usage_yaml`
+  > {'Fn::Or': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB',
+- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.Threshold.Fn::If.0` L184-187 in `lsp_condition-usage_yaml`
+  > {'Fn::Or': [{'Condition': 'IsProduction'}, {'Condition': 'ShouldCreateDatabase'}]} is not of type 'string'
+- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.TreatMissingData.Fn::If.0` L192-194 in `lsp_condition-usage_yaml`
+  > {'Fn::Not': [{'Condition': 'IsProduction'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB', 'NotProduction', 'ComplexCondition']
+- **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.TreatMissingData.Fn::If.0` L192-194 in `lsp_condition-usage_yaml`
+  > {'Fn::Not': [{'Condition': 'IsProduction'}]} is not of type 'string'
+
+### E1001 — 9 missed — Basic CloudFormation Template Configuration
 
 - **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.TestAndNull.Fn::And` L18 in `bad_conditions_condition_functions_json`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.TestEqualNull.Fn::Equals` L28 in `bad_conditions_condition_functions_json`
   > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
 - **E1001** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
   > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
@@ -316,6 +308,8 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > None is not one of ['2010-09-09']
 - **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
   > None is not of type 'string', 'date'
+- **E1001** L1-7 in `gh-issues_issue-201_json`
+  > 'Resources' is a required property
 
 ### E3001 — 8 missed — Basic CloudFormation Resource Check
 
@@ -381,17 +375,17 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3043** `StackNormal` → `Properties.Parameters.Three` L12 in `bad_resources_cloudformation_stacks_yaml`
   > Specified parameter "Three" doesn't exist in nested stack template at Resources/StackNormal/Properties/Parameters/Three
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsWest2" is True and when condition "IsUsEast1" is False
+  > Specified parameter "Zero" doesn't exist in nested stack template when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "One" is not specified when condition "IsUsWest2" is True and when condition "IsUsEast1" is False
+  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Zero" doesn't exist in nested stack template when condition "IsUsWest2" is False and when condition "IsUsEast1" is True
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "Two" is not specified when condition "IsUsWest2" is False and when condition "IsUsEast1" is True
+  > Nested stack template parameter "One" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "Two" is not specified when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
+  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
 
 ### W1028 — 7 missed — Check Fn::If has a path that cannot be reached
 
@@ -476,21 +470,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 
-### E1017 — 6 missed — Select validation of parameters
-
-- **E1017** `mySubnet2` → `Properties.AvailabilityZone.Fn::Select.1.Fn::GetAZs` L27 in `bad_functions_getaz_yaml`
-  > 'us-east-1a' is not one of ['', 'af-south-1', 'ap-east-1', 'ap-east-2', 'ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-south-2', 'ap-southeast-1', 'ap-southeast-2', 'ap-southe
-- **E1017** `myInstance` → `Properties.AvailabilityZone.Fn::Select.0` L11 in `bad_functions_select_yaml`
-  > 'a' is not of type 'integer'
-- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select` L19 in `bad_functions_select_yaml`
-  > expected maximum item count: 2, found: 3
-- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select.1` L21 in `bad_functions_select_yaml`
-  > 'Value1' is not of type 'array'
-- **E1017** `myInstance2` → `Properties.AvailabilityZone.Fn::Select.1` L30 in `bad_functions_select_yaml`
-  > {'Fn::Join': [',', ['a', 'b']]} is not of type 'array'
-- **E1017** `myInstance3` → `Properties.AvailabilityZone.Fn::Select` L36 in `bad_functions_select_yaml`
-  > 'foo' is not of type 'array'
-
 ### E3530 — 6 missed — Validate IAM trust polices
 
 - **E3530** `TestRole` → `Properties.AssumeRolePolicyDocument.Statement.0.Principal.AWS.0` L17 in `good_functions_sub_needed_custom_excludes_yaml`
@@ -550,6 +529,19 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'A': 'a1', 'B': ['b1', 'b2']} is not of type 'string'
 - **F0018** (cfn-lint: E3036) `InvalidMapping` → `Resources.InvalidMapping.UpdateReplacePolicy` L43 in `bad_resources_updatereplacepolicy_yaml`
   > {'A': 'a1', 'B': ['b1', 'b2']} is not one of ['Delete', 'Retain', 'Snapshot']
+
+### F3006 — 5 missed — Validate the CloudFormation resource type
+
+- **F3006** (cfn-lint: E3006) `MidStringModule` → `Resources.MidStringModule.Type` L23 in `bad_F3006_invalid_aws_namespaces_yaml`
+  > Resource type 'My::Org::MODULE::Thing' does not exist in 'us-east-1'
+- **F3006** (cfn-lint: E3006) `MyReport` → `Resources.MyReport.Type` L3 in `good_schema_resource_yaml`
+  > Resource type 'Initech::TPS::Report' does not exist in 'us-east-1'
+- **F3006** (cfn-lint: E3006) `PrivateRegistryType` → `Resources.PrivateRegistryType.Type` L10 in `good_unknown_resource_types_ignored_yaml`
+  > Resource type 'Initech::TPS::Report' does not exist in 'us-east-1'
+- **F3006** (cfn-lint: E3006) `UnbundledAmznType` → `Resources.UnbundledAmznType.Type` L14 in `good_unknown_resource_types_ignored_yaml`
+  > Resource type 'AMZN::Internal::UnbundledType' does not exist in 'us-east-1'
+- **F3006** (cfn-lint: E3006) `HookShapedType` → `Resources.HookShapedType.Type` L18 in `good_unknown_resource_types_ignored_yaml`
+  > Resource type 'MyCompany::Testing::MyTestHook' does not exist in 'us-east-1'
 
 ### E3024 — 5 missed — Validate tag configuration
 
@@ -612,17 +604,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3513** `ecr2` → `Properties.RepositoryPolicyText.Statement.0.Principal` L26 in `bad_resources_iam_resource_policy_yaml`
   > '*' was expected
 
-### E1011 — 4 missed — FindInMap validation of configuration
-
-- **E1011** `Bucket` → `Properties.Tags.0.Value.Fn::FindInMap.0` L9 in `bad_findinmap_bad_yaml`
-  > 'NonExistentMap' is not one of []
-- **E1011** `myInstance` → `Properties.ImageId.Fn::FindInMap.2` L9 in `bad_functions_base64_yaml`
-  > {'Fn::GetAtt': ['myInstance', 'AvailabilityZone']} is not of type 'string'
-- **E1011** `Topic` → `Properties.DisplayName.Fn::FindInMap` L15 in `bad_functions_findinmap_default_value_no_transform_yaml`
-  > expected maximum item count: 3, found: 4
-- **E1011** `lambdaMap2` → `Properties.SecurityGroupIngress.0` L206-207 in `bad_generic_yaml`
-  > {'Fn::FindInMap': ['runtime', {'Ref': 'AWS::Region'}, 'production']} is not of type 'object'
-
 ### E7001 — 4 missed — Mappings are appropriately configured
 
 - **E7001** → `Mappings.BadMap.Key1` L4 in `bad_invalid_mapping_structure_yaml`
@@ -658,14 +639,14 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 ### E2001 — 4 missed — Parameters have appropriate properties
 
-- **E2001** → `Parameters.allowedValuesAListofBadTypes.AllowedValues.0` L10-11 in `bad_parameters_configuration_yaml`
-  > {'key': 'value'} is not of type 'string'
-- **E2001** → `Parameters.maxLengthIsNotString.MaxLength` L16 in `bad_parameters_configuration_yaml`
-  > 'MaxLength' is not one of ['AllowedValues', 'ConstraintDescription', 'Default', 'Description', 'MaxValue', 'MinValue', 'NoEcho', 'Type']
-- **E2001** → `Parameters.myInvalidParameter.NotType` L27 in `bad_parameters_configuration_yaml`
-  > Additional properties are not allowed ('NotType' was unexpected)
-- **E2001** → `Parameters.NullParamType` L35 in `bad_parameters_configuration_yaml`
-  > 'Type' is a required property
+- **E2001** → `Parameters.NullParamMinValue.MinValue` L48 in `bad_parameters_configuration_yaml`
+  > None is not of type 'number'
+- **E2001** → `Parameters.NullParamMaxLength.MaxLength` L51 in `bad_parameters_configuration_yaml`
+  > None is not of type 'integer'
+- **E2001** → `Parameters.NullParamMinLength.MinLength` L54 in `bad_parameters_configuration_yaml`
+  > None is not of type 'integer'
+- **E2001** → `Parameters.NullParamNoEcho.NoEcho` L57 in `bad_parameters_configuration_yaml`
+  > None is not of type 'boolean'
 
 ### E3023 — 4 missed — Validate Route53 RecordSets
 
@@ -700,15 +681,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
   > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
 
-### W8001 — 3 missed — Check if Conditions are Used
-
-- **W8001** → `Conditions.IsParamBEnabled` L44 in `good_parameters_used_transform_language_extension_json`
-  > Condition IsParamBEnabled not used
-- **W8001** → `Conditions.IsParamCEnabled` L44 in `good_parameters_used_transform_language_extension_json`
-  > Condition IsParamCEnabled not used
-- **W8001** → `Conditions.IsParamDEnabled` L44 in `good_parameters_used_transform_language_extension_json`
-  > Condition IsParamDEnabled not used
-
 ### F0000 — 3 missed — Parsing error found when parsing the template
 
 - **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
@@ -717,6 +689,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > Duplicate found 'MySNSTopic' (line 23)
 - **F0000** (cfn-lint: E0000) L13 in `bad_duplicate_yaml`
   > Duplicate found 'mySnsTopic' (line 13)
+
+### E1011 — 3 missed — FindInMap validation of configuration
+
+- **E1011** `Bucket` → `Properties.Tags.0.Value.Fn::FindInMap.0` L9 in `bad_findinmap_bad_yaml`
+  > 'NonExistentMap' is not one of []
+- **E1011** `Topic` → `Properties.DisplayName.Fn::FindInMap` L15 in `bad_functions_findinmap_default_value_no_transform_yaml`
+  > expected maximum item count: 3, found: 4
+- **E1011** `lambdaMap2` → `Properties.SecurityGroupIngress.0` L206-207 in `bad_generic_yaml`
+  > {'Fn::FindInMap': ['runtime', {'Ref': 'AWS::Region'}, 'production']} is not of type 'object'
 
 ### W1034 — 3 missed — Validate the values that come from a Fn::FindInMap function
 
@@ -770,12 +751,12 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `good_aurora_dbinstance_yaml`
   > {'$data': '/cluster/Engine'} was expected
 
-### F0014 — 2 missed — Check Fn::And structure for validity
+### E8005 — 2 missed — Check Fn::Not structure for validity
 
-- **F0014** (cfn-lint: E8004) → `Conditions.isPrimaryAndProduction.Fn::And.1.Condition` L11 in `bad_core_conditions_missing_yaml`
-  > 'isPrimary' is not one of ['isProduction', 'isPrimaryAndProduction']
-- **F0014** (cfn-lint: E8003) → `Conditions.primaryRegion.Fn::Equals.0` L4 in `bad_functions_import_value_yaml`
-  > {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'
+- **E8005** → `Conditions.TestNotEmpty.Fn::Not` L29 in `bad_conditions_condition_functions_json`
+  > expected minimum item count: 1, found: 0
+- **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array'
 
 ### E0002 — 2 missed — Error processing rule on the template
 
@@ -811,13 +792,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'Fn::ImportValue': 'CidrBlock'} is not of type 'string'
 - **E1016** `subnet` → `Properties.VpcId.Fn::ImportValue` L13 in `bad_functions_import_value_yaml`
   > ['PrimaryRegion'] is not of type 'string'
-
-### F1029 — 2 missed — Sub is required if a variable is used in a string
-
-- **F1029** (cfn-lint: E1029) `TestBadStateMachine1` → `Properties.DefinitionString.Fn::Join.1.5` L46 in `bad_functions_sub_needed_yaml`
-  > Found an embedded parameter "${definition_substitution_1}" outside of an "Fn::Sub" at Resources/TestBadStateMachine1/Properties/DefinitionString/Fn::Join/1/5
-- **F1029** (cfn-lint: E1029) `TestBadStateMachine2` → `Properties.DefinitionString.Fn::Join.1.5` L67 in `bad_functions_sub_needed_yaml`
-  > Found an embedded parameter "${definition_substitution_1}" outside of an "Fn::Sub" at Resources/TestBadStateMachine2/Properties/DefinitionString/Fn::Join/1/5
 
 ### E9004 — 2 missed — GetAtt validation of parameters
 
@@ -903,6 +877,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E6001** → `Outputs.Fn::ForEach::BucketOutputs` L33 in `bad_functions_foreach_no_transform_yaml`
   > 'Fn::ForEach::BucketOutputs' does not match any of the regexes: '^[a-zA-Z0-9]+$'
 
+### E1017 — 1 missed — Select validation of parameters
+
+- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select.1` L21 in `bad_functions_select_yaml`
+  > 'Value1' is not of type 'array'
+
 ### I3510 — 1 missed — Validate statement resources match the actions
 
 - **I3510** `SomeManagedPolicy` → `Properties.PolicyDocument.Statement.1.Fn::If.1.Resource` L28 in `good_resources_iam_policy_yaml`
@@ -912,11 +891,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 - **E3673** `myEc2Instance4` → `Properties` L67 in `bad_generic_yaml`
   > 'ImageId' is a required property
-
-### W3045 — 1 missed — Controlling access to an S3 bucket should be done with bucket policies
-
-- **W3045** `S3BucketA` → `Properties.AccessControl` L17 in `good_functions_foreach_yaml`
-  > 'AccessControl' is a legacy property. Consider using 'AWS::S3::BucketPolicy' instead
 
 ### W2002 — 1 missed — Parameter type is not officially supported by CloudFormation
 
@@ -953,21 +927,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3065** `CloudWatchAlarm` → `Properties.AlarmActions` L15 in `bad_resources_properties_string_size_yaml`
   > expected maximum unique item count: 5, found: 6
 
-### W1054 — 1 missed — Pseudo-parameter string found without Ref
-
-- **W1054** `MyHostedZone` → `Properties.VPCs.0.VPCRegion` L22 in `bad_route53_yaml`
-  > 'AWS::Region' is a pseudo-parameter and should probably be used as 'Ref: AWS::Region' instead of a plain string
-
-### E0001 — 1 missed — Error found when transforming the template
-
-- **E0001** L1 in `bad_sam_layerversion_invalid_compatible_architectures_yaml`
-  > Error transforming template: Resource with id [Layer7f955f606e] is invalid. CompatibleArchitectures needs to be a list of 'x86_64' or 'arm64'
-
-### E3045 — 1 missed — Validate AccessControl are set with OwnershipControls
-
-- **E3045** `S3BucketA` → `Properties` L16 in `good_functions_foreach_yaml`
-  > A bucket with 'AccessControl' set should also have at least one 'OwnershipControl' configured
-
 ### E2529 — 1 missed — Check for SubscriptionFilters have beyond 2 attachments to a CloudWatch Log Group
 
 - **E2529** `LogSubscriptionFunctionFunctionDLogGroup` → `Resources.LogSubscriptionFunctionFunctionDLogGroup` L14 in `bad_some_logs_stream_lambda_yaml`
@@ -998,21 +957,18 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives — 1 extra findings across 1 rules
+## False Positives — 0 extra findings across 0 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-### E0001 — 1 extra — Error found when transforming the template
-
-- **E0001** `Layer` → `Properties` L5 in `bad_sam_layerversion_invalid_compatible_architectures_yaml`
-  > Error transforming template: Resource with id [Layer] is invalid. CompatibleArchitectures needs to be a list of 'x86_64' or 'arm64'
-
-## Engine Extra — 5794 correct findings across 38 rules
+## Engine Extra — 5826 correct findings across 38 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 — 3747 findings
+### I9001 — 3766 findings
 
+- **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_E1050_dynamic_ref_malformed_yaml`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L9 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.NetworkInterfaces` L11 in `bad_E1150_network_interfaces_groupset_multi_yaml`
@@ -1051,10 +1007,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'HttpMethod' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L11 in `bad_F2002_ssm_parameter_type_invalid_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
-- **I9001** `GoodCustomResource` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L32 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **I9001** `GoodCustomResource` (AWS::CloudFormation::CustomResource) → `Properties.ServiceToken` L34 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Property 'ServiceToken' is create-only; updating it will cause resource replacement
+- **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L6 in `bad_W1019_sub_unused_key_yaml`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L27 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L8 in `bad_W1053_dynref_spaces_yaml`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `MyFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L6 in `bad_W1054_raw_pseudo_param_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `Host` (AWS::EC2::Host) → `Properties.AvailabilityZone` L17 in `bad_W3010_full_coverage_yaml`
   > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
 - **I9001** `Host` (AWS::EC2::Host) → `Properties.InstanceType` L18 in `bad_W3010_full_coverage_yaml`
@@ -6187,6 +6149,22 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Name' is create-only; updating it will cause resource replacement
 - **I9001** `Flow` (AWS::MediaConnect::Flow) → `Properties.Source.Name` L13 in `gh-issues_issue-144_yaml`
   > Property 'Source.Name' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.Action` L22 in `gh-issues_issue-183_yaml`
+  > Property 'Action' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.FunctionName` L23 in `gh-issues_issue-183_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.Principal` L24 in `gh-issues_issue-183_yaml`
+  > Property 'Principal' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L25 in `gh-issues_issue-183_yaml`
+  > Property 'SourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.Action` L32 in `gh-issues_issue-183_yaml`
+  > Property 'Action' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.FunctionName` L33 in `gh-issues_issue-183_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.Principal` L34 in `gh-issues_issue-183_yaml`
+  > Property 'Principal' is create-only; updating it will cause resource replacement
+- **I9001** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L35 in `gh-issues_issue-183_yaml`
+  > Property 'SourceArn' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L16 in `gh-issues_issue-34_json`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Instance2` (AWS::EC2::Instance) → `Properties.ImageId` L23 in `gh-issues_issue-34_json`
@@ -6539,6 +6517,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Path' is create-only; updating it will cause resource replacement
 - **I9001** `InstanceProfile` (AWS::IAM::InstanceProfile) → `Properties.Path` L31 in `good_functions_relationship_conditions_yaml`
   > Property 'Path' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetA` (AWS::EC2::Subnet) → `Properties.VpcId` L10 in `good_functions_select_string_index_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L11 in `good_functions_select_string_index_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetA` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L12 in `good_functions_select_string_index_yaml`
+  > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetB` (AWS::EC2::Subnet) → `Properties.VpcId` L19 in `good_functions_select_string_index_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetB` (AWS::EC2::Subnet) → `Properties.CidrBlock` L20 in `good_functions_select_string_index_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetB` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L21 in `good_functions_select_string_index_yaml`
+  > Property 'AvailabilityZone' is create-only; updating it will cause resource replacement
+- **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L28 in `good_functions_select_string_index_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `TestRole` (AWS::IAM::Role) → `Properties.RoleName` L10 in `good_functions_sub_needed_custom_excludes_yaml`
   > Property 'RoleName' is create-only; updating it will cause resource replacement
 - **I9001** `GreetingRequest` (AWS::ApiGateway::Method) → `Properties.HttpMethod` L90 in `good_functions_sub_needed_yaml`
@@ -8508,7 +8500,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2214 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1581 findings
+### I9040 — 1596 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -8526,12 +8518,24 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'RestApiA' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured
 - **I9040** `RestApiB` (AWS::ApiGateway::RestApi) → `Properties.Tags` L14 in `bad_E3699_method_authorizer_rest_api_mismatch_yaml`
   > Resource 'RestApiB' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured
+- **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L16 in `bad_E8007_condition_undefined_in_expr_yaml`
+  > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L15 in `bad_E9106_condition_cycle_yaml`
+  > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `bad_F2002_ssm_parameter_type_invalid_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
-- **I9040** `GoodFunction` (AWS::Serverless::Function) → `Properties.Tags` L25 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **I9040** `GoodFunction` (AWS::Serverless::Function) → `Properties.Tags` L27 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Resource 'GoodFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
+- **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L5 in `bad_W1019_sub_unused_key_yaml`
+  > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L26 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `MyConnection` (AWS::DMS::Endpoint) → `Properties.Tags` L5 in `bad_W1051_secretsmanager_at_arn_yaml`
+  > Resource 'MyConnection' of type 'AWS::DMS::Endpoint' supports Tags but none are configured
+- **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L5 in `bad_W1053_dynref_spaces_yaml`
+  > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `MyFunction` (AWS::Lambda::Function) → `Properties.Tags` L5 in `bad_W1054_raw_pseudo_param_yaml`
+  > Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `Asg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L7 in `bad_W3010_full_coverage_yaml`
   > Resource 'Asg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
 - **I9040** `Host` (AWS::EC2::Host) → `Properties.Tags` L16 in `bad_W3010_full_coverage_yaml`
@@ -8548,6 +8552,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Tg' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `Rds` (AWS::RDS::DBInstance) → `Properties.Tags` L62 in `bad_W3010_full_coverage_yaml`
   > Resource 'Rds' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L11 in `bad_W9053_equivalent_conditions_yaml`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.Tags` L5 in `bad_aurora_with_allocated_storage_yaml`
   > Resource 'AuroraDB' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `Dist` (AWS::CloudFront::Distribution) → `Properties.Tags` L5 in `bad_cloudfront_bad_alias_yaml`
@@ -10548,6 +10554,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Rule4C995B7F' of type 'AWS::Events::Rule' supports Tags but none are configured
 - **I9040** `Flow` (AWS::MediaConnect::Flow) → `Properties.Tags` L10 in `gh-issues_issue-144_yaml`
   > Resource 'Flow' of type 'AWS::MediaConnect::Flow' supports Tags but none are configured
+- **I9040** `MyLambda` (AWS::Lambda::Function) → `Properties.Tags` L12 in `gh-issues_issue-183_yaml`
+  > Resource 'MyLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L15 in `gh-issues_issue-34_json`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Instance2` (AWS::EC2::Instance) → `Properties.Tags` L22 in `gh-issues_issue-34_json`
@@ -10796,6 +10804,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'myInstance2' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `myInstance3` (AWS::EC2::Instance) → `Properties.Tags` L25 in `good_functions_findinmap_yaml`
   > Resource 'myInstance3' of type 'AWS::EC2::Instance' supports Tags but none are configured
+- **I9040** `S3BucketA` (AWS::S3::Bucket) → `Properties.Tags` L10 in `good_functions_foreach_yaml`
+  > Resource 'S3BucketA' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `S3BucketB` (AWS::S3::Bucket) → `Properties.Tags` L10 in `good_functions_foreach_yaml`
+  > Resource 'S3BucketB' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `S3BucketC` (AWS::S3::Bucket) → `Properties.Tags` L10 in `good_functions_foreach_yaml`
+  > Resource 'S3BucketC' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Topic1` (AWS::SNS::Topic) → `Properties.Tags` L15 in `good_functions_get_stack_output_yaml`
   > Resource 'Topic1' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `Topic2` (AWS::SNS::Topic) → `Properties.Tags` L23 in `good_functions_get_stack_output_yaml`
@@ -10826,6 +10840,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LambdaExecutionRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `AMIIDLookup` (AWS::Lambda::Function) → `Properties.Tags` L36 in `good_functions_relationship_conditions_yaml`
   > Resource 'AMIIDLookup' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `SubnetA` (AWS::EC2::Subnet) → `Properties.Tags` L9 in `good_functions_select_string_index_yaml`
+  > Resource 'SubnetA' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `SubnetB` (AWS::EC2::Subnet) → `Properties.Tags` L18 in `good_functions_select_string_index_yaml`
+  > Resource 'SubnetB' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L27 in `good_functions_select_string_index_yaml`
+  > Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
 - **I9040** `TestRole` (AWS::IAM::Role) → `Properties.Tags` L9 in `good_functions_sub_needed_custom_excludes_yaml`
   > Resource 'TestRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `Key` (AWS::ApiGateway::ApiKey) → `Properties.Tags` L84 in `good_functions_sub_needed_yaml`
@@ -10868,6 +10888,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SubnetApEast2' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `SubnetMxCentral1` (AWS::EC2::Subnet) → `Properties.Tags` L15 in `good_getazs_resolves_current_regions_yaml`
   > Resource 'SubnetMxCentral1' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `ProdBucket` (AWS::S3::Bucket) → `Properties.Tags` L22 in `good_good_conditions_valid_refs_yaml`
+  > Resource 'ProdBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `SomeBucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `good_iam_intrinsic_resource_arns_yaml`
   > Resource 'SomeBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Role` (AWS::IAM::Role) → `Properties.Tags` L18 in `good_iam_valid_yaml`
@@ -12107,11 +12129,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9003** in `quickstart_vpc_json`
   > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
 
-### W9013 — 44 findings
+### W9013 — 45 findings
 
-- **W9013** `GoodCustomResource` (AWS::CloudFormation::CustomResource) L29 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **W9013** `GoodCustomResource` (AWS::CloudFormation::CustomResource) L31 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
-- **W9013** `GoodCustom` (Custom::MyThing) L36 in `bad_F3006_invalid_aws_namespaces_yaml`
+- **W9013** `GoodCustom` (Custom::MyThing) L38 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L3 in `bad_codepipeline_bad_artifacts_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
@@ -12150,6 +12172,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9013** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) L4 in `bad_schema_write_only_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) L490 in `cdk_py-url-shortener--urlshort-app.template_json`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `PermissionWithAccountId` (AWS::Lambda::Permission) L19 in `gh-issues_issue-183_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `NotAnImageSlot` (Custom::Thing) L6 in `gh-issues_issue-34-w2506-overfire_json`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
@@ -12338,7 +12362,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9010** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.ImageId` L355 in `quickstart_openshift_yaml`
   > Hardcoded AMI ID - use a parameter or mapping for portability
 
-### W9002 — 26 findings
+### W9002 — 28 findings
 
 - **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_codepipeline_bad_artifact_counts_yaml`
   > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
@@ -12370,6 +12394,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'S3BucketArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 - **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L499 in `cdk_py-url-shortener--urlshort-app.template_json`
   > Property 'RegionalCertificateArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L25 in `gh-issues_issue-183_yaml`
+  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L35 in `gh-issues_issue-183_yaml`
+  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 - **W9002** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L11 in `gh-issues_issue-36_yaml`
   > Property 'ExecutionRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 - **W9002** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L6 in `gh-issues_issue-40_yaml`
@@ -12393,7 +12421,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L20 in `good_stepfunctions_valid_yaml`
   > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 
-### F0001 — 23 findings
+### F0001 — 24 findings
 
 - **F0001** L23 in `bad_conditions_and_yaml`
   > Resources section must exist and be non-empty
@@ -12420,6 +12448,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F0001** L3 in `bad_templates_base_null_yaml`
   > Resources section must exist and be non-empty
 - **F0001** L4 in `bad_templates_base_yaml`
+  > Resources section must exist and be non-empty
+- **F0001** in `gh-issues_issue-201_json`
   > Resources section must exist and be non-empty
 - **F0001** L16 in `good_core_config_cfn_lint_json`
   > Resources section must exist and be non-empty
@@ -12519,17 +12549,17 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F2012 — 6 findings
 
-- **F2012** L2 in `bad_param_number_default_yaml`
+- **F2012** → `Parameters/Port/Default` L5 in `bad_param_number_default_yaml`
   > Parameter 'Port' Default 'not-a-number' is not in AllowedValues ['abc', 'def']
-- **F2012** L3 in `bad_parameters_default_yaml`
-  > Parameter 'CDLAllowedValues' Default 'three' is not in AllowedValues ['one', 'two', 'three,four']
-- **F2012** L3 in `bad_parameters_default_yaml`
-  > Parameter 'CDLAllowedValuesWithSpaces' Default 'three,four' is not in AllowedValues ['one', 'two', 'three, four']
-- **F2012** L3 in `bad_parameters_default_yaml`
+- **F2012** → `Parameters/myAllowedValue/Default` L18 in `bad_parameters_default_yaml`
   > Parameter 'myAllowedValue' Default 'us-east-1a' is not in AllowedValues ['us-east-1b', 'us-east-1c', 'us-east-1d']
-- **F2012** L3 in `good_parameters_default_yaml`
+- **F2012** → `Parameters/CDLAllowedValues/Default` L47 in `bad_parameters_default_yaml`
+  > Parameter 'CDLAllowedValues' Default 'three' is not in AllowedValues ['one', 'two', 'three,four']
+- **F2012** → `Parameters/CDLAllowedValuesWithSpaces/Default` L56 in `bad_parameters_default_yaml`
+  > Parameter 'CDLAllowedValuesWithSpaces' Default 'three,four' is not in AllowedValues ['one', 'two', 'three, four']
+- **F2012** → `Parameters/CDLAllowedPatternWithSpaceInDefault/Default` L57 in `good_parameters_default_yaml`
   > Parameter 'CDLAllowedPatternWithSpaceInDefault' Default 'one, two' is not in AllowedValues ['one', 'two', 'three,four']
-- **F2012** L3 in `good_parameters_default_yaml`
+- **F2012** → `Parameters/CDLAllowedValuesWithSpaceInDefault/Default` L71 in `good_parameters_default_yaml`
   > Parameter 'CDLAllowedValuesWithSpaceInDefault' Default 'one, two' is not in AllowedValues ['one', 'two', 'three,four']
 
 ### F1020 — 5 findings — Ref validation of value
@@ -12567,50 +12597,35 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2512** `rSysAdminPolicy` (AWS::IAM::ManagedPolicy) L275 in `quickstart_nist_iam_yaml`
   > IAM policy uses NotAction which grants all actions except those listed - consider using Action instead
 
-### F1060 — 3 findings
-
-- **F1060** `EC2Instance` (AWS::EC2::Instance) L53 in `bad_conditions_yaml`
-  > Fn::If condition 'isDev' does not exist in Conditions section
-- **F1060** `EC2Instance` (AWS::EC2::Instance) L53 in `bad_conditions_yaml`
-  > Fn::If condition 'isProd' does not exist in Conditions section
-- **F1060** `rIamPolicy` (AWS::IAM::Policy) L35 in `bad_resources_iam_iam_policy_yaml`
-  > Fn::If condition 'cCondition' does not exist in Conditions section
-
-### F1104 — 3 findings
-
-- **F1104** L52 in `bad_conditions_yaml`
-  > Fn::If references undefined condition 'isDev'
-- **F1104** L52 in `bad_conditions_yaml`
-  > Fn::If references undefined condition 'isProd'
-- **F1104** L5 in `bad_resources_iam_iam_policy_yaml`
-  > Fn::If references undefined condition 'cCondition'
-
-### W1103 — 3 findings
-
-- **W1103** → `Conditions/HasParam/Fn::Of` L48 in `bad_conditions_yaml`
-  > 'Fn::Of' is not a supported function
-- **W1103** → `Rules/ValidateParameterCombinations/Assertions/1/Assert/Fn::Implies` L313 in `lsp_comprehensive_json`
-  > 'Fn::Implies' is not a supported function
-- **W1103** → `Rules/ValidateParameterCombinations/Assertions/1/Assert/Fn::Implies` L130 in `lsp_comprehensive_yaml`
-  > 'Fn::Implies' is not a supported function
-
-### F1105 — 3 findings
-
-- **F1105** `myInstance` → `Properties.ImageId.Fn::FindInMap.2` L9 in `bad_functions_base64_yaml`
-  > 'Fn::GetAtt' is not allowed inside 'Fn::FindInMap'
-- **F1105** → `Conditions/primaryRegion/Fn::Equals/1` L4 in `bad_functions_import_value_yaml`
-  > 'Fn::ImportValue' is not allowed inside 'Fn::Equals'
-- **F1105** → `Outputs.EdgeCaseOutput.Value.Fn::If.0.Fn::Equals.0` L250 in `lsp_condition-usage_yaml`
-  > 'Fn::And' is not allowed inside 'Fn::Equals'
-
 ### W2509 — 3 findings
 
-- **W2509** L5 in `bad_properties_password_yaml`
-  > Parameter 'MyNewPassword' appears to be a password but does not have NoEcho set to true
-- **W2509** L5 in `bad_properties_password_yaml`
+- **W2509** → `Parameters/MyPassword` L6 in `bad_properties_password_yaml`
   > Parameter 'MyPassword' appears to be a password but does not have NoEcho set to true
-- **W2509** L1 in `integration_resources-cloudformation-init_yaml`
+- **W2509** → `Parameters/MyNewPassword` L10 in `bad_properties_password_yaml`
+  > Parameter 'MyNewPassword' appears to be a password but does not have NoEcho set to true
+- **W2509** → `Parameters/DBPassword` L6 in `integration_resources-cloudformation-init_yaml`
   > Parameter 'DBPassword' appears to be a password but does not have NoEcho set to true
+
+### E9106 — 2 findings
+
+- **E9106** L6 in `bad_E9106_condition_cycle_yaml`
+  > Circular dependency in conditions: CondA -> CondB
+- **E9106** L5 in `bad_conditions_and_yaml`
+  > Circular dependency in conditions: TestAndToLittle -> TestAndToMany
+
+### W9053 — 2 findings
+
+- **W9053** L6 in `bad_W9053_equivalent_conditions_yaml`
+  > Condition 'IsProduction' is equivalent to condition 'IsProd' - consider consolidating
+- **W9053** L42 in `bad_conditions_yaml`
+  > Condition 'UnusedCondition' is equivalent to condition 'CreateProdResources' - consider consolidating
+
+### W1103 — 2 findings
+
+- **W1103** → `Conditions/HasParam/Fn::Of` L48 in `bad_conditions_yaml`
+  > 'Fn::Of' is not a supported function - did you mean 'Fn::If'?
+- **W1103** in `lsp_comprehensive_yaml`
+  > '!Implies' is not a supported function
 
 ### W1020 — 2 findings — Sub isn't needed if it doesn't have a variable defined
 
@@ -12633,18 +12648,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F1012** `myInstance` (AWS::EC2::Instance) L6 in `bad_functions_base64_yaml`
   > Fn::FindInMap references non-existent mapping 'amimap'
 
-### W1102 — 2 findings
-
-- **W1102** in `bad_functions_select_yaml`
-  > Fn::Select: index (first argument) must be an integer or an intrinsic function
-- **W1102** in `quickstart_vpc_json`
-  > Fn::Select: index (first argument) must be an integer or an intrinsic function
-
 ### F0016 — 2 findings
 
-- **F0016** L2 in `bad_param_number_default_yaml`
+- **F0016** → `Parameters/Port/AllowedValues` L6 in `bad_param_number_default_yaml`
   > Parameter 'Port' AllowedValues entry 'abc' is not a valid number
-- **F0016** L2 in `bad_param_number_default_yaml`
+- **F0016** → `Parameters/Port/AllowedValues` L6 in `bad_param_number_default_yaml`
   > Parameter 'Port' AllowedValues entry 'def' is not a valid number
 
 ### I9002 — 2 findings
@@ -12663,10 +12671,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F8611 — 2 findings
 
-- **F8611** L196 in `lsp_comprehensive_json`
+- **F8611** → `Rules/ValidateRegionAndEnvironment` L197 in `lsp_comprehensive_json`
   > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
-- **F8611** L109 in `lsp_comprehensive_yaml`
+- **F8611** → `Rules/ValidateRegionAndEnvironment` L110 in `lsp_comprehensive_yaml`
   > 'Fn::FindInMap' is not supported in the Rules section - allowed: ['Ref', 'Fn::ValueOf', 'Fn::ValueOfAll', 'Fn::RefAll', 'Fn::Contains', 'Fn::EachMemberEquals', 'Fn::EachMemberIn', 'Fn::Equals', 'Fn::A
+
+### W1019 — 1 findings
+
+- **W1019** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L6 in `bad_W1019_sub_unused_key_yaml`
+  > Parameter 'UnusedKey' not used in Fn::Sub template string
 
 ### W3030 — 1 findings
 
@@ -12675,7 +12688,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F1101 — 1 findings
 
-- **F1101** `Topic` → `Properties.DisplayName` L14 in `bad_functions_findinmap_default_value_no_transform_yaml`
+- **F1101** `Topic` (AWS::SNS::Topic) → `Properties.DisplayName` L14 in `bad_functions_findinmap_default_value_no_transform_yaml`
   > Fn::FindInMap: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements
 
 ### W3515 — 1 findings
@@ -12685,12 +12698,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### F0017 — 1 findings
 
-- **F0017** L2 in `bad_invalid_mapping_structure_yaml`
+- **F0017** → `Mappings/BadMap/Key1` L4 in `bad_invalid_mapping_structure_yaml`
   > Mapping 'BadMap' second level key 'Key1' must be a map
 
 ### F0015 — 1 findings
 
-- **F0015** L2 in `bad_param_number_default_yaml`
+- **F0015** → `Parameters/Port/Default` L5 in `bad_param_number_default_yaml`
   > Parameter 'Port' Default 'not-a-number' is not a valid number
 
 ### W9011 — 1 findings
@@ -12698,9 +12711,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9011** `Database` (AWS::RDS::DBInstance) → `Properties.PubliclyAccessible` L11 in `bad_rds_public_yaml`
   > RDS instance has PubliclyAccessible set to true - consider restricting access
 
-### W3041 — 1 findings
+### E1028 — 1 findings
 
-- **W3041** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
+- **E1028** L5 in `bad_resources_iam_iam_policy_yaml`
+  > Fn::If condition 'cCondition' does not exist in Conditions section
+
+### W9054 — 1 findings
+
+- **W9054** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
   > Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'
 
 ### E2504 — 1 findings
@@ -12713,12 +12731,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L6 in `bad_unique_items_yaml`
   > Array property 'AvailabilityZones' contains duplicate values
 
-## Per-Template Breakdown — 116 templates with mismatches
+## Per-Template Breakdown — 115 templates with mismatches
 
-### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 5 EE, 18 FN)
+### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 4 EE, 18 FN)
 
 - FN: `E3510` ×15, `F3003` ×3
-- EE: `F1060`, `F1104`, `W2512`, `I9001`, `I9040`
+- EE: `E1028`, `W2512`, `I9001`, `I9040`
 
 ### `bad_generic_yaml` — 11 mismatches (29 TP, 0 FP, 37 EE, 11 FN)
 
@@ -12730,20 +12748,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3003` ×11
 - EE: `I9001` ×2
 
-### `lsp_condition-usage_yaml` — 11 mismatches (8 TP, 0 FP, 19 EE, 11 FN)
+### `lsp_condition-usage_yaml` — 11 mismatches (8 TP, 0 FP, 18 EE, 11 FN)
 
 - FN: `F0013` ×6, `F6101` ×4, `E3016`
-- EE: `I9001` ×9, `I9040` ×6, `F1105`, `W9008`, `W9010`, `I9003`
-
-### `bad_conditions_yaml` — 10 mismatches (11 TP, 0 FP, 14 EE, 10 FN)
-
-- FN: `F0013` ×5, `E3024` ×2, `E1001`, `E3001`, `W1028`
-- EE: `I9001` ×4, `F1060` ×2, `F1104` ×2, `F3002` ×2, `I9040` ×2, `W1103`, `W9010`
+- EE: `I9001` ×9, `I9040` ×6, `W9008`, `W9010`, `I9003`
 
 ### `lsp_parameter_usage_yaml` — 9 mismatches (3 TP, 0 FP, 14 EE, 9 FN)
 
 - FN: `W1031` ×6, `W1032` ×2, `E3001`
 - EE: `I9001` ×7, `I9040` ×7
+
+### `bad_conditions_yaml` — 8 mismatches (13 TP, 0 FP, 11 EE, 8 FN)
+
+- FN: `F0013` ×3, `E3024` ×2, `E1001`, `E3001`, `W1028`
+- EE: `I9001` ×4, `F3002` ×2, `I9040` ×2, `W1103`, `W9010`, `W9053`
 
 ### `bad_resources_cloudformation_stacks_yaml` — 8 mismatches (6 TP, 0 FP, 2 EE, 8 FN)
 
@@ -12799,16 +12817,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1028` ×2, `F3014` ×2, `W1001`, `W3698`
 - EE: `I9001` ×8, `I9040` ×7, `W9010` ×4, `I9003`
 
-### `bad_functions_select_yaml` — 5 mismatches (4 TP, 0 FP, 13 EE, 5 FN)
-
-- FN: `E1017` ×5
-- EE: `I9001` ×8, `I9040` ×4, `W1102`
-
-### `bad_functions_sub_needed_yaml` — 5 mismatches (7 TP, 0 FP, 10 EE, 5 FN)
-
-- FN: `E3510` ×2, `F1029` ×2, `E1152`
-- EE: `I9040` ×4, `W9002` ×2, `W9013` ×2, `I9001` ×2
-
 ### `bad_properties_rt_association_yaml` — 5 mismatches (2 TP, 0 FP, 13 EE, 5 FN)
 
 - FN: `E3022` ×5
@@ -12818,11 +12826,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3026` ×5
 - EE: `I9001` ×11, `I9040` ×7
-
-### `bad_route53_yaml` — 5 mismatches (29 TP, 0 FP, 20 EE, 5 FN)
-
-- FN: `E3023` ×4, `W1054`
-- EE: `I9001` ×19, `I9002`
 
 ### `gh-issues_issue-61_json` — 5 mismatches (3 TP, 0 FP, 1 EE, 5 FN)
 
@@ -12854,6 +12857,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3513` ×4
 - EE: `I9040` ×2
 
+### `bad_route53_yaml` — 4 mismatches (30 TP, 0 FP, 20 EE, 4 FN)
+
+- FN: `E3023` ×4
+- EE: `I9001` ×19, `I9002`
+
 ### `gh-issues_issue-38_json` — 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
 
 - FN: `I3010` ×4
@@ -12864,10 +12872,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `I3011` ×4
 - EE: `I9040` ×2
 
-### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 27 EE, 4 FN)
+### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 26 EE, 4 FN)
 
 - FN: `W1001` ×2, `E1701`, `F6101`
-- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W1103`, `W2508`, `I9003`
+- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W2508`, `I9003`
 
 ### `lsp_comprehensive_yaml` — 4 mismatches (9 TP, 0 FP, 28 EE, 4 FN)
 
@@ -12881,7 +12889,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_conditions_condition_functions_json` — 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
 
-- FN: `E1001` ×3
+- FN: `E8005` ×2, `E1001`
 - EE: `I9040`
 
 ### `bad_core_conditions_list_yaml` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
@@ -12889,10 +12897,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E0002`, `E1001`, `F0013`
 - EE: `F0001`
 
-### `bad_functions_import_value_yaml` — 3 mismatches (1 TP, 0 FP, 4 EE, 3 FN)
+### `bad_functions_sub_needed_yaml` — 3 mismatches (9 TP, 0 FP, 10 EE, 3 FN)
 
-- FN: `E1016` ×2, `F0014`
-- EE: `I9001` ×2, `F1105`, `I9040`
+- FN: `E3510` ×2, `E1152`
+- EE: `I9040` ×4, `W9002` ×2, `W9013` ×2, `I9001` ×2
 
 ### `bad_parameters_default_yaml` — 3 mismatches (18 TP, 0 FP, 4 EE, 3 FN)
 
@@ -12914,9 +12922,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1001` ×2, `E1005`
 - EE: `F0001`
 
-### `good_parameters_used_transform_language_extension_json` — 3 mismatches (1 TP, 0 FP, 0 EE, 3 FN)
+### `good_unknown_resource_types_ignored_yaml` — 3 mismatches (0 TP, 0 FP, 0 EE, 3 FN)
 
-- FN: `W8001` ×3
+- FN: `F3006` ×3
 
 ### `quickstart_nist_application_yaml` — 3 mismatches (44 TP, 0 FP, 99 EE, 3 FN)
 
@@ -12943,14 +12951,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1011`, `E3024`
 - EE: `F1012`, `I9001`
 
-### `bad_functions_base64_yaml` — 2 mismatches (1 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `E1011`, `E1021`
-- EE: `F1012`, `F1105`, `I9001`, `I9040`
-
 ### `bad_functions_foreach_no_transform_yaml` — 2 mismatches (4 TP, 0 FP, 0 EE, 2 FN)
 
 - FN: `E0002`, `E6001`
+
+### `bad_functions_import_value_yaml` — 2 mismatches (2 TP, 0 FP, 3 EE, 2 FN)
+
+- FN: `E1016` ×2
+- EE: `I9001` ×2, `I9040`
 
 ### `bad_modules_bad_has_update_policy_yaml` — 2 mismatches (1 TP, 0 FP, 0 EE, 2 FN)
 
@@ -12964,11 +12972,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F3012` ×2
 - EE: `W9013` ×2, `I9040` ×2
-
-### `bad_sam_layerversion_invalid_compatible_architectures_yaml` — 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
-
-- FN: `E0001`
-- FP: `E0001`
 
 ### `bad_sub_needed_yaml` — 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
 
@@ -13010,10 +13013,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E7001` ×2
 - EE: `I9001` ×3, `I9040` ×3
 
-### `good_functions_foreach_yaml` — 2 mismatches (0 TP, 0 FP, 0 EE, 2 FN)
-
-- FN: `E3045`, `W3045`
-
 ### `good_resources_iam_policy_yaml` — 2 mismatches (0 TP, 0 FP, 1 EE, 2 FN)
 
 - FN: `I3510`, `E3510`
@@ -13054,15 +13053,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F1020`
 - EE: `I9001`, `I9040`
 
-### `bad_conditions_and_yaml` — 1 mismatches (12 TP, 0 FP, 1 EE, 1 FN)
+### `bad_F3006_invalid_aws_namespaces_yaml` — 1 mismatches (2 TP, 0 FP, 4 EE, 1 FN)
+
+- FN: `F3006`
+- EE: `W9013` ×2, `I9001`, `I9040`
+
+### `bad_conditions_and_yaml` — 1 mismatches (12 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `E1001`
-- EE: `F0001`
-
-### `bad_core_conditions_missing_yaml` — 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `F0014`
-- EE: `F0001`
+- EE: `F0001`, `E9106`
 
 ### `bad_core_directives_yaml` — 1 mismatches (4 TP, 0 FP, 6 EE, 1 FN)
 
@@ -13089,20 +13088,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3639`
 - EE: `F3003`, `I9001`, `I9040`
 
+### `bad_functions_base64_yaml` — 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
+
+- FN: `E1021`
+- EE: `F1012`, `I9001`, `I9040`
+
 ### `bad_functions_findinmap_default_value_no_transform_yaml` — 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `E1011`
 - EE: `F1101`, `I9040`
 
-### `bad_functions_getaz_yaml` — 1 mismatches (7 TP, 0 FP, 12 EE, 1 FN)
-
-- FN: `E1017`
-- EE: `I9001` ×9, `I9040` ×3
-
 ### `bad_functions_ref_yaml` — 1 mismatches (11 TP, 0 FP, 20 EE, 1 FN)
 
 - FN: `F1018`
 - EE: `I9001` ×10, `I9040` ×4, `W9003` ×3, `W9010` ×2, `I9003`
+
+### `bad_functions_select_yaml` — 1 mismatches (8 TP, 0 FP, 12 EE, 1 FN)
+
+- FN: `E1017`
+- EE: `I9001` ×8, `I9040` ×4
 
 ### `bad_iam_bad_statement_yaml` — 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
 
@@ -13199,7 +13203,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `bad_schema_write_only_yaml` — 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
 
 - FN: `F6101`
-- EE: `W3041`, `W9002`, `W9013`, `I9001`
+- EE: `W9002`, `W9013`, `W9054`, `I9001`
 
 ### `bad_some_logs_stream_lambda_yaml` — 1 mismatches (12 TP, 0 FP, 12 EE, 1 FN)
 
@@ -13220,6 +13224,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `W3691`
 - EE: `I9001` ×6, `I9040` ×4, `W9008`, `I9003`
+
+### `gh-issues_issue-201_json` — 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `E1001`
+- EE: `F0001`
 
 ### `gh-issues_issue-40_yaml` — 1 mismatches (1 TP, 0 FP, 14 EE, 1 FN)
 
@@ -13271,6 +13280,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W3005`
 - EE: `I9040` ×3
 
+### `good_schema_resource_yaml` — 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
+
+- FN: `F3006`
+
 ### `integration_getatt-types_yaml` — 1 mismatches (8 TP, 0 FP, 17 EE, 1 FN)
 
 - FN: `E9004`
@@ -13308,23 +13321,28 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 129 | 37.83% | E0001, E0002, E2001, E2529, E5001, E6001, E7001, E9004, F0000, F0013, F0014, F0018, F1018, F1020, F1029, F2015, F3003, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 93 | 27.27% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3045, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 60 | 17.60% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W1054, W2001, W2002, W3005, W3037, W3045, W3691, W3698, W6001, W8001 |
-| Intrinsic function validation | 40 | 11.73% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 19 | 5.57% | I2530, I3010, I3011, I3510 |
+| Other | 129 | 39.33% | E0002, E2001, E2529, E5001, E6001, E7001, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 92 | 28.05% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 55 | 16.77% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 33 | 10.06% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 19 | 5.79% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 1 | 100.00% | E0001 |
 
-## Location Mismatches — 16 matched pairs disagree on line
+## Location Mismatches — 17 matched pairs disagree on line
 
 Same rule ID + resource + path, but the engine start line differs from
 the reference. (Messages are not compared — wording may differ freely.)
 
+Known benign class: on transformed (SAM) templates cfn-lint anchors
+findings at the resource's first line because the
+transform loses property line fidelity; the engine anchors at the
+actual property line — deliberately more precise, not a defect.
+
+- **E1017** `myInstance` → `Properties.AvailabilityZone.Fn::Select.0` in `bad_functions_select_yaml`: reference L11 vs engine L10
 - **E2531** `SomeLambda` → `Properties.Runtime` in `good_parameters_not_used_parameters_yaml`: reference L8 vs engine L12
 - **E2531** `SomeLambda` → `Properties.Runtime` in `good_parameters_used_transforms_yaml`: reference L14 vs engine L18
 - **E2533** `FunctionA` → `Properties.Runtime` in `bad_some_logs_stream_lambda_yaml`: reference L16 vs engine L21

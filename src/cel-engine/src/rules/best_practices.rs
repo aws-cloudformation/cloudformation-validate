@@ -360,7 +360,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Parameter {} used as {}, therefore NoEcho should be True", target, prop),
                         m,
                         "",
-                        &format!("Parameters.{}", target),
+                        &format!("Parameters/{}", target),
                         None,
                     ));
                 }
@@ -491,8 +491,8 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
                 continue;
             }
             // A resource type may list several retention properties (a canary needs
-            // both a success and a failure retention period). The reference linter
-            // collapses the required-property check to a single best-match finding
+            // both a success and a failure retention period). The retention check
+            // collapses to a single best-match finding
             // anchored on the properties object, so report only the first missing
             // one — emitting one per missing property would over-report a single
             // underlying concern.

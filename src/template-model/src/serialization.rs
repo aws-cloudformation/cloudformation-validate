@@ -1,10 +1,10 @@
 use crate::consts::*;
+use crate::defect::DefectPhase;
 use crate::diagnostic::*;
+use crate::json_value::JsonValue;
 use crate::model::{ResolvedOutput, ResolvedResource, SemanticModel, TemplateRule};
 use crate::resolved_value::collect_condition_refs_from_resolved;
 use crate::resolver::{MapEntry, RefKind, ResolvedValue};
-use diagnostics::{JsonValue, Phase};
-use rules::Severity;
 use std::collections::HashMap;
 
 impl SemanticModel {
@@ -45,16 +45,24 @@ impl SemanticModel {
                 .collect(),
             conditions,
             condition_param_refs: self.conditions.referenced_params(),
+            // Synthetic conditions (`__`-prefixed, added for inline Fn::If and
+            // Rules-section assertions) drive the internal SAT model but are
+            // filtered out of the serialized `conditions` map, so they must be
+            // filtered out of every serialized structure that names conditions —
+            // otherwise engines and language bindings see implications/mutex
+            // groups referencing condition names that do not exist in the model.
             condition_implications: self
                 .conditions
                 .implications
                 .iter()
+                .filter(|i| !i.antecedent.starts_with("__") && !i.consequent.starts_with("__"))
                 .map(|i| DiagnosticImplication { antecedent: i.antecedent.clone(), consequent: i.consequent.clone() })
                 .collect(),
             condition_mutex_groups: self
                 .conditions
                 .mutex_groups
                 .iter()
+                .filter(|g| !g.conditions.iter().any(|c| c.starts_with("__")))
                 .map(|g| DiagnosticMutexGroup {
                     conditions: g.conditions.clone(),
                     parameter: g.parameter.clone(),
@@ -70,7 +78,8 @@ impl SemanticModel {
                 // budget-truncated output deterministic and engine-identical,
                 // mirroring the deterministic per-type resource ordering in
                 // `model`.
-                let mut cond_names: Vec<&String> = self.conditions.conditions.keys().collect();
+                let mut cond_names: Vec<&String> =
+                    self.conditions.conditions.keys().filter(|n| !n.starts_with("__")).collect();
                 cond_names.sort();
                 let mut exclusions = Vec::new();
                 'pairs: for i in 0..cond_names.len() {
@@ -116,10 +125,7 @@ impl SemanticModel {
                 names
             },
             has_dynamic_findinmap_name: self.has_dynamic_findinmap_name,
-            has_parse_errors: self
-                .diagnostics
-                .iter()
-                .any(|d| d.severity == Severity::Fatal && d.phase == Some(Phase::Parse)),
+            has_parse_errors: self.diagnostics.iter().any(|d| d.is_fatal() && d.phase == Some(DefectPhase::Parse)),
             parsed_rules: self.parsed_rules.iter().map(build_rule).collect(),
             resolution_sources: self
                 .resolution_sources
@@ -226,6 +232,19 @@ fn build_resources(
                         .iter()
                         .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
                         .collect(),
+                    unused_sub_keys: res
+                        .diagnostics
+                        .unused_sub_keys
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
+                    raw_pseudo_params: res
+                        .diagnostics
+                        .raw_pseudo_params
+                        .iter()
+                        .map(|s| PathVariable { path: s.path.clone(), variable: s.value.clone() })
+                        .collect(),
+                    secretsmanager_ref_paths: res.diagnostics.secretsmanager_ref_paths.clone(),
                     invalid_refs: res
                         .diagnostics
                         .invalid_refs
@@ -240,7 +259,7 @@ fn build_resources(
 
 fn build_conditions(conditions: &crate::conditions::ConditionModel) -> HashMap<String, DiagnosticCondition> {
     let mut out = HashMap::new();
-    for name in conditions.names() {
+    for name in conditions.names().filter(|n| !n.starts_with("__")) {
         let (expression, deps) = if let Some(expr) = conditions.get(name) {
             let mut d = Vec::new();
             crate::conditions::collect_condition_deps(expr, &mut d);

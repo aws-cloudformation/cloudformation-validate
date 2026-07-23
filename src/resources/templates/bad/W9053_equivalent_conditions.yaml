@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Environment:
+    Type: String
+Conditions:
+  IsProduction:
+    !Equals [!Ref Environment, "production"]
+  IsProd:
+    !Equals [!Ref Environment, "production"]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProduction

@@ -46,6 +46,19 @@ cfn-validate <TEMPLATE|DIR> [OPTIONS]
 | `--exclude-categories CAT,...` | Suppress these categories          |
 | `--include-range E3000-E3099`  | Only report rules in numeric range |
 | `--exclude-range E3000-E3099`  | Suppress rules in numeric range    |
+| `--include-resource-id ID[=RULE]` | Only report rules on a logical resource ID |
+| `--exclude-resource-id ID[=RULE]` | Suppress rules on a logical resource ID |
+| `--include-logical-id ID[:TYPE][=RULE]` | Only report rules on a named template entity (resource, parameter, output, mapping, condition, or rule); `:TYPE` (e.g. `:Parameter`) scopes to one entity type |
+| `--exclude-logical-id ID[:TYPE][=RULE]` | Suppress rules on a named template entity |
+| `--include-resource-type TYPE[=RULE]` | Only report rules on a resource type |
+| `--exclude-resource-type TYPE[=RULE]` | Suppress rules on a resource type |
+| `--include-service SERVICE[=RULE]` | Only report rules on a service prefix (e.g. `AWS::AutoScaling`) |
+| `--exclude-service SERVICE[=RULE]` | Suppress rules on a service prefix |
+
+Scoped filters take an optional `=RULE` suffix: `--exclude-logical-id MyParam=W2001` suppresses only W2001 on
+`MyParam`, while `--exclude-logical-id MyParam` suppresses every rule on it. The logical-id flags additionally take an
+optional `:TYPE` scope: `--exclude-logical-id MyThing:Parameter` suppresses rules on the parameter `MyThing` without
+touching a same-named entity of another type.
 
 **Output options:**
 

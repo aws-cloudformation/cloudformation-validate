@@ -35,9 +35,12 @@ pub struct RuleInfo {
 #[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Enum))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RuleOrigin {
-    /// Derived from the CloudFormation resource provider schema
+    /// From CloudFormation's own definitions: the resource provider schemas or
+    /// the template language's structural/syntax/shape rules — anything
+    /// CloudFormation itself rejects, regardless of whether cfn-lint also
+    /// implements the check
     Schema,
-    /// Ported from cfn-lint
+    /// Lint judgment ported from cfn-lint
     CfnLint,
     /// Implemented in this validation engine
     Engine,
@@ -348,7 +351,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
-        id: "F8002",
+        id: "E8002",
         category: Category::Structure,
         description: "Condition referenced by resource is not defined",
         origin: RuleOrigin::Schema,
@@ -416,8 +419,32 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E8001",
         category: Category::Structure,
-        description: "Conditions have appropriate properties",
-        origin: RuleOrigin::CfnLint,
+        description: "Conditions section must have valid structure",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8003",
+        category: Category::Intrinsic,
+        description: "Fn::Equals must take exactly two scalar operands",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8004",
+        category: Category::Intrinsic,
+        description: "Fn::And must take between 2 and 10 boolean conditions",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8005",
+        category: Category::Intrinsic,
+        description: "Fn::Not must take exactly one boolean condition",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E8006",
+        category: Category::Intrinsic,
+        description: "Fn::Or must take between 2 and 10 boolean conditions",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "W8001",
@@ -430,6 +457,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         category: Category::BestPractice,
         description: "Fn::Equals will always return true or false",
         origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E8007",
+        category: Category::Intrinsic,
+        description: "Condition function value must be a string referencing a defined condition",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "F8600",
@@ -537,13 +570,13 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E9004",
         category: Category::Intrinsic,
         description: "GetAtt attribute must exist on target resource type",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
-        id: "F1029",
+        id: "E1029",
         category: Category::Intrinsic,
-        description: "Sub is required if a variable is used in a string",
-        origin: RuleOrigin::Schema,
+        description: "Substitution variable ${X} requires Fn::Sub",
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "E1040",
@@ -564,9 +597,51 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
-        id: "F1060",
+        id: "E1028",
         category: Category::Intrinsic,
-        description: "Fn::If condition must exist in Conditions",
+        description: "Fn::If condition must exist in Conditions section",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1050",
+        category: Category::Intrinsic,
+        description: "Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1019",
+        category: Category::Intrinsic,
+        description: "Parameter in Fn::Sub variable map is not used in the template string",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1051",
+        category: Category::Intrinsic,
+        description: "Dynamic reference resolves secret value but property expects the secret ARN",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1054",
+        category: Category::Intrinsic,
+        description: "String value matches a pseudo parameter; use Ref instead",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1100",
+        category: Category::Structure,
+        description: "YAML merge key '<<' is not supported by CloudFormation",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E9101",
+        category: Category::Intrinsic,
+        description: "Invalid nesting of intrinsic functions",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E9106",
+        category: Category::Structure,
+        description: "Circular dependency in condition definitions",
         origin: RuleOrigin::Schema,
     },
     RuleDefinition {
@@ -592,18 +667,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         category: Category::Intrinsic,
         description: "Validate the format of a value",
         origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
-        id: "F1104",
-        category: Category::Structure,
-        description: "Duplicate logical ID in template",
-        origin: RuleOrigin::Schema,
-    },
-    RuleDefinition {
-        id: "F1105",
-        category: Category::Intrinsic,
-        description: "Invalid nesting of intrinsic functions",
-        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1150",
@@ -1338,6 +1401,18 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "W9053",
+        category: Category::BestPractice,
+        description: "Conditions are semantically equivalent and can be consolidated",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "I9052",
+        category: Category::Structure,
+        description: "Condition or intrinsic could not be fully analyzed because the SAT solver budget was exceeded",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "W9002",
         category: Category::BestPractice,
         description: "Hardcoded ARN property",
@@ -1396,6 +1471,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         category: Category::Structure,
         description: "Outputs have appropriate properties",
         origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E6005",
+        category: Category::Structure,
+        description: "Condition referenced by an output must exist in the Conditions section",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E7001",
@@ -1497,7 +1578,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "W3030",
         category: Category::Schema,
         description: "Value not in allowed enum",
-        origin: RuleOrigin::Schema,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "F3031",
@@ -1536,7 +1617,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "W3041",
+        id: "W9054",
         category: Category::BestPractice,
         description: "Write-only property referenced in output",
         origin: RuleOrigin::Engine,
@@ -1581,19 +1662,73 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E1015",
         category: Category::Intrinsic,
         description: "GetAz validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1016",
         category: Category::Intrinsic,
         description: "ImportValue validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1011",
+        category: Category::Intrinsic,
+        description: "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1017",
+        category: Category::Intrinsic,
+        description: "Fn::Select requires exactly two operands and a list source",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1018",
+        category: Category::Intrinsic,
+        description: "Fn::Split source must be a string or a string-producing intrinsic",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1019",
+        category: Category::Intrinsic,
+        description: "Fn::Sub variable map values must be strings or string-producing intrinsics",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1021",
+        category: Category::Intrinsic,
+        description: "Fn::Base64 argument must be a string or a string-producing intrinsic",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1022",
+        category: Category::Intrinsic,
+        description: "Fn::Join requires a string delimiter and a list of strings or string-producing intrinsics",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1024",
+        category: Category::Intrinsic,
+        description: "Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1027",
         category: Category::Intrinsic,
         description: "Check dynamic references secure strings are in supported locations",
         origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E1030",
+        category: Category::Intrinsic,
+        description: "Fn::Length argument must be an array or a list-producing function",
+        origin: RuleOrigin::Schema,
+    },
+    RuleDefinition {
+        id: "E1031",
+        category: Category::Intrinsic,
+        description: "Fn::ToJsonString argument must be a non-empty array/object or a supported function",
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "F1030",
@@ -1617,7 +1752,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E1033",
         category: Category::Intrinsic,
         description: "GetStackOutput validation of parameters",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Schema,
     },
     RuleDefinition {
         id: "E1051",

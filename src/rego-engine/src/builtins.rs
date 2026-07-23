@@ -1,7 +1,6 @@
 use crate::engine::{SharedModel, SharedRegion};
 use data_source::embedded::{GETATT_ATTRIBUTES_BYTES, SCHEMA_METADATA_BYTES};
 use data_source::types::GetattData;
-use diagnostics::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
 use regorus::Value;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
@@ -17,6 +16,7 @@ use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
+use template_model::{SourceSpan, UNKNOWN_SPAN, render_value, render_value_list};
 
 pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
     json_to_value(v)
@@ -1724,7 +1724,7 @@ fn register_make_diag_at(rego: &mut regorus::Engine, holder: SharedModel) {
             let resource_id = params[2].as_string()?;
             let prop_path = params[3].as_string()?;
             let message = params[4].as_string()?;
-            let span = if resource_id.is_empty() { UNKNOWN_SPAN } else { model.resource_span(resource_id, prop_path) };
+            let span = resolve_span(&model, resource_id, prop_path);
             let mut obj = serde_json::json!({
                 "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
                 "message": message.as_ref(), "resource_id": resource_id.as_ref(),
@@ -1952,12 +1952,13 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedMo
                         None => vec![],
                     };
                     let mut results = Vec::new();
-                    // An output is not a resource; anchor the diagnostic at the
-                    // full "Outputs/<name>/Value" path rather than a bare "Value".
+                    // An output is not a resource; leave the resource slot empty
+                    // and anchor the diagnostic at the full "Outputs/<name>/Value"
+                    // path rather than a bare "Value".
                     let path_prefix = format!("Outputs/{}/Value", output_name);
                     collect_unreachable_branches(
                         &model,
-                        output_name,
+                        "",
                         &output.value,
                         &path_prefix,
                         &base_assumptions,

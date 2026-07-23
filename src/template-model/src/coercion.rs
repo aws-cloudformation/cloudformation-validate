@@ -19,15 +19,19 @@ pub fn coerce_to_integer(val: &Value) -> Option<i64> {
             let f = n.as_f64()?;
             if f.fract() == 0.0 && f >= i64::MIN as f64 && f <= i64::MAX as f64 { Some(f as i64) } else { None }
         }),
-        Value::String(s) => {
-            let s = s.trim();
-            s.parse::<i64>().ok().or_else(|| {
-                let f = s.parse::<f64>().ok()?;
-                if f.fract() == 0.0 && f >= i64::MIN as f64 && f <= i64::MAX as f64 { Some(f as i64) } else { None }
-            })
-        }
+        Value::String(s) => coerce_str_to_integer(s),
         _ => None,
     }
+}
+
+/// The string arm of [`coerce_to_integer`], for callers that hold a scalar
+/// outside a `serde_json::Value` (such as the parser's `ParseValue` values).
+pub fn coerce_str_to_integer(s: &str) -> Option<i64> {
+    let s = s.trim();
+    s.parse::<i64>().ok().or_else(|| {
+        let f = s.parse::<f64>().ok()?;
+        if f.fract() == 0.0 && f >= i64::MIN as f64 && f <= i64::MAX as f64 { Some(f as i64) } else { None }
+    })
 }
 
 pub fn coerce_to_string(val: &Value) -> Option<String> {

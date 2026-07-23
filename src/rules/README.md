@@ -1,6 +1,7 @@
 # rules
 
-Shared foundation crate for rule definitions, severity model, category enum, and diagnostic filtering.
+Rule metadata crate: rule definitions, severity model, category enum, and diagnostic filtering. Builds on
+`template-model`, which owns the template vocabulary (`TopLevelSection`, `EntityType`) the filters reference.
 
 ## Severity
 
@@ -50,17 +51,17 @@ Custom and guard rules use freeform category strings.
 
 ## RuleOrigin
 
-| Variant   | Meaning                                      |
-|-----------|----------------------------------------------|
-| `Schema`  | Derived from CloudFormation provider schemas |
-| `CfnLint` | Ported from cfn-lint                         |
-| `Engine`  | Implemented in this validation engine        |
-| `Custom`  | User-supplied custom rule                    |
-| `Guard`   | CloudFormation Guard rule                    |
+| Variant   | Meaning                                                                                          |
+|-----------|--------------------------------------------------------------------------------------------------|
+| `Schema`  | From CloudFormation's own definitions — provider schemas or template-language structure/syntax/shape rules that CloudFormation itself rejects |
+| `CfnLint` | Lint judgment ported from cfn-lint (the template would still deploy, or the check's data originates in cfn-lint) |
+| `Engine`  | Implemented in this validation engine                                                            |
+| `Custom`  | User-supplied custom rule                                                                        |
+| `Guard`   | CloudFormation Guard rule                                                                        |
 
 ## Filtering
 
-`FilterConfig` holds `include` and `exclude` filters across 7 dimensions:
+`FilterConfig` holds `include` and `exclude` filters across 8 dimensions:
 
 | Dimension        | Match logic                                              |
 |------------------|----------------------------------------------------------|
@@ -69,13 +70,20 @@ Custom and guard rules use freeform category strings.
 | By ID range      | Numeric range with prefix (e.g. `E3000`–`E3099`)         |
 | By regex         | Regex against rule ID                                    |
 | By resource ID   | A rule (or every rule) on a specific logical resource    |
+| By logical ID    | A rule (or every rule) on a named template entity, optionally scoped to one entity type |
 | By resource type | A rule (or every rule) on a resource type                |
 | By service       | A rule (or every rule) on a service (provider + service) |
 
-The resource-ID, resource-type, and service dimensions each carry an optional `rule_id`: set it to scope the filter to
-a single rule, or omit it to scope the filter to every rule on that resource, type, or service. The service is matched
-verbatim against the `service-provider::service-name` prefix of the resource type — its first two `::`-delimited
-segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
+The resource-ID, logical-ID, resource-type, and service dimensions each carry an optional `rule_id`: set it to scope
+the filter to a single rule, or omit it to scope the filter to every rule on that entity, resource, type, or service.
+The service is matched verbatim against the `service-provider::service-name` prefix of the resource type — its first
+two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
+
+The resource-ID dimension matches only diagnostics attributed to a resource; the logical-ID dimension additionally
+matches diagnostics on Parameters, Outputs, Mappings, Conditions, and template Rules (for resource diagnostics the two
+carry the same value). A `LogicalIdFilter` also carries an optional `entity_type`: set it to match only entities of
+that type (so `MyThing` as a Parameter is suppressed without touching a same-named Resource), or omit it to match
+entities of every type.
 
 Include-then-exclude: if include filters are non-empty, a diagnostic must match at least one; any diagnostic matching
 an exclude filter is removed.

@@ -5,14 +5,12 @@ use std::sync::Arc;
 use validation_engine::ValidationEngine;
 
 pub use diagnostics::{
-    DetailLevel, DetailedDiagnostic, DetailedReport, JsonValue, PerformanceMetrics, PhaseMetric, RelatedResource,
-    ReportMetadata, ReportStatus, ResourceRef, SourceSpan, StandardDiagnostic, StandardReport, Summary,
-    ViolationContext,
+    DetailLevel, DetailedDiagnostic, DetailedReport, PerformanceMetrics, PhaseMetric, RelatedResource, ReportMetadata,
+    ReportStatus, ResourceRef, StandardDiagnostic, StandardReport, Summary, ViolationContext,
 };
 pub use rules::{
     IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, ServiceFilter, Severity,
 };
-pub use template_model::PseudoParameterOverrides;
 pub use template_model::diagnostic::{
     ConditionalNull, DiagnosticCondition, DiagnosticForEachExpansion, DiagnosticImplication, DiagnosticModel,
     DiagnosticMutexGroup, DiagnosticOutput, DiagnosticResource, DiagnosticRule, DiagnosticRuleAssertion,
@@ -22,6 +20,7 @@ pub use template_model::model::{
     ConditionalNullEntry, ForEachExpansion, PathValuePair, ResolvedOutput, ResolvedResource, ResourceDiagnostics,
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
+pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
 pub use validation_engine::{AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource};
 
 #[derive(Debug, Clone, uniffi::Record)]

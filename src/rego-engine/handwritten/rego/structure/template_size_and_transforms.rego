@@ -38,7 +38,8 @@ violation contains make_diag("E1005", "ERROR", "",
 # PCRE-style engine that supports lookaround, backreferences, `\Z` and POSIX classes, so validity is
 # precomputed in the model (`allowedPatternValid`) with a PCRE-aware compiler. Report only a pattern
 # that is genuinely malformed.
-violation contains make_diag("I2003", "INFO", "",
+violation contains make_diag_at("I2003", "INFO", "",
+    sprintf("Parameters/%s/AllowedPattern", [pname]),
     sprintf("Parameter '%s' AllowedPattern '%s' is not a valid regular expression", [pname, pattern])) if {
     some pname, param in input.parameters
     pattern := param.allowedPattern

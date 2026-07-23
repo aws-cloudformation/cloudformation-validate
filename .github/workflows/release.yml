@@ -1,5 +1,5 @@
 name: Release
-run-name: Release ${{ inputs.tag }} ${{ github.actor }}
+run-name: Release ${{ inputs.tag }} from ${{ inputs.branch }} ${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -8,10 +8,11 @@ on:
         description: "The tag to release (1.0.0 for prod, 1.0.0-beta for beta)"
         required: true
         type: string
-      commit:
-        description: "Optional commit SHA to release from — must be on main (defaults to the head of main)"
+      branch:
+        description: "Branch to release from — main for regular releases, a hotfix branch for patch releases."
         required: false
         type: string
+        default: 'main'
 
 permissions:
   contents: read
@@ -25,7 +26,8 @@ jobs:
     permissions:
       contents: read
     with:
-      ref: ${{ inputs.commit || 'main' }}
+      ref: ${{ inputs.branch }}
+      fail-fast: true
 
   version-and-tag:
     needs: [ get-configs, validate ]
@@ -37,27 +39,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 'main'
+          ref: ${{ inputs.branch }}
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Resolve release commit
+      - name: Log release commit
         env:
-          COMMIT: ${{ inputs.commit }}
-        run: |
-          set -euo pipefail
-          if [ -n "$COMMIT" ]; then
-            if ! git cat-file -e "$COMMIT^{commit}" 2>/dev/null; then
-              echo "::error::Commit $COMMIT does not exist in this repository."
-              exit 1
-            fi
-            if ! git merge-base --is-ancestor "$COMMIT" origin/main; then
-              echo "::error::Commit $COMMIT is not on main. Releases may only be cut from commits on main."
-              exit 1
-            fi
-            git checkout --quiet "$COMMIT"
-          fi
-          echo "Releasing from commit $(git rev-parse HEAD)"
+          BRANCH: ${{ inputs.branch }}
+        run: echo "Releasing from branch $BRANCH, commit $(git rev-parse HEAD)"
 
       - name: Get version from Cargo.toml
         id: get-version
@@ -526,15 +515,35 @@ jobs:
       - name: Verify published package
         run: |
           set -euo pipefail
-          tmp="$(mktemp -d)"
-          cd "$tmp"
-          npm init -y >/dev/null
-          npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts
-          npm audit signatures
 
-          predicate=$(npm view "@aws/cloudformation-validate@${{ inputs.tag }}" dist.attestations.provenance.predicateType 2>/dev/null || true)
-          if [ -z "$predicate" ]; then
-            echo "::error::no provenance attestation found for @aws/cloudformation-validate@${{ inputs.tag }}"
-            exit 1
-          fi
-          echo "provenance attestation predicateType: $predicate"
+          verify() {
+            local tmp
+            tmp="$(mktemp -d)"
+            (
+              cd "$tmp" \
+                && npm init -y >/dev/null \
+                && npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts \
+                && npm audit signatures
+            ) || return 1
+
+            local predicate
+            predicate=$(npm view "@aws/cloudformation-validate@${{ inputs.tag }}" dist.attestations.provenance.predicateType 2>/dev/null || true)
+            if [ -z "$predicate" ]; then
+              echo "no provenance attestation found for @aws/cloudformation-validate@${{ inputs.tag }}"
+              return 1
+            fi
+            echo "provenance attestation predicateType: $predicate"
+          }
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "attempt $attempt/$max_attempts: verifying @aws/cloudformation-validate@${{ inputs.tag }}"
+            if verify; then
+              echo "Published package installed, signatures audited, and provenance verified."
+              exit 0
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for @aws/cloudformation-validate@${{ inputs.tag }} to verify against the npm registry"
+          exit 1

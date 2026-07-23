@@ -1,8 +1,8 @@
 use crate::consts::*;
+use crate::defect::ParseDefect;
 use crate::ir::*;
 use crate::model::ResolvedResource;
 use crate::resolver::ResolvedValue;
-use diagnostics::{Diagnostic, RegisteredDiagnostic, SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 use std::collections::{HashMap, HashSet};
 
 pub fn extract_sam_globals(arena: &Arena, globals_ref: NodeRef) -> HashMap<String, HashMap<String, serde_json::Value>> {
@@ -152,7 +152,7 @@ pub fn collect_globals_param_refs(arena: &Arena, globals_ref: NodeRef) -> Vec<St
     refs
 }
 
-pub fn cycle_involves_sam_diagnostic(diagnostic: &Diagnostic, resources: &HashMap<String, ResolvedResource>) -> bool {
+pub fn cycle_involves_sam_diagnostic(diagnostic: &ParseDefect, resources: &HashMap<String, ResolvedResource>) -> bool {
     resources.iter().any(|(name, res)| {
         res.resource_type.starts_with(SAM_SERVERLESS_TYPE_PREFIX) && diagnostic.message.contains(name.as_str())
     })
@@ -229,7 +229,7 @@ pub fn collect_transform_errors(
     resources: &HashMap<String, ResolvedResource>,
     parameter_names: &HashSet<String>,
     span_index: &SourceSpanIndex,
-) -> Vec<Diagnostic> {
+) -> Vec<ParseDefect> {
     let context = TransformErrorContext { arena, resources_node, globals_node, resources, parameter_names, span_index };
 
     let mut errors = Vec::new();
@@ -288,7 +288,7 @@ impl<'a> TransformErrorContext<'a> {
     }
 }
 
-fn auto_publish_alias_must_be_string_or_parameter_ref(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn auto_publish_alias_must_be_string_or_parameter_ref(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
         let Some(located) = located_auto_publish_alias(ctx.arena, ctx.resources_node, ctx.globals_node, name) else {
             continue;
@@ -323,7 +323,7 @@ fn auto_publish_alias_violation(arena: &Arena, node: NodeRef, parameter_names: &
     }
 }
 
-fn layer_version_must_have_content_uri(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn layer_version_must_have_content_uri(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_LAYER_VERSION_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_LAYER_CONTENT_URI) {
             continue;
@@ -344,7 +344,7 @@ fn layer_version_must_have_content_uri(ctx: &TransformErrorContext, out: &mut Ve
 /// A `LayerVersion` `RetentionPolicy`, when a literal, must be `Retain` or
 /// `Delete`; `CompatibleArchitectures`, when a literal list, must contain only
 /// valid Lambda architectures.
-fn layer_version_property_transform_errors(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn layer_version_property_transform_errors(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_LAYER_VERSION_TYPE) {
         let Some(props) = ctx.resources.get(name).map(|res| &res.properties) else {
             continue;
@@ -394,7 +394,7 @@ fn has_invalid_architecture(value: Option<&ResolvedValue>) -> bool {
     literals.iter().any(|arch| !SAM_ARCHITECTURES.contains(arch))
 }
 
-fn application_must_have_location(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn application_must_have_location(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_APPLICATION_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_APPLICATION_LOCATION) {
             continue;
@@ -412,7 +412,7 @@ fn application_must_have_location(ctx: &TransformErrorContext, out: &mut Vec<Dia
     }
 }
 
-fn api_must_have_stage_name(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn api_must_have_stage_name(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_API_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_API_STAGE_NAME) {
             continue;
@@ -421,7 +421,7 @@ fn api_must_have_stage_name(ctx: &TransformErrorContext, out: &mut Vec<Diagnosti
     }
 }
 
-fn graphql_api_must_have_auth(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn graphql_api_must_have_auth(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_GRAPHQL_API_TYPE) {
         if resource_has_property(ctx.resources, name, SAM_GRAPHQL_AUTH) {
             continue;
@@ -433,7 +433,7 @@ fn graphql_api_must_have_auth(ctx: &TransformErrorContext, out: &mut Vec<Diagnos
 /// A connector requires `Source`, `Destination`, and `Permissions`. SAM reports
 /// the first one missing in that order, so only the first absent property is
 /// surfaced to match its single-message behavior.
-fn connector_must_have_required_properties(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn connector_must_have_required_properties(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_CONNECTOR_TYPE) {
         let missing = [SAM_CONNECTOR_SOURCE, SAM_CONNECTOR_DESTINATION, SAM_CONNECTOR_PERMISSIONS]
             .into_iter()
@@ -447,7 +447,7 @@ fn connector_must_have_required_properties(ctx: &TransformErrorContext, out: &mu
 /// A state machine must define its workflow through exactly one of `Definition`
 /// or `DefinitionUri`; neither and both are transform errors with distinct
 /// messages.
-fn state_machine_definition_exactly_one(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn state_machine_definition_exactly_one(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_STATE_MACHINE_TYPE) {
         let has_definition = resource_has_property(ctx.resources, name, SAM_DEFINITION);
         let has_definition_uri = resource_has_property(ctx.resources, name, SAM_DEFINITION_URI);
@@ -468,7 +468,7 @@ fn state_machine_definition_exactly_one(ctx: &TransformErrorContext, out: &mut V
 /// A `SimpleTable` PrimaryKey, when present, must declare a `Type`, and that
 /// type must be a valid DynamoDB attribute type. Only literal types are checked
 /// — an intrinsic-valued type cannot be validated pre-deployment.
-fn simple_table_primary_key_type(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn simple_table_primary_key_type(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_SIMPLE_TABLE_TYPE) {
         let Some(primary_key) =
             ctx.resources.get(name).and_then(|res| res.properties.get(SAM_SIMPLE_TABLE_PRIMARY_KEY))
@@ -547,7 +547,7 @@ fn classify_primary_key_type(type_str: Option<&str>) -> PrimaryKeyType {
 /// single message), then the dead-letter-queue check, then package-type checks,
 /// then the provisioned-concurrency requirement. A function is rejected on the
 /// first failure, so only that error is surfaced.
-fn function_property_transform_errors(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn function_property_transform_errors(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
         let Some(props) = ctx.resources.get(name).map(|res| &res.properties) else {
             continue;
@@ -763,7 +763,7 @@ fn concrete_str(value: &ResolvedValue) -> Option<&str> {
     }
 }
 
-fn schedule_event_must_have_schedule(ctx: &TransformErrorContext, out: &mut Vec<Diagnostic>) {
+fn schedule_event_must_have_schedule(ctx: &TransformErrorContext, out: &mut Vec<ParseDefect>) {
     for name in ctx.resources_of_type(SAM_FUNCTION_TYPE) {
         let Some(events_value) = ctx.resources.get(name).and_then(|res| res.properties.get(SAM_FUNCTION_EVENTS)) else {
             continue;
@@ -933,7 +933,7 @@ fn globals_supported_properties(section: &str) -> Option<&'static [&'static str]
 /// resource expansion: the section must be a map of known section names, each
 /// mapping to a map whose keys are all supported for that section. The first
 /// violation aborts the transform, so at most one error is returned.
-fn globals_section_violation(ctx: &TransformErrorContext) -> Option<Diagnostic> {
+fn globals_section_violation(ctx: &TransformErrorContext) -> Option<ParseDefect> {
     if ctx.globals_node == NULL_REF {
         return None;
     }
@@ -978,14 +978,13 @@ fn globals_section_violation(ctx: &TransformErrorContext) -> Option<Diagnostic> 
 /// Builds a `Globals`-section transform error. These are not tied to a specific
 /// resource, so the diagnostic anchors at the `Globals` section rather than a
 /// resource id.
-fn make_globals_error(detail: String, span: SourceSpan) -> Diagnostic {
-    RegisteredDiagnostic::new(
+fn make_globals_error(detail: String, span: SourceSpan) -> ParseDefect {
+    ParseDefect::new(
         SAM_TRANSFORM_ERROR_RULE_ID,
         format!("{} 'Globals' section is invalid. {}", SAM_TRANSFORM_ERROR_PREFIX, detail),
     )
     .property_path(SECTION_GLOBALS)
     .location(span)
-    .build()
 }
 
 fn sam_property_path(prefix: &str, property: &str) -> String {
@@ -995,7 +994,7 @@ fn sam_property_path(prefix: &str, property: &str) -> String {
 /// Builds the transform error for a required property missing from a resource,
 /// anchored at that property's path. Shared by the required-property validators
 /// that all surface SAM's `Missing required property '<name>'.` message.
-fn missing_required_property_error(ctx: &TransformErrorContext, resource_id: &str, property: &str) -> Diagnostic {
+fn missing_required_property_error(ctx: &TransformErrorContext, resource_id: &str, property: &str) -> ParseDefect {
     let prop_path = sam_property_path(KEY_PROPERTIES, property);
     let span = ctx.span_for(resource_id, &prop_path);
     make_transform_error(
@@ -1128,24 +1127,24 @@ fn sort_key(span_index: &SourceSpanIndex, name: &str) -> (u32, u32) {
         .unwrap_or((u32::MAX, u32::MAX))
 }
 
-fn make_transform_error(resource_id: &str, property_path: String, message: String, span: SourceSpan) -> Diagnostic {
-    RegisteredDiagnostic::new(SAM_TRANSFORM_ERROR_RULE_ID, message)
-        .resource(resource_id, None)
+fn make_transform_error(resource_id: &str, property_path: String, message: String, span: SourceSpan) -> ParseDefect {
+    ParseDefect::new(SAM_TRANSFORM_ERROR_RULE_ID, message)
+        .resource(resource_id)
         .property_path(property_path)
         .location(span)
-        .build()
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::consts::is_sam_transform_error_message;
+    use crate::defect::ParseDefect;
     use crate::model::SemanticModel;
-    use diagnostics::{Diagnostic, is_sam_transform_error_message};
 
     fn transform_errors(template: &str) -> Vec<String> {
         sam_transform_diagnostics(template).into_iter().map(|d| d.message).collect()
     }
 
-    fn sam_transform_diagnostics(template: &str) -> Vec<Diagnostic> {
+    fn sam_transform_diagnostics(template: &str) -> Vec<ParseDefect> {
         let model = SemanticModel::from_bytes(template.as_bytes()).expect("template should parse");
         model.diagnostics.iter().filter(|d| is_sam_transform_error_message(&d.message)).cloned().collect()
     }
@@ -1345,11 +1344,7 @@ Resources:
              Missing required property 'ContentUri'."
         );
         assert_eq!(diag.rule_id, "E0001");
-        assert_eq!(
-            diag.resource.as_ref().and_then(|r| r.id.as_deref()),
-            Some("Layer"),
-            "diagnostic must carry the offending resource id"
-        );
+        assert_eq!(diag.resource_logical_id(), Some("Layer"), "diagnostic must carry the offending resource id");
         assert_eq!(
             diag.property_path.as_deref(),
             Some("Properties/ContentUri"),
@@ -1388,7 +1383,7 @@ Resources:
             "Error transforming template: Resource with id [App] is invalid. \
              Resource is missing the required [Location] property."
         );
-        assert_eq!(diag.resource.as_ref().and_then(|r| r.id.as_deref()), Some("App"));
+        assert_eq!(diag.resource_logical_id(), Some("App"));
         assert_eq!(diag.property_path.as_deref(), Some("Properties/Location"));
     }
 
@@ -1438,7 +1433,7 @@ Resources:
              Missing required property 'Schedule'."
         );
         assert_eq!(
-            diag.resource.as_ref().and_then(|r| r.id.as_deref()),
+            diag.resource_logical_id(),
             Some("Fn"),
             "diagnostic must point at the parent function, not the synthetic event id"
         );

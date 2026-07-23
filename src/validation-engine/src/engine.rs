@@ -1,11 +1,11 @@
 use diagnostics::{
-    DetailLevel, Diagnostic, JsonValue, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
-    ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary, UNKNOWN_SPAN, ValidationReport, ViolationContext,
-    apply_filters, is_sam_transform_error_message, phase_metric, resolve_section_span, span_to_option,
+    DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
+    ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
+    diagnostic_from_parse_defect, phase_metric, resolve_section_span,
 };
 use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
-    rule_number, section_for_rule_id,
+    rule_number,
 };
 use schema_validator::{SchemaValidationResult, SchemaValidator};
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,10 @@ use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
-use template_model::{ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, region_enums};
+use template_model::{
+    EntityType, JsonValue, ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, SourceSpan,
+    UNKNOWN_SPAN, entity_identity, is_sam_transform_error_message, region_enums, span_to_option,
+};
 use web_time::Instant;
 
 #[derive(Debug)]
@@ -226,7 +229,7 @@ pub(crate) fn validate(
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
     let model = Arc::new(result.model);
-    let model_build = result.model_build;
+    let model_build = PhaseMetric { duration_ms: result.model_build_ms };
     log::info!(
         "Validating: {} resources, {} types (engine={})",
         model.resources.len(),
@@ -257,7 +260,21 @@ pub(crate) fn validate(
     let t_post = Instant::now();
     if !config.disable_builtin_rules {
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
-        all_diagnostics.extend(model.diagnostics.iter().cloned());
+        all_diagnostics.extend(model.diagnostics.iter().map(diagnostic_from_parse_defect));
+
+        // The satisfiability budget is consumed almost entirely by the rule
+        // evaluation that just ran, so this is the earliest point the exhausted
+        // queries are observable. Emitting it here (rather than at model build)
+        // is what lets the diagnostic actually fire.
+        for query in model.conditions.budget_exhausted_queries() {
+            all_diagnostics.push(
+                RegisteredDiagnostic::new(
+                    "I9052",
+                    format!("Condition satisfiability analysis budget exhausted during: {}", query),
+                )
+                .build(),
+            );
+        }
 
         if config.pseudo_parameter_overrides.region.is_none() && region_enums::template_has_region_scoped_value(&model)
         {
@@ -277,6 +294,7 @@ pub(crate) fn validate(
     gate_cdk_suppressed_rules(&mut all_diagnostics, &model);
 
     backfill_locations(&mut all_diagnostics, &model);
+    backfill_entities(&mut all_diagnostics, &model);
 
     let registry_metadata = engine.rule_metadata();
     let external_metadata = engine.external_rule_metadata();
@@ -288,7 +306,7 @@ pub(crate) fn validate(
             if d.context.is_none() && d.phase != Some(Phase::Schema) {
                 d.context = build_context(
                     &d.rule_id,
-                    d.resource.as_ref().and_then(|r| r.id.as_deref()),
+                    d.resource_logical_id(),
                     d.property_path.as_deref().unwrap_or(""),
                     &model,
                 );
@@ -360,8 +378,7 @@ pub fn validate_bytes_with_path(
                 (Some(l), Some(c)) => SourceSpan { start_line: l, start_column: c, end_line: l, end_column: c },
                 _ => UNKNOWN_SPAN,
             };
-            let mut diag = RegisteredDiagnostic::new("F1101", e.message).location(span).phase(Phase::Parse).build();
-            diag.section = Some("Template".into());
+            let diag = RegisteredDiagnostic::new("F1101", e.message).location(span).phase(Phase::Parse).build();
             let diags = vec![diag];
             let report = ValidationReport {
                 file_path,
@@ -471,10 +488,9 @@ pub(crate) fn parse_diagnostic(
         return Err(format!("Diagnostic '{}' has an empty 'message'", rule_id));
     }
     let resource_id = val.get("resource_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
-    let resource = resource_id.as_ref().map(|rid| ResourceRef {
-        id: Some(rid.clone()),
-        resource_type: model.resources.get(rid.as_str()).map(|r| r.resource_type.clone()),
-    });
+    let entity = resource_id
+        .as_ref()
+        .and_then(|rid| Entity::resource(rid, model.resources.get(rid.as_str()).map(|r| r.resource_type.clone())));
     let property_path =
         val.get("resource_path").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
@@ -490,7 +506,9 @@ pub(crate) fn parse_diagnostic(
                 end_line: val.get("end_line").and_then(|v| v.as_u64()).unwrap_or(l) as u32,
                 end_column: val.get("end_column").and_then(|v| v.as_u64()).unwrap_or(c) as u32,
             },
-            _ => resolve_section_span(&rule_id, model),
+            _ => model
+                .diagnostic_span(None, property_path.as_deref().unwrap_or(""))
+                .unwrap_or_else(|| resolve_section_span(&rule_id, model)),
         }
     };
 
@@ -545,7 +563,7 @@ pub(crate) fn parse_diagnostic(
             rule_id,
             severity,
             message,
-            resource,
+            entity,
             property_path,
             suggested_fix,
             documentation_url,
@@ -555,7 +573,6 @@ pub(crate) fn parse_diagnostic(
             condition_scenario,
             rule_description: None,
             phase: None,
-            section: None,
             context: None,
             source,
         });
@@ -570,7 +587,7 @@ pub(crate) fn parse_diagnostic(
         .condition_scenario(condition_scenario)
         .related_resources(related_resources)
         .build();
-    diagnostic.resource = resource;
+    diagnostic.entity = entity;
     diagnostic.property_path = property_path;
     diagnostic.documentation_url = documentation_url;
     Ok(diagnostic)
@@ -664,6 +681,11 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
     // native HashMap iteration order put them in [A, B, A] layout, dedup skipped.
     let line = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_line).unwrap_or(0);
     let column = |d: &Diagnostic| d.location.as_ref().map(|l| l.start_column).unwrap_or(0);
+    // The resource id is part of both keys: two findings on *different* resources
+    // are distinct even when they share a span, message, and path. This happens
+    // with `Fn::ForEach`-expanded resources, which are separate resources built
+    // from one template body and therefore carry the same source span.
+    let resource_id = |d: &Diagnostic| d.entity.as_ref().map(|e| e.logical_id.clone()).unwrap_or_default();
     diagnostics.sort_by(|a, b| {
         b.severity
             .cmp(&a.severity)
@@ -671,6 +693,7 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
             .then_with(|| a.rule_id.cmp(&b.rule_id))
             .then_with(|| line(a).cmp(&line(b)))
             .then_with(|| column(a).cmp(&column(b)))
+            .then_with(|| resource_id(a).cmp(&resource_id(b)))
             .then_with(|| a.property_path.cmp(&b.property_path))
             .then_with(|| a.message.cmp(&b.message))
     });
@@ -679,6 +702,7 @@ pub(crate) fn finalize_diagnostics(diagnostics: &mut Vec<Diagnostic>, config: &V
             && a.location.as_ref().map(|l| l.start_column).unwrap_or(0)
                 == b.location.as_ref().map(|l| l.start_column).unwrap_or(0)
             && a.rule_id == b.rule_id
+            && resource_id(a) == resource_id(b)
             && a.message == b.message
             && a.property_path == b.property_path
     });
@@ -799,12 +823,12 @@ pub(crate) fn build_context(
         "I9001" => {
             lifecycle = Some("create-only".into());
         }
-        "W3041" => {
+        "W9054" => {
             lifecycle = Some("write-only".into());
         }
         // Lambda runtime lifecycle: surface the offending runtime string and the
         // stage of its lifecycle, mirroring how resource-type deprecation (W9009)
-        // and property lifecycle (I9001/W3041) carry a lifecycle marker. The runtime
+        // and property lifecycle (I9001/W9054) carry a lifecycle marker. The runtime
         // is emitted once per condition branch, so only attach the value when every
         // branch agrees — otherwise the message alone names the branch's runtime.
         "E2533" => {
@@ -892,12 +916,37 @@ fn backfill_locations(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
         if d.location.is_some() {
             continue;
         }
-        let resource_id = d.resource.as_ref().and_then(|r| r.id.as_deref());
+        let resource_id = d.resource_logical_id();
         let property_path = d.property_path.as_deref().unwrap_or("");
         let span = model
             .diagnostic_span(resource_id, property_path)
             .unwrap_or_else(|| resolve_section_span(&d.rule_id, model));
         d.location = span_to_option(span);
+    }
+}
+
+/// Fills the targeted entity of every diagnostic on a named template entity
+/// that did not attach one at emission time, by deriving the entity type and
+/// logical ID from its section-absolute property path (`Parameters/MyParam/…`).
+/// Resource entities emitted before the model existed (parse- and
+/// transform-time) carry no CloudFormation type, so it is filled in from the
+/// model here. Like `backfill_locations`, the resolution is monotonic — an
+/// already-set entity or resource type is never overridden.
+fn backfill_entities(diagnostics: &mut [Diagnostic], model: &SemanticModel) {
+    for d in diagnostics.iter_mut() {
+        if d.entity.is_none() {
+            d.entity = d.property_path.as_deref().and_then(entity_identity).map(|(entity_type, logical_id)| Entity {
+                logical_id: logical_id.to_string(),
+                entity_type,
+                resource_type: None,
+            });
+        }
+        if let Some(entity) = d.entity.as_mut()
+            && entity.entity_type == EntityType::Resource
+            && entity.resource_type.is_none()
+        {
+            entity.resource_type = model.resources.get(entity.logical_id.as_str()).map(|r| r.resource_type.clone());
+        }
     }
 }
 
@@ -914,10 +963,6 @@ pub(crate) fn enrich_diagnostics(
     let needs_context = format.needs_context();
 
     for d in diagnostics.iter_mut() {
-        if d.section.is_none() {
-            let rid = d.resource.as_ref().and_then(|r| r.id.as_deref());
-            d.section = section_for_rule_id(rid, &d.rule_id).map(Into::into);
-        }
         // Custom and Guard rules are user-supplied and have no built-in evaluation
         // phase, so leave their phase unset rather than forcing one. Built-in rules
         // are Schema-phase when fatal and Lint-phase otherwise.
@@ -931,12 +976,8 @@ pub(crate) fn enrich_diagnostics(
                 .map(|entry| entry.description.clone());
         }
         if needs_context && d.context.is_none() {
-            d.context = build_context(
-                &d.rule_id,
-                d.resource.as_ref().and_then(|r| r.id.as_deref()),
-                d.property_path.as_deref().unwrap_or(""),
-                model,
-            );
+            d.context =
+                build_context(&d.rule_id, d.resource_logical_id(), d.property_path.as_deref().unwrap_or(""), model);
         }
     }
 }
@@ -968,8 +1009,14 @@ pub fn make_resource_diagnostic(
     prop_path: &str,
     suggested_fix: Option<&str>,
 ) -> Diagnostic {
+    // With no resource, a section-absolute path (`Parameters/MyParam/Type`)
+    // anchors the finding at the named entity; without one the section span from
+    // the rule-ID table is the closest known location.
     let span = if resource_id.is_empty() {
-        resolve_section_span(rule_id, model)
+        match model.diagnostic_span(None, prop_path) {
+            Some(found) => found,
+            None => resolve_section_span(rule_id, model),
+        }
     } else {
         model.resource_span(resource_id, prop_path)
     };
@@ -984,8 +1031,9 @@ pub fn make_resource_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use diagnostics::{Phase, SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
+    use diagnostics::Phase;
     use rules::{Category, build_rule_metadata_map, lookup_rule};
+    use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 
     #[test]
     fn additional_schema_resolve_uses_explicit_type_name() {
@@ -1043,7 +1091,7 @@ Resources:
             rule_id: String::new(),
             severity: Severity::Info,
             message: String::new(),
-            resource: None,
+            entity: None,
             property_path: None,
             suggested_fix: None,
             documentation_url: None,
@@ -1053,7 +1101,6 @@ Resources:
             condition_scenario: None,
             rule_description: None,
             phase: None,
-            section: None,
             context: None,
             source: RuleOrigin::Engine,
         }
@@ -1073,8 +1120,8 @@ Resources:
         assert_eq!(diag.rule_id, "E3012");
         assert_eq!(diag.severity, Severity::Error);
         assert_eq!(diag.message, "Type mismatch");
-        assert_eq!(diag.resource.as_ref().unwrap().id.as_deref(), Some("Bucket"));
-        assert_eq!(diag.resource.as_ref().unwrap().resource_type.as_deref(), Some("AWS::S3::Bucket"));
+        assert_eq!(diag.resource_logical_id(), Some("Bucket"));
+        assert_eq!(diag.entity.as_ref().and_then(|e| e.resource_type.as_deref()), Some("AWS::S3::Bucket"));
     }
 
     #[test]
@@ -1214,7 +1261,7 @@ Resources:
             "resource_id": ""
         });
         let diag = parse_diagnostic(&val, &model, None).unwrap();
-        assert!(diag.resource.is_none(), "diagnostic without resource_id should have no resource");
+        assert!(diag.entity.is_none(), "diagnostic without resource_id should have no entity");
     }
 
     #[test]
@@ -1714,7 +1761,7 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("Bucket", Some("AWS::S3::Bucket".into())),
             category: Some(Category::Schema.as_str().into()),
             ..default_diag()
         }];
@@ -1776,7 +1823,7 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("Bucket", Some("AWS::S3::Bucket".into())),
             property_path: Some("Properties.BucketName".into()),
             ..default_diag()
         }];
@@ -1792,14 +1839,13 @@ Resources:
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("Bucket", Some("AWS::S3::Bucket".into())),
             property_path: Some("Properties.BucketName".into()),
             ..default_diag()
         }];
         enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Standard);
         assert!(diags[0].phase.is_none(), "unenriched diagnostic should have no phase");
         assert!(diags[0].rule_description.is_none(), "unenriched diagnostic should have no rule_description");
-        assert!(diags[0].section.is_none(), "unenriched diagnostic should have no section");
         assert!(diags[0].context.is_none(), "unenriched diagnostic should have no context");
     }
 
@@ -1816,7 +1862,7 @@ Resources:
         );
         assert_eq!(diag.rule_id, "E3012");
         assert_eq!(diag.severity, Severity::Error);
-        assert_eq!(diag.resource.as_ref().unwrap().id.as_deref(), Some("Bucket"));
+        assert_eq!(diag.resource_logical_id(), Some("Bucket"));
         assert_eq!(diag.suggested_fix.as_deref(), Some("Use a string"));
     }
 
@@ -1831,7 +1877,7 @@ Resources:
     fn make_resource_diagnostic_empty_resource_id() {
         let model = minimal_model();
         let diag = make_resource_diagnostic("E3012", "msg", &model, "", "", None);
-        assert!(diag.resource.is_none(), "diagnostic without resource_id should have no resource");
+        assert!(diag.entity.is_none(), "diagnostic without resource_id should have no entity");
     }
 
     #[test]
@@ -1927,7 +1973,7 @@ Resources:
                 rule_id: "E3012".into(),
                 severity: Severity::Error,
                 message: "x".into(),
-                resource: Some(ResourceRef { id: Some("Bucket".into()), resource_type: None }),
+                entity: Entity::resource("Bucket", None),
                 property_path: Some("Properties.BucketName".into()),
                 ..default_diag()
             },
@@ -1944,6 +1990,45 @@ Resources:
         assert!(diags[0].location.is_some(), "missing location should be backfilled");
         assert_ne!(diags[0].location, Some(UNKNOWN_SPAN), "backfilled location must be a real span");
         assert_eq!(diags[1].location, Some(existing), "existing location must be preserved");
+    }
+
+    #[test]
+    fn backfill_entities_derives_from_entity_paths_without_overriding() {
+        let model = minimal_model();
+        let mut diags = vec![
+            // Resource finding: entity was attached at emission and must be kept.
+            Diagnostic {
+                rule_id: "E3012".into(),
+                severity: Severity::Error,
+                message: "x".into(),
+                entity: Entity::resource("Bucket", None),
+                ..default_diag()
+            },
+            // Non-resource entity finding: derived from the section-absolute path.
+            Diagnostic {
+                rule_id: "W2001".into(),
+                severity: Severity::Warn,
+                message: "y".into(),
+                property_path: Some("Parameters/MyParam".into()),
+                ..default_diag()
+            },
+            // Template-level finding: no entity.
+            Diagnostic { rule_id: "F0001".into(), severity: Severity::Fatal, message: "z".into(), ..default_diag() },
+        ];
+        backfill_entities(&mut diags, &model);
+        let resource = diags[0].entity.as_ref().expect("resource entity preserved");
+        assert_eq!(resource.logical_id, "Bucket");
+        assert_eq!(resource.entity_type, EntityType::Resource);
+        assert_eq!(
+            resource.resource_type.as_deref(),
+            Some("AWS::S3::Bucket"),
+            "missing resource type is filled from the model"
+        );
+        let parameter = diags[1].entity.as_ref().expect("parameter entity derived from path");
+        assert_eq!(parameter.logical_id, "MyParam");
+        assert_eq!(parameter.entity_type, EntityType::Parameter);
+        assert_eq!(parameter.resource_type, None);
+        assert!(diags[2].entity.is_none(), "template-level finding has no entity");
     }
 
     #[test]
@@ -1976,9 +2061,9 @@ Resources:
     }
 
     #[test]
-    fn build_context_w3041_sets_write_only_lifecycle() {
+    fn build_context_w9054_sets_write_only_lifecycle() {
         let model = minimal_model();
-        let ctx = build_context("W3041", Some("Bucket"), "", &model).expect("W3041 should return context");
+        let ctx = build_context("W9054", Some("Bucket"), "", &model).expect("W9054 should return context");
         assert_eq!(ctx.lifecycle.as_deref(), Some("write-only"));
     }
 
@@ -2087,20 +2172,18 @@ Resources:
     }
 
     #[test]
-    fn enrich_preserves_existing_section_phase_description() {
+    fn enrich_preserves_existing_phase_and_description() {
         let model = minimal_model();
         let meta = meta_map();
         let mut diags = vec![Diagnostic {
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "x".into(),
-            section: Some("CustomSection".into()),
             phase: Some(Phase::Lint),
             rule_description: Some("custom desc".into()),
             ..default_diag()
         }];
         enrich_diagnostics(&mut diags, &model, &meta, &HashMap::new(), &DetailLevel::Standard);
-        assert_eq!(diags[0].section.as_deref(), Some("CustomSection"));
         assert_eq!(diags[0].phase, Some(Phase::Lint));
         assert_eq!(diags[0].rule_description.as_deref(), Some("custom desc"));
     }

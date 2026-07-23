@@ -7,6 +7,11 @@ on:
         description: 'Git ref to check out'
         required: true
         type: string
+      fail-fast:
+        description: 'Cancel remaining matrix jobs as soon as one fails'
+        required: false
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -14,6 +19,11 @@ on:
         description: 'Git ref to check out'
         required: true
         type: string
+      fail-fast:
+        description: 'Cancel remaining matrix jobs as soon as one fails'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -94,9 +104,9 @@ jobs:
       run: cargo audit
 
   test:
-    needs: [ format, lint, audit, get-configs ]
+    needs: [ get-configs ]
     strategy:
-      fail-fast: false
+      fail-fast: ${{ inputs.fail-fast }}
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
@@ -134,9 +144,9 @@ jobs:
       run: cargo llvm-cov --locked --release --workspace --no-fail-fast
 
   test-jvm:
-    needs: [ format, lint, audit, get-configs ]
+    needs: [ get-configs ]
     strategy:
-      fail-fast: false
+      fail-fast: ${{ inputs.fail-fast }}
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
@@ -179,9 +189,9 @@ jobs:
       run: ./run.sh
 
   test-wasm:
-    needs: [ format, lint, audit, get-configs ]
+    needs: [ get-configs ]
     strategy:
-      fail-fast: false
+      fail-fast: ${{ inputs.fail-fast }}
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}

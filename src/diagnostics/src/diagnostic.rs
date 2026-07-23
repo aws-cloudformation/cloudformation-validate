@@ -1,11 +1,10 @@
 use crate::filter::Filterable;
-use crate::json_value::JsonValue;
 use crate::metrics::PhaseMetric;
 use crate::phase::Phase;
-use crate::span::SourceSpan;
 use rules::{RuleOrigin, Severity};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
+use template_model::{EntityType, JsonValue, SourceSpan};
 
 fn serialize_sorted_optional_map<S, V>(map: &Option<HashMap<String, V>>, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -34,6 +33,36 @@ pub struct ResourceRef {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub resource_type: Option<String>,
+}
+
+/// The named template entity a diagnostic is attributed to, when it targets
+/// one. The entity type is the singular form of the top-level template
+/// section the entity is declared in.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "wasm-bindings", derive(tsify::Tsify))]
+#[cfg_attr(feature = "uniffi-bindings", derive(uniffi::Record))]
+#[serde(rename_all = "camelCase")]
+pub struct Entity {
+    /// Logical ID of the entity as declared in the template.
+    pub logical_id: String,
+    pub entity_type: EntityType,
+    /// CloudFormation resource type, when the entity is a resource whose type
+    /// is known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub resource_type: Option<String>,
+}
+
+impl Entity {
+    /// An entity for a template resource. An empty logical ID yields `None` so
+    /// callers can pass through an ID that may be blank.
+    pub fn resource(logical_id: impl Into<String>, resource_type: Option<String>) -> Option<Entity> {
+        let logical_id = logical_id.into();
+        if logical_id.is_empty() {
+            return None;
+        }
+        Some(Entity { logical_id, entity_type: EntityType::Resource, resource_type })
+    }
 }
 
 /// Extra detail about a specific violation, present only in the detailed report.
@@ -93,8 +122,9 @@ pub struct Diagnostic {
     pub severity: Severity,
     pub message: String,
     pub source: RuleOrigin,
+    /// The named template entity this finding targets, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<ResourceRef>,
+    pub entity: Option<Entity>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub property_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -114,9 +144,14 @@ pub struct Diagnostic {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub phase: Option<Phase>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub section: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context: Option<ViolationContext>,
+}
+
+impl Diagnostic {
+    /// Logical ID of the targeted entity when it is a resource, `None` otherwise.
+    pub fn resource_logical_id(&self) -> Option<&str> {
+        self.entity.as_ref().filter(|e| e.entity_type == EntityType::Resource).map(|e| e.logical_id.as_str())
+    }
 }
 
 impl Filterable for Diagnostic {
@@ -127,15 +162,21 @@ impl Filterable for Diagnostic {
         self.category.as_deref()
     }
     fn resource_id(&self) -> Option<&str> {
-        self.resource.as_ref().and_then(|r| r.id.as_deref())
+        self.resource_logical_id()
     }
     fn resource_type(&self) -> Option<&str> {
-        self.resource.as_ref().and_then(|r| r.resource_type.as_deref())
+        self.entity.as_ref().and_then(|e| e.resource_type.as_deref())
+    }
+    fn logical_id(&self) -> Option<&str> {
+        self.entity.as_ref().map(|e| e.logical_id.as_str())
+    }
+    fn entity_type(&self) -> Option<EntityType> {
+        self.entity.as_ref().map(|e| e.entity_type)
     }
 }
 
-/// Generates a flattened diagnostic struct that inlines `resource` into
-/// `resource_id`/`resource_type` and `location` into individual line/column
+/// Generates a report diagnostic struct that carries the targeted entity as a
+/// nested `entity` struct and inlines `location` into individual line/column
 /// fields. Used by `StandardDiagnostic` and `DetailedDiagnostic`.
 macro_rules! define_flattened_diagnostic {
     ($(#[$struct_meta:meta])* $name:ident $(, $(#[$extra_meta:meta])* $extra_field:ident : $extra_ty:ty)*) => {
@@ -151,13 +192,10 @@ macro_rules! define_flattened_diagnostic {
             pub message: String,
             /// Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
             pub source: RuleOrigin,
-            /// Logical ID of the resource this finding targets, if any.
+            /// The named template entity this finding targets — a resource, parameter, output, mapping, condition, or template rule — if any.
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub resource_id: Option<String>,
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-            pub resource_type: Option<String>,
+            pub entity: Option<Entity>,
             /// Path to the offending property within the resource, such as 'Properties.Name'.
             #[serde(default, skip_serializing_if = "Option::is_none")]
             #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
@@ -200,7 +238,7 @@ macro_rules! define_flattened_diagnostic {
 }
 
 define_flattened_diagnostic!(
-    /// A single validation finding with its resource and source location flattened into individual fields.
+    /// A single validation finding with its source location flattened into individual fields.
     StandardDiagnostic
 );
 define_flattened_diagnostic!(
@@ -209,16 +247,12 @@ define_flattened_diagnostic!(
     documentation_url: Option<String>,
     rule_description: Option<String>,
     phase: Option<Phase>,
-    /// Top-level template section the finding falls under, such as 'Resources' or 'Parameters'.
-    section: Option<String>,
     context: Option<ViolationContext>
 );
 
-/// Populates the shared fields of a flattened diagnostic from a `Diagnostic`.
+/// Populates the shared fields of a report diagnostic from a `Diagnostic`.
 macro_rules! flatten_diagnostic {
     ($self:expr $(, $extra_field:ident)* ) => {{
-        let resource_id = $self.resource.as_ref().and_then(|r| r.id.clone());
-        let resource_type = $self.resource.as_ref().and_then(|r| r.resource_type.clone());
         let (start_line, start_column, end_line, end_column) = $self
             .location
             .map(|l| (Some(l.start_line), Some(l.start_column), Some(l.end_line), Some(l.end_column)))
@@ -227,8 +261,7 @@ macro_rules! flatten_diagnostic {
             $self.rule_id.clone(),
             $self.severity,
             $self.message.clone(),
-            resource_id,
-            resource_type,
+            $self.entity.clone(),
             $self.property_path.clone(),
             $self.suggested_fix.clone(),
             $self.category.clone(),
@@ -250,8 +283,7 @@ impl Diagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -267,8 +299,7 @@ impl Diagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -287,8 +318,7 @@ impl Diagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -302,15 +332,13 @@ impl Diagnostic {
             documentation_url,
             rule_description,
             phase,
-            section,
             context,
-        ) = flatten_diagnostic!(self, documentation_url, rule_description, phase, section, context);
+        ) = flatten_diagnostic!(self, documentation_url, rule_description, phase, context);
         DetailedDiagnostic {
             rule_id,
             severity,
             message,
-            resource_id,
-            resource_type,
+            entity,
             property_path,
             suggested_fix,
             category,
@@ -324,7 +352,6 @@ impl Diagnostic {
             documentation_url,
             rule_description,
             phase,
-            section,
             context,
         }
     }
@@ -465,7 +492,7 @@ mod tests {
             rule_id: "E3012".into(),
             severity: Severity::Error,
             message: "Property not allowed".into(),
-            resource: Some(ResourceRef { id: Some("MyBucket".into()), resource_type: Some("AWS::S3::Bucket".into()) }),
+            entity: Entity::resource("MyBucket", Some("AWS::S3::Bucket".into())),
             property_path: Some("/Resources/MyBucket/Properties/Foo".into()),
             suggested_fix: Some("Remove the property".into()),
             documentation_url: Some("https://example.com/E3012".into()),
@@ -482,7 +509,6 @@ mod tests {
             condition_scenario: Some(HashMap::from([("IsProduction".into(), true)])),
             rule_description: Some("Disallows extra properties".into()),
             phase: Some(Phase::Schema),
-            section: Some("Resources".into()),
             context: Some(ViolationContext {
                 actual_value: Some(JsonValue::from(serde_json::json!("bad"))),
                 expected_constraint: Some("Must not exist".into()),
@@ -500,7 +526,7 @@ mod tests {
             rule_id: String::new(),
             severity: Severity::Info,
             message: String::new(),
-            resource: None,
+            entity: None,
             property_path: None,
             suggested_fix: None,
             documentation_url: None,
@@ -510,20 +536,21 @@ mod tests {
             condition_scenario: None,
             rule_description: None,
             phase: None,
-            section: None,
             context: None,
             source: RuleOrigin::Engine,
         }
     }
 
     #[test]
-    fn to_standard_flattens_resource_and_location_fields() {
+    fn to_standard_carries_entity_and_flattens_location_fields() {
         let d = sample_diagnostic();
         let s = d.to_standard();
 
         assert_eq!(s.rule_id, "E3012");
-        assert_eq!(s.resource_id.as_deref(), Some("MyBucket"));
-        assert_eq!(s.resource_type.as_deref(), Some("AWS::S3::Bucket"));
+        let entity = s.entity.as_ref().expect("entity should be present");
+        assert_eq!(entity.logical_id, "MyBucket");
+        assert_eq!(entity.entity_type, EntityType::Resource);
+        assert_eq!(entity.resource_type.as_deref(), Some("AWS::S3::Bucket"));
         assert_eq!(s.start_line, Some(10));
         assert_eq!(s.start_column, Some(5));
         assert_eq!(s.end_line, Some(10));
@@ -541,22 +568,52 @@ mod tests {
         let f = d.to_detailed();
 
         assert_eq!(f.rule_id, "E3012");
-        assert_eq!(f.resource_id.as_deref(), Some("MyBucket"));
+        assert_eq!(f.entity.as_ref().map(|e| e.logical_id.as_str()), Some("MyBucket"));
         assert!(f.context.is_some(), "full diagnostic should include context");
         let ctx = f.context.unwrap();
         assert_eq!(ctx.property.as_deref(), Some("Foo"));
         assert_eq!(ctx.expected_constraint.as_deref(), Some("Must not exist"));
         assert_eq!(f.phase, Some(Phase::Schema));
-        assert_eq!(f.section.as_deref(), Some("Resources"));
     }
 
     #[test]
-    fn filterable_returns_resource_and_category_from_diagnostic() {
+    fn filterable_reads_identity_through_the_entity() {
         let d = sample_diagnostic();
         assert_eq!(d.rule_id(), "E3012");
         assert_eq!(d.category(), Some("schema"));
         assert_eq!(d.resource_id(), Some("MyBucket"));
         assert_eq!(d.resource_type(), Some("AWS::S3::Bucket"));
+        assert_eq!(d.logical_id(), Some("MyBucket"));
+    }
+
+    #[test]
+    fn filterable_resource_id_is_none_for_non_resource_entities() {
+        let mut d = sample_diagnostic();
+        d.entity =
+            Some(Entity { logical_id: "MyParam".into(), entity_type: EntityType::Parameter, resource_type: None });
+        assert_eq!(d.resource_id(), None, "a parameter is not a resource");
+        assert_eq!(d.resource_type(), None);
+        assert_eq!(d.logical_id(), Some("MyParam"));
+    }
+
+    #[test]
+    fn entity_serializes_camel_case_with_pascal_case_type_and_omits_absent_resource_type() {
+        let resource = Entity::resource("MyBucket", Some("AWS::S3::Bucket".into())).unwrap();
+        let json = serde_json::to_string(&resource).unwrap();
+        assert!(json.contains("\"logicalId\":\"MyBucket\""), "got: {json}");
+        assert!(json.contains("\"entityType\":\"Resource\""), "got: {json}");
+        assert!(json.contains("\"resourceType\":\"AWS::S3::Bucket\""), "got: {json}");
+
+        let parameter =
+            Entity { logical_id: "MyParam".into(), entity_type: EntityType::Parameter, resource_type: None };
+        let json = serde_json::to_string(&parameter).unwrap();
+        assert!(json.contains("\"entityType\":\"Parameter\""), "got: {json}");
+        assert!(!json.contains("resourceType"), "absent resourceType must be omitted, got: {json}");
+    }
+
+    #[test]
+    fn entity_resource_drops_empty_logical_id() {
+        assert!(Entity::resource("", None).is_none(), "an empty logical ID must not create an entity");
     }
 
     #[test]
@@ -568,6 +625,7 @@ mod tests {
         assert_eq!(deserialized.message, d.message);
         assert_eq!(deserialized.severity, d.severity);
         assert_eq!(deserialized.source, d.source);
+        assert_eq!(deserialized.entity.as_ref().map(|e| e.logical_id.as_str()), Some("MyBucket"));
         assert_eq!(deserialized.location.as_ref().unwrap().start_line, d.location.as_ref().unwrap().start_line);
     }
 
@@ -578,7 +636,9 @@ mod tests {
         let json = serde_json::to_string(&s).unwrap();
         assert!(json.contains("ruleId"), "expected camelCase 'ruleId' in JSON");
         assert!(json.contains("startLine"), "expected 'startLine' in JSON");
-        assert!(json.contains("resourceId"), "expected 'resourceId' in JSON");
+        assert!(json.contains("\"entity\""), "expected nested 'entity' in JSON");
+        assert!(json.contains("logicalId"), "expected 'logicalId' in JSON");
+        assert!(json.contains("entityType"), "expected 'entityType' in JSON");
         assert!(json.contains("resourceType"), "expected 'resourceType' in JSON");
         assert!(json.contains("propertyPath"), "expected 'propertyPath' in JSON");
         assert!(!json.contains("\"context\""), "standard format should not include 'context'");
