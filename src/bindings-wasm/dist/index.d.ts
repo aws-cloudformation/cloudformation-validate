@@ -1,7 +1,7 @@
 import type {
     DetailedReport,
     DiagnosticModel,
-    EngineConfig,
+    ExternalRuleSource,
     ParameterInfo,
     ResolvedOutput,
     ResolvedResource,
@@ -17,11 +17,14 @@ export type {
     RuleOrigin,
     IdRange,
     ResourceIdFilter,
+    LogicalIdFilter,
     ResourceTypeFilter,
     ServiceFilter,
     RuleFilterConfig,
     RuleInfo,
     SourceSpan,
+    Entity,
+    EntityType,
     ResourceRef,
     RelatedResource,
     ViolationContext,
@@ -34,7 +37,6 @@ export type {
     StandardReport,
     DetailedReport,
     PseudoParameterOverrides,
-    EngineConfig,
     ValidateConfig,
     ExternalRuleSource,
     ResolvedValue,
@@ -86,6 +88,18 @@ export declare class TemplateFile {
     readonly path: string;
     constructor(path: string);
     readBytes(): Uint8Array;
+}
+export declare class RuleFile {
+    readonly path: string;
+    constructor(path: string);
+    readContent(): string;
+}
+export type RuleSource = ExternalRuleSource | RuleFile;
+export interface EngineConfig {
+    /** Engine-native rules (Rego for RegoEngine, CEL for CelEngine). */
+    customRules?: RuleSource[];
+    /** CloudFormation Guard DSL rules, usable with either engine. */
+    guardRules?: RuleSource[];
 }
 export declare class TemplateModel {
     private readonly inner;
