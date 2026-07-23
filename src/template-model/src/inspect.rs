@@ -7,6 +7,7 @@ use template_model::SemanticModel;
 use template_model::conditions::format_condition_expr;
 use template_model::consts::{EDGE_KIND_DEPENDS_ON, EDGE_KIND_REF, SAM_FUNCTION_TYPE};
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::span_to_option;
 
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -471,7 +472,7 @@ fn inspect_file(path: &str) {
     if !model.diagnostics.is_empty() {
         println!("── Diagnostics ({}) ─────────────────────────────────", model.diagnostics.len());
         for d in &model.diagnostics {
-            match template_model::span_to_option(d.span) {
+            match span_to_option(d.span) {
                 Some(loc) => println!("  [{}] L{}:C{} {}", d.rule_id, loc.start_line, loc.start_column, d.message),
                 None => println!("  [{}] {}", d.rule_id, d.message),
             }

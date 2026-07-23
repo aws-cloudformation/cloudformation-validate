@@ -5,7 +5,7 @@
 //! parsers funnel through this one implementation, so JSON and YAML cannot diverge
 //! on which intrinsics they accept, what they reject, or what diagnostics they emit.
 //!
-//! ParseDefect spans are filled in later from source-position scans (JSON byte scan,
+//! Source spans are filled in later from source-position scans (JSON byte scan,
 //! YAML marker tracking), so every node is allocated with `UNKNOWN_SPAN` here.
 
 use crate::consts::*;

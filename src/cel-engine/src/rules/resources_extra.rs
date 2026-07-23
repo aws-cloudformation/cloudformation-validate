@@ -16,7 +16,7 @@ use template_model::consts::{
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN, SourceSpan};
-use template_model::{hardcoded_az, region_enums};
+use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::make_resource_diagnostic;
 
 static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
@@ -3332,7 +3332,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             continue;
         }
         if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path) {
-            for message in template_model::schedule_expression_errors(&val) {
+            for message in schedule_expression_errors(&val) {
                 out.push(make_resource_diagnostic("E3027", &message, m, name, path, None));
             }
         }
