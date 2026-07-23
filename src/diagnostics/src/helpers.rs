@@ -1,19 +1,5 @@
-use rules::{EntityType, RuleOrigin, lookup_rule, section_for_rule_id};
-
-use crate::span::{SourceSpan, SpanProvider, UNKNOWN_SPAN};
-
-pub const SAM_TRANSFORM_ERROR_RULE_ID: &str = "E0001";
-
-/// Message prefix shared by every SAM transform-error diagnostic, regardless
-/// of which engine produced it. The pipeline gates non-transform diagnostics
-/// on this prefix because a failed SAM transform stops CloudFormation before
-/// resource validation.
-pub const SAM_TRANSFORM_ERROR_PREFIX: &str = "Error transforming template:";
-
-/// Returns `true` when `message` belongs to a SAM transform-error diagnostic.
-pub fn is_sam_transform_error_message(message: &str) -> bool {
-    message.starts_with(SAM_TRANSFORM_ERROR_PREFIX)
-}
+use rules::{RuleOrigin, lookup_rule, section_for_rule_id};
+use template_model::{SourceSpan, SpanProvider, UNKNOWN_SPAN};
 
 /// Looks up the `RuleOrigin` for a rule ID from the registry.
 /// Panics if the rule is not registered — every built-in rule must be in the registry.
@@ -30,19 +16,6 @@ pub fn resolve_section_span(rule_id: &str, span_provider: &dyn SpanProvider) -> 
         Some(section) => span_provider.source_location(section).unwrap_or(UNKNOWN_SPAN),
         None => UNKNOWN_SPAN,
     }
-}
-
-/// Splits a section-absolute, slash-separated template path (such as
-/// `Parameters/MyParam/Type` or `Outputs/MyOutput/Value`) into the entity type
-/// of the section's children and the logical ID of the entity it addresses.
-/// Returns `None` for paths that are not rooted at a documented top-level
-/// section — resource-relative dotted paths like `Properties.BucketName` — or
-/// that name a section with no child segment.
-pub fn entity_identity(path: &str) -> Option<(EntityType, &str)> {
-    let mut segments = path.split('/');
-    let entity_type = EntityType::from_section(segments.next()?)?;
-    let logical_id = segments.next().filter(|id| !id.is_empty())?;
-    Some((entity_type, logical_id))
 }
 
 #[cfg(test)]
@@ -91,34 +64,5 @@ mod tests {
         };
         let result = resolve_section_span("ZZZZZ", &provider);
         assert_eq!(result, UNKNOWN_SPAN);
-    }
-
-    #[test]
-    fn entity_identity_splits_section_absolute_paths() {
-        assert_eq!(entity_identity("Parameters/MyParam/Type"), Some((EntityType::Parameter, "MyParam")));
-        assert_eq!(entity_identity("Parameters/MyParam"), Some((EntityType::Parameter, "MyParam")));
-        assert_eq!(entity_identity("Outputs/MyOutput/Value"), Some((EntityType::Output, "MyOutput")));
-        assert_eq!(entity_identity("Mappings/MyMap/Key1/Key2"), Some((EntityType::Mapping, "MyMap")));
-        assert_eq!(entity_identity("Conditions/IsProd"), Some((EntityType::Condition, "IsProd")));
-        assert_eq!(entity_identity("Rules/MyRule/Assertions/0"), Some((EntityType::Rule, "MyRule")));
-        assert_eq!(entity_identity("Resources/MyBucket/Properties/Name"), Some((EntityType::Resource, "MyBucket")));
-    }
-
-    #[test]
-    fn entity_identity_handles_mixed_dot_segments_after_the_entity() {
-        // Builder-style paths mix slash and dot separators past the entity;
-        // only the first two slash segments matter for identity.
-        assert_eq!(entity_identity("Outputs/X/Value.Fn::If.1"), Some((EntityType::Output, "X")));
-    }
-
-    #[test]
-    fn entity_identity_rejects_non_entity_paths() {
-        assert_eq!(entity_identity("Properties.BucketName"), None, "resource-relative dotted path");
-        assert_eq!(entity_identity("Parameters"), None, "bare section has no entity");
-        assert_eq!(entity_identity("Description"), None, "bare section has no entity");
-        assert_eq!(entity_identity("AWSTemplateFormatVersion"), None, "bare section has no entity");
-        assert_eq!(entity_identity("Globals/Function"), None, "SAM Globals is not a documented section");
-        assert_eq!(entity_identity(""), None);
-        assert_eq!(entity_identity("Parameters//Type"), None, "empty entity segment");
     }
 }

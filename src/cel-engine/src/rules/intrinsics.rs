@@ -1,15 +1,15 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
-use diagnostics::Phase;
-use diagnostics::message::render_str_list;
-use rules::{Category, Severity};
+use rules::Category;
 use std::collections::HashSet;
 use std::sync::Arc;
+use template_model::DefectPhase;
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PARAMETERS,
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_GET_AZS,
     FN_IMPORT_VALUE, KEY_PROPERTIES, OUTPUT_PSEUDO_RESOURCE_PREFIX, PSEUDO_STACK_NAME, TRANSFORM_LANGUAGE_EXTENSIONS,
 };
+use template_model::message::render_str_list;
 use template_model::resolver::RefKind;
 use template_model::{PSEUDO_PARAMETERS, SemanticModel, is_known_region};
 use validation_engine::make_resource_diagnostic;
@@ -45,7 +45,7 @@ fn eval_intrinsics(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Suppress ref validation when the template has parse errors — the model
     // is incomplete and refs to unparsed sections would be false positives.
-    let has_parse_errors = m.diagnostics.iter().any(|d| d.severity == Severity::Fatal && d.phase == Some(Phase::Parse));
+    let has_parse_errors = m.diagnostics.iter().any(|d| d.is_fatal() && d.phase == Some(DefectPhase::Parse));
 
     // Load GetAtt attribute data
     let getatt_attrs = &ctx.cached_data.getatt_attrs;

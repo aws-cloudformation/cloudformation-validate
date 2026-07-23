@@ -6,10 +6,10 @@
 //! Only a restricted set of intrinsic functions is allowed inside Rules.
 
 use crate::consts::*;
+use crate::defect::{DefectPhase, ParseDefect};
 use crate::ir::cfn_function_name;
 use crate::ir::*;
-use diagnostics::message::render_str_list;
-use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic};
+use crate::message::render_str_list;
 
 const VALID_RULE_KEYS: &[&str] = &[KEY_RULE_CONDITION, KEY_ASSERTIONS];
 const VALID_ASSERTION_KEYS: &[&str] = &[KEY_ASSERT, KEY_ASSERT_DESCRIPTION];
@@ -30,14 +30,14 @@ const ALLOWED_RULE_FUNCTIONS: &[&str] = &[
     FN_SELECT,
 ];
 
-pub fn validate_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node: NodeRef) -> Vec<Diagnostic> {
+pub fn validate_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node: NodeRef) -> Vec<ParseDefect> {
     let mut out = Vec::new();
     validate_structure(rules_json, &mut out);
     validate_allowed_functions(arena, rules_node, &mut out);
     out
 }
 
-fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<Diagnostic>) {
+fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<ParseDefect>) {
     let Some(rules) = rules_json else {
         return;
     };
@@ -51,7 +51,7 @@ fn validate_structure(rules_json: &Option<serde_json::Value>, out: &mut Vec<Diag
     }
 }
 
-fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &mut Vec<Diagnostic>) {
+fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &mut Vec<ParseDefect>) {
     let rule_path = format!("Rules/{}", rule_name);
     let Some(rule_obj) = rule_value.as_object() else {
         out.push(rule_diag("F8601", format!("Rule '{}' must be an object", rule_name), &rule_path));
@@ -120,7 +120,7 @@ fn validate_single_rule(rule_name: &str, rule_value: &serde_json::Value, out: &m
     }
 }
 
-fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json::Value, out: &mut Vec<Diagnostic>) {
+fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json::Value, out: &mut Vec<ParseDefect>) {
     let assertion_path = format!("Rules/{}/{}/{}", rule_name, KEY_ASSERTIONS, idx);
     let Some(assertion_obj) = assertion.as_object() else {
         out.push(rule_diag(
@@ -173,7 +173,7 @@ fn validate_single_assertion(rule_name: &str, idx: usize, assertion: &serde_json
     }
 }
 
-fn validate_allowed_functions(arena: &Arena, rules_node: NodeRef, out: &mut Vec<Diagnostic>) {
+fn validate_allowed_functions(arena: &Arena, rules_node: NodeRef, out: &mut Vec<ParseDefect>) {
     if rules_node == NULL_REF {
         return;
     }
@@ -188,7 +188,7 @@ fn validate_allowed_functions(arena: &Arena, rules_node: NodeRef, out: &mut Vec<
     walk_for_disallowed_functions(arena, rules_node, "", out);
 }
 
-fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, rule_path: &str, out: &mut Vec<Diagnostic>) {
+fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, rule_path: &str, out: &mut Vec<ParseDefect>) {
     if !arena.is_valid(node_ref) {
         return;
     }
@@ -222,7 +222,7 @@ fn walk_for_disallowed_functions(arena: &Arena, node_ref: NodeRef, rule_path: &s
     }
 }
 
-fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, rule_path: &str, out: &mut Vec<Diagnostic>) {
+fn walk_intrinsic_children(arena: &Arena, intrinsic: &IntrinsicFn, rule_path: &str, out: &mut Vec<ParseDefect>) {
     let mut children = Vec::new();
     match intrinsic {
         IntrinsicFn::Ref(_)
@@ -312,15 +312,14 @@ fn json_type_name(val: &serde_json::Value) -> &'static str {
     }
 }
 
-fn rule_diag(rule_id: &str, message: String, entity_path: &str) -> Diagnostic {
-    RegisteredDiagnostic::new(rule_id, message).property_path(entity_path).phase(Phase::Parse).build()
+fn rule_diag(rule_id: &str, message: String, entity_path: &str) -> ParseDefect {
+    ParseDefect::new(rule_id, message).property_path(entity_path).phase(DefectPhase::Parse)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use diagnostics::UNKNOWN_SPAN;
-    use rules::Severity;
+    use crate::span::UNKNOWN_SPAN;
     use serde_json::json;
 
     #[test]
@@ -335,7 +334,8 @@ mod tests {
             }
         });
         let diags = validate_rules(&Some(rules), &Arena::new(), NULL_REF);
-        let errors: Vec<_> = diags.iter().filter(|d| d.severity == Severity::Error).collect();
+        let errors: Vec<_> =
+            diags.iter().filter(|d| d.rule_id.starts_with('E') || d.rule_id.starts_with('F')).collect();
         assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
     }
 

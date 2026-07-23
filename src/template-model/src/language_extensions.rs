@@ -20,8 +20,8 @@
 //! only in permitting positions.
 
 use crate::consts::*;
+use crate::defect::{DefectPhase, ParseDefect};
 use crate::ir::*;
-use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic};
 
 /// A `Fn::ForEach::<name>` looping key: the prefix followed by a non-empty
 /// alphanumeric loop name. Matches the section-level key that introduces a loop.
@@ -61,7 +61,7 @@ impl SlotPermits {
 /// Validates transform-gated intrinsics against the declared transforms. When
 /// `AWS::LanguageExtensions` is present these functions are legal and nothing is
 /// reported.
-pub fn validate_language_extensions(arena: &Arena, transforms: &[String]) -> Vec<Diagnostic> {
+pub fn validate_language_extensions(arena: &Arena, transforms: &[String]) -> Vec<ParseDefect> {
     if transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS) {
         return Vec::new();
     }
@@ -79,11 +79,11 @@ pub fn validate_language_extensions(arena: &Arena, transforms: &[String]) -> Vec
 /// it CloudFormation rejects the call as exceeding `Fn::FindInMap`'s three-element
 /// maximum, so this is a guaranteed deploy failure. Anchored at the `Fn::FindInMap`
 /// node to match where the excess element is written.
-fn collect_findinmap_default_value(arena: &Arena, out: &mut Vec<Diagnostic>) {
+fn collect_findinmap_default_value(arena: &Arena, out: &mut Vec<ParseDefect>) {
     for idx in 0..arena.len() {
         let node_ref = idx as NodeRef;
         if let Node::Intrinsic(IntrinsicFn::FindInMap(_, _, _, Some(_))) = arena.node(node_ref) {
-            out.push(crate::make_parse_diagnostic_at(
+            out.push(crate::make_parse_defect_at(
                 "F1101",
                 format!(
                     "{}: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements",
@@ -106,7 +106,7 @@ fn collect_findinmap_default_value(arena: &Arena, out: &mut Vec<Diagnostic>) {
 /// slot, so the finding is attributed to that id (with no property path) to land
 /// where a resource-scoped consumer expects. Loops elsewhere carry their build
 /// path so span resolution can walk up to the nearest located element.
-fn collect_foreach_keys(arena: &Arena, out: &mut Vec<Diagnostic>) {
+fn collect_foreach_keys(arena: &Arena, out: &mut Vec<ParseDefect>) {
     for idx in 0..arena.len() {
         let node_ref = idx as NodeRef;
         let Node::Map(entries) = arena.node(node_ref) else {
@@ -122,13 +122,12 @@ fn collect_foreach_keys(arena: &Arena, out: &mut Vec<Diagnostic>) {
             );
             let build_path = &arena.get(*value_ref).path;
             let diag = if build_path == &format!("{}/{}", SECTION_RESOURCES, key) {
-                RegisteredDiagnostic::new("F1032", message)
+                ParseDefect::new("F1032", message)
                     .location(arena.span(*value_ref))
-                    .phase(Phase::Parse)
-                    .resource(key.clone(), None)
-                    .build()
+                    .phase(DefectPhase::Parse)
+                    .resource(key.clone())
             } else {
-                crate::make_parse_diagnostic_at("F1032", message, arena.span(*value_ref), build_path)
+                crate::make_parse_defect_at("F1032", message, arena.span(*value_ref), build_path)
             };
             out.push(diag);
         }
@@ -140,7 +139,7 @@ fn collect_foreach_keys(arena: &Arena, out: &mut Vec<Diagnostic>) {
 /// the open value roots (resource property/metadata values, output values,
 /// condition and rule expressions) and narrows the permitted set as it descends
 /// through nested intrinsics per their argument schemas.
-fn collect_length_and_to_json(arena: &Arena, out: &mut Vec<Diagnostic>) {
+fn collect_length_and_to_json(arena: &Arena, out: &mut Vec<ParseDefect>) {
     for idx in 0..arena.len() {
         let node_ref = idx as NodeRef;
         let Node::Intrinsic(intrinsic) = arena.node(node_ref) else {
@@ -193,7 +192,7 @@ fn visit_value(
     node_ref: NodeRef,
     intrinsic: &IntrinsicFn,
     permits: SlotPermits,
-    out: &mut Vec<Diagnostic>,
+    out: &mut Vec<ParseDefect>,
 ) {
     match intrinsic {
         IntrinsicFn::Length(inner) => {
@@ -262,7 +261,7 @@ fn visit_value(
 /// Descends into a child node reference, dispatching intrinsic nodes to
 /// [`visit_value`] and walking plain containers so a gated function nested inside
 /// a literal array/object is still reached with the slot's permitted set.
-fn visit_child(arena: &Arena, node_ref: NodeRef, permits: SlotPermits, out: &mut Vec<Diagnostic>) {
+fn visit_child(arena: &Arena, node_ref: NodeRef, permits: SlotPermits, out: &mut Vec<ParseDefect>) {
     if !arena.is_valid(node_ref) {
         return;
     }
@@ -304,8 +303,8 @@ fn intrinsic_child_refs(intrinsic: &IntrinsicFn) -> Vec<NodeRef> {
 }
 
 /// Builds the transform-required diagnostic anchored at the gated function node.
-fn make_transform_required(arena: &Arena, node_ref: NodeRef, fn_name: &str, rule_id: &str) -> Diagnostic {
-    crate::make_parse_diagnostic_at(
+fn make_transform_required(arena: &Arena, node_ref: NodeRef, fn_name: &str, rule_id: &str) -> ParseDefect {
+    crate::make_parse_defect_at(
         rule_id,
         format!(
             "{} requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",

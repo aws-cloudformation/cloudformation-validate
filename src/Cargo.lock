@@ -621,6 +621,7 @@ dependencies = [
  "rules",
  "serde",
  "serde_json",
+ "template-model",
  "tsify",
  "uniffi",
  "wasm-bindgen",
@@ -1450,11 +1451,11 @@ dependencies = [
 name = "rules"
 version = "1.6.0"
 dependencies = [
- "fancy-regex 0.18.0",
  "log",
  "regex",
  "serde",
  "serde_json",
+ "template-model",
  "tsify",
  "uniffi",
  "wasm-bindgen",
@@ -1789,11 +1790,10 @@ name = "template-model"
 version = "1.6.0"
 dependencies = [
  "base64",
- "diagnostics",
  "env_logger",
+ "fancy-regex 0.18.0",
  "log",
  "regex",
- "rules",
  "serde",
  "serde_json",
  "tsify",

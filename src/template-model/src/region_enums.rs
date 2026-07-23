@@ -18,11 +18,11 @@
 //!   a value is valid in a region only when it is in the intersection of every
 //!   matching branch's enum.
 
+use crate::message::render_str_list;
 use crate::model::SemanticModel;
 use crate::regions::AWS_REGIONS;
 use crate::resolved_value::resolved_value_at_path;
 use crate::resolver::ResolvedValue;
-use diagnostics::message::render_str_list;
 use std::collections::{BTreeSet, HashSet};
 
 /// Resource types and property paths whose instance-type / node-type value is

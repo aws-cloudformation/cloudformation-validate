@@ -2,9 +2,9 @@
 
 package software.amazon.cloudformation.validate.gson
 
-import software.amazon.cloudformation.validate.diagnostics.JsonValueEnum
 import software.amazon.cloudformation.validate.diagnostics.ViolationContext
 import software.amazon.cloudformation.validate.rules.EntityType
+import software.amazon.cloudformation.validate.templatemodel.JsonValueEnum
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray

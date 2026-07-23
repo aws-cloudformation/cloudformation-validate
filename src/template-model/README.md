@@ -103,7 +103,7 @@ let model = result.model;
 | `outputs`           | `HashMap<String, ResolvedOutput>` — resolved outputs                      |
 | `graph`             | `ReferenceGraph` with cycle information                                   |
 | `resources_by_type` | `HashMap<String, Vec<String>>` — logical IDs grouped by resource type     |
-| `diagnostics`       | All parse-time diagnostics                                                |
+| `diagnostics`       | All parse-time findings, as plain `ParseDefect` values                    |
 | `template_metadata` | Raw JSON of the Metadata section                                          |
 
 ### ParseConfig

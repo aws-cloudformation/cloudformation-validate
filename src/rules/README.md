@@ -1,6 +1,7 @@
 # rules
 
-Shared foundation crate for rule definitions, severity model, category enum, and diagnostic filtering.
+Rule metadata crate: rule definitions, severity model, category enum, and diagnostic filtering. Builds on
+`template-model`, which owns the template vocabulary (`TopLevelSection`, `EntityType`) the filters reference.
 
 ## Severity
 
@@ -57,13 +58,6 @@ Custom and guard rules use freeform category strings.
 | `Engine`  | Implemented in this validation engine                                                            |
 | `Custom`  | User-supplied custom rule                                                                        |
 | `Guard`   | CloudFormation Guard rule                                                                        |
-
-## Shared template vocabulary
-
-`TopLevelSection` and `EntityType` model the documented template anatomy — one variant per top-level section
-(Resources, Parameters, Outputs, Mappings, Metadata, Rules, Conditions, Transform, AWSTemplateFormatVersion,
-Description) and its singular entity form. They are defined here, at the base of the crate graph, so `diagnostics`,
-`template-model`, and the engines share one canonical set of section names (`TopLevelSection::name()`).
 
 ## Filtering
 

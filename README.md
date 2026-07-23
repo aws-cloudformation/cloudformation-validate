@@ -152,7 +152,7 @@ This is a Cargo workspace. The main crates:
 | [validation-engine](src/validation-engine/README.md) | `ValidationEngine` trait, orchestration pipeline, Step Functions validation |
 | [template-model](src/template-model/README.md)       | Template parser, intrinsic resolver, condition SAT solver, reference graph  |
 | [rules](src/rules/README.md)                         | Rule registry, severity model, categories, and diagnostic filtering         |
-| [diagnostics](src/diagnostics/README.md)             | Shared types: `Diagnostic`, `SourceSpan`, `ValidationReport`, metrics       |
+| [diagnostics](src/diagnostics/README.md)             | Shared reporting types: `Diagnostic`, `ValidationReport`, metrics           |
 | [schema-validator](src/schema-validator/README.md)   | JSON Schema validation against compiled CloudFormation provider schemas     |
 | [rego-engine](src/rego-engine/README.md)             | Rego-based rule evaluation with custom builtins                             |
 | [cel-engine](src/cel-engine/README.md)               | Native Rust rules plus a CEL interpreter for custom rules                   |

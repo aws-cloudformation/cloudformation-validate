@@ -2,8 +2,8 @@
 //! in their own module; only patterns validated identically by rules in
 //! different modules live here so the pattern has a single definition.
 
-use rules::AMI_ID_PATTERN;
 use std::sync::LazyLock;
+use template_model::AMI_ID_PATTERN;
 
 /// EC2 AMI identifier: `ami-` followed by an 8- or 17-character hex id. Shared
 /// by the hardcoded-AMI best-practice check and the resolved-parameter AMI-type

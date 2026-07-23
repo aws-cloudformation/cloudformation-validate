@@ -1,9 +1,9 @@
-use crate::template_section::EntityType;
 use log::warn;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::OnceLock;
+use template_model::EntityType;
 
 /// Numeric range filter for rule IDs sharing a common letter prefix, matching an
 /// inclusive span of the trailing numbers.

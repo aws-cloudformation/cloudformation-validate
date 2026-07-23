@@ -1,5 +1,5 @@
 name: Build Artifacts
-run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ github.sha }})
+run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ inputs.branch || github.sha }})
 
 on:
   push:
@@ -20,9 +20,15 @@ on:
       - 'src/bindings-wasm/dist/*'
       - 'src/release/*'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build artifacts from — main for regular builds, a hotfix branch for patch releases. The artifacts PR targets this branch."
+        required: false
+        type: string
+        default: 'main'
 
 concurrency:
-  group: build-artifacts
+  group: build-artifacts-${{ inputs.branch || 'main' }}
   cancel-in-progress: true
 
 permissions:
@@ -32,15 +38,38 @@ jobs:
   get-configs:
     uses: ./.github/workflows/configs.yml
 
+  resolve-ref:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.head.outputs.sha }}
+      branch: ${{ steps.head.outputs.branch }}
+      pr-branch: ${{ steps.head.outputs.pr-branch }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.branch || github.sha }}
+
+    - name: Pin the build commit and PR target
+      id: head
+      env:
+        BRANCH: ${{ inputs.branch || 'main' }}
+      run: |
+        set -euo pipefail
+        {
+          echo "sha=$(git rev-parse HEAD)"
+          echo "branch=$BRANCH"
+        } >> "$GITHUB_OUTPUT"
+        echo "Building from branch $BRANCH, commit $(git rev-parse HEAD)"
+
   generate-licenses:
-    needs: [ get-configs ]
+    needs: [ get-configs, resolve-ref ]
     runs-on: ubuntu-latest
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -75,7 +104,7 @@ jobs:
         retention-days: 1
 
   build-jvm:
-    needs: [ get-configs, generate-licenses ]
+    needs: [ get-configs, resolve-ref, generate-licenses ]
     strategy:
       fail-fast: false
       matrix:
@@ -92,7 +121,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -148,14 +177,14 @@ jobs:
         retention-days: 1
 
   build-wasm:
-    needs: [ get-configs, generate-licenses ]
+    needs: [ get-configs, resolve-ref, generate-licenses ]
     runs-on: ubuntu-latest
     env:
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -206,7 +235,7 @@ jobs:
         retention-days: 1
 
   build-cli:
-    needs: [ get-configs, generate-licenses ]
+    needs: [ get-configs, resolve-ref, generate-licenses ]
     strategy:
       fail-fast: false
       matrix:
@@ -223,7 +252,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
@@ -251,7 +280,7 @@ jobs:
         retention-days: 1
 
   pull-request:
-    needs: [ get-configs, generate-licenses, build-jvm, build-wasm, build-cli ]
+    needs: [ get-configs, resolve-ref, generate-licenses, build-jvm, build-wasm, build-cli ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -261,7 +290,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ github.sha }}
+        ref: ${{ needs.resolve-ref.outputs.sha }}
 
     - name: Download all artifacts
       uses: actions/download-artifact@v8
@@ -322,8 +351,8 @@ jobs:
         commit-message: 'chore: Update bindings'
         branch: automated/build-artifacts
         delete-branch: true
-        title: 'chore: Update Bindings'
-        base: main
+        title: 'chore: Update Bindings (${{ needs.resolve-ref.outputs.branch }})'
+        base: ${{ needs.resolve-ref.outputs.branch }}
         body: |
           Automated update of the binding bundles and CLI binaries.
 

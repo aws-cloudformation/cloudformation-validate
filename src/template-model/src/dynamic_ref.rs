@@ -30,8 +30,8 @@ use crate::consts::{
     FN_IF, FN_SUB, INTRINSIC_FN_PATH_SEGMENTS, KEY_TYPE, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
     SSM_SECURE_ALLOWED_PROPERTY_PATHS,
 };
+use crate::defect::ParseDefect;
 use crate::ir::{Arena, Node, NodeRef};
-use diagnostics::Diagnostic;
 use std::collections::HashMap;
 
 const RULE_DYNAMIC_REFERENCE: &str = "E1050";
@@ -42,7 +42,7 @@ const RULE_DYNAMIC_REFERENCE_SPACES: &str = "W1053";
 
 const ALLOWED_SERVICES: &[&str] = &["ssm", "ssm-secure", "secretsmanager"];
 
-pub fn validate_dynamic_references(arena: &Arena, resources: NodeRef) -> Vec<Diagnostic> {
+pub fn validate_dynamic_references(arena: &Arena, resources: NodeRef) -> Vec<ParseDefect> {
     let resource_types = collect_resource_types(arena, resources);
     let mut out = Vec::new();
     for idx in 0..arena.len() {
@@ -59,18 +59,13 @@ pub fn validate_dynamic_references(arena: &Arena, resources: NodeRef) -> Vec<Dia
         if !string_is_function_argument(&spanned.path)
             && let Some(message) = dynamic_reference_error(s)
         {
-            out.push(crate::make_parse_diagnostic_at(RULE_DYNAMIC_REFERENCE, message, spanned.span, &spanned.path));
+            out.push(crate::make_parse_defect_at(RULE_DYNAMIC_REFERENCE, message, spanned.span, &spanned.path));
         }
         if let Some((rule, message)) = dynamic_reference_location_error(s, &spanned.path, &resource_types) {
-            out.push(crate::make_parse_diagnostic_at(rule, message, spanned.span, &spanned.path));
+            out.push(crate::make_parse_defect_at(rule, message, spanned.span, &spanned.path));
         }
         if let Some(message) = dynamic_reference_spaces_warning(s) {
-            out.push(crate::make_parse_diagnostic_at(
-                RULE_DYNAMIC_REFERENCE_SPACES,
-                message,
-                spanned.span,
-                &spanned.path,
-            ));
+            out.push(crate::make_parse_defect_at(RULE_DYNAMIC_REFERENCE_SPACES, message, spanned.span, &spanned.path));
         }
     }
     out

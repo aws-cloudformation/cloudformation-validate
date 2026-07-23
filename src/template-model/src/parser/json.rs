@@ -124,7 +124,7 @@ fn scan_json_byte_spans(
     _arena: &mut Arena,
     span_index: &mut SourceSpanIndex,
     bytes: &[u8],
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Vec<ParseDefect>,
 ) {
     let line_offsets = build_line_offsets(bytes);
     let mut path_stack: Vec<String> = Vec::new();
@@ -212,7 +212,7 @@ fn scan_json_byte_spans(
                     if let Some(keys) = seen_keys.last_mut()
                         && !keys.insert(decoded.clone())
                     {
-                        diagnostics.push(crate::make_parse_diagnostic_at(
+                        diagnostics.push(crate::make_parse_defect_at(
                             "F0000",
                             format!("Duplicate key '{}'", decoded),
                             SourceSpan {

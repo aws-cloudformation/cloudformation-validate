@@ -17,15 +17,14 @@ name = "inspect"
 path = "src/inspect.rs"
 
 [features]
-wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "diagnostics/wasm-bindings"]
-uniffi-bindings = ["dep:uniffi", "diagnostics/uniffi-bindings"]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
+uniffi-bindings = ["dep:uniffi"]
 
 [dependencies]
-diagnostics = { path = "../diagnostics" }
-rules = { path = "../rules" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = "1"
+fancy-regex = "0.18"
 yaml-rust2 = "0.11.0"
 base64 = "0.22"
 log = "0.4"

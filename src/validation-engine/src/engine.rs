@@ -1,8 +1,7 @@
 use diagnostics::{
-    DetailLevel, Diagnostic, Entity, EntityType, JsonValue, PerformanceMetrics, Phase, PhaseMetric,
-    RegisteredDiagnostic, RelatedResource, ReportMetadata, ReportStatus, ResourceRef, SourceSpan, Summary,
-    UNKNOWN_SPAN, ValidationReport, ViolationContext, apply_filters, entity_identity, is_sam_transform_error_message,
-    phase_metric, resolve_section_span, span_to_option,
+    DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
+    ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
+    diagnostic_from_parse_defect, phase_metric, resolve_section_span,
 };
 use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
@@ -16,7 +15,10 @@ use std::error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
-use template_model::{ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, region_enums};
+use template_model::{
+    EntityType, JsonValue, ParseConfig, ParseError, ParseResult, PseudoParameterOverrides, SemanticModel, SourceSpan,
+    UNKNOWN_SPAN, entity_identity, is_sam_transform_error_message, region_enums, span_to_option,
+};
 use web_time::Instant;
 
 #[derive(Debug)]
@@ -172,7 +174,7 @@ pub(crate) fn validate(
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
     let model = Arc::new(result.model);
-    let model_build = result.model_build;
+    let model_build = PhaseMetric { duration_ms: result.model_build_ms };
     log::info!(
         "Validating: {} resources, {} types (engine={})",
         model.resources.len(),
@@ -203,7 +205,7 @@ pub(crate) fn validate(
     let t_post = Instant::now();
     if !config.disable_builtin_rules {
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
-        all_diagnostics.extend(model.diagnostics.iter().cloned());
+        all_diagnostics.extend(model.diagnostics.iter().map(diagnostic_from_parse_defect));
 
         // The satisfiability budget is consumed almost entirely by the rule
         // evaluation that just ran, so this is the earliest point the exhausted
@@ -974,8 +976,9 @@ pub fn make_resource_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use diagnostics::{Phase, SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
+    use diagnostics::Phase;
     use rules::{Category, build_rule_metadata_map, lookup_rule};
+    use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
 
     fn minimal_model() -> SemanticModel {
         let yaml = br#"
