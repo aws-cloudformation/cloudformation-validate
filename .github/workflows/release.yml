@@ -27,6 +27,7 @@ jobs:
       contents: read
     with:
       ref: ${{ inputs.branch }}
+      fail-fast: true
 
   version-and-tag:
     needs: [ get-configs, validate ]
@@ -514,15 +515,35 @@ jobs:
       - name: Verify published package
         run: |
           set -euo pipefail
-          tmp="$(mktemp -d)"
-          cd "$tmp"
-          npm init -y >/dev/null
-          npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts
-          npm audit signatures
 
-          predicate=$(npm view "@aws/cloudformation-validate@${{ inputs.tag }}" dist.attestations.provenance.predicateType 2>/dev/null || true)
-          if [ -z "$predicate" ]; then
-            echo "::error::no provenance attestation found for @aws/cloudformation-validate@${{ inputs.tag }}"
-            exit 1
-          fi
-          echo "provenance attestation predicateType: $predicate"
+          verify() {
+            local tmp
+            tmp="$(mktemp -d)"
+            (
+              cd "$tmp" \
+                && npm init -y >/dev/null \
+                && npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts \
+                && npm audit signatures
+            ) || return 1
+
+            local predicate
+            predicate=$(npm view "@aws/cloudformation-validate@${{ inputs.tag }}" dist.attestations.provenance.predicateType 2>/dev/null || true)
+            if [ -z "$predicate" ]; then
+              echo "no provenance attestation found for @aws/cloudformation-validate@${{ inputs.tag }}"
+              return 1
+            fi
+            echo "provenance attestation predicateType: $predicate"
+          }
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "attempt $attempt/$max_attempts: verifying @aws/cloudformation-validate@${{ inputs.tag }}"
+            if verify; then
+              echo "Published package installed, signatures audited, and provenance verified."
+              exit 0
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for @aws/cloudformation-validate@${{ inputs.tag }} to verify against the npm registry"
+          exit 1

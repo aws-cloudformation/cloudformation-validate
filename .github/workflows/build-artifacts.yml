@@ -53,13 +53,19 @@ jobs:
       id: head
       env:
         BRANCH: ${{ inputs.branch || 'main' }}
+        INPUT_BRANCH: ${{ inputs.branch }}
       run: |
         set -euo pipefail
+        PR_BRANCH="automated/build-artifacts"
+        if [ -n "$INPUT_BRANCH" ]; then
+          PR_BRANCH="$PR_BRANCH-${INPUT_BRANCH//\//-}"
+        fi
         {
           echo "sha=$(git rev-parse HEAD)"
           echo "branch=$BRANCH"
+          echo "pr-branch=$PR_BRANCH"
         } >> "$GITHUB_OUTPUT"
-        echo "Building from branch $BRANCH, commit $(git rev-parse HEAD)"
+        echo "Building from branch $BRANCH, commit $(git rev-parse HEAD); PR branch $PR_BRANCH"
 
   generate-licenses:
     needs: [ get-configs, resolve-ref ]
@@ -349,9 +355,9 @@ jobs:
       uses: peter-evans/create-pull-request@v8
       with:
         commit-message: 'chore: Update bindings'
-        branch: automated/build-artifacts
+        branch: ${{ needs.resolve-ref.outputs.pr-branch }}
         delete-branch: true
-        title: 'chore: Update Bindings (${{ needs.resolve-ref.outputs.branch }})'
+        title: 'chore: Update Bindings (from ${{ needs.resolve-ref.outputs.branch }})'
         base: ${{ needs.resolve-ref.outputs.branch }}
         body: |
           Automated update of the binding bundles and CLI binaries.
