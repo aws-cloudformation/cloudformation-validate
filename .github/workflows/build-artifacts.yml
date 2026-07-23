@@ -103,79 +103,6 @@ jobs:
         if-no-files-found: error
         retention-days: 1
 
-  build-jvm:
-    needs: [ get-configs, resolve-ref, generate-licenses ]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - { os: ubuntu-latest, platform: linux, arch: x64 }
-        - { os: macos-latest, platform: darwin, arch: aarch64 }
-        - { os: windows-latest, platform: win32, arch: x64 }
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
-    env:
-      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
-    steps:
-    - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.resolve-ref.outputs.sha }}
-
-    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
-
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
-
-    - name: Setup JVM toolchain
-      uses: ./.github/actions/setup-jvm-toolchain
-      with:
-        java-version: ${{ needs.get-configs.outputs.java-version }}
-        java-distribution: ${{ matrix.java-distribution || needs.get-configs.outputs.java-distribution }}
-        kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
-        ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
-        gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
-
-    - name: Log tool versions
-      uses: ./.github/actions/print-build-versions
-
-    - name: Download THIRD-PARTY-LICENSES.txt
-      uses: actions/download-artifact@v8
-      with:
-        name: third-party-licenses
-        path: ${{ env.WORKING_DIR }}
-
-    - name: Build JVM bindings
-      working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
-      run: ./build.sh
-
-    - name: Inject THIRD-PARTY-LICENSES.txt into JVM jar
-      working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
-      run: |
-        set -euo pipefail
-        JAR_ABS="$(pwd)/generated/cloudformation-validate.jar"
-        LIC_ABS="$(pwd)/THIRD-PARTY-LICENSES.txt"
-        tmpdir="$(mktemp -d)"
-        mkdir -p "$tmpdir/META-INF"
-        cp "$LIC_ABS" "$tmpdir/META-INF/THIRD-PARTY-LICENSES.txt"
-        ( cd "$tmpdir" && jar uf "$JAR_ABS" META-INF/THIRD-PARTY-LICENSES.txt )
-        rm -rf "$tmpdir"
-        unzip -l "$JAR_ABS" | grep -E 'META-INF/(LICENSE|THIRD-PARTY-LICENSES.txt)$'
-
-    - name: Upload JVM jar
-      uses: actions/upload-artifact@v7
-      with:
-        name: jvm-${{ matrix.platform }}-${{ matrix.arch }}
-        path: ${{ env.WORKING_DIR }}/bindings-jvm/generated/cloudformation-validate.jar
-        if-no-files-found: error
-        retention-days: 1
-
   build-wasm:
     needs: [ get-configs, resolve-ref, generate-licenses ]
     runs-on: ubuntu-latest
@@ -234,53 +161,8 @@ jobs:
         if-no-files-found: error
         retention-days: 1
 
-  build-cli:
-    needs: [ get-configs, resolve-ref, generate-licenses ]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - { os: ubuntu-latest, platform: linux, arch: x64 }
-        - { os: macos-latest, platform: darwin, arch: aarch64 }
-        - { os: windows-latest, platform: win32, arch: x64 }
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
-    env:
-      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
-    steps:
-    - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.resolve-ref.outputs.sha }}
-
-    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
-
-    - name: Cache Cargo
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: ${{ env.WORKING_DIR }}
-
-    - name: Log tool versions
-      uses: ./.github/actions/print-build-versions
-
-    - name: Build cfn-validate
-      working-directory: ${{ env.WORKING_DIR }}/cfn-validate
-      run: ./build.sh
-
-    - name: Upload cfn-validate binary
-      uses: actions/upload-artifact@v7
-      with:
-        name: cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}
-        path: ${{ env.WORKING_DIR }}/release/cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}*
-        if-no-files-found: error
-        retention-days: 1
-
   pull-request:
-    needs: [ get-configs, resolve-ref, generate-licenses, build-jvm, build-wasm, build-cli ]
+    needs: [ get-configs, resolve-ref, generate-licenses, build-wasm ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
