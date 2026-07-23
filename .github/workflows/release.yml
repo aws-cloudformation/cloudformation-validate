@@ -234,6 +234,189 @@ jobs:
           files: release/*
           fail_on_unmatched_files: true
 
+  publish-maven:
+    needs: [ get-configs, version-and-tag, release ]
+    runs-on: ubuntu-latest
+    environment: release-maven
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup JVM toolchain
+        uses: ./.github/actions/setup-jvm-toolchain
+        with:
+          java-version: ${{ needs.get-configs.outputs.java-version }}
+          java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
+          kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
+          ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+          gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
+
+      - name: Verify committed jar is present and multi-platform
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        run: |
+          set -euo pipefail
+          jar="generated/cloudformation-validate.jar"
+          if [ ! -f "$jar" ]; then
+            echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          for prefix in linux-x86-64 darwin-aarch64 win32-x86-64; do
+            if ! unzip -Z1 "$jar" | grep -q "^$prefix/"; then
+              echo "::error::native library for $prefix missing from committed jar; the all-platform merge did not run"
+              exit 1
+            fi
+          done
+          if ! unzip -Z1 "$jar" | grep -q '\.class$'; then
+            echo "::error::committed jar contains no compiled .class output; the JVM build did not compile"
+            exit 1
+          fi
+          if ! unzip -Z1 "$jar" | grep -q '\.kt$'; then
+            echo "::error::committed jar contains no .kt sources; the source bundling step did not run"
+            exit 1
+          fi
+          echo "Committed jar carries all three platform natives plus compiled classes and sources."
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.0
+        with:
+          role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build signed Central Portal bundle
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          secret_json="$(aws secretsmanager get-secret-value \
+            --secret-id "${{ secrets.MAVEN_GPG_SECRET_ID }}" --query SecretString --output text)"
+          export ORG_GRADLE_PROJECT_signingKey="$(printf '%s' "$secret_json" | jq -r '.privateKey')"
+          export ORG_GRADLE_PROJECT_signingPassword="$(printf '%s' "$secret_json" | jq -r '.passphrase')"
+          unset secret_json
+
+          ./generate-version-properties.sh "$RELEASE_TAG"
+          gradle --no-daemon --console=plain centralBundle
+          ls -lh build/central/
+
+      - name: Verify every artifact is signed
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        run: |
+          set -euo pipefail
+          bundle="$(ls build/central/*-bundle.zip)"
+          tmp="$(mktemp -d)"
+          unzip -qo "$bundle" -d "$tmp"
+          base="$tmp/software/amazon/cloudformation/cloudformation-validate/${{ inputs.tag }}"
+          missing=0
+          for suffix in .jar -sources.jar -javadoc.jar .pom; do
+            f="cloudformation-validate-${{ inputs.tag }}${suffix}"
+            for companion in asc md5 sha1; do
+              if [ ! -f "$base/$f.$companion" ]; then
+                echo "::error::missing $f.$companion in bundle"
+                missing=1
+              fi
+            done
+          done
+          [ "$missing" -eq 0 ] && echo "All artifacts carry .asc/.md5/.sha1." || exit 1
+
+          committed_sha="$(sha256sum generated/cloudformation-validate.jar | awk '{print $1}')"
+          bundle_sha="$(sha256sum "$base/cloudformation-validate-${{ inputs.tag }}.jar" | awk '{print $1}')"
+          if [ "$committed_sha" != "$bundle_sha" ]; then
+            echo "::error::Maven bundle jar ($bundle_sha) differs from the committed jar ($committed_sha) that the GitHub release ships. They must be byte-identical."
+            exit 1
+          fi
+          echo "Maven bundle jar is byte-identical to the committed jar (sha256 $committed_sha)."
+
+      - name: Publish to Central Portal
+        working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
+        run: |
+          set -euo pipefail
+          bundle="$(ls build/central/*-bundle.zip)"
+
+          secret_json="$(aws secretsmanager get-secret-value \
+            --secret-id "${{ secrets.CENTRAL_PORTAL_SECRET_ID }}" --query SecretString --output text)"
+          username="$(printf '%s' "$secret_json" | jq -er '.username')"
+          password="$(printf '%s' "$secret_json" | jq -er '.password')"
+          token="$(printf '%s:%s' "$username" "$password" | base64 | tr -d '\n')"
+          unset secret_json username password
+
+          deployment_id="$(curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $token" \
+            -F "bundle=@$bundle" \
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=cloudformation-validate-${{ inputs.tag }}")"
+          echo "Central Portal deployment id: $deployment_id"
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            status_json="$(curl --fail-with-body -sS -X POST \
+              -H "Authorization: Bearer $token" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$deployment_id")"
+            state="$(printf '%s' "$status_json" | jq -r '.deploymentState')"
+            echo "attempt $attempt/$max_attempts: deploymentState=$state"
+
+            case "$state" in
+              PUBLISHED)
+                echo "Deployment published to Maven Central."
+                exit 0
+                ;;
+              PUBLISHING)
+                echo "Validation passed; the Portal is publishing to Maven Central."
+                exit 0
+                ;;
+              FAILED)
+                echo "::error::Central Portal validation failed for deployment $deployment_id"
+                printf '%s\n' "$status_json" | jq .
+                exit 1
+                ;;
+            esac
+            sleep 30
+          done
+
+          echo "::error::Timed out waiting for Central Portal deployment $deployment_id to validate"
+          exit 1
+
+  verify-publish-maven:
+    needs: [ publish-maven ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify artifacts resolve from Maven Central
+        run: |
+          set -euo pipefail
+          base="https://repo1.maven.org/maven2/software/amazon/cloudformation/cloudformation-validate/${{ inputs.tag }}"
+          files=(
+            "cloudformation-validate-${{ inputs.tag }}.pom"
+            "cloudformation-validate-${{ inputs.tag }}.jar"
+            "cloudformation-validate-${{ inputs.tag }}-sources.jar"
+            "cloudformation-validate-${{ inputs.tag }}-javadoc.jar"
+          )
+
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            missing=0
+            for f in "${files[@]}"; do
+              for candidate in "$f" "$f.asc"; do
+                if ! curl -fsSIL -o /dev/null "$base/$candidate"; then
+                  echo "attempt $attempt/$max_attempts: $candidate not yet available"
+                  missing=1
+                fi
+              done
+            done
+            if [ "$missing" -eq 0 ]; then
+              echo "All artifacts and signatures resolve from Maven Central."
+              exit 0
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for artifacts to appear on repo1.maven.org"
+          exit 1
+
   publish-npm:
     needs: [ get-configs, version-and-tag, release ]
     runs-on: ubuntu-latest
