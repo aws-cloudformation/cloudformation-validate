@@ -4,6 +4,7 @@ exports.CelEngine =
     exports.RegoEngine =
     exports.SchemaValidator =
     exports.TemplateModel =
+    exports.RuleFile =
     exports.TemplateFile =
         void 0;
 exports.version = version;
@@ -18,6 +19,26 @@ class TemplateFile {
     }
 }
 exports.TemplateFile = TemplateFile;
+class RuleFile {
+    constructor(path) {
+        this.path = path;
+    }
+    readContent() {
+        return (0, fs_1.readFileSync)(this.path, 'utf8');
+    }
+}
+exports.RuleFile = RuleFile;
+function toExternalRuleSources(sources) {
+    return (sources ?? []).map((source) =>
+        source instanceof RuleFile ? { name: source.path, content: source.readContent() } : source,
+    );
+}
+function toWasmEngineConfig(config) {
+    return {
+        customRules: toExternalRuleSources(config?.customRules),
+        guardRules: toExternalRuleSources(config?.guardRules),
+    };
+}
 class TemplateModel {
     constructor(template) {
         this.inner = bridge.WasmSemanticModel.parse(template.readBytes());
@@ -80,7 +101,7 @@ exports.SchemaValidator = SchemaValidator;
 function createEngineClass(WasmClass) {
     return class {
         constructor(config) {
-            this.inner = new WasmClass(config ?? {});
+            this.inner = new WasmClass(toWasmEngineConfig(config));
         }
         validateStandard(template, config) {
             return this.inner.validateStandard(template.readBytes(), config ?? {}, template.path);
