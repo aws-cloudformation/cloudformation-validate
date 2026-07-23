@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-23 16:26:55  
+> Generated: 2026-07-23 17:13:08  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -46,25 +46,25 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 41220.6286 ms |
-| Throughput | 69.99 validations/sec |
+| Total wall time | 39397.8503 ms |
+| Throughput | 73.23 validations/sec |
 | Templates | 577 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 36.4630 ms |
-| Engine init (max) | 36.6748 ms |
-| Schema init (p99) | 76.6111 ms |
-| Schema init (max) | 77.2917 ms |
+| Engine init (p99) | 38.6438 ms |
+| Engine init (max) | 38.8855 ms |
+| Schema init (p99) | 78.9598 ms |
+| Schema init (max) | 79.8810 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0033 | 0.2296 | 0.0521 | 0.7267 | 1.0401 | 1.9406 | 3.8971 |
-| Schema Validate | 0.0002 | 0.4547 | 0.1848 | 1.2729 | 1.8164 | 3.4359 | 7.0050 |
-| Rule Evaluation | 11.6316 | 12.7445 | 12.3165 | 13.1946 | 14.3489 | 22.6632 | 31.7444 |
-| Diagnostic Finalize | 0.0028 | 0.0152 | 0.0093 | 0.0327 | 0.0431 | 0.0851 | 0.1653 |
-| Engine Internal | 11.6697 | 13.5398 | 12.6342 | 15.7692 | 18.3593 | 25.7864 | 39.5735 |
-| Wall Clock | 11.6706 | 13.5409 | 12.6351 | 15.7703 | 18.3607 | 25.7874 | 39.5747 |
+| Model Build | 0.0037 | 0.2236 | 0.0512 | 0.6827 | 1.0252 | 1.9457 | 3.6091 |
+| Schema Validate | 0.0003 | 0.4472 | 0.1840 | 1.2083 | 1.8204 | 3.1254 | 6.9092 |
+| Rule Evaluation | 11.3892 | 12.2955 | 12.0475 | 12.9698 | 13.4523 | 18.0286 | 28.0455 |
+| Diagnostic Finalize | 0.0026 | 0.0155 | 0.0093 | 0.0346 | 0.0468 | 0.0851 | 0.1724 |
+| Engine Internal | 11.4058 | 13.0421 | 12.3965 | 15.0683 | 16.3495 | 19.7470 | 28.0936 |
+| Wall Clock | 11.4068 | 13.0433 | 12.3976 | 15.0697 | 16.3506 | 19.7482 | 28.0949 |
 
 ## False Negatives — 328 missed findings across 77 rules
 
@@ -290,11 +290,9 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.TreatMissingData.Fn::If.0` L192-194 in `lsp_condition-usage_yaml`
   > {'Fn::Not': [{'Condition': 'IsProduction'}]} is not of type 'string'
 
-### E1001 — 9 missed — Basic CloudFormation Template Configuration
+### E1001 — 8 missed — Basic CloudFormation Template Configuration
 
 - **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
   > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
 - **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
   > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
@@ -681,6 +679,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
   > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
 
+### E8003 — 3 missed — Check Fn::Equals structure for validity
+
+- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.0` L24 in `bad_conditions_condition_functions_json`
+  > [{'Ref': 'AWS::Region'}] is not of type 'string'
+- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.1` L25 in `bad_conditions_condition_functions_json`
+  > {'Bad': 'Value'} is not of type 'string'
+- **E8003** → `Conditions.TestEqualNull.Fn::Equals` L28 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array'
+
 ### F0000 — 3 missed — Parsing error found when parsing the template
 
 - **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
@@ -750,13 +757,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'$data': '/cluster/Engine'} was expected
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `good_aurora_dbinstance_yaml`
   > {'$data': '/cluster/Engine'} was expected
-
-### E8005 — 2 missed — Check Fn::Not structure for validity
-
-- **E8005** → `Conditions.TestNotEmpty.Fn::Not` L29 in `bad_conditions_condition_functions_json`
-  > expected minimum item count: 1, found: 0
-- **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
-  > None is not of type 'array'
 
 ### E0002 — 2 missed — Error processing rule on the template
 
@@ -12911,7 +12911,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_conditions_condition_functions_json` — 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
 
-- FN: `E8005` ×2, `E1001`
+- FN: `E8003` ×3
 - EE: `I9040`
 
 ### `bad_core_conditions_list_yaml` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
@@ -13343,10 +13343,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 129 | 39.33% | E0002, E2001, E2529, E5001, E6001, E7001, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Other | 130 | 39.63% | E0002, E2001, E2529, E5001, E6001, E7001, E8003, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
 | Resource property validation | 92 | 28.05% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
 | Warning-level checks | 55 | 16.77% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 33 | 10.06% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Intrinsic function validation | 32 | 9.76% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
 | Informational checks | 19 | 5.79% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
