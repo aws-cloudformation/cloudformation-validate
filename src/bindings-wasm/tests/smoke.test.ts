@@ -230,8 +230,8 @@ describe('custom rule', () => {
             const d = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
             expect(d, `${name}: CUSTOM001 diagnostic must fire`).toBeDefined();
             expect(d.severity).toBe('ERROR');
-            expect(d.resourceId).toBe('Bucket');
-            expect(d.resourceType).toBe('AWS::S3::Bucket');
+            expect(d.entity?.logicalId).toBe('Bucket');
+            expect(d.entity?.resourceType).toBe('AWS::S3::Bucket');
         }
 
         const baselineCount = CEL.listRules().length;
@@ -283,7 +283,7 @@ describe('guard rule', () => {
             expect(d, `${name}: check_bucket_encryption diagnostic must fire`).toBeDefined();
             expect(d.severity).toBe('ERROR');
             expect(d.source).toBe('GUARD');
-            expect(d.resourceId).toBe('Bucket');
+            expect(d.entity?.logicalId).toBe('Bucket');
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());

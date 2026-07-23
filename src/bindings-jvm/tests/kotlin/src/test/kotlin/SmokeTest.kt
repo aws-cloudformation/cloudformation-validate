@@ -180,8 +180,8 @@ class SmokeTest {
             }
             val d = report.diagnostics.find { it.ruleId == "CUSTOM001" } ?: fail("$name: CUSTOM001 diagnostic must fire")
             assertEquals(Severity.ERROR, d.severity, "$name: diagnostic severity")
-            assertEquals("Bucket", d.resourceId, "$name: resourceId")
-            assertEquals("AWS::S3::Bucket", d.resourceType, "$name: resourceType")
+            assertEquals("Bucket", d.entity?.logicalId, "$name: entity logicalId")
+            assertEquals("AWS::S3::Bucket", d.entity?.resourceType, "$name: entity resourceType")
         }
 
         val baselineCount = CEL.listRules().size
@@ -222,7 +222,7 @@ class SmokeTest {
             val d = report.diagnostics.find { it.ruleId == "check_bucket_encryption" } ?: fail("$name: diagnostic must fire")
             assertEquals(Severity.ERROR, d.severity, "$name: diagnostic severity")
             assertEquals(RuleOrigin.GUARD, d.source, "$name: diagnostic source")
-            assertEquals("Bucket", d.resourceId, "$name: resourceId")
+            assertEquals("Bucket", d.entity?.logicalId, "$name: entity logicalId")
         }
 
         assertEquals(gson.toJson(cel.listRules()), gson.toJson(rego.listRules()), "guard: listRules must be identical")
