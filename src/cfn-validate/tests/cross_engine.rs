@@ -46,7 +46,11 @@ fn custom_config(engine: &str) -> EngineConfig {
     } else {
         ("cel_custom.json", load_rule("cel_custom.json"))
     };
-    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![], ..Default::default() }
+    EngineConfig {
+        custom_rules: vec![ExternalRuleSource { name: name.into(), content }],
+        guard_rules: vec![],
+        ..Default::default()
+    }
 }
 
 fn arbitrary_id_config(engine: &str) -> EngineConfig {
@@ -55,7 +59,11 @@ fn arbitrary_id_config(engine: &str) -> EngineConfig {
     } else {
         ("cel_arbitrary_id.json", load_rule("cel_arbitrary_id.json"))
     };
-    EngineConfig { custom_rules: vec![ExternalRuleSource { name: name.into(), content }], guard_rules: vec![], ..Default::default() }
+    EngineConfig {
+        custom_rules: vec![ExternalRuleSource { name: name.into(), content }],
+        guard_rules: vec![],
+        ..Default::default()
+    }
 }
 
 fn guard_config() -> EngineConfig {

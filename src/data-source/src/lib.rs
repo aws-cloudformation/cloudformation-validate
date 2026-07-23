@@ -10,6 +10,7 @@ pub mod cfnlint_tables;
 pub mod codegen_cel;
 #[cfg(feature = "full")]
 pub mod codegen_schema_validator;
+pub mod compiled_schema;
 #[cfg(feature = "full")]
 pub mod extensions;
 #[cfg(feature = "full")]
@@ -18,7 +19,6 @@ pub mod process;
 pub mod regions;
 #[cfg(feature = "full")]
 pub mod schema;
-pub mod compiled_schema;
 pub mod types;
 
 #[cfg(feature = "full")]

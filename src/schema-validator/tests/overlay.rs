@@ -136,7 +136,8 @@ fn overlay_enum_override_suppresses_w3030() {
 #[test]
 fn overlay_inserts_brand_new_resource_type() {
     // A typeName not in the bundled registry is inserted verbatim.
-    let new_type = overlay(r#"{ "typeName": "AWS::Test::OverlayOnly", "properties": { "Name": { "type": "string" } } }"#);
+    let new_type =
+        overlay(r#"{ "typeName": "AWS::Test::OverlayOnly", "properties": { "Name": { "type": "string" } } }"#);
     let sv = SchemaValidator::with_additional_schemas([("AWS::Test::OverlayOnly", new_type)]);
     assert_eq!(sv.schema_count(), SchemaValidator::new().schema_count() + 1, "a new resource type should be added");
 }

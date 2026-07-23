@@ -271,10 +271,8 @@ mod tests {
             "AWS::Lambda::Function",
             &json!({ "properties": { "Handler": { "type": "string" } }, "additionalProperties": false }),
         );
-        let overlay = compile(
-            "AWS::Lambda::Function",
-            &json!({ "properties": { "AcceleratorConfig": { "type": "object" } } }),
-        );
+        let overlay =
+            compile("AWS::Lambda::Function", &json!({ "properties": { "AcceleratorConfig": { "type": "object" } } }));
         merge_into(&mut base, overlay);
         assert!(base.properties.contains_key("Handler"), "bundled property must be retained");
         assert!(base.properties.contains_key("AcceleratorConfig"), "overlay property must be added");
@@ -284,8 +282,7 @@ mod tests {
     #[test]
     fn merge_replaces_enum_for_property() {
         let mut base = compile("T", &json!({ "properties": { "Mode": { "type": "string", "enum": ["A", "B"] } } }));
-        let overlay =
-            compile("T", &json!({ "properties": { "Mode": { "type": "string", "enum": ["A", "B", "C"] } } }));
+        let overlay = compile("T", &json!({ "properties": { "Mode": { "type": "string", "enum": ["A", "B", "C"] } } }));
         merge_into(&mut base, overlay);
         let vals: Vec<&str> = base.properties["Mode"].enum_values.iter().filter_map(|v| v.as_str()).collect();
         assert_eq!(vals, vec!["A", "B", "C"], "overlay enum must replace the bundled enum");
@@ -296,7 +293,11 @@ mod tests {
         let mut base = compile("T", &json!({ "required": ["A"] }));
         let overlay = compile("T", &json!({ "required": ["A", "B"] }));
         merge_into(&mut base, overlay);
-        assert_eq!(base.required, vec!["A".to_string(), "B".to_string()], "required must be unioned without duplicates");
+        assert_eq!(
+            base.required,
+            vec!["A".to_string(), "B".to_string()],
+            "required must be unioned without duplicates"
+        );
     }
 
     #[test]
@@ -451,8 +452,10 @@ mod tests {
     #[test]
     fn merge_prop_clears_ref_when_overlay_is_inline() {
         let mut base = compile("T", &json!({ "properties": { "P": { "$ref": "#/definitions/D" } } }));
-        let overlay =
-            compile("T", &json!({ "properties": { "P": { "type": "object", "properties": { "X": { "type": "string" } } } } }));
+        let overlay = compile(
+            "T",
+            &json!({ "properties": { "P": { "type": "object", "properties": { "X": { "type": "string" } } } } }),
+        );
         merge_into(&mut base, overlay);
         let p = &base.properties["P"];
         assert!(p.ref_name.is_none(), "the $ref must be cleared when merged with an inline overlay");
@@ -513,10 +516,8 @@ mod tests {
     #[test]
     fn merge_into_merges_schema_level_dependent_maps() {
         let mut base = compile("T", &json!({ "dependentRequired": { "A": ["B"] } }));
-        let overlay = compile(
-            "T",
-            &json!({ "dependentRequired": { "C": ["D"] }, "dependentExcluded": { "E": ["F"] } }),
-        );
+        let overlay =
+            compile("T", &json!({ "dependentRequired": { "C": ["D"] }, "dependentExcluded": { "E": ["F"] } }));
         merge_into(&mut base, overlay);
         assert_eq!(base.dependent_required.get("A"), Some(&vec!["B".to_string()]), "base entry retained");
         assert_eq!(base.dependent_required.get("C"), Some(&vec!["D".to_string()]), "overlay entry added");
@@ -559,4 +560,3 @@ mod tests {
         assert!(inner.contains_key("B"), "deep overlay sub-property must be merged in");
     }
 }
-
