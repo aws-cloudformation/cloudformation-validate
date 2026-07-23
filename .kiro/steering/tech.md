@@ -2,7 +2,7 @@
 
 ## Language and toolchain
 
-- Rust (edition 2024, resolver v2), Cargo workspace with 13 crates under `src/`
+- Rust Cargo workspace under `src/` (edition and resolver are set in `src/Cargo.toml`)
 - Toolchain pinned by `src/rust-toolchain.toml` (includes `rustfmt`, `clippy`, and the `wasm32-unknown-unknown` target)
 - `unsafe_code` is **forbidden** workspace-wide; clippy `correctness`/`suspicious`/`style`/`complexity`/`perf` are deny
 - Release profile: LTO fat, codegen-units 1, opt-level 3, debuginfo stripped

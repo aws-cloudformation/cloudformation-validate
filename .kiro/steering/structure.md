@@ -4,7 +4,7 @@
 
 ```
 src/
-├── Cargo.toml                  # Workspace root (13 crates, edition 2024, resolver v2)
+├── Cargo.toml                  # Workspace root
 ├── rust-toolchain.toml         # Pinned toolchain + wasm32 target
 ├── cfn-validate/               # CLI binary (`cfn-validate`) and library facade
 ├── validation-engine/          # ValidationEngine trait, orchestration pipeline, Step Functions validation
@@ -63,7 +63,7 @@ src/
 ## Top-level directories
 
 - `scripts/` — Python comparison/audit scripts and their `snapshots/` data (see `tech.md` for usage)
-- `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on 3 OSes, JVM + WASM test jobs
+- `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM test jobs
 - `tmp/` — scratch files, debug output, tool artifacts (gitignored)
 
 ## Conventions — follow these exactly
