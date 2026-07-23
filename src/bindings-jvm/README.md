@@ -88,8 +88,18 @@ val engine = CelEngine(EngineConfig(guardRules = listOf(myRule)))  // with Guard
 | `customRules` | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)      |
 | `guardRules`  | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine |
 
-Each rule is an `ExternalRuleSource(name, content)` where `name` identifies the rule in diagnostics and `content` is the
-full source text.
+Each rule is an `ExternalRuleSource`, constructed either from a `java.io.File` — the same pattern as passing a
+template `File` to `validateStandard` — or from explicit values with `ExternalRuleSource(name, content)`, where
+`name` identifies the rule in diagnostics and `content` is the full source text. The two can be mixed freely:
+
+```kotlin
+val engine = CelEngine(
+    EngineConfig(
+        customRules = listOf(ExternalRuleSource(File("rules/s3_encryption.json"))),
+        guardRules = listOf(ExternalRuleSource(File("rules/compliance.guard"))),
+    ),
+)
+```
 
 ## ValidateConfig
 

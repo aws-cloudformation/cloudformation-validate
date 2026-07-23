@@ -4,6 +4,7 @@ import software.amazon.cloudformation.validate.diagnostics.DetailedReport
 import software.amazon.cloudformation.validate.diagnostics.StandardDiagnostic
 import software.amazon.cloudformation.validate.diagnostics.StandardReport
 import software.amazon.cloudformation.validate.engine.EngineConfig
+import software.amazon.cloudformation.validate.engine.ExternalRuleSource
 import software.amazon.cloudformation.validate.rules.RuleInfo
 import java.io.File
 
@@ -13,6 +14,14 @@ interface Engine {
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
+
+/**
+ * Reads a rule file into an [ExternalRuleSource] for [EngineConfig.customRules] or
+ * [EngineConfig.guardRules]. The file path becomes the rule source name - the file-based
+ * counterpart to passing a template [File] to [Engine.validateStandard].
+ */
+fun fileToExternalRuleSource(file: File): ExternalRuleSource =
+    ExternalRuleSource(name = file.path, content = file.readText())
 
 class TemplateModel(template: File) {
     private val inner = JvmSemanticModel.parse(template.readBytes())
