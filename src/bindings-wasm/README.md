@@ -57,14 +57,30 @@ Passed to the constructor. All fields optional, default to empty arrays.
 
 ```typescript
 interface EngineConfig {
-    customRules?: ExternalRuleSource[];  // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
-    guardRules?: ExternalRuleSource[];   // CloudFormation Guard DSL rules — translated internally by each engine
+    customRules?: RuleSource[];  // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
+    guardRules?: RuleSource[];   // CloudFormation Guard DSL rules — translated internally by each engine
+}
+
+type RuleSource = ExternalRuleSource | RuleFile;
+
+class RuleFile {
+    constructor(path: string);   // rule file read from disk; the path becomes the rule source name
 }
 
 interface ExternalRuleSource {
     name: string;     // identifier shown in diagnostics (e.g. file path)
     content: string;  // full rule source text
 }
+```
+
+Pass a `RuleFile` to load a rule from disk — the same pattern as `TemplateFile` for templates — or an
+`ExternalRuleSource` when you already have the rule text in memory. The two can be mixed freely:
+
+```typescript
+const engine = new CelEngine({
+    customRules: [new RuleFile("rules/s3_encryption.json")],
+    guardRules: [new RuleFile("rules/compliance.guard")],
+});
 ```
 
 ## ValidateConfig

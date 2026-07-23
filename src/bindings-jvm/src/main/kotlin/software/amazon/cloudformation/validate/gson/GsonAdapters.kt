@@ -4,6 +4,7 @@ package software.amazon.cloudformation.validate.gson
 
 import software.amazon.cloudformation.validate.diagnostics.JsonValueEnum
 import software.amazon.cloudformation.validate.diagnostics.ViolationContext
+import software.amazon.cloudformation.validate.rules.EntityType
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
@@ -17,7 +18,7 @@ import java.lang.reflect.Type
 
 /**
  * Creates a [Gson] instance configured to serialize all UniFFI-generated bindings types
- * (UInt, JsonValueEnum, ViolationContext) in a format matching the Rust serde output.
+ * (UInt, JsonValueEnum, ViolationContext, EntityType) in a format matching the Rust serde output.
  */
 fun buildBindingsGson(prettyPrinting: Boolean = false): Gson =
     GsonBuilder()
@@ -25,11 +26,21 @@ fun buildBindingsGson(prettyPrinting: Boolean = false): Gson =
         .registerTypeAdapter(UInt::class.java, UIntAdapter)
         .registerTypeAdapter(JsonValueEnum::class.java, JsonValueEnumAdapter)
         .registerTypeAdapter(ViolationContext::class.java, ViolationContextAdapter)
+        .registerTypeAdapter(EntityType::class.java, EntityTypeAdapter)
         .create()
 
 private object UIntAdapter : JsonSerializer<UInt> {
     override fun serialize(src: UInt, type: Type, ctx: JsonSerializationContext): JsonElement =
         JsonPrimitive(src.toLong())
+}
+
+private object EntityTypeAdapter : JsonSerializer<EntityType> {
+    override fun serialize(src: EntityType, type: Type, ctx: JsonSerializationContext): JsonElement =
+        JsonPrimitive(
+            src.name.split('_').joinToString("") { part ->
+                part.lowercase().replaceFirstChar { it.uppercase() }
+            },
+        )
 }
 
 private object JsonValueEnumAdapter : JsonSerializer<JsonValueEnum> {
