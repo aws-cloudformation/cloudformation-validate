@@ -1,10 +1,10 @@
 use crate::consts::*;
+use crate::defect::DefectPhase;
 use crate::diagnostic::*;
+use crate::json_value::JsonValue;
 use crate::model::{ResolvedOutput, ResolvedResource, SemanticModel, TemplateRule};
 use crate::resolved_value::collect_condition_refs_from_resolved;
 use crate::resolver::{MapEntry, RefKind, ResolvedValue};
-use diagnostics::{JsonValue, Phase};
-use rules::Severity;
 use std::collections::HashMap;
 
 impl SemanticModel {
@@ -125,10 +125,7 @@ impl SemanticModel {
                 names
             },
             has_dynamic_findinmap_name: self.has_dynamic_findinmap_name,
-            has_parse_errors: self
-                .diagnostics
-                .iter()
-                .any(|d| d.severity == Severity::Fatal && d.phase == Some(Phase::Parse)),
+            has_parse_errors: self.diagnostics.iter().any(|d| d.is_fatal() && d.phase == Some(DefectPhase::Parse)),
             parsed_rules: self.parsed_rules.iter().map(build_rule).collect(),
             resolution_sources: self
                 .resolution_sources

@@ -2,10 +2,10 @@ use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use diagnostics::{Diagnostic, Entity, PhaseMetric, UNKNOWN_SPAN, phase_metric};
+use diagnostics::{Diagnostic, Entity, PhaseMetric, phase_metric};
 use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map, is_valid_custom_rule_id};
-use template_model::SemanticModel;
+use template_model::{SemanticModel, UNKNOWN_SPAN};
 use validation_engine::{
     EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
 };

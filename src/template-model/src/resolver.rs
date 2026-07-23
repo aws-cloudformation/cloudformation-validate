@@ -1,10 +1,11 @@
 use crate::coercion::type_compatible;
 use crate::consts::*;
 use crate::ir::*;
+use crate::json_value::JsonValue;
+use crate::message::render_str_list;
+use crate::pattern::{default_matches_pattern, is_service_valid};
 use crate::regions::*;
 use base64::Engine as _;
-use diagnostics::JsonValue;
-use diagnostics::message::render_str_list;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -127,7 +128,7 @@ pub(crate) struct Resolver<'a> {
     mappings: &'a MappingData,
     resource_ids: HashSet<String>,
     pub(crate) edges: Vec<ResolverEdge>,
-    pub(crate) diagnostics: Vec<Diagnostic>,
+    pub(crate) diagnostics: Vec<ParseDefect>,
     pub(crate) find_in_map_refs: HashMap<String, Vec<String>>,
     pub(crate) simple_subs: HashMap<String, Vec<(String, String)>>,
     pub(crate) redundant_subs: HashMap<String, Vec<String>>,
@@ -1793,7 +1794,7 @@ fn node_matches_param_type(node: &Node, expected: &str) -> bool {
     }
 }
 
-pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, Vec<Diagnostic>) {
+pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, Vec<ParseDefect>) {
     let mut params = HashMap::new();
     let mut diags = Vec::new();
     if ir.parameters == NULL_REF {
@@ -1803,14 +1804,14 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
         return (params, diags);
     };
 
-    let e2001 = |msg: String, param_name: &str, prop: Option<&str>, span: SourceSpan| -> Diagnostic {
+    let e2001 = |msg: String, param_name: &str, prop: Option<&str>, span: SourceSpan| -> ParseDefect {
         // Section-absolute slash form, so identity and span derivation can
         // attribute the finding to the parameter.
         let path = match prop {
             Some(p) => format!("Parameters/{}/{}", param_name, p),
             None => format!("Parameters/{}", param_name),
         };
-        let mut d = crate::make_parse_diagnostic("E2001", msg, span);
+        let mut d = crate::make_parse_defect("E2001", msg, span);
         d.property_path = Some(path);
         d
     };
@@ -2041,10 +2042,10 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
             _ => None,
         });
 
-        let allowed_pattern_valid = allowed_pattern.as_deref().map(rules::is_service_valid);
+        let allowed_pattern_valid = allowed_pattern.as_deref().map(is_service_valid);
         let is_comma_delimited = param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || param_type.starts_with("List<");
         let default_matches_allowed_pattern = match (&allowed_pattern, &default) {
-            (Some(pattern), Some(value)) => rules::default_matches_pattern(pattern, value, is_comma_delimited),
+            (Some(pattern), Some(value)) => default_matches_pattern(pattern, value, is_comma_delimited),
             _ => None,
         };
 
@@ -2077,7 +2078,7 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
     (params, diags)
 }
 
-pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<Diagnostic>) {
+pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<ParseDefect>) {
     let mut mappings = MappingData::new();
     let mut diagnostics = Vec::new();
     if ir.mappings == NULL_REF {
@@ -2088,7 +2089,7 @@ pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<Diagnostic>) {
     };
     for (map_name, map_ref) in entries {
         let Some(level1) = ir.arena.as_map(*map_ref) else {
-            diagnostics.push(crate::make_parse_diagnostic_at(
+            diagnostics.push(crate::make_parse_defect_at(
                 "F0017",
                 format!("Mapping '{}' must be a map, not a scalar value", map_name),
                 ir.arena.span(*map_ref),
@@ -2099,7 +2100,7 @@ pub fn extract_mappings(ir: &TemplateIR) -> (MappingData, Vec<Diagnostic>) {
         let mut l1_map = HashMap::new();
         for (k1, k1_ref) in level1 {
             let Some(level2) = ir.arena.as_map(*k1_ref) else {
-                diagnostics.push(crate::make_parse_diagnostic_at(
+                diagnostics.push(crate::make_parse_defect_at(
                     "F0017",
                     format!("Mapping '{}' second level key '{}' must be a map", map_name, k1),
                     ir.arena.span(*k1_ref),

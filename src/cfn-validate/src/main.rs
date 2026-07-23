@@ -5,11 +5,11 @@ use diagnostics::{DetailLevel, ValidationReport};
 use log::{error, info};
 use rego_engine::RegoEngine;
 use rules::{
-    EntityType, FilterConfig, IdRange, LogicalIdFilter, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig,
-    ServiceFilter, Severity,
+    FilterConfig, IdRange, LogicalIdFilter, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter,
+    Severity,
 };
 use schema_validator::SchemaValidator;
-use template_model::PseudoParameterOverrides;
+use template_model::{EntityType, PseudoParameterOverrides};
 use validation_engine::{
     EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, catch_panics,
     guard, validate_bytes_with_path, validate_catching_panics,

@@ -4,9 +4,9 @@
 //! type are the schema validator's responsibility.
 
 use crate::consts::*;
+use crate::defect::ParseDefect;
 use crate::ir::cfn_function_name;
 use crate::ir::*;
-use diagnostics::Diagnostic;
 
 const SELECT_SOURCE_FUNCTIONS: &[&str] = &[FN_FIND_IN_MAP, FN_GET_ATT, FN_GET_AZS, FN_IF, FN_SPLIT, FN_CIDR, FN_REF];
 
@@ -81,7 +81,7 @@ const FINDINMAP_KEY_FUNCTIONS: &[&str] = &[FN_REF, FN_FIND_IN_MAP];
 const FINDINMAP_KEY_FUNCTIONS_EXT: &[&str] =
     &[FN_REF, FN_FIND_IN_MAP, FN_JOIN, FN_SUB, FN_IF, FN_SELECT, FN_LENGTH, FN_TO_JSON_STRING];
 
-pub fn validate_intrinsic_arg_shapes(arena: &Arena, transforms: &[String]) -> Vec<Diagnostic> {
+pub fn validate_intrinsic_arg_shapes(arena: &Arena, transforms: &[String]) -> Vec<ParseDefect> {
     let has_lang_ext = transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     let mut out = Vec::new();
 
@@ -102,7 +102,7 @@ pub fn validate_intrinsic_arg_shapes(arena: &Arena, transforms: &[String]) -> Ve
         {
             let spanned = arena.get(*arg_ref);
             let rule_id = if spanned.path.contains(FN_SELECT) { "E1017" } else { "E1015" };
-            out.push(crate::make_parse_diagnostic_at(
+            out.push(crate::make_parse_defect_at(
                 rule_id,
                 format!("'{}' is not a valid region for Fn::GetAZs (use '' for the current region)", region),
                 spanned.span,
@@ -117,7 +117,7 @@ pub fn validate_intrinsic_arg_shapes(arena: &Arena, transforms: &[String]) -> Ve
                     // Anchor at the offending operand's build path so that when its
                     // own byte span is unassigned, span resolution walks up to the
                     // nearest enclosing element rather than leaving it unlocated.
-                    out.push(crate::make_parse_diagnostic_at(
+                    out.push(crate::make_parse_defect_at(
                         rule_id,
                         format!(
                             "'{}' is not supported as an argument to '{}'",

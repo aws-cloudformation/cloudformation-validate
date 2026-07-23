@@ -1,12 +1,15 @@
 # diagnostics
 
 Shared type definitions for validation diagnostics, report structures, detail levels, filtering, and performance
-metrics. Every crate in the workspace depends on `diagnostics` — it defines the common language for reporting validation
-results.
+metrics. Every reporting crate in the workspace depends on `diagnostics` — it defines the common language for reporting
+validation results, building on the template vocabulary (`SourceSpan`, `JsonValue`, `EntityType`) owned by
+`template-model` and the rule metadata owned by `rules`.
 
 ## How It Works
 
-All validation phases (parsing, schema validation, lint rules) produce `Diagnostic` values. Each diagnostic carries a
+All validation phases (parsing, schema validation, lint rules) surface as `Diagnostic` values. The schema validator
+and rule engines construct them directly; the parser emits plain `template_model::ParseDefect` findings that
+`diagnostic_from_parse_defect` converts, attaching severity, category, and origin from the rule registry. Each diagnostic carries a
 rule ID, severity, message, location, resource context, and optional metadata. The `ValidationReport` aggregates
 diagnostics with summary counts and performance metrics. Reports are converted to `StandardReport` or `DetailedReport`
 for serialization.
@@ -61,7 +64,7 @@ Each `Diagnostic` contains:
 `StandardDiagnostic` keeps the nested `entity` struct and flattens `location` into individual line/column fields.
 Drops `documentation_url`, `rule_description`, `phase`, and `context`.
 
-`EntityType` (defined in the `rules` crate alongside `TopLevelSection`) has one variant per documented template
+`EntityType` (defined in `template-model` alongside `TopLevelSection`) has one variant per documented template
 section — `Resource`, `Parameter`, `Output`, `Mapping`, `Metadata`, `Rule`, `Condition`, `Transform`,
 `FormatVersion`, `Description` — the singular form of the section the entity is declared in. Built-in rules currently
 attribute findings to the sections whose children are addressable by a logical ID (resources, parameters, outputs,

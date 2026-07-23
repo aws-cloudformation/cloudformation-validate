@@ -1,10 +1,8 @@
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
-use diagnostics::message::render_str_list;
 use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
-use template_model::FORMAT_VERSION;
 use template_model::consts::{
     EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND,
     FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
@@ -14,6 +12,8 @@ use template_model::consts::{
     SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS,
     SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
 };
+use template_model::message::render_str_list;
+use template_model::{FORMAT_VERSION, is_service_valid};
 use validation_engine::make_resource_diagnostic;
 
 /// Alphanumeric-only string: CloudFormation logical IDs, output names, and
@@ -954,7 +954,7 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
         // that only uses those constructs is still valid service-side, so report I2003 only for a
         // pattern that no compilation strategy can accept — i.e. one that is genuinely malformed.
         if let Some(ref pattern) = param.allowed_pattern
-            && !rules::is_service_valid(pattern)
+            && !is_service_valid(pattern)
         {
             out.push(make_resource_diagnostic(
                 "I2003",

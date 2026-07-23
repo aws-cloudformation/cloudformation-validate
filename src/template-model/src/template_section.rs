@@ -158,6 +158,19 @@ impl std::str::FromStr for EntityType {
     }
 }
 
+/// Splits a section-absolute, slash-separated template path (such as
+/// `Parameters/MyParam/Type` or `Outputs/MyOutput/Value`) into the entity type
+/// of the section's children and the logical ID of the entity it addresses.
+/// Returns `None` for paths that are not rooted at a documented top-level
+/// section — resource-relative dotted paths like `Properties.BucketName` — or
+/// that name a section with no child segment.
+pub fn entity_identity(path: &str) -> Option<(EntityType, &str)> {
+    let mut segments = path.split('/');
+    let entity_type = EntityType::from_section(segments.next()?)?;
+    let logical_id = segments.next().filter(|id| !id.is_empty())?;
+    Some((entity_type, logical_id))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -198,5 +211,34 @@ mod tests {
         assert_eq!(EntityType::from_section("AWSTemplateFormatVersion"), Some(EntityType::FormatVersion));
         assert_eq!(EntityType::from_section("Description"), Some(EntityType::Description));
         assert_eq!(EntityType::from_section("Resource"), None, "singular form is not a section name");
+    }
+
+    #[test]
+    fn entity_identity_splits_section_absolute_paths() {
+        assert_eq!(entity_identity("Parameters/MyParam/Type"), Some((EntityType::Parameter, "MyParam")));
+        assert_eq!(entity_identity("Parameters/MyParam"), Some((EntityType::Parameter, "MyParam")));
+        assert_eq!(entity_identity("Outputs/MyOutput/Value"), Some((EntityType::Output, "MyOutput")));
+        assert_eq!(entity_identity("Mappings/MyMap/Key1/Key2"), Some((EntityType::Mapping, "MyMap")));
+        assert_eq!(entity_identity("Conditions/IsProd"), Some((EntityType::Condition, "IsProd")));
+        assert_eq!(entity_identity("Rules/MyRule/Assertions/0"), Some((EntityType::Rule, "MyRule")));
+        assert_eq!(entity_identity("Resources/MyBucket/Properties/Name"), Some((EntityType::Resource, "MyBucket")));
+    }
+
+    #[test]
+    fn entity_identity_handles_mixed_dot_segments_after_the_entity() {
+        // Builder-style paths mix slash and dot separators past the entity;
+        // only the first two slash segments matter for identity.
+        assert_eq!(entity_identity("Outputs/X/Value.Fn::If.1"), Some((EntityType::Output, "X")));
+    }
+
+    #[test]
+    fn entity_identity_rejects_non_entity_paths() {
+        assert_eq!(entity_identity("Properties.BucketName"), None, "resource-relative dotted path");
+        assert_eq!(entity_identity("Parameters"), None, "bare section has no entity");
+        assert_eq!(entity_identity("Description"), None, "bare section has no entity");
+        assert_eq!(entity_identity("AWSTemplateFormatVersion"), None, "bare section has no entity");
+        assert_eq!(entity_identity("Globals/Function"), None, "SAM Globals is not a documented section");
+        assert_eq!(entity_identity(""), None);
+        assert_eq!(entity_identity("Parameters//Type"), None, "empty entity segment");
     }
 }

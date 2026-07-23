@@ -1,5 +1,5 @@
-use diagnostics::SpanProvider;
 use template_model::SemanticModel;
+use template_model::SpanProvider;
 use template_model::resolver::ResolvedValue;
 
 const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templates");

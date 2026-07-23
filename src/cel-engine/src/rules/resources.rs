@@ -1,7 +1,8 @@
 use super::{EvalContext, NativeRuleRegistry};
-use diagnostics::{Diagnostic, RelatedResource, ResourceRef, SourceSpan};
+use diagnostics::{Diagnostic, RelatedResource, ResourceRef};
 use rules::Category;
 use template_model::SemanticModel;
+use template_model::SourceSpan;
 use template_model::coercion::coerce_to_integer;
 use template_model::consts::{
     FIELD_CREATION_POLICY, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_UPDATE_POLICY, KEY_CREATION_POLICY,

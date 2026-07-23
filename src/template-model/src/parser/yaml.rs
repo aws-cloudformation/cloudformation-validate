@@ -15,7 +15,7 @@ use yaml_rust2::yaml::{Hash, Yaml};
 struct LoadedYaml {
     docs: Vec<Yaml>,
     span_map: HashMap<String, (u32, u32)>,
-    dup_key_diagnostics: Vec<diagnostics::Diagnostic>,
+    dup_key_diagnostics: Vec<ParseDefect>,
     merge_key_spans: Vec<SourceSpan>,
 }
 
@@ -79,7 +79,7 @@ struct CfnYamlLoader {
     /// the mapping closes — unless that mapping used a YAML merge key (`<<`), in which
     /// case the buffer is dropped. A mapping that merges is not required to have unique
     /// keys, so its duplicate check is suppressed for the whole mapping.
-    pending_dup_diagnostics: Vec<Vec<diagnostics::Diagnostic>>,
+    pending_dup_diagnostics: Vec<Vec<ParseDefect>>,
     /// Whether the correspondingly-open mapping contains a `<<` merge key (parallel to
     /// `key_stack`). Set from any position in the mapping — before or after a
     /// duplicate — so the suppression covers every ordering.
@@ -87,7 +87,7 @@ struct CfnYamlLoader {
     /// `yaml_rust2` silently keeps the last value for a duplicate key, so duplicates
     /// are detected here at load time — matching how the JSON front-end pre-scans for
     /// them. One diagnostic per occurrence after the first, like the JSON path.
-    dup_key_diagnostics: Vec<diagnostics::Diagnostic>,
+    dup_key_diagnostics: Vec<ParseDefect>,
     /// Source positions of YAML merge keys (`<<`) encountered during loading.
     merge_key_spans: Vec<SourceSpan>,
 }
@@ -224,10 +224,10 @@ impl CfnYamlLoader {
         // builder when it sees the wrapped map, so only warn here for names far
         // from every function — otherwise the same tag would warn twice.
         if !known && super::builder::closest_function_name(&fn_key).is_none() {
-            self.dup_key_diagnostics.push(crate::make_parse_diagnostic(
+            self.dup_key_diagnostics.push(crate::make_parse_defect(
                 "W1103",
                 format!("'!{}' is not a supported function", tag_name),
-                diagnostics::UNKNOWN_SPAN,
+                UNKNOWN_SPAN,
             ));
         }
     }
@@ -316,7 +316,7 @@ impl CfnYamlLoader {
                         // names the duplicated entry itself — anchoring the diagnostic
                         // at the entity it duplicates.
                         let duplicated_path = path_from_frames(&self.path_frames);
-                        let diagnostic = crate::make_parse_diagnostic_at(
+                        let diagnostic = crate::make_parse_defect_at(
                             "F0000",
                             format!("Duplicate key '{}'", name),
                             span,
@@ -650,7 +650,7 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<TemplateIR, ParseError> {
     let mut builder = Builder::new();
     builder.diagnostics = dup_key_diagnostics;
     for span in merge_key_spans {
-        builder.diagnostics.push(crate::make_parse_diagnostic(
+        builder.diagnostics.push(crate::make_parse_defect(
             "W1100",
             "YAML merge key '<<' is not supported by CloudFormation - use 'aws cloudformation package' to pre-process"
                 .to_string(),

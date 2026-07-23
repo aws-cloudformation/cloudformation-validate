@@ -1,7 +1,6 @@
 //! Comprehensive tests against the sample templates in /templates.
 //! Each test targets a specific CFN representation capability.
 
-use rules::Severity;
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{ParseError, SemanticModel};
 
@@ -96,7 +95,7 @@ fn mappings_extraction_and_lookup() {
     let m = load("lsp/comprehensive.yaml");
     assert_eq!(m.mappings.len(), 2);
     assert_eq!(m.mappings["RegionMap"]["us-east-1"]["AMI"], "ami-0abcdef1234567890");
-    assert_eq!(m.mappings["EnvironmentMap"]["production"]["LogLevel"], Severity::Warn.as_str());
+    assert_eq!(m.mappings["EnvironmentMap"]["production"]["LogLevel"], "WARN");
 
     // FindInMap with enum key → Enum of looked-up values
     let db = m.resource("Database").unwrap();

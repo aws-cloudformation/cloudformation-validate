@@ -1,4 +1,4 @@
-use rules::TopLevelSection;
+use crate::template_section::TopLevelSection;
 
 pub const PSEUDO_PREFIX: &str = "AWS::";
 pub const PSEUDO_NO_VALUE: &str = "AWS::NoValue";
@@ -520,3 +520,18 @@ pub const CONDITION_REF_PREFIX: &str = "Condition:";
 pub const PARAM_TYPE_STRING: &str = "String";
 pub const PARAM_TYPE_NUMBER: &str = "Number";
 pub const PARAM_TYPE_COMMA_DELIMITED_LIST: &str = "CommaDelimitedList";
+
+// SAM transform-error identity. The transform is applied while building the
+// semantic model, so this crate owns the rule ID and message prefix that mark
+// a failed transform; downstream layers gate on them because a failed SAM
+// transform stops CloudFormation before resource validation.
+pub const SAM_TRANSFORM_ERROR_RULE_ID: &str = "E0001";
+
+/// Message prefix shared by every SAM transform-error finding, regardless of
+/// which layer produced it.
+pub const SAM_TRANSFORM_ERROR_PREFIX: &str = "Error transforming template:";
+
+/// Returns `true` when `message` belongs to a SAM transform-error finding.
+pub fn is_sam_transform_error_message(message: &str) -> bool {
+    message.starts_with(SAM_TRANSFORM_ERROR_PREFIX)
+}

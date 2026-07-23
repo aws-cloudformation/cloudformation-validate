@@ -1,11 +1,10 @@
 use crate::filter::Filterable;
-use crate::json_value::JsonValue;
 use crate::metrics::PhaseMetric;
 use crate::phase::Phase;
-use crate::span::SourceSpan;
-use rules::{EntityType, RuleOrigin, Severity};
+use rules::{RuleOrigin, Severity};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
+use template_model::{EntityType, JsonValue, SourceSpan};
 
 fn serialize_sorted_optional_map<S, V>(map: &Option<HashMap<String, V>>, serializer: S) -> Result<S::Ok, S::Error>
 where

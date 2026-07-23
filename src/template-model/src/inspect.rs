@@ -7,6 +7,7 @@ use template_model::SemanticModel;
 use template_model::conditions::format_condition_expr;
 use template_model::consts::{EDGE_KIND_DEPENDS_ON, EDGE_KIND_REF, SAM_FUNCTION_TYPE};
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::span_to_option;
 
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -74,7 +75,7 @@ fn inspect_file(path: &str) {
         }
     };
     let model = result.model;
-    let perf = result.model_build;
+    let model_build_ms = result.model_build_ms;
 
     println!("╔══════════════════════════════════════════════════════════════╗");
     println!("║  CloudFormation Template Model                             ║");
@@ -98,7 +99,7 @@ fn inspect_file(path: &str) {
     if model.is_cdk {
         println!("CDK Template: yes");
     }
-    println!("Model build time: {:.1}ms", perf.duration_ms);
+    println!("Model build time: {:.1}ms", model_build_ms);
     println!();
 
     if let Some(ref meta) = model.template_metadata {
@@ -471,19 +472,16 @@ fn inspect_file(path: &str) {
     if !model.diagnostics.is_empty() {
         println!("── Diagnostics ({}) ─────────────────────────────────", model.diagnostics.len());
         for d in &model.diagnostics {
-            let sev = d.severity.as_str();
-            if d.location.as_ref().is_some_and(|l| l.start_line > 0) {
-                let loc = d.location.as_ref().unwrap();
-                println!("  [{}] L{}:C{} {}", sev, loc.start_line, loc.start_column, d.message);
-            } else {
-                println!("  [{}] {}", sev, d.message);
+            match span_to_option(d.span) {
+                Some(loc) => println!("  [{}] L{}:C{} {}", d.rule_id, loc.start_line, loc.start_column, d.message),
+                None => println!("  [{}] {}", d.rule_id, d.message),
             }
         }
         println!();
     }
 
     println!("── Performance ────────────────────────────────────────");
-    println!("  Model build:  {:>8.2} ms", perf.duration_ms);
+    println!("  Model build:  {:>8.2} ms", model_build_ms);
     println!();
 
     println!("── Summary ────────────────────────────────────────────");
