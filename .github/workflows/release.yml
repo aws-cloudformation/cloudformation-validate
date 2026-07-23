@@ -1,5 +1,5 @@
 name: Release
-run-name: Release ${{ inputs.tag }} ${{ github.actor }}
+run-name: Release ${{ inputs.tag }} from ${{ inputs.branch }} ${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -8,10 +8,11 @@ on:
         description: "The tag to release (1.0.0 for prod, 1.0.0-beta for beta)"
         required: true
         type: string
-      commit:
-        description: "Optional commit SHA to release from — must be on main (defaults to the head of main)"
+      branch:
+        description: "Branch to release from — main for regular releases, a hotfix branch for patch releases."
         required: false
         type: string
+        default: 'main'
 
 permissions:
   contents: read
@@ -25,7 +26,7 @@ jobs:
     permissions:
       contents: read
     with:
-      ref: ${{ inputs.commit || 'main' }}
+      ref: ${{ inputs.branch }}
 
   version-and-tag:
     needs: [ get-configs, validate ]
@@ -37,27 +38,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: 'main'
+          ref: ${{ inputs.branch }}
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Resolve release commit
+      - name: Log release commit
         env:
-          COMMIT: ${{ inputs.commit }}
-        run: |
-          set -euo pipefail
-          if [ -n "$COMMIT" ]; then
-            if ! git cat-file -e "$COMMIT^{commit}" 2>/dev/null; then
-              echo "::error::Commit $COMMIT does not exist in this repository."
-              exit 1
-            fi
-            if ! git merge-base --is-ancestor "$COMMIT" origin/main; then
-              echo "::error::Commit $COMMIT is not on main. Releases may only be cut from commits on main."
-              exit 1
-            fi
-            git checkout --quiet "$COMMIT"
-          fi
-          echo "Releasing from commit $(git rev-parse HEAD)"
+          BRANCH: ${{ inputs.branch }}
+        run: echo "Releasing from branch $BRANCH, commit $(git rev-parse HEAD)"
 
       - name: Get version from Cargo.toml
         id: get-version
