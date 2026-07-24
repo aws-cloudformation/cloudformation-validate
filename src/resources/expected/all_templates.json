@@ -5789,7 +5789,7 @@
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
-        "errors": 0,
+        "errors": 1,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -5811,6 +5811,20 @@
         "endColumn": 10,
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E8001",
+        "severity": "ERROR",
+        "message": "Conditions section must be an object, got a list",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 1,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Conditions section must have valid structure",
+        "phase": "PARSE"
       }
     ]
   },
@@ -6981,6 +6995,68 @@
         "endColumn": 14,
         "ruleDescription": "Sub isn't needed if it doesn't have a variable defined",
         "phase": "LINT"
+      }
+    ]
+  },
+  "bad/core/sections_not_objects.yaml": {
+    "filePath": "bad/core/sections_not_objects.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E2001",
+        "severity": "ERROR",
+        "message": "Parameters section must be an object, got null",
+        "source": "CFN_LINT",
+        "propertyPath": "Parameters",
+        "category": "Parameter",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 11,
+        "ruleDescription": "Parameters have appropriate properties",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E6003",
+        "severity": "ERROR",
+        "message": "Outputs section must be an object, got a string",
+        "source": "CFN_LINT",
+        "propertyPath": "Outputs",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 1,
+        "endLine": 5,
+        "endColumn": 8,
+        "ruleDescription": "Outputs section must be an object of named output definitions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E7001",
+        "severity": "ERROR",
+        "message": "Mappings section must be an object, got a list",
+        "source": "CFN_LINT",
+        "propertyPath": "Mappings",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 1,
+        "endLine": 3,
+        "endColumn": 9,
+        "ruleDescription": "Mappings are appropriately configured",
+        "phase": "PARSE"
       }
     ]
   },
@@ -41010,7 +41086,7 @@
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
-        "errors": 0,
+        "errors": 2,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -41046,6 +41122,34 @@
         "endColumn": 25,
         "ruleDescription": "AWSTemplateFormatVersion must be 2010-09-09",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform object is missing required 'Name' property",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 10,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform object has unknown property 'key' - expected one of 'Name', 'Parameters'",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 6,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
       }
     ]
   },
@@ -41103,8 +41207,8 @@
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 2,
+        "errors": 1,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -41126,6 +41230,130 @@
         "endColumn": 10,
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F0002",
+        "severity": "FATAL",
+        "message": "AWSTemplateFormatVersion must be '2010-09-09', got null",
+        "source": "SCHEMA",
+        "propertyPath": "AWSTemplateFormatVersion",
+        "category": "Structure",
+        "startLine": 1,
+        "startColumn": 1,
+        "endLine": 1,
+        "endColumn": 25,
+        "ruleDescription": "AWSTemplateFormatVersion must be 2010-09-09",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform must be a transform name, a list of transforms, or a {Name, Parameters} object, got null",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 10,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/templates/description_object.yaml": {
+    "filePath": "bad/templates/description_object.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1004",
+        "severity": "FATAL",
+        "message": "Description must be a string, got a list",
+        "source": "SCHEMA",
+        "propertyPath": "Description",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 12,
+        "ruleDescription": "Description must be a string",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/templates/transform_invalid_entries.yaml": {
+    "filePath": "bad/templates/transform_invalid_entries.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform entry must be a transform name or a {Name, Parameters} object, got a number",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 4,
+        "startColumn": 5,
+        "endLine": 4,
+        "endColumn": 6,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform 'Parameters' must be an object, got a string",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform 'Name' must be a string, got a list",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 7,
+        "startColumn": 5,
+        "endLine": 7,
+        "endColumn": 9,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
       }
     ]
   },
@@ -142245,6 +142473,25 @@
         "phase": "LINT"
       }
     ]
+  },
+  "good/transform/include_object_form.yaml": {
+    "filePath": "good/transform/include_object_form.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
   },
   "good/transform/language_extension.yaml": {
     "filePath": "good/transform/language_extension.yaml",

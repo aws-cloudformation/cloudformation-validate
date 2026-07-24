@@ -1221,4 +1221,98 @@ mod tests {
             "a literal duplicate in a non-merging mapping must still be flagged"
         );
     }
+
+    fn defect_messages(ir: &TemplateIR, rule_id: &str) -> Vec<String> {
+        ir.diagnostics.iter().filter(|d| d.rule_id == rule_id).map(|d| d.message.clone()).collect()
+    }
+
+    #[test]
+    fn object_form_transform_contributes_its_name() {
+        let input = "Transform:\n  Name: AWS::Include\n  Parameters:\n    Location: s3://b/k.yaml\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(ir.transforms, ["AWS::Include"]);
+        assert!(defect_messages(&ir, "E1005").is_empty(), "a well-formed transform object is not a defect");
+    }
+
+    #[test]
+    fn mixed_transform_list_keeps_strings_and_object_names() {
+        let input = "Transform:\n  - AWS::LanguageExtensions\n  - Name: AWS::Include\n    Parameters:\n      Location: s3://b/k.yaml\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(ir.transforms, ["AWS::LanguageExtensions", "AWS::Include"]);
+    }
+
+    #[test]
+    fn transform_object_without_name_is_a_defect() {
+        let input =
+            "Transform:\n  Parameters:\n    Location: s3://b/k.yaml\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(defect_messages(&ir, "E1005"), ["Transform object is missing required 'Name' property"]);
+        assert!(ir.transforms.is_empty(), "an object without a Name contributes no transform");
+    }
+
+    #[test]
+    fn transform_scalar_non_string_is_a_defect_anchored_at_the_section_key() {
+        let input = "Transform: 42\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let defects: Vec<&crate::ParseDefect> = ir.diagnostics.iter().filter(|d| d.rule_id == "E1005").collect();
+        assert_eq!(defects.len(), 1);
+        assert_eq!(
+            defects[0].message,
+            "Transform must be a transform name, a list of transforms, or a {Name, Parameters} object, got a number"
+        );
+        assert_eq!(defects[0].span.start_line, 1, "the defect anchors at the Transform key");
+    }
+
+    #[test]
+    fn transform_object_with_unknown_key_and_bad_parameters_is_a_defect_per_violation() {
+        let input = "Transform:\n  - Name: AWS::Include\n    Parameters: not-an-object\n    Extra: true\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let messages = defect_messages(&ir, "E1005");
+        assert_eq!(messages.len(), 2, "one defect per violation: {messages:?}");
+        assert!(messages.contains(&"Transform 'Parameters' must be an object, got a string".to_string()));
+        assert!(messages.contains(
+            &"Transform object has unknown property 'Extra' - expected one of 'Name', 'Parameters'".to_string()
+        ));
+    }
+
+    #[test]
+    fn non_object_entity_sections_are_shape_defects() {
+        let input = "Parameters:\nMappings:\n  - M\nConditions: scalar\nOutputs:\n  - Out\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(defect_messages(&ir, "E2001"), ["Parameters section must be an object, got null"]);
+        assert_eq!(defect_messages(&ir, "E7001"), ["Mappings section must be an object, got a list"]);
+        assert_eq!(defect_messages(&ir, "E8001"), ["Conditions section must be an object, got a string"]);
+        assert_eq!(defect_messages(&ir, "E6003"), ["Outputs section must be an object, got a list"]);
+    }
+
+    #[test]
+    fn well_formed_sections_produce_no_shape_defects() {
+        let input = "Parameters:\n  P:\n    Type: String\nConditions:\n  C: !Equals [!Ref P, x]\nOutputs:\n  O:\n    Value: v\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        for rule_id in ["E2001", "E7001", "E8001", "E6003", "F1004", "F0002", "E1005"] {
+            assert_eq!(defect_messages(&ir, rule_id), Vec::<String>::new(), "no {rule_id} on well-formed sections");
+        }
+    }
+
+    #[test]
+    fn non_string_description_is_a_shape_defect() {
+        let input = "Description:\n  Not: a string\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(defect_messages(&ir, "F1004"), ["Description must be a string, got an object"]);
+    }
+
+    #[test]
+    fn non_string_format_version_is_a_shape_defect() {
+        let input = "AWSTemplateFormatVersion:\n  bad: true\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(defect_messages(&ir, "F0002"), ["AWSTemplateFormatVersion must be '2010-09-09', got an object"]);
+    }
+
+    #[test]
+    fn unquoted_date_format_version_is_not_a_shape_defect() {
+        let input = "AWSTemplateFormatVersion: 2010-09-09\nResources:\n  R:\n    Type: AWS::S3::Bucket\n";
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        assert_eq!(ir.format_version.as_deref(), Some("2010-09-09"));
+        assert_eq!(defect_messages(&ir, "F0002"), Vec::<String>::new());
+    }
 }

@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-23 17:12:26  
+> Generated: 2026-07-23 21:53:54  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,15 +22,15 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 2070 |
+| True Positives | 2075 |
 | False Positives (engine bugs) | 0 |
 | Engine Extra (correct, cfn-lint gap) | 5837 |
-| False Negatives (engine misses) | 328 |
+| False Negatives (engine misses) | 323 |
 | Precision | 100.00% |
-| Recall | 86.32% |
-| F1 | 92.66% |
+| Recall | 86.53% |
+| F1 | 92.78% |
 | Unique rules detected | 219 |
-| Perfect templates | 458/573 |
+| Perfect templates | 459/573 |
 | Location mismatches (matched pairs) | 17 |
 
 ### By Severity
@@ -38,7 +38,7 @@
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
 | Fatal | 381 | 0 | 55 | 110 | 100.00% | 77.60% |
-| Error | 439 | 0 | 6 | 144 | 100.00% | 75.30% |
+| Error | 444 | 0 | 6 | 139 | 100.00% | 76.16% |
 | Warning | 748 | 0 | 346 | 55 | 100.00% | 93.15% |
 | Info | 502 | 0 | 5430 | 19 | 100.00% | 96.35% |
 
@@ -46,27 +46,27 @@
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 23861.1284 ms |
-| Throughput | 120.91 validations/sec |
-| Templates | 577 ok, 8 failed |
+| Total wall time | 23716.6301 ms |
+| Throughput | 122.49 validations/sec |
+| Templates | 581 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 55.7296 ms |
-| Engine init (max) | 56.0107 ms |
-| Schema init (p99) | 74.7723 ms |
-| Schema init (max) | 75.5789 ms |
+| Engine init (p99) | 59.7063 ms |
+| Engine init (max) | 60.0942 ms |
+| Schema init (p99) | 78.6590 ms |
+| Schema init (max) | 79.5441 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0024 | 0.2210 | 0.0468 | 0.6841 | 1.0512 | 2.0184 | 3.4333 |
-| Schema Validate | 0.0000 | 0.4349 | 0.1628 | 1.2112 | 1.7931 | 3.1012 | 6.8552 |
-| Rule Evaluation | 1.0035 | 6.8917 | 2.4907 | 18.3075 | 26.3188 | 57.8233 | 166.1727 |
-| Diagnostic Finalize | 0.0005 | 0.0126 | 0.0055 | 0.0322 | 0.0470 | 0.0906 | 0.1778 |
-| Engine Internal | 1.0147 | 7.6349 | 2.7588 | 19.7223 | 29.1738 | 59.1046 | 169.5993 |
-| Wall Clock | 1.0149 | 7.6356 | 2.7591 | 19.7236 | 29.1750 | 59.1058 | 169.6008 |
+| Model Build | 0.0023 | 0.2333 | 0.0461 | 0.7519 | 1.1011 | 2.1135 | 3.4752 |
+| Schema Validate | 0.0000 | 0.4427 | 0.1527 | 1.2725 | 1.8750 | 3.3408 | 7.2466 |
+| Rule Evaluation | 0.9888 | 6.8750 | 2.2742 | 18.8546 | 25.3983 | 55.3058 | 140.1133 |
+| Diagnostic Finalize | 0.0005 | 0.0106 | 0.0041 | 0.0265 | 0.0407 | 0.0878 | 0.1786 |
+| Engine Internal | 0.9957 | 7.6136 | 2.5262 | 20.7048 | 29.7237 | 56.9374 | 142.3375 |
+| Wall Clock | 0.9958 | 7.6141 | 2.5264 | 20.7055 | 29.7250 | 56.9381 | 142.3387 |
 
-## False Negatives — 328 missed findings across 77 rules
+## False Negatives — 323 missed findings across 76 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -290,25 +290,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.TreatMissingData.Fn::If.0` L192-194 in `lsp_condition-usage_yaml`
   > {'Fn::Not': [{'Condition': 'IsProduction'}]} is not of type 'string'
 
-### E1001 — 8 missed — Basic CloudFormation Template Configuration
-
-- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions` L6 in `bad_core_conditions_list_yaml`
-  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
-- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
-  > Additional properties are not allowed ('NotEven' was unexpected)
-- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
-  > None is not one of ['2010-09-09']
-- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
-  > None is not of type 'string', 'date'
-- **E1001** L1-7 in `gh-issues_issue-201_json`
-  > 'Resources' is a required property
-
 ### E3001 — 8 missed — Basic CloudFormation Resource Check
 
 - **E3001** `CloudFrontDistribution` → `Resources.CloudFrontDistribution.Condition` L84 in `bad_conditions_yaml`
@@ -467,6 +448,21 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'obj' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 - **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
+
+### E1001 — 6 missed — Basic CloudFormation Template Configuration
+
+- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
+  > Additional properties are not allowed ('NotEven' was unexpected)
+- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
+  > None is not of type 'string', 'date'
+- **E1001** L1-7 in `gh-issues_issue-201_json`
+  > 'Resources' is a required property
 
 ### E3530 — 6 missed — Validate IAM trust polices
 
@@ -741,15 +737,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'Cpu' is a required property
 - **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency_yaml`
   > 'Memory' is a required property
-
-### E1005 — 3 missed — Validate Transform configuration
-
-- **E1005** → `Transform` L2 in `bad_templates_base_null_yaml`
-  > None is not of type 'string', 'array', 'object'
-- **E1005** → `Transform` L2 in `bad_templates_base_yaml`
-  > 'Name' is a required property
-- **E1005** → `Transform.key` L3 in `bad_templates_base_yaml`
-  > Additional properties are not allowed ('key' was unexpected)
 
 ### E3707 — 2 missed — Validate RDS DBInstance Engine matches DBCluster Engine
 
@@ -12753,7 +12740,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L6 in `bad_unique_items_yaml`
   > Array property 'AvailabilityZones' contains duplicate values
 
-## Per-Template Breakdown — 115 templates with mismatches
+## Per-Template Breakdown — 114 templates with mismatches
 
 ### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 4 EE, 18 FN)
 
@@ -12914,11 +12901,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E8003` ×3
 - EE: `I9040`
 
-### `bad_core_conditions_list_yaml` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
-
-- FN: `E0002`, `E1001`, `F0013`
-- EE: `F0001`
-
 ### `bad_functions_sub_needed_yaml` — 3 mismatches (9 TP, 0 FP, 10 EE, 3 FN)
 
 - FN: `E3510` ×2, `E1152`
@@ -12939,11 +12921,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3003` ×3
 - EE: `W2508`, `I9001`, `I9040`
 
-### `bad_templates_base_null_yaml` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
-
-- FN: `E1001` ×2, `E1005`
-- EE: `F0001`
-
 ### `good_unknown_resource_types_ignored_yaml` — 3 mismatches (0 TP, 0 FP, 0 EE, 3 FN)
 
 - FN: `F3006` ×3
@@ -12961,6 +12938,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `bad_conditions_equals_yaml` — 2 mismatches (16 TP, 0 FP, 1 EE, 2 FN)
 
 - FN: `F1020`, `E1001`
+- EE: `F0001`
+
+### `bad_core_conditions_list_yaml` — 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
+
+- FN: `E0002`, `F0013`
 - EE: `F0001`
 
 ### `bad_core_mandatory_checks_yaml` — 2 mismatches (5 TP, 0 FP, 5 EE, 2 FN)
@@ -13004,11 +12986,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `W1031` ×2
 - EE: `I9040` ×2, `I9001`
-
-### `bad_templates_base_yaml` — 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
-
-- FN: `E1005` ×2
-- EE: `F0001`
 
 ### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json` — 2 mismatches (1 TP, 0 FP, 42 EE, 2 FN)
 
@@ -13232,6 +13209,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E2529`
 - EE: `I9040` ×8, `I9001` ×4
 
+### `bad_templates_base_null_yaml` — 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `E1001`
+- EE: `F0001`
+
 ### `cdk_DemoStack.template_json` — 1 mismatches (9 TP, 0 FP, 13 EE, 1 FN)
 
 - FN: `E3639`
@@ -13343,11 +13325,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 130 | 39.63% | E0002, E2001, E2529, E5001, E6001, E7001, E8003, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 92 | 28.05% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 55 | 16.77% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 32 | 9.76% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 19 | 5.79% | I2530, I3010, I3011, I3510 |
+| Other | 130 | 40.25% | E0002, E2001, E2529, E5001, E6001, E7001, E8003, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 92 | 28.48% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 55 | 17.03% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 27 | 8.36% | E1001, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 19 | 5.88% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
 
