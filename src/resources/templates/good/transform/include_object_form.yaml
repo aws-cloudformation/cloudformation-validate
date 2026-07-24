@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform:
+  Name: AWS::Include
+  Parameters:
+    Location: s3://config-bucket/common-resources.yaml
+Parameters:
+  SnippetEnvironment:
+    Type: String
+    Default: production
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: Name
+          Value: include-object-form

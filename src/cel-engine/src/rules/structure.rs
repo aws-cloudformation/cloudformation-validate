@@ -6,11 +6,11 @@ use std::sync::LazyLock;
 use template_model::consts::{
     EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND,
     FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_TRANSFORMS, FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH,
-    FN_FOR_EACH_KEY_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, POLICY_DELETE,
-    POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION,
-    SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS,
-    SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX,
+    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, POLICY_DELETE, POLICY_RETAIN,
+    POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
+    SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
+    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
 };
 use template_model::message::render_str_list;
 use template_model::{FORMAT_VERSION, is_service_valid};
@@ -282,13 +282,6 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-    }
-
-    if let Some(desc_val) = input.get("template").and_then(|t| t.get("description"))
-        && !desc_val.is_string()
-        && !desc_val.is_null()
-    {
-        out.push(make_resource_diagnostic("F1004", "Description must be a string", m, "", "", None));
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
@@ -920,31 +913,6 @@ fn eval_template_size_and_transforms(ctx: &EvalContext) -> Vec<Diagnostic> {
                 "",
                 None,
             ));
-        }
-    }
-
-    if let Some(transforms) = input.get("template").and_then(|t| t.get(FIELD_TRANSFORMS)).and_then(|v| v.as_array()) {
-        for t in transforms {
-            if !t.is_string() && !t.is_object() {
-                out.push(make_resource_diagnostic(
-                    "E1005",
-                    &format!("Transform entry must be a string or object, got {}", t),
-                    m,
-                    "",
-                    "",
-                    None,
-                ));
-            }
-            if t.is_object() && t.get("Name").is_none() {
-                out.push(make_resource_diagnostic(
-                    "E1005",
-                    "Transform object is missing required 'Name' property",
-                    m,
-                    "",
-                    "",
-                    None,
-                ));
-            }
         }
     }
 

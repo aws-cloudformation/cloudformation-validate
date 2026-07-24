@@ -93,15 +93,6 @@ violation contains make_diag_at("I7002", "INFO", "",
     count(mname) <= 255
 }
 
-# F1004: Description must be a string
-violation contains make_diag("F1004", "FATAL", "",
-    "Description must be a string") if {
-    desc := input.template.description
-    desc != null
-    not is_string(desc)
-    not is_null(desc)
-}
-
 # F3007: Duplicate resource/parameter names
 violation contains make_diag("F3007", "FATAL", pname,
     sprintf("'%s' is used as both a parameter and resource logical ID", [pname])) if {
