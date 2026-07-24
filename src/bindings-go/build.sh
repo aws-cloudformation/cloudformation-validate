@@ -48,10 +48,23 @@ command -v uniffi-bindgen-go &>/dev/null || {
 if [ -n "$CARGO_TARGET" ]; then
     HOST_TRIPLE="$(rustc -vV | sed -n 's/^host: //p' | tr -d '\r')"
     if [ "$HOST_TRIPLE" != "$CARGO_TARGET" ]; then
-        echo "Error: building the Windows Go bindings requires a $CARGO_TARGET host toolchain, but the active host is '${HOST_TRIPLE:-unknown}'." >&2
-        echo "A GNU host is required so build scripts run as GNU; an MSVC host aborts because msvc_spectre_libs looks for cl.exe for the GNU target." >&2
-        echo "Install and select it with: rustup toolchain install stable-$CARGO_TARGET && rustup default stable-$CARGO_TARGET" >&2
-        exit 1
+        # A GNU host is required so build scripts run as GNU; an MSVC host aborts because
+        # msvc_spectre_libs looks for cl.exe for the GNU target. The workspace's
+        # rust-toolchain.toml pins a host-less channel, so rustup resolves it against the
+        # machine's default host (MSVC on Windows) — that override outranks the rustup
+        # default, so even an installed GNU-host toolchain is not the active one here.
+        # Re-pin to the same channel on the GNU host via RUSTUP_TOOLCHAIN, which outranks
+        # rust-toolchain.toml, so cargo and every build script run on the GNU host.
+        RUST_CHANNEL="$(rustc -vV | sed -n 's/^release: //p' | tr -d '\r')"
+        GNU_TOOLCHAIN="${RUST_CHANNEL}-${CARGO_TARGET}"
+        if ! rustup run "$GNU_TOOLCHAIN" rustc --version &>/dev/null; then
+            echo "Error: building the Windows Go bindings requires the '$GNU_TOOLCHAIN' host toolchain, but it is not installed (active host is '${HOST_TRIPLE:-unknown}')." >&2
+            echo "A GNU host is required so build scripts run as GNU; an MSVC host aborts because msvc_spectre_libs looks for cl.exe for the GNU target." >&2
+            echo "Install it with: rustup toolchain install $GNU_TOOLCHAIN" >&2
+            exit 1
+        fi
+        export RUSTUP_TOOLCHAIN="$GNU_TOOLCHAIN"
+        echo "Pinned RUSTUP_TOOLCHAIN=$GNU_TOOLCHAIN so cargo and build scripts run on the GNU host (overrides rust-toolchain.toml)."
     fi
 fi
 
