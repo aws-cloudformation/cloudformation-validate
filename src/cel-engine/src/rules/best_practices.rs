@@ -454,7 +454,12 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if !m.resources.get(name.as_str()).map(|r| r.properties.contains_key("StorageEncrypted")).unwrap_or(false) {
+        // Cluster-member instances (DBClusterIdentifier present) are skipped: per the
+        // CloudFormation reference, StorageEncrypted is "Not applicable" there because
+        // encryption is managed by the DB cluster.
+        let props = m.resources.get(name.as_str()).map(|r| &r.properties);
+        let is_cluster_member = props.map(|p| p.contains_key("DBClusterIdentifier")).unwrap_or(false);
+        if !is_cluster_member && !props.map(|p| p.contains_key("StorageEncrypted")).unwrap_or(false) {
             out.push(make_resource_diagnostic(
                 "W9008",
                 "RDS instance should have StorageEncrypted set to true",

@@ -719,6 +719,16 @@ fn e2e_aurora_exclusions() {
 fn e2e_aurora_valid() {
     let report = validate_fixture("good/aurora_dbinstance.yaml");
     assert!(!has_rule(&report, "E3070"), "Valid Aurora should not trigger E3070");
+    // StorageEncrypted is "Not applicable" for cluster-member instances; encryption
+    // is managed by the DB cluster (https://github.com/aws-cloudformation/cloudformation-validate/issues/235)
+    assert!(!has_rule(&report, "W9008"), "Cluster-member instance should not trigger W9008");
+}
+
+#[test]
+fn e2e_w9008_standalone_instance_still_flagged() {
+    // Standalone DB instance (no DBClusterIdentifier) without StorageEncrypted must keep flagging W9008
+    let report = validate_fixture("bad/properties_password.yaml");
+    assert!(has_rule(&report, "W9008"), "Standalone instance without StorageEncrypted should trigger W9008");
 }
 
 #[test]
