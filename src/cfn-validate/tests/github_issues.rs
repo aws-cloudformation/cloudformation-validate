@@ -1392,3 +1392,25 @@ Resources:
         }
     }
 }
+
+/// Issue #226: for `icmp`/`icmpv6` security group rules, FromPort/ToPort carry
+/// the ICMP type and code (`-1` meaning any), not an ordered port range, so the
+/// inverted-range check must not fire on them (AWS CDK's `Port.icmpPing()`
+/// emits `FromPort: 8, ToPort: -1`). The fixture pairs the ICMP shapes with a
+/// genuinely inverted TCP range to guard the positive boundary: E9002 still
+/// fires there, and only there.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/226
+#[test]
+fn issue_226_e9002_ignores_icmp_type_code_but_fires_on_inverted_tcp_range() {
+    let diags = validate_both("issue-226.yaml");
+    assert_fires_with_severity(&diags, "E9002", Severity::Error);
+    assert_fires_on_resource(&diags, "E9002", "InvertedRangeSecurityGroup");
+    assert_count(&diags, "E9002", 1);
+    for (engine, ds) in &diags {
+        let on_ping: Vec<&Diagnostic> = ds
+            .iter()
+            .filter(|d| d.rule_id == "E9002" && d.resource_logical_id() == Some("PingSecurityGroup"))
+            .collect();
+        assert!(on_ping.is_empty(), "[{engine}] E9002 must not fire on ICMP type/code rules, got: {on_ping:?}");
+    }
+}
