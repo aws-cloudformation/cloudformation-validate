@@ -2632,7 +2632,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 5,
         "debug": 0
       },
@@ -2660,25 +2660,6 @@
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "AuroraDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 11,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
-        "phase": "LINT"
       },
       {
         "ruleId": "I3011",
@@ -123820,7 +123801,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 6,
         "debug": 0
       },
@@ -123829,25 +123810,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "AuroraDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 11,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
-        "phase": "LINT"
-      },
       {
         "ruleId": "I3011",
         "severity": "INFO",
@@ -145513,7 +145475,7 @@
       "counts": {
         "fatal": 0,
         "errors": 7,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 51,
         "debug": 0
       },
@@ -145687,25 +145649,6 @@
         "endLine": 114,
         "endColumn": 25,
         "ruleDescription": "Check if Password Properties are correctly configured",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BadEngineInstance",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 115,
-        "startColumn": 3,
-        "endLine": 115,
-        "endColumn": 20,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
       {
