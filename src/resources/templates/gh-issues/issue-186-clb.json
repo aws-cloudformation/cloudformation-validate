@@ -1,0 +1,31 @@
+{
+ "Resources": {
+  "CLBA83A883E": {
+   "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+   "Properties": {
+    "CrossZone": true,
+    "Listeners": [
+     {
+      "InstancePort": "8080",
+      "InstanceProtocol": "tcp",
+      "LoadBalancerPort": "8080",
+      "Protocol": "tcp"
+     }
+    ],
+    "Scheme": "internal",
+    "SecurityGroups": [
+     "sg-12345678"
+    ],
+    "Subnets": [
+     "subnet-12345678"
+    ],
+    "Tags": [
+     {
+      "Key": "purpose",
+      "Value": "regression-test"
+     }
+    ]
+   }
+  }
+ }
+}

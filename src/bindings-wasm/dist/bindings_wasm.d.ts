@@ -192,6 +192,18 @@ export interface DiagnosticResource {
      */
     unsubstitutedVariables: PathVariable[];
     /**
+     * Fn::Sub map keys not referenced in the template string, each with its path and the unused key name.
+     */
+    unusedSubKeys: PathVariable[];
+    /**
+     * Property values that are a raw pseudo-parameter string instead of using Ref, each with its path and the pseudo-parameter name.
+     */
+    rawPseudoParams: PathVariable[];
+    /**
+     * Property paths containing a {{resolve:secretsmanager:...}} dynamic reference.
+     */
+    secretsmanagerRefPaths: string[];
+    /**
      * References whose target does not resolve to any resource or parameter, each with its path and unresolved target.
      */
     invalidRefs: PathTarget[];
@@ -235,6 +247,7 @@ export interface RuleFilterConfig {
      */
     idPatterns?: string[];
     resourceIds?: ResourceIdFilter[];
+    logicalIds?: LogicalIdFilter[];
     resourceTypes?: ResourceTypeFilter[];
     services?: ServiceFilter[];
 }
@@ -385,6 +398,25 @@ export interface ResolvedResource {
     propertiesDynamic: boolean;
     diagnostics: ResourceDiagnostics;
 }
+
+/**
+ * A top-level CloudFormation template section, as documented in the template
+ * anatomy (<https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html>).
+ *
+ * This is the canonical, single definition of the section names — section
+ * constants in other crates derive from it.
+ */
+export type TopLevelSection =
+    | 'Resources'
+    | 'Parameters'
+    | 'Outputs'
+    | 'Mappings'
+    | 'Metadata'
+    | 'Rules'
+    | 'Conditions'
+    | 'Transform'
+    | 'FormatVersion'
+    | 'Description';
 
 /**
  * Advanced introspection view of a parsed CloudFormation template: its reference graph,
@@ -662,6 +694,18 @@ export interface ResourceDiagnostics {
      */
     unsubstitutedVariables: PathValuePair[];
     /**
+     * Fn::Sub map keys not referenced in the template string; each pairs the property path with the unused key name.
+     */
+    unusedSubKeys: PathValuePair[];
+    /**
+     * Property values that are a raw pseudo-parameter string (e.g. \"AWS::Region\") instead of using Ref.
+     */
+    rawPseudoParams: PathValuePair[];
+    /**
+     * Property paths containing a {{resolve:secretsmanager:...}} dynamic reference.
+     */
+    secretsmanagerRefPaths: string[];
+    /**
      * References whose target is not a defined resource, parameter, or pseudo parameter; each pairs the property path with the missing target name.
      */
     invalidRefs: PathValuePair[];
@@ -706,6 +750,19 @@ export interface ResourceIdFilter {
 }
 
 /**
+ * Suppress a rule for a specific named template entity — a resource,
+ * parameter, output, mapping, condition, or template rule — identified by its
+ * logical ID. An absent `rule_id` scopes the filter to every rule on that
+ * entity; an absent `entity_type` scopes it to entities of every type with
+ * that logical ID.
+ */
+export interface LogicalIdFilter {
+    ruleId?: string;
+    logicalId: string;
+    entityType?: EntityType;
+}
+
+/**
  * Suppress a rule for a specific resource type. An absent `rule_id` scopes the
  * filter to every rule on that type.
  */
@@ -727,6 +784,43 @@ export interface ResourceTypeFilter {
 export interface ServiceFilter {
     ruleId?: string;
     service: string;
+}
+
+/**
+ * The kind of template entity a diagnostic targets — the singular form of the
+ * top-level section the entity is declared in. Every documented section has a
+ * variant; the ones whose children are addressable by logical ID (resources,
+ * parameters, outputs, mappings, conditions, rules, and metadata keys) are
+ * the ones diagnostics attribute findings to today.
+ */
+export type EntityType =
+    | 'Resource'
+    | 'Parameter'
+    | 'Output'
+    | 'Mapping'
+    | 'Metadata'
+    | 'Rule'
+    | 'Condition'
+    | 'Transform'
+    | 'FormatVersion'
+    | 'Description';
+
+/**
+ * The named template entity a diagnostic is attributed to, when it targets
+ * one. The entity type is the singular form of the top-level template
+ * section the entity is declared in.
+ */
+export interface Entity {
+    /**
+     * Logical ID of the entity as declared in the template.
+     */
+    logicalId: string;
+    entityType: EntityType;
+    /**
+     * CloudFormation resource type, when the entity is a resource whose type
+     * is known.
+     */
+    resourceType?: string;
 }
 
 /**
@@ -810,7 +904,7 @@ export interface PseudoParameterOverrides {
 export type RuleOrigin = 'SCHEMA' | 'CFN_LINT' | 'ENGINE' | 'CUSTOM' | 'GUARD';
 
 /**
- *r" A single validation finding with its resource and source location flattened into individual fields.
+ *r" A single validation finding with its source location flattened into individual fields.
  */
 export interface StandardDiagnostic {
     /**
@@ -824,10 +918,9 @@ export interface StandardDiagnostic {
      */
     source: RuleOrigin;
     /**
-     * Logical ID of the resource this finding targets, if any.
+     * The named template entity this finding targets — a resource, parameter, output, mapping, condition, or template rule — if any.
      */
-    resourceId?: string;
-    resourceType?: string;
+    entity?: Entity;
     /**
      * Path to the offending property within the resource, such as \'Properties.Name\'.
      */
@@ -863,10 +956,9 @@ export interface DetailedDiagnostic {
      */
     source: RuleOrigin;
     /**
-     * Logical ID of the resource this finding targets, if any.
+     * The named template entity this finding targets — a resource, parameter, output, mapping, condition, or template rule — if any.
      */
-    resourceId?: string;
-    resourceType?: string;
+    entity?: Entity;
     /**
      * Path to the offending property within the resource, such as \'Properties.Name\'.
      */
@@ -888,10 +980,6 @@ export interface DetailedDiagnostic {
     documentationUrl?: string;
     ruleDescription?: string;
     phase?: Phase;
-    /**
-     *r" Top-level template section the finding falls under, such as 'Resources' or 'Parameters'.
-     */
-    section?: string;
     context?: ViolationContext;
 }
 

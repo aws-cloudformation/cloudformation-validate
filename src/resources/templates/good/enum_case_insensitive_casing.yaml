@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Case-insensitive enum values are accepted in any casing: the Batch compute
+  environment Type enum lists managed/unmanaged and the service accepts any
+  case, so lowercase and mixed-case forms must produce no enum diagnostic.
+Parameters:
+  BatchServiceRoleArn:
+    Type: String
+Resources:
+  LowercaseType:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      Type: managed
+      ComputeResources:
+        MaxvCpus: 4
+        Subnets:
+          - subnet-12345678
+        Type: FARGATE
+      ServiceRole: !Ref BatchServiceRoleArn
+      Tags:
+        purpose: regression-test
+  MixedCaseType:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      Type: Unmanaged
+      ServiceRole: !Ref BatchServiceRoleArn
+      Tags:
+        purpose: regression-test

@@ -304,6 +304,20 @@ fn is_valid_cidr_strict(s: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// FromPort/ToPort form an ordered port range only for the TCP and UDP
+/// protocols (named case-insensitively or by IP protocol number 6/17). For
+/// icmp/icmpv6 the two fields carry the ICMP type and code, where -1 is a
+/// wildcard, and every other protocol ignores the ports entirely, so no
+/// ordering constraint applies.
+fn sg_protocol_has_ordered_port_range(protocol: Option<&serde_json::Value>) -> bool {
+    match protocol.and_then(coerce_to_string) {
+        Some(proto) => {
+            proto.eq_ignore_ascii_case("tcp") || proto.eq_ignore_ascii_case("udp") || proto == "6" || proto == "17"
+        }
+        None => false,
+    }
+}
+
 pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -386,10 +400,16 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, res) in resources {
+            if res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()) != Some("AWS::EC2::SecurityGroup") {
+                continue;
+            }
             if let Some(rules) =
                 res.get(FIELD_PROPERTIES).and_then(|p| p.get("SecurityGroupIngress")).and_then(|s| s.as_array())
             {
                 for rule in rules {
+                    if !sg_protocol_has_ordered_port_range(rule.get("IpProtocol")) {
+                        continue;
+                    }
                     let from = rule.get("FromPort").and_then(coerce_to_integer);
                     let to = rule.get("ToPort").and_then(coerce_to_integer);
                     if let (Some(f), Some(t)) = (from, to)
@@ -4352,6 +4372,53 @@ fn check_dynamic_ref_spaces(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ordered_port_range_protocol_tcp_udp_names_any_case() {
+        for proto in ["tcp", "TCP", "Tcp", "udp", "UDP"] {
+            let value = serde_json::Value::String(proto.to_string());
+            assert!(sg_protocol_has_ordered_port_range(Some(&value)), "{} should have an ordered port range", proto);
+        }
+    }
+
+    #[test]
+    fn ordered_port_range_protocol_tcp_udp_numbers() {
+        for proto in [serde_json::json!(6), serde_json::json!(17), serde_json::json!("6"), serde_json::json!("17")] {
+            assert!(sg_protocol_has_ordered_port_range(Some(&proto)), "{} should have an ordered port range", proto);
+        }
+    }
+
+    #[test]
+    fn ordered_port_range_protocol_rejects_icmp_type_code_protocols() {
+        for proto in [
+            serde_json::json!("icmp"),
+            serde_json::json!("ICMP"),
+            serde_json::json!("icmpv6"),
+            serde_json::json!(1),
+            serde_json::json!("1"),
+            serde_json::json!(58),
+            serde_json::json!("58"),
+        ] {
+            assert!(!sg_protocol_has_ordered_port_range(Some(&proto)), "{} carries ICMP type/code, not a range", proto);
+        }
+    }
+
+    #[test]
+    fn ordered_port_range_protocol_rejects_all_protocols_wildcard_and_unknown() {
+        for proto in [serde_json::json!("-1"), serde_json::json!(-1), serde_json::json!("esp"), serde_json::json!(50)] {
+            assert!(!sg_protocol_has_ordered_port_range(Some(&proto)), "{} ignores ports, no ordering applies", proto);
+        }
+    }
+
+    #[test]
+    fn ordered_port_range_protocol_rejects_missing_or_unresolved_protocol() {
+        assert!(!sg_protocol_has_ordered_port_range(None), "absent protocol should not have an ordered port range");
+        let unresolved_ref = serde_json::json!({"Ref": "ProtocolParam"});
+        assert!(
+            !sg_protocol_has_ordered_port_range(Some(&unresolved_ref)),
+            "unresolved protocol should not have an ordered port range"
+        );
+    }
 
     #[test]
     fn parse_cidr_valid() {

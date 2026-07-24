@@ -88,6 +88,14 @@ impl CompiledSchemaStore {
         }
     }
 
+    /// Registers a schema directly, bypassing the embedded artifacts — lets
+    /// unit tests exercise validation against schema shapes the committed
+    /// artifacts do not yet contain.
+    #[cfg(test)]
+    pub(crate) fn insert_schema(&mut self, schema: CompiledSchema) {
+        self.schemas.insert(schema.type_name.clone(), schema);
+    }
+
     pub fn len(&self) -> usize {
         self.schemas.len()
     }

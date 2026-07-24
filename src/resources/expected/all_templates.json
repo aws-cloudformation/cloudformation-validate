@@ -2460,6 +2460,98 @@
       }
     ]
   },
+  "bad/W3030_enum_case_insensitive_mismatch.yaml": {
+    "filePath": "bad/W3030_enum_case_insensitive_mismatch.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'BOGUS' is not one of ['managed', 'unmanaged'] (case-insensitive)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ComputeEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Schema",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "BOGUS",
+          "extra": {
+            "allowed_values": [
+              "managed",
+              "unmanaged"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ComputeEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ComputeEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
   "bad/W9053_equivalent_conditions.yaml": {
     "filePath": "bad/W9053_equivalent_conditions.yaml",
     "status": "OK",
@@ -5789,7 +5881,7 @@
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
-        "errors": 0,
+        "errors": 1,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -5811,6 +5903,20 @@
         "endColumn": 10,
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E8001",
+        "severity": "ERROR",
+        "message": "Conditions section must be an object, got a list",
+        "source": "SCHEMA",
+        "propertyPath": "Conditions",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 1,
+        "endLine": 6,
+        "endColumn": 11,
+        "ruleDescription": "Conditions section must have valid structure",
+        "phase": "PARSE"
       }
     ]
   },
@@ -6984,6 +7090,68 @@
       }
     ]
   },
+  "bad/core/sections_not_objects.yaml": {
+    "filePath": "bad/core/sections_not_objects.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E2001",
+        "severity": "ERROR",
+        "message": "Parameters section must be an object, got null",
+        "source": "CFN_LINT",
+        "propertyPath": "Parameters",
+        "category": "Parameter",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 11,
+        "ruleDescription": "Parameters have appropriate properties",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E6003",
+        "severity": "ERROR",
+        "message": "Outputs section must be an object, got a string",
+        "source": "CFN_LINT",
+        "propertyPath": "Outputs",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 1,
+        "endLine": 5,
+        "endColumn": 8,
+        "ruleDescription": "Outputs section must be an object of named output definitions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E7001",
+        "severity": "ERROR",
+        "message": "Mappings section must be an object, got a list",
+        "source": "CFN_LINT",
+        "propertyPath": "Mappings",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 1,
+        "endLine": 3,
+        "endColumn": 9,
+        "ruleDescription": "Mappings are appropriately configured",
+        "phase": "PARSE"
+      }
+    ]
+  },
   "bad/cross_resource_task10.yaml": {
     "filePath": "bad/cross_resource_task10.yaml",
     "status": "OK",
@@ -6994,7 +7162,7 @@
         "fatal": 1,
         "errors": 6,
         "warnings": 3,
-        "informational": 27,
+        "informational": 28,
         "debug": 0
       },
       "suppressed": 0,
@@ -7601,6 +7769,26 @@
         "startLine": 7,
         "startColumn": 5,
         "endLine": 7,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BadListener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BadListener",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -9357,7 +9545,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 1,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -9424,6 +9612,26 @@
         "context": {
           "lifecycle": "create-only"
         }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Listener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Listener",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
       }
     ]
   },
@@ -38155,7 +38363,7 @@
         "startColumn": 7,
         "endLine": 7,
         "endColumn": 27,
-        "ruleDescription": "SecurityGroup FromPort must be <= ToPort",
+        "ruleDescription": "SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols",
         "phase": "LINT",
         "context": {
           "actualValue": [
@@ -40970,7 +41178,7 @@
       "resourcesScanned": 0,
       "counts": {
         "fatal": 2,
-        "errors": 0,
+        "errors": 2,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -41006,6 +41214,34 @@
         "endColumn": 25,
         "ruleDescription": "AWSTemplateFormatVersion must be 2010-09-09",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform object is missing required 'Name' property",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 10,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform object has unknown property 'key' - expected one of 'Name', 'Parameters'",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 6,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
       }
     ]
   },
@@ -41063,8 +41299,8 @@
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
-        "fatal": 1,
-        "errors": 0,
+        "fatal": 2,
+        "errors": 1,
         "warnings": 0,
         "informational": 0,
         "debug": 0
@@ -41086,6 +41322,130 @@
         "endColumn": 10,
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F0002",
+        "severity": "FATAL",
+        "message": "AWSTemplateFormatVersion must be '2010-09-09', got null",
+        "source": "SCHEMA",
+        "propertyPath": "AWSTemplateFormatVersion",
+        "category": "Structure",
+        "startLine": 1,
+        "startColumn": 1,
+        "endLine": 1,
+        "endColumn": 25,
+        "ruleDescription": "AWSTemplateFormatVersion must be 2010-09-09",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform must be a transform name, a list of transforms, or a {Name, Parameters} object, got null",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 10,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/templates/description_object.yaml": {
+    "filePath": "bad/templates/description_object.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1004",
+        "severity": "FATAL",
+        "message": "Description must be a string, got a list",
+        "source": "SCHEMA",
+        "propertyPath": "Description",
+        "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 12,
+        "ruleDescription": "Description must be a string",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/templates/transform_invalid_entries.yaml": {
+    "filePath": "bad/templates/transform_invalid_entries.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform entry must be a transform name or a {Name, Parameters} object, got a number",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 4,
+        "startColumn": 5,
+        "endLine": 4,
+        "endColumn": 6,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform 'Parameters' must be an object, got a string",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1005",
+        "severity": "ERROR",
+        "message": "Transform 'Name' must be a string, got a list",
+        "source": "CFN_LINT",
+        "propertyPath": "Transform",
+        "category": "Structure",
+        "startLine": 7,
+        "startColumn": 5,
+        "endLine": 7,
+        "endColumn": 9,
+        "ruleDescription": "Validate Transform configuration",
+        "phase": "PARSE"
       }
     ]
   },
@@ -41667,7 +42027,7 @@
         "startColumn": 5,
         "endLine": 96,
         "endColumn": 26,
-        "ruleDescription": "SecurityGroup FromPort must be <= ToPort",
+        "ruleDescription": "SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols",
         "phase": "LINT",
         "context": {
           "actualValue": [
@@ -49288,7 +49648,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 5,
-        "informational": 68,
+        "informational": 69,
         "debug": 0
       },
       "suppressed": 0,
@@ -50963,6 +51323,26 @@
         "startLine": 735,
         "startColumn": 4,
         "endLine": 735,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LBListener49E825B4' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LBListener49E825B4",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 780,
+        "startColumn": 4,
+        "endLine": 780,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -58357,7 +58737,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 4,
-        "informational": 109,
+        "informational": 110,
         "debug": 0
       },
       "suppressed": 0,
@@ -60583,6 +60963,26 @@
         "startLine": 1710,
         "startColumn": 4,
         "endLine": 1710,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PublicAlbAlbListener804C1B2779' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PublicAlbAlbListener804C1B2779",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 1748,
+        "startColumn": 4,
+        "endLine": 1748,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -66521,7 +66921,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 30,
+        "informational": 31,
         "debug": 0
       },
       "suppressed": 0,
@@ -67209,6 +67609,26 @@
       {
         "ruleId": "I9040",
         "severity": "INFO",
+        "message": "Resource 'Listener828B0E81' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Listener828B0E81",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 191,
+        "startColumn": 4,
+        "endLine": 191,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
         "message": "Resource 'ListenerECSGroup2EA4A011' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured",
         "source": "ENGINE",
         "entity": {
@@ -67238,7 +67658,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 12,
+        "informational": 13,
         "debug": 0
       },
       "suppressed": 0,
@@ -67486,6 +67906,26 @@
         "startLine": 37,
         "startColumn": 4,
         "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LoadBalancerListenerE1A099B9' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LoadBalancerListenerE1A099B9",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 58,
+        "startColumn": 4,
+        "endLine": 58,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -72943,7 +73383,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 78,
+        "informational": 79,
         "debug": 0
       },
       "suppressed": 0,
@@ -74635,6 +75075,26 @@
       {
         "ruleId": "I9040",
         "severity": "INFO",
+        "message": "Resource 'FargateServiceLBPublicListener4B4929CA' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FargateServiceLBPublicListener4B4929CA",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 554,
+        "startColumn": 4,
+        "endLine": 554,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
         "message": "Resource 'FargateServiceLBPublicListenerECSGroupBE57E081' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured",
         "source": "ENGINE",
         "entity": {
@@ -74784,7 +75244,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 70,
+        "informational": 71,
         "debug": 0
       },
       "suppressed": 0,
@@ -76287,6 +76747,26 @@
         "startLine": 471,
         "startColumn": 4,
         "endLine": 471,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'sampleappLBPublicListenerC4DF6480' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "sampleappLBPublicListenerC4DF6480",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 501,
+        "startColumn": 4,
+        "endLine": 501,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -101227,7 +101707,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 35,
+        "informational": 36,
         "debug": 0
       },
       "suppressed": 0,
@@ -102021,6 +102501,26 @@
         "startLine": 249,
         "startColumn": 4,
         "endLine": 249,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ALBListener3B99FF85' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ALBListener3B99FF85",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 281,
+        "startColumn": 4,
+        "endLine": 281,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -106630,7 +107130,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 57,
+        "informational": 59,
         "debug": 0
       },
       "suppressed": 0,
@@ -107899,6 +108399,46 @@
         "startLine": 591,
         "startColumn": 4,
         "endLine": 591,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FrontendLBListener230479D8' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FrontendLBListener230479D8",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 627,
+        "startColumn": 4,
+        "endLine": 627,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ListenerRule73F9AC5E' of type 'AWS::ElasticLoadBalancingV2::ListenerRule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ListenerRule73F9AC5E",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancingV2::ListenerRule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 648,
+        "startColumn": 4,
+        "endLine": 648,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -116813,6 +117353,176 @@
     },
     "diagnostics": []
   },
+  "gh-issues/issue-186-clb.json": {
+    "filePath": "gh-issues/issue-186-clb.json",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CLBA83A883E",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.0.Protocol",
+        "category": "Schema",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 16,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "tcp"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Scheme' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CLBA83A883E",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Scheme",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 5,
+        "endLine": 15,
+        "endColumn": 12,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "gh-issues/issue-186-imagebuilder.json": {
+    "filePath": "gh-issues/issue-186-imagebuilder.json",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'Abort' is not one of ['CONTINUE', 'ABORT']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ImagePipeline7DDDE57F",
+          "entityType": "Resource",
+          "resourceType": "AWS::ImageBuilder::ImagePipeline"
+        },
+        "propertyPath": "Properties.Workflows.0.OnFailure",
+        "category": "Schema",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-imagebuilder.git",
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "Abort"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ImagePipeline7DDDE57F",
+          "entityType": "Resource",
+          "resourceType": "AWS::ImageBuilder::ImagePipeline"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 5,
+        "endLine": 24,
+        "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-imagebuilder.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "gh-issues/issue-194.json": {
+    "filePath": "gh-issues/issue-194.json",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E2001",
+        "severity": "ERROR",
+        "message": "Parameter 'SomeParameter': Default must be a string",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SomeParameter",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/SomeParameter/Default",
+        "category": "Parameter",
+        "startLine": 5,
+        "startColumn": 4,
+        "endLine": 5,
+        "endColumn": 12,
+        "ruleDescription": "Parameters have appropriate properties",
+        "phase": "PARSE"
+      }
+    ]
+  },
   "gh-issues/issue-201.json": {
     "filePath": "gh-issues/issue-201.json",
     "status": "OK",
@@ -116874,6 +117584,140 @@
         "endLine": 3,
         "endColumn": 13,
         "ruleDescription": "Check if Parameters are Used",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "gh-issues/issue-226.yaml": {
+    "filePath": "gh-issues/issue-226.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E9002",
+        "severity": "ERROR",
+        "message": "FromPort 443 is greater than ToPort 80",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvertedRangeSecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress",
+        "suggestedFix": "Set FromPort to a value less than or equal to ToPort",
+        "category": "Resource",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 27,
+        "ruleDescription": "SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols",
+        "phase": "LINT",
+        "context": {
+          "actualValue": [
+            {
+              "CidrIp": "10.0.0.0/8",
+              "IpProtocol": "tcp",
+              "FromPort": 443,
+              "ToPort": 80
+            }
+          ]
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PingSecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvertedRangeSecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 7,
+        "endLine": 24,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PingSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PingSecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'InvertedRangeSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvertedRangeSecurityGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 5,
+        "endLine": 23,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
     ]
@@ -126645,6 +127489,114 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
+      }
+    ]
+  },
+  "good/enum_case_insensitive_casing.yaml": {
+    "filePath": "good/enum_case_insensitive_casing.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MixedCaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MixedCaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
       }
     ]
   },
@@ -142025,6 +142977,25 @@
         "phase": "LINT"
       }
     ]
+  },
+  "good/transform/include_object_form.yaml": {
+    "filePath": "good/transform/include_object_form.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
   },
   "good/transform/language_extension.yaml": {
     "filePath": "good/transform/language_extension.yaml",

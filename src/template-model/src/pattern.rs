@@ -130,9 +130,6 @@ fn build_fast(pattern: &str) -> Result<regex::Regex, regex::Error> {
     regex::RegexBuilder::new(pattern).size_limit(REGEX_SIZE_LIMIT_BYTES).build()
 }
 
-static UNICODE_ESCAPE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(r"\\u([0-9a-fA-F]{4})").expect("UNICODE_ESCAPE is a valid regex"));
-
 static QUANTIFIED_LOOKAROUND: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"(\(\?[=!][^)]*\))[+*]").expect("QUANTIFIED_LOOKAROUND is a valid regex"));
 
@@ -151,22 +148,96 @@ fn normalize(pattern: &str) -> String {
 /// only at the absolute end. CloudFormation validates single-line scalar values that never carry a
 /// trailing newline, so the two are equivalent for every real input.
 ///
-/// Convert `\uXXXX` (Python/JSON) escapes to the `regex` crate's `\u{XXXX}` brace form. A code point
-/// in the UTF-16 surrogate range (`D800`–`DFFF`) is not a Unicode scalar value and can never appear
-/// in a Rust `&str`; schemas include surrogate halves only to span the BMP, so clamping each to the
-/// nearest valid boundary keeps every range well-formed without excluding any matchable character.
+/// Convert `\uXXXX` (JSON/Python) escapes to the `regex` crate's `\u{XXXX}` brace form. A UTF-16
+/// surrogate code unit (`D800`–`DFFF`) is not a Unicode scalar value and cannot stand alone in a Rust
+/// `&str`; schemas emit them only as surrogate-pair ranges (the XML `Char` production), which denote
+/// the astral planes. A run of such escapes inside a character class is therefore collapsed to the
+/// single scalar range `\u{10000}-\u{10FFFF}` those pairs encode — this compiles and matches every
+/// astral character the pattern admits, whereas clamping each surrogate half to a BMP boundary would
+/// both drop the astral planes (a spurious violation) and, when the low half precedes the high half,
+/// invert the range into an uncompilable pattern.
 fn convert_unicode_escapes(pattern: &str) -> String {
-    UNICODE_ESCAPE
-        .replace_all(pattern, |caps: &regex::Captures| {
-            let code_point = u32::from_str_radix(&caps[1], 16).expect("capture is 4 hex digits");
-            let scalar = if (0xD800..=0xDFFF).contains(&code_point) {
-                if code_point <= 0xDBFF { 0xD7FF } else { 0xE000 }
+    let chars: Vec<char> = pattern.chars().collect();
+    let mut out = String::with_capacity(pattern.len());
+    let mut index = 0;
+    let mut inside_class = false;
+    while index < chars.len() {
+        if let Some(code_point) = unicode_escape_at(&chars, index) {
+            if inside_class && is_surrogate(code_point) {
+                out.push_str(SURROGATE_PAIR_ASTRAL_RANGE);
+                index = end_of_surrogate_run(&chars, index);
             } else {
-                code_point
-            };
-            format!(r"\u{{{scalar:04X}}}")
-        })
-        .into_owned()
+                out.push_str(&format!(r"\u{{{:04X}}}", nearest_scalar(code_point)));
+                index += UNICODE_ESCAPE_LEN;
+            }
+            continue;
+        }
+        let ch = chars[index];
+        match ch {
+            '\\' if index + 1 < chars.len() => {
+                out.push('\\');
+                out.push(chars[index + 1]);
+                index += 2;
+                continue;
+            }
+            '[' => inside_class = true,
+            ']' => inside_class = false,
+            _ => {}
+        }
+        out.push(ch);
+        index += 1;
+    }
+    out
+}
+
+/// The scalar range a UTF-16 surrogate-pair range decodes to: the astral planes, U+10000–U+10FFFF.
+const SURROGATE_PAIR_ASTRAL_RANGE: &str = r"\u{10000}-\u{10FFFF}";
+
+/// Character length of a `\uXXXX` escape: backslash, `u`, four hex digits.
+const UNICODE_ESCAPE_LEN: usize = 6;
+
+fn is_surrogate(code_point: u32) -> bool {
+    (0xD800..=0xDFFF).contains(&code_point)
+}
+
+/// The escape's own code point, or — for a lone surrogate half that reaches the single-escape path
+/// rather than a surrogate-pair range — the nearest scalar boundary, since a surrogate cannot be
+/// emitted as a `\u{...}` scalar. Clamping a single half rather than dropping it keeps the class
+/// well-formed; a real surrogate-pair range is handled separately and never lands here.
+fn nearest_scalar(code_point: u32) -> u32 {
+    if !is_surrogate(code_point) {
+        code_point
+    } else if code_point <= 0xDBFF {
+        0xD7FF
+    } else {
+        0xE000
+    }
+}
+
+/// The code point of a `\uXXXX` escape starting at `index`, or `None` if no such escape is there.
+fn unicode_escape_at(chars: &[char], index: usize) -> Option<u32> {
+    if chars.get(index) != Some(&'\\') || chars.get(index + 1) != Some(&'u') {
+        return None;
+    }
+    let hex: String = chars.get(index + 2..index + UNICODE_ESCAPE_LEN)?.iter().collect();
+    if !hex.chars().all(|digit| digit.is_ascii_hexdigit()) {
+        return None;
+    }
+    u32::from_str_radix(&hex, 16).ok()
+}
+
+/// Index just past a maximal run of surrogate `\uXXXX` escapes beginning at `index`, consuming the
+/// `-` separators that join them into ranges (e.g. `𐀀-􏿿`). The whole run
+/// denotes one astral scalar range regardless of how the halves are grouped or ordered.
+fn end_of_surrogate_run(chars: &[char], mut index: usize) -> usize {
+    loop {
+        index += UNICODE_ESCAPE_LEN;
+        if chars.get(index) == Some(&'-') && unicode_escape_at(chars, index + 1).is_some_and(is_surrogate) {
+            index += 1;
+        } else if !unicode_escape_at(chars, index).is_some_and(is_surrogate) {
+            return index;
+        }
+    }
 }
 
 /// POSIX-shorthand character classes that PCRE-style engines accept but Rust does not. Each is
@@ -364,9 +435,33 @@ mod tests {
     }
 
     #[test]
-    fn surrogate_escapes_do_not_break_compilation() {
-        let compiled = compile(r"^[ -퟿-�\uD800\uDBFF-\uDC00\uDFFF\r\n\t]*$").expect("surrogate pattern compiles");
+    fn surrogate_pair_range_admits_astral_characters() {
+        // The XML `Char` production shipped in schemas encodes the astral planes as a UTF-16
+        // surrogate-pair range. Collapsing it to the scalar astral range must keep those characters
+        // matchable — dropping them would make a value the service accepts fail spuriously.
+        let compiled = compile(r"^[ -퟿-�𐀀-􏿿\r\n\t]*$").expect("surrogate pattern compiles");
         assert!(compiled.is_match("normal text"));
+        assert!(
+            compiled.is_match("emoji \u{1F600} and \u{10FFFF}"),
+            "astral characters must match the surrogate-pair range"
+        );
+    }
+
+    #[test]
+    fn low_then_high_surrogate_range_still_compiles() {
+        // The same class also ships with the surrogate halves ordered low-before-high; clamping each
+        // half independently would invert the range (E000..D7FF) and fail to compile.
+        let compiled =
+            compile(r"^[ -퟿-�\uD800\uDBFF-\uDC00\uDFFF\t]*$").expect("reordered surrogate pattern compiles");
+        assert!(compiled.is_match("normal text"));
+        assert!(compiled.is_match("astral \u{1F4A9}"), "astral characters must match regardless of surrogate ordering");
+    }
+
+    #[test]
+    fn lone_surrogate_escape_outside_class_is_clamped_not_inverted() {
+        // A `\uXXXX` escape outside a character class is a single code point, not a range endpoint;
+        // a surrogate there is clamped to the nearest scalar so the pattern still compiles.
+        assert!(is_service_valid(r"^\uD800$"));
     }
 
     #[test]

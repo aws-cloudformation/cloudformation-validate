@@ -1,0 +1,25 @@
+{
+ "Parameters": {
+  "SomeParameter": {
+   "Type": "String",
+   "Default": {
+    "Fn::ImportValue": "Stack1:ExportsOutputRefAWSAccountIdAD568057"
+   }
+  }
+ },
+ "Resources": {
+  "Topic": {
+   "Type": "AWS::SNS::Topic",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "source",
+      "Value": {
+       "Ref": "SomeParameter"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

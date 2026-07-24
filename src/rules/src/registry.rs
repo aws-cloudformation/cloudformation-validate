@@ -899,7 +899,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E9002",
         category: Category::Resource,
-        description: "SecurityGroup FromPort must be <= ToPort",
+        description: "SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
@@ -1470,6 +1470,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E6001",
         category: Category::Structure,
         description: "Outputs have appropriate properties",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E6003",
+        category: Category::Structure,
+        description: "Outputs section must be an object of named output definitions",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
