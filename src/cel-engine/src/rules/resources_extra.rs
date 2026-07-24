@@ -390,6 +390,20 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 res.get(FIELD_PROPERTIES).and_then(|p| p.get("SecurityGroupIngress")).and_then(|s| s.as_array())
             {
                 for rule in rules {
+                    // For ICMP/ICMPv6 (protocol 1/58), FromPort/ToPort carry the
+                    // ICMP type and code (with -1 as wildcard), not an ordered
+                    // port range, so the "FromPort <= ToPort" check does not apply.
+                    // https://github.com/aws-cloudformation/cloudformation-validate/issues/226
+                    let is_icmp = match rule.get("IpProtocol") {
+                        Some(serde_json::Value::String(s)) => {
+                            matches!(s.to_ascii_lowercase().as_str(), "icmp" | "icmpv6" | "1" | "58")
+                        }
+                        Some(serde_json::Value::Number(n)) => matches!(n.as_i64(), Some(1) | Some(58)),
+                        _ => false,
+                    };
+                    if is_icmp {
+                        continue;
+                    }
                     let from = rule.get("FromPort").and_then(coerce_to_integer);
                     let to = rule.get("ToPort").and_then(coerce_to_integer);
                     if let (Some(f), Some(t)) = (from, to)

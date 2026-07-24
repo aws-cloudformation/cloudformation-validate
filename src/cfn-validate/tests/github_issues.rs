@@ -1335,3 +1335,49 @@ Resources:
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Issue #226 — E9002 treated ICMP FromPort/ToPort as an ordered port range.
+// For icmp/icmpv6 those fields carry the ICMP type and code, and -1 is the
+// documented wildcard code, so type 8 / code -1 (a plain ping rule — exactly
+// what AWS CDK's Port.icmpPing() synthesizes) is valid and must not fire.
+// ---------------------------------------------------------------------------
+
+/// Issue #226: E9002 must not fire on ICMP/ICMPv6 ingress rules whose
+/// FromPort/ToPort are a type/code pair, in any protocol spelling (icmp,
+/// ICMP, icmpv6, or the protocol numbers 1/58).
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/226
+#[test]
+fn issue_226_no_e9002_on_icmp_type_code() {
+    let diags = validate_both("issue-226.yaml");
+    assert_absent(&diags, "E9002");
+}
+
+/// Issue #226 (positive boundary): a genuinely inverted TCP port range in the
+/// same template shape must still fire E9002 — skipping ICMP must not silence
+/// real ordered-range violations, and a protocol the skip-set does not cover
+/// (udp) stays checked too.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/226
+#[test]
+fn issue_226_e9002_still_fires_on_inverted_tcp_range() {
+    const TEMPLATE: &[u8] = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  BadSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: inverted port ranges must still be caught
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: udp
+          FromPort: 53
+          ToPort: 52
+"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "E9002", Severity::Error);
+    assert_count(&diags, "E9002", 2);
+}

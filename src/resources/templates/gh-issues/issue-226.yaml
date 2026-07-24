@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  For ICMP and ICMPv6 security group rules, FromPort/ToPort carry the ICMP
+  type and code (with -1 as the wildcard code), not an ordered port range.
+  A ping rule of type 8 / code -1 (exactly what AWS CDK's Port.icmpPing()
+  synthesizes) is valid and must not fire E9002, in any spelling of the
+  protocol (icmp, ICMP, icmpv6, or the protocol numbers 1 and 58).
+Resources:
+  PingSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ICMP ping from anywhere
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: allow ping (echo request, any code)
+          FromPort: 8
+          IpProtocol: icmp
+          ToPort: -1
+        - CidrIp: 0.0.0.0/0
+          Description: uppercase protocol spelling
+          FromPort: 8
+          IpProtocol: ICMP
+          ToPort: -1
+        - CidrIpv6: ::/0
+          Description: ICMPv6 echo request, any code
+          FromPort: 128
+          IpProtocol: icmpv6
+          ToPort: -1
+        - CidrIp: 0.0.0.0/0
+          Description: icmp by protocol number
+          FromPort: 8
+          IpProtocol: 1
+          ToPort: -1
