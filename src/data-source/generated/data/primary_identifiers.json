@@ -144,6 +144,9 @@
     "AWS::Batch::JobDefinition": [
       "JobDefinitionName"
     ],
+    "AWS::Bedrock::KnowledgeBasePolicy": [
+      "KnowledgeBaseId"
+    ],
     "AWS::Bedrock::ResourcePolicy": [
       "ResourceArn"
     ],
@@ -389,6 +392,9 @@
     ],
     "AWS::DevOpsAgent::PrivateConnection": [
       "Name"
+    ],
+    "AWS::DocDB::EventSubscription": [
+      "SubscriptionName"
     ],
     "AWS::DocDB::GlobalCluster": [
       "GlobalClusterIdentifier"
@@ -1220,6 +1226,10 @@
     "AWS::QuickSight::Folder": [
       "AwsAccountId",
       "FolderId"
+    ],
+    "AWS::QuickSight::KnowledgeBase": [
+      "AwsAccountId",
+      "KnowledgeBaseId"
     ],
     "AWS::QuickSight::Template": [
       "AwsAccountId",
