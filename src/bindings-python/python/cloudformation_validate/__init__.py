@@ -156,6 +156,7 @@ __all__ = [
     "ValidateConfig",
     "ValidationError",
     "ViolationContext",
+    "file_to_external_rule_source",
     "version",
 ]
 
@@ -172,6 +173,17 @@ def _template_bytes(template: Template) -> tuple[bytes, str]:
     path = os.fspath(template)
     with open(path, "rb") as f:
         return f.read(), str(path)
+
+
+def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> ExternalRuleSource:
+    """Reads a rule file into an :class:`ExternalRuleSource` for an engine's custom or Guard rules.
+
+    The file path becomes the rule source name — the file-based counterpart to passing a
+    template path to :meth:`Engine.validate_standard`.
+    """
+    resolved = os.fspath(path)
+    with open(resolved, encoding="utf-8") as f:
+        return ExternalRuleSource(name=str(resolved), content=f.read())
 
 
 class Engine:
