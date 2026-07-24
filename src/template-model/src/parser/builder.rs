@@ -776,6 +776,7 @@ impl Default for Builder {
 /// from a built root map. Shared by both front-ends so section lookup and
 /// `TemplateIR` assembly are not duplicated per format.
 pub struct TemplateSections {
+    root: NodeRef,
     pub parameters: NodeRef,
     pub mappings: NodeRef,
     pub conditions: NodeRef,
@@ -795,6 +796,7 @@ impl TemplateSections {
         let section = |key: &str| arena.map_get(root, key).unwrap_or(NULL_REF);
         let header = |key: &str| arena.map_get(root, key).and_then(|r| arena.as_str(r).map(|s| s.to_string()));
         Self {
+            root,
             parameters: section(SECTION_PARAMETERS),
             mappings: section(SECTION_MAPPINGS),
             conditions: section(SECTION_CONDITIONS),
@@ -814,8 +816,12 @@ impl TemplateSections {
     }
 
     /// Assembles the final [`TemplateIR`], consuming the builder's accumulated arena,
-    /// indexes, and diagnostics.
-    pub fn into_ir(self, builder: Builder) -> TemplateIR {
+    /// indexes, and diagnostics. Section shape defects are collected here because
+    /// this runs after span assignment, so each defect can anchor at the section
+    /// key the way source-location consumers expect.
+    pub fn into_ir(self, mut builder: Builder) -> TemplateIR {
+        let shape_defects = validate_section_shapes(&builder.arena, self.root, &builder.span_index);
+        builder.diagnostics.extend(shape_defects);
         TemplateIR {
             arena: builder.arena,
             global_index: builder.global_index,
@@ -837,15 +843,230 @@ impl TemplateSections {
     }
 }
 
-/// The `Transform` section is a single transform name or a list of them.
+/// The `Transform` section is a single transform name, a `{Name, Parameters}`
+/// object, or a list mixing both forms. The object form (used for
+/// parameterized macros such as `AWS::Include`) contributes its `Name` so
+/// transform-gated behavior downstream sees the declared macro.
 fn extract_transforms(arena: &Arena, root: NodeRef) -> Vec<String> {
     let Some(t_ref) = arena.map_get(root, SECTION_TRANSFORM) else {
         return vec![];
     };
+    let object_name = |r: NodeRef| arena.map_get(r, KEY_NAME).and_then(|name| arena.as_str(name).map(String::from));
     match arena.node(t_ref) {
         Node::String(s) => vec![s.clone()],
-        Node::List(items) => items.iter().filter_map(|r| arena.as_str(*r).map(|s| s.to_string())).collect(),
+        Node::Map(_) => object_name(t_ref).into_iter().collect(),
+        Node::List(items) => items
+            .iter()
+            .filter_map(|r| match arena.node(*r) {
+                Node::String(s) => Some(s.clone()),
+                Node::Map(_) => object_name(*r),
+                _ => None,
+            })
+            .collect(),
         _ => vec![],
+    }
+}
+
+/// A human-readable name for a node's fundamental shape, used in section shape
+/// error messages.
+fn node_shape_name(node: &Node) -> &'static str {
+    match node {
+        Node::Null => "null",
+        Node::Bool(_) => "a boolean",
+        Node::Int(_) | Node::Float(_) => "a number",
+        Node::String(_) => "a string",
+        Node::List(_) => "a list",
+        Node::Map(_) => "an object",
+        Node::Intrinsic(_) => "an intrinsic function",
+    }
+}
+
+/// A section-level shape defect anchored at the section key's span (matching
+/// where the malformed value is declared), with the section name as its path.
+fn section_shape_defect(rule_id: &str, message: String, section: &str, span_index: &SourceSpanIndex) -> ParseDefect {
+    let span = span_index.get(section).copied().unwrap_or(UNKNOWN_SPAN);
+    ParseDefect::new(rule_id, message).location(span).property_path(section).phase(crate::DefectPhase::Parse)
+}
+
+/// Like [`section_shape_defect`], but anchored at the span of the node whose
+/// build path is `anchor_path`, falling back to the section key when that node
+/// has no recorded span. Used for defects on a nested element (such as an
+/// unknown key inside a transform object) so the finding lands on the offending
+/// line rather than the section header.
+fn section_shape_defect_at(
+    rule_id: &str,
+    message: String,
+    anchor_path: &str,
+    section: &str,
+    span_index: &SourceSpanIndex,
+) -> ParseDefect {
+    let span = span_index.get(anchor_path).or_else(|| span_index.get(section)).copied().unwrap_or(UNKNOWN_SPAN);
+    ParseDefect::new(rule_id, message).location(span).property_path(section).phase(crate::DefectPhase::Parse)
+}
+
+/// Validates the fundamental shape of each top-level section that CloudFormation
+/// constrains: the entity sections must be objects, `Description` and
+/// `AWSTemplateFormatVersion` must be strings, and `Transform` must be a
+/// transform name, a `{Name, Parameters}` object, or a list of those. A section
+/// with the wrong shape would otherwise be silently dropped during extraction,
+/// hiding a guaranteed deploy failure and destabilizing downstream checks that
+/// key off the section's contents.
+///
+/// `Resources`, `Rules`, and SAM `Globals` are excluded: their shapes are
+/// validated by dedicated existing checks.
+fn validate_section_shapes(arena: &Arena, root: NodeRef, span_index: &SourceSpanIndex) -> Vec<ParseDefect> {
+    const OBJECT_SECTIONS: &[(&str, &str)] = &[
+        (SECTION_PARAMETERS, "E2001"),
+        (SECTION_MAPPINGS, "E7001"),
+        (SECTION_CONDITIONS, "E8001"),
+        (SECTION_OUTPUTS, "E6003"),
+    ];
+
+    let mut out = Vec::new();
+    for (section, rule_id) in OBJECT_SECTIONS {
+        if let Some(section_ref) = arena.map_get(root, section)
+            && !matches!(arena.node(section_ref), Node::Map(_))
+        {
+            out.push(section_shape_defect(
+                rule_id,
+                format!("{} section must be an object, got {}", section, node_shape_name(arena.node(section_ref))),
+                section,
+                span_index,
+            ));
+        }
+    }
+
+    if let Some(desc_ref) = arena.map_get(root, SECTION_DESCRIPTION)
+        && !matches!(arena.node(desc_ref), Node::String(_))
+    {
+        out.push(section_shape_defect(
+            "F1004",
+            format!("Description must be a string, got {}", node_shape_name(arena.node(desc_ref))),
+            SECTION_DESCRIPTION,
+            span_index,
+        ));
+    }
+
+    if let Some(version_ref) = arena.map_get(root, SECTION_FORMAT_VERSION)
+        && !matches!(arena.node(version_ref), Node::String(_))
+    {
+        out.push(section_shape_defect(
+            "F0002",
+            format!(
+                "AWSTemplateFormatVersion must be '{}', got {}",
+                FORMAT_VERSION,
+                node_shape_name(arena.node(version_ref))
+            ),
+            SECTION_FORMAT_VERSION,
+            span_index,
+        ));
+    }
+
+    if let Some(transform_ref) = arena.map_get(root, SECTION_TRANSFORM) {
+        validate_transform_shape(arena, transform_ref, span_index, &mut out);
+    }
+
+    out
+}
+
+/// Validates the `Transform` section's declared shape: a transform name string,
+/// a `{Name, Parameters}` object, or a list of those. Objects require a string
+/// `Name`, allow only `Name` and `Parameters` keys, and `Parameters` must be an
+/// object when present.
+fn validate_transform_shape(
+    arena: &Arena,
+    transform_ref: NodeRef,
+    span_index: &SourceSpanIndex,
+    out: &mut Vec<ParseDefect>,
+) {
+    let transform_defect = |message: String| section_shape_defect("E1005", message, SECTION_TRANSFORM, span_index);
+    match arena.node(transform_ref) {
+        Node::String(_) => {}
+        Node::Map(_) => validate_transform_object(arena, transform_ref, span_index, out),
+        Node::List(items) => {
+            for entry_ref in items {
+                match arena.node(*entry_ref) {
+                    Node::String(_) => {}
+                    Node::Map(_) => validate_transform_object(arena, *entry_ref, span_index, out),
+                    entry => out.push(section_shape_defect_at(
+                        "E1005",
+                        format!(
+                            "Transform entry must be a transform name or a {{Name, Parameters}} object, got {}",
+                            node_shape_name(entry)
+                        ),
+                        &arena.get(*entry_ref).path,
+                        SECTION_TRANSFORM,
+                        span_index,
+                    )),
+                }
+            }
+        }
+        node => out.push(transform_defect(format!(
+            "Transform must be a transform name, a list of transforms, or a {{Name, Parameters}} object, got {}",
+            node_shape_name(node)
+        ))),
+    }
+}
+
+/// Validates one object-form transform declaration: `Name` is required and must
+/// be a string; `Parameters` is optional and must be an object; no other keys
+/// are allowed.
+fn validate_transform_object(
+    arena: &Arena,
+    object_ref: NodeRef,
+    span_index: &SourceSpanIndex,
+    out: &mut Vec<ParseDefect>,
+) {
+    match arena.map_get(object_ref, KEY_NAME) {
+        None => out.push(section_shape_defect_at(
+            "E1005",
+            format!("Transform object is missing required '{}' property", KEY_NAME),
+            &arena.get(object_ref).path,
+            SECTION_TRANSFORM,
+            span_index,
+        )),
+        Some(name_ref) if !matches!(arena.node(name_ref), Node::String(_)) => {
+            out.push(section_shape_defect_at(
+                "E1005",
+                format!("Transform '{}' must be a string, got {}", KEY_NAME, node_shape_name(arena.node(name_ref))),
+                &arena.get(name_ref).path,
+                SECTION_TRANSFORM,
+                span_index,
+            ));
+        }
+        Some(_) => {}
+    }
+    if let Some(entries) = arena.as_map(object_ref) {
+        for (key, value_ref) in entries {
+            match key.as_str() {
+                KEY_NAME => {}
+                SECTION_PARAMETERS => {
+                    if !matches!(arena.node(*value_ref), Node::Map(_)) {
+                        out.push(section_shape_defect_at(
+                            "E1005",
+                            format!(
+                                "Transform '{}' must be an object, got {}",
+                                SECTION_PARAMETERS,
+                                node_shape_name(arena.node(*value_ref))
+                            ),
+                            &arena.get(*value_ref).path,
+                            SECTION_TRANSFORM,
+                            span_index,
+                        ));
+                    }
+                }
+                unknown => out.push(section_shape_defect_at(
+                    "E1005",
+                    format!(
+                        "Transform object has unknown property '{}' - expected one of '{}', '{}'",
+                        unknown, KEY_NAME, SECTION_PARAMETERS
+                    ),
+                    &arena.get(*value_ref).path,
+                    SECTION_TRANSFORM,
+                    span_index,
+                )),
+            }
+        }
     }
 }
 

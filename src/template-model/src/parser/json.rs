@@ -730,4 +730,24 @@ mod tests {
         let ir = parse_json(input.as_bytes()).unwrap();
         assert!(ir.diagnostics.iter().all(|d| d.rule_id != "W1103"), "Non-Fn:: single-key map must not trigger W1103");
     }
+
+    /// Both front-ends funnel through the shared shape validation, so a JSON
+    /// template reports the same section shape defects as its YAML equivalent.
+    #[test]
+    fn section_shape_defects_match_across_formats() {
+        let json_input = r#"{
+            "Description": {"bad": true},
+            "Transform": {"Name": "AWS::Include", "Parameters": {"Location": "s3://b/k.yaml"}},
+            "Conditions": [],
+            "Resources": {"R": {"Type": "AWS::S3::Bucket"}}
+        }"#;
+        let ir = parse_json(json_input.as_bytes()).unwrap();
+        let messages = |rule_id: &str| -> Vec<String> {
+            ir.diagnostics.iter().filter(|d| d.rule_id == rule_id).map(|d| d.message.clone()).collect()
+        };
+        assert_eq!(ir.transforms, ["AWS::Include"], "object-form transform contributes its Name");
+        assert_eq!(messages("F1004"), ["Description must be a string, got an object"]);
+        assert_eq!(messages("E8001"), ["Conditions section must be an object, got a list"]);
+        assert_eq!(messages("E1005"), Vec::<String>::new(), "a well-formed transform object is not a defect");
+    }
 }

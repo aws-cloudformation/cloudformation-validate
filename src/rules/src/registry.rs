@@ -1473,6 +1473,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E6003",
+        category: Category::Structure,
+        description: "Outputs section must be an object of named output definitions",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E6005",
         category: Category::Structure,
         description: "Condition referenced by an output must exist in the Conditions section",
