@@ -172,6 +172,13 @@ impl AdditionalSchemaSource {
     pub fn resolve(&self) -> Result<(String, serde_json::Value), String> {
         let schema: serde_json::Value = serde_json::from_str(&self.schema)
             .map_err(|e| format!("Invalid additional schema for '{}': {e}", self.type_name))?;
+        if !schema.is_object() {
+            return Err(format!(
+                "Invalid additional schema for '{}': expected a JSON object describing a CloudFormation resource \
+                 provider schema",
+                self.type_name
+            ));
+        }
         let type_name = if self.type_name.is_empty() {
             schema.get("typeName").and_then(|v| v.as_str()).unwrap_or_default().to_string()
         } else {
@@ -1061,6 +1068,15 @@ mod tests {
         let src = AdditionalSchemaSource { type_name: "AWS::Lambda::Function".into(), schema: "{ not json ".into() };
         let err = src.resolve().expect_err("invalid JSON must fail");
         assert!(err.contains("Invalid additional schema"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_non_object() {
+        // A syntactically valid but non-object JSON (e.g. a bare number) would
+        // otherwise compile to an empty no-op overlay; it must be rejected.
+        let src = AdditionalSchemaSource { type_name: "AWS::Lambda::Function".into(), schema: "42".into() };
+        let err = src.resolve().expect_err("non-object schema must fail");
+        assert!(err.contains("expected a JSON object"), "unexpected error: {err}");
     }
 
     #[test]

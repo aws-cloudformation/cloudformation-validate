@@ -23,6 +23,7 @@
 
 use crate::compiled::{CompiledSchema, PropSchema};
 use serde_json::Value;
+use std::collections::HashMap;
 
 /// Compile a raw CloudFormation resource provider schema (registry JSON) into the
 /// runtime [`CompiledSchema`].
@@ -44,19 +45,24 @@ pub(crate) fn compile(type_name: &str, raw: &Value) -> CompiledSchema {
 /// Deep-merge an overlay [`CompiledSchema`] into an existing bundled schema in
 /// place. See the module docs for the merge semantics.
 pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
-    for (name, prop) in overlay.properties {
-        match base.properties.get_mut(&name) {
-            Some(existing) => merge_prop(existing, prop),
+    // Merge definitions first so property `$ref`s below can be resolved against
+    // the combined (bundled + overlay) definition set.
+    let base_defs = base.definitions.clone();
+    for (name, def) in overlay.definitions {
+        match base.definitions.get_mut(&name) {
+            Some(existing) => merge_prop(existing, def, &base_defs),
             None => {
-                base.properties.insert(name, prop);
+                base.definitions.insert(name, def);
             }
         }
     }
-    for (name, def) in overlay.definitions {
-        match base.definitions.get_mut(&name) {
-            Some(existing) => merge_prop(existing, def),
+    let defs = base.definitions.clone();
+
+    for (name, prop) in overlay.properties {
+        match base.properties.get_mut(&name) {
+            Some(existing) => merge_prop(existing, prop, &defs),
             None => {
-                base.definitions.insert(name, def);
+                base.properties.insert(name, prop);
             }
         }
     }
@@ -88,10 +94,13 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
     replace_if_present(&mut base.conditional_create_only_properties, overlay.conditional_create_only_properties);
     replace_if_present(&mut base.primary_identifier, overlay.primary_identifier);
 
-    base.all_of.extend(overlay.all_of);
-    base.any_of.extend(overlay.any_of);
-    base.one_of.extend(overlay.one_of);
-    base.if_then_else.extend(overlay.if_then_else);
+    // Composition keywords describe the whole shape of the type, so a complete
+    // overlay schema *replaces* them — appending would duplicate branches (e.g.
+    // an overlay carrying the full `oneOf` would double it).
+    replace_if_present(&mut base.all_of, overlay.all_of);
+    replace_if_present(&mut base.any_of, overlay.any_of);
+    replace_if_present(&mut base.one_of, overlay.one_of);
+    replace_if_present(&mut base.if_then_else, overlay.if_then_else);
 
     for (k, v) in overlay.dependent_required {
         base.dependent_required.insert(k, v);
@@ -103,8 +112,10 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
     union_extend(&mut base.required_xor, overlay.required_xor);
 }
 
-/// Deep-merge an overlay property schema into an existing one in place.
-fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
+/// Deep-merge an overlay property schema into an existing one in place. `defs` is
+/// the enclosing schema's definition set, used to resolve a `$ref` base when it is
+/// extended by an inline overlay.
+fn merge_prop(base: &mut PropSchema, overlay: PropSchema, defs: &HashMap<String, PropSchema>) {
     // An overlay that redefines the property as a `$ref` replaces it wholesale;
     // mixing a ref with the base's inline shape would be ambiguous.
     if overlay.ref_name.is_some() {
@@ -112,13 +123,21 @@ fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
         return;
     }
 
-    // A `$ref` base being extended with an inline overlay can no longer be a pure
-    // ref, or the inline additions would be lost when the ref is resolved. Compute
-    // this before the overlay's fields are consumed below.
+    // If the base is a `$ref` and the overlay adds an inline shape, keeping the
+    // ref would ignore the overlay, but simply dropping it would silently discard
+    // the referenced definition's constraints. Inline the referenced definition
+    // first (so its constraints are preserved), then apply the overlay on top. If
+    // the definition can't be resolved, drop the dangling ref so the overlay's
+    // fields still take effect.
     let overlay_has_inline_shape =
         !overlay.properties.is_empty() || overlay.prop_type.is_some() || overlay.items.is_some();
-    if base.ref_name.is_some() && overlay_has_inline_shape {
-        base.ref_name = None;
+    if let Some(ref_name) = base.ref_name.clone()
+        && overlay_has_inline_shape
+    {
+        match defs.get(&ref_name) {
+            Some(def) => *base = def.clone(),
+            None => base.ref_name = None,
+        }
     }
 
     if overlay.prop_type.is_some() {
@@ -182,7 +201,7 @@ fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
 
     for (name, prop) in overlay.properties {
         match base.properties.get_mut(&name) {
-            Some(existing) => merge_prop(existing, prop),
+            Some(existing) => merge_prop(existing, prop, defs),
             None => {
                 base.properties.insert(name, prop);
             }
@@ -194,13 +213,14 @@ fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
     }
     if let Some(overlay_items) = overlay.items {
         match base.items.as_mut() {
-            Some(base_items) => merge_prop(base_items, *overlay_items),
+            Some(base_items) => merge_prop(base_items, *overlay_items, defs),
             None => base.items = Some(overlay_items),
         }
     }
-    base.all_of.extend(overlay.all_of);
-    base.any_of.extend(overlay.any_of);
-    base.one_of.extend(overlay.one_of);
+    // Composition keywords are replaced, not appended (see merge_into).
+    replace_if_present(&mut base.all_of, overlay.all_of);
+    replace_if_present(&mut base.any_of, overlay.any_of);
+    replace_if_present(&mut base.one_of, overlay.one_of);
     for (k, v) in overlay.dependent_required {
         base.dependent_required.insert(k, v);
     }
@@ -219,7 +239,7 @@ fn union_extend(base: &mut Vec<String>, extra: Vec<String>) {
 }
 
 /// Replace `base` with `overlay` only when the overlay is non-empty.
-fn replace_if_present(base: &mut Vec<String>, overlay: Vec<String>) {
+fn replace_if_present<T>(base: &mut Vec<T>, overlay: Vec<T>) {
     if !overlay.is_empty() {
         *base = overlay;
     }
@@ -558,5 +578,50 @@ mod tests {
         let inner = &base.properties["Cfg"].properties["Inner"].properties;
         assert!(inner.contains_key("A"), "deep bundled sub-property must be retained");
         assert!(inner.contains_key("B"), "deep overlay sub-property must be merged in");
+    }
+
+    #[test]
+    fn merge_replaces_composition_keywords_instead_of_appending() {
+        // A complete overlay schema carrying its own `oneOf` must replace the
+        // bundled one, not append (which would duplicate the branches).
+        let mut base = compile("T", &json!({ "oneOf": [{ "required": ["A"] }, { "required": ["B"] }] }));
+        assert_eq!(base.one_of.len(), 2);
+        let overlay = compile("T", &json!({ "oneOf": [{ "required": ["C"] }] }));
+        merge_into(&mut base, overlay);
+        assert_eq!(base.one_of.len(), 1, "overlay oneOf must replace the bundled oneOf");
+        assert_eq!(base.one_of[0].required, vec!["C".to_string()]);
+    }
+
+    #[test]
+    fn merge_keeps_composition_when_overlay_omits_it() {
+        let mut base = compile("T", &json!({ "oneOf": [{ "required": ["A"] }] }));
+        let overlay = compile("T", &json!({ "properties": { "P": { "type": "string" } } }));
+        merge_into(&mut base, overlay);
+        assert_eq!(base.one_of.len(), 1, "bundled oneOf must be kept when the overlay omits it");
+    }
+
+    #[test]
+    fn merge_inline_overlay_on_ref_preserves_definition() {
+        // Base property is a $ref; overlay adds an inline shape. The referenced
+        // definition's constraints must be preserved, then the overlay applied.
+        let mut base = compile(
+            "T",
+            &json!({
+                "properties": { "P": { "$ref": "#/definitions/D" } },
+                "definitions": {
+                    "D": { "type": "object", "properties": { "A": { "type": "string" } }, "required": ["A"] }
+                }
+            }),
+        );
+        let overlay = compile(
+            "T",
+            &json!({ "properties": { "P": { "type": "object", "properties": { "B": { "type": "integer" } } } } }),
+        );
+        merge_into(&mut base, overlay);
+        let p = &base.properties["P"];
+        assert!(p.ref_name.is_none(), "the $ref must be inlined");
+        assert!(p.properties.contains_key("A"), "the referenced definition's property must be preserved");
+        assert!(p.properties.contains_key("B"), "the overlay property must be merged in");
+        assert_eq!(p.required, vec!["A".to_string()], "the referenced definition's `required` must be preserved");
     }
 }
