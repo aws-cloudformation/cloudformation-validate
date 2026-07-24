@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  A value absent from a case-insensitive enum in any casing (Batch compute
+  environment Type accepts only managed/unmanaged, in any case) must produce
+  an enum warning marked case-insensitive.
+Parameters:
+  BatchServiceRoleArn:
+    Type: String
+Resources:
+  ComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      Type: BOGUS
+      ServiceRole: !Ref BatchServiceRoleArn
+      Tags:
+        purpose: regression-test

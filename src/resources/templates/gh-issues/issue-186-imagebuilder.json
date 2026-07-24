@@ -1,0 +1,49 @@
+{
+ "Parameters": {
+  "ContainerRecipeArn": {
+   "Type": "String"
+  },
+  "InfrastructureConfigurationArn": {
+   "Type": "String"
+  },
+  "WorkflowArn": {
+   "Type": "String"
+  }
+ },
+ "Resources": {
+  "ImagePipeline7DDDE57F": {
+   "Type": "AWS::ImageBuilder::ImagePipeline",
+   "Properties": {
+    "ContainerRecipeArn": {
+     "Ref": "ContainerRecipeArn"
+    },
+    "Description": "this is an image pipeline description.",
+    "InfrastructureConfigurationArn": {
+     "Ref": "InfrastructureConfigurationArn"
+    },
+    "Name": "test-image-pipeline",
+    "Status": "DISABLED",
+    "Tags": {
+     "purpose": "regression-test"
+    },
+    "Workflows": [
+     {
+      "OnFailure": "Abort",
+      "ParallelGroup": "group-1",
+      "Parameters": [
+       {
+        "Name": "parameterName",
+        "Value": [
+         "parameterValue"
+        ]
+       }
+      ],
+      "WorkflowArn": {
+       "Ref": "WorkflowArn"
+      }
+     }
+    ]
+   }
+  }
+ }
+}
