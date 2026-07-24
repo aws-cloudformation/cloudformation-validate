@@ -136,9 +136,9 @@ jobs:
 
           ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-${{ inputs.tag }}.zip" dist )
 
-          binaries=("$WORKING_DIR"/release/cfn-validate-*)
+          binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
           if [ ${#binaries[@]} -eq 0 ]; then
-            echo "::error::No cfn-validate binaries found in $WORKING_DIR/release/. Run the Build Artifacts workflow and merge its PR first."
+            echo "::error::No cfn-validate binaries found in $GITHUB_WORKSPACE/release-bin/. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
           for bin in "${binaries[@]}"; do
