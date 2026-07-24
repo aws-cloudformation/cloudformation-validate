@@ -899,7 +899,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E9002",
         category: Category::Resource,
-        description: "SecurityGroup FromPort must be <= ToPort",
+        description: "SecurityGroup FromPort must be <= ToPort for the TCP and UDP protocols",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
