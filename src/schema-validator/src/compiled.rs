@@ -81,6 +81,11 @@ pub struct PropSchema {
     pub prop_type: Option<PropType>,
     #[serde(default, rename = "enum", skip_serializing_if = "Vec::is_empty")]
     pub enum_values: Vec<serde_json::Value>,
+    /// Allowed values compared case-insensitively — used for properties whose
+    /// service accepts any casing of the documented value. A schema carries
+    /// either this or `enum_values` for a given property, never both.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub enum_case_insensitive: Vec<serde_json::Value>,
     /// JSON Schema `not: { enum: [...] }` — value must NOT match any of these.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub not_enum: Vec<serde_json::Value>,
