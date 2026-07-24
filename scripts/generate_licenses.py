@@ -2,11 +2,13 @@
 """Generate THIRD-PARTY-LICENSES.txt for each distribution target.
 
 Usage:
-    python3 scripts/generate_licenses.py          # all targets
-    python3 scripts/generate_licenses.py native   # native Rust only
-    python3 scripts/generate_licenses.py jvm      # JVM only
-    python3 scripts/generate_licenses.py wasm     # WASM only
-    python3 scripts/generate_licenses.py jvm wasm # multiple targets
+    python3 scripts/generate_licenses.py            # all targets
+    python3 scripts/generate_licenses.py native     # native Rust only
+    python3 scripts/generate_licenses.py jvm        # JVM only
+    python3 scripts/generate_licenses.py wasm       # WASM only
+    python3 scripts/generate_licenses.py python     # Python only
+    python3 scripts/generate_licenses.py go         # Go only
+    python3 scripts/generate_licenses.py jvm wasm   # multiple targets
 """
 
 import argparse
@@ -26,7 +28,9 @@ SEPARATOR = "\n\n******************************\n\n"
 
 # Workspace crates — exclude from third-party license files.
 WORKSPACE_CRATES = {
+    "bindings-go",
     "bindings-jvm",
+    "bindings-python",
     "bindings-wasm",
     "cel-engine",
     "cfn-validate",
@@ -224,21 +228,21 @@ def generate(
     print(f"  → {output_path.relative_to(PROJECT_ROOT)} ({len(entries)} packages)")
 
 
-VALID_TARGETS = {"native", "jvm", "wasm", "all"}
+VALID_TARGETS = {"native", "jvm", "wasm", "python", "go", "all"}
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate THIRD-PARTY-LICENSES.txt")
     parser.add_argument(
         "targets", nargs="*", default=["all"],
-        help="Targets to generate: native, jvm, wasm, all (default: all)",
+        help="Targets to generate: native, jvm, wasm, python, go, all (default: all)",
     )
     args = parser.parse_args()
     targets = set(args.targets)
     if not targets.issubset(VALID_TARGETS):
         parser.error(f"invalid targets: {targets - VALID_TARGETS}. Choose from: {sorted(VALID_TARGETS)}")
     if "all" in targets:
-        targets = {"native", "jvm", "wasm"}
+        targets = {"native", "jvm", "wasm", "python", "go"}
 
     if "native" in targets:
         generate(
@@ -268,6 +272,30 @@ def main():
             ["-m", "bindings-wasm/Cargo.toml"],
             WORKSPACE / "bindings-wasm" / "THIRD-PARTY-LICENSES.txt",
             targets=["wasm32-unknown-unknown"],
+        )
+    if "python" in targets:
+        generate(
+            "bindings-python",
+            ["-m", "bindings-python/Cargo.toml"],
+            WORKSPACE / "bindings-python" / "THIRD-PARTY-LICENSES.txt",
+            targets=[
+                "x86_64-unknown-linux-gnu",
+                "aarch64-apple-darwin",
+                "x86_64-pc-windows-msvc",
+            ],
+        )
+    if "go" in targets:
+        # The Go static library is built with the GNU toolchain on Windows
+        # (cgo links with MinGW), so the windows target here is -gnu.
+        generate(
+            "bindings-go",
+            ["-m", "bindings-go/Cargo.toml"],
+            WORKSPACE / "bindings-go" / "THIRD-PARTY-LICENSES.txt",
+            targets=[
+                "x86_64-unknown-linux-gnu",
+                "aarch64-apple-darwin",
+                "x86_64-pc-windows-gnu",
+            ],
         )
     print("Done.")
 

@@ -1,6 +1,8 @@
 [workspace]
 members = [
+    "bindings-go",
     "bindings-jvm",
+    "bindings-python",
     "bindings-wasm",
     "cel-engine",
     "cfn-validate",

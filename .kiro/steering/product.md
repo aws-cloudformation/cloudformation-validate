@@ -7,8 +7,8 @@ cloudformation-validate — a fast, offline, embeddable validator for AWS CloudF
 best-practice suggestions — at author-time, before deployment. All rules and resource schemas compile into the binary:
 no network, no credentials, no runtime fetching.
 
-It ships as a Rust CLI (`cfn-validate`), an embeddable Rust library, a Node.js package (WASM), and a JVM library
-(Kotlin/Java) — all backed by the same validation core.
+It ships as a Rust CLI (`cfn-validate`), an embeddable Rust library, a Node.js package (WASM), a Python package, a Go
+module, and a JVM library (Kotlin/Java) — all backed by the same validation core.
 
 ## The problem
 
@@ -94,7 +94,7 @@ These apply to every change. No exceptions.
   acceptable.
 - No silent failures. Unexpected states produce errors, never plausible-looking defaults.
 - No hard crashes. Errors and exceptions never panic the process — they propagate through the language boundary
-  layers (JVM, WASM) as catchable errors so callers can handle them.
+  layers (JVM, Python, Go, WASM) as catchable errors so callers can handle them.
 - Fatal rules must reflect what CloudFormation itself rejects based on the compiled resource schemas.
 - cfn-lint-sourced rules must match cfn-lint on firing and location (messages may be better — see above).
 - Rego and CEL engines must have parity — same rules, results, severities, messages.

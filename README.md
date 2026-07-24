@@ -11,8 +11,8 @@ violations, semantic errors, security concerns, and best-practice suggestions �
 offline: every rule and resource schema is compiled into the binary, so there is no network access, no credentials, and
 no runtime fetching.
 
-It ships as a Rust CLI, an embeddable Rust library, a Node.js package (WASM), and a JVM library (Kotlin/Java) — all
-backed by the same validation core.
+It ships as a Rust CLI, an embeddable Rust library, a Node.js package (WASM), a Python package, a Go module, and a
+JVM library (Kotlin/Java) — all backed by the same validation core.
 
 ## Features
 
@@ -23,7 +23,7 @@ backed by the same validation core.
   [CEL](https://cel.dev/) engine evaluate the same rule set and produce identical results.
 - **Custom rules.** Extend validation with your own rules in CEL (JSON), Rego, or
   [CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) DSL.
-- **Embeddable everywhere.** Use it from the CLI, Rust, Node.js, or the JVM.
+- **Embeddable everywhere.** Use it from the CLI, Rust, Node.js, Python, Go, or the JVM.
 - **Sub-second** validation for typical templates.
 
 ## How it works
@@ -118,6 +118,34 @@ for (const d of report.diagnostics) {
 engine.free();
 ```
 
+### Python
+
+```python
+from cloudformation_validate import RegoEngine
+
+engine = RegoEngine()
+report = engine.validate_standard("template.yaml")
+for d in report.diagnostics:
+    print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
+```
+
+### Go
+
+```go
+import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
+
+engine, err := cfnvalidate.NewRegoEngine(nil)
+if err != nil {
+    log.Fatal(err)
+}
+defer engine.Destroy()
+
+report, err := engine.ValidateStandardFile("template.yaml", nil)
+for _, d := range report.Diagnostics {
+    fmt.Printf("[%s] %s: %s\n", d.Severity, d.RuleID, d.Message)
+}
+```
+
 ### JVM (Kotlin)
 
 ```kotlin
@@ -159,6 +187,8 @@ This is a Cargo workspace. The main crates:
 | [guard-translator](src/guard-translator/README.md)   | Parses Guard DSL into an engine-agnostic intermediate representation        |
 | [bindings-wasm](src/bindings-wasm/README.md)         | WASM bindings for Node.js                                                   |
 | [bindings-jvm](src/bindings-jvm/README.md)           | JVM bindings (Kotlin/Java) via UniFFI                                       |
+| [bindings-python](src/bindings-python/README.md)     | Python bindings via UniFFI                                                  |
+| [bindings-go](src/bindings-go/README.md)             | Go bindings via UniFFI (cgo, static linking)                                |
 | [data-source](src/data-source/README.md)             | Build-time pipeline: downloads and processes CloudFormation schemas, generates the validation artifacts baked into the binary |
 
 ## Security
