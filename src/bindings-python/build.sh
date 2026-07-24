@@ -64,13 +64,22 @@ echo "Generating Python bindings..."
     --language python \
     --out-dir "$PACKAGE_DIR"
 
-# ── Patch native loading ──────────────────────────────────────────────────────
-# The generated modules load the cdylib from the package root; redirect them to
-# _native.py's per-platform natives/<os>-<arch>/ directory so a single wheel
-# can bundle every platform. Fails loudly if the uniffi template ever changes.
-echo "Patching native loader in generated modules..."
+# ── Patch native loading + normalize generated modules ───────────────────────
+# Two transforms, both applied identically on every host so the generated Python
+# is byte-for-byte reproducible across platforms (the all-platform wheel merge
+# keeps one shared copy and requires every platform's to match):
+#   1. The generated modules load the cdylib from the package root; redirect them
+#      to _native.py's per-platform natives/<os>-<arch>/ directory so a single
+#      wheel can bundle every platform. Fails loudly if the uniffi template changes.
+#   2. uniffi emits sibling-module imports ("from . import <name>") in the order it
+#      discovers external types while walking the library's symbols — an order that
+#      is not stable across hosts (Mach-O vs ELF symbol ordering), so the same
+#      module differs per platform. Sort each contiguous import block into a
+#      canonical order; these bindings are order-independent, so this is safe.
+echo "Patching native loader and normalizing generated modules..."
 python3 - "$PACKAGE_DIR" <<'EOF'
 import pathlib
+import re
 import sys
 
 package_dir = pathlib.Path(sys.argv[1])
@@ -79,6 +88,26 @@ NEW = (
     "    from ._native import native_library_dir\n"
     "    path = os.path.join(native_library_dir(), os.path.basename(libname))\n"
 )
+RELATIVE_IMPORT = re.compile(r"^from \. import [A-Za-z_][A-Za-z0-9_]*$")
+
+
+def sort_relative_imports(text: str) -> str:
+    lines = text.split("\n")
+    result = []
+    index = 0
+    while index < len(lines):
+        if RELATIVE_IMPORT.match(lines[index]):
+            end = index
+            while end < len(lines) and RELATIVE_IMPORT.match(lines[end]):
+                end += 1
+            result.extend(sorted(lines[index:end]))
+            index = end
+        else:
+            result.append(lines[index])
+            index += 1
+    return "\n".join(result)
+
+
 modules = sorted(package_dir.glob("*.py"))
 if not modules:
     sys.exit(f"error: no generated modules found in {package_dir}")
@@ -86,7 +115,7 @@ for module in modules:
     text = module.read_text(encoding="utf-8")
     if OLD not in text:
         sys.exit(f"error: expected loader line not found in {module.name} — did the uniffi template change?")
-    module.write_text(text.replace(OLD, NEW), encoding="utf-8")
+    module.write_text(sort_relative_imports(text.replace(OLD, NEW)), encoding="utf-8")
 print(f"  patched {len(modules)} modules")
 EOF
 
