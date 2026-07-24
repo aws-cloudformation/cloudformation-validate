@@ -298,7 +298,7 @@ jobs:
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}${{ matrix.os == 'windows-latest' && '-x86_64-pc-windows-gnu' || '' }}
         targets: ${{ matrix.os == 'windows-latest' && 'x86_64-pc-windows-gnu' || '' }}
 
     - name: Cache Cargo

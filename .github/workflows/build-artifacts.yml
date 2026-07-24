@@ -372,7 +372,7 @@ jobs:
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}${{ matrix.target && format('-{0}', matrix.target) || '' }}
         targets: ${{ matrix.target || '' }}
 
     - name: Cache Cargo

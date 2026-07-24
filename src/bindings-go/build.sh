@@ -15,8 +15,6 @@ case "$ARCH" in
     x86_64|amd64) ARCH="x86-64"  ;;
 esac
 
-# On Windows the build targets the GNU toolchain: cgo links with MinGW, which
-# cannot consume the MSVC toolchain's .lib static libraries.
 CARGO_TARGET=""
 case "$(uname -s)" in
     Darwin*) LIB_NAME="libbindings_go.a"; DYLIB_NAME="libbindings_go.dylib"; OS="darwin" ;;
@@ -47,10 +45,14 @@ command -v uniffi-bindgen-go &>/dev/null || {
     echo "Install with: cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0" >&2
     exit 1
 }
-if [ -n "$CARGO_TARGET" ] && ! rustup target list --installed 2>/dev/null | grep -qx "$CARGO_TARGET"; then
-    echo "Error: Rust target $CARGO_TARGET is not installed (required on Windows: cgo links with MinGW)." >&2
-    echo "Install with: rustup target add $CARGO_TARGET" >&2
-    exit 1
+if [ -n "$CARGO_TARGET" ]; then
+    HOST_TRIPLE="$(rustc -vV | sed -n 's/^host: //p' | tr -d '\r')"
+    if [ "$HOST_TRIPLE" != "$CARGO_TARGET" ]; then
+        echo "Error: building the Windows Go bindings requires a $CARGO_TARGET host toolchain, but the active host is '${HOST_TRIPLE:-unknown}'." >&2
+        echo "A GNU host is required so build scripts run as GNU; an MSVC host aborts because msvc_spectre_libs looks for cl.exe for the GNU target." >&2
+        echo "Install and select it with: rustup toolchain install stable-$CARGO_TARGET && rustup default stable-$CARGO_TARGET" >&2
+        exit 1
+    fi
 fi
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
