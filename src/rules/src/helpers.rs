@@ -96,14 +96,16 @@ pub fn format_rule_for_format(format: &str) -> Option<&'static str> {
 /// precise location.
 pub fn section_for_rule_id(rule_id: &str) -> Option<&'static str> {
     match rule_id {
-        "F0040" | "F6005" | "F6101" | "F6004" | "F6011" | "I6011" | "I6010" => Some("Outputs"),
-        "W8001" => Some("Conditions"),
+        "F0040" | "F6005" | "F6101" | "F6004" | "F6011" | "I6011" | "I6010" | "E6003" => Some("Outputs"),
+        "W8001" | "E8001" => Some("Conditions"),
         "F0008" | "F0050" | "W7001" | "F0017" | "E7001" | "F7002" | "I7002" | "I7010" => Some("Mappings"),
         "F0009" => Some("Conditions"),
         "F0003" | "F0015" | "F0016" | "F2012" | "W2506" | "W2509" | "W2001" | "E2001" | "F2002" | "F2003" | "F2011"
         | "I2011" | "F2015" | "W2501" | "I2010" => Some("Parameters"),
         "F0001" | "F0007" | "F0011" | "E0001" | "F0005" | "E1028" => Some("Resources"),
         "F0002" => Some("AWSTemplateFormatVersion"),
+        "F1004" => Some("Description"),
+        "E1005" => Some("Transform"),
         "F0004" => Some("Outputs"),
         "F8600" | "F8601" | "W8602" | "F8603" | "F8604" | "F8605" | "F8606" | "F8607" | "W8608" | "F8609" | "F8610"
         | "F8611" => Some("Rules"),

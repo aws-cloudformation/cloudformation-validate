@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-22 18:50:36  
+> Generated: 2026-07-23 21:53:54  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -22,15 +22,15 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 2070 |
+| True Positives | 2075 |
 | False Positives (engine bugs) | 0 |
-| Engine Extra (correct, cfn-lint gap) | 5826 |
-| False Negatives (engine misses) | 328 |
+| Engine Extra (correct, cfn-lint gap) | 5837 |
+| False Negatives (engine misses) | 323 |
 | Precision | 100.00% |
-| Recall | 86.32% |
-| F1 | 92.66% |
+| Recall | 86.53% |
+| F1 | 92.78% |
 | Unique rules detected | 219 |
-| Perfect templates | 458/573 |
+| Perfect templates | 459/573 |
 | Location mismatches (matched pairs) | 17 |
 
 ### By Severity
@@ -38,35 +38,35 @@
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
 | Fatal | 381 | 0 | 55 | 110 | 100.00% | 77.60% |
-| Error | 439 | 0 | 6 | 144 | 100.00% | 75.30% |
+| Error | 444 | 0 | 6 | 139 | 100.00% | 76.16% |
 | Warning | 748 | 0 | 346 | 55 | 100.00% | 93.15% |
-| Info | 502 | 0 | 5419 | 19 | 100.00% | 96.35% |
+| Info | 502 | 0 | 5430 | 19 | 100.00% | 96.35% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 23249.5160 ms |
-| Throughput | 124.09 validations/sec |
-| Templates | 577 ok, 8 failed |
+| Total wall time | 23716.6301 ms |
+| Throughput | 122.49 validations/sec |
+| Templates | 581 ok, 8 failed |
 | Iterations per template | 5 |
-| Engine init (p99) | 56.5764 ms |
-| Engine init (max) | 56.7983 ms |
-| Schema init (p99) | 85.9053 ms |
-| Schema init (max) | 87.2214 ms |
+| Engine init (p99) | 59.7063 ms |
+| Engine init (max) | 60.0942 ms |
+| Schema init (p99) | 78.6590 ms |
+| Schema init (max) | 79.5441 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0024 | 0.2266 | 0.0454 | 0.7373 | 1.0631 | 1.9881 | 3.7483 |
-| Schema Validate | 0.0000 | 0.4364 | 0.1556 | 1.2504 | 1.8122 | 3.3241 | 7.1326 |
-| Rule Evaluation | 1.0071 | 6.7491 | 2.3113 | 18.1039 | 25.0504 | 52.3658 | 141.2213 |
-| Diagnostic Finalize | 0.0006 | 0.0112 | 0.0045 | 0.0293 | 0.0437 | 0.0895 | 0.2074 |
-| Engine Internal | 1.0162 | 7.4764 | 2.5527 | 19.6334 | 28.3309 | 53.7291 | 143.6643 |
-| Wall Clock | 1.0163 | 7.4769 | 2.5534 | 19.6341 | 28.3322 | 53.7301 | 143.6658 |
+| Model Build | 0.0023 | 0.2333 | 0.0461 | 0.7519 | 1.1011 | 2.1135 | 3.4752 |
+| Schema Validate | 0.0000 | 0.4427 | 0.1527 | 1.2725 | 1.8750 | 3.3408 | 7.2466 |
+| Rule Evaluation | 0.9888 | 6.8750 | 2.2742 | 18.8546 | 25.3983 | 55.3058 | 140.1133 |
+| Diagnostic Finalize | 0.0005 | 0.0106 | 0.0041 | 0.0265 | 0.0407 | 0.0878 | 0.1786 |
+| Engine Internal | 0.9957 | 7.6136 | 2.5262 | 20.7048 | 29.7237 | 56.9374 | 142.3375 |
+| Wall Clock | 0.9958 | 7.6141 | 2.5264 | 20.7055 | 29.7250 | 56.9381 | 142.3387 |
 
-## False Negatives — 328 missed findings across 77 rules
+## False Negatives — 323 missed findings across 76 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -290,27 +290,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F0013** (cfn-lint: E1028) `LogicalConditionResource` → `Properties.TreatMissingData.Fn::If.0` L192-194 in `lsp_condition-usage_yaml`
   > {'Fn::Not': [{'Condition': 'IsProduction'}]} is not of type 'string'
 
-### E1001 — 9 missed — Basic CloudFormation Template Configuration
-
-- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions` L6 in `bad_core_conditions_list_yaml`
-  > [{'isProduction': {'Fn::Equals': [{'Ref': 'myEnvironment'}, 'prod']}}] is not of type 'object'
-- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
-  > Additional properties are not allowed ('NotEven' was unexpected)
-- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
-  > None is not one of ['2010-09-09']
-- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
-  > None is not of type 'string', 'date'
-- **E1001** L1-7 in `gh-issues_issue-201_json`
-  > 'Resources' is a required property
-
 ### E3001 — 8 missed — Basic CloudFormation Resource Check
 
 - **E3001** `CloudFrontDistribution` → `Resources.CloudFrontDistribution.Condition` L84 in `bad_conditions_yaml`
@@ -469,6 +448,21 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'obj' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 - **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
+
+### E1001 — 6 missed — Basic CloudFormation Template Configuration
+
+- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
+  > Additional properties are not allowed ('NotEven' was unexpected)
+- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
+  > None is not of type 'string', 'date'
+- **E1001** L1-7 in `gh-issues_issue-201_json`
+  > 'Resources' is a required property
 
 ### E3530 — 6 missed — Validate IAM trust polices
 
@@ -681,6 +675,15 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
   > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
 
+### E8003 — 3 missed — Check Fn::Equals structure for validity
+
+- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.0` L24 in `bad_conditions_condition_functions_json`
+  > [{'Ref': 'AWS::Region'}] is not of type 'string'
+- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.1` L25 in `bad_conditions_condition_functions_json`
+  > {'Bad': 'Value'} is not of type 'string'
+- **E8003** → `Conditions.TestEqualNull.Fn::Equals` L28 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array'
+
 ### F0000 — 3 missed — Parsing error found when parsing the template
 
 - **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
@@ -735,28 +738,12 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency_yaml`
   > 'Memory' is a required property
 
-### E1005 — 3 missed — Validate Transform configuration
-
-- **E1005** → `Transform` L2 in `bad_templates_base_null_yaml`
-  > None is not of type 'string', 'array', 'object'
-- **E1005** → `Transform` L2 in `bad_templates_base_yaml`
-  > 'Name' is a required property
-- **E1005** → `Transform.key` L3 in `bad_templates_base_yaml`
-  > Additional properties are not allowed ('key' was unexpected)
-
 ### E3707 — 2 missed — Validate RDS DBInstance Engine matches DBCluster Engine
 
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `bad_aurora_with_allocated_storage_yaml`
   > {'$data': '/cluster/Engine'} was expected
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `good_aurora_dbinstance_yaml`
   > {'$data': '/cluster/Engine'} was expected
-
-### E8005 — 2 missed — Check Fn::Not structure for validity
-
-- **E8005** → `Conditions.TestNotEmpty.Fn::Not` L29 in `bad_conditions_condition_functions_json`
-  > expected minimum item count: 1, found: 0
-- **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
-  > None is not of type 'array'
 
 ### E0002 — 2 missed — Error processing rule on the template
 
@@ -961,7 +948,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-## Engine Extra — 5826 correct findings across 38 rules
+## Engine Extra — 5837 correct findings across 38 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -8500,7 +8487,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2214 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1596 findings
+### I9040 — 1607 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -8606,6 +8593,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'myBucketFirstAndLastFail' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `BadASG` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L7 in `bad_cross_resource_task10_yaml`
   > Resource 'BadASG' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
+- **I9040** `BadListener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L19 in `bad_cross_resource_task10_yaml`
+  > Resource 'BadListener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `ALB` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L28 in `bad_cross_resource_task10_yaml`
   > Resource 'ALB' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
 - **I9040** `TG` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L34 in `bad_cross_resource_task10_yaml`
@@ -8662,6 +8651,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'ExecRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L25 in `bad_ecs_role_no_boundary_yaml`
   > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L5 in `bad_elb_http_443_yaml`
+  > Resource 'Listener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `R` (AWS::S3::Bucket) → `Properties.Tags` L9 in `bad_equals_wrong_arity_yaml`
   > Resource 'R' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `bad_fargate_bad_cpu_memory_yaml`
@@ -9346,6 +9337,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'LB8A12904C' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
 - **I9040** `LBSecurityGroup8A41EA2B` (AWS::EC2::SecurityGroup) → `Properties.Tags` L735 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
   > Resource 'LBSecurityGroup8A41EA2B' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `LBListener49E825B4` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L780 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
+  > Resource 'LBListener49E825B4' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `LBListenerTargetGroupF04FCF6D` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L801 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
   > Resource 'LBListenerTargetGroupF04FCF6D' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `CarTableA597893A` (AWS::DynamoDB::Table) → `Properties.Tags` L5 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
@@ -9504,6 +9497,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SecurityGroupDD263621' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `PublicAlb84330974` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L1710 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template_json`
   > Resource 'PublicAlb84330974' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
+- **I9040** `PublicAlbAlbListener804C1B2779` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L1748 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template_json`
+  > Resource 'PublicAlbAlbListener804C1B2779' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `EcsCluster97242B84` (AWS::ECS::Cluster) → `Properties.Tags` L1767 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template_json`
   > Resource 'EcsCluster97242B84' of type 'AWS::ECS::Cluster' supports Tags but none are configured
 - **I9040** `FargateServiceAC2B3B85` (AWS::ECS::Service) → `Properties.Tags` L1791 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template_json`
@@ -9644,12 +9639,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'ServiceD69D759B' of type 'AWS::ECS::Service' supports Tags but none are configured
 - **I9040** `ServiceSecurityGroupC96ED6A7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L121 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
   > Resource 'ServiceSecurityGroupC96ED6A7' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `Listener828B0E81` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L191 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
+  > Resource 'Listener828B0E81' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `ListenerECSGroup2EA4A011` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L212 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
   > Resource 'ListenerECSGroup2EA4A011' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L5 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Resource 'LoadBalancerBE9EEC3A' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
 - **I9040** `LoadBalancerSecurityGroupA28D6DD7` (AWS::EC2::SecurityGroup) → `Properties.Tags` L37 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Resource 'LoadBalancerSecurityGroupA28D6DD7' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `LoadBalancerListenerE1A099B9` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L58 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
+  > Resource 'LoadBalancerListenerE1A099B9' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `TargetGroup3D7CD9B8` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L79 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
   > Resource 'TargetGroup3D7CD9B8' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `TaskDefTaskRole1EDB4A67` (AWS::IAM::Role) → `Properties.Tags` L5 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
@@ -9696,6 +9695,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'FargateServiceLBB353E155' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
 - **I9040** `FargateServiceLBSecurityGroup5F444C78` (AWS::EC2::SecurityGroup) → `Properties.Tags` L509 in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template_json`
   > Resource 'FargateServiceLBSecurityGroup5F444C78' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `FargateServiceLBPublicListener4B4929CA` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L554 in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template_json`
+  > Resource 'FargateServiceLBPublicListener4B4929CA' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `FargateServiceLBPublicListenerECSGroupBE57E081` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L575 in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template_json`
   > Resource 'FargateServiceLBPublicListenerECSGroupBE57E081' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `FargateServiceTaskDefTaskRole8CDCF85E` (AWS::IAM::Role) → `Properties.Tags` L595 in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template_json`
@@ -9714,6 +9715,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'fargateserviceautoscalingD107CF93' of type 'AWS::ECS::Cluster' supports Tags but none are configured
 - **I9040** `sampleappLBBDE1D276` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L471 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
   > Resource 'sampleappLBBDE1D276' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
+- **I9040** `sampleappLBPublicListenerC4DF6480` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L501 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
+  > Resource 'sampleappLBPublicListenerC4DF6480' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `sampleappLBPublicListenerECSGroup525A567D` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L522 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
   > Resource 'sampleappLBPublicListenerECSGroup525A567D' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `sampleappTaskDefTaskRoleB530CAC0` (AWS::IAM::Role) → `Properties.Tags` L536 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
@@ -10292,6 +10295,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'sgalbE4BDB11E' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `ALBAEE750D2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L249 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
   > Resource 'ALBAEE750D2' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
+- **I9040** `ALBListener3B99FF85` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L281 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
+  > Resource 'ALBListener3B99FF85' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `ALBListenerTargetGroupD5D64FBA` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Tags` L302 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
   > Resource 'ALBListenerTargetGroupD5D64FBA' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `sgrds6871B7A8` (AWS::EC2::SecurityGroup) → `Properties.Tags` L5 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
@@ -10372,6 +10377,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'TargetGroup3D7CD9B8' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured
 - **I9040** `FrontendLB2FA80AC2` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L591 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
   > Resource 'FrontendLB2FA80AC2' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
+- **I9040** `FrontendLBListener230479D8` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L627 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
+  > Resource 'FrontendLBListener230479D8' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
+- **I9040** `ListenerRule73F9AC5E` (AWS::ElasticLoadBalancingV2::ListenerRule) → `Properties.Tags` L648 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
+  > Resource 'ListenerRule73F9AC5E' of type 'AWS::ElasticLoadBalancingV2::ListenerRule' supports Tags but none are configured
 - **I9040** `emrservicerole3BE5EDAF` (AWS::IAM::Role) → `Properties.Tags` L219 in `cdk_py-emr--emr-cluster.template_json`
   > Resource 'emrservicerole3BE5EDAF' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `emrjobflowrole15D4DAE5` (AWS::IAM::Role) → `Properties.Tags` L268 in `cdk_py-emr--emr-cluster.template_json`
@@ -12731,7 +12740,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L6 in `bad_unique_items_yaml`
   > Array property 'AvailabilityZones' contains duplicate values
 
-## Per-Template Breakdown — 115 templates with mismatches
+## Per-Template Breakdown — 114 templates with mismatches
 
 ### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 4 EE, 18 FN)
 
@@ -12889,13 +12898,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_conditions_condition_functions_json` — 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
 
-- FN: `E8005` ×2, `E1001`
+- FN: `E8003` ×3
 - EE: `I9040`
-
-### `bad_core_conditions_list_yaml` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
-
-- FN: `E0002`, `E1001`, `F0013`
-- EE: `F0001`
 
 ### `bad_functions_sub_needed_yaml` — 3 mismatches (9 TP, 0 FP, 10 EE, 3 FN)
 
@@ -12917,11 +12921,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3003` ×3
 - EE: `W2508`, `I9001`, `I9040`
 
-### `bad_templates_base_null_yaml` — 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
-
-- FN: `E1001` ×2, `E1005`
-- EE: `F0001`
-
 ### `good_unknown_resource_types_ignored_yaml` — 3 mismatches (0 TP, 0 FP, 0 EE, 3 FN)
 
 - FN: `F3006` ×3
@@ -12939,6 +12938,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `bad_conditions_equals_yaml` — 2 mismatches (16 TP, 0 FP, 1 EE, 2 FN)
 
 - FN: `F1020`, `E1001`
+- EE: `F0001`
+
+### `bad_core_conditions_list_yaml` — 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
+
+- FN: `E0002`, `F0013`
 - EE: `F0001`
 
 ### `bad_core_mandatory_checks_yaml` — 2 mismatches (5 TP, 0 FP, 5 EE, 2 FN)
@@ -12982,11 +12986,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `W1031` ×2
 - EE: `I9040` ×2, `I9001`
-
-### `bad_templates_base_yaml` — 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
-
-- FN: `E1005` ×2
-- EE: `F0001`
 
 ### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json` — 2 mismatches (1 TP, 0 FP, 42 EE, 2 FN)
 
@@ -13210,15 +13209,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E2529`
 - EE: `I9040` ×8, `I9001` ×4
 
+### `bad_templates_base_null_yaml` — 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `E1001`
+- EE: `F0001`
+
 ### `cdk_DemoStack.template_json` — 1 mismatches (9 TP, 0 FP, 13 EE, 1 FN)
 
 - FN: `E3639`
 - EE: `I9040` ×7, `I9001` ×3, `F3003`, `E9002`, `W2508`
 
-### `cdk_application-load-balancer--LoadBalancerStack.template_json` — 1 mismatches (5 TP, 0 FP, 68 EE, 1 FN)
+### `cdk_application-load-balancer--LoadBalancerStack.template_json` — 1 mismatches (5 TP, 0 FP, 69 EE, 1 FN)
 
 - FN: `E3712`
-- EE: `I9001` ×65, `I9040` ×3
+- EE: `I9001` ×65, `I9040` ×4
 
 ### `cdk_py-docker-app-with-asg-alb--RDSStack.template_json` — 1 mismatches (2 TP, 0 FP, 12 EE, 1 FN)
 
@@ -13321,11 +13325,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 129 | 39.33% | E0002, E2001, E2529, E5001, E6001, E7001, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 92 | 28.05% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 55 | 16.77% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 33 | 10.06% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 19 | 5.79% | I2530, I3010, I3011, I3510 |
+| Other | 130 | 40.25% | E0002, E2001, E2529, E5001, E6001, E7001, E8003, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Resource property validation | 92 | 28.48% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
+| Warning-level checks | 55 | 17.03% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 27 | 8.36% | E1001, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 19 | 5.88% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
 
