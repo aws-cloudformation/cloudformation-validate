@@ -2460,6 +2460,98 @@
       }
     ]
   },
+  "bad/W3030_enum_case_insensitive_mismatch.yaml": {
+    "filePath": "bad/W3030_enum_case_insensitive_mismatch.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'BOGUS' is not one of ['managed', 'unmanaged'] (case-insensitive)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ComputeEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Schema",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "BOGUS",
+          "extra": {
+            "allowed_values": [
+              "managed",
+              "unmanaged"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ComputeEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ComputeEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
   "bad/W9053_equivalent_conditions.yaml": {
     "filePath": "bad/W9053_equivalent_conditions.yaml",
     "status": "OK",
@@ -117261,6 +117353,176 @@
     },
     "diagnostics": []
   },
+  "gh-issues/issue-186-clb.json": {
+    "filePath": "gh-issues/issue-186-clb.json",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CLBA83A883E",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Listeners.0.Protocol",
+        "category": "Schema",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 16,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "tcp"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Scheme' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CLBA83A883E",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Scheme",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 5,
+        "endLine": 15,
+        "endColumn": 12,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "gh-issues/issue-186-imagebuilder.json": {
+    "filePath": "gh-issues/issue-186-imagebuilder.json",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'Abort' is not one of ['CONTINUE', 'ABORT']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ImagePipeline7DDDE57F",
+          "entityType": "Resource",
+          "resourceType": "AWS::ImageBuilder::ImagePipeline"
+        },
+        "propertyPath": "Properties.Workflows.0.OnFailure",
+        "category": "Schema",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-imagebuilder.git",
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "Abort"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ImagePipeline7DDDE57F",
+          "entityType": "Resource",
+          "resourceType": "AWS::ImageBuilder::ImagePipeline"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 5,
+        "endLine": 24,
+        "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-imagebuilder.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "gh-issues/issue-194.json": {
+    "filePath": "gh-issues/issue-194.json",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E2001",
+        "severity": "ERROR",
+        "message": "Parameter 'SomeParameter': Default must be a string",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SomeParameter",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/SomeParameter/Default",
+        "category": "Parameter",
+        "startLine": 5,
+        "startColumn": 4,
+        "endLine": 5,
+        "endColumn": 12,
+        "ruleDescription": "Parameters have appropriate properties",
+        "phase": "PARSE"
+      }
+    ]
+  },
   "gh-issues/issue-201.json": {
     "filePath": "gh-issues/issue-201.json",
     "status": "OK",
@@ -127093,6 +127355,114 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
+      }
+    ]
+  },
+  "good/enum_case_insensitive_casing.yaml": {
+    "filePath": "good/enum_case_insensitive_casing.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MixedCaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MixedCaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
       }
     ]
   },

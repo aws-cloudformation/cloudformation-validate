@@ -147,6 +147,7 @@
     "AWS::Backup::BackupSelection": "string",
     "AWS::Backup::BackupVault": "string",
     "AWS::Backup::Framework": "string",
+    "AWS::Backup::LegalHold": "string",
     "AWS::Backup::LogicallyAirGappedBackupVault": "string",
     "AWS::Backup::ReportPlan": "string",
     "AWS::Backup::RestoreTestingPlan": "string",
@@ -444,6 +445,7 @@
     "AWS::DataBrew::Recipe": "string",
     "AWS::DataBrew::Ruleset": "string",
     "AWS::DataBrew::Schedule": "string",
+    "AWS::DataExchange::EntitledDataSets": "string",
     "AWS::DataPipeline::Pipeline": "string",
     "AWS::DataSync::Agent": "string",
     "AWS::DataSync::LocationAzureBlob": "string",
@@ -863,6 +865,7 @@
     "AWS::IVS::StreamKey": "string",
     "AWS::IVSChat::LoggingConfiguration": "string",
     "AWS::IVSChat::Room": "string",
+    "AWS::IdentityStore::AllGroupMemberships": "string",
     "AWS::IdentityStore::Group": "string",
     "AWS::IdentityStore::GroupMembership": "string",
     "AWS::ImageBuilder::AllImageBuildVersions": "string",
@@ -1108,6 +1111,7 @@
     "AWS::MediaLive::SignalMap": "string",
     "AWS::MediaPackage::Asset": "string",
     "AWS::MediaPackage::Channel": "string",
+    "AWS::MediaPackage::HarvestJob": "string",
     "AWS::MediaPackage::OriginEndpoint": "string",
     "AWS::MediaPackage::PackagingConfiguration": "string",
     "AWS::MediaPackage::PackagingGroup": "string",
@@ -1147,6 +1151,7 @@
     "AWS::NetworkFirewall::RuleGroup": "string",
     "AWS::NetworkFirewall::TLSInspectionConfiguration": "string",
     "AWS::NetworkFirewall::VpcEndpointAssociation": "string",
+    "AWS::NetworkFlowMonitor::Monitor": "string",
     "AWS::NetworkManager::ConnectAttachment": "string",
     "AWS::NetworkManager::ConnectPeer": "string",
     "AWS::NetworkManager::CoreNetwork": "string",
@@ -1236,6 +1241,7 @@
     "AWS::Panorama::PackageVersion": "string",
     "AWS::PaymentCryptography::Alias": "string",
     "AWS::PaymentCryptography::Key": "string",
+    "AWS::Personalize::DataDeletionJob": "string",
     "AWS::Personalize::Dataset": "string",
     "AWS::Personalize::DatasetGroup": "string",
     "AWS::Personalize::Recipe": "string",
@@ -1432,6 +1438,8 @@
     "AWS::S3Vectors::Index": "string",
     "AWS::S3Vectors::VectorBucket": "string",
     "AWS::S3Vectors::VectorBucketPolicy": "string",
+    "AWS::SCN::Dataset": "string",
+    "AWS::SCN::Namespace": "string",
     "AWS::SDB::Domain": "string",
     "AWS::SES::ConfigurationSet": "string",
     "AWS::SES::ConfigurationSetEventDestination": "string",
@@ -1491,6 +1499,7 @@
     "AWS::SSMQuickSetup::LifecycleAutomation": "string",
     "AWS::SSO::Application": "string",
     "AWS::SSO::ApplicationAssignment": "string",
+    "AWS::SSO::ApplicationProvider": "string",
     "AWS::SSO::Assignment": "string",
     "AWS::SSO::Instance": "string",
     "AWS::SSO::InstanceAccessControlAttributeConfiguration": "string",
@@ -1606,6 +1615,7 @@
     "AWS::SimSpaceWeaver::Simulation": "string",
     "AWS::States::Execution": "string",
     "AWS::StepFunctions::Activity": "string",
+    "AWS::StepFunctions::MapRun": "string",
     "AWS::StepFunctions::StateMachine": "string",
     "AWS::StepFunctions::StateMachineAlias": "string",
     "AWS::StepFunctions::StateMachineVersion": "string",
@@ -3117,6 +3127,16 @@
       "FrameworkName": "string",
       "FrameworkStatus": "string",
       "FrameworkTags": "array"
+    },
+    "AWS::Backup::LegalHold": {
+      "Arn": "string",
+      "CreationDate": "string",
+      "Description": "string",
+      "LegalHoldId": "string",
+      "RecoveryPointSelection": "object",
+      "Status": "string",
+      "Tags": "array",
+      "Title": "string"
     },
     "AWS::Backup::LogicallyAirGappedBackupVault": {
       "BackupVaultArn": "string",
@@ -5863,6 +5883,18 @@
       "JobNames": "array",
       "Name": "string",
       "Tags": "array"
+    },
+    "AWS::DataExchange::EntitledDataSets": {
+      "Arn": "string",
+      "AssetType": "string",
+      "CreatedAt": "string",
+      "DataSetId": "string",
+      "Description": "string",
+      "Id": "string",
+      "Name": "string",
+      "Origin": "string",
+      "SourceId": "string",
+      "UpdatedAt": "string"
     },
     "AWS::DataPipeline::Pipeline": {
       "Activate": "boolean",
@@ -9975,6 +10007,17 @@
       "Name": "string",
       "Tags": "array"
     },
+    "AWS::IdentityStore::AllGroupMemberships": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "CreatedBy": "string",
+      "GroupId": "string",
+      "IdentityStoreId": "string",
+      "MemberId": "object",
+      "MembershipId": "string",
+      "UpdatedAt": "string",
+      "UpdatedBy": "string"
+    },
     "AWS::IdentityStore::Group": {
       "Description": "string",
       "DisplayName": "string",
@@ -12150,6 +12193,16 @@
       "Id": "string",
       "Tags": "array"
     },
+    "AWS::MediaPackage::HarvestJob": {
+      "Arn": "string",
+      "ChannelId": "string",
+      "CreatedAt": "string",
+      "EndTime": "string",
+      "Id": "string",
+      "OriginEndpointId": "string",
+      "StartTime": "string",
+      "Status": "string"
+    },
     "AWS::MediaPackage::OriginEndpoint": {
       "Arn": "string",
       "ChannelId": "string",
@@ -12531,6 +12584,17 @@
       "Tags": "array"
     },
     "AWS::NetworkFirewall::VpcEndpointAssociation": {
+      "Tags": "array"
+    },
+    "AWS::NetworkFlowMonitor::Monitor": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "LocalResources": "array",
+      "ModifiedAt": "string",
+      "MonitorName": "string",
+      "MonitorStatus": "string",
+      "RemoteResources": "array",
+      "ScopeArn": "string",
       "Tags": "array"
     },
     "AWS::NetworkManager::ConnectAttachment": {
@@ -13441,6 +13505,16 @@
       "Policy": "string",
       "ReplicationRegions": "array",
       "Tags": "array"
+    },
+    "AWS::Personalize::DataDeletionJob": {
+      "CreationDateTime": "string",
+      "DataDeletionJobArn": "string",
+      "DatasetGroupArn": "string",
+      "Id": "string",
+      "JobName": "string",
+      "LastUpdatedDateTime": "string",
+      "RoleArn": "string",
+      "Status": "string"
     },
     "AWS::Personalize::Dataset": {
       "DatasetArn": "string",
@@ -15305,6 +15379,27 @@
     "AWS::S3Vectors::VectorBucket": {
       "Tags": "array"
     },
+    "AWS::SCN::Dataset": {
+      "Arn": "string",
+      "CreatedTime": "string",
+      "Description": "string",
+      "InstanceId": "string",
+      "LastModifiedTime": "string",
+      "Name": "string",
+      "Namespace": "string",
+      "PartitionSpec": "object",
+      "Schema": "object",
+      "Tags": "array"
+    },
+    "AWS::SCN::Namespace": {
+      "Arn": "string",
+      "CreatedTime": "string",
+      "Description": "string",
+      "InstanceId": "string",
+      "LastModifiedTime": "string",
+      "Name": "string",
+      "Tags": "array"
+    },
     "AWS::SDB::Domain": {
       "Description": "string",
       "Id": "string"
@@ -15770,6 +15865,10 @@
       "ApplicationArn": "string",
       "PrincipalId": "string",
       "PrincipalType": "string"
+    },
+    "AWS::SSO::ApplicationProvider": {
+      "ApplicationProviderArn": "string",
+      "FederationProtocol": "string"
     },
     "AWS::SSO::Assignment": {
       "InstanceArn": "string",
@@ -16832,6 +16931,16 @@
       "Arn": "string",
       "Name": "string",
       "Tags": "array"
+    },
+    "AWS::StepFunctions::MapRun": {
+      "ExecutionArn": "string",
+      "MapRunArn": "string",
+      "MaxConcurrency": "integer",
+      "StartDate": "string",
+      "Status": "string",
+      "StopDate": "string",
+      "ToleratedFailureCount": "integer",
+      "ToleratedFailurePercentage": "number"
     },
     "AWS::StepFunctions::StateMachine": {
       "Arn": "string",

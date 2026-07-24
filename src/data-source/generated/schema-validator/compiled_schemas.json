@@ -4263,7 +4263,12 @@
         "pattern": "^arn:.*"
       },
       "AuthenticationStrategy": {
-        "type": "string"
+        "type": "string",
+        "enum_case_insensitive": [
+          "config_managed",
+          "ldap",
+          "simple"
+        ]
       },
       "AutoMinorVersionUpgrade": {
         "type": "boolean"
@@ -4291,6 +4296,10 @@
       },
       "DataReplicationMode": {
         "type": "string",
+        "enum_case_insensitive": [
+          "crdr",
+          "none"
+        ],
         "any_of": [
           {},
           {},
@@ -4304,6 +4313,11 @@
       },
       "DeploymentMode": {
         "type": "string",
+        "enum_case_insensitive": [
+          "active_standby_multi_az",
+          "cluster_multi_az",
+          "single_instance"
+        ],
         "any_of": [
           {},
           {},
@@ -4316,6 +4330,10 @@
       },
       "EngineType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "activemq",
+          "rabbitmq"
+        ],
         "any_of": [
           {},
           {},
@@ -4397,6 +4415,10 @@
       },
       "StorageType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "EBS",
+          "EFS"
+        ],
         "any_of": [
           {},
           {}
@@ -4533,6 +4555,15 @@
         "properties": {
           "DayOfWeek": {
             "type": "string",
+            "enum_case_insensitive": [
+              "friday",
+              "monday",
+              "saturday",
+              "sunday",
+              "thursday",
+              "tuesday",
+              "wednesday"
+            ],
             "description": "_Allowed Values_: <code>MONDAY</code> | <code>TUESDAY</code> | <code>WEDNESDAY</code> | <code>THURSDAY</code> | <code>FRIDAY</code> | <code>SATURDAY</code> | <code>SUNDAY</code>\n",
             "any_of": [
               {},
@@ -4665,6 +4696,11 @@
       },
       "AuthenticationStrategy": {
         "type": "string",
+        "enum_case_insensitive": [
+          "config_managed",
+          "ldap",
+          "simple"
+        ],
         "description": "The authentication strategy associated with the configuration. The default is SIMPLE."
       },
       "Data": {
@@ -4677,6 +4713,10 @@
       },
       "EngineType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "activemq",
+          "rabbitmq"
+        ],
         "description": "The type of broker engine. Note: Currently, Amazon MQ only supports ACTIVEMQ for creating and editing broker configurations."
       },
       "EngineVersion": {
@@ -32354,6 +32394,128 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
     "description": "Contains detailed information about a framework. Frameworks contain controls, which evaluate and report on your backup events and resources. Frameworks generate daily compliance results."
   },
+  "AWS::Backup::LegalHold": {
+    "type_name": "AWS::Backup::LegalHold",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the legal hold."
+      },
+      "CreationDate": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The time when the legal hold was created."
+      },
+      "Description": {
+        "type": "string",
+        "description": "The description of the legal hold."
+      },
+      "LegalHoldId": {
+        "type": "string",
+        "description": "The ID of the legal hold."
+      },
+      "RecoveryPointSelection": {
+        "type": "object",
+        "description": "The criteria to assign a set of resources, such as resource types or backup vaults.",
+        "properties": {
+          "DateRange": {
+            "type": "object",
+            "description": "A date range for filtering recovery points.",
+            "properties": {
+              "FromDate": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The beginning date, inclusive. ISO 8601 date-time."
+              },
+              "ToDate": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The end date, inclusive. ISO 8601 date-time."
+              }
+            },
+            "required": [
+              "FromDate",
+              "ToDate"
+            ],
+            "additional_properties": false
+          },
+          "ResourceIdentifiers": {
+            "type": "array",
+            "description": "The resources included in the resource selection.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "VaultNames": {
+            "type": "array",
+            "description": "The names of the vaults in which the selected recovery points are contained.",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additional_properties": false
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "CREATING",
+          "ACTIVE",
+          "CANCELING",
+          "CANCELED"
+        ],
+        "description": "The status of the legal hold."
+      },
+      "Tags": {
+        "type": "array",
+        "description": "Optional tags to include.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Key": {
+              "type": "string",
+              "description": "The key name of the tag."
+            },
+            "Value": {
+              "type": "string",
+              "description": "The value for the tag."
+            }
+          },
+          "required": [
+            "Key",
+            "Value"
+          ],
+          "additional_properties": false
+        }
+      },
+      "Title": {
+        "type": "string",
+        "description": "The title of the legal hold."
+      }
+    },
+    "definitions": {},
+    "required": [
+      "Title",
+      "Description",
+      "RecoveryPointSelection"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "LegalHoldId",
+      "Status",
+      "CreationDate"
+    ],
+    "create_only_properties": [
+      "Title",
+      "Description",
+      "RecoveryPointSelection"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "description": "Creates a legal hold on recovery points (backups). A legal hold prevents backups from being deleted while under hold."
+  },
   "AWS::Backup::LogicallyAirGappedBackupVault": {
     "type_name": "AWS::Backup::LogicallyAirGappedBackupVault",
     "properties": {
@@ -33141,7 +33303,11 @@
         }
       },
       "Type": {
-        "type": "string"
+        "type": "string",
+        "enum_case_insensitive": [
+          "managed",
+          "unmanaged"
+        ]
       },
       "UnmanagedvCpus": {
         "type": "integer"
@@ -33155,7 +33321,15 @@
         "type": "object",
         "properties": {
           "AllocationStrategy": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "best_fit",
+              "best_fit_progressive",
+              "best_fit_progressive_ordered",
+              "spot_capacity_optimized",
+              "spot_capacity_optimized_prioritized",
+              "spot_price_capacity_optimized"
+            ]
           },
           "BidPercentage": {
             "type": "integer"
@@ -33230,7 +33404,13 @@
             }
           },
           "Type": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "ec2",
+              "fargate",
+              "fargate_spot",
+              "spot"
+            ]
           },
           "UpdateToLatestImageVersion": {
             "type": "boolean"
@@ -33309,7 +33489,11 @@
             }
           },
           "UserdataType": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "eks_bootstrap_sh",
+              "eks_nodeadm"
+            ]
           },
           "Version": {
             "type": "string"
@@ -33333,7 +33517,11 @@
             }
           },
           "UserdataType": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "eks_bootstrap_sh",
+              "eks_nodeadm"
+            ]
           },
           "Version": {
             "type": "string"
@@ -33512,7 +33700,11 @@
       "PlatformCapabilities": {
         "type": "array",
         "items": {
-          "type": "string"
+          "type": "string",
+          "enum_case_insensitive": [
+            "ec2",
+            "fargate"
+          ]
         }
       },
       "PropagateTags": {
@@ -33542,7 +33734,11 @@
         "ref_name": "JobTimeout"
       },
       "Type": {
-        "type": "string"
+        "type": "string",
+        "enum_case_insensitive": [
+          "container",
+          "multinode"
+        ]
       }
     },
     "definitions": {
@@ -33700,7 +33896,12 @@
           "Permissions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum_case_insensitive": [
+                "mknod",
+                "read",
+                "write"
+              ]
             }
           }
         },
@@ -33713,7 +33914,11 @@
             "type": "string"
           },
           "Iam": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "disabled",
+              "enabled"
+            ]
           }
         },
         "additional_properties": false
@@ -33731,7 +33936,11 @@
             "type": "string"
           },
           "TransitEncryption": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "disabled",
+              "enabled"
+            ]
           },
           "TransitEncryptionPort": {
             "type": "integer"
@@ -34121,7 +34330,11 @@
         "type": "object",
         "properties": {
           "Action": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "exit",
+              "retry"
+            ]
           },
           "OnExitCode": {
             "type": "string"
@@ -34199,7 +34412,17 @@
         "type": "object",
         "properties": {
           "LogDriver": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "awsfirelens",
+              "awslogs",
+              "fluentd",
+              "gelf",
+              "journald",
+              "json-file",
+              "splunk",
+              "syslog"
+            ]
           },
           "Options": {
             "type": "object",
@@ -34390,7 +34613,11 @@
         "type": "object",
         "properties": {
           "AssignPublicIp": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "disabled",
+              "enabled"
+            ]
           }
         },
         "additional_properties": false
@@ -34464,7 +34691,12 @@
         "type": "object",
         "properties": {
           "Type": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "gpu",
+              "memory",
+              "vcpu"
+            ]
           },
           "Value": {
             "type": "string"
@@ -34598,7 +34830,11 @@
                 }
               },
               "Type": {
-                "type": "string"
+                "type": "string",
+                "enum_case_insensitive": [
+                  "fluentbit",
+                  "fluentd"
+                ]
               }
             },
             "required": [
@@ -34765,7 +35001,13 @@
         "max_length": 128
       },
       "JobQueueType": {
-        "type": "string"
+        "type": "string",
+        "enum_case_insensitive": [
+          "ecs",
+          "ecs_fargate",
+          "eks",
+          "sagemaker_training"
+        ]
       },
       "JobStateTimeLimitActions": {
         "type": "array",
@@ -34826,7 +35068,11 @@
         "type": "object",
         "properties": {
           "Action": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "cancel",
+              "terminate"
+            ]
           },
           "MaxTimeSeconds": {
             "type": "integer",
@@ -34973,6 +35219,10 @@
         "properties": {
           "InSharePreemption": {
             "type": "string",
+            "enum_case_insensitive": [
+              "disabled",
+              "enabled"
+            ],
             "description": "Specifies whether jobs within a quota share can be preempted by another, higher priority job in the same quota share."
           }
         },
@@ -34991,6 +35241,11 @@
           },
           "Strategy": {
             "type": "string",
+            "enum_case_insensitive": [
+              "lend",
+              "lend_and_borrow",
+              "reserve"
+            ],
             "description": "The resource sharing strategy for the quota share. The `RESERVE` strategy allows a quota share to reserve idle capacity for itself. `LEND` configures the share to lend its idle capacity to another share in need of capacity. The `LEND_AND_BORROW` strategy configures the share to borrow idle capacity from an underutilized share, as well as lend to another share."
           }
         },
@@ -35083,7 +35338,10 @@
         "description": "Quota Share Policy for the Job Queue.",
         "properties": {
           "IdleResourceAssignmentStrategy": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "fifo"
+            ]
           }
         },
         "additional_properties": false
@@ -35134,7 +35392,10 @@
         "type": "string"
       },
       "ServiceEnvironmentType": {
-        "type": "string"
+        "type": "string",
+        "enum_case_insensitive": [
+          "sagemaker_training"
+        ]
       },
       "State": {
         "type": "string"
@@ -100039,6 +100300,62 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-databrew.git",
     "description": "Resource schema for AWS::DataBrew::Schedule."
   },
+  "AWS::DataExchange::EntitledDataSets": {
+    "type_name": "AWS::DataExchange::EntitledDataSets",
+    "properties": {
+      "Arn": {
+        "type": "string"
+      },
+      "AssetType": {
+        "type": "string"
+      },
+      "CreatedAt": {
+        "type": "string"
+      },
+      "DataSetId": {
+        "type": "string"
+      },
+      "Description": {
+        "type": "string"
+      },
+      "Id": {
+        "type": "string"
+      },
+      "Name": {
+        "type": "string"
+      },
+      "Origin": {
+        "type": "string"
+      },
+      "SourceId": {
+        "type": "string"
+      },
+      "UpdatedAt": {
+        "type": "string"
+      }
+    },
+    "definitions": {},
+    "required": [],
+    "additional_properties": false,
+    "read_only_properties": [
+      "CreatedAt",
+      "Id",
+      "UpdatedAt",
+      "SourceId",
+      "Origin",
+      "Arn",
+      "DataSetId"
+    ],
+    "create_only_properties": [
+      "AssetType",
+      "Name",
+      "Description"
+    ],
+    "primary_identifier": [
+      "Id"
+    ],
+    "description": "Resource Type definition for AWS::DataExchange::EntitledDataSets"
+  },
   "AWS::DataPipeline::Pipeline": {
     "type_name": "AWS::DataPipeline::Pipeline",
     "properties": {
@@ -118402,6 +118719,10 @@
       },
       "Domain": {
         "type": "string",
+        "enum_case_insensitive": [
+          "standard",
+          "vpc"
+        ],
         "description": "The network (``vpc``).\n If you define an Elastic IP address and associate it with a VPC that is defined in the same template, you must declare a dependency on the VPC-gateway attachment by using the [DependsOn Attribute](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-dependson.html) on this resource."
       },
       "InstanceId": {
@@ -119172,6 +119493,10 @@
     "properties": {
       "AddressFamily": {
         "type": "string",
+        "enum_case_insensitive": [
+          "ipv4",
+          "ipv6"
+        ],
         "description": "The address family of the address space in this pool. Either IPv4 or IPv6."
       },
       "AllocationDefaultNetmaskLength": {
@@ -119210,6 +119535,10 @@
       },
       "AwsService": {
         "type": "string",
+        "enum_case_insensitive": [
+          "ec2",
+          "global-services"
+        ],
         "description": "Limits which service in Amazon Web Services that the pool can be used in."
       },
       "Description": {
@@ -119257,6 +119586,10 @@
       },
       "PublicIpSource": {
         "type": "string",
+        "enum_case_insensitive": [
+          "amazon",
+          "byoip"
+        ],
         "description": "The IP address source for pools in the public scope. Only used for provisioning IP address CIDRs to pools in the public scope. Default is `byoip`."
       },
       "PubliclyAdvertisable": {
@@ -119331,7 +119664,10 @@
             "type": "string"
           },
           "ResourceType": {
-            "type": "string"
+            "type": "string",
+            "enum_case_insensitive": [
+              "vpc"
+            ]
           }
         },
         "required": [
@@ -123574,6 +123910,10 @@
       },
       "RuleAction": {
         "type": "string",
+        "enum_case_insensitive": [
+          "allow",
+          "deny"
+        ],
         "description": "Indicates whether to allow or deny the traffic that matches the rule"
       },
       "RuleNumber": {
@@ -127914,6 +128254,10 @@
       },
       "TrafficDirection": {
         "type": "string",
+        "enum_case_insensitive": [
+          "egress",
+          "ingress"
+        ],
         "description": "The type of traffic."
       },
       "TrafficMirrorPortRange": {
@@ -127936,6 +128280,10 @@
       },
       "TrafficMirrorRuleAction": {
         "type": "string",
+        "enum_case_insensitive": [
+          "accept",
+          "reject"
+        ],
         "description": "The action to take on the filtered traffic."
       }
     },
@@ -132410,6 +132758,15 @@
       },
       "VolumeType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "gp2",
+          "gp3",
+          "io1",
+          "io2",
+          "sc1",
+          "st1",
+          "standard"
+        ],
         "description": "The volume type. This parameter can be one of the following values:\n  +  General Purpose SSD: ``gp2`` | ``gp3``\n  +  Provisioned IOPS SSD: ``io1`` | ``io2``\n  +  Throughput Optimized HDD: ``st1``\n  +  Cold HDD: ``sc1``\n  +  Magnetic: ``standard``\n  \n  Throughput Optimized HDD (``st1``) and Cold HDD (``sc1``) volumes can't be used as boot volumes.\n  For more information, see [Amazon EBS volume types](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html) in the *Amazon EBS User Guide*.\n Default: ``gp2``"
       }
     },
@@ -144973,6 +145330,10 @@
     "properties": {
       "AZMode": {
         "type": "string",
+        "enum_case_insensitive": [
+          "cross-az",
+          "single-az"
+        ],
         "description": "Specifies whether the nodes in this Memcached cluster are created in a single Availability Zone or created across multiple Availability Zones in the cluster's region."
       },
       "AutoMinorVersionUpgrade": {
@@ -145016,6 +145377,10 @@
       },
       "IpDiscovery": {
         "type": "string",
+        "enum_case_insensitive": [
+          "ipv4",
+          "ipv6"
+        ],
         "description": "The Ip Discovery parameter for cachecluster."
       },
       "LogDeliveryConfigurations": {
@@ -145027,6 +145392,11 @@
       },
       "NetworkType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "dual_stack",
+          "ipv4",
+          "ipv6"
+        ],
         "description": "The network type parameter for cachecluster."
       },
       "NotificationTopicArn": {
@@ -145159,14 +145529,26 @@
           },
           "DestinationType": {
             "type": "string",
+            "enum_case_insensitive": [
+              "cloudwatch-logs",
+              "kinesis-firehose"
+            ],
             "description": "Specify either CloudWatch Logs or Kinesis Data Firehose as the destination type. "
           },
           "LogFormat": {
             "type": "string",
+            "enum_case_insensitive": [
+              "json",
+              "text"
+            ],
             "description": "Valid values are either json or text"
           },
           "LogType": {
             "type": "string",
+            "enum_case_insensitive": [
+              "engine-log",
+              "slow-log"
+            ],
             "description": "Valid value is either slow-log, which refers to slow-log or engine-log"
           }
         },
@@ -145493,6 +145875,11 @@
       },
       "ClusterMode": {
         "type": "string",
+        "enum_case_insensitive": [
+          "compatible",
+          "disabled",
+          "enabled"
+        ],
         "description": "Enabled or Disabled. To modify cluster mode from Disabled to Enabled, you must first set the cluster mode to Compatible. Compatible mode allows your Redis OSS clients to connect using both cluster mode enabled and cluster mode disabled. After you migrate all Redis OSS clients to use cluster mode enabled, you can then complete cluster mode configuration and set the cluster mode to Enabled. For more information, see Modify cluster mode."
       },
       "ConfigurationEndPoint": {
@@ -145504,6 +145891,12 @@
       },
       "Durability": {
         "type": "string",
+        "enum_case_insensitive": [
+          "async",
+          "default",
+          "disabled",
+          "sync"
+        ],
         "description": "The durability setting for the replication group. Valid values: default, async, sync, disabled. Enabling durability on an existing non-durable cluster or disabling durability on an existing durable cluster is not currently supported and will result in an error; specify the desired durability at create time. The resolved state is returned in EffectiveDurability."
       },
       "EffectiveDurability": {
@@ -145529,6 +145922,10 @@
       },
       "IpDiscovery": {
         "type": "string",
+        "enum_case_insensitive": [
+          "ipv4",
+          "ipv6"
+        ],
         "description": "The network type you choose when creating a replication group, either ipv4 | ipv6. IPv6 is supported for workloads using Redis OSS engine version 6.2 onward or Memcached engine version 1.6.6 on all instances built on the Nitro system."
       },
       "KmsKeyId": {
@@ -145553,6 +145950,11 @@
       },
       "NetworkType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "dual_stack",
+          "ipv4",
+          "ipv6"
+        ],
         "description": "Must be either ipv4 | ipv6 | dual_stack. IPv6 is supported for workloads using Redis OSS engine version 6.2 onward or Memcached engine version 1.6.6 on all instances built on the Nitro system"
       },
       "NodeGroupConfiguration": {
@@ -145690,6 +146092,10 @@
       },
       "TransitEncryptionMode": {
         "type": "string",
+        "enum_case_insensitive": [
+          "preferred",
+          "required"
+        ],
         "description": "A setting that allows you to migrate your clients to use in-transit encryption, with no downtime. When setting TransitEncryptionEnabled to true, you can set your TransitEncryptionMode to preferred in the same request, to allow both encrypted and unencrypted connections at the same time. Once you migrate all your Redis OSS clients to use encrypted connections you can modify the value to required to allow encrypted connections only. Setting TransitEncryptionMode to required is a two-step process that requires you to first set the TransitEncryptionMode to preferred, after that you can set TransitEncryptionMode to required. This process will not trigger the replacement of the replication group."
       },
       "UserGroupIds": {
@@ -145767,14 +146173,26 @@
           },
           "DestinationType": {
             "type": "string",
+            "enum_case_insensitive": [
+              "cloudwatch-logs",
+              "kinesis-firehose"
+            ],
             "description": "Specify either CloudWatch Logs or Kinesis Data Firehose as the destination type. Valid values are either cloudwatch-logs or kinesis-firehose."
           },
           "LogFormat": {
             "type": "string",
+            "enum_case_insensitive": [
+              "json",
+              "text"
+            ],
             "description": "Valid values are either json or text."
           },
           "LogType": {
             "type": "string",
+            "enum_case_insensitive": [
+              "engine-log",
+              "slow-log"
+            ],
             "description": "Valid value is either slow-log, which refers to slow-log or engine-log."
           }
         },
@@ -146258,6 +146676,9 @@
           },
           "Unit": {
             "type": "string",
+            "enum_case_insensitive": [
+              "gb"
+            ],
             "description": "The unit of cached data capacity of the Serverless Cache."
           }
         },
@@ -146436,6 +146857,11 @@
           },
           "Type": {
             "type": "string",
+            "enum_case_insensitive": [
+              "iam",
+              "no-password-required",
+              "password"
+            ],
             "description": "Authentication Type"
           }
         },
@@ -176055,6 +176481,91 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ivschat.git",
     "description": "Resource type definition for AWS::IVSChat::Room."
+  },
+  "AWS::IdentityStore::AllGroupMemberships": {
+    "type_name": "AWS::IdentityStore::AllGroupMemberships",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the group membership."
+      },
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date and time the group membership was created."
+      },
+      "CreatedBy": {
+        "type": "string",
+        "description": "The identifier of the user or system that created the group membership."
+      },
+      "GroupId": {
+        "type": "string",
+        "pattern": "^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$",
+        "min_length": 1,
+        "max_length": 47,
+        "description": "The identifier for a group in the identity store."
+      },
+      "IdentityStoreId": {
+        "type": "string",
+        "pattern": "^d-[0-9a-f]{10}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "min_length": 1,
+        "max_length": 36,
+        "description": "The globally unique identifier for the identity store."
+      },
+      "MemberId": {
+        "type": "object",
+        "description": "An object containing the identifier of a group member.",
+        "properties": {
+          "UserId": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$",
+            "min_length": 1,
+            "max_length": 47,
+            "description": "The identifier for a user in the identity store."
+          }
+        },
+        "required": [
+          "UserId"
+        ],
+        "additional_properties": false
+      },
+      "MembershipId": {
+        "type": "string",
+        "pattern": "^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$",
+        "min_length": 1,
+        "max_length": 47,
+        "description": "The identifier for a GroupMembership in an identity store."
+      },
+      "UpdatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date and time the group membership was last updated."
+      },
+      "UpdatedBy": {
+        "type": "string",
+        "description": "The identifier of the user or system that last updated the group membership."
+      }
+    },
+    "definitions": {},
+    "required": [],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "MembershipId",
+      "CreatedAt",
+      "UpdatedAt",
+      "CreatedBy",
+      "UpdatedBy"
+    ],
+    "create_only_properties": [
+      "GroupId",
+      "IdentityStoreId",
+      "MemberId"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "description": "Retrieves membership metadata and attributes for a group membership in an identity store."
   },
   "AWS::IdentityStore::Group": {
     "type_name": "AWS::IdentityStore::Group",
@@ -232380,6 +232891,104 @@
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
     "description": "Resource schema for AWS::MediaPackage::Channel"
   },
+  "AWS::MediaPackage::HarvestJob": {
+    "type_name": "AWS::MediaPackage::HarvestJob",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) assigned to the HarvestJob."
+      },
+      "ChannelId": {
+        "type": "string",
+        "description": "The ID of the Channel that the HarvestJob will harvest from."
+      },
+      "CreatedAt": {
+        "type": "string",
+        "description": "The date and time the HarvestJob was submitted."
+      },
+      "EndTime": {
+        "type": "string",
+        "description": "The end of the time-window which will be harvested."
+      },
+      "Id": {
+        "type": "string",
+        "description": "The ID of the HarvestJob. The ID must be unique within the region and it cannot be changed after the HarvestJob is submitted."
+      },
+      "OriginEndpointId": {
+        "type": "string",
+        "description": "The ID of the OriginEndpoint that the HarvestJob will harvest from."
+      },
+      "S3Destination": {
+        "ref_name": "S3Destination"
+      },
+      "StartTime": {
+        "type": "string",
+        "description": "The start of the time-window which will be harvested."
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "IN_PROGRESS",
+          "SUCCEEDED",
+          "FAILED"
+        ],
+        "description": "The current status of the HarvestJob."
+      }
+    },
+    "definitions": {
+      "S3Destination": {
+        "type": "object",
+        "description": "Configuration parameters for where in an S3 bucket to place the harvested content.",
+        "properties": {
+          "BucketName": {
+            "type": "string",
+            "format": "AWS::S3::Bucket.Name",
+            "description": "The name of an S3 bucket within which harvested content will be exported."
+          },
+          "ManifestKey": {
+            "type": "string",
+            "description": "The key in the specified S3 bucket where the harvested top-level manifest will be placed."
+          },
+          "RoleArn": {
+            "type": "string",
+            "format": "AWS::IAM::Role.Arn",
+            "description": "The IAM role used to write to the specified S3 bucket."
+          }
+        },
+        "required": [
+          "BucketName",
+          "ManifestKey",
+          "RoleArn"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "EndTime",
+      "Id",
+      "OriginEndpointId",
+      "S3Destination",
+      "StartTime"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "ChannelId",
+      "CreatedAt",
+      "Status"
+    ],
+    "create_only_properties": [
+      "EndTime",
+      "Id",
+      "OriginEndpointId",
+      "S3Destination",
+      "StartTime"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "description": "Resource schema for AWS::MediaPackage::HarvestJob. A HarvestJob extracts a video on demand (VOD) clip from a live content stream."
+  },
   "AWS::MediaPackage::OriginEndpoint": {
     "type_name": "AWS::MediaPackage::OriginEndpoint",
     "properties": {
@@ -239760,6 +240369,172 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-networkfirewall.git",
     "description": "Resource type definition for AWS::NetworkFirewall::VpcEndpointAssociation"
+  },
+  "AWS::NetworkFlowMonitor::Monitor": {
+    "type_name": "AWS::NetworkFlowMonitor::Monitor",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:.*$",
+        "min_length": 20,
+        "max_length": 512,
+        "description": "The Amazon Resource Name (ARN) of the monitor."
+      },
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date and time when the monitor was created."
+      },
+      "LocalResources": {
+        "type": "array",
+        "min_items": 1,
+        "description": "The local resources to monitor.",
+        "items": {
+          "ref_name": "MonitorLocalResource"
+        }
+      },
+      "ModifiedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date and time when the monitor was last modified."
+      },
+      "MonitorName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_.-]+$",
+        "min_length": 1,
+        "max_length": 255,
+        "description": "The name of the monitor."
+      },
+      "MonitorStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "ACTIVE",
+          "INACTIVE",
+          "ERROR",
+          "DELETING"
+        ],
+        "description": "The status of the monitor."
+      },
+      "RemoteResources": {
+        "type": "array",
+        "description": "The remote resources to monitor.",
+        "items": {
+          "ref_name": "MonitorRemoteResource"
+        }
+      },
+      "ScopeArn": {
+        "type": "string",
+        "pattern": "^arn:.*$",
+        "min_length": 20,
+        "max_length": 2048,
+        "description": "The Amazon Resource Name (ARN) of the scope for the monitor."
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 200,
+        "description": "The tags for the monitor.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "MonitorLocalResource": {
+        "type": "object",
+        "description": "A local resource is the host where the agent is installed.",
+        "properties": {
+          "Identifier": {
+            "type": "string",
+            "description": "The identifier of the local resource."
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "AWS::EC2::VPC",
+              "AWS::AvailabilityZone",
+              "AWS::EC2::Subnet",
+              "AWS::Region",
+              "AWS::EKS::Cluster"
+            ],
+            "description": "The type of the local resource."
+          }
+        },
+        "required": [
+          "Type",
+          "Identifier"
+        ],
+        "additional_properties": false
+      },
+      "MonitorRemoteResource": {
+        "type": "object",
+        "description": "A remote resource is the other endpoint in a network flow.",
+        "properties": {
+          "Identifier": {
+            "type": "string",
+            "description": "The identifier of the remote resource."
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "AWS::EC2::VPC",
+              "AWS::AvailabilityZone",
+              "AWS::EC2::Subnet",
+              "AWS::AWSService",
+              "AWS::Region"
+            ],
+            "description": "The type of the remote resource."
+          }
+        },
+        "required": [
+          "Type",
+          "Identifier"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "MonitorName",
+      "LocalResources"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "MonitorStatus",
+      "CreatedAt",
+      "ModifiedAt"
+    ],
+    "write_only_properties": [
+      "ScopeArn"
+    ],
+    "create_only_properties": [
+      "MonitorName",
+      "ScopeArn"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "description": "Creates a monitor for specific network flows between local and remote resources to monitor network performance for workloads."
   },
   "AWS::NetworkManager::ConnectAttachment": {
     "type_name": "AWS::NetworkManager::ConnectAttachment",
@@ -255208,6 +255983,69 @@
       "KeyIdentifier"
     ],
     "description": "Definition of AWS::PaymentCryptography::Key Resource Type"
+  },
+  "AWS::Personalize::DataDeletionJob": {
+    "type_name": "AWS::Personalize::DataDeletionJob",
+    "properties": {
+      "CreationDateTime": {
+        "type": "string"
+      },
+      "DataDeletionJobArn": {
+        "type": "string"
+      },
+      "DataSource": {
+        "ref_name": "DataSource"
+      },
+      "DatasetGroupArn": {
+        "type": "string"
+      },
+      "Id": {
+        "type": "string"
+      },
+      "JobName": {
+        "type": "string"
+      },
+      "LastUpdatedDateTime": {
+        "type": "string"
+      },
+      "RoleArn": {
+        "type": "string",
+        "format": "AWS::IAM::Role.Arn"
+      },
+      "Status": {
+        "type": "string"
+      }
+    },
+    "definitions": {
+      "DataSource": {
+        "type": "object",
+        "properties": {
+          "DataLocation": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      }
+    },
+    "required": [],
+    "additional_properties": false,
+    "read_only_properties": [
+      "DataDeletionJobArn",
+      "LastUpdatedDateTime",
+      "Id",
+      "Status",
+      "CreationDateTime"
+    ],
+    "create_only_properties": [
+      "RoleArn",
+      "DataSource",
+      "JobName",
+      "DatasetGroupArn"
+    ],
+    "primary_identifier": [
+      "Id"
+    ],
+    "description": "Resource Type definition for AWS::Personalize::DataDeletionJob"
   },
   "AWS::Personalize::Dataset": {
     "type_name": "AWS::Personalize::Dataset",
@@ -324538,6 +325376,11 @@
       },
       "Direction": {
         "type": "string",
+        "enum_case_insensitive": [
+          "inbound",
+          "inbound_delegation",
+          "outbound"
+        ],
         "description": "Indicates whether the Resolver endpoint allows inbound or outbound DNS queries:\n- INBOUND: allows DNS queries to your VPC from your network \n- OUTBOUND: allows DNS queries from your VPC to your network \n- INBOUND_DELEGATION: allows DNS queries to your VPC from your network with authoritative answers from private hosted zones"
       },
       "Dns64Enabled": {
@@ -324591,7 +325434,12 @@
         "max_items": 2,
         "description": "Protocols used for the endpoint. DoH-FIPS is applicable for inbound endpoints only.",
         "items": {
-          "type": "string"
+          "type": "string",
+          "enum_case_insensitive": [
+            "do53",
+            "doh",
+            "doh-fips"
+          ]
         }
       },
       "ResolverEndpointId": {
@@ -324600,6 +325448,11 @@
       },
       "ResolverEndpointType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "dualstack",
+          "ipv4",
+          "ipv6"
+        ],
         "description": "The Resolver endpoint IP address type."
       },
       "RniEnhancedMetricsEnabled": {
@@ -324944,6 +325797,12 @@
       },
       "RuleType": {
         "type": "string",
+        "enum_case_insensitive": [
+          "delegate",
+          "forward",
+          "recursive",
+          "system"
+        ],
         "description": "When you want to forward DNS queries for specified domain name to resolvers on your network, specify FORWARD. When you have a forwarding rule to forward DNS queries for a domain to your network and you want Resolver to process queries for a subdomain of that domain, specify SYSTEM."
       },
       "Tags": {
@@ -325012,6 +325871,10 @@
           },
           "Protocol": {
             "type": "string",
+            "enum_case_insensitive": [
+              "do53",
+              "doh"
+            ],
             "description": "The protocol that you want to use to forward DNS queries. "
           },
           "ServerNameIndication": {
@@ -331268,6 +332131,347 @@
         ]
       }
     ]
+  },
+  "AWS::SCN::Dataset": {
+    "type_name": "AWS::SCN::Dataset",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+        "min_length": 20,
+        "max_length": 1011,
+        "description": "The Amazon Resource Name (ARN) of the dataset."
+      },
+      "CreatedTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The creation time of the dataset."
+      },
+      "Description": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 500,
+        "description": "The description of the dataset."
+      },
+      "InstanceId": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+        "min_length": 36,
+        "max_length": 36,
+        "description": "The Amazon Web Services Supply Chain instance identifier."
+      },
+      "LastModifiedTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The last modified time of the dataset."
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]+$",
+        "min_length": 1,
+        "max_length": 75,
+        "description": "The name of the dataset."
+      },
+      "Namespace": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]+$",
+        "min_length": 1,
+        "max_length": 50,
+        "description": "The namespace of the dataset."
+      },
+      "PartitionSpec": {
+        "type": "object",
+        "description": "The partition specification of the dataset.",
+        "properties": {
+          "Fields": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 10,
+            "description": "The partition fields.",
+            "items": {
+              "ref_name": "DataLakeDatasetPartitionField"
+            }
+          }
+        },
+        "required": [
+          "Fields"
+        ],
+        "additional_properties": false
+      },
+      "Schema": {
+        "type": "object",
+        "description": "The schema of the dataset.",
+        "properties": {
+          "Fields": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 500,
+            "description": "The list of field details of the dataset schema.",
+            "items": {
+              "ref_name": "DataLakeDatasetSchemaField"
+            }
+          },
+          "Name": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]+$",
+            "min_length": 1,
+            "max_length": 100,
+            "description": "The name of the dataset schema."
+          },
+          "PrimaryKeys": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 20,
+            "description": "The list of primary key fields for the dataset.",
+            "items": {
+              "ref_name": "DataLakeDatasetPrimaryKeyField"
+            }
+          }
+        },
+        "required": [
+          "Name",
+          "Fields"
+        ],
+        "additional_properties": false
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 200,
+        "unique_items": true,
+        "description": "The tags for the dataset.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "DataLakeDatasetPartitionField": {
+        "type": "object",
+        "description": "The partition field details.",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "min_length": 1,
+            "max_length": 100,
+            "description": "The name of the partition field."
+          },
+          "Transform": {
+            "type": "object",
+            "description": "The transformation of the partition field.",
+            "properties": {
+              "Type": {
+                "type": "string",
+                "enum": [
+                  "YEAR",
+                  "MONTH",
+                  "DAY",
+                  "HOUR",
+                  "IDENTITY"
+                ],
+                "description": "The type of partitioning transformation."
+              }
+            },
+            "required": [
+              "Type"
+            ],
+            "additional_properties": false
+          }
+        },
+        "required": [
+          "Name",
+          "Transform"
+        ],
+        "additional_properties": false
+      },
+      "DataLakeDatasetPrimaryKeyField": {
+        "type": "object",
+        "description": "The primary key field details.",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "min_length": 1,
+            "max_length": 100,
+            "description": "The name of the primary key field."
+          }
+        },
+        "required": [
+          "Name"
+        ],
+        "additional_properties": false
+      },
+      "DataLakeDatasetSchemaField": {
+        "type": "object",
+        "description": "The dataset field details.",
+        "properties": {
+          "IsRequired": {
+            "type": "boolean",
+            "description": "Indicate if the field is required or not."
+          },
+          "Name": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "min_length": 1,
+            "max_length": 100,
+            "description": "The dataset field name."
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "INT",
+              "DOUBLE",
+              "STRING",
+              "TIMESTAMP",
+              "LONG"
+            ],
+            "description": "The dataset field type."
+          }
+        },
+        "required": [
+          "Name",
+          "Type",
+          "IsRequired"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "description": "A key-value pair to associate with a resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "InstanceId",
+      "Namespace",
+      "Name"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "CreatedTime",
+      "LastModifiedTime"
+    ],
+    "create_only_properties": [
+      "InstanceId",
+      "Namespace",
+      "Name",
+      "Schema",
+      "PartitionSpec"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "description": "Represents an AWS Supply Chain data lake dataset."
+  },
+  "AWS::SCN::Namespace": {
+    "type_name": "AWS::SCN::Namespace",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+        "min_length": 20,
+        "max_length": 1011,
+        "description": "The Amazon Resource Name (ARN) of the namespace."
+      },
+      "CreatedTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The creation time of the namespace."
+      },
+      "Description": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 500,
+        "description": "The description of the namespace."
+      },
+      "InstanceId": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+        "min_length": 36,
+        "max_length": 36,
+        "description": "The Amazon Web Services Supply Chain instance identifier."
+      },
+      "LastModifiedTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The last modified time of the namespace."
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]+$",
+        "min_length": 1,
+        "max_length": 50,
+        "description": "The name of the namespace."
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 200,
+        "unique_items": true,
+        "description": "The tags for the namespace.",
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "InstanceId",
+      "Name"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "CreatedTime",
+      "LastModifiedTime"
+    ],
+    "create_only_properties": [
+      "InstanceId",
+      "Name"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ],
+    "description": "Definition of AWS::SCN::Namespace Resource Type"
   },
   "AWS::SDB::Domain": {
     "type_name": "AWS::SDB::Domain",
@@ -340131,6 +341335,104 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sso/aws-sso-application-assignment",
     "description": "Resource Type definition for SSO application access grant to a user or group."
+  },
+  "AWS::SSO::ApplicationProvider": {
+    "type_name": "AWS::SSO::ApplicationProvider",
+    "properties": {
+      "ApplicationProviderArn": {
+        "type": "string",
+        "pattern": "^arn:aws(-[a-z]{1,5}){0,3}:sso::aws:applicationProvider/[a-zA-Z0-9-/]+$",
+        "min_length": 10,
+        "max_length": 1224,
+        "description": "The ARN of the application provider."
+      },
+      "DisplayData": {
+        "ref_name": "DisplayData"
+      },
+      "FederationProtocol": {
+        "type": "string",
+        "enum": [
+          "SAML",
+          "OAUTH"
+        ],
+        "description": "The protocol used to federate to the application provider."
+      },
+      "ResourceServerConfig": {
+        "ref_name": "ResourceServerConfig"
+      }
+    },
+    "definitions": {
+      "DisplayData": {
+        "type": "object",
+        "description": "A structure that describes how IAM Identity Center represents the application provider in the portal.",
+        "properties": {
+          "Description": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The description of the application provider that appears in the portal."
+          },
+          "DisplayName": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 100,
+            "description": "The name of the application provider that appears in the portal."
+          },
+          "IconUrl": {
+            "type": "string",
+            "pattern": "^(http|https):\\/\\/.*$",
+            "min_length": 1,
+            "max_length": 768,
+            "description": "A URL that points to an icon that represents the application provider."
+          }
+        },
+        "additional_properties": false
+      },
+      "ResourceServerConfig": {
+        "type": "object",
+        "description": "A structure that describes the configuration of a resource server.",
+        "properties": {
+          "Scopes": {
+            "type": "object",
+            "description": "A map of IAM Identity Center access scopes associated with this resource server.",
+            "additional_properties": false,
+            "pattern_properties": {
+              "^[^:=\\-\\.\\s][0-9a-zA-Z_:\\-\\.]+$": {
+                "ref_name": "ResourceServerScopeDetails"
+              }
+            }
+          }
+        },
+        "additional_properties": false
+      },
+      "ResourceServerScopeDetails": {
+        "type": "object",
+        "description": "Details for an IAM Identity Center access scope associated with a resource server.",
+        "properties": {
+          "DetailedTitle": {
+            "type": "string",
+            "description": "The title of an access scope for a resource server."
+          },
+          "LongDescription": {
+            "type": "string",
+            "description": "The description of an access scope for a resource server."
+          }
+        },
+        "additional_properties": false
+      }
+    },
+    "required": [],
+    "additional_properties": false,
+    "read_only_properties": [
+      "ApplicationProviderArn",
+      "FederationProtocol",
+      "DisplayData",
+      "ResourceServerConfig"
+    ],
+    "primary_identifier": [
+      "ApplicationProviderArn"
+    ],
+    "description": "An application provider that can be used to connect an AWS managed application or customer managed application to IAM Identity Center."
   },
   "AWS::SSO::Assignment": {
     "type_name": "AWS::SSO::Assignment",
@@ -371717,6 +373019,8 @@
       },
       "Description": {
         "type": "string",
+        "min_length": 0,
+        "max_length": 1024,
         "description": "A description for the service."
       },
       "DnsConfig": {
@@ -371734,10 +373038,13 @@
       },
       "Name": {
         "type": "string",
+        "pattern": "^((?=^.{1,127}$)^([a-zA-Z0-9_][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9_]|[a-zA-Z0-9])(\\.([a-zA-Z0-9_][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9_]|[a-zA-Z0-9]))*$)|(^\\.$)$",
         "description": "The name of the service."
       },
       "NamespaceId": {
         "type": "string",
+        "min_length": 0,
+        "max_length": 255,
         "description": "The ID of the namespace in which the service is created."
       },
       "ServiceAttributes": {
@@ -371753,6 +373060,8 @@
       },
       "Tags": {
         "type": "array",
+        "min_items": 0,
+        "max_items": 200,
         "description": "An array of key-value pairs to associate with the service.",
         "items": {
           "ref_name": "Tag"
@@ -371760,6 +373069,9 @@
       },
       "Type": {
         "type": "string",
+        "enum": [
+          "HTTP"
+        ],
         "description": "The type of service. Supported values are HTTP or DNS."
       }
     },
@@ -371777,10 +373089,16 @@
           },
           "NamespaceId": {
             "type": "string",
+            "min_length": 0,
+            "max_length": 64,
             "description": "The ID of the namespace for the DNS configuration."
           },
           "RoutingPolicy": {
             "type": "string",
+            "enum": [
+              "MULTIVALUE",
+              "WEIGHTED"
+            ],
             "description": "The routing policy to use for DNS queries."
           }
         },
@@ -371795,10 +373113,18 @@
         "properties": {
           "TTL": {
             "type": "number",
+            "minimum": 0.0,
+            "maximum": 2147483647.0,
             "description": "The time-to-live (TTL) for the DNS record."
           },
           "Type": {
             "type": "string",
+            "enum": [
+              "A",
+              "AAAA",
+              "CNAME",
+              "SRV"
+            ],
             "description": "The DNS record type (e.g., A, AAAA, SRV)."
           }
         },
@@ -371814,14 +373140,23 @@
         "properties": {
           "FailureThreshold": {
             "type": "number",
+            "minimum": 1.0,
+            "maximum": 10.0,
             "description": "The number of consecutive health check failures that must occur before declaring the service unhealthy."
           },
           "ResourcePath": {
             "type": "string",
+            "min_length": 0,
+            "max_length": 255,
             "description": "The path to ping on the service for health checks."
           },
           "Type": {
             "type": "string",
+            "enum": [
+              "HTTP",
+              "HTTPS",
+              "TCP"
+            ],
             "description": "The type of health check (e.g., HTTP, HTTPS, TCP)."
           }
         },
@@ -371836,6 +373171,8 @@
         "properties": {
           "FailureThreshold": {
             "type": "number",
+            "minimum": 1.0,
+            "maximum": 10.0,
             "description": "The number of consecutive health check failures required before the service is considered unhealthy."
           }
         },
@@ -371847,10 +373184,14 @@
         "properties": {
           "Key": {
             "type": "string",
+            "min_length": 1,
+            "max_length": 128,
             "description": "The key name of the tag."
           },
           "Value": {
             "type": "string",
+            "min_length": 0,
+            "max_length": 256,
             "description": "The value of the tag."
           }
         },
@@ -372839,6 +374180,197 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-stepfunctions.git",
     "description": "Resource schema for Activity"
+  },
+  "AWS::StepFunctions::MapRun": {
+    "type_name": "AWS::StepFunctions::MapRun",
+    "properties": {
+      "ExecutionArn": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 256,
+        "description": "The Amazon Resource Name (ARN) that identifies the execution in which the Map Run was started."
+      },
+      "ExecutionCounts": {
+        "ref_name": "MapRunExecutionCounts"
+      },
+      "ItemCounts": {
+        "ref_name": "MapRunItemCounts"
+      },
+      "MapRunArn": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 2000,
+        "description": "The Amazon Resource Name (ARN) that identifies the Map Run."
+      },
+      "MaxConcurrency": {
+        "type": "integer",
+        "minimum": 0.0,
+        "description": "The maximum number of child workflow executions configured to run in parallel for the Map Run at the same time."
+      },
+      "StartDate": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date when the Map Run was started."
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "RUNNING",
+          "SUCCEEDED",
+          "FAILED",
+          "ABORTED"
+        ],
+        "description": "The current status of the Map Run."
+      },
+      "StopDate": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date when the Map Run was stopped."
+      },
+      "ToleratedFailureCount": {
+        "type": "integer",
+        "minimum": 0.0,
+        "description": "The maximum number of failed child workflow executions before the Map Run fails."
+      },
+      "ToleratedFailurePercentage": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 100.0,
+        "description": "The maximum percentage of failed child workflow executions before the Map Run fails."
+      }
+    },
+    "definitions": {
+      "MapRunExecutionCounts": {
+        "type": "object",
+        "description": "Contains details about all child workflow executions started by a Map Run.",
+        "properties": {
+          "Aborted": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of child workflow executions that were stopped."
+          },
+          "Failed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of child workflow executions that have failed."
+          },
+          "FailuresNotRedrivable": {
+            "type": "integer",
+            "description": "The number of child workflow executions that cannot be redriven."
+          },
+          "Pending": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of child workflow executions that haven't started executing yet."
+          },
+          "PendingRedrive": {
+            "type": "integer",
+            "description": "The number of unsuccessful child workflow executions waiting to be redriven."
+          },
+          "ResultsWritten": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The count of child workflow executions whose results were written by ResultWriter."
+          },
+          "Running": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of child workflow executions that are currently in-progress."
+          },
+          "Succeeded": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of child workflow executions that have completed successfully."
+          },
+          "TimedOut": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of child workflow executions that have timed out."
+          },
+          "Total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of child workflow executions started by a Map Run."
+          }
+        },
+        "additional_properties": false
+      },
+      "MapRunItemCounts": {
+        "type": "object",
+        "description": "Contains details about items processed in all child workflow executions started by a Map Run.",
+        "properties": {
+          "Aborted": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of items processed in child workflow executions that were stopped."
+          },
+          "Failed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of items processed in child workflow executions that have failed."
+          },
+          "FailuresNotRedrivable": {
+            "type": "integer",
+            "description": "The number of items in child workflow executions that cannot be redriven."
+          },
+          "Pending": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of items to process in child workflow executions that haven't started running yet."
+          },
+          "PendingRedrive": {
+            "type": "integer",
+            "description": "The number of unsuccessful items currently waiting to be redriven."
+          },
+          "ResultsWritten": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The count of items whose results were written by ResultWriter."
+          },
+          "Running": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of items being processed in child workflow executions that are currently in-progress."
+          },
+          "Succeeded": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of items processed in child workflow executions that have completed successfully."
+          },
+          "TimedOut": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of items processed in child workflow executions that have timed out."
+          },
+          "Total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "description": "The total number of items processed in all the child workflow executions started by a Map Run."
+          }
+        },
+        "additional_properties": false
+      }
+    },
+    "required": [],
+    "additional_properties": false,
+    "read_only_properties": [
+      "MapRunArn",
+      "Status",
+      "StartDate",
+      "StopDate",
+      "MaxConcurrency",
+      "ToleratedFailurePercentage",
+      "ToleratedFailureCount",
+      "ItemCounts",
+      "ExecutionCounts"
+    ],
+    "create_only_properties": [
+      "ExecutionArn"
+    ],
+    "primary_identifier": [
+      "MapRunArn"
+    ],
+    "description": "Resource schema for AWS::StepFunctions::MapRun. A Map Run is a set of child workflow executions started by a Distributed Map state in Step Functions."
   },
   "AWS::StepFunctions::StateMachine": {
     "type_name": "AWS::StepFunctions::StateMachine",
