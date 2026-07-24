@@ -48,12 +48,12 @@ report = engine.validate_standard(b"Resources: {}")
 `RegoEngine` and `CelEngine` both subclass `Engine` and are interchangeable — they produce identical diagnostics for
 the same template and config.
 
-| Method                                       | Returns          | Description                                                                                                      |
-|----------------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
-| `validate_standard(template, config=None)`   | `StandardReport` | Validates and returns diagnostics without extended context                                                       |
-| `validate_detailed(template, config=None)`   | `DetailedReport` | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
-| `list_rules()`                               | `list[RuleInfo]` | Returns metadata for every built-in and loaded custom rule                                                       |
-| `engine_name()`                              | `str`            | `"rego"` or `"cel"`                                                                                              |
+| Method                                     | Returns          | Description                                                                                                      |
+|--------------------------------------------|------------------|------------------------------------------------------------------------------------------------------------------|
+| `validate_standard(template, config=None)` | `StandardReport` | Validates and returns diagnostics without extended context                                                       |
+| `validate_detailed(template, config=None)` | `DetailedReport` | Validates and returns diagnostics with documentation URLs, rule descriptions, phase tags, and `ViolationContext` |
+| `list_rules()`                             | `list[RuleInfo]` | Returns metadata for every built-in and loaded custom rule                                                       |
+| `engine_name()`                            | `str`            | `"rego"` or `"cel"`                                                                                              |
 
 `template` is a file path (`str` / `os.PathLike`) or raw `bytes`; `config` is an optional `ValidateConfig`.
 
@@ -62,8 +62,8 @@ the same template and config.
 Passed to the constructor. Both fields default to empty lists.
 
 ```python
-engine = RegoEngine()                                       # default config
-engine = CelEngine(EngineConfig(guard_rules=[my_rule]))     # with Guard rules
+engine = RegoEngine()  # default config
+engine = CelEngine(EngineConfig(guard_rules=[my_rule]))  # with Guard rules
 ```
 
 | Field          | Default | Description                                                           |
@@ -100,14 +100,14 @@ config = ValidateConfig(
 report = engine.validate_standard("template.yaml", config)
 ```
 
-| Field                        | Default                  | Description                                                                                                              |
-|------------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `include`                    | empty (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                       |
-| `exclude`                    | empty (nothing excluded) | Matching rules are suppressed. Applied after `include`.                                                                  |
-| `severity_level`             | `Severity.INFO`          | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. |
-| `parameter_overrides`        | `{}`                     | Override template parameter values during resolution. Keys are parameter logical IDs.                                    |
-| `pseudo_parameter_overrides` | all `None`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                       |
-| `strict`                     | `False`                  | When `True`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                        |
+| Field                        | Default                  | Description                                                                                                                               |
+|------------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| `include`                    | empty (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                                        |
+| `exclude`                    | empty (nothing excluded) | Matching rules are suppressed. Applied after `include`.                                                                                   |
+| `severity_level`             | `Severity.INFO`          | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.                  |
+| `parameter_overrides`        | `{}`                     | Override template parameter values during resolution. Keys are parameter logical IDs.                                                     |
+| `pseudo_parameter_overrides` | all `None`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                        |
+| `strict`                     | `False`                  | When `True`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                         |
 | `disable_builtin_rules`      | `False`                  | When `True`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated. |
 
 ### RuleFilterConfig
@@ -116,14 +116,15 @@ Both `include` and `exclude` use this structure. All fields are additive — a r
 
 ```python
 class RuleFilterConfig:
-    ids: list[str]                            # exact rule IDs, e.g. ["E3012", "W3010"]
-    categories: list[str]                     # category names, e.g. ["security", "best_practices"]
-    id_ranges: list[IdRange]                  # numeric ranges, e.g. IdRange(prefix="E", start=3000, end=3099)
-    id_patterns: list[str]                    # regex patterns matched against rule IDs
-    resource_ids: list[ResourceIdFilter]      # a rule (or every rule) on a logical resource ID
-    logical_ids: list[LogicalIdFilter]        # a rule (or every rule) on a named template entity
+    ids: list[str]  # exact rule IDs, e.g. ["E3012", "W3010"]
+    categories: list[str]  # category names, e.g. ["security", "best_practices"]
+    id_ranges: list[IdRange]  # numeric ranges, e.g. IdRange(prefix="E", start=3000, end=3099)
+    id_patterns: list[str]  # regex patterns matched against rule IDs
+    resource_ids: list[ResourceIdFilter]  # a rule (or every rule) on a logical resource ID
+    logical_ids: list[LogicalIdFilter]  # a rule (or every rule) on a named template entity
     resource_types: list[ResourceTypeFilter]  # a rule (or every rule) on a resource type
-    services: list[ServiceFilter]             # a rule (or every rule) on a service, e.g. "AWS::AutoScaling"
+    services: list[ServiceFilter]  # a rule (or every rule) on a service, e.g. "AWS::AutoScaling"
+
 
 # All list fields above default to empty. Each filter below carries an optional
 # rule_id: set it to scope the filter to one rule, or leave it None for every
@@ -132,14 +133,17 @@ class ResourceIdFilter:
     rule_id: str | None
     resource_id: str
 
+
 class LogicalIdFilter:
     rule_id: str | None
     logical_id: str
     entity_type: EntityType | None
 
+
 class ResourceTypeFilter:
     rule_id: str | None
     resource_type: str
+
 
 class ServiceFilter:
     rule_id: str | None
@@ -162,13 +166,13 @@ the engine uses built-in defaults (e.g. region defaults to `us-east-1`).
 ```python
 @dataclass
 class PseudoParameterOverrides:
-    account_id: str | None = None         # AWS::AccountId
+    account_id: str | None = None  # AWS::AccountId
     notification_arns: str | None = None  # AWS::NotificationARNs
-    partition: str | None = None          # AWS::Partition
-    region: str | None = None             # AWS::Region (default: "us-east-1")
-    stack_id: str | None = None           # AWS::StackId
-    stack_name: str | None = None         # AWS::StackName
-    url_suffix: str | None = None         # AWS::URLSuffix
+    partition: str | None = None  # AWS::Partition
+    region: str | None = None  # AWS::Region (default: "us-east-1")
+    stack_id: str | None = None  # AWS::StackId
+    stack_name: str | None = None  # AWS::StackName
+    url_suffix: str | None = None  # AWS::URLSuffix
 ```
 
 ## TemplateModel
@@ -177,20 +181,20 @@ Parses a template into the resolved `SemanticModel` for direct inspection — th
 against.
 
 ```python
-model = TemplateModel("template.yaml")   # accepts a path or bytes, like the engines
+model = TemplateModel("template.yaml")  # accepts a path or bytes, like the engines
 ```
 
-| Method                   | Returns                        | Description                                                                                     |
-|--------------------------|--------------------------------|-------------------------------------------------------------------------------------------------|
-| `resources()`            | `dict[str, ResolvedResource]`  | All resources with resolved property values                                                     |
-| `parameters()`           | `dict[str, ParameterInfo]`     | Parameter definitions with types, defaults, constraints                                         |
-| `outputs()`              | `dict[str, ResolvedOutput]`    | Outputs with resolved values and export names                                                   |
-| `conditions()`           | `list[str]`                    | Condition names defined in the template                                                         |
-| `transforms()`           | `list[str]`                    | Transform declarations (e.g. `AWS::Serverless-2016-10-31`)                                      |
-| `format_version()`       | `str \| None`                  | `AWSTemplateFormatVersion` value                                                                |
-| `description()`          | `str \| None`                  | Template description                                                                            |
-| `to_diagnostic_model()`  | `DiagnosticModel`              | Full diagnostic model including reference graph, condition implications, and resolution sources |
-| `source_location(path)`  | `SourceSpan \| None`           | Source line/column span for a JSON path (e.g. `Resources/MyBucket/Properties/BucketName`)       |
+| Method                  | Returns                       | Description                                                                                     |
+|-------------------------|-------------------------------|-------------------------------------------------------------------------------------------------|
+| `resources()`           | `dict[str, ResolvedResource]` | All resources with resolved property values                                                     |
+| `parameters()`          | `dict[str, ParameterInfo]`    | Parameter definitions with types, defaults, constraints                                         |
+| `outputs()`             | `dict[str, ResolvedOutput]`   | Outputs with resolved values and export names                                                   |
+| `conditions()`          | `list[str]`                   | Condition names defined in the template                                                         |
+| `transforms()`          | `list[str]`                   | Transform declarations (e.g. `AWS::Serverless-2016-10-31`)                                      |
+| `format_version()`      | `str \| None`                 | `AWSTemplateFormatVersion` value                                                                |
+| `description()`         | `str \| None`                 | Template description                                                                            |
+| `to_diagnostic_model()` | `DiagnosticModel`             | Full diagnostic model including reference graph, condition implications, and resolution sources |
+| `source_location(path)` | `SourceSpan \| None`          | Source line/column span for a JSON path (e.g. `Resources/MyBucket/Properties/BucketName`)       |
 
 ## SchemaValidator
 
@@ -202,11 +206,11 @@ validator = SchemaValidator()
 diagnostics = validator.validate("template.yaml")
 ```
 
-| Method                        | Returns                  | Description                                             |
-|-------------------------------|--------------------------|---------------------------------------------------------|
+| Method                            | Returns                    | Description                                             |
+|-----------------------------------|----------------------------|---------------------------------------------------------|
 | `validate(template, region=None)` | `list[StandardDiagnostic]` | Schema diagnostics. `region` defaults to `"us-east-1"`. |
-| `list_rules()`                | `list[RuleInfo]`         | Schema rule metadata                                    |
-| `schema_count()`              | `int`                    | Number of compiled provider schemas                     |
+| `list_rules()`                    | `list[RuleInfo]`           | Schema rule metadata                                    |
+| `schema_count()`                  | `int`                      | Number of compiled provider schemas                     |
 
 ## Report Types
 
@@ -218,7 +222,7 @@ All report and diagnostic types are dataclass-like records re-exported from `clo
 @dataclass
 class StandardReport:
     file_path: str
-    status: ReportStatus            # ReportStatus.OK or ReportStatus.ERROR (ERROR when the template fails to parse)
+    status: ReportStatus  # ReportStatus.OK or ReportStatus.ERROR (ERROR when the template fails to parse)
     version: str
     metadata: ReportMetadata
     performance: PerformanceMetrics
@@ -234,12 +238,12 @@ class StandardReport:
 ```python
 @dataclass
 class StandardDiagnostic:
-    rule_id: str                            # e.g. "E3012", "F1001", "W3010"
-    severity: Severity                      # FATAL, ERROR, WARN, INFO, DEBUG
+    rule_id: str  # e.g. "E3012", "F1001", "W3010"
+    severity: Severity  # FATAL, ERROR, WARN, INFO, DEBUG
     message: str
-    source: RuleOrigin                      # SCHEMA, CFN_LINT, ENGINE, CUSTOM, GUARD
-    entity: Entity | None                   # the named template entity the finding targets, if any
-    property_path: str | None               # e.g. "Properties.BucketName", or section-absolute like "Parameters/MyParam/Type"
+    source: RuleOrigin  # SCHEMA, CFN_LINT, ENGINE, CUSTOM, GUARD
+    entity: Entity | None  # the named template entity the finding targets, if any
+    property_path: str | None  # e.g. "Properties.BucketName", or section-absolute like "Parameters/MyParam/Type"
     suggested_fix: str | None
     category: str | None
     start_line: int | None
@@ -247,15 +251,16 @@ class StandardDiagnostic:
     end_line: int | None
     end_column: int | None
     related_resources: list[RelatedResource] | None
-    condition_scenario: dict[str, bool] | None   # condition truth assignment that triggers this diagnostic
+    condition_scenario: dict[str, bool] | None  # condition truth assignment that triggers this diagnostic
+
 
 # The named template entity a diagnostic is attributed to. The entity type is the
 # singular form of the top-level template section the entity is declared in.
 @dataclass
 class Entity:
-    logical_id: str                         # logical ID as declared in the template
+    logical_id: str  # logical ID as declared in the template
     entity_type: EntityType
-    resource_type: str | None = None        # CloudFormation type, when the entity is a resource whose type is known
+    resource_type: str | None = None  # CloudFormation type, when the entity is a resource whose type is known
 
 # EntityType is an enum with members: RESOURCE, PARAMETER, OUTPUT, MAPPING,
 # METADATA, RULE, CONDITION, TRANSFORM, FORMAT_VERSION, DESCRIPTION.

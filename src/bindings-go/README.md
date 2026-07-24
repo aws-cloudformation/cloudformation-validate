@@ -55,15 +55,15 @@ internal panics are caught at the FFI boundary and surface the same way, never a
 `NewRegoEngine` and `NewCelEngine` both return an `*Engine` and are interchangeable — they produce identical
 diagnostics for the same template and config. A `nil` config uses only the built-in rules.
 
-| Method                                                            | Returns                | Description                                                                                                      |
-|-------------------------------------------------------------------|------------------------|------------------------------------------------------------------------------------------------------------------|
-| `ValidateStandard(template []byte, config *ValidateConfig, filePath string)` | `(*StandardReport, error)` | Validates bytes without extended context. `filePath` labels the report; `""` uses `"template"`.          |
-| `ValidateStandardFile(path string, config *ValidateConfig)`       | `(*StandardReport, error)` | Reads a template from disk, then validates it                                                                |
-| `ValidateDetailed(template []byte, config *ValidateConfig, filePath string)` | `(*DetailedReport, error)` | Validates bytes with documentation URLs, rule descriptions, phase tags, and `ViolationContext`           |
-| `ValidateDetailedFile(path string, config *ValidateConfig)`       | `(*DetailedReport, error)` | Reads a template from disk, then validates it (detailed)                                                     |
-| `ListRules()`                                                     | `([]RuleInfo, error)`  | Returns metadata for every built-in and loaded custom rule                                                       |
-| `EngineName()`                                                    | `string`               | `"rego"` or `"cel"`                                                                                              |
-| `Destroy()`                                                       | —                      | Releases the native engine; the engine must not be used afterwards                                               |
+| Method                                                                       | Returns                    | Description                                                                                     |
+|------------------------------------------------------------------------------|----------------------------|-------------------------------------------------------------------------------------------------|
+| `ValidateStandard(template []byte, config *ValidateConfig, filePath string)` | `(*StandardReport, error)` | Validates bytes without extended context. `filePath` labels the report; `""` uses `"template"`. |
+| `ValidateStandardFile(path string, config *ValidateConfig)`                  | `(*StandardReport, error)` | Reads a template from disk, then validates it                                                   |
+| `ValidateDetailed(template []byte, config *ValidateConfig, filePath string)` | `(*DetailedReport, error)` | Validates bytes with documentation URLs, rule descriptions, phase tags, and `ViolationContext`  |
+| `ValidateDetailedFile(path string, config *ValidateConfig)`                  | `(*DetailedReport, error)` | Reads a template from disk, then validates it (detailed)                                        |
+| `ListRules()`                                                                | `([]RuleInfo, error)`      | Returns metadata for every built-in and loaded custom rule                                      |
+| `EngineName()`                                                               | `string`                   | `"rego"` or `"cel"`                                                                             |
+| `Destroy()`                                                                  | —                          | Releases the native engine; the engine must not be used afterwards                              |
 
 ### EngineConfig
 
@@ -117,14 +117,14 @@ type ValidateConfig struct {
 }
 ```
 
-| Field                      | Default                  | Description                                                                                                              |
-|----------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `Include`                  | `nil` (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                       |
-| `Exclude`                  | `nil` (nothing excluded) | Matching rules are suppressed. Applied after `Include`.                                                                  |
-| `SeverityLevel`            | `INFO`                   | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. |
-| `ParameterOverrides`       | `nil`                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                    |
-| `PseudoParameterOverrides` | `nil`                    | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                       |
-| `Strict`                   | `false`                  | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                        |
+| Field                      | Default                  | Description                                                                                                                               |
+|----------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| `Include`                  | `nil` (all rules)        | When set, only matching rules produce diagnostics. Empty means include everything.                                                        |
+| `Exclude`                  | `nil` (nothing excluded) | Matching rules are suppressed. Applied after `Include`.                                                                                   |
+| `SeverityLevel`            | `INFO`                   | Minimum severity threshold. Diagnostics below this level are dropped. Values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.                  |
+| `ParameterOverrides`       | `nil`                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                                     |
+| `PseudoParameterOverrides` | `nil`                    | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                        |
+| `Strict`                   | `false`                  | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                         |
 | `DisableBuiltinRules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated. |
 
 ### RuleFilterConfig
@@ -189,19 +189,19 @@ if err != nil {
 defer model.Destroy()
 ```
 
-| Method                     | Returns                    | Description                                                                                     |
-|----------------------------|----------------------------|-------------------------------------------------------------------------------------------------|
-| `cfnvalidate.ParseTemplate(template []byte)` | `(*TemplateModel, error)` | Parses template bytes into a semantic model (package function)                        |
-| `Resources()`              | `(json.RawMessage, error)` | Resolved resources, keyed by logical ID                                                         |
-| `Parameters()`             | `(json.RawMessage, error)` | Parameter definitions with types, defaults, constraints                                         |
-| `Outputs()`                | `(json.RawMessage, error)` | Outputs with resolved values and export names                                                   |
-| `Conditions()`             | `([]string, error)`        | Condition names defined in the template                                                         |
-| `Transforms()`             | `([]string, error)`        | Transform declarations (e.g. `AWS::Serverless-2016-10-31`)                                      |
-| `FormatVersion()`          | `*string`                  | `AWSTemplateFormatVersion` value                                                                |
-| `Description()`            | `*string`                  | Template description                                                                            |
-| `DiagnosticModel()`        | `(json.RawMessage, error)` | Full diagnostic model including reference graph, condition implications, and resolution sources |
-| `SourceLocation(path string)` | `(*SourceSpan, error)`  | Source line/column span for a JSON path (e.g. `Resources/MyBucket/Properties/BucketName`)       |
-| `Destroy()`                | —                          | Releases the native model; it must not be used afterwards                                        |
+| Method                                       | Returns                    | Description                                                                                     |
+|----------------------------------------------|----------------------------|-------------------------------------------------------------------------------------------------|
+| `cfnvalidate.ParseTemplate(template []byte)` | `(*TemplateModel, error)`  | Parses template bytes into a semantic model (package function)                                  |
+| `Resources()`                                | `(json.RawMessage, error)` | Resolved resources, keyed by logical ID                                                         |
+| `Parameters()`                               | `(json.RawMessage, error)` | Parameter definitions with types, defaults, constraints                                         |
+| `Outputs()`                                  | `(json.RawMessage, error)` | Outputs with resolved values and export names                                                   |
+| `Conditions()`                               | `([]string, error)`        | Condition names defined in the template                                                         |
+| `Transforms()`                               | `([]string, error)`        | Transform declarations (e.g. `AWS::Serverless-2016-10-31`)                                      |
+| `FormatVersion()`                            | `*string`                  | `AWSTemplateFormatVersion` value                                                                |
+| `Description()`                              | `*string`                  | Template description                                                                            |
+| `DiagnosticModel()`                          | `(json.RawMessage, error)` | Full diagnostic model including reference graph, condition implications, and resolution sources |
+| `SourceLocation(path string)`                | `(*SourceSpan, error)`     | Source line/column span for a JSON path (e.g. `Resources/MyBucket/Properties/BucketName`)       |
+| `Destroy()`                                  | —                          | Releases the native model; it must not be used afterwards                                       |
 
 ## SchemaValidator
 
@@ -214,13 +214,13 @@ defer validator.Destroy()
 diagnostics, err := validator.Validate(templateBytes, nil)
 ```
 
-| Method                                     | Returns                     | Description                                             |
-|--------------------------------------------|-----------------------------|---------------------------------------------------------|
-| `cfnvalidate.NewSchemaValidator()`         | `*SchemaValidator`          | Constructs a validator over the compiled schemas        |
-| `Validate(template []byte, region *string)` | `([]StandardDiagnostic, error)` | Schema diagnostics. `nil` region defaults to `"us-east-1"`. |
-| `ListRules()`                              | `([]RuleInfo, error)`       | Schema rule metadata                                    |
-| `SchemaCount()`                            | `uint32`                    | Number of compiled provider schemas                     |
-| `Destroy()`                                | —                           | Releases the native validator; it must not be used afterwards |
+| Method                                      | Returns                         | Description                                                   |
+|---------------------------------------------|---------------------------------|---------------------------------------------------------------|
+| `cfnvalidate.NewSchemaValidator()`          | `*SchemaValidator`              | Constructs a validator over the compiled schemas              |
+| `Validate(template []byte, region *string)` | `([]StandardDiagnostic, error)` | Schema diagnostics. `nil` region defaults to `"us-east-1"`.   |
+| `ListRules()`                               | `([]RuleInfo, error)`           | Schema rule metadata                                          |
+| `SchemaCount()`                             | `uint32`                        | Number of compiled provider schemas                           |
+| `Destroy()`                                 | —                               | Releases the native validator; it must not be used afterwards |
 
 ## Report Types
 
