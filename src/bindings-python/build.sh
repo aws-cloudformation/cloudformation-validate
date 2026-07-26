@@ -65,17 +65,15 @@ echo "Generating Python bindings..."
     --out-dir "$PACKAGE_DIR"
 
 # ── Patch native loading + normalize generated modules ───────────────────────
-# Two transforms, both applied identically on every host so the generated Python
-# is byte-for-byte reproducible across platforms (the all-platform wheel merge
-# keeps one shared copy and requires every platform's to match):
+# Two transforms applied to the uniffi-generated modules:
 #   1. The generated modules load the cdylib from the package root; redirect them
 #      to _native.py's per-platform natives/<os>-<arch>/ directory so a single
 #      wheel can bundle every platform. Fails loudly if the uniffi template changes.
 #   2. uniffi emits sibling-module imports ("from . import <name>") in the order it
 #      discovers external types while walking the library's symbols — an order that
-#      is not stable across hosts (Mach-O vs ELF symbol ordering), so the same
-#      module differs per platform. Sort each contiguous import block into a
-#      canonical order; these bindings are order-independent, so this is safe.
+#      is not stable across hosts. Sort each contiguous import block so the
+#      generated code is deterministic regardless of build host; these bindings
+#      are order-independent, so this is safe.
 echo "Patching native loader and normalizing generated modules..."
 python3 - "$PACKAGE_DIR" <<'EOF'
 import pathlib
@@ -115,7 +113,7 @@ for module in modules:
     text = module.read_text(encoding="utf-8")
     if OLD not in text:
         sys.exit(f"error: expected loader line not found in {module.name} — did the uniffi template change?")
-    module.write_text(sort_relative_imports(text.replace(OLD, NEW)), encoding="utf-8")
+    module.write_text(sort_relative_imports(text.replace(OLD, NEW)), encoding="utf-8", newline="\n")
 print(f"  patched {len(modules)} modules")
 EOF
 
