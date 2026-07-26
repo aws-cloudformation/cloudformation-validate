@@ -1,0 +1,250 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  UseCluster:
+    Type: String
+    AllowedValues: ['true', 'false']
+  EncryptionChoice:
+    Type: String
+    AllowedValues: ['true', 'false']
+  DynamicEncryption:
+    Type: String
+  DynamicEngine:
+    Type: String
+  SnapshotName:
+    Type: String
+  EngineChoice:
+    Type: String
+    AllowedValues: [mysql, aurora-mysql]
+  AuroraEngineChoice:
+    Type: String
+    AllowedValues: [aurora-mysql, aurora-postgresql]
+Conditions:
+  UseClusterCondition: !Equals [!Ref UseCluster, 'true']
+Resources:
+  Cluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-mysql
+      StorageEncrypted: true
+
+  MissingEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+
+  KmsKeyWithoutEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      KmsKeyId: alias/rds
+
+  FalseEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: false
+
+  StringFalseEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: 'false'
+
+  ConditionalFalseEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: !If [UseClusterCondition, true, false]
+
+  ConditionalNoValueEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: !If [UseClusterCondition, true, !Ref AWS::NoValue]
+
+  AllowedValuesEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: !Ref EncryptionChoice
+
+  EngineAllowedValuesMissingEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: !Ref EngineChoice
+
+  ConditionalClusterOrStandalone:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBClusterIdentifier: !If [UseClusterCondition, !Ref Cluster, !Ref AWS::NoValue]
+
+  CustomFalseEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: custom-oracle-ee
+      StorageEncrypted: false
+
+  CustomStringFalseEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: custom-oracle-ee
+      StorageEncrypted: 'false'
+
+  TrueEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: true
+
+  StringTrueEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: 'true'
+
+  ConditionalTrueEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: !If [UseClusterCondition, true, true]
+
+  DynamicEncryptionValue:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: !Ref DynamicEncryption
+
+  DynamicReferenceEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: '{{resolve:ssm:/rds/storage-encrypted}}'
+
+  InvalidEncryptionValue:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: invalid
+
+  DynamicEngineValue:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: !Ref DynamicEngine
+
+  AuroraEngine:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: aurora-postgresql
+
+  AuroraAllowedValues:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: !Ref AuroraEngineChoice
+
+  ClusterMember:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: aurora-mysql
+      DBClusterIdentifier: !Ref Cluster
+
+  SnapshotRestore:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBSnapshotIdentifier: !Ref SnapshotName
+
+  EmptySnapshotIdentifier:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBSnapshotIdentifier: ''
+
+  ClusterSnapshotRestore:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBClusterSnapshotIdentifier: cluster-snapshot
+
+  EncryptedSource:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      StorageEncrypted: true
+
+  SourceInstanceReplica:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      SourceDBInstanceIdentifier: !Ref EncryptedSource
+
+  SourceResourceRestore:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      SourceDbiResourceId: db-ABCDEFGHIJKLMNOPQ
+
+  AutomatedBackupRestore:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      SourceDBInstanceAutomatedBackupsArn: arn:aws:rds:us-east-1:123456789012:auto-backup:ab-example
+
+  SourceClusterReplica:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      SourceDBClusterIdentifier: !Ref Cluster
+
+  CustomImplicitEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: custom-oracle-ee
+
+  CustomTrueEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: custom-oracle-ee
+      StorageEncrypted: true
+
+  LegacySecurityGroups:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBSecurityGroups: [legacy-security-group]
+
+  CorrelatedClusterOrEncryptedStandalone:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBClusterIdentifier: !If [UseClusterCondition, !Ref Cluster, !Ref AWS::NoValue]
+      StorageEncrypted: !If [UseClusterCondition, !Ref AWS::NoValue, true]
+
+  ConditionalSnapshotOrEncryptedStandalone:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBSnapshotIdentifier: !If [UseClusterCondition, !Ref SnapshotName, !Ref AWS::NoValue]
+      StorageEncrypted: !If [UseClusterCondition, !Ref AWS::NoValue, true]
+
+  WholePropertiesCorrelated:
+    Type: AWS::RDS::DBInstance
+    Properties: !If
+      - UseClusterCondition
+      - Engine: aurora-mysql
+        DBClusterIdentifier: !Ref Cluster
+      - Engine: mysql
+        StorageEncrypted: true
+
+  WholePropertiesFalseEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties: !If
+      - UseClusterCondition
+      - Engine: mysql
+        StorageEncrypted: true
+      - Engine: mysql
+        StorageEncrypted: false
+
+  DynamicProperties:
+    Type: AWS::RDS::DBInstance
+    Properties: '{{resolve:ssm:/rds/properties}}'

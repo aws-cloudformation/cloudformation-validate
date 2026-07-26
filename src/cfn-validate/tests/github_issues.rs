@@ -1414,3 +1414,42 @@ fn issue_226_e9002_ignores_icmp_type_code_but_fires_on_inverted_tcp_range() {
         assert!(on_ping.is_empty(), "[{engine}] E9002 must not fire on ICMP type/code rules, got: {on_ping:?}");
     }
 }
+
+/// Issue #235: instance-level storage encryption is required only when the DB
+/// instance controls that setting. The fixture covers standalone instances,
+/// explicit and conditional false values, parameter AllowedValues, Aurora and
+/// cluster members, inherited restore/replica modes, RDS Custom, legacy DB
+/// security groups, unknown values, and condition-correlated properties.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/235
+#[test]
+fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
+    let diags = validate_both("issue-235.yaml");
+    let expected = vec![
+        "AllowedValuesEncryption",
+        "ConditionalClusterOrStandalone",
+        "ConditionalFalseEncryption",
+        "ConditionalNoValueEncryption",
+        "CustomFalseEncryption",
+        "CustomStringFalseEncryption",
+        "EmptySnapshotIdentifier",
+        "EngineAllowedValuesMissingEncryption",
+        "FalseEncryption",
+        "KmsKeyWithoutEncryption",
+        "MissingEncryption",
+        "StringFalseEncryption",
+        "WholePropertiesFalseEncryption",
+    ];
+
+    assert_fires_with_severity(&diags, "W9008", Severity::Warn);
+    assert_count(&diags, "W9008", expected.len());
+    assert_fires_on_property(&diags, "W9008", "Properties.StorageEncrypted");
+    for (engine, engine_diags) in &diags {
+        let mut actual: Vec<&str> = engine_diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == "W9008")
+            .filter_map(|diagnostic| diagnostic.resource_logical_id())
+            .collect();
+        actual.sort_unstable();
+        assert_eq!(actual, expected, "[{engine}] W9008 fired on the wrong RDS instances");
+    }
+}
