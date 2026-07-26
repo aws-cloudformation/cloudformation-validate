@@ -90,6 +90,14 @@ cp "$SCRIPT_DIR/native/link.go" "$GENERATED_PKG/link.go"
 echo "Staging native library..."
 mkdir -p "$LIBS_DIR"
 cp "$RELEASE_DIR/$LIB_NAME" "$LIBS_DIR/"
+# Static archives never go through a link step, so the debug sections of
+# prebuilt standard-library members survive into the archive. Strip them from
+# the staged copy — consumers only need the symbol table and machine code.
+command -v strip &>/dev/null || { echo "Error: strip not found on PATH" >&2; exit 1; }
+case "$OS" in
+    darwin) strip -S "$LIBS_DIR/$LIB_NAME" ;;
+    *)      strip --strip-debug "$LIBS_DIR/$LIB_NAME" ;;
+esac
 LOCAL_LIBRARY_COUNT=$(find "$GO_DIR/libs" -type f -name 'libbindings_go.a' | wc -l | tr -d ' ')
 if [ "$LOCAL_LIBRARY_COUNT" -ne 1 ] || [ ! -f "$LIBS_DIR/$LIB_NAME" ]; then
     echo "Error: local build must contain exactly the host static library at $LIBS_DIR/$LIB_NAME" >&2
@@ -100,7 +108,11 @@ fi
 echo "Staging license and readme metadata..."
 cp "$WORKSPACE/../LICENSE" "$GO_DIR/LICENSE"
 cp "$SCRIPT_DIR/README.md" "$GO_DIR/README.md"
-cp "$SCRIPT_DIR/THIRD-PARTY-LICENSES.txt" "$GO_DIR/THIRD-PARTY-LICENSES.txt"
+
+if [ ! -f "$GO_DIR/THIRD-PARTY-LICENSES.txt" ]; then
+    echo "Error: $GO_DIR/THIRD-PARTY-LICENSES.txt is missing. Generate it with: python3 scripts/generate_licenses.py" >&2
+    exit 1
+fi
 
 # ── Verify the module compiles ────────────────────────────────────────────────
 echo "Compiling Go module..."

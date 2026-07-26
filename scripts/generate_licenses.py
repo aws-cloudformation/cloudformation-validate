@@ -280,21 +280,28 @@ def main():
             WORKSPACE / "bindings-python" / "THIRD-PARTY-LICENSES.txt",
             targets=[
                 "x86_64-unknown-linux-gnu",
+                "aarch64-unknown-linux-gnu",
+                "x86_64-apple-darwin",
                 "aarch64-apple-darwin",
                 "x86_64-pc-windows-msvc",
+                "aarch64-pc-windows-msvc",
             ],
         )
     if "go" in targets:
         # The Go static library is built with the GNU toolchain on Windows
-        # (cgo links with MinGW), so the windows target here is -gnu.
+        # (cgo links with MinGW), so the windows targets here are the GNU
+        # flavors (gnullvm is the aarch64 MinGW-style target).
         generate(
             "bindings-go",
             ["-m", "bindings-go/Cargo.toml"],
-            WORKSPACE / "bindings-go" / "THIRD-PARTY-LICENSES.txt",
+            WORKSPACE / "bindings-go" / "go" / "THIRD-PARTY-LICENSES.txt",
             targets=[
                 "x86_64-unknown-linux-gnu",
+                "aarch64-unknown-linux-gnu",
+                "x86_64-apple-darwin",
                 "aarch64-apple-darwin",
                 "x86_64-pc-windows-gnu",
+                "aarch64-pc-windows-gnullvm",
             ],
         )
     print("Done.")

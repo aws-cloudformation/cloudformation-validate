@@ -9,7 +9,7 @@ keywords.workspace = true
 categories.workspace = true
 
 [lib]
-crate-type = ["cdylib", "staticlib", "lib"]
+crate-type = ["cdylib", "staticlib"]
 name = "bindings_go"
 
 [dependencies]

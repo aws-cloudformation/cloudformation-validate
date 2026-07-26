@@ -142,6 +142,79 @@ echo "Building wheel..."
 cd "$GENERATED_DIR"
 python3 -m pip wheel --no-build-isolation --no-deps --wheel-dir "$WHEEL_DIR" . --quiet
 
+# ── Retag wheel with the host platform ───────────────────────────────────────
+case "$OS" in
+    darwin) PLATFORM_TAG="macosx_11_0_arm64" ;;
+    win32)  PLATFORM_TAG="win_amd64" ;;
+    linux)
+        command -v readelf &>/dev/null || { echo "Error: readelf not found on PATH (required to compute the manylinux tag)" >&2; exit 1; }
+        while IFS= read -r needed; do
+            case "$needed" in
+                libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libgcc_s.so.*|libutil.so.*|ld-linux-*.so.*) ;;
+                *) echo "Error: $LIB_NAME links a library outside the manylinux-permitted set: $needed" >&2; exit 1 ;;
+            esac
+        done < <(readelf -d "$RELEASE_DIR/$LIB_NAME" | awk '/\(NEEDED\)/ { gsub(/[][]/, "", $NF); print $NF }')
+        GLIBC_FLOOR=$( { readelf --dyn-syms "$RELEASE_DIR/$LIB_NAME" | grep -o 'GLIBC_[0-9]*\.[0-9]*' | sed 's/GLIBC_//' | sort -uV | tail -1; } || true)
+        [ -n "$GLIBC_FLOOR" ] || { echo "Error: could not determine the glibc floor of $LIB_NAME" >&2; exit 1; }
+        PLATFORM_TAG="manylinux_${GLIBC_FLOOR%%.*}_${GLIBC_FLOOR##*.}_$(uname -m)"
+        ;;
+esac
+echo "Retagging wheel as py3-none-${PLATFORM_TAG}..."
+python3 - "$WHEEL_DIR" "$PLATFORM_TAG" <<'EOF'
+import base64
+import csv
+import hashlib
+import io
+import pathlib
+import sys
+import zipfile
+
+wheel_dir = pathlib.Path(sys.argv[1])
+platform_tag = sys.argv[2]
+
+wheels = sorted(wheel_dir.glob("*.whl"))
+if len(wheels) != 1:
+    sys.exit(f"error: expected exactly one wheel in {wheel_dir}, found {len(wheels)}")
+source = wheels[0]
+if not source.name.endswith("-py3-none-any.whl"):
+    sys.exit(f"error: expected a py3-none-any wheel to retag, found {source.name}")
+
+with zipfile.ZipFile(source) as archive:
+    entries = {e.filename: (e, archive.read(e)) for e in archive.infolist() if not e.is_dir()}
+
+record_paths = [n for n in entries if n.endswith(".dist-info/RECORD")]
+wheel_paths = [n for n in entries if n.endswith(".dist-info/WHEEL")]
+if len(record_paths) != 1 or len(wheel_paths) != 1:
+    sys.exit("error: wheel must contain exactly one .dist-info/RECORD and one .dist-info/WHEEL")
+record_path, wheel_path = record_paths[0], wheel_paths[0]
+
+info, content = entries[wheel_path]
+text = content.decode("utf-8")
+if "Tag: py3-none-any\n" not in text or "Root-Is-Purelib: true\n" not in text:
+    sys.exit("error: unexpected WHEEL metadata — did the wheel builder change?")
+text = text.replace("Root-Is-Purelib: true\n", "Root-Is-Purelib: false\n")
+text = text.replace("Tag: py3-none-any\n", f"Tag: py3-none-{platform_tag}\n")
+entries[wheel_path] = (info, text.encode("utf-8"))
+
+record_info = entries.pop(record_path)[0]
+rows = io.StringIO(newline="")
+writer = csv.writer(rows, lineterminator="\n")
+for name in sorted(entries):
+    data = entries[name][1]
+    digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode("ascii")
+    writer.writerow((name, f"sha256={digest}", len(data)))
+writer.writerow((record_path, "", ""))
+entries[record_path] = (record_info, rows.getvalue().encode("utf-8"))
+
+target = source.with_name(source.name.replace("-any.whl", f"-{platform_tag}.whl"))
+with zipfile.ZipFile(target, "w") as archive:
+    for name in sorted(entries):
+        entry_info, data = entries[name]
+        archive.writestr(entry_info, data)
+source.unlink()
+print(f"  {target.name}")
+EOF
+
 WHEEL_FILE=$(ls "$WHEEL_DIR"/cloudformation_validate-*.whl)
 
 # ── Verify the wheel carries host code and publication metadata ──────────────
@@ -160,8 +233,8 @@ if ! grep -Fxq 'cloudformation_validate/README.md' <<<"$WHEEL_ENTRIES" \
     exit 1
 fi
 case "$WHEEL_FILE" in
-    *py3-none-any*) ;;
-    *) echo "Error: wheel must be tagged py3-none-any (platform dispatch happens at import time): $WHEEL_FILE" >&2; exit 1 ;;
+    *-py3-none-"${PLATFORM_TAG}".whl) ;;
+    *) echo "Error: wheel must be tagged py3-none-${PLATFORM_TAG} (a real platform tag so pip rejects unsupported platforms at install time): $WHEEL_FILE" >&2; exit 1 ;;
 esac
 
 # ── Summary ───────────────────────────────────────────────────────────────────

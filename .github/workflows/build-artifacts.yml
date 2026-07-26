@@ -110,7 +110,7 @@ jobs:
           ${{ env.WORKING_DIR }}/bindings-jvm/THIRD-PARTY-LICENSES.txt
           ${{ env.WORKING_DIR }}/bindings-wasm/THIRD-PARTY-LICENSES.txt
           ${{ env.WORKING_DIR }}/bindings-python/THIRD-PARTY-LICENSES.txt
-          ${{ env.WORKING_DIR }}/bindings-go/THIRD-PARTY-LICENSES.txt
+          ${{ env.WORKING_DIR }}/bindings-go/go/THIRD-PARTY-LICENSES.txt
         if-no-files-found: error
         retention-days: 1
 
@@ -476,9 +476,8 @@ jobs:
           echo "::error::Expected exactly one Python wheel from each platform build"
           exit 1
         fi
-        python_output="bindings-python/generated/dist/$(basename "${linux_wheels[0]}")"
         bindings-python/merge-wheels.py \
-          "$python_output" \
+          bindings-python/generated/dist \
           "${linux_wheels[0]}" \
           "${darwin_wheels[0]}" \
           "${windows_wheels[0]}"
@@ -501,7 +500,7 @@ jobs:
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-jvm/THIRD-PARTY-LICENSES.txt" bindings-jvm/THIRD-PARTY-LICENSES.txt
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-wasm/THIRD-PARTY-LICENSES.txt" bindings-wasm/THIRD-PARTY-LICENSES.txt
         cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-python/THIRD-PARTY-LICENSES.txt" bindings-python/THIRD-PARTY-LICENSES.txt
-        cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-go/THIRD-PARTY-LICENSES.txt" bindings-go/THIRD-PARTY-LICENSES.txt
+        cp "$GITHUB_WORKSPACE/incoming/third-party-licenses/bindings-go/go/THIRD-PARTY-LICENSES.txt" bindings-go/go/THIRD-PARTY-LICENSES.txt
         echo "Staged THIRD-PARTY-LICENSES.txt files."
 
         bindings-jvm/generate-version-properties.sh
@@ -554,6 +553,5 @@ jobs:
           ${{ env.WORKING_DIR }}/bindings-go/go/README.md
           ${{ env.WORKING_DIR }}/bindings-go/go/LICENSE
           ${{ env.WORKING_DIR }}/bindings-go/go/THIRD-PARTY-LICENSES.txt
-          ${{ env.WORKING_DIR }}/bindings-go/THIRD-PARTY-LICENSES.txt
           release-bin/**
           ${{ env.WORKING_DIR }}/THIRD-PARTY-LICENSES.txt

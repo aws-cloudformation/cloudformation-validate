@@ -17,9 +17,9 @@ Available on [PyPI](https://pypi.org/project/cloudformation-validate/) as `cloud
 pip install cloudformation-validate
 ```
 
-Requires Python 3.12+ and has no runtime dependencies. The wheel is tagged `py3-none-any` and bundles the native
-library for each supported platform (Linux x86-64, macOS aarch64, Windows x86-64); the right one is selected at import
-time.
+Requires Python 3.12+ and has no runtime dependencies. The wheel carries a platform tag for each supported platform
+(Linux x86-64 glibc, macOS aarch64, Windows x86-64) and bundles all three native libraries; pip installs it only on
+supported platforms, and the right library is selected at import time.
 
 ## Quick start
 
