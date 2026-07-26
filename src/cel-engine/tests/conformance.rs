@@ -87,31 +87,6 @@ Resources:
     }
 
     #[test]
-    fn w9008_not_raised_for_cluster_member_instance() {
-        // StorageEncrypted is "Not applicable" on cluster-member instances; encryption
-        // is managed by the DB cluster (issue #235)
-        let ids = validate_file("good/aurora_dbinstance.yaml");
-        assert!(!ids.contains(&"W9008".to_string()), "Cluster-member instance should not trigger W9008, got: {:?}", ids);
-    }
-
-    #[test]
-    fn w9008_raised_for_standalone_instance_without_storage_encrypted() {
-        let ids = validate(
-            r#"
-AWSTemplateFormatVersion: '2010-09-09'
-Resources:
-  MyDB:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      Engine: mysql
-      DBInstanceClass: db.t3.micro
-      AllocatedStorage: '20'
-"#,
-        );
-        assert!(ids.contains(&"W9008".to_string()), "Standalone instance without StorageEncrypted should trigger W9008, got: {:?}", ids);
-    }
-
-    #[test]
     fn well_formed_template_with_encryption_no_structure_errors() {
         let ids = validate(
             r#"

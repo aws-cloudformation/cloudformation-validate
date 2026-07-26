@@ -1946,12 +1946,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 60,
-        "startColumn": 3,
-        "endLine": 60,
-        "endColumn": 6,
+        "startLine": 62,
+        "startColumn": 5,
+        "endLine": 62,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -20551,7 +20552,7 @@
       "counts": {
         "fatal": 1,
         "errors": 2,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 22,
         "debug": 0
       },
@@ -20621,25 +20622,6 @@
         "endLine": 16,
         "endColumn": 20,
         "ruleDescription": "Validate ElastiCache cluster cache node type",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "DBInstance",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 13,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
       {
@@ -21725,12 +21707,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 16,
-        "startColumn": 3,
-        "endLine": 16,
-        "endColumn": 7,
+        "startLine": 18,
+        "startColumn": 5,
+        "endLine": 18,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -21744,12 +21727,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 25,
-        "startColumn": 3,
-        "endLine": 25,
-        "endColumn": 10,
+        "startLine": 27,
+        "startColumn": 5,
+        "endLine": 27,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -21763,12 +21747,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 34,
-        "startColumn": 3,
-        "endLine": 34,
-        "endColumn": 12,
+        "startLine": 36,
+        "startColumn": 5,
+        "endLine": 36,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -23671,12 +23656,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 5,
+        "startLine": 7,
+        "startColumn": 5,
+        "endLine": 7,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -28699,7 +28685,7 @@
       "counts": {
         "fatal": 0,
         "errors": 4,
-        "warnings": 8,
+        "warnings": 6,
         "informational": 31,
         "debug": 0
       },
@@ -28791,35 +28777,17 @@
         "message": "RDS instance should have StorageEncrypted set to true",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "DBInstance1",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 14,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
           "logicalId": "DBInstance2",
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 16,
-        "startColumn": 3,
-        "endLine": 16,
-        "endColumn": 14,
+        "startLine": 18,
+        "startColumn": 5,
+        "endLine": 18,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -28833,12 +28801,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 23,
-        "startColumn": 3,
-        "endLine": 23,
-        "endColumn": 14,
+        "startLine": 25,
+        "startColumn": 5,
+        "endLine": 25,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -28852,31 +28821,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 30,
-        "startColumn": 3,
-        "endLine": 30,
-        "endColumn": 14,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "DBInstance5",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 36,
-        "startColumn": 3,
-        "endLine": 36,
-        "endColumn": 14,
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -28890,12 +28841,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 42,
-        "startColumn": 3,
-        "endLine": 42,
-        "endColumn": 14,
+        "startLine": 44,
+        "startColumn": 5,
+        "endLine": 44,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -28909,12 +28861,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 49,
-        "startColumn": 3,
-        "endLine": 49,
-        "endColumn": 14,
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -28928,12 +28881,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 56,
-        "startColumn": 3,
-        "endLine": 56,
-        "endColumn": 14,
+        "startLine": 58,
+        "startColumn": 5,
+        "endLine": 58,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -31869,12 +31823,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 13,
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -31888,11 +31843,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 17,
-        "startColumn": 3,
-        "endLine": 17,
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
         "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
@@ -31907,12 +31863,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 37,
-        "startColumn": 3,
-        "endLine": 37,
-        "endColumn": 17,
+        "startLine": 39,
+        "startColumn": 5,
+        "endLine": 39,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -32403,12 +32360,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 13,
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -32422,11 +32380,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 17,
-        "startColumn": 3,
-        "endLine": 17,
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
         "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
@@ -32441,12 +32400,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 37,
-        "startColumn": 3,
-        "endLine": 37,
-        "endColumn": 17,
+        "startLine": 39,
+        "startColumn": 5,
+        "endLine": 39,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -103458,11 +103418,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 91,
-        "startColumn": 3,
-        "endLine": 91,
+        "startLine": 93,
+        "startColumn": 4,
+        "endLine": 93,
         "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
@@ -117703,6 +117664,3670 @@
       }
     ]
   },
+  "gh-issues/issue-235.yaml": {
+    "filePath": "gh-issues/issue-235.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 38,
+      "counts": {
+        "fatal": 2,
+        "errors": 0,
+        "warnings": 20,
+        "informational": 165,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "KmsKeyWithoutEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3012",
+        "severity": "FATAL",
+        "message": "'invalid' is not of type 'boolean'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "InvalidEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Schema",
+        "startLine": 128,
+        "startColumn": 7,
+        "endLine": 128,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type mismatch",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "invalid",
+          "expectedConstraint": "boolean"
+        }
+      },
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'SourceDBInstanceAutomatedBackupsArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AutomatedBackupRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.SourceDBInstanceAutomatedBackupsArn",
+        "category": "Best Practice",
+        "startLine": 191,
+        "startColumn": 7,
+        "endLine": 191,
+        "endColumn": 42,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'false' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 7,
+        "endLine": 51,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'false' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomStringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 92,
+        "startColumn": 7,
+        "endLine": 92,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 104,
+        "startColumn": 7,
+        "endLine": 104,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "Parameter type 'String' may not be compatible with expected type 'boolean'",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 116,
+        "startColumn": 7,
+        "endLine": 116,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "parameter 'parameter DynamicEncryption value unknown' (type String)"
+        }
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "Parameter type 'String' may not be compatible with expected type 'boolean'",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicReferenceEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 122,
+        "startColumn": 7,
+        "endLine": 122,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/rds/storage-encrypted}}' (type String)"
+        }
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "KmsKeyWithoutEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 45,
+        "startColumn": 7,
+        "endLine": 45,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 51,
+        "startColumn": 7,
+        "endLine": 51,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 57,
+        "startColumn": 7,
+        "endLine": 57,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalNoValueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 63,
+        "startColumn": 7,
+        "endLine": 63,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AllowedValuesEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 69,
+        "startColumn": 7,
+        "endLine": 69,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EngineAllowedValuesMissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 73,
+        "startColumn": 5,
+        "endLine": 73,
+        "endColumn": 15,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalClusterOrStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 78,
+        "startColumn": 5,
+        "endLine": 78,
+        "endColumn": 15,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 86,
+        "startColumn": 7,
+        "endLine": 86,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomStringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 92,
+        "startColumn": 7,
+        "endLine": 92,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EmptySnapshotIdentifier",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 159,
+        "startColumn": 5,
+        "endLine": 159,
+        "endColumn": 15,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "WholePropertiesFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 241,
+        "startColumn": 5,
+        "endLine": 241,
+        "endColumn": 15,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AutomatedBackupRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Security",
+        "startLine": 187,
+        "startColumn": 3,
+        "endLine": 187,
+        "endColumn": 25,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 3,
+        "endLine": 24,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 3,
+        "endLine": 24,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 3,
+        "endLine": 30,
+        "endColumn": 20,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 3,
+        "endLine": 30,
+        "endColumn": 20,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "KmsKeyWithoutEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 3,
+        "endLine": 35,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "KmsKeyWithoutEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 3,
+        "endLine": 35,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "FalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 41,
+        "startColumn": 3,
+        "endLine": 41,
+        "endColumn": 18,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "FalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 41,
+        "startColumn": 3,
+        "endLine": 41,
+        "endColumn": 18,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 47,
+        "startColumn": 3,
+        "endLine": 47,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 47,
+        "startColumn": 3,
+        "endLine": 47,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 53,
+        "startColumn": 3,
+        "endLine": 53,
+        "endColumn": 29,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 53,
+        "startColumn": 3,
+        "endLine": 53,
+        "endColumn": 29,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalNoValueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 59,
+        "startColumn": 3,
+        "endLine": 59,
+        "endColumn": 31,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalNoValueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 59,
+        "startColumn": 3,
+        "endLine": 59,
+        "endColumn": 31,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AllowedValuesEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 3,
+        "endLine": 65,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AllowedValuesEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 3,
+        "endLine": 65,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EngineAllowedValuesMissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 3,
+        "endLine": 71,
+        "endColumn": 39,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EngineAllowedValuesMissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 3,
+        "endLine": 71,
+        "endColumn": 39,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalClusterOrStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 76,
+        "startColumn": 3,
+        "endLine": 76,
+        "endColumn": 33,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalClusterOrStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 76,
+        "startColumn": 3,
+        "endLine": 76,
+        "endColumn": 33,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 82,
+        "startColumn": 3,
+        "endLine": 82,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 82,
+        "startColumn": 3,
+        "endLine": 82,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomStringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 88,
+        "startColumn": 3,
+        "endLine": 88,
+        "endColumn": 30,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomStringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 88,
+        "startColumn": 3,
+        "endLine": 88,
+        "endColumn": 30,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 94,
+        "startColumn": 3,
+        "endLine": 94,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 94,
+        "startColumn": 3,
+        "endLine": 94,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StringTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 100,
+        "startColumn": 3,
+        "endLine": 100,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StringTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 100,
+        "startColumn": 3,
+        "endLine": 100,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 106,
+        "startColumn": 3,
+        "endLine": 106,
+        "endColumn": 28,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 106,
+        "startColumn": 3,
+        "endLine": 106,
+        "endColumn": 28,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 112,
+        "startColumn": 3,
+        "endLine": 112,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 112,
+        "startColumn": 3,
+        "endLine": 112,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicReferenceEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 118,
+        "startColumn": 3,
+        "endLine": 118,
+        "endColumn": 29,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicReferenceEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 118,
+        "startColumn": 3,
+        "endLine": 118,
+        "endColumn": 29,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "InvalidEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 124,
+        "startColumn": 3,
+        "endLine": 124,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "InvalidEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 124,
+        "startColumn": 3,
+        "endLine": 124,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicEngineValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 130,
+        "startColumn": 3,
+        "endLine": 130,
+        "endColumn": 21,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicEngineValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 130,
+        "startColumn": 3,
+        "endLine": 130,
+        "endColumn": 21,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuroraEngine",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 135,
+        "startColumn": 3,
+        "endLine": 135,
+        "endColumn": 15,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuroraEngine",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 135,
+        "startColumn": 3,
+        "endLine": 135,
+        "endColumn": 15,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuroraAllowedValues",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 140,
+        "startColumn": 3,
+        "endLine": 140,
+        "endColumn": 22,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuroraAllowedValues",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 140,
+        "startColumn": 3,
+        "endLine": 140,
+        "endColumn": 22,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterMember",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 145,
+        "startColumn": 3,
+        "endLine": 145,
+        "endColumn": 16,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterMember",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 145,
+        "startColumn": 3,
+        "endLine": 145,
+        "endColumn": 16,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 151,
+        "startColumn": 3,
+        "endLine": 151,
+        "endColumn": 18,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 151,
+        "startColumn": 3,
+        "endLine": 151,
+        "endColumn": 18,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EmptySnapshotIdentifier",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 157,
+        "startColumn": 3,
+        "endLine": 157,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EmptySnapshotIdentifier",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 157,
+        "startColumn": 3,
+        "endLine": 157,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterSnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 163,
+        "startColumn": 3,
+        "endLine": 163,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterSnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 163,
+        "startColumn": 3,
+        "endLine": 163,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EncryptedSource",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 169,
+        "startColumn": 3,
+        "endLine": 169,
+        "endColumn": 18,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EncryptedSource",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 169,
+        "startColumn": 3,
+        "endLine": 169,
+        "endColumn": 18,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceInstanceReplica",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 175,
+        "startColumn": 3,
+        "endLine": 175,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceInstanceReplica",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 175,
+        "startColumn": 3,
+        "endLine": 175,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceResourceRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 181,
+        "startColumn": 3,
+        "endLine": 181,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceResourceRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 181,
+        "startColumn": 3,
+        "endLine": 181,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AutomatedBackupRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 187,
+        "startColumn": 3,
+        "endLine": 187,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AutomatedBackupRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 187,
+        "startColumn": 3,
+        "endLine": 187,
+        "endColumn": 25,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceClusterReplica",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 193,
+        "startColumn": 3,
+        "endLine": 193,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceClusterReplica",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 193,
+        "startColumn": 3,
+        "endLine": 193,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomImplicitEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 199,
+        "startColumn": 3,
+        "endLine": 199,
+        "endColumn": 27,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomImplicitEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 199,
+        "startColumn": 3,
+        "endLine": 199,
+        "endColumn": 27,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 204,
+        "startColumn": 3,
+        "endLine": 204,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 204,
+        "startColumn": 3,
+        "endLine": 204,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LegacySecurityGroups",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 210,
+        "startColumn": 3,
+        "endLine": 210,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LegacySecurityGroups",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 210,
+        "startColumn": 3,
+        "endLine": 210,
+        "endColumn": 23,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CorrelatedClusterOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 216,
+        "startColumn": 3,
+        "endLine": 216,
+        "endColumn": 41,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CorrelatedClusterOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 216,
+        "startColumn": 3,
+        "endLine": 216,
+        "endColumn": 41,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalSnapshotOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 223,
+        "startColumn": 3,
+        "endLine": 223,
+        "endColumn": 43,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalSnapshotOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 223,
+        "startColumn": 3,
+        "endLine": 223,
+        "endColumn": 43,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "WholePropertiesCorrelated",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 230,
+        "startColumn": 3,
+        "endLine": 230,
+        "endColumn": 28,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "WholePropertiesCorrelated",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 230,
+        "startColumn": 3,
+        "endLine": 230,
+        "endColumn": 28,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "WholePropertiesFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 239,
+        "startColumn": 3,
+        "endLine": 239,
+        "endColumn": 33,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "WholePropertiesFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 239,
+        "startColumn": 3,
+        "endLine": 239,
+        "endColumn": 33,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 248,
+        "startColumn": 3,
+        "endLine": 248,
+        "endColumn": 20,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 248,
+        "startColumn": 3,
+        "endLine": 248,
+        "endColumn": 20,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "KmsKeyWithoutEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "FalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 5,
+        "endLine": 43,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 5,
+        "endLine": 49,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 55,
+        "startColumn": 5,
+        "endLine": 55,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalNoValueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 61,
+        "startColumn": 5,
+        "endLine": 61,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AllowedValuesEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 67,
+        "startColumn": 5,
+        "endLine": 67,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalClusterOrStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 78,
+        "startColumn": 5,
+        "endLine": 78,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 84,
+        "startColumn": 5,
+        "endLine": 84,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomStringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 90,
+        "startColumn": 5,
+        "endLine": 90,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 96,
+        "startColumn": 5,
+        "endLine": 96,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StringTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 102,
+        "startColumn": 5,
+        "endLine": 102,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 108,
+        "startColumn": 5,
+        "endLine": 108,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 114,
+        "startColumn": 5,
+        "endLine": 114,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DynamicReferenceEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 120,
+        "startColumn": 5,
+        "endLine": 120,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "InvalidEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 126,
+        "startColumn": 5,
+        "endLine": 126,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 153,
+        "startColumn": 5,
+        "endLine": 153,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EmptySnapshotIdentifier",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 159,
+        "startColumn": 5,
+        "endLine": 159,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ClusterSnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 165,
+        "startColumn": 5,
+        "endLine": 165,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EncryptedSource",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 171,
+        "startColumn": 5,
+        "endLine": 171,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceResourceRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 183,
+        "startColumn": 5,
+        "endLine": 183,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AutomatedBackupRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 189,
+        "startColumn": 5,
+        "endLine": 189,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SourceClusterReplica",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 195,
+        "startColumn": 5,
+        "endLine": 195,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomImplicitEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 201,
+        "startColumn": 5,
+        "endLine": 201,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 206,
+        "startColumn": 5,
+        "endLine": 206,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LegacySecurityGroups",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 212,
+        "startColumn": 5,
+        "endLine": 212,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CorrelatedClusterOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 218,
+        "startColumn": 5,
+        "endLine": 218,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalSnapshotOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 225,
+        "startColumn": 5,
+        "endLine": 225,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 28,
+        "startColumn": 7,
+        "endLine": 28,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KmsKeyId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "KmsKeyWithoutEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.KmsKeyId",
+        "category": "Best Practice",
+        "startLine": 39,
+        "startColumn": 7,
+        "endLine": 39,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 45,
+        "startColumn": 7,
+        "endLine": 45,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 7,
+        "endLine": 51,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 57,
+        "startColumn": 7,
+        "endLine": 57,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'UseClusterCondition'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalNoValueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 63,
+        "startColumn": 7,
+        "endLine": 63,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'UseClusterCondition'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AllowedValuesEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 69,
+        "startColumn": 7,
+        "endLine": 69,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter with AllowedValues"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalClusterOrStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.DBClusterIdentifier",
+        "category": "Best Practice",
+        "startLine": 80,
+        "startColumn": 7,
+        "endLine": 80,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'UseClusterCondition'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 86,
+        "startColumn": 7,
+        "endLine": 86,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomStringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 92,
+        "startColumn": 7,
+        "endLine": 92,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 98,
+        "startColumn": 7,
+        "endLine": 98,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 104,
+        "startColumn": 7,
+        "endLine": 104,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 110,
+        "startColumn": 7,
+        "endLine": 110,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'UseClusterCondition'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 116,
+        "startColumn": 7,
+        "endLine": 116,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'parameter DynamicEncryption value unknown' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicReferenceEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 122,
+        "startColumn": 7,
+        "endLine": 122,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/rds/storage-encrypted}}' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvalidEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 128,
+        "startColumn": 7,
+        "endLine": 128,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterMember",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.DBClusterIdentifier",
+        "category": "Best Practice",
+        "startLine": 149,
+        "startColumn": 7,
+        "endLine": 149,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Cluster'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EncryptedSource",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 173,
+        "startColumn": 7,
+        "endLine": 173,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 208,
+        "startColumn": 7,
+        "endLine": 208,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CorrelatedClusterOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.DBClusterIdentifier",
+        "category": "Best Practice",
+        "startLine": 220,
+        "startColumn": 7,
+        "endLine": 220,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'UseClusterCondition'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CorrelatedClusterOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 221,
+        "startColumn": 7,
+        "endLine": 221,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'UseClusterCondition'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalSnapshotOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 228,
+        "startColumn": 7,
+        "endLine": 228,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'UseClusterCondition'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Cluster' of type 'AWS::RDS::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Cluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MissingEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'KmsKeyWithoutEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "KmsKeyWithoutEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 5,
+        "endLine": 43,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'StringFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 5,
+        "endLine": 49,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 55,
+        "startColumn": 5,
+        "endLine": 55,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalNoValueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalNoValueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 61,
+        "startColumn": 5,
+        "endLine": 61,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AllowedValuesEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AllowedValuesEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 67,
+        "startColumn": 5,
+        "endLine": 67,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'EngineAllowedValuesMissingEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EngineAllowedValuesMissingEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 73,
+        "startColumn": 5,
+        "endLine": 73,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalClusterOrStandalone' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalClusterOrStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 78,
+        "startColumn": 5,
+        "endLine": 78,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'CustomFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 84,
+        "startColumn": 5,
+        "endLine": 84,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'CustomStringFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomStringFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 90,
+        "startColumn": 5,
+        "endLine": 90,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 96,
+        "startColumn": 5,
+        "endLine": 96,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'StringTrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 102,
+        "startColumn": 5,
+        "endLine": 102,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalTrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 108,
+        "startColumn": 5,
+        "endLine": 108,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DynamicEncryptionValue' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 114,
+        "startColumn": 5,
+        "endLine": 114,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DynamicReferenceEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicReferenceEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 120,
+        "startColumn": 5,
+        "endLine": 120,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'InvalidEncryptionValue' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvalidEncryptionValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 126,
+        "startColumn": 5,
+        "endLine": 126,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DynamicEngineValue' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicEngineValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 132,
+        "startColumn": 5,
+        "endLine": 132,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AuroraEngine' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AuroraEngine",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 137,
+        "startColumn": 5,
+        "endLine": 137,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AuroraAllowedValues' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AuroraAllowedValues",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 142,
+        "startColumn": 5,
+        "endLine": 142,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ClusterMember' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterMember",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 147,
+        "startColumn": 5,
+        "endLine": 147,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SnapshotRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 153,
+        "startColumn": 5,
+        "endLine": 153,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'EmptySnapshotIdentifier' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EmptySnapshotIdentifier",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 159,
+        "startColumn": 5,
+        "endLine": 159,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ClusterSnapshotRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ClusterSnapshotRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 165,
+        "startColumn": 5,
+        "endLine": 165,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'EncryptedSource' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EncryptedSource",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 171,
+        "startColumn": 5,
+        "endLine": 171,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SourceInstanceReplica' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SourceInstanceReplica",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 177,
+        "startColumn": 5,
+        "endLine": 177,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SourceResourceRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SourceResourceRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 183,
+        "startColumn": 5,
+        "endLine": 183,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AutomatedBackupRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AutomatedBackupRestore",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 189,
+        "startColumn": 5,
+        "endLine": 189,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SourceClusterReplica' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SourceClusterReplica",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 195,
+        "startColumn": 5,
+        "endLine": 195,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'CustomImplicitEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomImplicitEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 201,
+        "startColumn": 5,
+        "endLine": 201,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'CustomTrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomTrueEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 206,
+        "startColumn": 5,
+        "endLine": 206,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LegacySecurityGroups' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LegacySecurityGroups",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 212,
+        "startColumn": 5,
+        "endLine": 212,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'CorrelatedClusterOrEncryptedStandalone' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CorrelatedClusterOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 218,
+        "startColumn": 5,
+        "endLine": 218,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalSnapshotOrEncryptedStandalone' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalSnapshotOrEncryptedStandalone",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 225,
+        "startColumn": 5,
+        "endLine": 225,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'WholePropertiesCorrelated' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "WholePropertiesCorrelated",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 232,
+        "startColumn": 5,
+        "endLine": 232,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'WholePropertiesFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "WholePropertiesFalseEncryption",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 241,
+        "startColumn": 5,
+        "endLine": 241,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DynamicProperties' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DynamicProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 250,
+        "startColumn": 5,
+        "endLine": 250,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "gh-issues/issue-34-w2506-overfire.json": {
     "filePath": "gh-issues/issue-34-w2506-overfire.json",
     "status": "OK",
@@ -126655,12 +130280,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 5,
+        "startLine": 9,
+        "startColumn": 5,
+        "endLine": 9,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -139101,12 +142727,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 15,
-        "startColumn": 3,
-        "endLine": 15,
-        "endColumn": 7,
+        "startLine": 17,
+        "startColumn": 5,
+        "endLine": 17,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -139120,12 +142747,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 24,
-        "startColumn": 3,
-        "endLine": 24,
-        "endColumn": 10,
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -139139,12 +142767,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 33,
-        "startColumn": 3,
-        "endLine": 33,
-        "endColumn": 12,
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -139655,7 +143284,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 6,
+        "warnings": 4,
         "informational": 24,
         "debug": 0
       },
@@ -139670,54 +143299,17 @@
         "message": "RDS instance should have StorageEncrypted set to true",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "DBInstance1",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 14,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "DBInstance2",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 16,
-        "startColumn": 3,
-        "endLine": 16,
-        "endColumn": 14,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
           "logicalId": "DBInstance3",
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 22,
-        "startColumn": 3,
-        "endLine": 22,
-        "endColumn": 14,
+        "startLine": 24,
+        "startColumn": 5,
+        "endLine": 24,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -139731,12 +143323,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 29,
-        "startColumn": 3,
-        "endLine": 29,
-        "endColumn": 14,
+        "startLine": 31,
+        "startColumn": 5,
+        "endLine": 31,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -139750,12 +143343,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 36,
-        "startColumn": 3,
-        "endLine": 36,
-        "endColumn": 14,
+        "startLine": 38,
+        "startColumn": 5,
+        "endLine": 38,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -139769,12 +143363,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 42,
-        "startColumn": 3,
-        "endLine": 42,
-        "endColumn": 14,
+        "startLine": 44,
+        "startColumn": 5,
+        "endLine": 44,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -140492,12 +144087,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 26,
-        "startColumn": 3,
-        "endLine": 26,
-        "endColumn": 13,
+        "startLine": 28,
+        "startColumn": 5,
+        "endLine": 28,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -140599,12 +144195,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 26,
-        "startColumn": 3,
-        "endLine": 26,
-        "endColumn": 13,
+        "startLine": 28,
+        "startColumn": 5,
+        "endLine": 28,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -143010,12 +146607,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 49,
-        "startColumn": 3,
-        "endLine": 49,
-        "endColumn": 13,
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -150330,7 +153928,7 @@
       "counts": {
         "fatal": 3,
         "errors": 1,
-        "warnings": 7,
+        "warnings": 8,
         "informational": 24,
         "debug": 0
       },
@@ -150558,6 +154156,26 @@
         "context": {
           "resolutionSource": "Fn::If on condition 'IsProduction'"
         }
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Database",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 656,
+        "startColumn": 9,
+        "endLine": 656,
+        "endColumn": 26,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -151096,7 +154714,7 @@
       "counts": {
         "fatal": 3,
         "errors": 1,
-        "warnings": 9,
+        "warnings": 10,
         "informational": 24,
         "debug": 0
       },
@@ -151352,6 +154970,26 @@
         "context": {
           "resolutionSource": "Fn::If on condition 'IsProduction'"
         }
+      },
+      {
+        "ruleId": "W9008",
+        "severity": "WARN",
+        "message": "RDS instance should have StorageEncrypted set to true",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Database",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "suggestedFix": "Set StorageEncrypted to true",
+        "category": "Security",
+        "startLine": 274,
+        "startColumn": 7,
+        "endLine": 274,
+        "endColumn": 23,
+        "ruleDescription": "RDS instance should have StorageEncrypted",
+        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -151984,12 +155622,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 90,
-        "startColumn": 5,
-        "endLine": 90,
-        "endColumn": 14,
+        "startLine": 93,
+        "startColumn": 7,
+        "endLine": 93,
+        "endColumn": 18,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },
@@ -152352,12 +155991,13 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "Properties.StorageEncrypted",
         "suggestedFix": "Set StorageEncrypted to true",
         "category": "Security",
-        "startLine": 91,
-        "startColumn": 3,
-        "endLine": 91,
-        "endColumn": 11,
+        "startLine": 94,
+        "startColumn": 5,
+        "endLine": 94,
+        "endColumn": 15,
         "ruleDescription": "RDS instance should have StorageEncrypted",
         "phase": "LINT"
       },

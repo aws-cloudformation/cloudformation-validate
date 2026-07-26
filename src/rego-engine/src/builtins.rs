@@ -56,6 +56,7 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_make_diag_related(rego, holder.clone());
     register_make_diag_conditional(rego, holder.clone());
     register_resolve_scenarios(rego, holder.clone());
+    register_properties_scenarios(rego, holder.clone());
     register_is_satisfiable(rego, holder.clone());
     register_get_resource(rego, holder.clone());
     register_resolve_ref_target(rego, holder.clone());
@@ -430,6 +431,68 @@ fn register_resolve_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
                     }
                     Value::from_json_str(&serde_json::json!({"value": v_json, "conditions": conds_map}).to_string())
                         .ok()
+                })
+                .collect();
+            Ok(Value::from(results))
+        }),
+    );
+}
+
+fn project_selected_properties(
+    properties: &ResolvedValue,
+    selected_fields: &HashSet<String>,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut projected = serde_json::Map::new();
+    match properties {
+        ResolvedValue::Concrete { value } => {
+            let Some(properties) = value.as_object() else {
+                return projected;
+            };
+            for (name, value) in properties {
+                if selected_fields.contains(name) && !value.is_null() {
+                    projected.insert(name.clone(), value.clone());
+                }
+            }
+        }
+        ResolvedValue::Map { entries } => {
+            for MapEntry { key, value } in entries {
+                if selected_fields.contains(key) {
+                    let value = resolved_value_to_json_static(value);
+                    if !value.is_null() {
+                        projected.insert(key.clone(), value);
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    projected
+}
+
+fn register_properties_scenarios(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "properties_scenarios".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let requested_fields = params[1].as_array()?;
+            let mut selected_fields = HashSet::with_capacity(requested_fields.len());
+            for field in requested_fields.iter() {
+                selected_fields.insert(field.as_string()?.to_string());
+            }
+
+            let results: Vec<Value> = model
+                .resolve_properties_scenarios(rid.as_ref())
+                .into_iter()
+                .map(|(properties, conditions)| {
+                    let properties = project_selected_properties(&properties, &selected_fields);
+                    json_to_value(&serde_json::json!({
+                        "properties": properties,
+                        "conditions": conditions,
+                    }))
                 })
                 .collect();
             Ok(Value::from(results))
