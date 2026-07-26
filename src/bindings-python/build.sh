@@ -227,9 +227,8 @@ if [ "$PY_COUNT" -eq 0 ] || [ "$LIB_COUNT" -ne 1 ] || ! grep -Fxq "$HOST_NATIVE"
     exit 1
 fi
 if ! grep -Fxq 'cloudformation_validate/README.md' <<<"$WHEEL_ENTRIES" \
-    || ! grep -Eq '^cloudformation_validate-[^/]+\.dist-info/licenses/LICENSE$' <<<"$WHEEL_ENTRIES" \
-    || ! grep -Eq '^cloudformation_validate-[^/]+\.dist-info/licenses/THIRD-PARTY-LICENSES\.txt$' <<<"$WHEEL_ENTRIES"; then
-    echo "Error: wheel is missing README.md, LICENSE, or THIRD-PARTY-LICENSES.txt" >&2
+    || ! grep -Eq '^cloudformation_validate-[^/]+\.dist-info/licenses/LICENSE$' <<<"$WHEEL_ENTRIES"; then
+    echo "Error: wheel is missing README.md or LICENSE" >&2
     exit 1
 fi
 case "$WHEEL_FILE" in

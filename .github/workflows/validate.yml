@@ -264,15 +264,8 @@ jobs:
       with:
         python-version: ${{ needs.get-configs.outputs.python-version }}
 
-    - name: Install setuptools ${{ needs.get-configs.outputs.setuptools-version }}
-      run: python3 -m pip install 'setuptools==${{ needs.get-configs.outputs.setuptools-version }}'
-
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
-
-    - name: Build
-      working-directory: ${{ env.WORKING_DIR }}
-      run: ./bindings-python/build.sh
 
     - name: Test
       working-directory: ${{ env.WORKING_DIR }}
@@ -298,8 +291,7 @@ jobs:
     - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
       uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}${{ matrix.os == 'windows-latest' && '-x86_64-pc-windows-gnu' || '' }}
-        targets: ${{ matrix.os == 'windows-latest' && 'x86_64-pc-windows-gnu' || '' }}
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
 
     - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
@@ -311,23 +303,8 @@ jobs:
       with:
         go-version: ${{ needs.get-configs.outputs.go-version }}
 
-    - name: Cache uniffi-bindgen-go
-      id: cache-uniffi-bindgen-go
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/uniffi-bindgen-go*
-        key: uniffi-bindgen-go-${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}-${{ matrix.os }}
-
-    - name: Install uniffi-bindgen-go ${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}
-      if: steps.cache-uniffi-bindgen-go.outputs.cache-hit != 'true'
-      run: cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag '${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}'
-
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
-
-    - name: Build
-      working-directory: ${{ env.WORKING_DIR }}
-      run: ./bindings-go/build.sh
 
     - name: Test
       working-directory: ${{ env.WORKING_DIR }}

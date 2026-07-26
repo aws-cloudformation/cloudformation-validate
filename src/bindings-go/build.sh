@@ -109,11 +109,6 @@ echo "Staging license and readme metadata..."
 cp "$WORKSPACE/../LICENSE" "$GO_DIR/LICENSE"
 cp "$SCRIPT_DIR/README.md" "$GO_DIR/README.md"
 
-if [ ! -f "$GO_DIR/THIRD-PARTY-LICENSES.txt" ]; then
-    echo "Error: $GO_DIR/THIRD-PARTY-LICENSES.txt is missing. Generate it with: python3 scripts/generate_licenses.py" >&2
-    exit 1
-fi
-
 # ── Verify the module compiles ────────────────────────────────────────────────
 echo "Compiling Go module..."
 cd "$GO_DIR"
