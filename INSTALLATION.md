@@ -100,10 +100,6 @@ cd src
 # Build the entire workspace (debug)
 cargo build
 
-# CLI binary -> target/debug/cfn-validate
-cargo build -p cfn-validate
-# add --release for an optimized binary at target/release/cfn-validate
-
 # CLI release binary -> release/cfn-validate-<os>-<arch>
 ./cfn-validate/build.sh
 
@@ -120,27 +116,12 @@ cargo build -p cfn-validate
 ./bindings-go/build.sh
 ```
 
-Note: the per-binding `THIRD-PARTY-LICENSES.txt` files are produced by `scripts/generate_licenses.py` (the Build
-Artifacts workflow runs it automatically), not by `build.sh`. The **Python and Go** binding builds copy their
-binding's `THIRD-PARTY-LICENSES.txt` into the bundle, so generate the license files before building those bindings
-locally — this also applies before their `tests/run.sh`, which builds first:
-
-```bash
-# from the repository root
-python3 scripts/generate_licenses.py python go
-```
-
-The JVM and WASM bundles get their license file injected by the workflow after `build.sh`, so their local builds
-don't need this step.
-
 ## Download and verify release artifacts
 
 Each GitHub release attaches the prebuilt artifacts as signed assets (`<version>` is the release tag, e.g. `1.6.0`):
 
 - `cloudformation-validate-<version>.jar` — the JVM (Kotlin/Java) binding
 - `cloudformation-validate-wasm-<version>.zip` — the Node.js (WASM) binding
-- `cfn-validate-<version>-<os>-<arch>` — the CLI binary, one per supported platform (e.g.
-  `cfn-validate-1.6.0-linux-x64`, `cfn-validate-1.6.0-darwin-aarch64`)
 
 Alongside each artifact are a detached signature (`<artifact>.sig`), the public key (`signing-key.pem`), and the key's
 SHA-256 fingerprint (`signing-key.pem.sha256`). Artifacts are signed with an AWS KMS RSA key
