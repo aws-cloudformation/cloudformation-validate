@@ -83,6 +83,8 @@ struct PropSchema {
     #[serde(default, rename = "enum", skip_serializing_if = "Vec::is_empty")]
     enum_values: Vec<serde_json::Value>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    enum_case_insensitive: Vec<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     not_enum: Vec<serde_json::Value>,
     #[serde(default, rename = "const", skip_serializing_if = "Option::is_none")]
     const_value: Option<serde_json::Value>,
@@ -554,6 +556,7 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
         ref_name: None,
         prop_type,
         enum_values: obj.get("enum").and_then(|v| v.as_array()).cloned().unwrap_or_default(),
+        enum_case_insensitive: obj.get("enumCaseInsensitive").and_then(|v| v.as_array()).cloned().unwrap_or_default(),
         not_enum: obj.get("not").and_then(|v| v.get("enum")).and_then(|v| v.as_array()).cloned().unwrap_or_default(),
         const_value: obj.get("const").cloned(),
         pattern: obj.get("pattern").and_then(|v| v.as_str()).map(String::from),

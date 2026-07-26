@@ -221,13 +221,14 @@ pub fn enrich_schema_context(diagnostics: &mut [Diagnostic], store: &CompiledSch
                 }
             }
             "F3030" | "W3030" => {
-                if let Some(ps) = prop_schema
-                    && !ps.enum_values.is_empty()
-                {
-                    ensure_ctx!(d)
-                        .extra
-                        .get_or_insert_with(HashMap::new)
-                        .insert("allowed_values".into(), serde_json::json!(ps.enum_values).into());
+                if let Some(ps) = prop_schema {
+                    let allowed = if !ps.enum_values.is_empty() { &ps.enum_values } else { &ps.enum_case_insensitive };
+                    if !allowed.is_empty() {
+                        ensure_ctx!(d)
+                            .extra
+                            .get_or_insert_with(HashMap::new)
+                            .insert("allowed_values".into(), serde_json::json!(allowed).into());
+                    }
                 }
             }
             "F3031" => {
@@ -1070,6 +1071,33 @@ fn validate_prop(
         }
     }
 
+    if !schema.enum_case_insensitive.is_empty() {
+        for (val, conds) in &scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() {
+                continue;
+            }
+            if !enum_matches_case_insensitive(val, &schema.enum_case_insensitive) {
+                // Same open-world Warning treatment as the exact-match enum
+                // check above; the suffix tells the author any casing of the
+                // listed values is accepted.
+                out.push(build_diagnostic_conditional(
+                    "W3030",
+                    &format!(
+                        "{}{} is not one of {} (case-insensitive)",
+                        format_value(val),
+                        res_suffix,
+                        format_allowed_values(&schema.enum_case_insensitive)
+                    ),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
+        }
+    }
+
     if let Some(ref cv) = schema.const_value {
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
@@ -1539,6 +1567,15 @@ fn single_type(val: &serde_json::Value, expected: &str) -> bool {
 
 fn enum_matches(val: &serde_json::Value, allowed: &[serde_json::Value]) -> bool {
     allowed.iter().any(|a| scalar_eq(a, val))
+}
+
+/// Like [`enum_matches`] but string values match regardless of casing;
+/// non-string values fall back to exact scalar comparison.
+fn enum_matches_case_insensitive(val: &serde_json::Value, allowed: &[serde_json::Value]) -> bool {
+    allowed.iter().any(|a| match (a.as_str(), val.as_str()) {
+        (Some(allowed_str), Some(val_str)) => allowed_str.eq_ignore_ascii_case(val_str),
+        _ => scalar_eq(a, val),
+    })
 }
 
 /// True when property `prop` under `base` resolves to a concrete (non-null)
@@ -2690,6 +2727,67 @@ mod tests {
     #[test]
     fn enum_matches_empty_allowed() {
         assert!(!enum_matches(&json!("a"), &[]));
+    }
+
+    #[test]
+    fn enum_matches_case_insensitive_any_casing() {
+        let allowed = [json!("managed"), json!("unmanaged")];
+        assert!(enum_matches_case_insensitive(&json!("managed"), &allowed));
+        assert!(enum_matches_case_insensitive(&json!("MANAGED"), &allowed));
+        assert!(enum_matches_case_insensitive(&json!("Unmanaged"), &allowed));
+    }
+
+    #[test]
+    fn enum_matches_case_insensitive_rejects_unlisted_value() {
+        let allowed = [json!("managed"), json!("unmanaged")];
+        assert!(!enum_matches_case_insensitive(&json!("BOGUS"), &allowed));
+    }
+
+    #[test]
+    fn enum_matches_case_insensitive_non_string_uses_exact_comparison() {
+        assert!(enum_matches_case_insensitive(&json!(42), &[json!(42)]));
+        assert!(!enum_matches_case_insensitive(&json!(43), &[json!(42)]));
+    }
+
+    fn store_with_case_insensitive_mode_enum() -> CompiledSchemaStore {
+        let mode =
+            PropSchema { enum_case_insensitive: vec![json!("managed"), json!("unmanaged")], ..Default::default() };
+        let mut properties = HashMap::new();
+        properties.insert("Mode".to_string(), mode);
+        let mut store = CompiledSchemaStore::new();
+        store.insert_schema(CompiledSchema {
+            type_name: "AWS::Fake::Type".to_string(),
+            properties,
+            ..Default::default()
+        });
+        store
+    }
+
+    fn diagnostics_for_mode_value(mode_value: &str) -> Vec<Diagnostic> {
+        let template = format!(
+            r#"{{"Resources":{{"Widget":{{"Type":"AWS::Fake::Type","Properties":{{"Mode":"{}"}}}}}}}}"#,
+            mode_value
+        );
+        let model = Arc::new(SemanticModel::from_bytes(template.as_bytes()).expect("template parses"));
+        validate_all_resources(&store_with_case_insensitive_mode_enum(), &model, None)
+    }
+
+    #[test]
+    fn case_insensitive_enum_accepts_any_casing_of_allowed_value() {
+        for accepted in ["managed", "MANAGED", "Unmanaged"] {
+            let w3030: Vec<Diagnostic> =
+                diagnostics_for_mode_value(accepted).into_iter().filter(|d| d.rule_id == "W3030").collect();
+            assert!(w3030.is_empty(), "'{accepted}' must not fire W3030, got: {w3030:?}");
+        }
+    }
+
+    #[test]
+    fn case_insensitive_enum_flags_unlisted_value_with_marked_message() {
+        let diags = diagnostics_for_mode_value("BOGUS");
+        let w3030 = diags.iter().find(|d| d.rule_id == "W3030").expect("W3030 fires for a value not in the enum");
+        assert_eq!(w3030.severity, rules::Severity::Warn);
+        assert_eq!(w3030.property_path.as_deref(), Some("Properties.Mode"));
+        assert_eq!(w3030.message, "'BOGUS' is not one of ['managed', 'unmanaged'] (case-insensitive)");
     }
 
     #[test]

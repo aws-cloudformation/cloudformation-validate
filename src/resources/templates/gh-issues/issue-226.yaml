@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  For ICMP security group rules, FromPort carries the ICMP type and ToPort the
+  ICMP code (-1 means any), so FromPort greater than ToPort is valid and must
+  not be reported as an inverted port range. TCP and UDP rules still carry an
+  ordered port range that must be reported when inverted.
+Resources:
+  PingSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ICMP echo request (ping) with any code
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+        - CidrIp: 10.0.0.0/8
+          IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+  InvertedRangeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: TCP port range written in the wrong order
+      SecurityGroupIngress:
+        - CidrIp: 10.0.0.0/8
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 80

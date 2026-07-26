@@ -62,6 +62,97 @@ fn policy_is_delete(policy: Option<&ResolvedValue>) -> bool {
     matches!(policy, Some(ResolvedValue::Concrete { value: v }) if v.as_str() == Some("Delete"))
 }
 
+const RDS_INHERITED_OR_IGNORED_ENCRYPTION_FIELDS: [&str; 8] = [
+    "DBClusterIdentifier",
+    "DBSnapshotIdentifier",
+    "DBClusterSnapshotIdentifier",
+    "SourceDBInstanceIdentifier",
+    "SourceDbiResourceId",
+    "SourceDBInstanceAutomatedBackupsArn",
+    "SourceDBClusterIdentifier",
+    "DBSecurityGroups",
+];
+
+enum ScenarioProperty<'a> {
+    Absent,
+    Known(&'a serde_json::Value),
+    Unknown,
+}
+
+impl ScenarioProperty<'_> {
+    fn is_present(&self) -> bool {
+        !matches!(self, Self::Absent)
+    }
+}
+
+fn scenario_property<'a>(properties: &'a ResolvedValue, name: &str) -> ScenarioProperty<'a> {
+    match properties {
+        ResolvedValue::Concrete { value } => match value.0.get(name) {
+            None | Some(serde_json::Value::Null) => ScenarioProperty::Absent,
+            Some(value) => ScenarioProperty::Known(value),
+        },
+        ResolvedValue::Map { entries } => {
+            let Some(value) = entries.iter().find(|entry| entry.key == name).map(|entry| &entry.value) else {
+                return ScenarioProperty::Absent;
+            };
+            match value {
+                ResolvedValue::Concrete { value } if value.is_null() => ScenarioProperty::Absent,
+                ResolvedValue::Concrete { value } => ScenarioProperty::Known(&value.0),
+                _ => ScenarioProperty::Unknown,
+            }
+        }
+        _ => ScenarioProperty::Absent,
+    }
+}
+
+fn rds_encryption_is_inherited_or_ignored(properties: &ResolvedValue) -> bool {
+    RDS_INHERITED_OR_IGNORED_ENCRYPTION_FIELDS.iter().any(|field| {
+        let value = scenario_property(properties, field);
+        if *field == "DBSnapshotIdentifier" {
+            match value {
+                ScenarioProperty::Absent => false,
+                ScenarioProperty::Known(value) if value.as_str() == Some("") => false,
+                _ => true,
+            }
+        } else {
+            value.is_present()
+        }
+    })
+}
+
+fn rds_storage_encryption_scenario_warns(properties: &ResolvedValue) -> bool {
+    if rds_encryption_is_inherited_or_ignored(properties) {
+        return false;
+    }
+
+    let ScenarioProperty::Known(engine) = scenario_property(properties, "Engine") else {
+        return false;
+    };
+    let Some(engine) = engine.as_str() else {
+        return false;
+    };
+    let engine = engine.to_ascii_lowercase();
+    if engine.starts_with("aurora") {
+        return false;
+    }
+
+    match (engine.starts_with("custom-"), scenario_property(properties, "StorageEncrypted")) {
+        (true, ScenarioProperty::Known(value)) | (false, ScenarioProperty::Known(value)) => {
+            coerce_to_bool(value) == Some(false)
+        }
+        (false, ScenarioProperty::Absent) => true,
+        (true, ScenarioProperty::Absent) | (_, ScenarioProperty::Unknown) => false,
+    }
+}
+
+fn rds_storage_encryption_warns(model: &SemanticModel, resource_id: &str) -> bool {
+    model.resolve_properties_scenarios(resource_id).into_iter().any(|(properties, conditions)| {
+        let assumptions: Vec<(String, bool)> = conditions.into_iter().collect();
+        (assumptions.is_empty() || model.conditions.is_satisfiable(&assumptions))
+            && rds_storage_encryption_scenario_warns(&properties)
+    })
+}
+
 fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
@@ -454,13 +545,13 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::RDS::DBInstance") {
-        if !m.resources.get(name.as_str()).map(|r| r.properties.contains_key("StorageEncrypted")).unwrap_or(false) {
+        if rds_storage_encryption_warns(m, name) {
             out.push(make_resource_diagnostic(
                 "W9008",
                 "RDS instance should have StorageEncrypted set to true",
                 m,
                 name,
-                "",
+                "Properties.StorageEncrypted",
                 Some("Set StorageEncrypted to true"),
             ));
         }
