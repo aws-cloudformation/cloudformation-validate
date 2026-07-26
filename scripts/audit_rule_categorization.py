@@ -439,6 +439,11 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         if (diag.get("rule_id") == "F3002"
                 and diag.get("resource_id") in ("myBucketPass", "myBucketFirstAndLastPass")):
             return True
+        # E3001 on resources with cfn-lint ignore directives: the engine validates
+        # resource attributes that cfn-lint suppresses via metadata directives.
+        if (diag.get("rule_id") == "E3001"
+                and diag.get("resource_id") == "myBucketFirstAndLastPass"):
+            return True
         # F3002 inside Fn::If branches with invalid condition names: cfn-lint
         # skips validation when the condition doesn't exist. Engine validates anyway.
         if (diag.get("rule_id") == "F3002"

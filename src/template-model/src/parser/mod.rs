@@ -1,5 +1,7 @@
 pub mod builder;
+mod condition_shape;
 pub mod json;
+mod resource_shape;
 pub mod value;
 pub mod yaml;
 

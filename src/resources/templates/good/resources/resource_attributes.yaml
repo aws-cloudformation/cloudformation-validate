@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Every resource attribute CloudFormation accepts, in each accepted shape.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+    - prod
+    - dev
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Resources:
+  Provider:
+    Type: AWS::SNS::Topic
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TopicName: provider-topic
+      KmsMasterKeyId: alias/aws/sns
+      Tags:
+      - Key: Name
+        Value: provider-topic
+
+  CustomWithVersion:
+    Type: Custom::Provider
+    Version: "1.0"
+    Condition: IsProd
+    Metadata:
+      Purpose: exercises Version on a custom resource
+    Properties:
+      ServiceToken: !Ref Provider
+
+  GenericCustomResource:
+    Type: AWS::CloudFormation::CustomResource
+    Version: 1
+    DependsOn:
+    - LaunchTemplate
+    - ConditionalLifecyclePolicies
+    Properties:
+      ServiceToken: !Ref Provider
+
+  ConditionalLifecyclePolicies:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    CreationPolicy: !If
+    - IsProd
+    - ResourceSignal:
+        Count: 1
+        Timeout: PT5M
+    - !Ref AWS::NoValue
+    UpdatePolicy: !If
+    - IsProd
+    - AutoScalingScheduledAction:
+        IgnoreUnmodifiedGroupSizeProperties: true
+    - !Ref AWS::NoValue
+    Properties:
+      AvailabilityZones: !GetAZs ''
+      MinSize: "1"
+      MaxSize: "2"
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      Tags:
+      - Key: Name
+        Value: conditional-policies
+        PropagateAtLaunch: true
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    DependsOn: Provider
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: s3://template-fragments/launch-template.yaml
+    Properties:
+      LaunchTemplateName: attribute-coverage
+      LaunchTemplateData:
+        ImageId: ami-0abcdef1234567890
+        InstanceType: t3.micro

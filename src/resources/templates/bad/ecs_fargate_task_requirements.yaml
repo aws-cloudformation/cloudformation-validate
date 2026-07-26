@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Fargate task definitions violating the requirements Fargate imposes.
+
+Resources:
+  MissingTaskSize:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: missing-task-size
+      RequiresCompatibilities:
+      - FARGATE
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+
+  WrongNetworkMode:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: wrong-network-mode
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: bridge
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+
+  UnsupportedCpuUnits:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: unsupported-cpu-units
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "300"
+      Memory: "512"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+
+  UnsupportedVcpuSize:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: unsupported-vcpu-size
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: 3 vCPU
+      Memory: "4096"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+
+  PinnedPlacement:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: pinned-placement
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      PlacementConstraints:
+      - Type: memberOf
+        Expression: attribute:ecs.instance-type =~ t2.*
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+
+  UnsupportedLogDriver:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: unsupported-log-driver
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: json-file
+          Options:
+            max-size: 10m

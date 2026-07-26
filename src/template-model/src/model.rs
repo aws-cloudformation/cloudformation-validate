@@ -550,10 +550,11 @@ impl SemanticModel {
                         // each engine keeps the two engines identical and covers
                         // the no-Conditions-section case, where a condition-name
                         // reference is still invalid.
-                        diagnostics.push(crate::make_parse_defect(
+                        diagnostics.push(crate::make_parse_defect_at(
                             "E1028",
                             format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                             ir.arena.span(idx as NodeRef),
+                            &ir.arena.get(idx as NodeRef).path,
                         ));
                     }
                 }
@@ -576,10 +577,11 @@ impl SemanticModel {
                         let in_conditions_body =
                             ir.arena.get(idx as NodeRef).path.split('/').next() == Some(SECTION_CONDITIONS);
                         if !in_conditions_body && !conditions.conditions.contains_key(cond_name) {
-                            diagnostics.push(crate::make_parse_defect(
+                            diagnostics.push(crate::make_parse_defect_at(
                                 "E1028",
                                 format!("Fn::If condition '{}' does not exist in Conditions section", cond_name),
                                 ir.arena.span(idx as NodeRef),
+                                &ir.arena.get(idx as NodeRef).path,
                             ));
                         }
                     }

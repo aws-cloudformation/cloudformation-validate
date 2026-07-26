@@ -669,8 +669,10 @@ def run_single():
         # short-circuits nested chains and skips branches under parent schema
         # failures. Unmatched engine E1028 is engine-extra only when cfn-lint
         # fired E1028 on this template or quotes the same condition; else FP.
+        # cfn-lint records carry their own id in `cfnlint_rule_id` (`rule_id`
+        # holds the engine id they map to, F0013 for E1028).
         cfnlint_fired_e1028 = any(
-            d.get("rule_id") == "E1028" for d in cfnlint_all[key]
+            d.get("cfnlint_rule_id") == "E1028" for d in cfnlint_all[key]
         )
 
         def _cfnlint_saw_condition(engine_diag):

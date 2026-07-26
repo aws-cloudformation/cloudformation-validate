@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Fargate task definitions in every shape Fargate accepts.
+
+Resources:
+  CpuUnitsForm:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: cpu-units-form
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "1024"
+      Memory: "2048"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: /ecs/cpu-units-form
+            awslogs-region: us-east-1
+            awslogs-stream-prefix: ecs
+
+  NumericCpuForm:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: numeric-cpu-form
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: 512
+      Memory: 1024
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: awsfirelens
+          Options:
+            Name: cloudwatch
+
+  VcpuForm:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: vcpu-form
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: .25 vCPU
+      Memory: 0.5GB
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: splunk
+          Options:
+            splunk-url: https://splunk.example.com
+
+  Ec2TaskWithPlacementConstraints:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: ec2-task
+      RequiresCompatibilities:
+      - EC2
+      PlacementConstraints:
+      - Type: memberOf
+        Expression: attribute:ecs.instance-type =~ t2.*
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+        LogConfiguration:
+          LogDriver: json-file
+          Options:
+            max-size: 10m

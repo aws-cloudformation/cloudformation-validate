@@ -822,6 +822,16 @@ impl TemplateSections {
     pub fn into_ir(self, mut builder: Builder) -> TemplateIR {
         let shape_defects = validate_section_shapes(&builder.arena, self.root, &builder.span_index);
         builder.diagnostics.extend(shape_defects);
+        builder.diagnostics.extend(crate::parser::resource_shape::validate_resource_attributes(
+            &builder.arena,
+            self.resources,
+            &builder.span_index,
+        ));
+        builder.diagnostics.extend(crate::parser::condition_shape::validate_condition_bodies(
+            &builder.arena,
+            self.conditions,
+            &builder.span_index,
+        ));
         TemplateIR {
             arena: builder.arena,
             global_index: builder.global_index,
@@ -869,7 +879,7 @@ fn extract_transforms(arena: &Arena, root: NodeRef) -> Vec<String> {
 
 /// A human-readable name for a node's fundamental shape, used in section shape
 /// error messages.
-fn node_shape_name(node: &Node) -> &'static str {
+pub(super) fn node_shape_name(node: &Node) -> &'static str {
     match node {
         Node::Null => "null",
         Node::Bool(_) => "a boolean",

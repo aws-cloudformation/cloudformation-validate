@@ -8,7 +8,7 @@ use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string,
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
     PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE,
-    SAM_SERVERLESS_TYPE_PREFIX,
+    SAM_SERVERLESS_TYPE_PREFIX, is_custom_resource_type,
 };
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
@@ -607,10 +607,7 @@ fn validate_object_keys_inner(
         }
     }
 
-    if additional_properties == Some(false)
-        && !rtype.starts_with("Custom::")
-        && rtype != "AWS::CloudFormation::CustomResource"
-    {
+    if additional_properties == Some(false) && !is_custom_resource_type(rtype) {
         let known: HashSet<&str> = schema_props.keys().map(|s| s.as_str()).collect();
 
         let pattern_matchers: Vec<Option<std::sync::Arc<CompiledPattern>>> =
