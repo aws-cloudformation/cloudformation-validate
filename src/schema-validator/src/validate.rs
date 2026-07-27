@@ -704,12 +704,33 @@ fn validate_object_keys_inner(
     }
 
     if !any_of.is_empty() {
-        let any_valid = any_of.iter().any(|sub| {
+        // Each failing branch's own findings are collected so they can be
+        // reported alongside the summary — a branch that requires a missing
+        // property surfaces that property by name, which is what makes the
+        // failure fixable. A single valid branch clears everything.
+        let mut branch_diags: Vec<Diagnostic> = Vec::new();
+        let mut any_valid = false;
+        for sub in any_of {
             let mut tmp = Vec::new();
             validate_sub(&mut tmp, m, rid, rtype, actual_keys, sub, defs, base_path);
-            tmp.is_empty()
-        });
+            if tmp.is_empty() {
+                any_valid = true;
+                break;
+            }
+            branch_diags.extend(tmp);
+        }
         if !any_valid {
+            for diag in branch_diags {
+                let duplicate = out.iter().any(|d| {
+                    d.rule_id == diag.rule_id
+                        && d.message == diag.message
+                        && d.property_path == diag.property_path
+                        && d.entity.as_ref().map(|e| &e.logical_id) == diag.entity.as_ref().map(|e| &e.logical_id)
+                });
+                if !duplicate {
+                    out.push(diag);
+                }
+            }
             // Surface which property combinations would satisfy the schema, drawn
             // from each branch's required set, so the bare "not valid under any
             // schema" message is actionable. Branches with no required list (a
@@ -735,15 +756,32 @@ fn validate_object_keys_inner(
     }
 
     if !one_of.is_empty() {
-        let valid_count = one_of
-            .iter()
-            .filter(|sub| {
-                let mut tmp = Vec::new();
-                validate_sub(&mut tmp, m, rid, rtype, actual_keys, sub, defs, base_path);
-                tmp.is_empty()
-            })
-            .count();
+        // As with anyOf, each failing branch's own findings are reported
+        // alongside the summary when no branch is satisfied — naming the
+        // missing properties is what makes the failure fixable.
+        let mut branch_diags: Vec<Diagnostic> = Vec::new();
+        let mut valid_count = 0usize;
+        for sub in one_of {
+            let mut tmp = Vec::new();
+            validate_sub(&mut tmp, m, rid, rtype, actual_keys, sub, defs, base_path);
+            if tmp.is_empty() {
+                valid_count += 1;
+            } else {
+                branch_diags.extend(tmp);
+            }
+        }
         if valid_count == 0 {
+            for diag in branch_diags {
+                let duplicate = out.iter().any(|d| {
+                    d.rule_id == diag.rule_id
+                        && d.message == diag.message
+                        && d.property_path == diag.property_path
+                        && d.entity.as_ref().map(|e| &e.logical_id) == diag.entity.as_ref().map(|e| &e.logical_id)
+                });
+                if !duplicate {
+                    out.push(diag);
+                }
+            }
             out.push(build_diagnostic(
                 "F3018",
                 "Value is not valid under any of the given schemas",
@@ -1335,6 +1373,8 @@ fn validate_prop(
         || !schema.required.is_empty()
         || !schema.dependent_required.is_empty()
         || !schema.dependent_excluded.is_empty()
+        || !schema.required_or.is_empty()
+        || !schema.required_xor.is_empty()
         || !schema.all_of.is_empty()
         || !schema.any_of.is_empty()
         || !schema.one_of.is_empty()
@@ -1354,8 +1394,8 @@ fn validate_prop(
                 &schema.pattern_properties,
                 &schema.dependent_required,
                 &schema.dependent_excluded,
-                &[],
-                &[],
+                &schema.required_or,
+                &schema.required_xor,
                 &schema.all_of,
                 &schema.any_of,
                 &schema.one_of,
@@ -1392,8 +1432,8 @@ fn validate_prop(
                         &schema.pattern_properties,
                         &schema.dependent_required,
                         &schema.dependent_excluded,
-                        &[],
-                        &[],
+                        &schema.required_or,
+                        &schema.required_xor,
                         &schema.all_of,
                         &schema.any_of,
                         &schema.one_of,

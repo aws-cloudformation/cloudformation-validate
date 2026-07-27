@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use template_model::SemanticModel;
 use template_model::SourceSpan;
-use template_model::consts::KEY_DEPENDS_ON;
+use template_model::consts::{INLINE_CONDITION_PREFIX, KEY_DEPENDS_ON};
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
@@ -156,7 +156,11 @@ fn find_unreachable_branches(
     assumptions: &[(String, bool)],
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
+        ResolvedValue::Conditional { condition: cond, if_true, if_false } => {
+            // A synthetic name minted for an inline `Fn::If` expression is not a
+            // template condition: the expression form is already reported at
+            // parse time, and the internal label means nothing to the author.
+            let synthetic = cond.starts_with(INLINE_CONDITION_PREFIX);
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
@@ -164,12 +168,12 @@ fn find_unreachable_branches(
             // the value on its own. A condition that is constant (a literal
             // tautology, or a parameter pinned to a single value) is the concern
             // of equality rules, not of branch reachability.
-            if !model.conditions.is_satisfiable(&true_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
-            {
+            let true_reachable = model.conditions.is_satisfiable(&true_assumptions);
+            if !true_reachable && !synthetic && model.conditions.is_satisfiable(&[(cond.clone(), true)]) {
+                let explanation = build_unreachable_explanation(cond, true, assumptions);
                 out.push(make_resource_diagnostic(
                     "W1028",
-                    &format!("['Fn::If', 1] is not reachable. When setting condition '{}' to True", cond),
+                    &format!("['Fn::If', 1] is not reachable. {}", explanation),
                     model,
                     resource_id,
                     &format!("{}.Fn::If.1", path),
@@ -179,9 +183,8 @@ fn find_unreachable_branches(
 
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
-            {
+            let false_reachable = model.conditions.is_satisfiable(&false_assumptions);
+            if !false_reachable && !synthetic && model.conditions.is_satisfiable(&[(cond.clone(), false)]) {
                 let explanation = build_unreachable_explanation(cond, false, assumptions);
                 out.push(make_resource_diagnostic(
                     "W1028",
@@ -193,11 +196,32 @@ fn find_unreachable_branches(
                 ));
             }
 
-            // Only the reachability of the immediate Fn::If branches is checked;
-            // we do not recurse into an Fn::If nested inside a branch, so we stop
-            // here. Recursing would produce spurious findings (e.g.
-            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
-            // already-evaluated outer condition.
+            // Recurse into each branch that is itself reachable, carrying this
+            // condition's value as an assumption — an inner Fn::If whose
+            // condition is implied (or contradicted) by the outer one has a
+            // branch nothing can select. An unreachable branch is not entered:
+            // its contradictory assumption set would mark every nested branch
+            // unreachable, burying the one finding that matters.
+            if true_reachable {
+                find_unreachable_branches(
+                    out,
+                    model,
+                    resource_id,
+                    if_true,
+                    &format!("{}.Fn::If.1", path),
+                    &true_assumptions,
+                );
+            }
+            if false_reachable {
+                find_unreachable_branches(
+                    out,
+                    model,
+                    resource_id,
+                    if_false,
+                    &format!("{}.Fn::If.2", path),
+                    &false_assumptions,
+                );
+            }
         }
         ResolvedValue::Map { entries } => {
             for e in entries {

@@ -963,6 +963,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3639",
+        category: Category::Resource,
+        description: "DynamoDB table with BillingMode PROVISIONED must specify ProvisionedThroughput",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E3059",
         category: Category::Resource,
         description: "Validate subnet CIDRs are within the CIDRs of the VPC",

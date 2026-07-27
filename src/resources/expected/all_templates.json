@@ -3092,7 +3092,7 @@
       "counts": {
         "fatal": 9,
         "errors": 3,
-        "warnings": 9,
+        "warnings": 10,
         "informational": 8,
         "debug": 0
       },
@@ -3457,6 +3457,25 @@
         "endColumn": 14,
         "ruleDescription": "Resource attributes must be recognized and correctly shaped",
         "phase": "PARSE"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'EnableGeoBlocking' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CloudFrontDistribution",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFront::Distribution"
+        },
+        "propertyPath": "Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.RestrictionType.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 89,
+        "startColumn": 11,
+        "endLine": 89,
+        "endColumn": 25,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
       },
       {
         "ruleId": "W1103",
@@ -5255,7 +5274,7 @@
       "counts": {
         "fatal": 3,
         "errors": 11,
-        "warnings": 2,
+        "warnings": 3,
         "informational": 15,
         "debug": 0
       },
@@ -5595,6 +5614,25 @@
         "endLine": 36,
         "endColumn": 26,
         "ruleDescription": "VirtualName must use ephemeral device format when Ebs is absent",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 19,
+        "endLine": 43,
+        "endColumn": 20,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT"
       },
       {
@@ -7087,14 +7125,14 @@
   },
   "bad/core/parse_invalid_map.yaml": {
     "filePath": "bad/core/parse_invalid_map.yaml",
-    "status": "OK",
+    "status": "ERROR",
     "version": "1.6.0",
     "metadata": {
-      "resourcesScanned": 1,
+      "resourcesScanned": 0,
       "counts": {
-        "fatal": 5,
+        "fatal": 1,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 0,
         "informational": 0,
         "debug": 0
       },
@@ -7104,150 +7142,83 @@
     },
     "diagnostics": [
       {
-        "ruleId": "F1020",
+        "ruleId": "F1101",
         "severity": "FATAL",
-        "message": "Fn::GetAtt references non-existent resource 'NodeLaunchTemplate'",
+        "message": "Complex key not supported (line 18)",
         "source": "SCHEMA",
-        "entity": {
-          "logicalId": "NodeGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "suggestedFix": "Check that the GetAtt target resource exists in the template",
-        "category": "Intrinsic Function",
-        "startLine": 2,
-        "startColumn": 3,
-        "endLine": 2,
-        "endColumn": 12,
-        "ruleDescription": "Ref/GetAtt target must exist",
-        "phase": "SCHEMA"
+        "category": "Structure",
+        "startLine": 18,
+        "startColumn": 54,
+        "endLine": 18,
+        "endColumn": 54,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/core/parse_multiple_documents.yaml": {
+    "filePath": "bad/core/parse_multiple_documents.yaml",
+    "status": "ERROR",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
       },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
       {
-        "ruleId": "F1020",
+        "ruleId": "F1101",
         "severity": "FATAL",
-        "message": "'NodeAutoScalingGroupDesiredCapacity' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
+        "message": "expected a single document in the stream but found another document",
         "source": "SCHEMA",
-        "entity": {
-          "logicalId": "NodeGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.DesiredCapacity",
-        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
-        "category": "Intrinsic Function",
-        "startLine": 5,
-        "startColumn": 7,
-        "endLine": 5,
-        "endColumn": 22,
-        "ruleDescription": "Ref/GetAtt target must exist",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "dynamic (unknown ref target: NodeAutoScalingGroupDesiredCapacity)"
-        }
-      },
-      {
-        "ruleId": "F1020",
-        "severity": "FATAL",
-        "message": "'NodeLaunchTemplate' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "NodeGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.LaunchTemplate.LaunchTemplateId",
-        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
-        "category": "Intrinsic Function",
+        "category": "Structure",
         "startLine": 7,
-        "startColumn": 9,
+        "startColumn": 1,
         "endLine": 7,
-        "endColumn": 25,
-        "ruleDescription": "Ref/GetAtt target must exist",
-        "phase": "SCHEMA"
+        "endColumn": 1,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/core/parse_null_key.yaml": {
+    "filePath": "bad/core/parse_null_key.yaml",
+    "status": "ERROR",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
       },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
       {
-        "ruleId": "F1020",
+        "ruleId": "F1101",
         "severity": "FATAL",
-        "message": "'NodeAutoScalingGroupMaxSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
+        "message": "Null key not supported (line 7)",
         "source": "SCHEMA",
-        "entity": {
-          "logicalId": "NodeGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.MaxSize",
-        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
-        "category": "Intrinsic Function",
-        "startLine": 9,
+        "category": "Structure",
+        "startLine": 7,
         "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 14,
-        "ruleDescription": "Ref/GetAtt target must exist",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "dynamic (unknown ref target: NodeAutoScalingGroupMaxSize)"
-        }
-      },
-      {
-        "ruleId": "F1020",
-        "severity": "FATAL",
-        "message": "'NodeAutoScalingGroupMinSize' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'NodeGroup']",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "NodeGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.MinSize",
-        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
-        "category": "Intrinsic Function",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 14,
-        "ruleDescription": "Ref/GetAtt target must exist",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "dynamic (unknown ref target: NodeAutoScalingGroupMinSize)"
-        }
-      },
-      {
-        "ruleId": "W1020",
-        "severity": "WARN",
-        "message": "Fn::Sub isn't needed because there are no variables",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "NodeGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.Tags.0.Value",
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 11,
-        "endLine": 14,
-        "endColumn": 16,
-        "ruleDescription": "Sub isn't needed if it doesn't have a variable defined",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W1020",
-        "severity": "WARN",
-        "message": "Fn::Sub isn't needed because there are no variables",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "NodeGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.Tags.1.Key",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 11,
-        "endLine": 15,
-        "endColumn": 14,
-        "ruleDescription": "Sub isn't needed if it doesn't have a variable defined",
-        "phase": "LINT"
+        "endLine": 7,
+        "endColumn": 7,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
       }
     ]
   },
@@ -8201,7 +8172,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 2,
+        "fatal": 3,
         "errors": 0,
         "warnings": 0,
         "informational": 3,
@@ -8212,6 +8183,25 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F0000",
+        "severity": "FATAL",
+        "message": "Duplicate key 'MySNSTopic'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MySNSTopic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Resources/MySNSTopic",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 3,
+        "endLine": 5,
+        "endColumn": 14,
+        "ruleDescription": "Duplicate key in template",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "F0000",
         "severity": "FATAL",
@@ -8322,7 +8312,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 2,
+        "fatal": 3,
         "errors": 1,
         "warnings": 0,
         "informational": 2,
@@ -8333,6 +8323,25 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F0000",
+        "severity": "FATAL",
+        "message": "Duplicate key 'mySnsTopic'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "mySnsTopic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Resources/mySnsTopic",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 13,
+        "ruleDescription": "Duplicate key in template",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "F0000",
         "severity": "FATAL",
@@ -8866,7 +8875,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
-        "errors": 0,
+        "errors": 1,
         "warnings": 0,
         "informational": 4,
         "debug": 0
@@ -8895,6 +8904,26 @@
         "endColumn": 15,
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E3639",
+        "severity": "ERROR",
+        "message": "'ProvisionedThroughput' is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DDBTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add ProvisionedThroughput or use BillingMode PAY_PER_REQUEST",
+        "category": "Resource",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "DynamoDB table with BillingMode PROVISIONED must specify ProvisionedThroughput",
+        "phase": "LINT"
       },
       {
         "ruleId": "I3011",
@@ -13382,7 +13411,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 2,
-        "errors": 1,
+        "errors": 2,
         "warnings": 0,
         "informational": 2,
         "debug": 0
@@ -13447,6 +13476,25 @@
         "endLine": 9,
         "endColumn": 14,
         "ruleDescription": "Fn::FindInMap operands must be strings or one of Ref/Fn::FindInMap",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1021",
+        "severity": "ERROR",
+        "message": "['Random String'] is not of type 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData.Fn::Base64",
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 9,
+        "endLine": 11,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Base64 argument must be a string or a string-producing intrinsic",
         "phase": "PARSE"
       },
       {
@@ -14128,7 +14176,7 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 5,
+        "fatal": 6,
         "errors": 4,
         "warnings": 5,
         "informational": 17,
@@ -14139,6 +14187,29 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F1018",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${Package}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Intrinsic Function",
+        "startLine": 46,
+        "startColumn": 7,
+        "endLine": 46,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Sub variables must resolve",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (Sub:yum install ${Package}\n)"
+        }
+      },
       {
         "ruleId": "F1020",
         "severity": "FATAL",
@@ -15237,7 +15308,7 @@
     "metadata": {
       "resourcesScanned": 19,
       "counts": {
-        "fatal": 22,
+        "fatal": 23,
         "errors": 1,
         "warnings": 11,
         "informational": 32,
@@ -15253,11 +15324,12 @@
         "severity": "FATAL",
         "message": "'Errors' is not a valid top-level template section",
         "source": "SCHEMA",
+        "propertyPath": "Errors",
         "category": "Structure",
-        "startLine": 21,
+        "startLine": 4,
         "startColumn": 1,
-        "endLine": 21,
-        "endColumn": 10,
+        "endLine": 4,
+        "endColumn": 7,
         "ruleDescription": "Top-level keys must be valid section names",
         "phase": "SCHEMA"
       },
@@ -15926,6 +15998,24 @@
         "endColumn": 15,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Exactly one of properties required (requiredXor)",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "'DNE' is not one of ['CanonicalHostedZoneName', 'CanonicalHostedZoneNameID', 'DNSName', 'SourceSecurityGroup', 'SourceSecurityGroup.GroupName', 'SourceSecurityGroup.OwnerAlias']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myErrorOutput",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/myErrorOutput/Value",
+        "category": "Structure",
+        "startLine": 229,
+        "startColumn": 5,
+        "endLine": 229,
+        "endColumn": 10,
+        "ruleDescription": "Output value must be a string",
         "phase": "SCHEMA"
       },
       {
@@ -17236,7 +17326,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 0,
+        "errors": 1,
         "warnings": 1,
         "informational": 0,
         "debug": 0
@@ -17246,6 +17336,25 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "'Effect' is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Policy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0",
+        "category": "Resource",
+        "startLine": 10,
+        "startColumn": 19,
+        "endLine": 10,
+        "endColumn": 20,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
       {
         "ruleId": "W3515",
         "severity": "WARN",
@@ -17576,11 +17685,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::S3::Bucket"
         },
+        "propertyPath": "DeletionPolicy",
         "category": "Structure",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 19,
         "ruleDescription": "DeletionPolicy must be valid",
         "phase": "SCHEMA"
       },
@@ -17728,11 +17838,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::S3::Bucket"
         },
+        "propertyPath": "UpdateReplacePolicy",
         "category": "Structure",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 24,
         "ruleDescription": "UpdateReplacePolicy must be valid",
         "phase": "SCHEMA"
       },
@@ -18822,7 +18933,7 @@
       "resourcesScanned": 0,
       "counts": {
         "fatal": 1,
-        "errors": 0,
+        "errors": 1,
         "warnings": 1,
         "informational": 0,
         "debug": 0
@@ -18844,6 +18955,24 @@
         "endColumn": 10,
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E7001",
+        "severity": "ERROR",
+        "message": "Mapping name 'Bad.Name' does not match format '^[a-zA-Z0-9]+$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Bad.Name",
+          "entityType": "Mapping"
+        },
+        "propertyPath": "Mappings/Bad.Name",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 11,
+        "ruleDescription": "Mappings are appropriately configured",
+        "phase": "LINT"
       },
       {
         "ruleId": "W7001",
@@ -19296,7 +19425,12 @@
         "severity": "FATAL",
         "message": "'NotEven' is not a valid top-level template section",
         "source": "SCHEMA",
+        "propertyPath": "NotEven",
         "category": "Structure",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 8,
         "ruleDescription": "Top-level keys must be valid section names",
         "phase": "SCHEMA"
       }
@@ -23405,7 +23539,7 @@
       "resourcesScanned": 7,
       "counts": {
         "fatal": 0,
-        "errors": 2,
+        "errors": 7,
         "warnings": 0,
         "informational": 13,
         "debug": 0
@@ -23415,6 +23549,106 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E3022",
+        "severity": "ERROR",
+        "message": "SubnetId in PublicSubnetRouteTableAssociation1 is also associated with PrivateSubnetRouteTableAssociation1",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PublicSubnetRouteTableAssociation1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "suggestedFix": "Associate each subnet with exactly one route table",
+        "category": "Resource",
+        "startLine": 27,
+        "startColumn": 9,
+        "endLine": 27,
+        "endColumn": 17,
+        "ruleDescription": "Resource SubnetRouteTableAssociation Properties",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3022",
+        "severity": "ERROR",
+        "message": "SubnetId in PrivateSubnetRouteTableAssociation1 is also associated with PublicSubnetRouteTableAssociation1",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PrivateSubnetRouteTableAssociation1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "suggestedFix": "Associate each subnet with exactly one route table",
+        "category": "Resource",
+        "startLine": 35,
+        "startColumn": 9,
+        "endLine": 35,
+        "endColumn": 17,
+        "ruleDescription": "Resource SubnetRouteTableAssociation Properties",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3022",
+        "severity": "ERROR",
+        "message": "SubnetId in AuxiliaryPublicSubnetRouteTableAssociation1 is also associated with PublicSubnetRouteTableAssociation1, PrivateSubnetRouteTableAssociation1",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuxiliaryPublicSubnetRouteTableAssociation1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "suggestedFix": "Associate each subnet with exactly one route table",
+        "category": "Resource",
+        "startLine": 44,
+        "startColumn": 9,
+        "endLine": 44,
+        "endColumn": 17,
+        "ruleDescription": "Resource SubnetRouteTableAssociation Properties",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3022",
+        "severity": "ERROR",
+        "message": "SubnetId in ProxySubnetRouteTableAssociation is also associated with PublicSubnetRouteTableAssociation1, PrivateSubnetRouteTableAssociation1",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ProxySubnetRouteTableAssociation",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "suggestedFix": "Associate each subnet with exactly one route table",
+        "category": "Resource",
+        "startLine": 52,
+        "startColumn": 9,
+        "endLine": 52,
+        "endColumn": 17,
+        "ruleDescription": "Resource SubnetRouteTableAssociation Properties",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3022",
+        "severity": "ERROR",
+        "message": "SubnetId in AuxilliaryCustomSubnetRouteTableAssociation is also associated with CustomSubnetRouteTableAssociation",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AuxilliaryCustomSubnetRouteTableAssociation",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "suggestedFix": "Associate each subnet with exactly one route table",
+        "category": "Resource",
+        "startLine": 74,
+        "startColumn": 9,
+        "endLine": 74,
+        "endColumn": 17,
+        "ruleDescription": "Resource SubnetRouteTableAssociation Properties",
+        "phase": "LINT"
+      },
       {
         "ruleId": "E8002",
         "severity": "ERROR",
@@ -25592,7 +25826,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 3,
+        "fatal": 4,
         "errors": 0,
         "warnings": 2,
         "informational": 11,
@@ -25603,6 +25837,29 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F1018",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${Package}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyEC2Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Intrinsic Function",
+        "startLine": 21,
+        "startColumn": 7,
+        "endLine": 21,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Sub variables must resolve",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (Sub:yum install ${Package}\n)"
+        }
+      },
       {
         "ruleId": "F1020",
         "severity": "FATAL",
@@ -26544,7 +26801,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 0,
+        "errors": 1,
         "warnings": 0,
         "informational": 3,
         "debug": 0
@@ -26554,6 +26811,26 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E3039",
+        "severity": "ERROR",
+        "message": "The set of Attributes in AttributeDefinitions: ['Album', 'Artist', 'Sales'] and KeySchemas: ['Album', 'Artist'] must match",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "dynamoDBTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Remove unused entries from AttributeDefinitions or add key schemas that use them",
+        "category": "Resource",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "AttributeDefinitions / KeySchemas mismatch",
+        "phase": "LINT"
+      },
       {
         "ruleId": "I3011",
         "severity": "INFO",
@@ -26620,7 +26897,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 0,
+        "errors": 1,
         "warnings": 0,
         "informational": 3,
         "debug": 0
@@ -26630,6 +26907,26 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "E3039",
+        "severity": "ERROR",
+        "message": "The set of Attributes in AttributeDefinitions: ['Album', 'Artist', 'Sales'] and KeySchemas: ['Album', 'Artist'] must match",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "dynamoDBTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Remove unused entries from AttributeDefinitions or add key schemas that use them",
+        "category": "Resource",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "AttributeDefinitions / KeySchemas mismatch",
+        "phase": "LINT"
+      },
       {
         "ruleId": "I3011",
         "severity": "INFO",
@@ -27329,8 +27626,8 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 4,
-        "errors": 2,
+        "fatal": 7,
+        "errors": 16,
         "warnings": 1,
         "informational": 2,
         "debug": 0
@@ -27343,6 +27640,27 @@
       {
         "ruleId": "F3003",
         "severity": "FATAL",
+        "message": "'Groups' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "rIamPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Groups'",
+        "category": "Schema",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
         "message": "'PolicyName' is a required property",
         "source": "SCHEMA",
         "entity": {
@@ -27352,6 +27670,48 @@
         },
         "propertyPath": "Properties",
         "suggestedFix": "Add the required property 'PolicyName'",
+        "category": "Schema",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Roles' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "rIamPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Roles'",
+        "category": "Schema",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Users' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "rIamPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Users'",
         "category": "Schema",
         "startLine": 37,
         "startColumn": 5,
@@ -27458,6 +27818,272 @@
         "endColumn": 16,
         "ruleDescription": "Fn::If condition must exist in Conditions section",
         "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "'blah' is not one of ['2008-10-17', '2012-10-17']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Policies.0.PolicyDocument.Version",
+        "category": "Resource",
+        "startLine": 14,
+        "startColumn": 11,
+        "endLine": 14,
+        "endColumn": 18,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "Additional properties are not allowed ('BadProperty' was unexpected)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Policies.0.PolicyDocument.BadProperty",
+        "category": "Resource",
+        "startLine": 15,
+        "startColumn": 11,
+        "endLine": 15,
+        "endColumn": 22,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "'Test' is not of type 'object', 'array'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Policies.0.PolicyDocument.Statement",
+        "category": "Resource",
+        "startLine": 16,
+        "startColumn": 11,
+        "endLine": 16,
+        "endColumn": 20,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "'blah' is not one of ['2008-10-17', '2012-10-17']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamUser",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::ManagedPolicy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Version",
+        "category": "Resource",
+        "startLine": 21,
+        "startColumn": 9,
+        "endLine": 21,
+        "endColumn": 16,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "Only one of ['Action', 'NotAction'] is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamUser",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::ManagedPolicy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0",
+        "category": "Resource",
+        "startLine": 23,
+        "startColumn": 19,
+        "endLine": 23,
+        "endColumn": 20,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "'NotAllow' is not one of ['Allow', 'Deny']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamUser",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::ManagedPolicy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0.Effect",
+        "category": "Resource",
+        "startLine": 24,
+        "startColumn": 11,
+        "endLine": 24,
+        "endColumn": 17,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "Additional properties are not allowed ('Principal' was unexpected)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamUser",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::ManagedPolicy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0.Principal",
+        "category": "Resource",
+        "startLine": 25,
+        "startColumn": 11,
+        "endLine": 25,
+        "endColumn": 20,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "{\"Effect\":\"Allow\"} is not of type 'string'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamUser",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::ManagedPolicy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.1.Resource.0",
+        "category": "Resource",
+        "startLine": 30,
+        "startColumn": 19,
+        "endLine": 30,
+        "endColumn": 20,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "{\"Effect\":\"Allow\",\"Action\":[\"cloudwatch:*\"],\"Resource\":\"*\"} is not of type 'string'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamUser",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::ManagedPolicy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.1.Resource.1",
+        "category": "Resource",
+        "startLine": 31,
+        "startColumn": 19,
+        "endLine": 31,
+        "endColumn": 20,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "Only one of ['Action', 'NotAction'] is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamPolicyExtraThings",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0.Action",
+        "category": "Resource",
+        "startLine": 54,
+        "startColumn": 11,
+        "endLine": 54,
+        "endColumn": 17,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "Only one of ['Action', 'NotAction'] is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamPolicyExtraThings",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0.NotAction",
+        "category": "Resource",
+        "startLine": 56,
+        "startColumn": 11,
+        "endLine": 56,
+        "endColumn": 20,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "Only one of ['Resource', 'NotResource'] is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamPolicyExtraThings",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0.Resource",
+        "category": "Resource",
+        "startLine": 58,
+        "startColumn": 11,
+        "endLine": 58,
+        "endColumn": 19,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "Only one of ['Resource', 'NotResource'] is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamPolicyExtraThings",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0.NotResource",
+        "category": "Resource",
+        "startLine": 60,
+        "startColumn": 11,
+        "endLine": 60,
+        "endColumn": 22,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "'arn' does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rIamPolicyExtraThings",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Statement.0.NotResource.0",
+        "category": "Resource",
+        "startLine": 61,
+        "startColumn": 13,
+        "endLine": 61,
+        "endColumn": 14,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
       },
       {
         "ruleId": "E3530",
@@ -29447,7 +30073,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 2,
+        "fatal": 8,
         "errors": 2,
         "warnings": 0,
         "informational": 0,
@@ -29458,6 +30084,141 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Groups' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Groups'",
+        "category": "Schema",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Roles' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Roles'",
+        "category": "Schema",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Users' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Users'",
+        "category": "Schema",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Groups' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myPolicy2",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Groups'",
+        "category": "Schema",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "conditionScenario": {
+          "cPrimaryRegion": true
+        },
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Roles' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myPolicy2",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Roles'",
+        "category": "Schema",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "conditionScenario": {
+          "cPrimaryRegion": true
+        },
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Users' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "myPolicy2",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Users'",
+        "category": "Schema",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "conditionScenario": {
+          "cPrimaryRegion": true
+        },
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "F3017",
         "severity": "FATAL",
@@ -29504,7 +30265,7 @@
       {
         "ruleId": "E3510",
         "severity": "ERROR",
-        "message": "IAM identity policy must have a Statement property",
+        "message": "'Statement' is a required property",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myPolicy",
@@ -29512,7 +30273,6 @@
           "resourceType": "AWS::IAM::Policy"
         },
         "propertyPath": "Properties.PolicyDocument",
-        "suggestedFix": "Add a Statement array to the PolicyDocument",
         "category": "Resource",
         "startLine": 13,
         "startColumn": 7,
@@ -29524,7 +30284,7 @@
       {
         "ruleId": "E3510",
         "severity": "ERROR",
-        "message": "IAM identity policy must have a Statement property",
+        "message": "'Statement' is a required property",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "myPolicy2",
@@ -29532,7 +30292,6 @@
           "resourceType": "AWS::IAM::Policy"
         },
         "propertyPath": "Properties.PolicyDocument",
-        "suggestedFix": "Add a Statement array to the PolicyDocument",
         "category": "Resource",
         "startLine": 16,
         "startColumn": 5,
@@ -33512,7 +34271,7 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 2,
+        "fatal": 5,
         "errors": 0,
         "warnings": 8,
         "informational": 14,
@@ -33526,6 +34285,26 @@
       {
         "ruleId": "F3016",
         "severity": "FATAL",
+        "message": "DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got a list",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "PolicyList",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "DeletionPolicy",
+        "category": "Structure",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "DeletionPolicy must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3016",
+        "severity": "FATAL",
         "message": "DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got 'CopyRegion'",
         "source": "SCHEMA",
         "entity": {
@@ -33533,11 +34312,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "DeletionPolicy",
         "category": "Structure",
-        "startLine": 17,
-        "startColumn": 3,
-        "endLine": 17,
-        "endColumn": 15,
+        "startLine": 23,
+        "startColumn": 5,
+        "endLine": 23,
+        "endColumn": 19,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "DeletionPolicy must be valid",
         "phase": "SCHEMA"
@@ -33552,12 +34332,52 @@
           "entityType": "Resource",
           "resourceType": "AWS::IAM::User"
         },
+        "propertyPath": "DeletionPolicy",
         "category": "Structure",
-        "startLine": 24,
-        "startColumn": 3,
-        "endLine": 24,
-        "endColumn": 12,
+        "startLine": 29,
+        "startColumn": 5,
+        "endLine": 29,
+        "endColumn": 19,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "DeletionPolicy must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3016",
+        "severity": "FATAL",
+        "message": "DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got a list",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "UnsupportedIntrinsic",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::WaitConditionHandle"
+        },
+        "propertyPath": "DeletionPolicy",
+        "category": "Structure",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 19,
+        "ruleDescription": "DeletionPolicy must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3016",
+        "severity": "FATAL",
+        "message": "DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, Snapshot, got an object",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "InvalidMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "DeletionPolicy",
+        "category": "Structure",
+        "startLine": 43,
+        "startColumn": 5,
+        "endLine": 43,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "DeletionPolicy must be valid",
         "phase": "SCHEMA"
       },
@@ -34031,7 +34851,7 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 2,
+        "fatal": 5,
         "errors": 0,
         "warnings": 9,
         "informational": 15,
@@ -34045,6 +34865,26 @@
       {
         "ruleId": "F0018",
         "severity": "FATAL",
+        "message": "UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got a list",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "PolicyList",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "UpdateReplacePolicy",
+        "category": "Structure",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "UpdateReplacePolicy must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F0018",
+        "severity": "FATAL",
         "message": "UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got 'CopyRegion'",
         "source": "SCHEMA",
         "entity": {
@@ -34052,11 +34892,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::RDS::DBInstance"
         },
+        "propertyPath": "UpdateReplacePolicy",
         "category": "Structure",
-        "startLine": 17,
-        "startColumn": 3,
-        "endLine": 17,
-        "endColumn": 15,
+        "startLine": 23,
+        "startColumn": 5,
+        "endLine": 23,
+        "endColumn": 24,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "UpdateReplacePolicy must be valid",
         "phase": "SCHEMA"
@@ -34071,12 +34912,52 @@
           "entityType": "Resource",
           "resourceType": "AWS::IAM::User"
         },
+        "propertyPath": "UpdateReplacePolicy",
         "category": "Structure",
-        "startLine": 24,
-        "startColumn": 3,
-        "endLine": 24,
-        "endColumn": 12,
+        "startLine": 29,
+        "startColumn": 5,
+        "endLine": 29,
+        "endColumn": 24,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "UpdateReplacePolicy must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F0018",
+        "severity": "FATAL",
+        "message": "UpdateReplacePolicy must be one of Delete, Retain, got a list",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "UnsupportedIntrinsic",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::WaitConditionHandle"
+        },
+        "propertyPath": "UpdateReplacePolicy",
+        "category": "Structure",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 24,
+        "ruleDescription": "UpdateReplacePolicy must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F0018",
+        "severity": "FATAL",
+        "message": "UpdateReplacePolicy must be one of Delete, Retain, Snapshot, got an object",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "InvalidMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "UpdateReplacePolicy",
+        "category": "Structure",
+        "startLine": 43,
+        "startColumn": 5,
+        "endLine": 43,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "UpdateReplacePolicy must be valid",
         "phase": "SCHEMA"
       },
@@ -37956,7 +38837,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 2,
+        "fatal": 9,
         "errors": 0,
         "warnings": 0,
         "informational": 5,
@@ -37967,6 +38848,151 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'ImageArn' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoImage",
+          "entityType": "Resource",
+          "resourceType": "AWS::AppStream::ImageBuilder"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'ImageArn'",
+        "category": "Schema",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'ImageName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoImage",
+          "entityType": "Resource",
+          "resourceType": "AWS::AppStream::ImageBuilder"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'ImageName'",
+        "category": "Schema",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'AvailabilityZone' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoAZ",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'AvailabilityZone'",
+        "category": "Schema",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'AvailabilityZoneId' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoAZ",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'AvailabilityZoneId'",
+        "category": "Schema",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Size' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoAZ",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Size'",
+        "category": "Schema",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'SnapshotId' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoAZ",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'SnapshotId'",
+        "category": "Schema",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'SourceVolumeId' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoAZ",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'SourceVolumeId'",
+        "category": "Schema",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "F3017",
         "severity": "FATAL",
@@ -39909,7 +40935,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 0,
         "warnings": 3,
         "informational": 1,
@@ -39920,6 +40946,24 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "'Certificate' is not one of ['CompleteCertificateChain']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "WriteOnlyOutput",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/WriteOnlyOutput/Value",
+        "category": "Structure",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 10,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "W9002",
         "severity": "WARN",
@@ -40012,7 +41056,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 1,
+        "fatal": 4,
         "errors": 0,
         "warnings": 1,
         "informational": 2,
@@ -40023,6 +41067,69 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Groups' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "WildcardPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Groups'",
+        "category": "Schema",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Roles' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "WildcardPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Roles'",
+        "category": "Schema",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Users' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "WildcardPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Policy"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Users'",
+        "category": "Schema",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "F3017",
         "severity": "FATAL",
@@ -43714,7 +44821,7 @@
       "resourcesScanned": 8,
       "counts": {
         "fatal": 1,
-        "errors": 3,
+        "errors": 4,
         "warnings": 3,
         "informational": 15,
         "debug": 0
@@ -43788,6 +44895,26 @@
             "visibility_timeout": 10
           }
         }
+      },
+      {
+        "ruleId": "E3639",
+        "severity": "ERROR",
+        "message": "'ProvisionedThroughput' is a required property",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DataTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add ProvisionedThroughput or use BillingMode PAY_PER_REQUEST",
+        "category": "Resource",
+        "startLine": 72,
+        "startColumn": 4,
+        "endLine": 72,
+        "endColumn": 15,
+        "ruleDescription": "DynamoDB table with BillingMode PROVISIONED must specify ProvisionedThroughput",
+        "phase": "LINT"
       },
       {
         "ruleId": "E9002",
@@ -127893,7 +129020,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 6,
         "errors": 0,
         "warnings": 0,
         "informational": 3,
@@ -127904,6 +129031,111 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'AvailabilityZone' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'AvailabilityZone'",
+        "category": "Schema",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'AvailabilityZoneId' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'AvailabilityZoneId'",
+        "category": "Schema",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Size' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Size'",
+        "category": "Schema",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'SnapshotId' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'SnapshotId'",
+        "category": "Schema",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'SourceVolumeId' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Resource",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Volume"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'SourceVolumeId'",
+        "category": "Schema",
+        "startLine": 3,
+        "startColumn": 5,
+        "endLine": 3,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "F3017",
         "severity": "FATAL",
@@ -129989,7 +131221,7 @@
       "counts": {
         "fatal": 1,
         "errors": 0,
-        "warnings": 7,
+        "warnings": 9,
         "informational": 16,
         "debug": 0
       },
@@ -130020,6 +131252,44 @@
         },
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.BlockDeviceMappings.Fn::If.1.0.VirtualName.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 44,
+        "startColumn": 19,
+        "endLine": 44,
+        "endColumn": 20,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myInstance4",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 13,
+        "endLine": 74,
+        "endColumn": 14,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
       },
       {
         "ruleId": "W2531",
@@ -130835,10 +132105,11 @@
         "severity": "FATAL",
         "message": "'Parameter' is not a valid top-level template section",
         "source": "SCHEMA",
+        "propertyPath": "Parameter",
         "category": "Structure",
-        "startLine": 7,
+        "startLine": 4,
         "startColumn": 1,
-        "endLine": 7,
+        "endLine": 4,
         "endColumn": 10,
         "ruleDescription": "Top-level keys must be valid section names",
         "phase": "SCHEMA"
@@ -132053,6 +133324,25 @@
         "phase": "LINT"
       }
     ]
+  },
+  "good/decode/yaml11_scalars.yaml": {
+    "filePath": "good/decode/yaml11_scalars.yaml",
+    "status": "OK",
+    "version": "1.6.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
   },
   "good/deletion_policies.yaml": {
     "filePath": "good/deletion_policies.yaml",
@@ -141440,7 +142730,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 3,
+        "warnings": 4,
         "informational": 15,
         "debug": 0
       },
@@ -141449,6 +142739,25 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 1] is not reachable. When setting condition 'IsUsEast1' to True from current status False",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Stack3",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFormation::Stack"
+        },
+        "propertyPath": "Properties.Parameters.Fn::If.2.Fn::If.1",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 16,
+        "endLine": 48,
+        "endColumn": 17,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
       {
         "ruleId": "W3002",
         "severity": "WARN",
@@ -145748,7 +147057,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -145756,6 +147065,42 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 11,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 11,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -147635,7 +148980,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -147643,6 +148988,42 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::SimpleTable"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::SimpleTable"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -147675,7 +149056,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -147683,6 +149064,42 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::SimpleTable"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::SimpleTable"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -148838,7 +150255,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 2,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -148846,6 +150263,42 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AppName",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 3,
+        "endLine": 18,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AppName",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 3,
+        "endLine": 18,
+        "endColumn": 10,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -148898,7 +150351,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 2,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
@@ -148906,6 +150359,78 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "App1",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 7,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "App1",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 7,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "App2",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 3,
+        "endLine": 7,
+        "endColumn": 7,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "App2",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Application"
+        },
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 3,
+        "endLine": 7,
+        "endColumn": 7,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -156517,7 +158042,7 @@
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
-        "fatal": 3,
+        "fatal": 4,
         "errors": 1,
         "warnings": 8,
         "informational": 24,
@@ -156566,6 +158091,24 @@
         "endLine": 564,
         "endColumn": 18,
         "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${MaxScaling}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ComplexOutput",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/ComplexOutput/Value",
+        "category": "Structure",
+        "startLine": 945,
+        "startColumn": 7,
+        "endLine": 945,
+        "endColumn": 13,
+        "ruleDescription": "Output value must be a string",
         "phase": "SCHEMA"
       },
       {
@@ -157303,7 +158846,7 @@
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
-        "fatal": 3,
+        "fatal": 4,
         "errors": 1,
         "warnings": 10,
         "informational": 24,
@@ -157352,6 +158895,24 @@
         "endLine": 236,
         "endColumn": 15,
         "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${MaxScaling}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ComplexOutput",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/ComplexOutput/Value",
+        "category": "Structure",
+        "startLine": 423,
+        "startColumn": 5,
+        "endLine": 423,
+        "endColumn": 10,
+        "ruleDescription": "Output value must be a string",
         "phase": "SCHEMA"
       },
       {
@@ -158466,7 +160027,7 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 0,
+        "fatal": 5,
         "errors": 0,
         "warnings": 7,
         "informational": 19,
@@ -158477,6 +160038,99 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F0013",
+        "severity": "FATAL",
+        "message": "Fn::If: first element must be the name of a condition, not an expression",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "LogicalConditionResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.AlarmName.Fn::If.0",
+        "category": "Intrinsic Function",
+        "startLine": 171,
+        "startColumn": 7,
+        "endLine": 171,
+        "endColumn": 16,
+        "ruleDescription": "Conditions must be well-formed: a condition body must evaluate to a boolean and Fn::If must have exactly 3 elements",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F0013",
+        "severity": "FATAL",
+        "message": "Fn::If: first element must be the name of a condition, not an expression",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "LogicalConditionResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Threshold.Fn::If.0",
+        "category": "Intrinsic Function",
+        "startLine": 183,
+        "startColumn": 7,
+        "endLine": 183,
+        "endColumn": 16,
+        "ruleDescription": "Conditions must be well-formed: a condition body must evaluate to a boolean and Fn::If must have exactly 3 elements",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F0013",
+        "severity": "FATAL",
+        "message": "Fn::If: first element must be the name of a condition, not an expression",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "LogicalConditionResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.TreatMissingData.Fn::If.0",
+        "category": "Intrinsic Function",
+        "startLine": 191,
+        "startColumn": 7,
+        "endLine": 191,
+        "endColumn": 23,
+        "ruleDescription": "Conditions must be well-formed: a condition body must evaluate to a boolean and Fn::If must have exactly 3 elements",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F0013",
+        "severity": "FATAL",
+        "message": "Fn::If: first element must be the name of a condition, not an expression",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "LogicalConditionalOutput",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/LogicalConditionalOutput/Value/Fn::If/0",
+        "category": "Intrinsic Function",
+        "startLine": 236,
+        "startColumn": 18,
+        "endLine": 236,
+        "endColumn": 19,
+        "ruleDescription": "Conditions must be well-formed: a condition body must evaluate to a boolean and Fn::If must have exactly 3 elements",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F0013",
+        "severity": "FATAL",
+        "message": "Fn::If: first element must be the name of a condition, not an expression",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "EdgeCaseOutput",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/EdgeCaseOutput/Value/Fn::If/0",
+        "category": "Intrinsic Function",
+        "startLine": 250,
+        "startColumn": 5,
+        "endLine": 250,
+        "endColumn": 10,
+        "ruleDescription": "Conditions must be well-formed: a condition body must evaluate to a boolean and Fn::If must have exactly 3 elements",
+        "phase": "PARSE"
+      },
       {
         "ruleId": "W1028",
         "severity": "WARN",
@@ -159009,7 +160663,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 1,
+        "fatal": 5,
         "errors": 0,
         "warnings": 0,
         "informational": 3,
@@ -159025,12 +160679,94 @@
         "severity": "FATAL",
         "message": "'Constants' is not a valid top-level template section",
         "source": "SCHEMA",
+        "propertyPath": "Constants",
         "category": "Structure",
-        "startLine": 15,
+        "startLine": 4,
         "startColumn": 3,
-        "endLine": 15,
+        "endLine": 4,
         "endColumn": 13,
         "ruleDescription": "Top-level keys must be valid section names",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1018",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${sub}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Metadata.Test",
+        "category": "Intrinsic Function",
+        "startLine": 19,
+        "startColumn": 9,
+        "endLine": 19,
+        "endColumn": 14,
+        "ruleDescription": "Sub variables must resolve",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1018",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${foo}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Intrinsic Function",
+        "startLine": 27,
+        "startColumn": 9,
+        "endLine": 27,
+        "endColumn": 20,
+        "ruleDescription": "Sub variables must resolve",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (Sub:${foo})"
+        }
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'obj' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'Bucket', 'PersonalS3']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Metadata.TestObj",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 22,
+        "startColumn": 9,
+        "endLine": 22,
+        "endColumn": 17,
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'foo' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'Bucket', 'PersonalS3']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags.0.Value",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 33,
+        "startColumn": 13,
+        "endLine": 33,
+        "endColumn": 19,
+        "ruleDescription": "Ref/GetAtt target must exist",
         "phase": "SCHEMA"
       },
       {
@@ -159107,7 +160843,7 @@
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
-        "fatal": 1,
+        "fatal": 5,
         "errors": 0,
         "warnings": 0,
         "informational": 3,
@@ -159123,12 +160859,94 @@
         "severity": "FATAL",
         "message": "'Constants' is not a valid top-level template section",
         "source": "SCHEMA",
+        "propertyPath": "Constants",
         "category": "Structure",
-        "startLine": 11,
+        "startLine": 4,
         "startColumn": 1,
-        "endLine": 11,
+        "endLine": 4,
         "endColumn": 10,
         "ruleDescription": "Top-level keys must be valid section names",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1018",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${sub}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Metadata.Test",
+        "category": "Intrinsic Function",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 11,
+        "ruleDescription": "Sub variables must resolve",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1018",
+        "severity": "FATAL",
+        "message": "Fn::Sub variable '${foo}' does not reference a valid resource, parameter, or pseudo-parameter",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Intrinsic Function",
+        "startLine": 18,
+        "startColumn": 7,
+        "endLine": 18,
+        "endColumn": 17,
+        "ruleDescription": "Sub variables must resolve",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "dynamic (Sub:${foo})"
+        }
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'obj' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'Bucket', 'PersonalS3']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Metadata.TestObj",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 16,
+        "startColumn": 7,
+        "endLine": 16,
+        "endColumn": 14,
+        "ruleDescription": "Ref/GetAtt target must exist",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1020",
+        "severity": "FATAL",
+        "message": "'foo' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'Bucket', 'PersonalS3']",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags.0.Value",
+        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
+        "category": "Intrinsic Function",
+        "startLine": 21,
+        "startColumn": 11,
+        "endLine": 21,
+        "endColumn": 16,
+        "ruleDescription": "Ref/GetAtt target must exist",
         "phase": "SCHEMA"
       },
       {

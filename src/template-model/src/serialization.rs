@@ -316,12 +316,23 @@ fn build_outputs(
     graph: &crate::graph::ReferenceGraph,
 ) -> HashMap<String, DiagnosticOutput> {
     let mut output_getatt_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    let mut output_sub_refs: HashMap<String, Vec<String>> = HashMap::new();
     for edge in &graph.edges {
-        if let Some(output_name) = edge.source_resource.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX)
-            && let RefKind::GetAtt { attr } = &edge.kind
-            && getatt_is_in_string_position(&edge.source_path)
-        {
-            output_getatt_refs.entry(output_name.to_string()).or_default().push((edge.target.clone(), attr.clone()));
+        if let Some(output_name) = edge.source_resource.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX) {
+            match &edge.kind {
+                RefKind::GetAtt { attr } if getatt_is_in_string_position(&edge.source_path) => {
+                    output_getatt_refs
+                        .entry(output_name.to_string())
+                        .or_default()
+                        .push((edge.target.clone(), attr.clone()));
+                }
+                // A Sub edge is only recorded for a variable that resolved to
+                // nothing, so its presence is itself the finding.
+                RefKind::Sub { var } => {
+                    output_sub_refs.entry(output_name.to_string()).or_default().push(var.clone());
+                }
+                _ => {}
+            }
         }
     }
 
@@ -353,6 +364,7 @@ fn build_outputs(
                         .into_iter()
                         .map(|(r, a)| GetAttRef { resource: r, attribute: a })
                         .collect(),
+                    sub_refs: output_sub_refs.get(name).cloned().unwrap_or_default(),
                     condition_refs: {
                         let mut crefs = Vec::new();
                         collect_condition_refs_from_resolved(&output.value, &mut crefs);

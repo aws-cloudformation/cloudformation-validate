@@ -10,7 +10,7 @@ use template_model::coercion::{
 };
 use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, INLINE_CONDITION_PREFIX,
 };
 use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
@@ -28,6 +28,8 @@ fn get_model(holder: &SharedModel) -> Option<Arc<SemanticModel>> {
 
 pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, region_holder: SharedRegion) {
     register_resolve(rego, holder.clone());
+    register_iam_identity_policy_findings(rego, holder.clone());
+    register_duplicate_subnet_associations(rego, holder.clone());
     register_resolve_preserving_conditionals(rego, holder.clone());
     register_resolve_all(rego, holder.clone());
     register_is_dynamic(rego, holder.clone());
@@ -250,6 +252,72 @@ fn contains_dynamic(rv: &ResolvedValue) -> bool {
         ResolvedValue::Concrete { value: v } => json_contains_markers(v),
     }
 }
+/// `duplicate_subnet_route_table_associations()`: the clashing
+/// subnet/route-table association findings from the shared detector, as
+/// `{resourceId, message}` entries.
+fn register_duplicate_subnet_associations(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "duplicate_subnet_route_table_associations".into(),
+        0,
+        Box::new(move |_params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let results: Vec<Value> = template_model::route_table::duplicate_subnet_associations(&model)
+                .into_iter()
+                .map(|f| json_to_value(&serde_json::json!({"resourceId": f.resource_id, "message": f.message})))
+                .collect();
+            Ok(Value::from(results))
+        }),
+    );
+}
+
+/// `iam_identity_policy_findings(rid, doc_path)`: the structural defects the
+/// shared IAM identity-policy validator finds in the (concrete) document at
+/// `doc_path`, as `{path, message}` entries with paths anchored inside the
+/// document. Empty when the document is absent or not fully concrete.
+fn register_iam_identity_policy_findings(rego: &mut regorus::Engine, holder: SharedModel) {
+    let _ = rego.add_extension(
+        "iam_identity_policy_findings".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = get_model(&holder) else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let rid = params[0].as_string()?;
+            let doc_path = params[1].as_string()?;
+            let doc = match model.resolve_deep(rid, doc_path).or_else(|| model.resolve(rid, doc_path).cloned()) {
+                Some(ResolvedValue::Concrete { value }) => Some(value.into_inner()),
+                Some(_) => None,
+                None => model.resolve_scenarios_json(rid, doc_path).into_iter().next().map(|(v, _)| v),
+            };
+            let mut results = Vec::new();
+            if let Some(doc) = doc {
+                // Paths inside the document whose values were substituted from
+                // an intrinsic (recorded as reference-graph edges) are exempt
+                // from content checks.
+                let prefix = format!("{}.", doc_path);
+                let substituted: std::collections::HashSet<String> = model
+                    .graph
+                    .outgoing(rid)
+                    .iter()
+                    .filter_map(|e| e.source_path.strip_prefix(&prefix))
+                    .map(String::from)
+                    .collect();
+                for finding in template_model::iam_policy::validate_identity_policy(&doc, &substituted) {
+                    let path = if finding.path.is_empty() {
+                        doc_path.to_string()
+                    } else {
+                        format!("{}.{}", doc_path, finding.path)
+                    };
+                    results.push(json_to_value(&serde_json::json!({"path": path, "message": finding.message})));
+                }
+            }
+            Ok(Value::from(results))
+        }),
+    );
+}
+
 fn register_resolve(rego: &mut regorus::Engine, holder: SharedModel) {
     let _ = rego.add_extension(
         "resolve".into(),
@@ -2050,6 +2118,32 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine, holder: SharedMo
     );
 }
 
+/// The human-readable reason a branch cannot be selected: the condition value
+/// being set, plus the already-assumed condition values that block it.
+fn unreachable_explanation(condition: &str, target_value: bool, assumptions: &[(String, bool)]) -> String {
+    let setting = if target_value { "True" } else { "False" };
+    let existing: Vec<String> = assumptions
+        .iter()
+        .filter(|(name, _)| name != condition)
+        .map(|(name, val)| format!("condition '{}' is {}", name, if *val { "True" } else { "False" }))
+        .collect();
+    if existing.is_empty() {
+        format!(
+            "When setting condition '{}' to {} from current status {}",
+            condition,
+            setting,
+            if target_value { "False" } else { "True" }
+        )
+    } else {
+        format!(
+            "When setting condition '{}' to {}. Where existing status for {}",
+            condition,
+            setting,
+            existing.join(" and ")
+        )
+    }
+}
+
 fn collect_unreachable_branches(
     model: &Arc<SemanticModel>,
     resource_id: &str,
@@ -2059,7 +2153,11 @@ fn collect_unreachable_branches(
     results: &mut Vec<Value>,
 ) {
     match value {
-        ResolvedValue::Conditional { condition: cond, if_true: _, if_false: _ } => {
+        ResolvedValue::Conditional { condition: cond, if_true, if_false } => {
+            // A synthetic name minted for an inline `Fn::If` expression is not a
+            // template condition: the expression form is already reported at
+            // parse time, and the internal label means nothing to the author.
+            let synthetic = cond.starts_with(INLINE_CONDITION_PREFIX);
             let mut true_assumptions = assumptions.to_vec();
             true_assumptions.push((cond.clone(), true));
             // Flag the branch only when the surrounding assumptions make this
@@ -2067,41 +2165,24 @@ fn collect_unreachable_branches(
             // the value on its own. A condition that is constant (a literal
             // tautology, or a parameter pinned to a single value) is the concern
             // of equality rules, not of branch reachability.
-            if !model.conditions.is_satisfiable(&true_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), true)])
-            {
+            let true_reachable = model.conditions.is_satisfiable(&true_assumptions);
+            if !true_reachable && !synthetic && model.conditions.is_satisfiable(&[(cond.clone(), true)]) {
+                let explanation = unreachable_explanation(cond, true, assumptions);
                 let mut map = serde_json::Map::new();
                 map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
                 map.insert("path".into(), serde_json::Value::String(format!("{}.{}.1", path, FN_IF)));
                 map.insert(
                     "message".into(),
-                    serde_json::Value::String(format!(
-                        "['Fn::If', 1] is not reachable. When setting condition '{}' to True",
-                        cond
-                    )),
+                    serde_json::Value::String(format!("['Fn::If', 1] is not reachable. {}", explanation)),
                 );
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
             let mut false_assumptions = assumptions.to_vec();
             false_assumptions.push((cond.clone(), false));
-            if !model.conditions.is_satisfiable(&false_assumptions)
-                && model.conditions.is_satisfiable(&[(cond.clone(), false)])
-            {
-                let existing: Vec<String> = assumptions
-                    .iter()
-                    .filter(|(name, _)| name != cond)
-                    .map(|(name, val)| format!("condition '{}' is {}", name, if *val { "True" } else { "False" }))
-                    .collect();
-                let explanation = if existing.is_empty() {
-                    format!("When setting condition '{}' to False from current status True", cond)
-                } else {
-                    format!(
-                        "When setting condition '{}' to False. Where existing status for {}",
-                        cond,
-                        existing.join(" and ")
-                    )
-                };
+            let false_reachable = model.conditions.is_satisfiable(&false_assumptions);
+            if !false_reachable && !synthetic && model.conditions.is_satisfiable(&[(cond.clone(), false)]) {
+                let explanation = unreachable_explanation(cond, false, assumptions);
                 let mut map = serde_json::Map::new();
                 map.insert("resourceId".into(), serde_json::Value::String(resource_id.to_string()));
                 map.insert("path".into(), serde_json::Value::String(format!("{}.{}.2", path, FN_IF)));
@@ -2112,11 +2193,32 @@ fn collect_unreachable_branches(
                 results.push(json_to_value(&serde_json::Value::Object(map)));
             }
 
-            // Only the reachability of the immediate Fn::If branches is checked;
-            // we do not recurse into an Fn::If nested inside a branch, so we stop
-            // here. Recursing would produce spurious findings (e.g.
-            // `Fn::If.2.Fn::If.1`) for branches whose reachability depends on the
-            // already-evaluated outer condition.
+            // Recurse into each branch that is itself reachable, carrying this
+            // condition's value as an assumption — an inner Fn::If whose
+            // condition is implied (or contradicted) by the outer one has a
+            // branch nothing can select. An unreachable branch is not entered:
+            // its contradictory assumption set would mark every nested branch
+            // unreachable, burying the one finding that matters.
+            if true_reachable {
+                collect_unreachable_branches(
+                    model,
+                    resource_id,
+                    if_true,
+                    &format!("{}.{}.1", path, FN_IF),
+                    &true_assumptions,
+                    results,
+                );
+            }
+            if false_reachable {
+                collect_unreachable_branches(
+                    model,
+                    resource_id,
+                    if_false,
+                    &format!("{}.{}.2", path, FN_IF),
+                    &false_assumptions,
+                    results,
+                );
+            }
         }
         ResolvedValue::Map { entries } => {
             for MapEntry { key, value: val } in entries {

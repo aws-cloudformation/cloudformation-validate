@@ -191,6 +191,13 @@ pub const CDK_METADATA_TYPE: &str = "AWS::CDK::Metadata";
 pub const OUTPUT_PSEUDO_RESOURCE_PREFIX: &str = "__output__";
 pub const OUTPUTS_PSEUDO_RESOURCE: &str = "__outputs__";
 
+/// Prefix of the synthetic condition names minted for an `Fn::If` whose first
+/// element is an inline boolean expression rather than a condition name. The
+/// expression form itself is invalid (reported at parse time), so
+/// reachability findings over these synthetic names would leak an internal
+/// label and double-report the same mistake.
+pub const INLINE_CONDITION_PREFIX: &str = "__inline_cond_";
+
 /// Sentinel value used by the satisfiability search to represent "any value
 /// other than the literals the parameter is compared against". Added to the
 /// candidate-value set of a parameter (or pseudo-parameter) without an explicit

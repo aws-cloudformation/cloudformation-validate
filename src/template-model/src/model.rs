@@ -1215,6 +1215,13 @@ impl SemanticModel {
             if let Some(span) = self.walk_up_span(&key) {
                 return Some(span);
             }
+        } else if !property_path.is_empty() {
+            // No resource and a single bare segment: the path names a top-level
+            // key (a section, or an unknown key being flagged), so resolve it
+            // directly against the index.
+            if let Some(span) = self.walk_up_span(property_path) {
+                return Some(span);
+            }
         }
 
         // Last resort: the bare resource span, when a resource id is known.

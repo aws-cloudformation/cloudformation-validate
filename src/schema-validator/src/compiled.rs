@@ -139,6 +139,12 @@ pub struct PropSchema {
     pub dependent_required: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub dependent_excluded: HashMap<String, Vec<String>>,
+    /// At least one of these properties must be present (`requiredOr`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_or: Vec<String>,
+    /// Exactly one of these properties must be present (`requiredXor`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_xor: Vec<String>,
 }
 
 fn is_false(b: &bool) -> bool {

@@ -688,7 +688,9 @@ fn issue_61_f3017_anyof_on_bare_ec2_volume() {
     assert_fires_with_severity(&diags, "F3017", Severity::Fatal);
     assert_fires_on_resource(&diags, "F3017", "Resource");
     assert_count(&diags, "F3017", 1);
-    assert_absent(&diags, "F3003");
+    // Each failing anyOf branch also surfaces its missing required property by
+    // name, so the summary is accompanied by one finding per branch member.
+    assert_count(&diags, "F3003", 5);
 }
 
 /// Issue #62: F3032 fires as a FATAL on an empty `ResourcesToReplicateTags` array
@@ -1174,7 +1176,12 @@ fn fatal_rule_suppressed_by_exclude_id() {
     for (name, engine) in [("rego", &*REGO as &dyn ValidationEngine), ("cel", &*CEL as &dyn ValidationEngine)] {
         let diags = validate_with(engine, "issue-61.json", config.clone());
         assert_eq!(count(&diags, "F3017"), 0, "[{name}] --exclude-ids F3017 must suppress the FATAL rule");
-        assert!(!diags.iter().any(|d| d.severity == Severity::Fatal), "[{name}] no FATAL should remain after exclude");
+        // The anyOf branch members (missing required properties) are their own
+        // findings under a different rule id, so they survive the exclusion.
+        assert!(
+            diags.iter().filter(|d| d.severity == Severity::Fatal).all(|d| d.rule_id == "F3003"),
+            "[{name}] only the branch-member findings may remain after exclude"
+        );
     }
 }
 

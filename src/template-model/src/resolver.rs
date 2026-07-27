@@ -361,7 +361,7 @@ impl<'a> Resolver<'a> {
                     return if a == b { true_branch } else { false_branch };
                 }
 
-                let cond_label = format!("__inline_cond_{}", cond_ref);
+                let cond_label = format!("{}{}", crate::consts::INLINE_CONDITION_PREFIX, cond_ref);
                 self.inline_conditions.push((cond_label.clone(), parsed_expr));
                 ResolvedValue::Conditional {
                     condition: cond_label,
@@ -1252,7 +1252,12 @@ impl<'a> Resolver<'a> {
             if i + 1 < bytes.len() && bytes[i] == b'$' && bytes[i + 1] == b'{' {
                 let start = i + 2;
                 if let Some(end) = template[start..].find('}') {
-                    vars.push(template[start..start + end].trim().to_string());
+                    let name = template[start..start + end].trim().to_string();
+                    // `${!Name}` is the literal-escape form — it renders as the text
+                    // `${Name}` and never references anything.
+                    if !name.starts_with('!') {
+                        vars.push(name);
+                    }
                     i = start + end + 1;
                 } else {
                     i += 1;
@@ -1263,6 +1268,12 @@ impl<'a> Resolver<'a> {
         }
 
         let mut sub_map: HashMap<String, ResolvedValue> = HashMap::new();
+        // When a variable-map value is itself broken (an invalid Ref, say), the
+        // unknown-variable check for this Fn::Sub is withheld: the map error is
+        // already reported on its own, and judging the template string against a
+        // half-broken map would pile a second, speculative finding onto the same
+        // expression.
+        let invalid_refs_before = self.invalid_ref_count();
         if let Some(explicit_subs) = subs {
             for (k, v) in explicit_subs {
                 sub_map.insert(k.clone(), self.resolve_node(*v));
@@ -1278,6 +1289,7 @@ impl<'a> Resolver<'a> {
                 }
             }
         }
+        let map_values_are_clean = self.invalid_ref_count() == invalid_refs_before;
 
         for var in &vars {
             if sub_map.contains_key(var) {
@@ -1306,9 +1318,18 @@ impl<'a> Resolver<'a> {
             // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
             // edge would double-count the dependency (surfacing a spurious second
             // dependency finding under a `Sub` label that misrepresents the edge).
-            let resolved = self
-                .lookup_ref(var, span)
-                .unwrap_or_else(|| ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) });
+            // A variable that resolves to nothing at all *is* recorded, as a
+            // `Sub`-kind edge to the unresolved name: CloudFormation rejects the
+            // template, and the engines surface that from this edge.
+            let resolved = match self.lookup_ref(var, span) {
+                Some(value) => value,
+                None => {
+                    if map_values_are_clean {
+                        self.record_edge(var, RefKind::Sub { var: var.clone() }, span);
+                    }
+                    ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) }
+                }
+            };
             sub_map.insert(var.clone(), resolved);
         }
 
@@ -1324,6 +1345,9 @@ impl<'a> Resolver<'a> {
 
         if vars.is_empty()
             && subs.is_none()
+            // A `${!Name}` escape means the Sub is not redundant: it renders the
+            // literal text `${Name}`, which a plain string would not.
+            && !template.contains("${!")
             && let Some(ref rid) = self.current_resource
         {
             self.redundant_subs.entry(rid.clone()).or_default().push(self.current_path.clone());
@@ -1436,6 +1460,12 @@ impl<'a> Resolver<'a> {
         if !conds.is_empty() {
             self.extra_condition_refs.entry(key).or_default().append(&mut conds);
         }
+    }
+
+    /// Total invalid-Ref records across all resources — a cheap before/after
+    /// probe for whether resolving a subtree registered any new invalid Ref.
+    fn invalid_ref_count(&self) -> usize {
+        self.invalid_refs.values().map(Vec::len).sum()
     }
 
     fn record_edge(&mut self, target: &str, kind: RefKind, span: &SourceSpan) {
@@ -1988,6 +2018,8 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                         .filter_map(|r| match ir.arena.node(*r) {
                             Node::String(s) => Some(s.clone()),
                             Node::Int(i) => Some(i.to_string()),
+                            Node::Float(f) => Some(f.to_string()),
+                            Node::Bool(b) => Some(b.to_string()),
                             _ => None,
                         })
                         .collect()

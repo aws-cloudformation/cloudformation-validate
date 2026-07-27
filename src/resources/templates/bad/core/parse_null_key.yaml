@@ -1,0 +1,7 @@
+# A null mapping key has no JSON object form, so the template cannot be
+# represented and the parse fails.
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      ~: some value

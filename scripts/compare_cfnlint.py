@@ -395,6 +395,12 @@ def load_engine_results():
                 resource_id = ""
             elif resource_id and resource_path.startswith("Outputs."):
                 resource_id = ""
+            elif "/" in resource_path and resource_path.split("/", 1)[0] in (
+                "Conditions", "Mappings", "Parameters", "Rules", "Metadata", "Transform",
+            ):
+                # Section-level engine paths use '/' separators; cfn-lint join
+                # paths use '.'. Normalize so exact-path matching works.
+                resource_path = resource_path.replace("/", ".")
             diags.append({
                 "rule_id": rule_id,
                 "rule_description": d.get("ruleDescription", ""),

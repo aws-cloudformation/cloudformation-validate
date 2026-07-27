@@ -18,6 +18,9 @@ pub struct Builder {
     pub global_index: GlobalIndex,
     pub span_index: SourceSpanIndex,
     pub diagnostics: Vec<ParseDefect>,
+    /// How many enclosing `Fn::If` calls have a non-string first element. Only
+    /// the outermost such call is reported; nested ones are the same mistake.
+    invalid_if_depth: usize,
 }
 
 impl Builder {
@@ -27,6 +30,7 @@ impl Builder {
             global_index: GlobalIndex::new(),
             span_index: SourceSpanIndex::new(),
             diagnostics: Vec::new(),
+            invalid_if_depth: 0,
         }
     }
 
@@ -169,7 +173,20 @@ impl Builder {
             FN_IF => return self.build_if(val, path),
             FN_FIND_IN_MAP => self.build_find_in_map(val, path)?,
             FN_SPLIT => self.build_split(val, path)?,
-            FN_BASE64 => IntrinsicFn::Base64(self.build(val, &format!("{}/{}", path, FN_BASE64))),
+            FN_BASE64 => {
+                // Fn::Base64 encodes a string. A literal list can never become
+                // one; an object value is a wrapped intrinsic that may resolve
+                // to a string, so only the list shape is rejected here.
+                if val.kind() == ValueKind::Array {
+                    self.diagnostics.push(crate::make_parse_defect_at(
+                        "E1021",
+                        format!("{} is not of type 'string'", val.describe()),
+                        UNKNOWN_SPAN,
+                        &Self::intrinsic_anchor(path, FN_BASE64),
+                    ));
+                }
+                IntrinsicFn::Base64(self.build(val, &format!("{}/{}", path, FN_BASE64)))
+            }
             FN_CIDR => self.build_cidr(val, path)?,
             FN_GET_AZS => IntrinsicFn::GetAZs(self.build(val, &format!("{}/{}", path, FN_GET_AZS))),
             FN_IMPORT_VALUE => IntrinsicFn::ImportValue(self.build(val, &format!("{}/{}", path, FN_IMPORT_VALUE))),
@@ -443,12 +460,33 @@ impl Builder {
             self.fn_if_error(&format!("must have exactly 3 elements, got {}", arr.len()), path);
             return None;
         }
+        let cond_str = arr[0].as_coerced_str();
+        if cond_str.is_none() && self.invalid_if_depth == 0 {
+            // CloudFormation only accepts a condition *name* here — a nested
+            // boolean function (`Fn::And`, `Fn::Or`, …) is rejected at deploy
+            // time; such expressions are legal only inside the Conditions
+            // section. Only the outermost offender is reported: a nested
+            // `Fn::If` inside an already-invalid one is the same mistake, and
+            // the outer report already covers the whole expression. The
+            // expression node is still built so downstream consumers can
+            // inspect both branches. Anchored at the offending first element.
+            self.diagnostics.push(crate::make_parse_defect_at(
+                "F0013",
+                format!("{}: first element must be the name of a condition, not an expression", FN_IF),
+                UNKNOWN_SPAN,
+                &format!("{}/{}/0", path, FN_IF),
+            ));
+        }
+        if cond_str.is_none() {
+            self.invalid_if_depth += 1;
+        }
         let if_true = self.build(&arr[1], &format!("{}/{}/1", path, FN_IF));
         let if_false = self.build(&arr[2], &format!("{}/{}/2", path, FN_IF));
-        let intrinsic = match arr[0].as_coerced_str() {
+        let intrinsic = match cond_str {
             Some(cond) => IntrinsicFn::If(cond, if_true, if_false),
             None => {
                 let cond_node = self.build(&arr[0], &format!("{}/{}/0", path, FN_IF));
+                self.invalid_if_depth -= 1;
                 IntrinsicFn::IfExpr(cond_node, if_true, if_false)
             }
         };

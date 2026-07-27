@@ -13,8 +13,10 @@ use template_model::consts::{
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
     KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
+use template_model::iam_policy::validate_identity_policy;
 use template_model::message::{render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::route_table::duplicate_subnet_associations;
 use template_model::{CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MX_RECORD_PATTERN, SourceSpan};
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::make_resource_diagnostic;
@@ -204,6 +206,27 @@ fn health_check_port_scalar(value: &serde_json::Value) -> Option<String> {
         serde_json::Value::String(s) => Some(s.clone()),
         serde_json::Value::Number(n) => Some(n.to_string()),
         _ => None,
+    }
+}
+
+/// Emits one diagnostic per structural defect the shared IAM identity-policy
+/// validator finds in `doc`, anchored inside the document under `doc_path`.
+/// Paths inside the document whose values were substituted from an intrinsic
+/// (recorded as reference-graph edges) are exempt from content checks.
+fn push_identity_policy_findings(
+    out: &mut Vec<Diagnostic>,
+    m: &SemanticModel,
+    name: &str,
+    doc_path: &str,
+    doc: &serde_json::Value,
+) {
+    let prefix = format!("{}.", doc_path);
+    let substituted: HashSet<String> =
+        m.graph.outgoing(name).iter().filter_map(|e| e.source_path.strip_prefix(&prefix)).map(String::from).collect();
+    for finding in validate_identity_policy(doc, &substituted) {
+        let path =
+            if finding.path.is_empty() { doc_path.to_string() } else { format!("{}.{}", doc_path, finding.path) };
+        out.push(make_resource_diagnostic("E3510", &finding.message, m, name, &path, None));
     }
 }
 
@@ -575,10 +598,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         ) {
             let defined: HashSet<&str> =
                 ad.iter().filter_map(|a| a.get("AttributeName").and_then(|n| n.as_str())).collect();
+            let mut all_keys_defined = true;
             for k in &ks {
                 if let Some(attr) = k.get("AttributeName").and_then(|n| n.as_str())
                     && !defined.contains(attr)
                 {
+                    all_keys_defined = false;
                     out.push(make_resource_diagnostic(
                         "E3039",
                         &format!("KeySchema attribute '{}' is not defined in AttributeDefinitions", attr),
@@ -589,6 +614,58 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
+            // Every defined attribute must be used by some key schema — the
+            // table's own, a global index's, or a local index's. Unused
+            // definitions fail table creation. Only reported when every key is
+            // defined, so one mistake is not reported from both directions.
+            let mut used: HashSet<String> =
+                ks.iter().filter_map(|k| k.get("AttributeName").and_then(|n| n.as_str())).map(String::from).collect();
+            for index_prop in ["Properties.GlobalSecondaryIndexes", "Properties.LocalSecondaryIndexes"] {
+                if let Some(serde_json::Value::Array(indexes)) = resolve_concrete(m, name, index_prop) {
+                    for index in &indexes {
+                        if let Some(index_keys) = index.get("KeySchema").and_then(|k| k.as_array()) {
+                            used.extend(
+                                index_keys
+                                    .iter()
+                                    .filter_map(|k| k.get("AttributeName").and_then(|n| n.as_str()))
+                                    .map(String::from),
+                            );
+                        }
+                    }
+                }
+            }
+            if all_keys_defined && defined.iter().any(|attr| !used.contains(*attr)) {
+                let mut defined_sorted: Vec<&str> = defined.iter().copied().collect();
+                defined_sorted.sort_unstable();
+                let mut used_sorted: Vec<&str> = used.iter().map(|s| s.as_str()).collect();
+                used_sorted.sort_unstable();
+                out.push(make_resource_diagnostic(
+                    "E3039",
+                    &format!(
+                        "The set of Attributes in AttributeDefinitions: {} and KeySchemas: {} must match",
+                        render_str_list(&defined_sorted),
+                        render_str_list(&used_sorted)
+                    ),
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Remove unused entries from AttributeDefinitions or add key schemas that use them"),
+                ));
+            }
+        }
+        // An explicitly PROVISIONED table must carry a throughput configuration;
+        // the table fails to create without one.
+        if resolve_concrete(m, name, "Properties.BillingMode").as_ref().and_then(|v| v.as_str()) == Some("PROVISIONED")
+            && resolve_concrete(m, name, "Properties.ProvisionedThroughput").is_none()
+        {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "'ProvisionedThroughput' is a required property",
+                m,
+                name,
+                KEY_PROPERTIES,
+                Some("Add ProvisionedThroughput or use BillingMode PAY_PER_REQUEST"),
+            ));
         }
     }
 
@@ -620,19 +697,50 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
-            && doc.is_object()
-            && doc.get("Statement").is_none()
-        {
-            out.push(make_resource_diagnostic(
-                "E3510",
-                "IAM identity policy must have a Statement property",
-                m,
-                name,
-                "Properties.PolicyDocument",
-                Some("Add a Statement array to the PolicyDocument"),
-            ));
+    // EC2 allows exactly one route table per subnet; two associations naming
+    // the same subnet fail at deploy time. The shared detector produces one
+    // finding per clashing association.
+    for finding in duplicate_subnet_associations(m) {
+        out.push(make_resource_diagnostic(
+            "E3022",
+            &finding.message,
+            m,
+            &finding.resource_id,
+            "Properties.SubnetId",
+            Some("Associate each subnet with exactly one route table"),
+        ));
+    }
+
+    // IAM identity policies: the embedded document has a fixed shape that IAM
+    // rejects at deploy time when violated. One shared validator produces the
+    // findings; each finding lands at its path inside the document.
+    let single_document_types = [
+        ("AWS::IAM::Policy", "Properties.PolicyDocument"),
+        ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::UserPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::RolePolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::GroupPolicy", "Properties.PolicyDocument"),
+        ("AWS::SSO::PermissionSet", "Properties.InlinePolicy"),
+    ];
+    for (rtype, doc_path) in &single_document_types {
+        for name in m.resources_of_type(rtype) {
+            if let Some(doc) = resolve_concrete(m, name, doc_path) {
+                push_identity_policy_findings(&mut out, m, name, doc_path, &doc);
+            }
+        }
+    }
+    for rtype in ["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
+        for name in m.resources_of_type(rtype) {
+            if let Some(policies) = resolve_concrete(m, name, "Properties.Policies")
+                && let Some(items) = policies.as_array()
+            {
+                for idx in 0..items.len() {
+                    let doc_path = format!("Properties.Policies.{}.PolicyDocument", idx);
+                    if let Some(doc) = resolve_concrete(m, name, &doc_path) {
+                        push_identity_policy_findings(&mut out, m, name, &doc_path, &doc);
+                    }
+                }
+            }
         }
     }
 

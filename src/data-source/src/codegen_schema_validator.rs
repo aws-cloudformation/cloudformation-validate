@@ -136,6 +136,10 @@ struct PropSchema {
     dependent_required: BTreeMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     dependent_excluded: BTreeMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    required_or: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    required_xor: Vec<String>,
 }
 fn skip_false(b: &bool) -> bool {
     !b
@@ -583,6 +587,8 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
         one_of: compile_subs(obj.get("oneOf").cloned().as_ref()),
         dependent_required: str_map(obj.get("dependentRequired").cloned().as_ref()),
         dependent_excluded: str_map(obj.get("dependentExcluded").cloned().as_ref()),
+        required_or: str_arr(obj.get("requiredOr").cloned().as_ref()),
+        required_xor: str_arr(obj.get("requiredXor").cloned().as_ref()),
     }
 }
 

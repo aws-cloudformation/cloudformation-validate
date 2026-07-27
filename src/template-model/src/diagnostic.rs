@@ -312,6 +312,10 @@ pub struct DiagnosticOutput {
     pub export_name: Option<JsonValue>,
     /// Fn::GetAtt references appearing in the output value.
     pub getatt_refs: Vec<GetAttRef>,
+    /// `Fn::Sub` variables in the output value that resolve to nothing in the
+    /// template — CloudFormation rejects the output, so these are the
+    /// unresolved-variable findings for this output.
+    pub sub_refs: Vec<String>,
     /// Names of conditions referenced within the output value.
     pub condition_refs: Vec<String>,
 }
