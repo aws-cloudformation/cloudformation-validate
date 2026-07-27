@@ -23,7 +23,7 @@ regex = "1"
 log = "0.4"
 tsify = { version = "0.5", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }
-uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json = "1"
