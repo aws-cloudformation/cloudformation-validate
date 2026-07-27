@@ -100,7 +100,7 @@ cd src
 # Build the entire workspace (debug)
 cargo build
 
-# CLI release binary -> release/cfn-validate-<os>-<arch>
+# Published CLI binary -> release-bin/cfn-validate-<os>-<arch> (repository root)
 ./cfn-validate/build.sh
 
 # WASM binding (Node.js) -> bindings-wasm/dist/
@@ -122,6 +122,11 @@ Each GitHub release attaches the prebuilt artifacts as signed assets (`<version>
 
 - `cloudformation-validate-<version>.jar` — the JVM (Kotlin/Java) binding
 - `cloudformation-validate-wasm-<version>.zip` — the Node.js (WASM) binding
+- `cloudformation_validate-<version>-py3-none-<platform tags>.whl` — the Python binding, one wheel carrying every
+  supported platform's native library; a `-beta` release ships as `<version>b0`
+- `cloudformation-validate-go-<version>.zip` — the Go module, carrying every supported platform's static library
+- `cfn-validate-<version>-<os>-<arch>` — the CLI binary, one per supported platform (e.g.
+  `cfn-validate-1.6.0-linux-x64`, `cfn-validate-1.6.0-darwin-aarch64`)
 
 Alongside each artifact are a detached signature (`<artifact>.sig`), the public key (`signing-key.pem`), and the key's
 SHA-256 fingerprint (`signing-key.pem.sha256`). Artifacts are signed with an AWS KMS RSA key

@@ -45,7 +45,7 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 ## Installation
 
 See [INSTALLATION.md](INSTALLATION.md) for build instructions, prebuilt release artifacts (signed JVM jar, WASM zip,
-and per-platform `cfn-validate` CLI binaries), and signature verification.
+Python wheel, Go module zip, and per-platform `cfn-validate` CLI binaries), and signature verification.
 
 ## Quick start
 

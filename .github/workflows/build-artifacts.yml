@@ -286,7 +286,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}
-        path: ${{ env.WORKING_DIR }}/release/cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}*
+        path: release-bin/cfn-validate-${{ matrix.platform }}-${{ matrix.arch }}*
         if-no-files-found: error
         retention-days: 1
 

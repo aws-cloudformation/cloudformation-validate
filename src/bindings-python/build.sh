@@ -13,8 +13,9 @@ WHEEL_DIR="$GENERATED_DIR/dist"
 ARCH="$(uname -m)"
 # Normalize to the same resource-prefix arch tokens the JVM natives use
 case "$ARCH" in
-    arm64)        ARCH="aarch64" ;;
-    x86_64|amd64) ARCH="x86-64"  ;;
+    arm64|aarch64) ARCH="aarch64" ;;
+    x86_64|amd64)  ARCH="x86-64"  ;;
+    *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 
 case "$(uname -s)" in
@@ -22,6 +23,18 @@ case "$(uname -s)" in
     Linux*)  LIB_NAME="libbindings_python.so";    OS="linux" ;;
     MINGW*|MSYS*|CYGWIN*) LIB_NAME="bindings_python.dll"; OS="win32" ;;
     *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
+esac
+
+# The wheel carries a platform tag per bundled native (see merge-wheels.py), so a
+# host outside that set can only produce a mistagged wheel — refuse it here
+# rather than failing later at merge time.
+case "${OS}-${ARCH}" in
+    linux-x86-64|darwin-aarch64|win32-x86-64) ;;
+    *)
+        echo "Error: unsupported host platform ${OS}-${ARCH}" >&2
+        echo "Supported: linux-x86-64, darwin-aarch64, win32-x86-64" >&2
+        exit 1
+        ;;
 esac
 
 NATIVES_DIR="$PACKAGE_DIR/natives/${OS}-${ARCH}"

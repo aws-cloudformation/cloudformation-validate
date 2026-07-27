@@ -11,8 +11,9 @@ GENERATED_PKG="$GO_DIR/internal/bindings_go"
 ARCH="$(uname -m)"
 # Normalize to the same resource-prefix arch tokens the other bindings use
 case "$ARCH" in
-    arm64)        ARCH="aarch64" ;;
-    x86_64|amd64) ARCH="x86-64"  ;;
+    arm64|aarch64) ARCH="aarch64" ;;
+    x86_64|amd64)  ARCH="x86-64"  ;;
+    *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 
 CARGO_TARGET=""
@@ -25,6 +26,18 @@ case "$(uname -s)" in
         RELEASE_DIR="$WORKSPACE/target/$CARGO_TARGET/release"
         ;;
     *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
+esac
+
+# native/link.go carries a cgo link directive per bundled platform; a host outside
+# that set has no library to link against, so stop before the build instead of
+# failing at link time with missing symbols.
+case "${OS}-${ARCH}" in
+    linux-x86-64|darwin-aarch64|win32-x86-64) ;;
+    *)
+        echo "Error: unsupported host platform ${OS}-${ARCH}" >&2
+        echo "Supported: linux-x86-64, darwin-aarch64, win32-x86-64" >&2
+        exit 1
+        ;;
 esac
 
 LIBS_DIR="$GO_DIR/libs/${OS}-${ARCH}"

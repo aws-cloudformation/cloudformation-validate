@@ -193,9 +193,11 @@ class Engine:
     expensive (rules are compiled once); reuse one engine across templates.
     """
 
-    _inner_cls: typing.ClassVar[type]
+    _inner_cls: typing.ClassVar[typing.Optional[type]] = None
 
     def __init__(self, config: typing.Optional[EngineConfig] = None):
+        if self._inner_cls is None:
+            raise TypeError(f"{type(self).__name__} has no engine; construct RegoEngine or CelEngine instead")
         self._inner = self._inner_cls(config if config is not None else EngineConfig())
 
     def validate_standard(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> StandardReport:

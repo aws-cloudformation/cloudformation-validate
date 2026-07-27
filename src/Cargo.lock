@@ -145,7 +145,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_derive",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -163,7 +163,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_derive",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -198,6 +198,17 @@ dependencies = [
  "serde_derive",
  "unicode-ident",
  "winnow 1.0.3",
+]
+
+[[package]]
+name = "async-trait"
+version = "0.1.91"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae36dc4177970ef04fde5178d3e2429882def40e57a451f919c098f72baa6cec"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -562,7 +573,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -578,6 +589,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa961b519f0b462e3a3b4a34b64d119eeaca1d59af726fe450bbba07a9fc0a1"
 dependencies = [
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "codespan-reporting"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
+dependencies = [
+ "serde",
+ "termcolor",
+ "unicode-width",
 ]
 
 [[package]]
@@ -698,7 +720,7 @@ dependencies = [
  "defmt-parser",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -1147,7 +1169,7 @@ checksum = "e165e897f662d428f3cd3828a919dbe067c2d42bb1031eede74ef9d27ecdedd2"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -1686,7 +1708,7 @@ checksum = "1783eabc414609e28a5ba76aee5ddd52199f7107a0b24c2e9746a1ecc34a683d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -1737,7 +1759,7 @@ checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -1748,7 +1770,7 @@ checksum = "18d26a20a969b9e3fdf2fc2d9f21eda6c40e2de84c9408bb5d3b05d499aae711"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -1879,6 +1901,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "syn"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53e9bae58849f64dfa4f5d5ae372c8341f7305f82a3868709269343628b659a3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "target-lexicon"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
+
+[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1907,6 +1946,15 @@ dependencies = [
  "wasm-bindgen",
  "web-time",
  "yaml-rust2",
+]
+
+[[package]]
+name = "termcolor"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
+dependencies = [
+ "winapi-util",
 ]
 
 [[package]]
@@ -1944,7 +1992,7 @@ checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -1955,7 +2003,7 @@ checksum = "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -1967,25 +2015,10 @@ dependencies = [
  "indexmap 2.14.0",
  "serde_core",
  "serde_spanned",
- "toml_datetime 0.7.5+spec-1.1.0",
+ "toml_datetime",
  "toml_parser",
  "toml_writer",
  "winnow 0.7.15",
-]
-
-[[package]]
-name = "toml"
-version = "1.1.2+spec-1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
-dependencies = [
- "indexmap 2.14.0",
- "serde_core",
- "serde_spanned",
- "toml_datetime 1.1.1+spec-1.1.0",
- "toml_parser",
- "toml_writer",
- "winnow 1.0.3",
 ]
 
 [[package]]
@@ -1993,15 +2026,6 @@ name = "toml_datetime"
 version = "0.7.5+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92e1cfed4a3038bc5a127e35a2d360f145e1f4b971b551a2ba5fd7aedf7e1347"
-dependencies = [
- "serde_core",
-]
-
-[[package]]
-name = "toml_datetime"
-version = "1.1.1+spec-1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3165f65f62e28e0115a00b2ebdd37eb6f3b641855f9d636d3cd4103767159ad7"
 dependencies = [
  "serde_core",
 ]
@@ -2044,7 +2068,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde_derive_internals",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -2072,6 +2096,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
+name = "unicode-width"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
+
+[[package]]
 name = "uniffi"
 version = "0.31.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2088,7 +2118,7 @@ dependencies = [
 [[package]]
 name = "uniffi"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "anyhow",
  "camino",
@@ -2119,7 +2149,7 @@ dependencies = [
  "serde",
  "tempfile",
  "textwrap",
- "toml 0.9.12+spec-1.1.0",
+ "toml",
  "uniffi_internal_macros 0.31.2",
  "uniffi_meta 0.31.2",
  "uniffi_pipeline 0.31.2",
@@ -2129,7 +2159,7 @@ dependencies = [
 [[package]]
 name = "uniffi_bindgen"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "anyhow",
  "askama 0.16.0",
@@ -2144,9 +2174,10 @@ dependencies = [
  "serde",
  "tempfile",
  "textwrap",
- "toml 1.1.2+spec-1.1.0",
+ "toml",
  "uniffi_internal_macros 0.32.0",
  "uniffi_meta 0.32.0",
+ "uniffi_parse_rs",
  "uniffi_pipeline 0.32.0",
  "uniffi_udl 0.32.0",
 ]
@@ -2166,9 +2197,10 @@ dependencies = [
 [[package]]
 name = "uniffi_core"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "anyhow",
+ "async-trait",
  "bytes",
  "once_cell",
  "static_assertions",
@@ -2184,19 +2216,19 @@ dependencies = [
  "indexmap 2.14.0",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
 name = "uniffi_internal_macros"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "anyhow",
  "indexmap 2.14.0",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -2211,15 +2243,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "syn",
- "toml 0.9.12+spec-1.1.0",
+ "syn 2.0.118",
+ "toml",
  "uniffi_meta 0.31.2",
 ]
 
 [[package]]
 name = "uniffi_macros"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "camino",
  "fs-err 3.3.1",
@@ -2227,8 +2259,8 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "syn",
- "toml 1.1.2+spec-1.1.0",
+ "syn 2.0.118",
+ "toml",
  "uniffi_meta 0.32.0",
 ]
 
@@ -2247,12 +2279,30 @@ dependencies = [
 [[package]]
 name = "uniffi_meta"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "anyhow",
  "siphasher",
  "uniffi_internal_macros 0.32.0",
  "uniffi_pipeline 0.32.0",
+]
+
+[[package]]
+name = "uniffi_parse_rs"
+version = "0.32.0"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
+dependencies = [
+ "anyhow",
+ "camino",
+ "codespan-reporting",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn 2.0.118",
+ "target-lexicon",
+ "thiserror 2.0.18",
+ "toml",
+ "uniffi_meta 0.32.0",
 ]
 
 [[package]]
@@ -2271,7 +2321,7 @@ dependencies = [
 [[package]]
 name = "uniffi_pipeline"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "anyhow",
  "heck",
@@ -2295,7 +2345,7 @@ dependencies = [
 [[package]]
 name = "uniffi_udl"
 version = "0.32.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "anyhow",
  "textwrap",
@@ -2437,7 +2487,7 @@ dependencies = [
  "bumpalo",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
  "wasm-bindgen-shared",
 ]
 
@@ -2491,9 +2541,18 @@ dependencies = [
 [[package]]
 name = "weedle2"
 version = "5.0.0"
-source = "git+https://github.com/mozilla/uniffi-rs?branch=main#0d0c4c0add89335ea24ae18a34b6dfcb461df6dd"
+source = "git+https://github.com/mozilla/uniffi-rs?branch=main#67134079c393e632dec83f7a6eb3ab79a941ac6a"
 dependencies = [
  "nom",
+]
+
+[[package]]
+name = "winapi-util"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
+dependencies = [
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2517,7 +2576,7 @@ checksum = "053e2e040ab57b9dc951b72c264860db7eb3b0200ba345b4e4c3b14f67855ddf"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -2528,7 +2587,7 @@ checksum = "3f316c4a2570ba26bbec722032c4099d8c8bc095efccdc15688708623367e358"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -2698,7 +2757,7 @@ checksum = "1ae7f38b72ec2a254e2b87ef277cf2cd4fb97cbebf944faa6f33354da0867930"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.118",
 ]
 
 [[package]]

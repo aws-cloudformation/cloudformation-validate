@@ -15,7 +15,7 @@ use std::sync::Arc;
 use diagnostics::DetailLevel;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
 use template_model::PseudoParameterOverrides;
-use validation_engine::{EngineConfig, ValidationEngine, catch_panics, validate_bytes_with_path};
+use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum ValidationError {
@@ -38,8 +38,13 @@ fn panic_to_error(message: String) -> ValidationError {
 
 /// Per-call validation options, deserialized from the JSON produced by the Go
 /// wrapper. Field names and defaults mirror the core `ValidateConfig`.
+///
+/// Unknown keys are rejected: the Go structs and this struct are two
+/// hand-maintained halves of one wire contract, so a field that drifts on
+/// either side must surface as an error instead of being silently dropped and
+/// leaving the option with no effect.
 #[derive(serde::Deserialize, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 struct ValidateOptions {
     include: RuleFilterConfig,
     exclude: RuleFilterConfig,
@@ -70,7 +75,45 @@ impl ValidateOptions {
 }
 
 fn parse_engine_config(config_json: &str) -> Result<EngineConfig, ValidationError> {
-    serde_json::from_str(config_json).map_err(|e| ValidationError::new(format!("invalid engine config JSON: {e}")))
+    EngineOptions::parse(config_json).map(EngineOptions::into_core)
+}
+
+/// Engine construction options, deserialized from the JSON produced by the Go
+/// wrapper. A strict mirror of the core `EngineConfig`: rejecting unknown keys
+/// turns a drifted field name into an error rather than an engine that silently
+/// loads none of the caller's rules.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+struct EngineOptions {
+    custom_rules: Vec<RuleSourceOptions>,
+    guard_rules: Vec<RuleSourceOptions>,
+}
+
+/// One external rule source, mirroring the core `ExternalRuleSource`.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RuleSourceOptions {
+    name: String,
+    content: String,
+}
+
+impl EngineOptions {
+    fn parse(config_json: &str) -> Result<Self, ValidationError> {
+        serde_json::from_str(config_json).map_err(|e| ValidationError::new(format!("invalid engine config JSON: {e}")))
+    }
+
+    fn into_core(self) -> EngineConfig {
+        EngineConfig {
+            custom_rules: self.custom_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
+        }
+    }
+}
+
+impl From<RuleSourceOptions> for ExternalRuleSource {
+    fn from(options: RuleSourceOptions) -> Self {
+        Self { name: options.name, content: options.content }
+    }
 }
 
 fn to_json<T: serde::Serialize>(value: &T) -> Result<String, ValidationError> {
@@ -270,4 +313,165 @@ impl GoSemanticModel {
 #[uniffi::export]
 pub fn version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use template_model::EntityType;
+
+    /// Neither options struct nor `EngineConfig` implements `Debug`, so failure
+    /// paths are asserted through these helpers instead of `expect_err`.
+    fn expect_validate_options_error(options_json: &str) -> ValidationError {
+        match ValidateOptions::parse(options_json) {
+            Err(error) => error,
+            Ok(_) => panic!("expected {options_json} to be rejected"),
+        }
+    }
+
+    fn expect_engine_config_error(config_json: &str) -> ValidationError {
+        match parse_engine_config(config_json) {
+            Err(error) => error,
+            Ok(_) => panic!("expected {config_json} to be rejected"),
+        }
+    }
+
+    /// The JSON a fully populated Go `ValidateConfig` marshals to. Kept in sync
+    /// with `FULL_VALIDATE_CONFIG_JSON` in `go/config_test.go`, which asserts
+    /// the Go structs produce exactly this document — together the two tests pin
+    /// the wire contract from both sides.
+    const FULL_VALIDATE_OPTIONS_JSON: &str = r#"{
+        "include": {
+            "ids": ["E3012"],
+            "categories": ["Security"],
+            "idRanges": [{"prefix": "E", "start": 3000, "end": 3099}],
+            "idPatterns": ["^W30.*$"],
+            "resourceIds": [{"ruleId": "W3010", "resourceId": "MyBucket"}],
+            "logicalIds": [{"ruleId": "W2501", "logicalId": "MyPassword", "entityType": "Parameter"}],
+            "resourceTypes": [{"ruleId": "I9040", "resourceType": "AWS::S3::Bucket"}],
+            "services": [{"ruleId": "I3011", "service": "AWS::RDS"}]
+        },
+        "exclude": {
+            "ids": ["I9003"],
+            "categories": ["Best Practice"],
+            "idRanges": [{"prefix": "I", "start": 9000, "end": 9099}],
+            "idPatterns": ["^I90.*$"],
+            "resourceIds": [{"resourceId": "MyQueue"}],
+            "logicalIds": [{"logicalId": "MyOutput"}],
+            "resourceTypes": [{"resourceType": "AWS::SQS::Queue"}],
+            "services": [{"service": "AWS::SQS"}]
+        },
+        "severityLevel": "WARN",
+        "parameterOverrides": {"Environment": "prod"},
+        "pseudoParameterOverrides": {
+            "accountId": "123456789012",
+            "notificationArns": "arn:aws:sns:us-west-2:123456789012:topic",
+            "partition": "aws",
+            "region": "us-west-2",
+            "stackId": "arn:aws:cloudformation:us-west-2:123456789012:stack/my-stack/id",
+            "stackName": "my-stack",
+            "urlSuffix": "amazonaws.com"
+        },
+        "strict": true,
+        "disableBuiltinRules": false
+    }"#;
+
+    #[test]
+    fn validate_options_parses_every_field_the_go_wrapper_sends() {
+        let options = ValidateOptions::parse(FULL_VALIDATE_OPTIONS_JSON).expect("full config must parse");
+
+        assert_eq!(vec!["E3012"], options.include.ids);
+        assert_eq!(vec!["Security"], options.include.categories);
+        assert_eq!("E", options.include.id_ranges[0].prefix);
+        assert_eq!(3000, options.include.id_ranges[0].start);
+        assert_eq!(3099, options.include.id_ranges[0].end);
+        assert_eq!(vec!["^W30.*$"], options.include.id_patterns);
+        assert_eq!("MyBucket", options.include.resource_ids[0].resource_id);
+        assert_eq!(Some("W3010"), options.include.resource_ids[0].rule_id.as_deref());
+        assert_eq!("MyPassword", options.include.logical_ids[0].logical_id);
+        assert_eq!(Some(EntityType::Parameter), options.include.logical_ids[0].entity_type);
+        assert_eq!("AWS::S3::Bucket", options.include.resource_types[0].resource_type);
+        assert_eq!("AWS::RDS", options.include.services[0].service);
+
+        assert_eq!(vec!["I9003"], options.exclude.ids);
+        assert_eq!("MyQueue", options.exclude.resource_ids[0].resource_id);
+        assert_eq!(None, options.exclude.logical_ids[0].rule_id);
+        assert_eq!("AWS::SQS::Queue", options.exclude.resource_types[0].resource_type);
+        assert_eq!("AWS::SQS", options.exclude.services[0].service);
+
+        assert_eq!(Some(Severity::Warn), options.severity_level);
+        assert_eq!(Some(&"prod".to_string()), options.parameter_overrides.get("Environment"));
+        assert_eq!(Some("us-west-2"), options.pseudo_parameter_overrides.region.as_deref());
+        assert_eq!(Some("123456789012"), options.pseudo_parameter_overrides.account_id.as_deref());
+        assert_eq!(Some("amazonaws.com"), options.pseudo_parameter_overrides.url_suffix.as_deref());
+        assert_eq!(Some(true), options.strict);
+        assert_eq!(Some(false), options.disable_builtin_rules);
+    }
+
+    #[test]
+    fn empty_object_yields_core_defaults() {
+        let defaults = validation_engine::ValidateConfig::default();
+        let config = ValidateOptions::parse("{}").expect("an empty object must parse").to_core(DetailLevel::Detailed);
+
+        assert_eq!(defaults.severity_level, config.severity_level);
+        assert_eq!(defaults.strict, config.strict);
+        assert_eq!(defaults.disable_builtin_rules, config.disable_builtin_rules);
+        assert!(config.parameter_overrides.is_empty());
+        assert_eq!(DetailLevel::Detailed, config.detail_level);
+    }
+
+    #[test]
+    fn unknown_validate_option_is_rejected() {
+        let error = expect_validate_options_error(r#"{"severityLevl": "WARN"}"#);
+
+        assert!(error.to_string().contains("severityLevl"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn engine_options_parse_rule_sources() {
+        let config = parse_engine_config(
+            r#"{
+                "customRules": [{"name": "s3.json", "content": "{}"}],
+                "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}]
+            }"#,
+        )
+        .expect("engine config must parse");
+
+        assert_eq!(1, config.custom_rules.len());
+        assert_eq!("s3.json", config.custom_rules[0].name);
+        assert_eq!("compliance.guard", config.guard_rules[0].name);
+        assert_eq!("let x = 1", config.guard_rules[0].content);
+    }
+
+    #[test]
+    fn empty_engine_config_loads_no_external_rules() {
+        let config = parse_engine_config("{}").expect("an empty object must parse");
+
+        assert!(config.custom_rules.is_empty());
+        assert!(config.guard_rules.is_empty());
+    }
+
+    #[test]
+    fn unknown_engine_option_is_rejected() {
+        let error = expect_engine_config_error(r#"{"guardRule": []}"#);
+
+        assert!(error.to_string().contains("guardRule"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn unknown_rule_source_field_is_rejected() {
+        let error = expect_engine_config_error(r#"{"guardRules": [{"name": "a.guard", "text": "let x = 1"}]}"#);
+
+        assert!(error.to_string().contains("text"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn malformed_json_reports_an_engine_error() {
+        let error = expect_engine_config_error("not json");
+
+        assert!(
+            error.to_string().contains("invalid engine config JSON"),
+            "error must identify the failing input: {error}"
+        );
+    }
 }
