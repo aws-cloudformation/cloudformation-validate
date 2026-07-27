@@ -136,9 +136,42 @@ jobs:
 
           ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-${{ inputs.tag }}.zip" dist )
 
-          binaries=("$WORKING_DIR"/release/cfn-validate-*)
+          wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
+          if [ ${#wheels[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one wheel in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          release_version="${{ inputs.tag }}"
+          release_version="${release_version#v}"
+          release_version="${release_version%-beta}"
+          case "$(basename "${wheels[0]}")" in
+            cloudformation_validate-"$release_version"-*.whl) ;;
+            *)
+              echo "::error::Committed wheel $(basename "${wheels[0]}") is not version $release_version. Run the Build Artifacts workflow and merge its PR first."
+              exit 1
+              ;;
+          esac
+          # A beta tag ships as the pre-release <version>b0.
+          wheel_version="$release_version"
+          case "${{ inputs.tag }}" in
+            *-beta) wheel_version="${release_version}b0" ;;
+          esac
+          "$WORKING_DIR/bindings-python/stamp-wheel.py" release "${wheels[0]}" "$wheel_version"
+
+          if [ ! -f "$WORKING_DIR/bindings-go/go/go.mod" ]; then
+            echo "::error::$WORKING_DIR/bindings-go/go/go.mod not found. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          go_libraries=("$WORKING_DIR"/bindings-go/go/libs/*/libbindings_go.a)
+          if [ ${#go_libraries[@]} -eq 0 ]; then
+            echo "::error::No static libraries in $WORKING_DIR/bindings-go/go/libs/. Run the Build Artifacts workflow and merge its PR first."
+            exit 1
+          fi
+          ( cd "$WORKING_DIR/bindings-go" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-go-${{ inputs.tag }}.zip" go )
+
+          binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
           if [ ${#binaries[@]} -eq 0 ]; then
-            echo "::error::No cfn-validate binaries found in $WORKING_DIR/release/. Run the Build Artifacts workflow and merge its PR first."
+            echo "::error::No cfn-validate binaries found in $GITHUB_WORKSPACE/release-bin/. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
           for bin in "${binaries[@]}"; do
