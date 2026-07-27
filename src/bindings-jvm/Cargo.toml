@@ -24,7 +24,7 @@ template-model = { path = "../template-model", features = ["uniffi-bindings"] }
 rego-engine = { path = "../rego-engine" }
 cel-engine = { path = "../cel-engine" }
 schema-validator = { path = "../schema-validator" }
-uniffi = { git = "https://github.com/mozilla/uniffi-rs", branch = "main", features = ["cli"] }
+uniffi = { workspace = true, features = ["cli"] }
 thiserror = "2"
 
 [lints]
