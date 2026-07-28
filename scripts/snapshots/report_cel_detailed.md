@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-23 21:54:43  
+> Generated: 2026-07-28 15:08:17  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -24,7 +24,7 @@
 |--------|------:|
 | True Positives | 2075 |
 | False Positives (engine bugs) | 0 |
-| Engine Extra (correct, cfn-lint gap) | 5837 |
+| Engine Extra (correct, cfn-lint gap) | 5831 |
 | False Negatives (engine misses) | 323 |
 | Precision | 100.00% |
 | Recall | 86.53% |
@@ -39,32 +39,32 @@
 |----------|---:|---:|---:|---:|----------:|-------:|
 | Fatal | 381 | 0 | 55 | 110 | 100.00% | 77.60% |
 | Error | 444 | 0 | 6 | 139 | 100.00% | 76.16% |
-| Warning | 748 | 0 | 346 | 55 | 100.00% | 93.15% |
+| Warning | 748 | 0 | 340 | 55 | 100.00% | 93.15% |
 | Info | 502 | 0 | 5430 | 19 | 100.00% | 96.35% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 45212.9760 ms |
-| Throughput | 64.25 validations/sec |
-| Templates | 581 ok, 8 failed |
-| Iterations per template | 5 |
-| Engine init (p99) | 37.5797 ms |
-| Engine init (max) | 37.8417 ms |
-| Schema init (p99) | 73.6252 ms |
-| Schema init (max) | 74.3067 ms |
+| Total wall time | 8783.8387 ms |
+| Throughput | 71.49 validations/sec |
+| Templates | 588 ok, 8 failed |
+| Iterations per template | 1 |
+| Engine init (p99) | 37.9243 ms |
+| Engine init (max) | 37.9243 ms |
+| Schema init (p99) | 74.9377 ms |
+| Schema init (max) | 74.9377 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0033 | 0.2531 | 0.0570 | 0.7996 | 1.1619 | 2.3183 | 3.7414 |
-| Schema Validate | 0.0004 | 0.5006 | 0.2012 | 1.4121 | 1.9807 | 3.6088 | 7.1728 |
-| Rule Evaluation | 11.0191 | 14.1252 | 13.5534 | 16.2697 | 16.9055 | 18.9960 | 23.9199 |
-| Diagnostic Finalize | 0.0029 | 0.0163 | 0.0097 | 0.0387 | 0.0501 | 0.0891 | 0.1568 |
-| Engine Internal | 11.2244 | 14.9654 | 14.2315 | 18.0716 | 19.2107 | 24.4026 | 26.1245 |
-| Wall Clock | 11.2253 | 14.9667 | 14.2327 | 18.0729 | 19.2119 | 24.4041 | 26.1260 |
+| Model Build | 0.0035 | 0.2540 | 0.0600 | 0.8092 | 1.1443 | 2.2539 | 3.3076 |
+| Schema Validate | 0.0001 | 0.9732 | 0.2269 | 1.5651 | 2.2129 | 5.5471 | 195.9940 |
+| Rule Evaluation | 10.9127 | 12.6921 | 12.1849 | 13.6413 | 14.7067 | 20.1394 | 49.1479 |
+| Diagnostic Finalize | 0.0021 | 0.0192 | 0.0092 | 0.0389 | 0.0667 | 0.1733 | 0.2961 |
+| Engine Internal | 10.9550 | 13.9875 | 12.7828 | 15.8363 | 18.4041 | 30.2948 | 209.1151 |
+| Wall Clock | 10.9554 | 13.9885 | 12.7837 | 15.8375 | 18.4051 | 30.2964 | 209.1163 |
 
 ## False Negatives — 323 missed findings across 76 rules
 
@@ -366,6 +366,23 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
   > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
 
+### E1001 — 7 missed — Basic CloudFormation Template Configuration
+
+- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
+  > Additional properties are not allowed ('NotEven' was unexpected)
+- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
+  > None is not of type 'string', 'date'
+- **E1001** L1-7 in `gh-issues_issue-201_json`
+  > 'Resources' is a required property
+
 ### W1028 — 7 missed — Check Fn::If has a path that cannot be reached
 
 - **W1028** `CloudFrontDistribution` → `Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.RestrictionType.Fn::If.2` L94 in `bad_conditions_yaml`
@@ -448,21 +465,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'obj' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 - **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
-
-### E1001 — 6 missed — Basic CloudFormation Template Configuration
-
-- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
-  > Additional properties are not allowed ('NotEven' was unexpected)
-- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
-  > None is not of type 'string', 'date'
-- **E1001** L1-7 in `gh-issues_issue-201_json`
-  > 'Resources' is a required property
 
 ### E3530 — 6 missed — Validate IAM trust polices
 
@@ -675,15 +677,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
   > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
 
-### E8003 — 3 missed — Check Fn::Equals structure for validity
-
-- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.0` L24 in `bad_conditions_condition_functions_json`
-  > [{'Ref': 'AWS::Region'}] is not of type 'string'
-- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.1` L25 in `bad_conditions_condition_functions_json`
-  > {'Bad': 'Value'} is not of type 'string'
-- **E8003** → `Conditions.TestEqualNull.Fn::Equals` L28 in `bad_conditions_condition_functions_json`
-  > None is not of type 'array'
-
 ### F0000 — 3 missed — Parsing error found when parsing the template
 
 - **F0000** (cfn-lint: E0000) L18 in `bad_core_parse_invalid_map_yaml`
@@ -744,6 +737,13 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'$data': '/cluster/Engine'} was expected
 - **E3707** `AuroraDB` → `Properties.Engine` L6 in `good_aurora_dbinstance_yaml`
   > {'$data': '/cluster/Engine'} was expected
+
+### E8005 — 2 missed — Check Fn::Not structure for validity
+
+- **E8005** → `Conditions.TestNotEmpty.Fn::Not` L29 in `bad_conditions_condition_functions_json`
+  > expected minimum item count: 1, found: 0
+- **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array'
 
 ### E0002 — 2 missed — Error processing rule on the template
 
@@ -948,7 +948,7 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-## Engine Extra — 5837 correct findings across 38 rules
+## Engine Extra — 5831 correct findings across 38 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
@@ -12231,85 +12231,73 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9013** `SkillFunction` (AWS::Lambda::Function) L7 in `good_transform_list_transform_not_sam_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 
-### W9008 — 39 findings
+### W9008 — 33 findings
 
-- **W9008** `Rds` (AWS::RDS::DBInstance) L60 in `bad_W3010_full_coverage_yaml`
+- **W9008** `Rds` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L62 in `bad_W3010_full_coverage_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L3 in `bad_aurora_with_allocated_storage_yaml`
+- **W9008** `MyDB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L18 in `bad_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance` (AWS::RDS::DBInstance) L9 in `bad_previous_generation_instances_yaml`
+- **W9008** `MyNewDB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L27 in `bad_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyDB` (AWS::RDS::DBInstance) L16 in `bad_properties_password_yaml`
+- **W9008** `myThirdDb` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L36 in `bad_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyNewDB` (AWS::RDS::DBInstance) L25 in `bad_properties_password_yaml`
+- **W9008** `Db` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L7 in `bad_rds_dbinstanceclass_mixed_case_engine_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `myThirdDb` (AWS::RDS::DBInstance) L34 in `bad_properties_password_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L12 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `Db` (AWS::RDS::DBInstance) L5 in `bad_rds_dbinstanceclass_mixed_case_engine_yaml`
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L19 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L10 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L39 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L17 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `DBInstance2` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L18 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L37 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `DBInstance3` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L25 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance1` (AWS::RDS::DBInstance) L10 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance4` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L32 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance2` (AWS::RDS::DBInstance) L16 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance7` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L44 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance3` (AWS::RDS::DBInstance) L23 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance8` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance4` (AWS::RDS::DBInstance) L30 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance9` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L58 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance5` (AWS::RDS::DBInstance) L36 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L12 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance7` (AWS::RDS::DBInstance) L42 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L19 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance8` (AWS::RDS::DBInstance) L49 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L39 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance9` (AWS::RDS::DBInstance) L56 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `RDSE0E96D00` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L93 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L10 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `DB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L9 in `good_deletion_policies_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L17 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L28 in `good_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L37 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `MyDB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L17 in `good_resources_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `RDSE0E96D00` (AWS::RDS::DBInstance) L91 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
+- **W9008** `myNewDb` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L26 in `good_resources_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L3 in `good_aurora_dbinstance_yaml`
+- **W9008** `myThirdDb` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L35 in `good_resources_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DB` (AWS::RDS::DBInstance) L6 in `good_deletion_policies_yaml`
+- **W9008** `DBInstance3` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L24 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L26 in `good_resources_deletionpolicy_yaml`
+- **W9008** `DBInstance4` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L31 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyDB` (AWS::RDS::DBInstance) L15 in `good_resources_properties_password_yaml`
+- **W9008** `DBInstance5` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L38 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `myNewDb` (AWS::RDS::DBInstance) L24 in `good_resources_properties_password_yaml`
+- **W9008** `DBInstance6` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L44 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `myThirdDb` (AWS::RDS::DBInstance) L33 in `good_resources_properties_password_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L28 in `good_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance1` (AWS::RDS::DBInstance) L10 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `good_transform_language_extension_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance2` (AWS::RDS::DBInstance) L16 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L656 in `lsp_comprehensive_json`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance3` (AWS::RDS::DBInstance) L22 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L274 in `lsp_comprehensive_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance4` (AWS::RDS::DBInstance) L29 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L93 in `lsp_condition-usage_json`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance5` (AWS::RDS::DBInstance) L36 in `good_resources_rds_instance_sizes_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance6` (AWS::RDS::DBInstance) L42 in `good_resources_rds_instance_sizes_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L26 in `good_resources_updatereplacepolicy_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L49 in `good_transform_language_extension_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `BadEngineInstance` (AWS::RDS::DBInstance) L115 in `integration_cfn-gather_yaml`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) L90 in `lsp_condition-usage_json`
-  > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) L91 in `lsp_condition-usage_yaml`
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L94 in `lsp_condition-usage_yaml`
   > RDS instance should have StorageEncrypted set to true
 
 ### W9010 — 28 findings
@@ -12881,15 +12869,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `I3011` ×4
 - EE: `I9040` ×2
 
-### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 26 EE, 4 FN)
+### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 27 EE, 4 FN)
 
 - FN: `W1001` ×2, `E1701`, `F6101`
-- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W2508`, `I9003`
+- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W2508`, `W9008`, `I9003`
 
-### `lsp_comprehensive_yaml` — 4 mismatches (9 TP, 0 FP, 28 EE, 4 FN)
+### `lsp_comprehensive_yaml` — 4 mismatches (9 TP, 0 FP, 29 EE, 4 FN)
 
 - FN: `W1001` ×2, `E1701`, `F6101`
-- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W1103`, `W2508`, `W9003`, `I9003`
+- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W1103`, `W2508`, `W9003`, `W9008`, `I9003`
 
 ### `quickstart_nat-instance_json` — 4 mismatches (5 TP, 0 FP, 10 EE, 4 FN)
 
@@ -12898,7 +12886,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_conditions_condition_functions_json` — 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
 
-- FN: `E8003` ×3
+- FN: `E8005` ×2, `E1001`
 - EE: `I9040`
 
 ### `bad_functions_sub_needed_yaml` — 3 mismatches (9 TP, 0 FP, 10 EE, 3 FN)
@@ -12930,10 +12918,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1030` ×3
 - EE: `W9003` ×53, `I9001` ×36, `I9040` ×10
 
-### `bad_aurora_with_allocated_storage_yaml` — 2 mismatches (2 TP, 0 FP, 5 EE, 2 FN)
+### `bad_aurora_with_allocated_storage_yaml` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
 
 - FN: `E3682`, `E3707`
-- EE: `W9003`, `W9008`, `I9001`, `I9003`, `I9040`
+- EE: `W9003`, `I9001`, `I9003`, `I9040`
 
 ### `bad_conditions_equals_yaml` — 2 mismatches (16 TP, 0 FP, 1 EE, 2 FN)
 
@@ -13002,10 +12990,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3699`, `E3698`
 - EE: `I9001` ×7, `I9040` ×2
 
-### `good_aurora_dbinstance_yaml` — 2 mismatches (2 TP, 0 FP, 5 EE, 2 FN)
+### `good_aurora_dbinstance_yaml` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
 
 - FN: `E3707`, `E3719`
-- EE: `W9008`, `I9001`, `I9002`, `I9003`, `I9040`
+- EE: `I9001`, `I9002`, `I9003`, `I9040`
 
 ### `good_functions_findinmap_yaml` — 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
 
@@ -13325,10 +13313,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 130 | 40.25% | E0002, E2001, E2529, E5001, E6001, E7001, E8003, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
+| Other | 129 | 39.94% | E0002, E2001, E2529, E5001, E6001, E7001, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
 | Resource property validation | 92 | 28.48% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
 | Warning-level checks | 55 | 17.03% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 27 | 8.36% | E1001, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Intrinsic function validation | 28 | 8.67% | E1001, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
 | Informational checks | 19 | 5.88% | I2530, I3010, I3011, I3510 |
 
 ### False Positive Root Causes
