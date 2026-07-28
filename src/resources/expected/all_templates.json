@@ -23488,7 +23488,7 @@
       {
         "ruleId": "E3694",
         "severity": "ERROR",
-        "message": "'db.bogus.class' is not one of ['db.c6gd.12xlarge', 'db.c6gd.16xlarge', 'db.c6gd.2xlarge', 'db.c6gd.4xlarge', 'db.c6gd.8xlarge', 'db.c6gd.large', 'db.c6gd.medium', 'db.c6gd.xlarge', 'db.m5d.12xlarge', 'db.m5d.16xlarge', 'db.m5d.24xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.8xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6gd.12xlarge', 'db.m6gd.16xlarge', 'db.m6gd.2xlarge', 'db.m6gd.4xlarge', 'db.m6gd.8xlarge', 'db.m6gd.large', 'db.m6gd.xlarge', 'db.m6id.12xlarge', 'db.m6id.16xlarge', 'db.m6id.24xlarge', 'db.m6id.2xlarge', 'db.m6id.32xlarge', 'db.m6id.4xlarge', 'db.m6id.8xlarge', 'db.m6id.large', 'db.m6id.xlarge', 'db.m6idn.12xlarge', 'db.m6idn.16xlarge', 'db.m6idn.24xlarge', 'db.m6idn.2xlarge', 'db.m6idn.32xlarge', 'db.m6idn.4xlarge', 'db.m6idn.8xlarge', 'db.m6idn.large', 'db.m6idn.xlarge', 'db.m8gd.12xlarge', 'db.m8gd.16xlarge', 'db.m8gd.24xlarge', 'db.m8gd.2xlarge', 'db.m8gd.48xlarge', 'db.m8gd.4xlarge', 'db.m8gd.8xlarge', 'db.m8gd.large', 'db.m8gd.xlarge', 'db.r5d.12xlarge', 'db.r5d.16xlarge', 'db.r5d.24xlarge', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.8xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6gd.12xlarge', 'db.r6gd.16xlarge', 'db.r6gd.2xlarge', 'db.r6gd.4xlarge', 'db.r6gd.8xlarge', 'db.r6gd.large', 'db.r6gd.xlarge', 'db.r6id.12xlarge', 'db.r6id.16xlarge', 'db.r6id.24xlarge', 'db.r6id.2xlarge', 'db.r6id.32xlarge', 'db.r6id.4xlarge', 'db.r6id.8xlarge', 'db.r6id.large', 'db.r6id.xlarge', 'db.r6idn.12xlarge', 'db.r6idn.16xlarge', 'db.r6idn.24xlarge', 'db.r6idn.2xlarge', 'db.r6idn.32xlarge', 'db.r6idn.4xlarge', 'db.r6idn.8xlarge', 'db.r6idn.large', 'db.r6idn.xlarge', 'db.r8gd.12xlarge', 'db.r8gd.16xlarge', 'db.r8gd.24xlarge', 'db.r8gd.2xlarge', 'db.r8gd.48xlarge', 'db.r8gd.4xlarge', 'db.r8gd.8xlarge', 'db.r8gd.large', 'db.r8gd.xlarge', 'db.x2iedn.16xlarge', 'db.x2iedn.24xlarge', 'db.x2iedn.2xlarge', 'db.x2iedn.32xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.8xlarge', 'db.x2iedn.xlarge'] in any region",
+        "message": "'db.bogus.class' is not one of ['db.c6gd.12xlarge', 'db.c6gd.16xlarge', 'db.c6gd.2xlarge', 'db.c6gd.4xlarge', 'db.c6gd.8xlarge', 'db.c6gd.large', 'db.c6gd.medium', 'db.c6gd.xlarge', 'db.m5d.12xlarge', 'db.m5d.16xlarge', 'db.m5d.24xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.8xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6gd.12xlarge', 'db.m6gd.16xlarge', 'db.m6gd.2xlarge', 'db.m6gd.4xlarge', 'db.m6gd.8xlarge', 'db.m6gd.large', 'db.m6gd.xlarge', 'db.m6id.12xlarge', 'db.m6id.16xlarge', 'db.m6id.24xlarge', 'db.m6id.2xlarge', 'db.m6id.32xlarge', 'db.m6id.4xlarge', 'db.m6id.8xlarge', 'db.m6id.large', 'db.m6id.xlarge', 'db.m6idn.12xlarge', 'db.m6idn.16xlarge', 'db.m6idn.24xlarge', 'db.m6idn.2xlarge', 'db.m6idn.32xlarge', 'db.m6idn.4xlarge', 'db.m6idn.8xlarge', 'db.m6idn.large', 'db.m6idn.xlarge', 'db.m8gd.12xlarge', 'db.m8gd.16xlarge', 'db.m8gd.24xlarge', 'db.m8gd.2xlarge', 'db.m8gd.48xlarge', 'db.m8gd.4xlarge', 'db.m8gd.8xlarge', 'db.m8gd.large', 'db.m8gd.xlarge', 'db.r5d.12xlarge', 'db.r5d.16xlarge', 'db.r5d.24xlarge', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.8xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6gd.12xlarge', 'db.r6gd.16xlarge', 'db.r6gd.2xlarge', 'db.r6gd.4xlarge', 'db.r6gd.8xlarge', 'db.r6gd.large', 'db.r6gd.xlarge', 'db.r6id.12xlarge', 'db.r6id.16xlarge', 'db.r6id.24xlarge', 'db.r6id.2xlarge', 'db.r6id.32xlarge', 'db.r6id.4xlarge', 'db.r6id.8xlarge', 'db.r6id.large', 'db.r6id.xlarge', 'db.r6idn.12xlarge', 'db.r6idn.16xlarge', 'db.r6idn.24xlarge', 'db.r6idn.2xlarge', 'db.r6idn.32xlarge', 'db.r6idn.4xlarge', 'db.r6idn.8xlarge', 'db.r6idn.large', 'db.r6idn.xlarge', 'db.r8gd.12xlarge', 'db.r8gd.16xlarge', 'db.r8gd.24xlarge', 'db.r8gd.2xlarge', 'db.r8gd.48xlarge', 'db.r8gd.4xlarge', 'db.r8gd.8xlarge', 'db.r8gd.large', 'db.r8gd.xlarge', 'db.x2idn.16xlarge', 'db.x2idn.24xlarge', 'db.x2idn.32xlarge', 'db.x2iedn.16xlarge', 'db.x2iedn.24xlarge', 'db.x2iedn.2xlarge', 'db.x2iedn.32xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.8xlarge', 'db.x2iedn.xlarge'] in any region",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Cluster",
@@ -56950,7 +56950,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 2,
+        "warnings": 1,
         "informational": 60,
         "debug": 0
       },
@@ -56959,29 +56959,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "W3030",
-        "severity": "WARN",
-        "message": "'http' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "LB8A12904C",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
-        },
-        "propertyPath": "Properties.Listeners.0.Protocol",
-        "category": "Schema",
-        "startLine": 679,
-        "startColumn": 7,
-        "endLine": 679,
-        "endColumn": 16,
-        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
-        "ruleDescription": "Value not in allowed enum",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "http"
-        }
-      },
       {
         "ruleId": "W3697",
         "severity": "WARN",
@@ -117304,7 +117281,7 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 1,
+        "warnings": 0,
         "informational": 1,
         "debug": 0
       },
@@ -117313,29 +117290,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "W3030",
-        "severity": "WARN",
-        "message": "'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CLBA83A883E",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
-        },
-        "propertyPath": "Properties.Listeners.0.Protocol",
-        "category": "Schema",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 16,
-        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
-        "ruleDescription": "Value not in allowed enum",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "tcp"
-        }
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -153998,7 +153952,7 @@
       {
         "ruleId": "E9006",
         "severity": "ERROR",
-        "message": "'8.0' is not one of ['5.5.62', '5.6.51', '5.7.33', '5.7.34', '5.7.36', '5.7.37', '5.7.38', '5.7.39', '5.7.40', '5.7.41', '5.7.42', '5.7.43', '5.7.44', '5.7.44-rds.20240408', '5.7.44-rds.20240529', '5.7.44-rds.20240808', '5.7.44-rds.20250103', '5.7.44-rds.20250213', '5.7.44-rds.20250508', '5.7.44-rds.20250818', '5.7.44-rds.20251212', '5.7.44-rds.20260212', '5.7.44-rds.20260521', '8.0.11', '8.0.13', '8.0.15', '8.0.16', '8.0.17', '8.0.19', '8.0.20', '8.0.21', '8.0.23', '8.0.25', '8.0.26', '8.0.27', '8.0.28', '8.0.29', '8.0.30', '8.0.31', '8.0.32', '8.0.33', '8.0.34', '8.0.35', '8.0.36', '8.0.37', '8.0.39', '8.0.40', '8.0.41', '8.0.42', '8.0.43', '8.0.44', '8.0.45', '8.0.46', '8.4.10', '8.4.3', '8.4.4', '8.4.5', '8.4.6', '8.4.7', '8.4.8', '8.4.9']",
+        "message": "'8.0' is not one of ['5.5.62', '5.6.51', '5.7.33', '5.7.34', '5.7.36', '5.7.37', '5.7.38', '5.7.39', '5.7.40', '5.7.41', '5.7.42', '5.7.43', '5.7.44', '5.7.44-rds.20240408', '5.7.44-rds.20240529', '5.7.44-rds.20240808', '5.7.44-rds.20250103', '5.7.44-rds.20250213', '5.7.44-rds.20250508', '5.7.44-rds.20250818', '5.7.44-rds.20251212', '5.7.44-rds.20260212', '5.7.44-rds.20260521', '5.7.44-rds.20260624', '8.0.11', '8.0.13', '8.0.15', '8.0.16', '8.0.17', '8.0.19', '8.0.20', '8.0.21', '8.0.23', '8.0.25', '8.0.26', '8.0.27', '8.0.28', '8.0.29', '8.0.30', '8.0.31', '8.0.32', '8.0.33', '8.0.34', '8.0.35', '8.0.36', '8.0.37', '8.0.39', '8.0.40', '8.0.41', '8.0.42', '8.0.43', '8.0.44', '8.0.45', '8.0.46', '8.0.46-rds.20260624', '8.4.10', '8.4.3', '8.4.4', '8.4.5', '8.4.6', '8.4.7', '8.4.8', '8.4.9']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Database",
@@ -154784,7 +154738,7 @@
       {
         "ruleId": "E9006",
         "severity": "ERROR",
-        "message": "'8.0' is not one of ['5.5.62', '5.6.51', '5.7.33', '5.7.34', '5.7.36', '5.7.37', '5.7.38', '5.7.39', '5.7.40', '5.7.41', '5.7.42', '5.7.43', '5.7.44', '5.7.44-rds.20240408', '5.7.44-rds.20240529', '5.7.44-rds.20240808', '5.7.44-rds.20250103', '5.7.44-rds.20250213', '5.7.44-rds.20250508', '5.7.44-rds.20250818', '5.7.44-rds.20251212', '5.7.44-rds.20260212', '5.7.44-rds.20260521', '8.0.11', '8.0.13', '8.0.15', '8.0.16', '8.0.17', '8.0.19', '8.0.20', '8.0.21', '8.0.23', '8.0.25', '8.0.26', '8.0.27', '8.0.28', '8.0.29', '8.0.30', '8.0.31', '8.0.32', '8.0.33', '8.0.34', '8.0.35', '8.0.36', '8.0.37', '8.0.39', '8.0.40', '8.0.41', '8.0.42', '8.0.43', '8.0.44', '8.0.45', '8.0.46', '8.4.10', '8.4.3', '8.4.4', '8.4.5', '8.4.6', '8.4.7', '8.4.8', '8.4.9']",
+        "message": "'8.0' is not one of ['5.5.62', '5.6.51', '5.7.33', '5.7.34', '5.7.36', '5.7.37', '5.7.38', '5.7.39', '5.7.40', '5.7.41', '5.7.42', '5.7.43', '5.7.44', '5.7.44-rds.20240408', '5.7.44-rds.20240529', '5.7.44-rds.20240808', '5.7.44-rds.20250103', '5.7.44-rds.20250213', '5.7.44-rds.20250508', '5.7.44-rds.20250818', '5.7.44-rds.20251212', '5.7.44-rds.20260212', '5.7.44-rds.20260521', '5.7.44-rds.20260624', '8.0.11', '8.0.13', '8.0.15', '8.0.16', '8.0.17', '8.0.19', '8.0.20', '8.0.21', '8.0.23', '8.0.25', '8.0.26', '8.0.27', '8.0.28', '8.0.29', '8.0.30', '8.0.31', '8.0.32', '8.0.33', '8.0.34', '8.0.35', '8.0.36', '8.0.37', '8.0.39', '8.0.40', '8.0.41', '8.0.42', '8.0.43', '8.0.44', '8.0.45', '8.0.46', '8.0.46-rds.20260624', '8.4.10', '8.4.3', '8.4.4', '8.4.5', '8.4.6', '8.4.7', '8.4.8', '8.4.9']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Database",

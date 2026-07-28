@@ -463,6 +463,10 @@
       "TransitGatewayPolicyTableId",
       "TransitGatewayAttachmentId"
     ],
+    "AWS::EC2::TransitGatewayPolicyTableEntry": [
+      "TransitGatewayPolicyTableId",
+      "PolicyRuleNumber"
+    ],
     "AWS::EC2::TransitGatewayRoute": [
       "TransitGatewayRouteTableId",
       "DestinationCidrBlock"
@@ -1202,6 +1206,10 @@
     "AWS::QuickSight::ActionConnector": [
       "ActionConnectorId",
       "AwsAccountId"
+    ],
+    "AWS::QuickSight::Agent": [
+      "AwsAccountId",
+      "AgentId"
     ],
     "AWS::QuickSight::Analysis": [
       "AnalysisId",
