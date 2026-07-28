@@ -905,27 +905,11 @@ fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
 }
 
 /// Issue #186: a lowercase Classic Load Balancer listener `Protocol` ('tcp')
-/// keeps its open-world enum Warning. The compiled provider schema declares the
-/// enum in uppercase (`HTTP`/`HTTPS`/`TCP`/`SSL`), and case-insensitive service
-/// acceptance is not schema-provable — some services do reject wrong-case
-/// values — so the mismatch stays a suppressible Warn rather than being
-/// silenced or escalated. `InstanceProtocol` carries no enum in the schema,
-/// which is why it never fires.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
-fn issue_186_lowercase_clb_protocol_keeps_enum_warning() {
+fn issue_186_lowercase_clb_protocol_does_not_warn() {
     let diags = validate_both("issue-186-clb.json");
-    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
-    assert_count(&diags, "W3030", 1);
-    assert_fires_on_resource(&diags, "W3030", "CLBA83A883E");
-    assert_fires_on_property(&diags, "W3030", "Properties.Listeners.0.Protocol");
-    for (engine, d) in &diags {
-        let on_instance_protocol = d
-            .iter()
-            .filter(|x| x.rule_id == "W3030")
-            .any(|x| x.property_path.as_deref() == Some("Properties.Listeners.0.InstanceProtocol"));
-        assert!(!on_instance_protocol, "[{engine}] InstanceProtocol has no schema enum, so W3030 must not fire there");
-    }
+    assert_count(&diags, "W3030", 0);
 }
 
 /// Issue #186 (companion): an ImageBuilder pipeline workflow `OnFailure` of
