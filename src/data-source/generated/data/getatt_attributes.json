@@ -1355,7 +1355,7 @@
       "AcmeExternalAccountBindingArn"
     ],
     "AWS::CertificateManager::Certificate": [
-      "Id"
+      "CertificateArn"
     ],
     "AWS::Chatbot::CustomAction": [
       "CustomActionArn"
@@ -3150,6 +3150,9 @@
       "TransitGatewayPolicyTableId"
     ],
     "AWS::EC2::TransitGatewayPolicyTableAssociation": [
+      "State"
+    ],
+    "AWS::EC2::TransitGatewayPolicyTableEntry": [
       "State"
     ],
     "AWS::EC2::TransitGatewayRouteTable": [
@@ -5479,6 +5482,11 @@
       "StatusCode",
       "StatusMessage"
     ],
+    "AWS::MSK::Channel": [
+      "ChannelArn",
+      "StateInfo",
+      "Status"
+    ],
     "AWS::MSK::Cluster": [
       "Arn",
       "CurrentVersion"
@@ -6518,7 +6526,6 @@
     "AWS::Personalize::DataDeletionJob": [
       "CreationDateTime",
       "DataDeletionJobArn",
-      "Id",
       "LastUpdatedDateTime",
       "Status"
     ],
@@ -6709,6 +6716,15 @@
       "EnabledActions",
       "LastUpdatedTime",
       "Status"
+    ],
+    "AWS::QuickSight::Agent": [
+      "AgentStatus",
+      "Arn",
+      "CreatedAt",
+      "Creator",
+      "CustomPromptInterface",
+      "ErrorMessage",
+      "UpdatedAt"
     ],
     "AWS::QuickSight::Analysis": [
       "Arn",
@@ -11378,12 +11394,12 @@
       "Tags": "array"
     },
     "AWS::CertificateManager::Certificate": {
+      "CertificateArn": "string",
       "CertificateAuthorityArn": "string",
       "CertificateExport": "string",
       "CertificateTransparencyLoggingPreference": "string",
       "DomainName": "string",
       "DomainValidationOptions": "array",
-      "Id": "string",
       "KeyAlgorithm": "string",
       "SubjectAlternativeNames": "array",
       "Tags": "array",
@@ -14767,6 +14783,7 @@
     "AWS::EC2::PlacementGroup": {
       "GroupId": "string",
       "GroupName": "string",
+      "ParentGroupId": "string",
       "PartitionCount": "integer",
       "SpreadLevel": "string",
       "Strategy": "string",
@@ -15099,6 +15116,12 @@
     "AWS::EC2::TransitGatewayPolicyTableAssociation": {
       "State": "string",
       "TransitGatewayAttachmentId": "string",
+      "TransitGatewayPolicyTableId": "string"
+    },
+    "AWS::EC2::TransitGatewayPolicyTableEntry": {
+      "PolicyRuleNumber": "string",
+      "State": "string",
+      "TargetRouteTableId": "string",
       "TransitGatewayPolicyTableId": "string"
     },
     "AWS::EC2::TransitGatewayRoute": {
@@ -19179,6 +19202,11 @@
     "AWS::MSK::BatchScramSecret": {
       "ClusterArn": "string"
     },
+    "AWS::MSK::Channel": {
+      "ChannelArn": "string",
+      "ClusterArn": "string",
+      "TopicConfigurationList": "array"
+    },
     "AWS::MSK::Cluster": {
       "Arn": "string",
       "ClusterName": "string",
@@ -20944,7 +20972,6 @@
       "CreationDateTime": "string",
       "DataDeletionJobArn": "string",
       "DatasetGroupArn": "string",
-      "Id": "string",
       "JobName": "string",
       "LastUpdatedDateTime": "string",
       "RoleArn": "string",
@@ -21338,6 +21365,25 @@
       "Permissions": "array",
       "Tags": "array",
       "VpcConnectionArn": "string"
+    },
+    "AWS::QuickSight::Agent": {
+      "ActionConnectors": "array",
+      "AgentId": "string",
+      "AgentLifecycle": "string",
+      "AgentStatus": "string",
+      "Arn": "string",
+      "AwsAccountId": "string",
+      "CreatedAt": "string",
+      "Creator": "string",
+      "Description": "string",
+      "ErrorMessage": "string",
+      "IconId": "string",
+      "Name": "string",
+      "Spaces": "array",
+      "StarterPrompts": "array",
+      "Tags": "array",
+      "UpdatedAt": "string",
+      "WelcomeMessage": "string"
     },
     "AWS::QuickSight::Analysis": {
       "AnalysisId": "string",

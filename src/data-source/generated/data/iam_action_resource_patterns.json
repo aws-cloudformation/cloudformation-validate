@@ -3153,6 +3153,9 @@
     "artifact:listtagsforresource": [
       "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
     ],
+    "artifact:putcomplianceinquiryfeedback": [
+      "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
+    ],
     "artifact:tagresource": [
       "arn:${Partition}:artifact:${Region}:${Account}:compliance-inquiry/*"
     ],
@@ -3862,6 +3865,9 @@
     "aws-marketplace:getsellerdashboard": [
       "arn:${Partition}:aws-marketplace::${Account}:.*"
     ],
+    "aws-marketplace:gettaxcomplianceprofile": [
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile/.*"
+    ],
     "aws-marketplace:getverificationevidence": [
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:verification-type/.*"
     ],
@@ -3877,6 +3883,8 @@
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile/.*",
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile-change-task/.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:verification-type/.*"
     ],
     "aws-marketplace:putdeploymentparameter": [
@@ -3897,6 +3905,9 @@
     "aws-marketplace:startinvoicesubmissiontask": [
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:catalog/.*"
     ],
+    "aws-marketplace:starttaxcomplianceprofilechangetask": [
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile-change-task/.*"
+    ],
     "aws-marketplace:startverification": [
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:verification-type/.*"
     ],
@@ -3906,6 +3917,8 @@
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile/.*",
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile-change-task/.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:verification-type/.*"
     ],
     "aws-marketplace:untagresource": [
@@ -3914,6 +3927,8 @@
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile/.*",
+      "arn:${Partition}:aws-marketplace:${Region}:${Account}:tax-compliance-profile-change-task/.*",
       "arn:${Partition}:aws-marketplace:${Region}:${Account}:verification-type/.*"
     ],
     "aws-marketplace:updateverificationevidence": [
@@ -4616,6 +4631,9 @@
     "bcm-pricing-calculator:updateworkloadestimateusage": [
       "arn:${Partition}:bcm-pricing-calculator::${Account}:workload-estimate/.*"
     ],
+    "bedrock-agentcore:adddatasetexamples": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
+    ],
     "bedrock-agentcore:allowvendedlogdeliveryforresource": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:payment-manager/.*"
@@ -4645,6 +4663,9 @@
     "bedrock-agentcore:createapikeycredentialprovider": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:token-vault/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:token-vault/.*"
+    ],
+    "bedrock-agentcore:createdatasetversion": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
     "bedrock-agentcore:createevent": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
@@ -4713,6 +4734,12 @@
     ],
     "bedrock-agentcore:deleteconfigurationbundle": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:deletedataset": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
+    ],
+    "bedrock-agentcore:deletedatasetexamples": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
     "bedrock-agentcore:deleteevaluator": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:evaluator/.*"
@@ -4845,6 +4872,9 @@
     ],
     "bedrock-agentcore:getconfigurationbundleversion": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:getdataset": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
     "bedrock-agentcore:getevaluator": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:evaluator/.*"
@@ -5027,6 +5057,12 @@
     ],
     "bedrock-agentcore:listconfigurationbundleversions": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:listdatasetexamples": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
+    ],
+    "bedrock-agentcore:listdatasetversions": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
     "bedrock-agentcore:listevents": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
@@ -5231,6 +5267,12 @@
     ],
     "bedrock-agentcore:updateconfigurationbundle": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:updatedataset": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
+    ],
+    "bedrock-agentcore:updatedatasetexamples": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
     "bedrock-agentcore:updateevaluator": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:evaluator/.*"
@@ -6184,12 +6226,6 @@
     ],
     "billing:getbillingviewdata": [
       "arn:${Partition}:billing::${Account}:billingview/.*"
-    ],
-    "billing:getcumulativetracking": [
-      "arn:${Partition}:billing::${Account}:contract/.*"
-    ],
-    "billing:getmonthlytracking": [
-      "arn:${Partition}:billing::${Account}:contract/.*"
     ],
     "billing:getresourcepolicy": [
       "arn:${Partition}:billing::${Account}:billingview/.*"
@@ -10489,6 +10525,9 @@
     "cognito-idp:admingetuser": [
       "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
     ],
+    "cognito-idp:admingetuserauthfactors": [
+      "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
+    ],
     "cognito-idp:admininitiateauth": [
       "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
     ],
@@ -11668,6 +11707,9 @@
     "connect:describeagentstatus": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:describeattachedfilesconfiguration": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:describeauthenticationprofile": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11905,6 +11947,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listassociatedcontacts": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:listattachedfilesconfigurations": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listauthenticationprofiles": [
@@ -12191,6 +12236,9 @@
     "connect:searchroutingprofiles": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:searchrules": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:searchsecurityprofiles": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -12365,6 +12413,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:phone-number/*"
     ],
     "connect:updateagentstatus": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:updateattachedfilesconfiguration": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:updateauthenticationprofile": [
@@ -23309,6 +23360,10 @@
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
     ],
+    "health-agent:listpatientmedications": [
+      "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
+      "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
+    ],
     "health-agent:listproviders": [
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
@@ -23334,6 +23389,10 @@
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
     ],
+    "health-agent:resetpassword": [
+      "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
+      "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
+    ],
     "health-agent:scheduleappointment": [
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
@@ -23343,6 +23402,10 @@
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
     ],
     "health-agent:startpatientinsightsjob": [
+      "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
+      "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
+    ],
+    "health-agent:submitmedicationrenewal": [
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*",
       "arn:${Partition}:health-agent:${Region}:${Account}:domain/.*"
     ],
@@ -23378,6 +23441,9 @@
     ],
     "healthlake:createresource": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
+    "healthlake:deletedatatransformationprofile": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
     ],
     "healthlake:deletefhirdatastore": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
@@ -23418,6 +23484,9 @@
     "healthlake:getcapabilities": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
+    "healthlake:getdatatransformationprofile": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
+    ],
     "healthlake:getexportedfile": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
@@ -23427,6 +23496,9 @@
     "healthlake:inquirepreauthclaim": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
+    "healthlake:listdatatransformationprofileversions": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
+    ],
     "healthlake:listfhirexportjobs": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
@@ -23434,6 +23506,7 @@
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:listtagsforresource": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*",
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:lookupcodesystemwithget": [
@@ -23457,6 +23530,9 @@
     "healthlake:processbundle": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
+    "healthlake:publishdatatransformationprofile": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
+    ],
     "healthlake:questionnairepackage": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
@@ -23474,6 +23550,9 @@
     ],
     "healthlake:searchwithpost": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
+    "healthlake:startdatatransformationjob": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
     ],
     "healthlake:startfhirbulkdeletejob": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
@@ -23497,13 +23576,24 @@
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:tagresource": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*",
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
+    "healthlake:transformdata": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
+    ],
     "healthlake:untagresource": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*",
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
+    "healthlake:updatedatatransformationprofile": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
     ],
     "healthlake:updatefhirdatastore": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
+    "healthlake:updateprofilewithagent": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
     ],
     "healthlake:updateresource": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
@@ -24471,13 +24561,16 @@
       "arn:${Partition}:invoicing::${Account}:invoice-unit/.*"
     ],
     "invoicing:listtagsforresource": [
-      "arn:${Partition}:invoicing::${Account}:invoice-unit/.*"
+      "arn:${Partition}:invoicing::${Account}:invoice-unit/.*",
+      "arn:${Partition}:invoicing::${Account}:procurement-portal-preference/.*"
     ],
     "invoicing:tagresource": [
-      "arn:${Partition}:invoicing::${Account}:invoice-unit/.*"
+      "arn:${Partition}:invoicing::${Account}:invoice-unit/.*",
+      "arn:${Partition}:invoicing::${Account}:procurement-portal-preference/.*"
     ],
     "invoicing:untagresource": [
-      "arn:${Partition}:invoicing::${Account}:invoice-unit/.*"
+      "arn:${Partition}:invoicing::${Account}:invoice-unit/.*",
+      "arn:${Partition}:invoicing::${Account}:procurement-portal-preference/.*"
     ],
     "invoicing:updateinvoiceunit": [
       "arn:${Partition}:invoicing::${Account}:invoice-unit/.*"
@@ -34263,6 +34356,9 @@
     "opensearch:startdirectquery": [
       "arn:${Partition}:opensearch:${Region}:${Account}:datasource/.*"
     ],
+    "opensearch:viewloginpage": [
+      "arn:${Partition}:opensearch:${Region}:${Account}:application/.*"
+    ],
     "opsworks:assigninstance": [
       "arn:${Partition}:opsworks:${Region}:${Account}:stack/.*"
     ],
@@ -34942,6 +35038,15 @@
     "partnercentral:getprospectingfromengagementtask": [
       "arn:${Partition}:partnercentral:${Region}::catalog/.*"
     ],
+    "partnercentral:getqualificationsassociationdetails": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:getqualificationsassociationtask": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:getqualificationsdisassociationtask": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:getrelationship": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -34999,6 +35104,9 @@
     "partnercentral:putprofilevisibility": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
+    "partnercentral:querydataset": [
+      "arn:${Partition}:partnercentral::${Account}:catalog/AWS/ReportingData/.*"
+    ],
     "partnercentral:recallbenefitapplication": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -35026,6 +35134,12 @@
     "partnercentral:startprospectingfromengagementtask": [
       "arn:${Partition}:partnercentral:${Region}::catalog/.*"
     ],
+    "partnercentral:startqualificationsassociationtask": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
+    "partnercentral:startqualificationsdisassociationtask": [
+      "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
+    ],
     "partnercentral:startresourcesnapshotjob": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*"
     ],
@@ -35044,6 +35158,7 @@
     "partnercentral:tagresource": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:partnercentral::${Account}:catalog/AWS/ReportingData/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
@@ -35055,6 +35170,7 @@
     "partnercentral:untagresource": [
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
+      "arn:${Partition}:partnercentral::${Account}:catalog/AWS/ReportingData/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
       "arn:${Partition}:partnercentral:${Region}:${Account}:catalog/.*",
@@ -37251,6 +37367,10 @@
     "quicksight:createingestion": [
       "arn:${Partition}:quicksight:${Region}:${Account}:dataset/.*"
     ],
+    "quicksight:createknowledgebase": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*",
+      "arn:${Partition}:quicksight:${Region}:${Account}:knowledge-base/.*"
+    ],
     "quicksight:createlimitsprofile": [
       "arn:${Partition}:quicksight:${Region}:${Account}:limits-profile/.*"
     ],
@@ -37301,6 +37421,9 @@
     ],
     "quicksight:deleteanalysis": [
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*"
+    ],
+    "quicksight:deleteapp": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
     ],
     "quicksight:deletebrand": [
       "arn:${Partition}:quicksight:${Region}:${Account}:brand/.*"
@@ -37415,6 +37538,12 @@
     ],
     "quicksight:describeanalysispermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*"
+    ],
+    "quicksight:describeapp": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
+    ],
+    "quicksight:describeapppermissions": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
     ],
     "quicksight:describeassetbundleexportjob": [
       "arn:${Partition}:quicksight:${Region}:${Account}:asset-bundle-export-job/.*"
@@ -37587,6 +37716,9 @@
     "quicksight:listanalyses": [
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*"
     ],
+    "quicksight:listapps": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
+    ],
     "quicksight:listassetbundleexportjobs": [
       "arn:${Partition}:quicksight:${Region}:${Account}:asset-bundle-export-job/.*"
     ],
@@ -37642,6 +37774,7 @@
     "quicksight:listtagsforresource": [
       "arn:${Partition}:quicksight:${Region}:${Account}:action-connector/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*",
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:brand/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:customization/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:custompermissions/.*",
@@ -37711,6 +37844,9 @@
     "quicksight:searchanalyses": [
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*"
     ],
+    "quicksight:searchapps": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
+    ],
     "quicksight:searchdashboards": [
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*"
     ],
@@ -37750,6 +37886,7 @@
     "quicksight:tagresource": [
       "arn:${Partition}:quicksight:${Region}:${Account}:action-connector/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*",
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:brand/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:customization/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:custompermissions/.*",
@@ -37774,6 +37911,7 @@
     "quicksight:untagresource": [
       "arn:${Partition}:quicksight:${Region}:${Account}:action-connector/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*",
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:brand/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:customization/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:custompermissions/.*",
@@ -37812,6 +37950,9 @@
     ],
     "quicksight:updateanalysispermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*"
+    ],
+    "quicksight:updateapppermissions": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
     ],
     "quicksight:updateautomationgrouppermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:automation-group/.*"
@@ -37873,6 +38014,9 @@
     ],
     "quicksight:updateiampolicyassignment": [
       "arn:${Partition}:quicksight::${Account}:assignment/.*"
+    ],
+    "quicksight:updateknowledgebase": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:knowledge-base/.*"
     ],
     "quicksight:updateknowledgebasepermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:knowledge-base/.*"
@@ -41111,13 +41255,13 @@
       "arn:${Partition}:s3:::.*"
     ],
     "s3:createaccessgrant": [
-      "arn:${Partition}:s3:${Region}:${Account}:access-grants/default/location/.*"
+      "arn:${Partition}:s3:${Region}:${Account}:access-grants/default/grant/.*"
     ],
     "s3:createaccessgrantsinstance": [
       "arn:${Partition}:s3:${Region}:${Account}:access-grants/default"
     ],
     "s3:createaccessgrantslocation": [
-      "arn:${Partition}:s3:${Region}:${Account}:access-grants/default"
+      "arn:${Partition}:s3:${Region}:${Account}:access-grants/default/location/.*"
     ],
     "s3:createaccesspoint": [
       "arn:${Partition}:s3:${Region}:${Account}:accesspoint/.*"
@@ -44268,6 +44412,9 @@
     "securityhub:batchgetcontrolevaluations": [
       "arn:${Partition}:securityhub:${Region}:${Account}:hub/default"
     ],
+    "securityhub:batchgetenabledregionsv2": [
+      "arn:${Partition}:securityhub:${Region}:${Account}:hubv2/.*"
+    ],
     "securityhub:batchimportfindings": [
       "arn:${Partition}:securityhub:${Region}:${Account}:product/.*"
     ],
@@ -44404,6 +44551,9 @@
     ],
     "securityhub:getcontrolfindingsummary": [
       "arn:${Partition}:securityhub:${Region}:${Account}:hub/default"
+    ],
+    "securityhub:getcoveragestatisticsv2": [
+      "arn:${Partition}:securityhub:${Region}:${Account}:hubv2/.*"
     ],
     "securityhub:getenabledstandards": [
       "arn:${Partition}:securityhub:${Region}:${Account}:hub/default"
@@ -50939,14 +51089,12 @@
       "arn:${Partition}:workspaces:${Region}:${Account}:workspacecertificate/.*"
     ],
     "workspaces:createstandbyworkspaces": [
-      "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*",
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspace/.*"
+      "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*"
     ],
     "workspaces:createupdatedworkspaceimage": [
       "arn:${Partition}:workspaces:${Region}:${Account}:workspaceimage/.*"
     ],
     "workspaces:createworkspacebundle": [
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*",
       "arn:${Partition}:workspaces:${Region}:${Account}:workspaceimage/.*"
     ],
     "workspaces:createworkspaceimage": [
@@ -50954,13 +51102,11 @@
     ],
     "workspaces:createworkspaces": [
       "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*",
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*",
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspace/.*"
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*"
     ],
     "workspaces:createworkspacespool": [
       "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*",
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*",
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspacespool/.*"
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*"
     ],
     "workspaces:deleteclientbranding": [
       "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*"

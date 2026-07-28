@@ -45172,7 +45172,7 @@
       "Variants": {
         "type": "array",
         "min_items": 0,
-        "max_items": 1,
+        "max_items": 3,
         "description": "List of prompt variants",
         "items": {
           "ref_name": "PromptVariant"
@@ -60136,49 +60136,70 @@
     "type_name": "AWS::CertificateManager::Certificate",
     "properties": {
       "CertificateArn": {
-        "format": "AWS::ACM::Certificate.Arn"
+        "type": "string",
+        "pattern": "^arn:[\\w+=/,.@-]+:acm:[\\w+=/,.@-]*:[0-9]+:[\\w+=,.@-]+(/[\\w+=,.@-]+)*$",
+        "min_length": 20,
+        "max_length": 2048,
+        "format": "AWS::ACM::Certificate.Arn",
+        "description": "The Amazon Resource Name (ARN) of the private certificate authority (CA) that will be used to issue the certificate."
       },
       "CertificateAuthorityArn": {
-        "type": "string"
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the private certificate authority (CA) that will be used to issue the certificate."
       },
       "CertificateExport": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "ENABLED",
+          "DISABLED"
+        ],
+        "description": "Specifies whether the certificate can be exported. ENABLED allows the certificate to be exported, DISABLED prevents export."
       },
       "CertificateTransparencyLoggingPreference": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "ENABLED",
+          "DISABLED"
+        ],
+        "description": "You can opt out of certificate transparency logging by specifying the DISABLED option. Opt in by specifying ENABLED."
       },
       "DomainName": {
-        "type": "string"
+        "type": "string",
+        "description": "The fully qualified domain name (FQDN), such as www.example.com, with which you want to secure an ACM certificate"
       },
       "DomainValidationOptions": {
         "type": "array",
-        "unique_items": true,
+        "description": "Domain information that domain name registrars use to verify your identity.",
         "items": {
           "ref_name": "DomainValidationOption"
         }
       },
       "Id": {
-        "type": "string",
         "format": "AWS::ACM::Certificate.Arn"
       },
       "KeyAlgorithm": {
-        "type": "string"
+        "type": "string",
+        "description": "Specifies the algorithm of the public and private key pair that your certificate uses to encrypt data."
       },
       "SubjectAlternativeNames": {
         "type": "array",
-        "unique_items": true,
+        "description": "Additional FQDNs to be included in the Subject Alternative Name extension of the ACM certificate.",
         "items": {
           "type": "string"
         }
       },
       "Tags": {
         "type": "array",
+        "min_items": 1,
+        "max_items": 50,
+        "description": "Key-value pairs that can identify the certificate.",
         "items": {
           "ref_name": "Tag"
         }
       },
       "ValidationMethod": {
-        "type": "string"
+        "type": "string",
+        "description": "The method you want to use to validate that you own or control the domain associated with a public certificate. Valid values are DNS, EMAIL or HTTP"
       }
     },
     "definitions": {
@@ -60195,19 +60216,24 @@
             "type": "string"
           }
         },
-        "required": [
-          "DomainName"
-        ],
         "additional_properties": false
       },
       "Tag": {
         "type": "object",
+        "description": "A tag is a key-value pair that is used to manage the resource.",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The tag's key."
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "max_length": 256,
+            "description": "The tag's value."
           }
         },
         "required": [
@@ -60222,7 +60248,11 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "Id"
+      "CertificateArn"
+    ],
+    "write_only_properties": [
+      "DomainValidationOptions.*.HostedZoneId",
+      "ValidationMethod"
     ],
     "create_only_properties": [
       "SubjectAlternativeNames",
@@ -60230,11 +60260,13 @@
       "ValidationMethod",
       "KeyAlgorithm",
       "DomainName",
-      "CertificateAuthorityArn"
+      "CertificateAuthorityArn",
+      "CertificateExport"
     ],
     "primary_identifier": [
-      "Id"
+      "CertificateArn"
     ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-acmpca",
     "description": "Resource Type definition for AWS::CertificateManager::Certificate"
   },
   "AWS::Chatbot::CustomAction": {
@@ -115378,10 +115410,19 @@
             "ref_name": "ResourcePolicy"
           }
         },
-        "required": [
-          "ResourcePolicy"
-        ],
-        "additional_properties": false
+        "additional_properties": false,
+        "any_of": [
+          {
+            "required": [
+              "ResourcePolicy"
+            ]
+          },
+          {
+            "required": [
+              "Tags"
+            ]
+          }
+        ]
       },
       "ResourcePolicy": {
         "type": "object",
@@ -125464,6 +125505,10 @@
         "type": "string",
         "description": "The Group Name of Placement Group."
       },
+      "ParentGroupId": {
+        "type": "string",
+        "description": "The ID of a parent placement group. Valid for strategies that support parent group linking."
+      },
       "PartitionCount": {
         "type": "integer",
         "description": "The number of partitions. Valid only when **Strategy** is set to `partition`"
@@ -125530,7 +125575,8 @@
       "Tags",
       "Strategy",
       "SpreadLevel",
-      "PartitionCount"
+      "PartitionCount",
+      "ParentGroupId"
     ],
     "primary_identifier": [
       "GroupName"
@@ -126379,9 +126425,14 @@
                 17,
                 "17",
                 "udp",
+                58,
+                "58",
+                "icmpv6",
                 "TCP",
                 "UDP",
-                "ICMP"
+                "ICMP",
+                "ICMPv6",
+                "ICMPV6"
               ]
             }
           },
@@ -129564,6 +129615,80 @@
       "TransitGatewayAttachmentId"
     ],
     "description": "AWS::EC2::TransitGatewayPolicyTableAssociation Resource Definition"
+  },
+  "AWS::EC2::TransitGatewayPolicyTableEntry": {
+    "type_name": "AWS::EC2::TransitGatewayPolicyTableEntry",
+    "properties": {
+      "PolicyRule": {
+        "ref_name": "TransitGatewayPolicyRule"
+      },
+      "PolicyRuleNumber": {
+        "type": "string",
+        "description": "The rule number for the policy table entry."
+      },
+      "State": {
+        "type": "string",
+        "description": "The state of the policy table entry."
+      },
+      "TargetRouteTableId": {
+        "type": "string",
+        "description": "The ID of the target route table."
+      },
+      "TransitGatewayPolicyTableId": {
+        "type": "string",
+        "description": "The ID of the transit gateway policy table."
+      }
+    },
+    "definitions": {
+      "TransitGatewayPolicyRule": {
+        "type": "object",
+        "properties": {
+          "DestinationCidrBlock": {
+            "type": "string",
+            "format": "ipv4-network",
+            "description": "The destination CIDR block for the transit gateway policy rule."
+          },
+          "DestinationPortRange": {
+            "type": "string",
+            "description": "The destination port range for the transit gateway policy rule."
+          },
+          "Protocol": {
+            "type": "string",
+            "description": "The protocol for the transit gateway policy rule."
+          },
+          "SourceCidrBlock": {
+            "type": "string",
+            "format": "ipv4-network",
+            "description": "The source CIDR block for the transit gateway policy rule."
+          },
+          "SourcePortRange": {
+            "type": "string",
+            "description": "The source port range for the transit gateway policy rule."
+          }
+        },
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "TransitGatewayPolicyTableId",
+      "PolicyRuleNumber",
+      "PolicyRule",
+      "TargetRouteTableId"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "State"
+    ],
+    "create_only_properties": [
+      "TransitGatewayPolicyTableId",
+      "PolicyRuleNumber"
+    ],
+    "primary_identifier": [
+      "TransitGatewayPolicyTableId",
+      "PolicyRuleNumber"
+    ],
+    "replacement_strategy": "delete_then_create",
+    "description": "AWS::EC2::TransitGatewayPolicyTableEntry Resource Definition"
   },
   "AWS::EC2::TransitGatewayRoute": {
     "type_name": "AWS::EC2::TransitGatewayRoute",
@@ -147764,6 +147889,12 @@
           },
           "InstanceProtocol": {
             "type": "string",
+            "enum_case_insensitive": [
+              "http",
+              "https",
+              "tcp",
+              "ssl"
+            ],
             "description": "The protocol to use for routing traffic to instances: HTTP, HTTPS, TCP, or SSL.\n\nIf the front-end protocol is TCP or SSL, the back-end protocol must be TCP or SSL. If the front-end protocol is HTTP or HTTPS, the back-end protocol must be HTTP or HTTPS.\n\nIf there is another listener with the same `InstancePort` whose `InstanceProtocol` is secure, (HTTPS or SSL), the listener's `InstanceProtocol` must also be secure.\n\nIf there is another listener with the same `InstancePort` whose `InstanceProtocol` is HTTP or TCP, the listener's `InstanceProtocol` must be HTTP or TCP."
           },
           "LoadBalancerPort": {
@@ -147779,11 +147910,11 @@
           },
           "Protocol": {
             "type": "string",
-            "enum": [
-              "HTTP",
-              "HTTPS",
-              "TCP",
-              "SSL"
+            "enum_case_insensitive": [
+              "http",
+              "https",
+              "tcp",
+              "ssl"
             ],
             "description": "The load balancer transport protocol to use for routing: HTTP, HTTPS, TCP, or SSL."
           },
@@ -206096,13 +206227,13 @@
         "type": "integer",
         "minimum": -1.0,
         "maximum": 604800.0,
-        "description": "(Kinesis and DynamoDB Streams only) Discard records older than the specified age. The default value is -1, which sets the maximum age to infinite. When the value is set to infinite, Lambda never discards old records.\n  The minimum valid value for maximum record age is 60s. Although values less than 60 and greater than -1 fall within the parameter's absolute range, they are not allowed"
+        "description": "(Kinesis, DynamoDB Streams, Amazon MSK, and self-managed Apache Kafka) Discard records older than the specified age. The default value is -1, which sets the maximum age to infinite. When the value is set to infinite, Lambda never discards old records.\n  The minimum valid value for maximum record age is 60s. Although values less than 60 and greater than -1 fall within the parameter's absolute range, they are not allowed"
       },
       "MaximumRetryAttempts": {
         "type": "integer",
         "minimum": -1.0,
         "maximum": 10000.0,
-        "description": "(Kinesis and DynamoDB Streams only) Discard records after the specified number of retries. The default value is -1, which sets the maximum number of retries to infinite. When MaximumRetryAttempts is infinite, Lambda retries failed records until the record expires in the event source."
+        "description": "(Kinesis, DynamoDB Streams, Amazon MSK, and self-managed Apache Kafka) Discard records after the specified number of retries. The default value is -1, which sets the maximum number of retries to infinite. When MaximumRetryAttempts is infinite, Lambda retries failed records until the record expires in the event source."
       },
       "MetricsConfig": {
         "ref_name": "MetricsConfig"
@@ -206330,7 +206461,7 @@
             "min_items": 0,
             "max_items": 3,
             "unique_items": true,
-            "description": "The metrics you want your event source mapping to produce. Include ``EventCount`` to receive event source mapping metrics related to the number of events processed by your event source mapping. For more information about these metrics, see [Event source mapping metrics](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html#event-source-mapping-metrics).",
+            "description": "The metrics you want your event source mapping to produce, including ``EventCount``, ``ErrorCount``, ``KafkaMetrics``. \n  +  ``EventCount`` to receive metrics related to the number of events processed by your event source mapping.\n  +  ``ErrorCount`` (Amazon MSK and self-managed Apache Kafka) to receive metrics related to the number of errors in your event source mapping processing.\n  +  ``KafkaMetrics`` (Amazon MSK and self-managed Apache Kafka) to receive metrics related to the Kafka consumers from your event source mapping.\n  \n  For more information about these metrics, see [Event source mapping metrics](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics-types.html#event-source-mapping-metrics).",
             "items": {
               "type": "string",
               "enum": [
@@ -206352,7 +206483,7 @@
             "pattern": "^$|kafka://([^.]([a-zA-Z0-9\\-_.]{0,248}))|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\\-])+:((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\\d{1})?:(\\d{12})?:(.*)",
             "min_length": 12,
             "max_length": 1024,
-            "description": "The Amazon Resource Name (ARN) of the destination resource.\n To retain records of unsuccessful [asynchronous invocations](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html#invocation-async-destinations), you can configure an Amazon SNS topic, Amazon SQS queue, Amazon S3 bucket, Lambda function, or Amazon EventBridge event bus as the destination.\n  Amazon SNS destinations have a message size limit of 256 KB. If the combined size of the function request and response payload exceeds the limit, Lambda will drop the payload when sending ``OnFailure`` event to the destination. For details on this behavior, refer to [Retaining records of asynchronous invocations](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html).\n  To retain records of failed invocations from [Kinesis](https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html), [DynamoDB](https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html), [self-managed Kafka](https://docs.aws.amazon.com/lambda/latest/dg/with-kafka.html#services-smaa-onfailure-destination) or [Amazon MSK](https://docs.aws.amazon.com/lambda/latest/dg/with-msk.html#services-msk-onfailure-destination), you can configure an Amazon SNS topic, Amazon SQS queue, or Amazon S3 bucket as the destination."
+            "description": "The Amazon Resource Name (ARN) of the destination resource.\n To retain records of failed invocations from [Kinesis](https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html), [DynamoDB](https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html), [self-managed Apache Kafka](https://docs.aws.amazon.com/lambda/latest/dg/kafka-on-failure.html), or [Amazon MSK](https://docs.aws.amazon.com/lambda/latest/dg/kafka-on-failure.html), you can configure an Amazon SNS topic, Amazon SQS queue, Amazon S3 bucket, or Kafka topic as the destination.\n  Amazon SNS destinations have a message size limit of 256 KB. If the combined size of the function request and response payload exceeds the limit, Lambda will drop the payload when sending ``OnFailure`` event to the destination. For details on this behavior, refer to [Retaining records of asynchronous invocations](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html).\n  To retain records of failed invocations from [Kinesis](https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html), [DynamoDB](https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html), [self-managed Kafka](https://docs.aws.amazon.com/lambda/latest/dg/with-kafka.html#services-smaa-onfailure-destination) or [Amazon MSK](https://docs.aws.amazon.com/lambda/latest/dg/with-msk.html#services-msk-onfailure-destination), you can configure an Amazon SNS topic, Amazon SQS queue, or Amazon S3 bucket as the destination."
           }
         },
         "additional_properties": false
@@ -206364,7 +206495,7 @@
           "MaximumPollers": {
             "type": "integer",
             "minimum": 1.0,
-            "maximum": 2000.0,
+            "maximum": 10000.0,
             "description": "The maximum number of event pollers this event source can scale up to. For Amazon SQS events source mappings, default is 200, and minimum value allowed is 2. For Amazon MSK and self-managed Apache Kafka event source mappings, default is 200, and minimum value allowed is 1."
           },
           "MinimumPollers": {
@@ -206377,7 +206508,8 @@
             "type": "string",
             "pattern": "^[a-zA-Z0-9-_]*$",
             "min_length": 0,
-            "max_length": 128
+            "max_length": 128,
+            "description": "(Amazon MSK and self-managed Apache Kafka) The name of the provisioned poller group. Use this option to group multiple ESMs within the event source's VPC to share Event Poller Unit (EPU) capacity. You can use this option to optimize Provisioned mode costs for your ESMs. You can group up to 100 ESMs per poller group and aggregate maximum pollers across all ESMs in a group cannot exceed 2000."
           }
         },
         "additional_properties": false
@@ -218819,6 +218951,580 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-msk",
     "description": "Resource Type definition for AWS::MSK::BatchScramSecret"
+  },
+  "AWS::MSK::Channel": {
+    "type_name": "AWS::MSK::Channel",
+    "properties": {
+      "ChannelArn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) that uniquely identifies the channel"
+      },
+      "ChannelName": {
+        "ref_name": "ChannelName"
+      },
+      "ClusterArn": {
+        "type": "string",
+        "pattern": "^arn:[\\w-]+:kafka:[\\w-]+:\\d+:cluster.*\\Z",
+        "description": "The Amazon Resource Name (ARN) of the cluster"
+      },
+      "EncryptionConfiguration": {
+        "ref_name": "EncryptionConfiguration"
+      },
+      "IcebergDestinationConfiguration": {
+        "ref_name": "IcebergDestinationConfiguration"
+      },
+      "LoggingInfo": {
+        "ref_name": "ChannelLoggingInfo"
+      },
+      "S3DestinationConfiguration": {
+        "ref_name": "S3DestinationConfiguration"
+      },
+      "StateInfo": {
+        "ref_name": "ChannelStateInfo"
+      },
+      "Status": {
+        "ref_name": "ChannelStatus"
+      },
+      "Tags": {
+        "ref_name": "Tags"
+      },
+      "TopicConfigurationList": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 1,
+        "description": "Topic configuration",
+        "items": {
+          "ref_name": "TopicConfiguration"
+        }
+      }
+    },
+    "definitions": {
+      "Catalog": {
+        "type": "object",
+        "description": "Catalog configuration of the destination",
+        "properties": {
+          "CatalogArn": {
+            "type": "string",
+            "pattern": "^arn:[\\w-]+:glue:[\\w-]+:\\d+:catalog.*\\Z",
+            "description": "The ARN of the catalog"
+          },
+          "WarehouseLocation": {
+            "type": "string",
+            "description": "The warehouse location"
+          }
+        },
+        "additional_properties": false
+      },
+      "ChannelLoggingInfo": {
+        "type": "object",
+        "description": "Log configuration details for Channel",
+        "properties": {
+          "CloudWatchLogs": {
+            "ref_name": "CloudWatchLogsLogDestination"
+          },
+          "Firehose": {
+            "ref_name": "FirehoseLogDestination"
+          },
+          "S3": {
+            "ref_name": "S3LogDestination"
+          }
+        },
+        "additional_properties": false
+      },
+      "ChannelName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9._-]+$",
+        "min_length": 1,
+        "max_length": 64,
+        "description": "Name of the channel"
+      },
+      "ChannelStateInfo": {
+        "type": "object",
+        "description": "Includes information about the channel state",
+        "properties": {
+          "Code": {
+            "type": "string",
+            "description": "Code for channel state"
+          },
+          "Message": {
+            "type": "string",
+            "description": "Message for channel state"
+          }
+        },
+        "additional_properties": false
+      },
+      "ChannelStatus": {
+        "type": "string",
+        "enum": [
+          "CREATING",
+          "ACTIVE",
+          "UPDATING",
+          "DELETING",
+          "FAILED",
+          "SUSPENDING",
+          "SUSPENDED"
+        ],
+        "description": "Status of a channel resource"
+      },
+      "CloudWatchLogsLogDestination": {
+        "type": "object",
+        "description": "CloudWatch Logs log destination details",
+        "properties": {
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether CloudWatch Logs logging is enabled"
+          },
+          "LogGroup": {
+            "type": "string",
+            "description": "The CloudWatch log group for log delivery"
+          }
+        },
+        "required": [
+          "Enabled"
+        ],
+        "additional_properties": false
+      },
+      "DeadLetterQueueS3": {
+        "type": "object",
+        "description": "Dead letter queue S3 configuration of the destination",
+        "properties": {
+          "BucketArn": {
+            "type": "string",
+            "pattern": "^arn:[\\w-]+:s3:::.*\\Z",
+            "description": "The ARN of the S3 bucket"
+          },
+          "ErrorOutputPrefix": {
+            "type": "string",
+            "description": "The error output prefix"
+          },
+          "ExpectedBucketOwner": {
+            "type": "string",
+            "description": "Optional 12-digit AWS account ID expected to own the dead-letter S3 bucket"
+          }
+        },
+        "required": [
+          "BucketArn",
+          "ErrorOutputPrefix"
+        ],
+        "additional_properties": false
+      },
+      "DestinationTable": {
+        "type": "object",
+        "description": "Destination table configuration",
+        "properties": {
+          "DestinationDatabaseName": {
+            "type": "string",
+            "description": "The destination database name"
+          },
+          "DestinationTableName": {
+            "type": "string",
+            "description": "The destination table name"
+          },
+          "PartitionSpec": {
+            "ref_name": "PartitionSpec"
+          }
+        },
+        "required": [
+          "DestinationDatabaseName",
+          "DestinationTableName"
+        ],
+        "additional_properties": false
+      },
+      "EncryptionConfiguration": {
+        "type": "object",
+        "description": "Encryption configuration",
+        "properties": {
+          "KmsKeyArn": {
+            "type": "string",
+            "pattern": "^arn:[\\w-]+:kms:[\\w-]+:\\d+:key.*\\Z",
+            "format": "AWS::KMS::Key.Arn",
+            "description": "The ARN of the KMS key for encryption"
+          }
+        },
+        "required": [
+          "KmsKeyArn"
+        ],
+        "additional_properties": false
+      },
+      "FirehoseLogDestination": {
+        "type": "object",
+        "description": "Firehose log destination details",
+        "properties": {
+          "DeliveryStream": {
+            "type": "string",
+            "description": "The Firehose delivery stream for log delivery"
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether Firehose logging is enabled"
+          }
+        },
+        "required": [
+          "Enabled"
+        ],
+        "additional_properties": false
+      },
+      "IcebergCompressionType": {
+        "type": "string",
+        "enum": [
+          "ZSTD",
+          "SNAPPY"
+        ],
+        "description": "Compression codec for Iceberg table data files. Defaults to ZSTD."
+      },
+      "IcebergDestinationConfiguration": {
+        "type": "object",
+        "description": "Iceberg destination configuration",
+        "properties": {
+          "AppendOnly": {
+            "type": "boolean",
+            "description": "Append only mode"
+          },
+          "Catalog": {
+            "ref_name": "Catalog"
+          },
+          "CompressionType": {
+            "ref_name": "IcebergCompressionType"
+          },
+          "DataFreshnessInSeconds": {
+            "type": "integer",
+            "minimum": 60.0,
+            "maximum": 900.0,
+            "description": "Data freshness in seconds"
+          },
+          "DeadLetterQueueS3": {
+            "ref_name": "DeadLetterQueueS3"
+          },
+          "DestinationTableList": {
+            "type": "array",
+            "min_items": 1,
+            "max_items": 1,
+            "description": "List of destination tables",
+            "items": {
+              "ref_name": "DestinationTable"
+            }
+          },
+          "SchemaEvolution": {
+            "ref_name": "SchemaEvolution"
+          },
+          "ServiceExecutionRoleArn": {
+            "type": "string",
+            "pattern": "^arn:[\\w-]+:iam::[\\w-]+:role.*\\Z",
+            "format": "AWS::IAM::Role.Arn",
+            "description": "The Amazon Resource Name (ARN) of an IAM role used by MSK to access the table"
+          },
+          "TableCreation": {
+            "ref_name": "TableCreation"
+          }
+        },
+        "required": [
+          "ServiceExecutionRoleArn",
+          "DeadLetterQueueS3",
+          "AppendOnly",
+          "SchemaEvolution",
+          "TableCreation",
+          "DestinationTableList"
+        ],
+        "additional_properties": false
+      },
+      "PartitionSource": {
+        "type": "object",
+        "description": "Partition source configuration",
+        "properties": {
+          "SourceName": {
+            "type": "string",
+            "description": "Source name"
+          }
+        },
+        "additional_properties": false
+      },
+      "PartitionSpec": {
+        "type": "object",
+        "description": "Partition specification",
+        "properties": {
+          "PartitionStrategy": {
+            "ref_name": "PartitionStrategy"
+          },
+          "SourceList": {
+            "type": "array",
+            "description": "Source list",
+            "items": {
+              "ref_name": "PartitionSource"
+            }
+          }
+        },
+        "required": [
+          "PartitionStrategy"
+        ],
+        "additional_properties": false
+      },
+      "PartitionStrategy": {
+        "type": "string",
+        "enum": [
+          "TIME_HOUR"
+        ],
+        "description": "Partition strategy for MSK channel"
+      },
+      "RecordConverter": {
+        "type": "object",
+        "description": "Record converter configuration for a topic",
+        "properties": {
+          "ValueConverter": {
+            "ref_name": "ValueConverter"
+          }
+        },
+        "required": [
+          "ValueConverter"
+        ],
+        "additional_properties": false
+      },
+      "RecordSchema": {
+        "type": "object",
+        "description": "Record schema configuration for a topic",
+        "properties": {
+          "GsrArn": {
+            "type": "string",
+            "description": "ARN of Glue Schema Registry resource used for table schema"
+          }
+        },
+        "required": [
+          "GsrArn"
+        ],
+        "additional_properties": false
+      },
+      "S3CompressionType": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "GZIP",
+          "ZSTD"
+        ],
+        "description": "S3 compression type"
+      },
+      "S3DestinationConfiguration": {
+        "type": "object",
+        "description": "S3 destination configuration",
+        "properties": {
+          "DataFreshnessInSeconds": {
+            "type": "integer",
+            "minimum": 60.0,
+            "maximum": 900.0,
+            "description": "Data freshness in seconds"
+          },
+          "DeadLetterQueueS3": {
+            "ref_name": "DeadLetterQueueS3"
+          },
+          "ServiceExecutionRoleArn": {
+            "type": "string",
+            "pattern": "^arn:[\\w-]+:iam::[\\w-]+:role.*\\Z",
+            "format": "AWS::IAM::Role.Arn",
+            "description": "The Amazon Resource Name (ARN) of an IAM role used by MSK to access S3"
+          },
+          "Storage": {
+            "ref_name": "S3Storage"
+          }
+        },
+        "required": [
+          "DeadLetterQueueS3",
+          "ServiceExecutionRoleArn",
+          "Storage"
+        ],
+        "additional_properties": false
+      },
+      "S3LogDestination": {
+        "type": "object",
+        "description": "S3 log destination details",
+        "properties": {
+          "Bucket": {
+            "type": "string",
+            "description": "The name of the S3 bucket for log delivery"
+          },
+          "Enabled": {
+            "type": "boolean",
+            "description": "Whether S3 logging is enabled"
+          },
+          "Prefix": {
+            "type": "string",
+            "description": "The S3 prefix for log delivery"
+          }
+        },
+        "required": [
+          "Enabled"
+        ],
+        "additional_properties": false
+      },
+      "S3Storage": {
+        "type": "object",
+        "description": "S3 storage configuration",
+        "properties": {
+          "BucketArn": {
+            "type": "string",
+            "pattern": "^arn:[\\w-]+:s3:::.*\\Z",
+            "description": "ARN of the S3 bucket"
+          },
+          "CompressionType": {
+            "ref_name": "S3CompressionType"
+          },
+          "ExpectedBucketOwner": {
+            "type": "string",
+            "description": "Optional 12-digit AWS account ID expected to own the S3 bucket"
+          },
+          "OutputKeyTemplate": {
+            "type": "string",
+            "description": "Template for S3 key for output objects, used for partitioning"
+          },
+          "OutputPrefix": {
+            "type": "string",
+            "description": "Optional prefix for output objects"
+          },
+          "StorageClass": {
+            "ref_name": "S3StorageClass"
+          }
+        },
+        "required": [
+          "BucketArn",
+          "StorageClass",
+          "CompressionType"
+        ],
+        "additional_properties": false
+      },
+      "S3StorageClass": {
+        "type": "string",
+        "enum": [
+          "STANDARD",
+          "INTELLIGENT_TIERING",
+          "GLACIER_IR"
+        ],
+        "description": "S3 storage class"
+      },
+      "SchemaEvolution": {
+        "type": "object",
+        "description": "Schema evolution configuration of the destination",
+        "properties": {
+          "EnableSchemaEvolution": {
+            "type": "boolean",
+            "description": "Whether schema evolution is enabled"
+          }
+        },
+        "required": [
+          "EnableSchemaEvolution"
+        ],
+        "additional_properties": false
+      },
+      "TableCreation": {
+        "type": "object",
+        "description": "Table creation configuration of the destination",
+        "properties": {
+          "EnableTableCreation": {
+            "type": "boolean",
+            "description": "Whether table creation is enabled"
+          }
+        },
+        "required": [
+          "EnableTableCreation"
+        ],
+        "additional_properties": false
+      },
+      "Tags": {
+        "type": "object",
+        "description": "Tags attached to the channel",
+        "additional_properties": false,
+        "pattern_properties": {
+          "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$": {
+            "type": "string"
+          }
+        }
+      },
+      "TopicConfiguration": {
+        "type": "object",
+        "description": "Configuration of topic in a channel",
+        "properties": {
+          "RecordConverter": {
+            "ref_name": "RecordConverter"
+          },
+          "RecordSchema": {
+            "ref_name": "RecordSchema"
+          },
+          "TopicArn": {
+            "type": "string",
+            "pattern": "^arn:[\\w-]+:kafka:[\\w-]+:\\d+:topic.*\\Z",
+            "description": "The Amazon Resource Name (ARN) that uniquely identifies the topic"
+          }
+        },
+        "required": [
+          "TopicArn",
+          "RecordConverter"
+        ],
+        "additional_properties": false
+      },
+      "ValueConverter": {
+        "type": "string",
+        "enum": [
+          "BYTE_ARRAY",
+          "JSON",
+          "JSON_SCHEMA_GSR",
+          "STRING"
+        ],
+        "description": "Value converter for topic data"
+      }
+    },
+    "required": [
+      "ChannelName",
+      "TopicConfigurationList"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "ChannelArn",
+      "Status",
+      "StateInfo"
+    ],
+    "write_only_properties": [
+      "ClusterArn"
+    ],
+    "create_only_properties": [
+      "ChannelName",
+      "ClusterArn",
+      "TopicConfigurationList",
+      "EncryptionConfiguration",
+      "LoggingInfo",
+      "IcebergDestinationConfiguration.ServiceExecutionRoleArn",
+      "IcebergDestinationConfiguration.Catalog",
+      "IcebergDestinationConfiguration.Catalog.CatalogArn",
+      "IcebergDestinationConfiguration.Catalog.WarehouseLocation",
+      "IcebergDestinationConfiguration.DeadLetterQueueS3",
+      "IcebergDestinationConfiguration.DeadLetterQueueS3.BucketArn",
+      "IcebergDestinationConfiguration.DeadLetterQueueS3.ErrorOutputPrefix",
+      "IcebergDestinationConfiguration.DeadLetterQueueS3.ExpectedBucketOwner",
+      "IcebergDestinationConfiguration.AppendOnly",
+      "IcebergDestinationConfiguration.SchemaEvolution",
+      "IcebergDestinationConfiguration.SchemaEvolution.EnableSchemaEvolution",
+      "IcebergDestinationConfiguration.TableCreation",
+      "IcebergDestinationConfiguration.TableCreation.EnableTableCreation",
+      "IcebergDestinationConfiguration.DestinationTableList",
+      "IcebergDestinationConfiguration.DestinationTableList.*.DestinationDatabaseName",
+      "IcebergDestinationConfiguration.DestinationTableList.*.DestinationTableName",
+      "IcebergDestinationConfiguration.DestinationTableList.*.PartitionSpec",
+      "IcebergDestinationConfiguration.DestinationTableList.*.PartitionSpec.PartitionStrategy",
+      "IcebergDestinationConfiguration.DestinationTableList.*.PartitionSpec.SourceList",
+      "IcebergDestinationConfiguration.DestinationTableList.*.PartitionSpec.SourceList.*.SourceName",
+      "IcebergDestinationConfiguration.CompressionType",
+      "S3DestinationConfiguration.ServiceExecutionRoleArn",
+      "S3DestinationConfiguration.DeadLetterQueueS3",
+      "S3DestinationConfiguration.DeadLetterQueueS3.BucketArn",
+      "S3DestinationConfiguration.DeadLetterQueueS3.ErrorOutputPrefix",
+      "S3DestinationConfiguration.DeadLetterQueueS3.ExpectedBucketOwner",
+      "S3DestinationConfiguration.Storage",
+      "S3DestinationConfiguration.Storage.BucketArn",
+      "S3DestinationConfiguration.Storage.OutputPrefix",
+      "S3DestinationConfiguration.Storage.OutputKeyTemplate",
+      "S3DestinationConfiguration.Storage.StorageClass",
+      "S3DestinationConfiguration.Storage.CompressionType",
+      "S3DestinationConfiguration.Storage.ExpectedBucketOwner"
+    ],
+    "primary_identifier": [
+      "ChannelArn"
+    ],
+    "description": "Resource Type definition for AWS::MSK::Channel"
   },
   "AWS::MSK::Cluster": {
     "type_name": "AWS::MSK::Cluster",
@@ -255988,40 +256694,60 @@
     "type_name": "AWS::Personalize::DataDeletionJob",
     "properties": {
       "CreationDateTime": {
-        "type": "string"
+        "type": "string",
+        "format": "date-time",
+        "description": "The creation date and time of the data deletion job."
       },
       "DataDeletionJobArn": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^arn:([a-z\\d-]+):personalize:.*:.*:.+$",
+        "max_length": 256,
+        "description": "The Amazon Resource Name (ARN) of the data deletion job."
       },
       "DataSource": {
         "ref_name": "DataSource"
       },
       "DatasetGroupArn": {
-        "type": "string"
-      },
-      "Id": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^arn:([a-z\\d-]+):personalize:.*:.*:.+$",
+        "max_length": 256,
+        "description": "The Amazon Resource Name (ARN) of the dataset group that has the datasets you want to delete records from."
       },
       "JobName": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9\\-_]*$",
+        "min_length": 1,
+        "max_length": 63,
+        "description": "The name for the data deletion job."
       },
       "LastUpdatedDateTime": {
-        "type": "string"
+        "type": "string",
+        "format": "date-time",
+        "description": "The date and time the data deletion job was last updated."
       },
       "RoleArn": {
         "type": "string",
-        "format": "AWS::IAM::Role.Arn"
+        "pattern": "^arn:([a-z\\d-]+):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
+        "max_length": 256,
+        "format": "AWS::IAM::Role.Arn",
+        "description": "The Amazon Resource Name (ARN) of the IAM role that has permissions to read from the Amazon S3 data source."
       },
       "Status": {
-        "type": "string"
+        "type": "string",
+        "max_length": 256,
+        "description": "The status of the data deletion job."
       }
     },
     "definitions": {
       "DataSource": {
         "type": "object",
+        "description": "The Amazon S3 bucket that contains the list of userIds to delete.",
         "properties": {
           "DataLocation": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(s3|http|https)://.+$",
+            "max_length": 256,
+            "description": "The path to the Amazon S3 bucket where the data is stored."
           }
         },
         "additional_properties": false
@@ -256031,19 +256757,18 @@
     "additional_properties": false,
     "read_only_properties": [
       "DataDeletionJobArn",
-      "LastUpdatedDateTime",
-      "Id",
       "Status",
-      "CreationDateTime"
+      "CreationDateTime",
+      "LastUpdatedDateTime"
     ],
     "create_only_properties": [
-      "RoleArn",
       "DataSource",
+      "DatasetGroupArn",
       "JobName",
-      "DatasetGroupArn"
+      "RoleArn"
     ],
     "primary_identifier": [
-      "Id"
+      "DataDeletionJobArn"
     ],
     "description": "Resource Type definition for AWS::Personalize::DataDeletionJob"
   },
@@ -263750,6 +264475,339 @@
       "AwsAccountId"
     ],
     "description": "Definition of the AWS::QuickSight::ActionConnector Resource Type."
+  },
+  "AWS::QuickSight::Agent": {
+    "type_name": "AWS::QuickSight::Agent",
+    "properties": {
+      "ActionConnectors": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 10,
+        "description": "A list of ActionConnector ARNs (max 10) attached to the agent.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "AgentId": {
+        "type": "string",
+        "pattern": "^[0-9a-zA-Z-_.+]+$",
+        "min_length": 1,
+        "max_length": 256,
+        "description": "The unique identifier for the agent."
+      },
+      "AgentLifecycle": {
+        "type": "string",
+        "enum": [
+          "PREVIEW",
+          "PUBLISHED"
+        ],
+        "description": "The lifecycle stage of the agent. PREVIEW or PUBLISHED."
+      },
+      "AgentStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "CREATING",
+          "UPDATING",
+          "FAILED"
+        ],
+        "description": "The current status of the agent. One of ACTIVE, CREATING, UPDATING, or FAILED."
+      },
+      "Arn": {
+        "type": "string",
+        "description": "The Amazon Resource Name (ARN) of the agent."
+      },
+      "AwsAccountId": {
+        "type": "string",
+        "pattern": "^[0-9]{12}$",
+        "min_length": 12,
+        "max_length": 12,
+        "description": "The ID of the Amazon Web Services account where the agent is being created."
+      },
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date and time the agent was created."
+      },
+      "Creator": {
+        "type": "string",
+        "description": "The ARN of the user who created the agent."
+      },
+      "CustomPromptInput": {
+        "ref_name": "CustomPromptInput"
+      },
+      "CustomPromptInterface": {
+        "ref_name": "CustomPromptInterface"
+      },
+      "Description": {
+        "type": "string",
+        "pattern": "^\\P{C}*$",
+        "min_length": 0,
+        "max_length": 1000,
+        "description": "A description of the agent."
+      },
+      "ErrorMessage": {
+        "type": "string",
+        "description": "The error message if the agent is in FAILED status."
+      },
+      "IconId": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 200,
+        "description": "The icon identifier for the agent."
+      },
+      "Name": {
+        "type": "string",
+        "pattern": "^(?!\\s*$).+$",
+        "min_length": 1,
+        "max_length": 50,
+        "description": "The display name of the agent."
+      },
+      "Spaces": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 10,
+        "description": "A list of Space ARNs (max 10) attached to the agent.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "StarterPrompts": {
+        "type": "array",
+        "min_items": 0,
+        "max_items": 3,
+        "description": "A list of up to 3 starter prompts displayed to users.",
+        "items": {
+          "type": "string",
+          "min_length": 0,
+          "max_length": 100
+        }
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 200,
+        "description": "A list of key-value pairs to associate with the agent resource.",
+        "items": {
+          "ref_name": "AgentTag"
+        }
+      },
+      "UpdatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date and time the agent was last updated."
+      },
+      "WelcomeMessage": {
+        "type": "string",
+        "min_length": 0,
+        "max_length": 300,
+        "description": "The welcome message displayed when a user opens the agent."
+      }
+    },
+    "definitions": {
+      "AgentTag": {
+        "type": "object",
+        "description": "A key-value pair to associate with the agent resource.",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128,
+            "description": "The key name of the tag."
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256,
+            "description": "The value for the tag."
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      },
+      "CustomPromptInput": {
+        "type": "object",
+        "description": "Custom prompt configuration. Specify either ExistingPrompt or NewPrompt.",
+        "properties": {
+          "ExistingPrompt": {
+            "ref_name": "CustomPromptProfile"
+          },
+          "NewPrompt": {
+            "ref_name": "CustomPromptInputParameters"
+          }
+        },
+        "additional_properties": false,
+        "one_of": [
+          {
+            "required": [
+              "ExistingPrompt"
+            ]
+          },
+          {
+            "required": [
+              "NewPrompt"
+            ]
+          }
+        ]
+      },
+      "CustomPromptInputParameters": {
+        "type": "object",
+        "description": "Parameters for creating a new custom prompt configuration.",
+        "properties": {
+          "CustomInstructions": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "Custom instructions for the agent behavior."
+          },
+          "Identity": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The identity or persona of the agent."
+          },
+          "OutputStyle": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The output style for the agent responses."
+          },
+          "ResponseLength": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The desired response length for the agent."
+          },
+          "Tone": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The tone used in agent responses."
+          }
+        },
+        "additional_properties": false
+      },
+      "CustomPromptInterface": {
+        "type": "object",
+        "description": "Read-only view of the resolved custom prompt interface for the agent.",
+        "properties": {
+          "CustomInstructions": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "Custom instructions for the agent behavior."
+          },
+          "Identity": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The identity or persona of the agent."
+          },
+          "ModelProfileId": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]{35}$",
+            "min_length": 36,
+            "max_length": 36,
+            "description": "The identifier of the model profile."
+          },
+          "OutputStyle": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The output style for the agent responses."
+          },
+          "PromptSummary": {
+            "type": "string",
+            "description": "A summary of the resolved prompt."
+          },
+          "QbsAwsAccountId": {
+            "type": "string",
+            "pattern": "^QBS[0-9]{12}$",
+            "min_length": 15,
+            "max_length": 15,
+            "description": "The QBS AWS account identifier."
+          },
+          "ResponseLength": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The desired response length for the agent."
+          },
+          "SubscriptionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+$",
+            "min_length": 32,
+            "max_length": 32,
+            "description": "The subscription identifier."
+          },
+          "Tone": {
+            "type": "string",
+            "min_length": 5,
+            "max_length": 350000,
+            "description": "The tone used in agent responses."
+          }
+        },
+        "additional_properties": false
+      },
+      "CustomPromptProfile": {
+        "type": "object",
+        "description": "Reference to an existing custom prompt profile.",
+        "properties": {
+          "ModelProfileId": {
+            "type": "string",
+            "max_length": 36,
+            "description": "The identifier of the model profile."
+          },
+          "QbsAwsAccountId": {
+            "type": "string",
+            "pattern": "^QBS[0-9]{12}$",
+            "max_length": 15,
+            "description": "The QBS AWS account identifier."
+          },
+          "SubscriptionId": {
+            "type": "string",
+            "max_length": 32,
+            "description": "The subscription identifier."
+          }
+        },
+        "required": [
+          "ModelProfileId",
+          "SubscriptionId",
+          "QbsAwsAccountId"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "AwsAccountId",
+      "AgentId",
+      "Name"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "AgentStatus",
+      "CreatedAt",
+      "UpdatedAt",
+      "Creator",
+      "CustomPromptInterface",
+      "ErrorMessage"
+    ],
+    "write_only_properties": [
+      "CustomPromptInput"
+    ],
+    "create_only_properties": [
+      "AwsAccountId",
+      "AgentId",
+      "AgentLifecycle"
+    ],
+    "primary_identifier": [
+      "AwsAccountId",
+      "AgentId"
+    ],
+    "description": "Resource Type definition for AWS::QuickSight::Agent"
   },
   "AWS::QuickSight::Analysis": {
     "type_name": "AWS::QuickSight::Analysis",
@@ -349476,10 +350534,12 @@
       },
       "CreationTime": {
         "type": "string",
+        "format": "date-time",
         "description": "The date and time that the MLflow App was created."
       },
       "LastModifiedTime": {
         "type": "string",
+        "format": "date-time",
         "description": "The date and time that the MLflow App was last modified."
       },
       "MlflowAppId": {
@@ -379672,7 +380732,6 @@
       },
       "Name": {
         "type": "string",
-        "pattern": "^[A-Za-z0-9\\-]+$",
         "min_length": 1,
         "max_length": 64,
         "description": "The name of the ManagedNotificationConfiguration."
