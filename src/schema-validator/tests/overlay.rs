@@ -135,7 +135,11 @@ fn overlay_enum_override_suppresses_w3030() {
 
 #[test]
 fn overlay_inserts_brand_new_resource_type() {
-    // A typeName not in the bundled registry is inserted verbatim.
+    // A typeName not in the bundled registry is added to the schema *store*.
+    // (This is store-level only: it does not register the type with the rule
+    // engine, so a wholly unknown type is still reported as F3006 by the engine —
+    // see the EngineConfig::additional_schemas docs. Overlays are meant to extend
+    // already-bundled types.)
     let new_type =
         overlay(r#"{ "typeName": "AWS::Test::OverlayOnly", "properties": { "Name": { "type": "string" } } }"#);
     let sv = SchemaValidator::with_additional_schemas([("AWS::Test::OverlayOnly", new_type)]);

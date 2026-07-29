@@ -109,8 +109,8 @@ pub struct PropSchema {
     pub min_items: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_items: Option<u64>,
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub unique_items: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unique_items: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_properties: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -141,13 +141,23 @@ pub struct PropSchema {
     pub dependent_excluded: HashMap<String, Vec<String>>,
 }
 
-fn is_false(b: &bool) -> bool {
-    !b
-}
-
 impl PropSchema {
     pub fn resolve<'a>(&'a self, defs: &'a HashMap<String, PropSchema>) -> &'a PropSchema {
-        if let Some(ref name) = self.ref_name { defs.get(name).map(|d| d.resolve(defs)).unwrap_or(self) } else { self }
+        // Depth-capped so a cyclic definition set — which can reach here from
+        // caller-supplied overlay schemas — cannot overflow the stack (a stack
+        // overflow aborts the process and cannot be caught by `catch_panics`).
+        self.resolve_bounded(defs, 128)
+    }
+
+    fn resolve_bounded<'a>(&'a self, defs: &'a HashMap<String, PropSchema>, depth: u32) -> &'a PropSchema {
+        if depth == 0 {
+            return self;
+        }
+        if let Some(ref name) = self.ref_name {
+            defs.get(name).map(|d| d.resolve_bounded(defs, depth - 1)).unwrap_or(self)
+        } else {
+            self
+        }
     }
 }
 
@@ -258,6 +268,18 @@ mod tests {
     }
 
     #[test]
+    fn resolve_cyclic_refs_terminate_without_overflow() {
+        // A cyclic definition set (reachable from caller-supplied overlays) must
+        // not overflow the stack — the depth cap makes resolution total.
+        let mut defs = HashMap::new();
+        defs.insert("D".to_string(), PropSchema { ref_name: Some("E".into()), ..Default::default() });
+        defs.insert("E".to_string(), PropSchema { ref_name: Some("D".into()), ..Default::default() });
+        let start = PropSchema { ref_name: Some("D".into()), ..Default::default() };
+        // The assertion is simply that this returns rather than aborting the process.
+        let _ = start.resolve(&defs);
+    }
+
+    #[test]
     fn prop_schema_roundtrip_json() {
         let schema = PropSchema {
             prop_type: Some(PropType::Single("string".into())),
@@ -267,7 +289,7 @@ mod tests {
             maximum: Some(100.0),
             min_length: Some(1),
             max_length: Some(256),
-            unique_items: true,
+            unique_items: Some(true),
             ..Default::default()
         };
         let json_str = serde_json::to_string(&schema).unwrap();
@@ -279,7 +301,7 @@ mod tests {
         assert_eq!(deserialized.maximum, Some(100.0));
         assert_eq!(deserialized.min_length, Some(1));
         assert_eq!(deserialized.max_length, Some(256));
-        assert!(deserialized.unique_items, "unique_items should be true");
+        assert_eq!(deserialized.unique_items, Some(true), "unique_items should be Some(true)");
     }
 
     #[test]

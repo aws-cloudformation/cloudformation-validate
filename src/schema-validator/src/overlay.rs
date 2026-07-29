@@ -19,7 +19,11 @@
 //!   property path,
 //! - scalar constraints present on the overlay override the bundled value.
 //!
-//! A schema whose `typeName` is not bundled is inserted verbatim.
+//! A schema whose `typeName` is not bundled is inserted into the schema store,
+//! extending schema validation to that type. Note this only affects the schema
+//! validator: it does not register the type with the rule engine, so a wholly
+//! unknown resource type is still reported as unknown (`F3006`). Overlays are
+//! therefore intended primarily to extend or override *already-bundled* types.
 
 use crate::compiled::{CompiledSchema, PropSchema};
 use serde_json::Value;
@@ -45,14 +49,28 @@ pub(crate) fn compile(type_name: &str, raw: &Value) -> CompiledSchema {
 /// Deep-merge an overlay [`CompiledSchema`] into an existing bundled schema in
 /// place. See the module docs for the merge semantics.
 pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
-    // Merge definitions first so property `$ref`s below can be resolved against
-    // the combined (bundled + overlay) definition set.
-    let base_defs = base.definitions.clone();
+    // Merge definitions before properties so property `$ref`s resolve against the
+    // combined (bundled + overlay) definition set. Two passes so a definition that
+    // is itself a `$ref` to another definition the overlay also updates is inlined
+    // against the *merged* target rather than a stale one: pass 1 inserts new
+    // definitions and merges non-`$ref` (leaf) ones; pass 2 merges the `$ref`-based
+    // definitions against that merged set.
+    let defs_before = base.definitions.clone();
+    let mut deferred_defs = Vec::new();
     for (name, def) in overlay.definitions {
         match base.definitions.get_mut(&name) {
-            Some(existing) => merge_prop(existing, def, &base_defs),
+            Some(existing) if existing.ref_name.is_some() => deferred_defs.push((name, def)),
+            Some(existing) => merge_prop(existing, def, &defs_before),
             None => {
                 base.definitions.insert(name, def);
+            }
+        }
+    }
+    if !deferred_defs.is_empty() {
+        let merged_leaves = base.definitions.clone();
+        for (name, def) in deferred_defs {
+            if let Some(existing) = base.definitions.get_mut(&name) {
+                merge_prop(existing, def, &merged_leaves);
             }
         }
     }
@@ -123,19 +141,16 @@ fn merge_prop(base: &mut PropSchema, overlay: PropSchema, defs: &HashMap<String,
         return;
     }
 
-    // If the base is a `$ref` and the overlay adds an inline shape, keeping the
-    // ref would ignore the overlay, but simply dropping it would silently discard
-    // the referenced definition's constraints. Inline the referenced definition
-    // first (so its constraints are preserved), then apply the overlay on top. If
-    // the definition can't be resolved, drop the dangling ref so the overlay's
-    // fields still take effect.
-    let overlay_has_inline_shape =
-        !overlay.properties.is_empty() || overlay.prop_type.is_some() || overlay.items.is_some();
-    if let Some(ref_name) = base.ref_name.clone()
-        && overlay_has_inline_shape
-    {
+    // The overlay is inline here (a `$ref` overlay returned above). If the base is
+    // a `$ref`, keeping it would make `resolve()` follow the ref and ignore every
+    // overlay field, so inline the referenced definition (fully resolved) first —
+    // preserving its constraints — then apply the overlay on top. This must happen
+    // for *any* inline overlay, including constraints-only ones (enum, pattern,
+    // bounds, ...), not just those adding properties/type/items. If the ref can't
+    // be resolved, drop it so the overlay's fields still take effect.
+    if let Some(ref_name) = base.ref_name.clone() {
         match defs.get(&ref_name) {
-            Some(def) => *base = def.clone(),
+            Some(def) => *base = def.resolve(defs).clone(),
             None => base.ref_name = None,
         }
     }
@@ -143,9 +158,12 @@ fn merge_prop(base: &mut PropSchema, overlay: PropSchema, defs: &HashMap<String,
     if overlay.prop_type.is_some() {
         base.prop_type = overlay.prop_type;
     }
-    // Enum values on the overlay replace the bundled enum for this property path.
-    if !overlay.enum_values.is_empty() {
+    // The two enum forms are a unit ("either this or `enum_values`, never both"):
+    // a supplied enum, case-sensitive or -insensitive, replaces both bundled lists
+    // for this property path so the other check can't keep firing.
+    if !overlay.enum_values.is_empty() || !overlay.enum_case_insensitive.is_empty() {
         base.enum_values = overlay.enum_values;
+        base.enum_case_insensitive = overlay.enum_case_insensitive;
     }
     if !overlay.not_enum.is_empty() {
         base.not_enum = overlay.not_enum;
@@ -180,8 +198,8 @@ fn merge_prop(base: &mut PropSchema, overlay: PropSchema, defs: &HashMap<String,
     if overlay.max_items.is_some() {
         base.max_items = overlay.max_items;
     }
-    if overlay.unique_items {
-        base.unique_items = true;
+    if overlay.unique_items.is_some() {
+        base.unique_items = overlay.unique_items;
     }
     if overlay.min_properties.is_some() {
         base.min_properties = overlay.min_properties;
@@ -381,7 +399,7 @@ mod tests {
         assert_eq!(p.exclusive_maximum, Some(99.0));
         assert_eq!(p.min_items, Some(1));
         assert_eq!(p.max_items, Some(5));
-        assert!(p.unique_items, "unique_items must be overridden to true");
+        assert!(p.unique_items == Some(true), "unique_items must be overridden to true");
         assert_eq!(p.min_properties, Some(1));
         assert_eq!(p.max_properties, Some(3));
         assert_eq!(p.format.as_deref(), Some("uri"));
@@ -623,5 +641,78 @@ mod tests {
         assert!(p.properties.contains_key("A"), "the referenced definition's property must be preserved");
         assert!(p.properties.contains_key("B"), "the overlay property must be merged in");
         assert_eq!(p.required, vec!["A".to_string()], "the referenced definition's `required` must be preserved");
+    }
+
+    #[test]
+    fn merge_constraints_only_overlay_on_ref_applies() {
+        // An overlay that supplies only a constraint (no type/properties/items) on
+        // a `$ref` property must still take effect (the ref gets inlined).
+        let mut base = compile(
+            "T",
+            &json!({
+                "properties": { "Mode": { "$ref": "#/definitions/ModeType" } },
+                "definitions": { "ModeType": { "type": "string", "enum": ["A", "B"] } }
+            }),
+        );
+        let overlay = compile("T", &json!({ "properties": { "Mode": { "enum": ["A", "B", "C"] } } }));
+        merge_into(&mut base, overlay);
+        let m = &base.properties["Mode"];
+        assert!(m.ref_name.is_none(), "the $ref must be inlined so the constraint-only overlay applies");
+        let vals: Vec<&str> = m.enum_values.iter().filter_map(|v| v.as_str()).collect();
+        assert_eq!(vals, vec!["A", "B", "C"], "the overlay enum must be applied to the inlined property");
+    }
+
+    #[test]
+    fn merge_cross_definition_resolves_against_combined_set() {
+        // `Config` is a $ref to `Common`; the overlay updates BOTH (adds `required`
+        // to Common, updates Config inline). Config must inline the *merged* Common.
+        let mut base = compile(
+            "T",
+            &json!({
+                "definitions": {
+                    "Config": { "$ref": "#/definitions/Common" },
+                    "Common": { "type": "object", "properties": { "A": { "type": "string" } } }
+                }
+            }),
+        );
+        let overlay = compile(
+            "T",
+            &json!({
+                "definitions": {
+                    "Common": { "type": "object", "properties": { "A": { "type": "string" } }, "required": ["A"] },
+                    "Config": { "type": "object", "properties": { "B": { "type": "string" } } }
+                }
+            }),
+        );
+        merge_into(&mut base, overlay);
+        let config = &base.definitions["Config"];
+        assert!(config.ref_name.is_none(), "Config's $ref must be inlined");
+        assert_eq!(config.required, vec!["A".to_string()], "must inline the merged Common (with its new `required`)");
+        assert!(config.properties.contains_key("B"), "the overlay's inline Config update must apply");
+    }
+
+    #[test]
+    fn merge_replaces_both_enum_forms() {
+        // A plain-enum overlay on a case-insensitively-bundled property must clear
+        // the bundled case-insensitive list so it can't keep firing W3030.
+        let mut base = compile(
+            "T",
+            &json!({ "properties": { "Act": { "type": "string", "enumCaseInsensitive": ["allow", "deny"] } } }),
+        );
+        let overlay =
+            compile("T", &json!({ "properties": { "Act": { "type": "string", "enum": ["allow", "deny", "log"] } } }));
+        merge_into(&mut base, overlay);
+        let a = &base.properties["Act"];
+        let vals: Vec<&str> = a.enum_values.iter().filter_map(|v| v.as_str()).collect();
+        assert_eq!(vals, vec!["allow", "deny", "log"], "overlay enum must replace the bundled enum");
+        assert!(a.enum_case_insensitive.is_empty(), "the bundled case-insensitive enum must be cleared");
+    }
+
+    #[test]
+    fn merge_unique_items_false_overrides_true() {
+        let mut base = compile("T", &json!({ "properties": { "Arr": { "type": "array", "uniqueItems": true } } }));
+        let overlay = compile("T", &json!({ "properties": { "Arr": { "type": "array", "uniqueItems": false } } }));
+        merge_into(&mut base, overlay);
+        assert_eq!(base.properties["Arr"].unique_items, Some(false), "an explicit false must override a bundled true");
     }
 }

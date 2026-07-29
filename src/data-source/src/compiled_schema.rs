@@ -120,8 +120,8 @@ struct PropSchema {
     min_items: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     max_items: Option<u64>,
-    #[serde(default, skip_serializing_if = "skip_false")]
-    unique_items: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    unique_items: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     min_properties: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -150,9 +150,6 @@ struct PropSchema {
     dependent_required: BTreeMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     dependent_excluded: BTreeMap<String, Vec<String>>,
-}
-fn skip_false(b: &bool) -> bool {
-    !b
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -335,7 +332,7 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
         max_length: obj.get("maxLength").and_then(|v| v.as_u64()),
         min_items: obj.get("minItems").and_then(|v| v.as_u64()),
         max_items: obj.get("maxItems").and_then(|v| v.as_u64()),
-        unique_items: obj.get("uniqueItems").and_then(|v| v.as_bool()).unwrap_or(false),
+        unique_items: obj.get("uniqueItems").and_then(|v| v.as_bool()),
         min_properties: obj.get("minProperties").and_then(|v| v.as_u64()),
         max_properties: obj.get("maxProperties").and_then(|v| v.as_u64()),
         format: obj.get("format").and_then(|v| v.as_str()).map(String::from),

@@ -1301,7 +1301,7 @@ fn validate_prop(
         }
     }
 
-    if schema.unique_items {
+    if schema.unique_items == Some(true) {
         for (val, conds) in &scenarios {
             if !is_satisfiable(m, conds) || val.is_null() {
                 continue;

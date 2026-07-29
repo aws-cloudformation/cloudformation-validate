@@ -138,6 +138,12 @@ pub struct EngineConfig {
     /// values replace the bundled enum for that property path. This lets templates
     /// that use pre-GA CloudFormation properties — not yet in the published
     /// registry — validate without false `F3002`/`W3030` violations.
+    ///
+    /// Overlays affect **schema validation only**. They do not register new
+    /// resource types with, or expand the schema-derived tables of, the rule
+    /// engine, so engine-side checks such as `F3006` (unknown resource type) and
+    /// region-availability are unaffected. Overlays are therefore intended to
+    /// extend or override already-bundled resource types.
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub additional_schemas: Vec<AdditionalSchemaSource>,
@@ -157,6 +163,41 @@ pub struct AdditionalSchemaSource {
     /// The complete resource provider schema as a JSON string, in the standard
     /// CloudFormation registry format.
     pub schema: String,
+}
+
+/// Detect a cycle among "pure `$ref`" definitions — a definition whose entire
+/// body is `{ "$ref": "#/definitions/X" }`. Such a chain is exactly what
+/// `PropSchema::resolve` follows, so a cycle here would recurse unboundedly and
+/// must be rejected before the overlay reaches the store. Definitions that merely
+/// *contain* nested `$ref`s (legitimate recursive structures) are not edges and
+/// are left alone. Returns a short description of an offending node when a cycle
+/// is found.
+fn pure_ref_cycle(schema: &serde_json::Value) -> Option<String> {
+    let defs = schema.get("definitions").and_then(|v| v.as_object())?;
+    fn pure_ref_target(def: &serde_json::Value) -> Option<&str> {
+        let obj = def.as_object()?;
+        if obj.len() != 1 {
+            return None;
+        }
+        obj.get("$ref")?.as_str()?.strip_prefix("#/definitions/")
+    }
+    for start in defs.keys() {
+        let mut seen = std::collections::HashSet::new();
+        let mut cur = start.clone();
+        loop {
+            if !seen.insert(cur.clone()) {
+                return Some(format!("involving '{cur}'"));
+            }
+            let Some(def) = defs.get(&cur) else {
+                break;
+            };
+            match pure_ref_target(def) {
+                Some(next) => cur = next.to_string(),
+                None => break,
+            }
+        }
+    }
+    None
 }
 
 impl AdditionalSchemaSource {
@@ -189,6 +230,11 @@ impl AdditionalSchemaSource {
                 "Additional schema is missing a resource type name (no explicit typeName and none in the schema)"
                     .to_string(),
             );
+        }
+        if let Some(cycle) = pure_ref_cycle(&schema) {
+            return Err(format!(
+                "Invalid additional schema for '{type_name}': cyclic $ref chain in definitions ({cycle})"
+            ));
         }
         Ok((type_name, schema))
     }
@@ -1077,6 +1123,41 @@ mod tests {
         let src = AdditionalSchemaSource { type_name: "AWS::Lambda::Function".into(), schema: "42".into() };
         let err = src.resolve().expect_err("non-object schema must fail");
         assert!(err.contains("expected a JSON object"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_direct_ref_cycle() {
+        let src = AdditionalSchemaSource {
+            type_name: "AWS::Test::Cycle".into(),
+            schema:
+                r##"{"properties":{"P":{"$ref":"#/definitions/D"}},"definitions":{"D":{"$ref":"#/definitions/D"}}}"##
+                    .into(),
+        };
+        let err = src.resolve().expect_err("a self-referential $ref must be rejected");
+        assert!(err.contains("cyclic $ref"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_indirect_ref_cycle() {
+        let src = AdditionalSchemaSource {
+            type_name: "AWS::Test::Cycle2".into(),
+            schema: r##"{"definitions":{"D":{"$ref":"#/definitions/E"},"E":{"$ref":"#/definitions/D"}}}"##.into(),
+        };
+        let err = src.resolve().expect_err("a mutual $ref cycle must be rejected");
+        assert!(err.contains("cyclic $ref"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn additional_schema_resolve_allows_recursive_object_structure() {
+        // A definition that merely *contains* a self-$ref (a legitimate recursive
+        // structure) must be accepted — only pure-$ref chains are cycles.
+        let src = AdditionalSchemaSource {
+            type_name: "AWS::Test::Tree".into(),
+            schema:
+                r##"{"definitions":{"Node":{"type":"object","properties":{"child":{"$ref":"#/definitions/Node"}}}}}"##
+                    .into(),
+        };
+        assert!(src.resolve().is_ok(), "a recursive object structure must be accepted");
     }
 
     #[test]
