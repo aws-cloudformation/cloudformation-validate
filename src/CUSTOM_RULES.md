@@ -1,65 +1,158 @@
 # Custom Rules Reference
 
+Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run only in `CelEngine`, Rego rules
+run only in `RegoEngine`, and Guard rules are translated for either engine.
+
 ## Rule IDs and Severity
 
-Every custom rule — CEL, Rego, or Guard — is identified by a **rule ID** and carries a
-**severity**. These apply to all three formats:
+Every custom rule is identified by a **rule ID** and carries a **severity**:
 
-- **Rule IDs are yours to choose.** A custom rule ID does **not** need to follow the
-  built-in `[FEWID]NNNN` convention. It may be any non-empty string of ASCII letters,
-  digits, and the separators `_`, `.`, and `-` (for example `CUSTOM001`, `myRule1`,
-  `check_bucket_encryption`, `s3.encryption-required`). Whitespace and other punctuation
-  are rejected at load time so IDs stay well-behaved for display, filtering, and
-  de-duplication. The severity prefix of a built-in ID (`F`/`E`/`W`/`I`/`D`) has **no
-  meaning** for a custom ID — a rule named `Firewall` is not promoted to Fatal.
-- **Severity is honored verbatim.** The severity you declare is the severity reported.
-  CEL and Rego rules must declare one of `FATAL`, `ERROR`, `WARN`, `INFO`, or `DEBUG`.
-  Guard rules cannot express a severity, so they always report `ERROR`.
-- **Filtering works on any ID.** Custom rules are subject to the same include/exclude
-  filters as built-ins. Exact-ID filters (`--include-ids`/`--exclude-ids`), category
-  filters, and (in the library/bindings) regex `id_patterns` all match arbitrary IDs.
-  Numeric-range filters (`--include-range`/`--exclude-range`) only match IDs whose suffix
-  is a plain number after a shared prefix, so they are best suited to convention-style
-  IDs; use exact-ID or pattern filters for free-form IDs.
+- **Rule IDs are yours to choose.** A custom rule ID does **not** need to follow the built-in `[FEWID]NNNN`
+  convention. It may be any non-empty string of ASCII letters, digits, and the separators `_`, `.`, and `-` (for
+  example `CUSTOM001`, `myRule1`, `check_bucket_encryption`, or `s3.encryption-required`). Whitespace and other
+  punctuation are rejected. A built-in-style prefix has no effect on a custom rule's severity.
+- **Severity is reported as declared.** CEL JSON uses `FATAL`, `ERROR`, `WARN`, `INFO`, or `DEBUG`. Rego diagnostics
+  accept those values case-insensitively, although uppercase is recommended. Guard cannot declare severity, so Guard
+  findings always report `ERROR`.
+- **Filtering works with any valid ID.** Exact-ID filters, category filters, and library/binding `id_patterns` match
+  arbitrary IDs. Numeric-range filters only match IDs whose suffix is a plain number after a shared prefix; use an
+  exact-ID or pattern filter for free-form IDs.
+
+## Shared Template Input Model
+
+Rego receives this model as `input`. CEL exposes every top-level key as a global variable. Serialized field names use
+`camelCase`.
+
+| Top-level key                   | Type | Content                                                                                                                                          |
+|---------------------------------|------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `template`                      | map  | `formatVersion`, `description`, `transforms`, and `rawTopLevelKeys`                                                                              |
+| `parameters`                    | map  | Parameters keyed by logical ID; each value includes `type`, `default`, `allowedValues`, `allowedPattern`, length/value constraints, and `noEcho` |
+| `conditions`                    | map  | Conditions keyed by name, with optional `expression`, `deps`, and `mutexWith`                                                                    |
+| `conditionParamRefs`            | list | Parameter IDs referenced by condition expressions                                                                                                |
+| `conditionImplications`         | list | `{antecedent, consequent}` condition implications                                                                                                |
+| `conditionMutexGroups`          | list | Mutually exclusive condition groups with their parameter and compared values                                                                     |
+| `conditionExclusions`           | list | Pairs of conditions that cannot both be true                                                                                                     |
+| `resourceConditionMap`          | map  | Resource logical ID to its gating condition name                                                                                                 |
+| `mappings`                      | map  | Template mappings                                                                                                                                |
+| `resources`                     | map  | Resolved resources keyed by logical ID                                                                                                           |
+| `outputs`                       | map  | Resolved outputs keyed by output name                                                                                                            |
+| `edges`                         | list | Reference graph edges                                                                                                                            |
+| `cycles`                        | list | Reference cycles, each represented by its logical IDs                                                                                            |
+| `outputEmptyJoins`              | list | Outputs whose value uses `Fn::Join` with an empty delimiter                                                                                      |
+| `samImplicitResources`          | list | Logical IDs generated implicitly by the SAM transform                                                                                            |
+| `globalsParamRefs`              | list | Parameter IDs referenced from SAM `Globals`                                                                                                      |
+| `isCdk`                         | bool | Whether the template appears to have been generated by AWS CDK                                                                                   |
+| `fnIfConditions`                | list | Condition names referenced by `Fn::If`                                                                                                           |
+| `findInMapNames`                | list | Mapping names referenced by `Fn::FindInMap`                                                                                                      |
+| `paramsReferencedInDefinitions` | list | Parameters referenced from other parameter definitions                                                                                           |
+| `hasDynamicFindinmapName`       | bool | Whether a `Fn::FindInMap` uses a computed mapping name                                                                                           |
+| `hasParseErrors`                | bool | Whether parsing produced a fatal defect and the model may be incomplete                                                                          |
+| `parsedRules`                   | list | CloudFormation `Rules` entries and their assertions                                                                                              |
+| `resolutionSources`             | list | `{resourceId, propertyPath, source}` records describing resolved-value origins                                                                   |
+
+The most commonly used nested shapes are:
+
+```text
+resources[logical_id] = {
+  resourceType, condition, dependsOn,
+  deletionPolicy, updateReplacePolicy, creationPolicy, updatePolicy,
+  properties, outgoingRefs, incomingRefs, ...
+}
+
+edges[] = {
+  source, sourcePath, target, kind,
+  attr?, conditionContext?
+}
+```
+
+Resolved properties retain markers when a value cannot be represented as one concrete literal. Use the Rego resolution
+builtins or CEL's `resolved_properties` binding when the distinction matters.
 
 ## CEL Rules (JSON)
 
-A JSON file with a `rules` array. Each rule's `expression` is a [CEL](https://cel.dev/) expression that fires when it evaluates to `true`.
+A CEL file is a JSON object with a `rules` array. Each rule's `expression` must evaluate to a boolean; the rule emits a
+diagnostic when the result is `true`.
 
 ### Schema
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `rule_id` | Yes | Unique identifier shown in diagnostics. Letters, digits, and `_`, `.`, `-` only (see [Rule IDs and Severity](#rule-ids-and-severity)) |
-| `severity` | Yes | `FATAL`, `ERROR`, `WARN`, `INFO`, or `DEBUG` — reported verbatim |
-| `expression` | Yes | CEL expression — fires when `true` |
-| `message` | Yes | Diagnostic message |
-| `resource_type` | No | Scope to a resource type (e.g. `AWS::S3::Bucket`). Omit for global rules. |
-| `category` | No | Category label for filtering |
-| `prop_path` | No | Property path for source location (e.g. `Properties.BucketEncryption`) |
-| `suggested_fix` | No | Remediation hint |
+| Field           | Required | Description                                                                                      |
+|-----------------|----------|--------------------------------------------------------------------------------------------------|
+| `rule_id`       | Yes      | Diagnostic ID; letters, digits, `_`, `.`, and `-` only                                           |
+| `severity`      | Yes      | `FATAL`, `ERROR`, `WARN`, `INFO`, or `DEBUG`                                                     |
+| `expression`    | Yes      | Non-empty CEL expression that must evaluate to a boolean                                         |
+| `message`       | Yes      | Non-empty diagnostic message; `{name}` is replaced with the logical ID for resource-scoped rules |
+| `resource_type` | No       | Evaluate once per resource of this type; omit to evaluate once for the whole template            |
+| `category`      | No       | Category label used by category filtering                                                        |
+| `prop_path`     | No       | Property path used for source location, such as `Properties.BucketEncryption`                    |
+| `suggested_fix` | No       | Remediation hint                                                                                 |
+
+Empty `rule_id`, `message`, or `expression` values, invalid IDs, compilation errors, and unknown function calls are
+rejected when the engine loads the rule file. At evaluation time, a non-boolean result or other CEL evaluation error is
+an engine error; it is not treated as a non-firing rule.
 
 ### Context Variables
 
-When `resource_type` is set, the expression runs once per matching resource:
+For a resource-scoped rule, these additional variables are available:
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `name` | string | Logical resource ID |
-| `resource` | map | Full resolved resource |
-| `properties` | map | Resolved properties |
-| `resolved_properties` | map | Properties with fully resolved intrinsic values |
+| Variable              | Type   | Description                                                                    |
+|-----------------------|--------|--------------------------------------------------------------------------------|
+| `name`                | string | Current resource's logical ID                                                  |
+| `resource`            | map    | Current entry from the shared `resources` map                                  |
+| `properties`          | map    | Current resource's serialized resolved properties                              |
+| `resolved_properties` | map    | Current resource's `ResolvedValue` properties converted directly to CEL values |
 
-Global variables (always available):
+Every key in [Shared Template Input Model](#shared-template-input-model) is also bound as a global CEL variable. A
+global
+rule has only those global variables; `name`, `resource`, `properties`, and `resolved_properties` are not bound.
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `resources` | map | All resources keyed by logical ID |
-| `parameters` | map | All parameters with type, default, constraints |
-| `conditions` | map | All conditions |
-| `outputs` | map | All outputs |
-| `mappings` | map | All mappings |
-| `template` | map | Template metadata (transforms, format version, description) |
+`resolved_properties` conversion is intentionally lossy when no single concrete value exists:
+
+| Resolved value           | CEL value                                          |
+|--------------------------|----------------------------------------------------|
+| Concrete, list, or map   | Recursively converted CEL value                    |
+| Enum                     | First concrete variant, or `null` if there is none |
+| Conditional              | True branch                                        |
+| Reference                | Target logical ID string                           |
+| Dynamic or typed-dynamic | `null`                                             |
+
+### Available CEL Functions and Macros
+
+The engine rejects calls to plain function names outside this list. Operators such as `==`, `in`, `!`, indexing, and
+field selection are CEL syntax and do not need to appear in the function allowlist.
+
+**Macros**
+
+| Name                       | Purpose                                                             |
+|----------------------------|---------------------------------------------------------------------|
+| `has`                      | Test field presence, for example `has(properties.BucketEncryption)` |
+| `all`                      | Require every list or map element to satisfy a predicate            |
+| `exists`                   | Require at least one element to satisfy a predicate                 |
+| `existsOne` / `exists_one` | Require exactly one element to satisfy a predicate                  |
+| `map`                      | Transform elements                                                  |
+| `filter`                   | Select elements that satisfy a predicate                            |
+
+**Standard functions**
+
+| Names                                                                                 | Purpose                                                           |
+|---------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| `contains`, `startsWith`, `endsWith`, `matches`                                       | String containment, prefix, suffix, and regular-expression checks |
+| `size`, `max`, `min`                                                                  | Collection/string size and extrema                                |
+| `string`, `bytes`, `double`, `int`, `uint`                                            | Type conversion                                                   |
+| `duration`, `timestamp`                                                               | Duration and timestamp construction                               |
+| `getFullYear`, `getMonth`, `getDayOfYear`, `getDayOfMonth`, `getDate`, `getDayOfWeek` | Timestamp date accessors                                          |
+| `getHours`, `getMinutes`, `getSeconds`, `getMilliseconds`                             | Timestamp time accessors                                          |
+
+These use the standard syntax and behavior provided by the embedded `cel-interpreter` runtime.
+
+**Custom extension**
+
+| Function | Signature               | Result                                                                                                                  |
+|----------|-------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `type`   | `type(value) -> string` | One of `list`, `map`, `int`, `uint`, `double`, `string`, `bytes`, `bool`, `duration`, `timestamp`, `null`, or `unknown` |
+
+`type` is a global function, not a receiver method. It is the only custom CEL function registered for customer rules.
+Names that appear in generated built-in expressions, such as `scenario_check` or `has_property`, are internal
+pseudo-functions and are **not** available to customer CEL rules.
 
 ### Example
 
@@ -71,7 +164,7 @@ Global variables (always available):
       "severity": "ERROR",
       "resource_type": "AWS::S3::Bucket",
       "expression": "!has(properties.BucketEncryption)",
-      "message": "S3 bucket must have encryption configured",
+      "message": "S3 bucket {name} must have encryption configured",
       "prop_path": "Properties.BucketEncryption",
       "suggested_fix": "Add BucketEncryption with SSEAlgorithm: aws:kms"
     },
@@ -79,10 +172,9 @@ Global variables (always available):
       "rule_id": "CUSTOM002",
       "severity": "WARN",
       "resource_type": "AWS::Lambda::Function",
-      "expression": "has(properties.Runtime) && properties.Runtime == 'python3.8'",
-      "message": "Lambda uses deprecated Python 3.8 runtime",
-      "prop_path": "Properties.Runtime",
-      "suggested_fix": "Upgrade to python3.12 or later"
+      "expression": "has(properties.Runtime) && type(properties.Runtime) == 'string' && properties.Runtime == 'python3.8'",
+      "message": "Lambda {name} uses deprecated Python 3.8",
+      "prop_path": "Properties.Runtime"
     },
     {
       "rule_id": "CUSTOM003",
@@ -98,9 +190,9 @@ Global variables (always available):
 
 ## Rego Rules
 
-A `.rego` file that declares a package and populates a `violation` set using diagnostic builtins.
-
-### Structure
+A `.rego` file declares a package and populates that package's `violation` set. The engine discovers every `package`
+line in each custom source and evaluates `data.<package>.violation`. All extensions below are registered globally and
+are called as bare functions, with no namespace prefix.
 
 ```rego
 package my_rules
@@ -115,55 +207,162 @@ violation contains v if {
 }
 ```
 
-1. Declare a `package`.
-2. Import `rego.v1`.
-3. Add elements to `violation` using `make_diag` builtins.
+Most resource paths passed to resolution and location functions start with `Properties.`, for example
+`"Properties.BucketName"`. The exceptions are explicitly property-name APIs: `has_property(name, "BucketName")` and
+the field list passed to `properties_scenarios` use bare top-level property names.
 
-### Input Model
+The engine disables strict builtin errors. A builtin invocation with an invalid argument type or a failed parse is
+therefore normally undefined rather than an engine-terminating error. Functions that deliberately use `false`, `null`,
+or an empty collection as their fallback are identified below. Rules should validate uncertain inputs before calling
+a typed builtin.
 
-| Path | Description |
-|------|-------------|
-| `input.resources[id].resourceType` | e.g. `"AWS::S3::Bucket"` |
-| `input.resources[id].properties` | Resolved property values |
-| `input.resources[id].condition` | Condition name (if conditional) |
-| `input.resources[id].dependsOn` | DependsOn targets |
-| `input.parameters` | Parameters with type, default, constraints |
-| `input.conditions` | Conditions with expression and dependencies |
-| `input.outputs` | Outputs with resolved values |
-| `input.mappings` | Mappings |
-| `input.template` | Template metadata (transforms, formatVersion, description) |
-| `input.edges` | Reference graph edges |
+### Diagnostic Output
 
-### Diagnostic Builtins
+The five diagnostic constructors return objects suitable for insertion into `violation`:
 
-| Builtin | Signature |
-|---------|-----------|
-| `make_diag` | `(rule_id, severity, resource_id, message)` |
-| `make_diag_at` | `(rule_id, severity, resource_id, prop_path, message)` |
-| `make_diag_full` | `(rule_id, severity, resource_id, prop_path, message, suggested_fix, doc_url)` |
-| `make_diag_related` | `(rule_id, severity, resource_id, prop_path, message, related_locations)` |
-| `make_diag_conditional` | `(rule_id, severity, resource_id, prop_path, message, conditions)` |
+| Builtin                 | Signature                                                                                                  | Additional output                                          |
+|-------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| `make_diag`             | `(rule_id, severity, resource_id, message) -> diagnostic`                                                  | Resource-level location                                    |
+| `make_diag_at`          | `(rule_id, severity, resource_id, property_path, message) -> diagnostic`                                   | Property path and location                                 |
+| `make_diag_full`        | `(rule_id, severity, resource_id, property_path, message, suggested_fix, documentation_url) -> diagnostic` | Fix and documentation URL; pass `""` to omit either string |
+| `make_diag_related`     | `(rule_id, severity, resource_id, property_path, message, related_locations) -> diagnostic`                | Related source locations                                   |
+| `make_diag_conditional` | `(rule_id, severity, resource_id, property_path, message, conditions) -> diagnostic`                       | Condition scenario                                         |
 
-Every emitted violation must supply a `rule_id` and a `severity`. The `rule_id` may be any
-string of letters, digits, and `_`, `.`, `-` (see [Rule IDs and Severity](#rule-ids-and-severity)),
-and the declared severity is reported verbatim. Severity is a string: `"FATAL"`, `"ERROR"`,
-`"WARN"`, `"INFO"`, `"DEBUG"`. Pass `""` for `resource_id` on template-level diagnostics. Pass
-`""` for optional string args to omit them.
+`related_locations` is an array of objects shaped as
+`{"resource": logical_id, "path": property_path?, "message": message?}`. `conditions` is a map from condition name
+to boolean. Pass `""` as `resource_id` for a template-level diagnostic.
 
-### Template Introspection Builtins
+A rule may also emit an object directly. Required fields are `rule_id`, `severity`, and `message`. Optional fields are
+`resource_id`, `resource_path`, `suggested_fix`, `documentation_url`, `category`, `condition_scenario`,
+`related_locations`, and `start_line`/`start_column`/`end_line`/`end_column`. When `resource_id` is present, the engine
+recomputes the source span from that resource and `resource_path`. A malformed violation object makes evaluation fail;
+it is not silently skipped.
 
-Called as bare functions (no namespace prefix). See the [rego-engine README](rego-engine/README.md) for the full list.
-Key ones:
+```rego
+v := {
+    "rule_id": "s3.encryption-required",
+    "severity": "ERROR",
+    "category": "security",
+    "message": "S3 bucket must have encryption configured",
+    "resource_id": name,
+    "resource_path": "Properties.BucketEncryption",
+}
+```
 
-| Builtin | Purpose |
-|---------|---------|
-| `resolve(resource_id, path)` | Resolve a property through intrinsics |
-| `has_property(resource_id, path)` | Check if a property exists |
-| `resources_of_type(type)` | Get all logical IDs of a resource type |
-| `is_dynamic(resource_id, path)` | Check if a property is unresolvable |
-| `schema_enum(resource_type, prop)` | Get allowed enum values |
+### Resolution and Value Access
 
-### Example
+| Builtin                           | Signature                                                      | Behavior                                                                                                                                                   |
+|-----------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `resolve`                         | `(resource_id, path) -> value`                                 | Deep-resolves a property. Chooses the first enum value and true conditional branch; references become target IDs; unresolved dynamic values are undefined. |
+| `resolve_preserving_conditionals` | `(resource_id, path) -> value`                                 | Resolves while retaining each conditional as `{"Fn::If": [condition, true_value, false_value]}`.                                                           |
+| `resolve_all`                     | `(resource_id, path) -> [value]`                               | Returns all concrete enum and conditional outcomes. References and dynamic values contribute no values.                                                    |
+| `resolve_scenarios`               | `(resource_id, path) -> [{value, conditions, path?}]`          | Returns values with their condition assignments. A `.{}.` path segment expands array indices and adds the concrete `path`.                                 |
+| `properties_scenarios`            | `(resource_id, [property_name]) -> [{properties, conditions}]` | Returns satisfiable property scenarios projected to the requested top-level fields; null fields are omitted.                                               |
+| `is_dynamic`                      | `(resource_id, path) -> bool`                                  | Whether the value or a nested value contains a dynamic value or unresolved reference; missing paths return `false`.                                        |
+| `is_from_parameter`               | `(resource_id, path) -> bool`                                  | Whether resolution originated from a parameter.                                                                                                            |
+| `is_from_intrinsic`               | `(resource_id, path) -> bool`                                  | Whether resolution originated from an intrinsic function.                                                                                                  |
+| `follow_ref`                      | `(resource_id, path) -> target_id`                             | Follows a `Ref`/`Fn::GetAtt` to its target; undefined when there is no reference.                                                                          |
+| `authored_form`                   | `(resource_id, path) -> value`                                 | Reconstructs a literal, `{"Ref": target}`, or `{"Fn::GetAtt": [target, attr]}`; undefined for absent or opaque functions.                                  |
+| `resolve_type`                    | `(resource_id, path) -> string`                                | Returns `string`, `number`, `boolean`, `array`, `object`, `null`, `conditional`, `dynamic`, `reference`, or `enum`.                                        |
+| `flatten_list`                    | `(resource_id, path) -> [{value, index}]`                      | Flattens list, enum, and conditional alternatives into indexed items; a scalar becomes one item and a missing path returns `[]`.                           |
+
+Use `resolve_all` when only the possible values matter. Use `resolve_scenarios` when a diagnostic must retain the
+condition assignment and should be emitted with `make_diag_conditional`.
+
+### Resource and Graph Queries
+
+| Builtin              | Signature                                       | Behavior                                                                                           |
+|----------------------|-------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| `resources_of_type`  | `(resource_type) -> [resource_id]`              | Logical IDs whose `resourceType` matches; no matches return `[]`.                                  |
+| `get_resource`       | `(resource_id) -> resource`                     | Returns `{resourceType, condition, dependsOn, properties}` or undefined.                           |
+| `resolve_ref_target` | `(resource_id, path) -> resource`               | Follows a reference and returns the target's `{resourceType, condition, properties}` or undefined. |
+| `ref_targets`        | `(resource_id) -> [target_id]`                  | Outgoing reference targets.                                                                        |
+| `ref_sources`        | `(resource_id) -> [source_id]`                  | Incoming reference sources.                                                                        |
+| `depends_on`         | `(source_id, target_id) -> bool`                | Whether `target_id` is reachable transitively from `source_id` in the dependency/reference graph.  |
+| `edges_from`         | `(resource_id) -> [{target, kind, sourcePath}]` | Detailed outgoing graph edges.                                                                     |
+| `edges_to`           | `(resource_id) -> [{source, kind, sourcePath}]` | Detailed incoming graph edges.                                                                     |
+
+### Conditions and Property Presence
+
+| Builtin                   | Signature                                        | Behavior                                                                                                                            |
+|---------------------------|--------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| `conditions_compatible`   | `(resource_a, resource_b) -> bool`               | Whether both resources' gating conditions can be true simultaneously.                                                               |
+| `condition_implies`       | `(antecedent, consequent) -> bool`               | Whether the first condition being true forces the second true. A null antecedent returns `false`; a null consequent returns `true`. |
+| `conjunction_implies`     | `(guard1, guard2, target) -> bool`               | Whether two nullable guards together imply the nullable target. Null guards add no constraint; a null target returns `true`.        |
+| `resource_condition`      | `(resource_id) -> string or null`                | Resource's gating condition, or `null` when unconditional.                                                                          |
+| `is_satisfiable`          | `({condition_name: bool}) -> bool`               | Whether the condition assignment is satisfiable; an empty assignment returns `true`.                                                |
+| `unreachable_if_branches` | `(resource_id) -> [{resourceId, path, message}]` | Finds immediate `Fn::If` branches unreachable under surrounding conditions. `__output__<name>` addresses an output.                 |
+| `has_property`            | `(resource_id, property_name) -> bool`           | Whether the resource has the named top-level property. Use `"BucketName"`, not `"Properties.BucketName"`.                           |
+| `property_can_be_absent`  | `(resource_id, path) -> bool`                    | Whether the property is missing or can resolve to null/`AWS::NoValue` in a scenario.                                                |
+
+### Parameters and Template Metadata
+
+| Builtin                | Signature                                   | Behavior                                                                         |
+|------------------------|---------------------------------------------|----------------------------------------------------------------------------------|
+| `param_allowed_values` | `(parameter_name) -> [string]`              | Parameter `AllowedValues`; absent constraints or unknown parameters return `[]`. |
+| `param_type`           | `(parameter_name) -> string`                | Declared parameter type, or undefined.                                           |
+| `mapping_value`        | `(mapping, first_key, second_key) -> value` | Two-level mapping lookup, or undefined.                                          |
+| `has_transform`        | `(transform_name) -> bool`                  | Whether the template declares the transform.                                     |
+
+### Schema Introspection
+
+| Builtin                        | Signature                                                    | Behavior                                                                                |
+|--------------------------------|--------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `schema_properties`            | `(resource_type) -> [string]`                                | Schema-defined property names; unknown types return `[]`.                               |
+| `schema_required`              | `(resource_type) -> [string]`                                | Required property names; unknown types return `[]`.                                     |
+| `schema_type`                  | `(resource_type, property_name) -> string`                   | Schema type, or undefined.                                                              |
+| `schema_enum`                  | `(resource_type, property_name) -> [value]`                  | Allowed enum values; absent enum metadata returns `[]`.                                 |
+| `attribute_type`               | `(resource_type, attribute_name) -> string`                  | Schema metadata type for an attribute, or undefined.                                    |
+| `getatt_return_type`           | `(resource_type, attribute_name) -> string`                  | Known `Fn::GetAtt` return type; defaults to `string`.                                   |
+| `schema_string_length`         | `(resource_type, property_name) -> {minLength?, maxLength?}` | String length constraints, or undefined when none are known.                            |
+| `schema_requires_unique_items` | `(resource_type, property_name) -> bool`                     | Whether the property schema sets `uniqueItems: true`; missing metadata returns `false`. |
+
+### ARN and Network Utilities
+
+| Builtin                | Signature                            | Behavior                                                                                                               |
+|------------------------|--------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `arn_matches`          | `(arn, pattern) -> bool`             | Compares colon-delimited ARN parts; a pattern part equal to `*` matches any part. Malformed short ARNs return `false`. |
+| `arn_matches_format`   | `(resource_arn, format_arn) -> bool` | IAM-format-aware ARN matching with partition/region/account placeholders and resource-part wildcards.                  |
+| `ip_overlaps`          | `(cidr_a, cidr_b) -> bool`           | Whether either network contains the other's network address; invalid CIDR input is undefined.                          |
+| `ip_subnet_of`         | `(subnet, supernet) -> bool`         | Whether the first CIDR is within the second; mixed IP families return `false`, invalid input is undefined.             |
+| `is_valid_cidr_strict` | `(cidr) -> bool`                     | Whether the value parses as CIDR and has no host bits set; invalid input returns `false`.                              |
+
+### Region Utilities
+
+| Builtin                      | Signature                                                                            | Behavior                                                                                                                                   |
+|------------------------------|--------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `input_region`               | `() -> string or null`                                                               | Configured validation region, or `null` when none is configured.                                                                           |
+| `is_valid_region`            | `(region) -> bool`                                                                   | Whether the string is a known AWS region.                                                                                                  |
+| `region_flat_invalid`        | `(region_map, value) -> message`                                                     | For `{region: {enum: [...]}}` data, returns an invalid-value message for the configured region (or all-region union), otherwise undefined. |
+| `region_conditional_invalid` | `(region_map, target_property, normalize_engine_case, value, properties) -> message` | Evaluates conditional region enum data (`allOf` branches) and returns an invalid-value message, otherwise undefined.                       |
+
+The two `region_*_invalid` functions are advanced helpers for callers that supply schema-like regional enum maps; they
+do not fetch regional data themselves.
+
+### Coercion and Rendering Utilities
+
+| Builtin                 | Signature                        | Behavior                                                                                                                                             |
+|-------------------------|----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `coerce_to_number`      | `(value) -> number`              | Number or trimmed numeric string to integer/float; otherwise undefined.                                                                              |
+| `coerce_to_integer`     | `(value) -> integer`             | Integral number or integer string to integer; fractions and invalid values are undefined.                                                            |
+| `coerce_to_string`      | `(value) -> string`              | String, number, or boolean to string; other values are undefined.                                                                                    |
+| `coerce_port_to_string` | `(value) -> string`              | String or integer-valued JSON number to a port string; otherwise undefined.                                                                          |
+| `coerce_to_bool`        | `(value) -> bool`                | Boolean or recognized boolean string (`true`/`false`, `yes`/`no`, `on`/`off`, `y`/`n`, `1`/`0`, with supported case variants); otherwise undefined.  |
+| `cfn_type_compatible`   | `(value, expected_type) -> bool` | Checks compatibility with `string`, `integer`, `number`, `boolean`, `object`, `array`, or `null`, including CloudFormation numeric/boolean coercion. |
+| `ensure_list`           | `(value) -> [value]`             | Returns arrays unchanged and wraps every other value, including `null`, in an array.                                                                 |
+| `render_list`           | `(value) -> string`              | Human-readable rendering of a list, or of a scalar treated as a one-item list.                                                                       |
+| `render_value`          | `(value) -> string`              | Human-readable rendering of one value for diagnostic messages.                                                                                       |
+
+### Specialized Analysis Helpers
+
+| Builtin                          | Signature                                        | Behavior                                                                                                                 |
+|----------------------------------|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `hardcoded_azs`                  | `(resource_id, resource_type) -> [{path, zone}]` | Hardcoded Availability Zones found in the resource.                                                                      |
+| `pipeline_artifacts`             | `(resource_id) -> {issues: [{message}]}`         | Finds duplicate CodePipeline outputs and inputs that do not reference a previously defined output.                       |
+| `pipeline_artifact_count_issues` | `(resource_id) -> {issues: [{message}]}`         | Checks CodePipeline action input/output artifact counts, including conditional branches, against embedded action bounds. |
+| `estimate_string_length`         | `(resource_id, path) -> integer`                 | Estimated resolved length for literals and supported string intrinsics, or undefined.                                    |
+
+### Rego Example
 
 ```rego
 package encryption_rules
@@ -173,21 +372,25 @@ import rego.v1
 violation contains v if {
     some name, res in input.resources
     res.resourceType == "AWS::S3::Bucket"
-    not res.properties.BucketEncryption
-    v := make_diag_at("CUSTOM001", "ERROR", name,
+    not has_property(name, "BucketEncryption")
+    v := make_diag_at(
+        "CUSTOM001", "ERROR", name,
         "Properties.BucketEncryption",
-        "S3 bucket must have encryption configured")
+        "S3 bucket must have encryption configured",
+    )
 }
 
 violation contains v if {
     some name, res in input.resources
     res.resourceType == "AWS::Lambda::Function"
-    res.properties.Runtime == "python3.8"
-    v := make_diag_full("CUSTOM002", "WARN", name,
+    resolve(name, "Properties.Runtime") == "python3.8"
+    v := make_diag_full(
+        "CUSTOM002", "WARN", name,
         "Properties.Runtime",
         "Lambda uses deprecated Python 3.8 runtime",
         "Upgrade to python3.12 or later",
-        "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html")
+        "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
+    )
 }
 ```
 
@@ -195,38 +398,42 @@ violation contains v if {
 
 ## Guard DSL Rules
 
-[CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) declarative rules. Translated internally — works with both `RegoEngine` and `CelEngine`.
-
-The Guard `<rule_name>` becomes the diagnostic's rule ID. Guard rule names follow the Guard
-grammar (an ASCII letter followed by letters, digits, or `_`), which is within the allowed
-custom-ID character set. Guard DSL cannot express a severity, so every Guard rule reports
-`ERROR`.
+[CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) rules are translated
+internally and can run with either engine. The Guard rule name becomes the diagnostic ID. Guard names begin with an
+ASCII letter and continue with letters, digits, or `_`, which is within the custom-ID character set. Every Guard
+finding reports `ERROR`.
 
 ### Structure
 
-```
-rule <rule_name> {
-    <ResourceType> {
+```text
+rule <rule_name> [when <condition>] {
+    <ResourceType> [when <condition>] {
         <property_check>
         <<error message>>
     }
 }
 ```
 
+Access-check `when` conditions and nested `when` blocks are supported. Parameterized rule definitions and references
+to another named rule, including references inside `when`, are rejected at load time because translated rules must be
+self-contained; inline the referenced checks instead.
+
 ### Operators
 
-| Operator | Meaning |
-|----------|---------|
-| `==`, `!=` | Equality |
-| `>`, `>=`, `<`, `<=` | Numeric comparison |
-| `IN` | Value in list |
-| `NOT` | Negation |
-| `EXISTS` / `NOT EXISTS` | Property presence |
-| `IS_STRING`, `IS_LIST`, `IS_INT` | Type checks |
+| Operator                                    | Meaning                      |
+|---------------------------------------------|------------------------------|
+| `==`, `!=`                                  | Equality and inequality      |
+| `>`, `>=`, `<`, `<=`                        | Numeric comparison           |
+| `IN`                                        | Value in list                |
+| `EXISTS`, `NOT EXISTS`                      | Property presence or absence |
+| `EMPTY`, `NOT EMPTY`                        | Empty or non-empty value     |
+| `IS_STRING`, `IS_LIST`, `IS_MAP`, `IS_BOOL` | Type checks                  |
+| `IS_INT`, `IS_FLOAT`, `IS_NULL`             | Numeric and null type checks |
+| `NOT`                                       | Negates a supported check    |
 
 ### Example
 
-```
+```text
 rule s3_encryption {
     AWS::S3::Bucket {
         Properties.BucketEncryption EXISTS
@@ -240,22 +447,15 @@ rule s3_versioning {
         <<S3 bucket must have versioning enabled>>
     }
 }
-
-rule lambda_timeout {
-    AWS::Lambda::Function {
-        Properties.Timeout EXISTS
-        <<Lambda function should have an explicit timeout>>
-    }
-}
 ```
 
 ---
 
 ## Choosing a Format
 
-| | CEL (JSON) | Rego | Guard DSL |
-|---|---|---|---|
-| **Best for** | Property checks, data-driven rules | Complex cross-resource logic | Declarative compliance |
-| **Engine** | `CelEngine` | `RegoEngine` | Either |
-| **Template introspection** | Context variables | Full builtin library | Property checks only |
-| **Cross-resource** | Via `resources` global | Via `input.resources` + builtins | No |
+|                            | CEL (JSON)                                  | Rego                                         | Guard DSL                     |
+|----------------------------|---------------------------------------------|----------------------------------------------|-------------------------------|
+| **Best for**               | Property checks and data-driven predicates  | Complex resolution and cross-resource logic  | Declarative compliance checks |
+| **Engine**                 | `CelEngine`                                 | `RegoEngine`                                 | Either                        |
+| **Template introspection** | Shared model variables plus CEL functions   | Shared model plus all 67 custom builtins     | Translated property checks    |
+| **Cross-resource checks**  | Via `resources`, `edges`, and other globals | Via `input`, graph builtins, and SAT helpers | No cross-rule references      |
