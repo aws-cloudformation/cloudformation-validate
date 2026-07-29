@@ -904,17 +904,21 @@ fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
     assert_fires_on_resource(&diags, "F3031", "PermissionInvalidAccountId");
 }
 
-/// Issue #186: a lowercase Classic Load Balancer listener `Protocol` ('tcp')
+/// Issue #186: The Classic Load Balancer API normalizes listener protocol names to
+/// uppercase, so lowercase `tcp` is valid for both `Protocol` and
+/// `InstanceProtocol`. The fixture covers both properties to ensure their
+/// case-insensitive schema constraints do not produce enum warnings.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
-fn issue_186_lowercase_clb_protocol_does_not_warn() {
+fn issue_186_lowercase_clb_protocols_do_not_warn() {
     let diags = validate_both("issue-186-clb.json");
     assert_count(&diags, "W3030", 0);
 }
 
-/// Issue #186 (companion): an ImageBuilder pipeline workflow `OnFailure` of
-/// 'Abort' mismatches the schema enum (`CONTINUE`/`ABORT`) only by case and
-/// keeps the same open-world Warning treatment as the load-balancer protocol.
+/// Issue #186 (companion): case-insensitive enum matching is scoped to schema
+/// properties that opt in. ImageBuilder workflow `OnFailure` still declares
+/// exact uppercase values (`CONTINUE`/`ABORT`), so mixed-case `Abort` keeps its
+/// open-world enum warning.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
 fn issue_186_lowercase_imagebuilder_onfailure_keeps_enum_warning() {

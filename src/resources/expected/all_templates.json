@@ -2,7 +2,7 @@
   "bad/E1050_dynamic_ref_malformed.yaml": {
     "filePath": "bad/E1050_dynamic_ref_malformed.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -83,7 +83,7 @@
   "bad/E1150_network_interfaces_groupset_multi.yaml": {
     "filePath": "bad/E1150_network_interfaces_groupset_multi.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -243,7 +243,7 @@
   "bad/E3019_four_way_group.yaml": {
     "filePath": "bad/E3019_four_way_group.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -507,7 +507,7 @@
   "bad/E3699_authorizer_literal_and_param_rest_api.yaml": {
     "filePath": "bad/E3699_authorizer_literal_and_param_rest_api.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -774,7 +774,7 @@
   "bad/E3699_method_authorizer_rest_api_mismatch.yaml": {
     "filePath": "bad/E3699_method_authorizer_rest_api_mismatch.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -948,7 +948,7 @@
   "bad/E8007_condition_undefined_in_expr.yaml": {
     "filePath": "bad/E8007_condition_undefined_in_expr.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1001,7 +1001,7 @@
   "bad/E9001_unknown_resource_type.yaml": {
     "filePath": "bad/E9001_unknown_resource_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1044,7 +1044,7 @@
   "bad/E9106_condition_cycle.yaml": {
     "filePath": "bad/E9106_condition_cycle.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1097,7 +1097,7 @@
   "bad/F2002_ssm_parameter_type_invalid.yaml": {
     "filePath": "bad/F2002_ssm_parameter_type_invalid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1178,7 +1178,7 @@
   "bad/F3006_invalid_aws_namespaces.yaml": {
     "filePath": "bad/F3006_invalid_aws_namespaces.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -1322,7 +1322,7 @@
   "bad/W1019_sub_unused_key.yaml": {
     "filePath": "bad/W1019_sub_unused_key.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1404,7 +1404,7 @@
   "bad/W1028_allowedvalues_excludes_literal.yaml": {
     "filePath": "bad/W1028_allowedvalues_excludes_literal.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1467,7 +1467,7 @@
   "bad/W1051_secretsmanager_at_arn.yaml": {
     "filePath": "bad/W1051_secretsmanager_at_arn.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1527,7 +1527,7 @@
   "bad/W1053_dynref_spaces.yaml": {
     "filePath": "bad/W1053_dynref_spaces.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1609,7 +1609,7 @@
   "bad/W1054_raw_pseudo_param.yaml": {
     "filePath": "bad/W1054_raw_pseudo_param.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -1731,7 +1731,7 @@
   "bad/W3010_full_coverage.yaml": {
     "filePath": "bad/W3010_full_coverage.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -2464,7 +2464,7 @@
   "bad/W3030_enum_case_insensitive_mismatch.yaml": {
     "filePath": "bad/W3030_enum_case_insensitive_mismatch.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -2556,7 +2556,7 @@
   "bad/W9053_equivalent_conditions.yaml": {
     "filePath": "bad/W9053_equivalent_conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -2627,7 +2627,7 @@
   "bad/aurora_with_allocated_storage.yaml": {
     "filePath": "bad/aurora_with_allocated_storage.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -2755,7 +2755,7 @@
   "bad/cloudfront_bad_alias.yaml": {
     "filePath": "bad/cloudfront_bad_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -2814,7 +2814,7 @@
   "bad/cloudfront_bad_origin.yaml": {
     "filePath": "bad/cloudfront_bad_origin.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -2874,7 +2874,7 @@
   "bad/codepipeline_bad_artifact_counts.yaml": {
     "filePath": "bad/codepipeline_bad_artifact_counts.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -2971,7 +2971,7 @@
   "bad/codepipeline_bad_artifacts.yaml": {
     "filePath": "bad/codepipeline_bad_artifacts.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -3086,7 +3086,7 @@
   "bad/conditions.yaml": {
     "filePath": "bad/conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -3704,7 +3704,7 @@
   "bad/conditions/and.yaml": {
     "filePath": "bad/conditions/and.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -3966,7 +3966,7 @@
   "bad/conditions/condition_functions.json": {
     "filePath": "bad/conditions/condition_functions.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -4564,7 +4564,7 @@
   "bad/conditions/equals.yaml": {
     "filePath": "bad/conditions/equals.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -4885,7 +4885,7 @@
   "bad/conditions/equals_not_useful.yaml": {
     "filePath": "bad/conditions/equals_not_useful.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -5026,7 +5026,7 @@
   "bad/conditions/properties_fn_if.json": {
     "filePath": "bad/conditions/properties_fn_if.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -5146,7 +5146,7 @@
   "bad/core/conditions.yaml": {
     "filePath": "bad/core/conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -5858,7 +5858,7 @@
   "bad/core/conditions_list.yaml": {
     "filePath": "bad/core/conditions_list.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -5905,7 +5905,7 @@
   "bad/core/conditions_missing.yaml": {
     "filePath": "bad/core/conditions_missing.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -5969,7 +5969,7 @@
   "bad/core/config_configure_e3012.yaml": {
     "filePath": "bad/core/config_configure_e3012.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -6050,7 +6050,7 @@
   "bad/core/config_invalid_json.json": {
     "filePath": "bad/core/config_invalid_json.json",
     "status": "ERROR",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -6083,7 +6083,7 @@
   "bad/core/config_invalid_yaml.yaml": {
     "filePath": "bad/core/config_invalid_yaml.yaml",
     "status": "ERROR",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -6116,7 +6116,7 @@
   "bad/core/config_parameters.yaml": {
     "filePath": "bad/core/config_parameters.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -6149,7 +6149,7 @@
   "bad/core/directives.yaml": {
     "filePath": "bad/core/directives.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -6529,7 +6529,7 @@
   "bad/core/mandatory_checks.yaml": {
     "filePath": "bad/core/mandatory_checks.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -6909,7 +6909,7 @@
   "bad/core/parse_invalid_map.yaml": {
     "filePath": "bad/core/parse_invalid_map.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -7075,7 +7075,7 @@
   "bad/core/sections_not_objects.yaml": {
     "filePath": "bad/core/sections_not_objects.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -7137,7 +7137,7 @@
   "bad/cross_resource_task10.yaml": {
     "filePath": "bad/cross_resource_task10.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -7940,7 +7940,7 @@
   "bad/deprecated_type.yaml": {
     "filePath": "bad/deprecated_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -8018,7 +8018,7 @@
   "bad/duplicate.json": {
     "filePath": "bad/duplicate.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -8139,7 +8139,7 @@
   "bad/duplicate.yaml": {
     "filePath": "bad/duplicate.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -8237,7 +8237,7 @@
   "bad/duplicate_primary_id.yaml": {
     "filePath": "bad/duplicate_primary_id.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -8379,7 +8379,7 @@
   "bad/duplicate_primary_id_multi.yaml": {
     "filePath": "bad/duplicate_primary_id_multi.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -8485,7 +8485,7 @@
   "bad/dynamodb_attribute_mismatch.yaml": {
     "filePath": "bad/dynamodb_attribute_mismatch.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -8603,7 +8603,7 @@
   "bad/dynamodb_prod_no_kms.yaml": {
     "filePath": "bad/dynamodb_prod_no_kms.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -8663,7 +8663,7 @@
   "bad/dynamodb_provisioned_no_throughput.yaml": {
     "filePath": "bad/dynamodb_provisioned_no_throughput.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -8781,7 +8781,7 @@
   "bad/ecr_policy_no_statement.yaml": {
     "filePath": "bad/ecr_policy_no_statement.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -8841,7 +8841,7 @@
   "bad/ecs_awsvpc_port_mismatch.yaml": {
     "filePath": "bad/ecs_awsvpc_port_mismatch.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -8947,7 +8947,7 @@
   "bad/ecs_dynamic_port_no_traffic.yaml": {
     "filePath": "bad/ecs_dynamic_port_no_traffic.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -9172,7 +9172,7 @@
   "bad/ecs_fargate_mismatch.yaml": {
     "filePath": "bad/ecs_fargate_mismatch.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -9369,7 +9369,7 @@
   "bad/ecs_role_no_boundary.yaml": {
     "filePath": "bad/ecs_role_no_boundary.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -9520,7 +9520,7 @@
   "bad/elb_http_443.yaml": {
     "filePath": "bad/elb_http_443.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -9620,7 +9620,7 @@
   "bad/empty_file.yaml": {
     "filePath": "bad/empty_file.yaml",
     "status": "ERROR",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -9653,7 +9653,7 @@
   "bad/equals_wrong_arity.yaml": {
     "filePath": "bad/equals_wrong_arity.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -9729,7 +9729,7 @@
   "bad/fargate_bad_cpu_memory.yaml": {
     "filePath": "bad/fargate_bad_cpu_memory.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -9933,7 +9933,7 @@
   "bad/fargate_daemon.yaml": {
     "filePath": "bad/fargate_daemon.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -10240,7 +10240,7 @@
   "bad/findinmap_bad.yaml": {
     "filePath": "bad/findinmap_bad.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -10300,7 +10300,7 @@
   "bad/formatters.yaml": {
     "filePath": "bad/formatters.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -10437,7 +10437,7 @@
   "bad/functions/findinmap_default_value_no_transform.yaml": {
     "filePath": "bad/functions/findinmap_default_value_no_transform.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -10496,7 +10496,7 @@
   "bad/functions/foreach_no_transform.yaml": {
     "filePath": "bad/functions/foreach_no_transform.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -10588,7 +10588,7 @@
   "bad/functions/get_stack_output.json": {
     "filePath": "bad/functions/get_stack_output.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -10764,7 +10764,7 @@
   "bad/functions/get_stack_output.yaml": {
     "filePath": "bad/functions/get_stack_output.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -11015,7 +11015,7 @@
   "bad/functions/import_value.yaml": {
     "filePath": "bad/functions/import_value.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -11137,7 +11137,7 @@
   "bad/functions/length_no_transform.yaml": {
     "filePath": "bad/functions/length_no_transform.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -11251,7 +11251,7 @@
   "bad/functions/relationship_conditions.yaml": {
     "filePath": "bad/functions/relationship_conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -11554,7 +11554,7 @@
   "bad/functions/sub_needed.yaml": {
     "filePath": "bad/functions/sub_needed.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -11952,7 +11952,7 @@
   "bad/functions/tojsonstring_no_transform.yaml": {
     "filePath": "bad/functions/tojsonstring_no_transform.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -12048,7 +12048,7 @@
   "bad/functions_base64.yaml": {
     "filePath": "bad/functions_base64.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -12169,7 +12169,7 @@
   "bad/functions_getaz.yaml": {
     "filePath": "bad/functions_getaz.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -12643,7 +12643,7 @@
   "bad/functions_join.yaml": {
     "filePath": "bad/functions_join.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -12795,7 +12795,7 @@
   "bad/functions_ref.yaml": {
     "filePath": "bad/functions_ref.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -13450,7 +13450,7 @@
   "bad/functions_select.yaml": {
     "filePath": "bad/functions_select.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -13904,7 +13904,7 @@
   "bad/generic.yaml": {
     "filePath": "bad/generic.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 19,
       "counts": {
@@ -15513,7 +15513,7 @@
   "bad/getatt_object_attribute_member.yaml": {
     "filePath": "bad/getatt_object_attribute_member.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -15593,7 +15593,7 @@
   "bad/hard_coded_arn_properties.yaml": {
     "filePath": "bad/hard_coded_arn_properties.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -15779,7 +15779,7 @@
   "bad/hardcoded_partition.yaml": {
     "filePath": "bad/hardcoded_partition.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -15902,7 +15902,7 @@
   "bad/iam_bad_statement.yaml": {
     "filePath": "bad/iam_bad_statement.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -15942,7 +15942,7 @@
   "bad/iam_ref_with_path.yaml": {
     "filePath": "bad/iam_ref_with_path.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -16045,7 +16045,7 @@
   "bad/iam_wildcard_all_types.yaml": {
     "filePath": "bad/iam_wildcard_all_types.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -16123,7 +16123,7 @@
   "bad/if_wrong_arity.yaml": {
     "filePath": "bad/if_wrong_arity.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16222,7 +16222,7 @@
   "bad/invalid_deletion_policy.yaml": {
     "filePath": "bad/invalid_deletion_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16298,7 +16298,7 @@
   "bad/invalid_mapping_structure.yaml": {
     "filePath": "bad/invalid_mapping_structure.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16374,7 +16374,7 @@
   "bad/invalid_update_replace_policy.yaml": {
     "filePath": "bad/invalid_update_replace_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16450,7 +16450,7 @@
   "bad/issues.yaml": {
     "filePath": "bad/issues.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16580,7 +16580,7 @@
   "bad/json_parse.json": {
     "filePath": "bad/json_parse.json",
     "status": "ERROR",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -16613,7 +16613,7 @@
   "bad/lambda_image_handler_intrinsic.yaml": {
     "filePath": "bad/lambda_image_handler_intrinsic.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16714,7 +16714,7 @@
   "bad/lambda_no_snapstart.yaml": {
     "filePath": "bad/lambda_no_snapstart.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16797,7 +16797,7 @@
   "bad/lambda_permission_no_source_account.yaml": {
     "filePath": "bad/lambda_permission_no_source_account.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -16944,7 +16944,7 @@
   "bad/lambda_snapstart_bad_runtime.yaml": {
     "filePath": "bad/lambda_snapstart_bad_runtime.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17044,7 +17044,7 @@
   "bad/lambda_snapstart_no_version.yaml": {
     "filePath": "bad/lambda_snapstart_no_version.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17104,7 +17104,7 @@
   "bad/lambda_sqs_timeout.yaml": {
     "filePath": "bad/lambda_sqs_timeout.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -17287,7 +17287,7 @@
   "bad/lambda_zip_no_handler.yaml": {
     "filePath": "bad/lambda_zip_no_handler.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17369,7 +17369,7 @@
   "bad/lambda_zipfile_java.yaml": {
     "filePath": "bad/lambda_zipfile_java.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17488,7 +17488,7 @@
   "bad/mappings/name.yaml": {
     "filePath": "bad/mappings/name.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -17539,7 +17539,7 @@
   "bad/mappings/used.yaml": {
     "filePath": "bad/mappings/used.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17663,7 +17663,7 @@
   "bad/module_with_tags.yaml": {
     "filePath": "bad/module_with_tags.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17702,7 +17702,7 @@
   "bad/modules/bad_has_create_policy.yaml": {
     "filePath": "bad/modules/bad_has_create_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17741,7 +17741,7 @@
   "bad/modules/bad_has_tags.yaml": {
     "filePath": "bad/modules/bad_has_tags.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17780,7 +17780,7 @@
   "bad/modules/bad_has_update_policy.yaml": {
     "filePath": "bad/modules/bad_has_update_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17819,7 +17819,7 @@
   "bad/modules/bad_uses_module_metadata.yaml": {
     "filePath": "bad/modules/bad_uses_module_metadata.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -17838,7 +17838,7 @@
   "bad/noecho.yaml": {
     "filePath": "bad/noecho.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -17938,7 +17938,7 @@
   "bad/not_cloudformation.yaml": {
     "filePath": "bad/not_cloudformation.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -17976,7 +17976,7 @@
   "bad/opensearch_instance_type.yaml": {
     "filePath": "bad/opensearch_instance_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -18136,7 +18136,7 @@
   "bad/output_value_not_string.yaml": {
     "filePath": "bad/output_value_not_string.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -18357,7 +18357,7 @@
   "bad/override/complete.yaml": {
     "filePath": "bad/override/complete.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -18588,7 +18588,7 @@
   "bad/override/exclude.yaml": {
     "filePath": "bad/override/exclude.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -18668,7 +18668,7 @@
   "bad/override/include.yaml": {
     "filePath": "bad/override/include.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -18831,7 +18831,7 @@
   "bad/override/required.yaml": {
     "filePath": "bad/override/required.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -18894,7 +18894,7 @@
   "bad/param_constraints.yaml": {
     "filePath": "bad/param_constraints.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -19114,7 +19114,7 @@
   "bad/param_number_default.yaml": {
     "filePath": "bad/param_number_default.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -19224,7 +19224,7 @@
   "bad/parameters/configuration.yaml": {
     "filePath": "bad/parameters/configuration.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -19858,7 +19858,7 @@
   "bad/parameters/default.yaml": {
     "filePath": "bad/parameters/default.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -20269,7 +20269,7 @@
   "bad/pipeline_no_source_first_stage.yaml": {
     "filePath": "bad/pipeline_no_source_first_stage.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -20435,7 +20435,7 @@
   "bad/previous_gen_instance.yaml": {
     "filePath": "bad/previous_gen_instance.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -20546,7 +20546,7 @@
   "bad/previous_generation_instances.yaml": {
     "filePath": "bad/previous_generation_instances.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -21050,7 +21050,7 @@
   "bad/properties_ebs.yaml": {
     "filePath": "bad/properties_ebs.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -21499,7 +21499,7 @@
   "bad/properties_password.yaml": {
     "filePath": "bad/properties_password.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -22071,7 +22071,7 @@
   "bad/properties_rt_association.yaml": {
     "filePath": "bad/properties_rt_association.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -22473,7 +22473,7 @@
   "bad/properties_sg_ingress.yaml": {
     "filePath": "bad/properties_sg_ingress.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -23407,7 +23407,7 @@
   "bad/rds_dbclusterinstanceclass_invalid.yaml": {
     "filePath": "bad/rds_dbclusterinstanceclass_invalid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -23612,7 +23612,7 @@
   "bad/rds_dbinstanceclass_mixed_case_engine.yaml": {
     "filePath": "bad/rds_dbinstanceclass_mixed_case_engine.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -23755,7 +23755,7 @@
   "bad/rds_public.yaml": {
     "filePath": "bad/rds_public.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -23947,7 +23947,7 @@
   "bad/redshift_internet_accessible.yaml": {
     "filePath": "bad/redshift_internet_accessible.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -24259,7 +24259,7 @@
   "bad/refs.yaml": {
     "filePath": "bad/refs.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -24610,7 +24610,7 @@
   "bad/resource_policy_no_statement.yaml": {
     "filePath": "bad/resource_policy_no_statement.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -24706,7 +24706,7 @@
   "bad/resources/backup/test_backup_plan_lifecycle_rule.yml": {
     "filePath": "bad/resources/backup/test_backup_plan_lifecycle_rule.yml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -24725,7 +24725,7 @@
   "bad/resources/cloudformation/stack_nested.yaml": {
     "filePath": "bad/resources/cloudformation/stack_nested.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -24794,7 +24794,7 @@
   "bad/resources/cloudformation/stacks.yaml": {
     "filePath": "bad/resources/cloudformation/stacks.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -24964,7 +24964,7 @@
   "bad/resources/codepipeline/stages_second_stage.yaml": {
     "filePath": "bad/resources/codepipeline/stages_second_stage.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -25114,7 +25114,7 @@
   "bad/resources/dynamodb/undefined_attribute_definition.yaml": {
     "filePath": "bad/resources/dynamodb/undefined_attribute_definition.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -25210,7 +25210,7 @@
   "bad/resources/dynamodb/unused_attribute_definition_1.yaml": {
     "filePath": "bad/resources/dynamodb/unused_attribute_definition_1.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -25286,7 +25286,7 @@
   "bad/resources/dynamodb/unused_attribute_definition_2.yaml": {
     "filePath": "bad/resources/dynamodb/unused_attribute_definition_2.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -25362,7 +25362,7 @@
   "bad/resources/elasticache/cache_cluster_failover.yaml": {
     "filePath": "bad/resources/elasticache/cache_cluster_failover.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -25996,7 +25996,7 @@
   "bad/resources/iam/iam_policy.yaml": {
     "filePath": "bad/resources/iam/iam_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -26210,7 +26210,7 @@
   "bad/resources/iam/managed_policy_description.yaml": {
     "filePath": "bad/resources/iam/managed_policy_description.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -26253,7 +26253,7 @@
   "bad/resources/iam/ref_with_path.yaml": {
     "filePath": "bad/resources/iam/ref_with_path.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -26530,7 +26530,7 @@
   "bad/resources/iam/resource_policy.yaml": {
     "filePath": "bad/resources/iam/resource_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -26590,7 +26590,7 @@
   "bad/resources/lambda/function_property_value_limits.yaml": {
     "filePath": "bad/resources/lambda/function_property_value_limits.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -26977,7 +26977,7 @@
   "bad/resources/lambda/required_properties.yaml": {
     "filePath": "bad/resources/lambda/required_properties.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -27236,7 +27236,7 @@
   "bad/resources/name.yaml": {
     "filePath": "bad/resources/name.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -27334,7 +27334,7 @@
   "bad/resources/primary_identifiers.yaml": {
     "filePath": "bad/resources/primary_identifiers.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -28089,7 +28089,7 @@
   "bad/resources/properties/atleastone.yaml": {
     "filePath": "bad/resources/properties/atleastone.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -28192,7 +28192,7 @@
   "bad/resources/properties/custom.yaml": {
     "filePath": "bad/resources/properties/custom.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -28211,7 +28211,7 @@
   "bad/resources/properties/list_duplicates.yaml": {
     "filePath": "bad/resources/properties/list_duplicates.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -28260,7 +28260,7 @@
   "bad/resources/properties/primitive_types_map.yaml": {
     "filePath": "bad/resources/properties/primitive_types_map.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -28402,7 +28402,7 @@
   "bad/resources/properties/string_size.yaml": {
     "filePath": "bad/resources/properties/string_size.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -28551,7 +28551,7 @@
   "bad/resources/properties/templated_code.yaml": {
     "filePath": "bad/resources/properties/templated_code.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -28679,7 +28679,7 @@
   "bad/resources/rds/instance_sizes.yaml": {
     "filePath": "bad/resources/rds/instance_sizes.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -29467,7 +29467,7 @@
   "bad/resources/s3/access-control-obsolete.yaml": {
     "filePath": "bad/resources/s3/access-control-obsolete.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -29573,7 +29573,7 @@
   "bad/resources/sns/topic_name.yaml": {
     "filePath": "bad/resources/sns/topic_name.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -29663,7 +29663,7 @@
   "bad/resources/uniqueNames.yaml": {
     "filePath": "bad/resources/uniqueNames.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -29740,7 +29740,7 @@
   "bad/resources_circular_dependency.yaml": {
     "filePath": "bad/resources_circular_dependency.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -30920,7 +30920,7 @@
   "bad/resources_circular_dependency_2.yaml": {
     "filePath": "bad/resources_circular_dependency_2.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -31291,7 +31291,7 @@
   "bad/resources_circular_dependency_dependson.yaml": {
     "filePath": "bad/resources_circular_dependency_dependson.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -31389,7 +31389,7 @@
   "bad/resources_cloudfront_invalid_aliases.yaml": {
     "filePath": "bad/resources_cloudfront_invalid_aliases.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -31581,7 +31581,7 @@
   "bad/resources_cognito_userpool_tag_is_list.yaml": {
     "filePath": "bad/resources_cognito_userpool_tag_is_list.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -31670,7 +31670,7 @@
   "bad/resources_deletionpolicy.yaml": {
     "filePath": "bad/resources_deletionpolicy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -32143,7 +32143,7 @@
   "bad/resources_iam_instanceprofile_roles.yaml": {
     "filePath": "bad/resources_iam_instanceprofile_roles.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -32189,7 +32189,7 @@
   "bad/resources_updatereplacepolicy.yaml": {
     "filePath": "bad/resources_updatereplacepolicy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -32698,7 +32698,7 @@
   "bad/route53.yaml": {
     "filePath": "bad/route53.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -33737,7 +33737,7 @@
   "bad/s3_tiering_bad_days.yaml": {
     "filePath": "bad/s3_tiering_bad_days.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -33797,7 +33797,7 @@
   "bad/sagemaker_instance_types.yaml": {
     "filePath": "bad/sagemaker_instance_types.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -34791,7 +34791,7 @@
   "bad/sam/api_missing_stagename.yaml": {
     "filePath": "bad/sam/api_missing_stagename.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -34830,7 +34830,7 @@
   "bad/sam/connector_missing_destination.yaml": {
     "filePath": "bad/sam/connector_missing_destination.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -34869,7 +34869,7 @@
   "bad/sam/connector_missing_source.yaml": {
     "filePath": "bad/sam/connector_missing_source.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -34908,7 +34908,7 @@
   "bad/sam/function_autopublishalias_invalid_name.yaml": {
     "filePath": "bad/sam/function_autopublishalias_invalid_name.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -34947,7 +34947,7 @@
   "bad/sam/function_capacityprovider_with_vpcconfig.yaml": {
     "filePath": "bad/sam/function_capacityprovider_with_vpcconfig.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -34986,7 +34986,7 @@
   "bad/sam/function_deploymentpreference_without_alias.yaml": {
     "filePath": "bad/sam/function_deploymentpreference_without_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35025,7 +35025,7 @@
   "bad/sam/function_dlq_invalid_type.yaml": {
     "filePath": "bad/sam/function_dlq_invalid_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35064,7 +35064,7 @@
   "bad/sam/function_dlq_missing_targetarn.yaml": {
     "filePath": "bad/sam/function_dlq_missing_targetarn.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35103,7 +35103,7 @@
   "bad/sam/function_functionscaling_without_capacityprovider.yaml": {
     "filePath": "bad/sam/function_functionscaling_without_capacityprovider.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35142,7 +35142,7 @@
   "bad/sam/function_image_with_handler_runtime.yaml": {
     "filePath": "bad/sam/function_image_with_handler_runtime.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35181,7 +35181,7 @@
   "bad/sam/function_packagetype_invalid.yaml": {
     "filePath": "bad/sam/function_packagetype_invalid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35220,7 +35220,7 @@
   "bad/sam/function_provisioned_concurrency_without_alias.yaml": {
     "filePath": "bad/sam/function_provisioned_concurrency_without_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35259,7 +35259,7 @@
   "bad/sam/function_url_config_missing_authtype.yaml": {
     "filePath": "bad/sam/function_url_config_missing_authtype.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35298,7 +35298,7 @@
   "bad/sam/function_versiondeletionpolicy_without_alias.yaml": {
     "filePath": "bad/sam/function_versiondeletionpolicy_without_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35337,7 +35337,7 @@
   "bad/sam/function_zip_missing_runtime_handler.yaml": {
     "filePath": "bad/sam/function_zip_missing_runtime_handler.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35376,7 +35376,7 @@
   "bad/sam/function_zip_with_imageuri.yaml": {
     "filePath": "bad/sam/function_zip_with_imageuri.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35415,7 +35415,7 @@
   "bad/sam/globals_not_dict.yaml": {
     "filePath": "bad/sam/globals_not_dict.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35449,7 +35449,7 @@
   "bad/sam/globals_section_not_dict.yaml": {
     "filePath": "bad/sam/globals_section_not_dict.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35483,7 +35483,7 @@
   "bad/sam/globals_unknown_property.yaml": {
     "filePath": "bad/sam/globals_unknown_property.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35517,7 +35517,7 @@
   "bad/sam/globals_unknown_section.yaml": {
     "filePath": "bad/sam/globals_unknown_section.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35551,7 +35551,7 @@
   "bad/sam/graphqlapi_missing_auth.yaml": {
     "filePath": "bad/sam/graphqlapi_missing_auth.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35590,7 +35590,7 @@
   "bad/sam/layerversion_invalid_compatible_architectures.yaml": {
     "filePath": "bad/sam/layerversion_invalid_compatible_architectures.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35629,7 +35629,7 @@
   "bad/sam/layerversion_invalid_retention_policy.yaml": {
     "filePath": "bad/sam/layerversion_invalid_retention_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35668,7 +35668,7 @@
   "bad/sam/simpletable_primarykey_invalid_type.yaml": {
     "filePath": "bad/sam/simpletable_primarykey_invalid_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35707,7 +35707,7 @@
   "bad/sam/simpletable_primarykey_missing_type.yaml": {
     "filePath": "bad/sam/simpletable_primarykey_missing_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35746,7 +35746,7 @@
   "bad/sam/statemachine_both_definitions.yaml": {
     "filePath": "bad/sam/statemachine_both_definitions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35785,7 +35785,7 @@
   "bad/sam/statemachine_no_definition.yaml": {
     "filePath": "bad/sam/statemachine_no_definition.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35824,7 +35824,7 @@
   "bad/sam/transform_bogus_name.yaml": {
     "filePath": "bad/sam/transform_bogus_name.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35882,7 +35882,7 @@
   "bad/sam/transform_wrong_date.yaml": {
     "filePath": "bad/sam/transform_wrong_date.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -35940,7 +35940,7 @@
   "bad/schema_additional_props.yaml": {
     "filePath": "bad/schema_additional_props.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -36114,7 +36114,7 @@
   "bad/schema_composition.yaml": {
     "filePath": "bad/schema_composition.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -36271,7 +36271,7 @@
   "bad/schema_conditional_type.yaml": {
     "filePath": "bad/schema_conditional_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -36359,7 +36359,7 @@
   "bad/schema_enum_violation.yaml": {
     "filePath": "bad/schema_enum_violation.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -36498,7 +36498,7 @@
   "bad/schema_format_violation.yaml": {
     "filePath": "bad/schema_format_violation.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -36626,7 +36626,7 @@
   "bad/schema_lifecycle.yaml": {
     "filePath": "bad/schema_lifecycle.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -36993,7 +36993,7 @@
   "bad/schema_numeric_bounds.yaml": {
     "filePath": "bad/schema_numeric_bounds.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -37138,7 +37138,7 @@
   "bad/schema_property_constraints.yaml": {
     "filePath": "bad/schema_property_constraints.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -37418,7 +37418,7 @@
   "bad/schema_string_length.yaml": {
     "filePath": "bad/schema_string_length.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -37498,7 +37498,7 @@
   "bad/schema_structural.yaml": {
     "filePath": "bad/schema_structural.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -37868,7 +37868,7 @@
   "bad/schema_type_mismatch.yaml": {
     "filePath": "bad/schema_type_mismatch.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -37996,7 +37996,7 @@
   "bad/schema_unique_items.yaml": {
     "filePath": "bad/schema_unique_items.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -38067,7 +38067,7 @@
   "bad/schema_write_only.yaml": {
     "filePath": "bad/schema_write_only.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -38170,7 +38170,7 @@
   "bad/security_issues.yaml": {
     "filePath": "bad/security_issues.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -38272,7 +38272,7 @@
   "bad/sg_bad_port_range.yaml": {
     "filePath": "bad/sg_bad_port_range.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -38364,7 +38364,7 @@
   "bad/sg_open_egress.yaml": {
     "filePath": "bad/sg_open_egress.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -38446,7 +38446,7 @@
   "bad/simple_sub_param.yaml": {
     "filePath": "bad/simple_sub_param.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -38509,7 +38509,7 @@
   "bad/sns_cross_account.yaml": {
     "filePath": "bad/sns_cross_account.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -38572,7 +38572,7 @@
   "bad/some_logs_stream_lambda.yaml": {
     "filePath": "bad/some_logs_stream_lambda.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -39084,7 +39084,7 @@
   "bad/sqs_fifo_no_suffix.yaml": {
     "filePath": "bad/sqs_fifo_no_suffix.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -39269,7 +39269,7 @@
   "bad/sqs_fifo_standard_dlq.yaml": {
     "filePath": "bad/sqs_fifo_standard_dlq.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -39527,7 +39527,7 @@
   "bad/ssm_document_invalid.yaml": {
     "filePath": "bad/ssm_document_invalid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -39609,7 +39609,7 @@
   "bad/stepfunctions_bad_start_at.yaml": {
     "filePath": "bad/stepfunctions_bad_start_at.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -39687,7 +39687,7 @@
   "bad/stepfunctions_invalid_state.yaml": {
     "filePath": "bad/stepfunctions_invalid_state.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -39784,7 +39784,7 @@
   "bad/string.yaml": {
     "filePath": "bad/string.yaml",
     "status": "ERROR",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -39817,7 +39817,7 @@
   "bad/sub_needed.yaml": {
     "filePath": "bad/sub_needed.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -39917,7 +39917,7 @@
   "bad/sub_nested_intrinsic.yaml": {
     "filePath": "bad/sub_nested_intrinsic.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -40000,7 +40000,7 @@
   "bad/subnet_outside_vpc.yaml": {
     "filePath": "bad/subnet_outside_vpc.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -40146,7 +40146,7 @@
   "bad/subnet_overlap.yaml": {
     "filePath": "bad/subnet_overlap.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -40459,7 +40459,7 @@
   "bad/subnet_overlap_multi.yaml": {
     "filePath": "bad/subnet_overlap_multi.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -41081,7 +41081,7 @@
   "bad/template.yaml": {
     "filePath": "bad/template.yaml",
     "status": "ERROR",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -41114,7 +41114,7 @@
   "bad/templates/base.yaml": {
     "filePath": "bad/templates/base.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -41189,7 +41189,7 @@
   "bad/templates/base_date.yaml": {
     "filePath": "bad/templates/base_date.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -41236,7 +41236,7 @@
   "bad/templates/base_null.yaml": {
     "filePath": "bad/templates/base_null.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -41297,7 +41297,7 @@
   "bad/templates/description_object.yaml": {
     "filePath": "bad/templates/description_object.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -41331,7 +41331,7 @@
   "bad/templates/transform_invalid_entries.yaml": {
     "filePath": "bad/templates/transform_invalid_entries.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -41393,7 +41393,7 @@
   "bad/transform/auto_publish_alias.yaml": {
     "filePath": "bad/transform/auto_publish_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -41451,7 +41451,7 @@
   "bad/transform/no_properties.yaml": {
     "filePath": "bad/transform/no_properties.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -41490,7 +41490,7 @@
   "bad/transform_serverless_auto_publish_alias.yaml": {
     "filePath": "bad/transform_serverless_auto_publish_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -41529,7 +41529,7 @@
   "bad/transform_serverless_template.yaml": {
     "filePath": "bad/transform_serverless_template.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -41606,7 +41606,7 @@
   "bad/undefined_condition.yaml": {
     "filePath": "bad/undefined_condition.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -41664,7 +41664,7 @@
   "bad/unique_items.yaml": {
     "filePath": "bad/unique_items.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -41730,7 +41730,7 @@
   "bad/unknown_properties.yaml": {
     "filePath": "bad/unknown_properties.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -41871,7 +41871,7 @@
   "cdk/DemoStack.template.json": {
     "filePath": "cdk/DemoStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -42356,7 +42356,7 @@
   "cdk/amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template.json": {
     "filePath": "cdk/amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 27,
       "counts": {
@@ -43390,7 +43390,7 @@
   "cdk/amplify-console-app--AmplifyConsoleApp.template.json": {
     "filePath": "cdk/amplify-console-app--AmplifyConsoleApp.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -43497,7 +43497,7 @@
   "cdk/api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template.json": {
     "filePath": "cdk/api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 41,
       "counts": {
@@ -45644,7 +45644,7 @@
   "cdk/api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template.json": {
     "filePath": "cdk/api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 19,
       "counts": {
@@ -46444,7 +46444,7 @@
   "cdk/api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template.json": {
     "filePath": "cdk/api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
@@ -47237,7 +47237,7 @@
   "cdk/api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template.json": {
     "filePath": "cdk/api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 27,
       "counts": {
@@ -48300,7 +48300,7 @@
   "cdk/api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template.json": {
     "filePath": "cdk/api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 18,
       "counts": {
@@ -49043,7 +49043,7 @@
   "cdk/api-websocket-lambda-dynamodb--chat-app.template.json": {
     "filePath": "cdk/api-websocket-lambda-dynamodb--chat-app.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -49582,7 +49582,7 @@
   "cdk/application-load-balancer--LoadBalancerStack.template.json": {
     "filePath": "cdk/application-load-balancer--LoadBalancerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 36,
       "counts": {
@@ -51313,7 +51313,7 @@
   "cdk/appsync-graphql-dynamodb--CdkAppsyncDemoStack.template.json": {
     "filePath": "cdk/appsync-graphql-dynamodb--CdkAppsyncDemoStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 15,
       "counts": {
@@ -51782,7 +51782,7 @@
   "cdk/appsync-graphql-eventbridge--AppSyncEventBridge.template.json": {
     "filePath": "cdk/appsync-graphql-eventbridge--AppSyncEventBridge.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -52175,7 +52175,7 @@
   "cdk/appsync-graphql-http--AppSyncGraphQLHTTPExample.template.json": {
     "filePath": "cdk/appsync-graphql-http--AppSyncGraphQLHTTPExample.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -52588,7 +52588,7 @@
   "cdk/aspects--SampleStack.template.json": {
     "filePath": "cdk/aspects--SampleStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -52940,7 +52940,7 @@
   "cdk/aws-transfer-sftp-server--IncomingDataStack-dev.template.json": {
     "filePath": "cdk/aws-transfer-sftp-server--IncomingDataStack-dev.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -53025,7 +53025,7 @@
   "cdk/aws-transfer-sftp-server--SftpServerStack-dev.template.json": {
     "filePath": "cdk/aws-transfer-sftp-server--SftpServerStack-dev.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 29,
       "counts": {
@@ -54248,7 +54248,7 @@
   "cdk/aws-transfer-sftp-server--SftpServerStack-prod.template.json": {
     "filePath": "cdk/aws-transfer-sftp-server--SftpServerStack-prod.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 29,
       "counts": {
@@ -55471,7 +55471,7 @@
   "cdk/backup-s3--AwsBackupS3Stack.template.json": {
     "filePath": "cdk/backup-s3--AwsBackupS3Stack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -55604,7 +55604,7 @@
   "cdk/batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template.json": {
     "filePath": "cdk/batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 41,
       "counts": {
@@ -56944,7 +56944,7 @@
   "cdk/classic-load-balancer--LoadBalancerStack.template.json": {
     "filePath": "cdk/classic-load-balancer--LoadBalancerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 33,
       "counts": {
@@ -58395,7 +58395,7 @@
   "cdk/cloudfront-functions--DemoCloudfrontFunctionsStack.template.json": {
     "filePath": "cdk/cloudfront-functions--DemoCloudfrontFunctionsStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -58648,7 +58648,7 @@
   "cdk/codepipeline-build-deploy--CodepipelineBuildDeployStack.template.json": {
     "filePath": "cdk/codepipeline-build-deploy--CodepipelineBuildDeployStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 74,
       "counts": {
@@ -61210,7 +61210,7 @@
   "cdk/cognito-api-lambda--CognitoProtectedApi.template.json": {
     "filePath": "cdk/cognito-api-lambda--CognitoProtectedApi.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 14,
       "counts": {
@@ -61790,7 +61790,7 @@
   "cdk/custom-logical-names--MyStack.template.json": {
     "filePath": "cdk/custom-logical-names--MyStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -61850,7 +61850,7 @@
   "cdk/custom-resource--CustomResourceDemoStack.template.json": {
     "filePath": "cdk/custom-resource--CustomResourceDemoStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -62036,7 +62036,7 @@
   "cdk/custom-resource-provider--CustomResourceDemoStack.template.json": {
     "filePath": "cdk/custom-resource-provider--CustomResourceDemoStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -62282,7 +62282,7 @@
   "cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json": {
     "filePath": "cdk/ddb-stream-lambda-sns--DdbStreamStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 16,
       "counts": {
@@ -62763,7 +62763,7 @@
   "cdk/ec2-instance--EC2Example.template.json": {
     "filePath": "cdk/ec2-instance--EC2Example.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -63694,7 +63694,7 @@
   "cdk/ec2-instance-connect-endpoint--integ-testing-eicendpoint.template.json": {
     "filePath": "cdk/ec2-instance-connect-endpoint--integ-testing-eicendpoint.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 29,
       "counts": {
@@ -64536,7 +64536,7 @@
   "cdk/ecs-cluster--MyFirstEcsCluster.template.json": {
     "filePath": "cdk/ecs-cluster--MyFirstEcsCluster.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 33,
       "counts": {
@@ -65732,7 +65732,7 @@
   "cdk/ecs-cross-stack-load-balancer--CrossStackLBInfra.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--CrossStackLBInfra.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 25,
       "counts": {
@@ -66681,7 +66681,7 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -66832,7 +66832,7 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -67569,7 +67569,7 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -67873,7 +67873,7 @@
   "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template.json": {
     "filePath": "cdk/ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -68437,7 +68437,7 @@
   "cdk/ecs-ecs-service-with-logging--Willkommen.template.json": {
     "filePath": "cdk/ecs-ecs-service-with-logging--Willkommen.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 46,
       "counts": {
@@ -70077,7 +70077,7 @@
   "cdk/ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template.json": {
     "filePath": "cdk/ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 44,
       "counts": {
@@ -71718,7 +71718,7 @@
   "cdk/ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template.json": {
     "filePath": "cdk/ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 43,
       "counts": {
@@ -73294,7 +73294,7 @@
   "cdk/ecs-fargate-application-load-balanced-service--Bonjour.template.json": {
     "filePath": "cdk/ecs-fargate-application-load-balanced-service--Bonjour.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 38,
       "counts": {
@@ -75155,7 +75155,7 @@
   "cdk/ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template.json": {
     "filePath": "cdk/ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 37,
       "counts": {
@@ -76834,7 +76834,7 @@
   "cdk/ecs-fargate-service-with-logging--Willkommen.template.json": {
     "filePath": "cdk/ecs-fargate-service-with-logging--Willkommen.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 32,
       "counts": {
@@ -78157,7 +78157,7 @@
   "cdk/eventbridge-lambda--EventBridgeLambdaStack.template.json": {
     "filePath": "cdk/eventbridge-lambda--EventBridgeLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -78461,7 +78461,7 @@
   "cdk/http-proxy-apigateway--HttpProxy.template.json": {
     "filePath": "cdk/http-proxy-apigateway--HttpProxy.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -78825,7 +78825,7 @@
   "cdk/imagebuilder--ImagebuilderStack.template.json": {
     "filePath": "cdk/imagebuilder--ImagebuilderStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -79531,7 +79531,7 @@
   "cdk/inspector2--Inspector2EnableDelegatedAdminAccountStack.template.json": {
     "filePath": "cdk/inspector2--Inspector2EnableDelegatedAdminAccountStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -79691,7 +79691,7 @@
   "cdk/inspector2--Inspector2EnableStack.template.json": {
     "filePath": "cdk/inspector2--Inspector2EnableStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -79771,7 +79771,7 @@
   "cdk/inspector2--Inspector2MonitoringStack.template.json": {
     "filePath": "cdk/inspector2--Inspector2MonitoringStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 14,
       "counts": {
@@ -80237,7 +80237,7 @@
   "cdk/lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template.json": {
     "filePath": "cdk/lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -80443,7 +80443,7 @@
   "cdk/lambda-cron--LambdaCronExample.template.json": {
     "filePath": "cdk/lambda-cron--LambdaCronExample.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -80656,7 +80656,7 @@
   "cdk/lambda-layer--LambdaLayerStack.template.json": {
     "filePath": "cdk/lambda-layer--LambdaLayerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -80805,7 +80805,7 @@
   "cdk/lambda-manage-s3-event-notification--AStack.template.json": {
     "filePath": "cdk/lambda-manage-s3-event-notification--AStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -80886,7 +80886,7 @@
   "cdk/lambda-manage-s3-event-notification--BStack.template.json": {
     "filePath": "cdk/lambda-manage-s3-event-notification--BStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -80948,7 +80948,7 @@
   "cdk/lambda-manage-s3-event-notification--SharedStack.template.json": {
     "filePath": "cdk/lambda-manage-s3-event-notification--SharedStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -81093,7 +81093,7 @@
   "cdk/my-widget-service--MyWidgetServiceStack.template.json": {
     "filePath": "cdk/my-widget-service--MyWidgetServiceStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 23,
       "counts": {
@@ -82422,7 +82422,7 @@
   "cdk/pat-the-big-fan--TheBigFanStack.template.json": {
     "filePath": "cdk/pat-the-big-fan--TheBigFanStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 27,
       "counts": {
@@ -83503,7 +83503,7 @@
   "cdk/pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template.json": {
     "filePath": "cdk/pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
@@ -84091,7 +84091,7 @@
   "cdk/pat-the-destined-lambda--TheDestinedLambdaStack.template.json": {
     "filePath": "cdk/pat-the-destined-lambda--TheDestinedLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -85302,7 +85302,7 @@
   "cdk/pat-the-dynamo-streamer--TheDynamoStreamerStack.template.json": {
     "filePath": "cdk/pat-the-dynamo-streamer--TheDynamoStreamerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 17,
       "counts": {
@@ -85941,7 +85941,7 @@
   "cdk/pat-the-eventbridge-atm--TheEventbridgeAtmStack.template.json": {
     "filePath": "cdk/pat-the-eventbridge-atm--TheEventbridgeAtmStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -87363,7 +87363,7 @@
   "cdk/pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template.json": {
     "filePath": "cdk/pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -88419,7 +88419,7 @@
   "cdk/pat-the-eventbridge-etl--TheEventbridgeEtlStack.template.json": {
     "filePath": "cdk/pat-the-eventbridge-etl--TheEventbridgeEtlStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 57,
       "counts": {
@@ -90629,7 +90629,7 @@
   "cdk/pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template.json": {
     "filePath": "cdk/pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 10,
       "counts": {
@@ -91017,7 +91017,7 @@
   "cdk/pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template.json": {
     "filePath": "cdk/pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 44,
       "counts": {
@@ -92586,7 +92586,7 @@
   "cdk/pat-the-scalable-webhook--TheScalableWebhookStack.template.json": {
     "filePath": "cdk/pat-the-scalable-webhook--TheScalableWebhookStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -93650,7 +93650,7 @@
   "cdk/pat-the-scheduled-lambda--TheScheduledLambdaStack.template.json": {
     "filePath": "cdk/pat-the-scheduled-lambda--TheScheduledLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -93901,7 +93901,7 @@
   "cdk/pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template.json": {
     "filePath": "cdk/pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -94775,7 +94775,7 @@
   "cdk/pat-the-simple-webservice--TheSimpleWebserviceStack.template.json": {
     "filePath": "cdk/pat-the-simple-webservice--TheSimpleWebserviceStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 10,
       "counts": {
@@ -95163,7 +95163,7 @@
   "cdk/pat-the-state-machine--TheStateMachineStack.template.json": {
     "filePath": "cdk/pat-the-state-machine--TheStateMachineStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -95544,7 +95544,7 @@
   "cdk/pat-the-waf-apigateway--APIGatewayStack.template.json": {
     "filePath": "cdk/pat-the-waf-apigateway--APIGatewayStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -96118,7 +96118,7 @@
   "cdk/pat-the-waf-apigateway--TheWafStack.template.json": {
     "filePath": "cdk/pat-the-waf-apigateway--TheWafStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -96229,7 +96229,7 @@
   "cdk/pat-the-xray-tracer--TheXrayDynamoFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXrayDynamoFlow.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -96531,7 +96531,7 @@
   "cdk/pat-the-xray-tracer--TheXrayHttpFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXrayHttpFlow.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -96813,7 +96813,7 @@
   "cdk/pat-the-xray-tracer--TheXraySQSFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXraySQSFlow.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -97296,7 +97296,7 @@
   "cdk/pat-the-xray-tracer--TheXraySnsFlow.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXraySnsFlow.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -97842,7 +97842,7 @@
   "cdk/pat-the-xray-tracer--TheXrayTracerStack.template.json": {
     "filePath": "cdk/pat-the-xray-tracer--TheXrayTracerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 14,
       "counts": {
@@ -98386,7 +98386,7 @@
   "cdk/py-api-cors-lambda--ApiCorsLambdaStack.template.json": {
     "filePath": "cdk/py-api-cors-lambda--ApiCorsLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -99013,7 +99013,7 @@
   "cdk/py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template.json": {
     "filePath": "cdk/py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -100055,7 +100055,7 @@
   "cdk/py-api-sqs-lambda--ApiSqsLambdaStack.template.json": {
     "filePath": "cdk/py-api-sqs-lambda--ApiSqsLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 15,
       "counts": {
@@ -100581,7 +100581,7 @@
   "cdk/py-athena-s3-glue--DemoAthenaS3GlueStack.template.json": {
     "filePath": "cdk/py-athena-s3-glue--DemoAthenaS3GlueStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 21,
       "counts": {
@@ -101208,7 +101208,7 @@
   "cdk/py-datasync-s3--cdk-datasync-s3-to-s3-iam.template.json": {
     "filePath": "cdk/py-datasync-s3--cdk-datasync-s3-to-s3-iam.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -101406,7 +101406,7 @@
   "cdk/py-datasync-s3--cdk-datasync-s3-to-s3.template.json": {
     "filePath": "cdk/py-datasync-s3--cdk-datasync-s3-to-s3.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -101618,7 +101618,7 @@
   "cdk/py-docker-app-with-asg-alb--ASGStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--ASGStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -102468,7 +102468,7 @@
   "cdk/py-docker-app-with-asg-alb--NetworkStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--NetworkStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 22,
       "counts": {
@@ -103351,7 +103351,7 @@
   "cdk/py-docker-app-with-asg-alb--RDSStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--RDSStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -103656,7 +103656,7 @@
   "cdk/py-docker-app-with-asg-alb--StorageStack.template.json": {
     "filePath": "cdk/py-docker-app-with-asg-alb--StorageStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -103822,7 +103822,7 @@
   "cdk/py-dynamodb-lambda--dynamodb-lambda.template.json": {
     "filePath": "cdk/py-dynamodb-lambda--dynamodb-lambda.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -104228,7 +104228,7 @@
   "cdk/py-ec2-cloudwatch--ec2-cloudwatch.template.json": {
     "filePath": "cdk/py-ec2-cloudwatch--ec2-cloudwatch.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 43,
       "counts": {
@@ -105847,7 +105847,7 @@
   "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template.json": {
     "filePath": "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 29,
       "counts": {
@@ -106876,7 +106876,7 @@
   "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template.json": {
     "filePath": "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -107042,7 +107042,7 @@
   "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template.json": {
     "filePath": "cdk/py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
@@ -108367,7 +108367,7 @@
   "cdk/py-emr--emr-cluster.template.json": {
     "filePath": "cdk/py-emr--emr-cluster.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 16,
       "counts": {
@@ -109115,7 +109115,7 @@
   "cdk/py-iotcore--CdkIotThingStack.template.json": {
     "filePath": "cdk/py-iotcore--CdkIotThingStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 19,
       "counts": {
@@ -109702,7 +109702,7 @@
   "cdk/py-lambda-cron--LambdaCronExample.template.json": {
     "filePath": "cdk/py-lambda-cron--LambdaCronExample.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -109892,7 +109892,7 @@
   "cdk/py-lambda-from-container--LambdaContainerFunctionStack.template.json": {
     "filePath": "cdk/py-lambda-from-container--LambdaContainerFunctionStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -110016,7 +110016,7 @@
   "cdk/py-lambda-layer--LambdaLayerExample.template.json": {
     "filePath": "cdk/py-lambda-layer--LambdaLayerExample.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -110188,7 +110188,7 @@
   "cdk/py-stepfunctions--aws-stepfunctions-integ.template.json": {
     "filePath": "cdk/py-stepfunctions--aws-stepfunctions-integ.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -110434,7 +110434,7 @@
   "cdk/py-url-shortener--urlshort-app.template.json": {
     "filePath": "cdk/py-url-shortener--urlshort-app.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 20,
       "counts": {
@@ -111409,7 +111409,7 @@
   "cdk/py-url-shortener--urlshort-load-test.template.json": {
     "filePath": "cdk/py-url-shortener--urlshort-load-test.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -111802,7 +111802,7 @@
   "cdk/r53-resolver--R53ResolverStack.template.json": {
     "filePath": "cdk/r53-resolver--R53ResolverStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 18,
       "counts": {
@@ -112562,7 +112562,7 @@
   "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json": {
     "filePath": "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 15,
       "counts": {
@@ -112937,7 +112937,7 @@
   "cdk/resource-overrides--resource-overrides.template.json": {
     "filePath": "cdk/resource-overrides--resource-overrides.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 21,
       "counts": {
@@ -113765,7 +113765,7 @@
   "cdk/route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template.json": {
     "filePath": "cdk/route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 31,
       "counts": {
@@ -115040,7 +115040,7 @@
   "cdk/s3-object-lambda--S3ObjectLambdaStack.template.json": {
     "filePath": "cdk/s3-object-lambda--S3ObjectLambdaStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -115388,7 +115388,7 @@
   "cdk/ssm-document-association--SsmDocumentAssociationStack.template.json": {
     "filePath": "cdk/ssm-document-association--SsmDocumentAssociationStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 17,
       "counts": {
@@ -115939,7 +115939,7 @@
   "cdk/static-site-basic--MyStaticSite.template.json": {
     "filePath": "cdk/static-site-basic--MyStaticSite.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -116148,7 +116148,7 @@
   "cdk/stepfunction-external-definition--StepfunctionExternalDefinitionStack.template.json": {
     "filePath": "cdk/stepfunction-external-definition--StepfunctionExternalDefinitionStack.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -116567,7 +116567,7 @@
   "cdk/stepfunctions-job-poller--aws-stepfunctions-integ.template.json": {
     "filePath": "cdk/stepfunctions-job-poller--aws-stepfunctions-integ.template.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
@@ -116853,7 +116853,7 @@
   "gh-issues/issue-144.yaml": {
     "filePath": "gh-issues/issue-144.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -116939,7 +116939,7 @@
   "gh-issues/issue-183.yaml": {
     "filePath": "gh-issues/issue-183.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -117256,7 +117256,7 @@
   "gh-issues/issue-185.yaml": {
     "filePath": "gh-issues/issue-185.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -117275,7 +117275,7 @@
   "gh-issues/issue-186-clb.json": {
     "filePath": "gh-issues/issue-186-clb.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -117318,7 +117318,7 @@
   "gh-issues/issue-186-imagebuilder.json": {
     "filePath": "gh-issues/issue-186-imagebuilder.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -117384,7 +117384,7 @@
   "gh-issues/issue-194.json": {
     "filePath": "gh-issues/issue-194.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -117422,7 +117422,7 @@
   "gh-issues/issue-201.json": {
     "filePath": "gh-issues/issue-201.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -117487,7 +117487,7 @@
   "gh-issues/issue-226.yaml": {
     "filePath": "gh-issues/issue-226.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -117621,7 +117621,7 @@
   "gh-issues/issue-235.yaml": {
     "filePath": "gh-issues/issue-235.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 38,
       "counts": {
@@ -121285,7 +121285,7 @@
   "gh-issues/issue-34-w2506-overfire.json": {
     "filePath": "gh-issues/issue-34-w2506-overfire.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -121323,7 +121323,7 @@
   "gh-issues/issue-34.json": {
     "filePath": "gh-issues/issue-34.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -121456,7 +121456,7 @@
   "gh-issues/issue-35.yaml": {
     "filePath": "gh-issues/issue-35.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -121496,7 +121496,7 @@
   "gh-issues/issue-36.yaml": {
     "filePath": "gh-issues/issue-36.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -121596,7 +121596,7 @@
   "gh-issues/issue-37.yaml": {
     "filePath": "gh-issues/issue-37.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -121720,7 +121720,7 @@
   "gh-issues/issue-38.json": {
     "filePath": "gh-issues/issue-38.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -121782,7 +121782,7 @@
   "gh-issues/issue-39.json": {
     "filePath": "gh-issues/issue-39.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -121909,7 +121909,7 @@
   "gh-issues/issue-40.yaml": {
     "filePath": "gh-issues/issue-40.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -122227,7 +122227,7 @@
   "gh-issues/issue-41.json": {
     "filePath": "gh-issues/issue-41.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -122331,7 +122331,7 @@
   "gh-issues/issue-42-if.yaml": {
     "filePath": "gh-issues/issue-42-if.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -122579,7 +122579,7 @@
   "gh-issues/issue-42-ref.yaml": {
     "filePath": "gh-issues/issue-42-ref.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -122793,7 +122793,7 @@
   "gh-issues/issue-42.yaml": {
     "filePath": "gh-issues/issue-42.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -123041,7 +123041,7 @@
   "gh-issues/issue-44.json": {
     "filePath": "gh-issues/issue-44.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -123121,7 +123121,7 @@
   "gh-issues/issue-45.json": {
     "filePath": "gh-issues/issue-45.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -123227,7 +123227,7 @@
   "gh-issues/issue-46.json": {
     "filePath": "gh-issues/issue-46.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -123365,7 +123365,7 @@
   "gh-issues/issue-47.json": {
     "filePath": "gh-issues/issue-47.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -123538,7 +123538,7 @@
   "gh-issues/issue-49.yaml": {
     "filePath": "gh-issues/issue-49.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -123801,7 +123801,7 @@
   "gh-issues/issue-50.json": {
     "filePath": "gh-issues/issue-50.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -123841,7 +123841,7 @@
   "gh-issues/issue-52.json": {
     "filePath": "gh-issues/issue-52.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -123968,7 +123968,7 @@
   "gh-issues/issue-53.json": {
     "filePath": "gh-issues/issue-53.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 37,
       "counts": {
@@ -125656,7 +125656,7 @@
   "gh-issues/issue-54-bare.json": {
     "filePath": "gh-issues/issue-54-bare.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -125696,7 +125696,7 @@
   "gh-issues/issue-54-with-ownership.json": {
     "filePath": "gh-issues/issue-54-with-ownership.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -125759,7 +125759,7 @@
   "gh-issues/issue-54.json": {
     "filePath": "gh-issues/issue-54.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -125842,7 +125842,7 @@
   "gh-issues/issue-55.json": {
     "filePath": "gh-issues/issue-55.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -125882,7 +125882,7 @@
   "gh-issues/issue-56.json": {
     "filePath": "gh-issues/issue-56.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -125946,7 +125946,7 @@
   "gh-issues/issue-57.json": {
     "filePath": "gh-issues/issue-57.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -125986,7 +125986,7 @@
   "gh-issues/issue-61.json": {
     "filePath": "gh-issues/issue-61.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -126082,7 +126082,7 @@
   "gh-issues/issue-62.json": {
     "filePath": "gh-issues/issue-62.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -126228,7 +126228,7 @@
   "gh-issues/issue-63.json": {
     "filePath": "gh-issues/issue-63.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -126286,7 +126286,7 @@
   "gh-issues/issue-65.json": {
     "filePath": "gh-issues/issue-65.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -126478,7 +126478,7 @@
   "gh-issues/issue-67.json": {
     "filePath": "gh-issues/issue-67.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -126541,7 +126541,7 @@
   "gh-issues/issue-68.json": {
     "filePath": "gh-issues/issue-68.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -126849,7 +126849,7 @@
   "gh-issues/issue-69.yaml": {
     "filePath": "gh-issues/issue-69.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -126920,7 +126920,7 @@
   "good/E9001_aws_cdk_metadata.yaml": {
     "filePath": "good/E9001_aws_cdk_metadata.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -126982,7 +126982,7 @@
   "good/W1028_pseudo_param_branches_reachable.yaml": {
     "filePath": "good/W1028_pseudo_param_branches_reachable.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -127022,7 +127022,7 @@
   "good/W3010_getazs_not_flagged.yaml": {
     "filePath": "good/W3010_getazs_not_flagged.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -127148,7 +127148,7 @@
   "good/apigateway_method_authorizer_same_rest_api.yaml": {
     "filePath": "good/apigateway_method_authorizer_same_rest_api.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -127374,7 +127374,7 @@
   "good/aurora_dbinstance.yaml": {
     "filePath": "good/aurora_dbinstance.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -127502,7 +127502,7 @@
   "good/both_forms.yaml": {
     "filePath": "good/both_forms.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -127586,7 +127586,7 @@
   "good/cdk_bootstrap_version_rule.json": {
     "filePath": "good/cdk_bootstrap_version_rule.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -127626,7 +127626,7 @@
   "good/cloudfront_valid.yaml": {
     "filePath": "good/cloudfront_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -127666,7 +127666,7 @@
   "good/codepipeline_artifact_counts.yaml": {
     "filePath": "good/codepipeline_artifact_counts.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -127725,7 +127725,7 @@
   "good/complex_conditions.yaml": {
     "filePath": "good/complex_conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -127978,7 +127978,7 @@
   "good/conditions.yaml": {
     "filePath": "good/conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -128061,7 +128061,7 @@
   "good/conditions/and.yaml": {
     "filePath": "good/conditions/and.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -128080,7 +128080,7 @@
   "good/core/conditions.yaml": {
     "filePath": "good/core/conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -128590,7 +128590,7 @@
   "good/core/config_cfn_lint.json": {
     "filePath": "good/core/config_cfn_lint.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -128623,7 +128623,7 @@
   "good/core/config_cfn_lint.yaml": {
     "filePath": "good/core/config_cfn_lint.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -128656,7 +128656,7 @@
   "good/core/config_default_e3012.yaml": {
     "filePath": "good/core/config_default_e3012.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -128737,7 +128737,7 @@
   "good/core/config_only_i1002.yaml": {
     "filePath": "good/core/config_only_i1002.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -128770,7 +128770,7 @@
   "good/core/config_only_i1003.yaml": {
     "filePath": "good/core/config_only_i1003.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -128803,7 +128803,7 @@
   "good/core/config_parameters.yaml": {
     "filePath": "good/core/config_parameters.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -128836,7 +128836,7 @@
   "good/core/directives.yaml": {
     "filePath": "good/core/directives.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -128912,7 +128912,7 @@
   "good/custom/is-defined.yaml": {
     "filePath": "good/custom/is-defined.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -129380,7 +129380,7 @@
   "good/custom/is-not-defined.yaml": {
     "filePath": "good/custom/is-not-defined.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -129691,7 +129691,7 @@
   "good/custom/numeric-inequalities-large.yaml": {
     "filePath": "good/custom/numeric-inequalities-large.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -129897,7 +129897,7 @@
   "good/custom/numeric-inequalities-small.yaml": {
     "filePath": "good/custom/numeric-inequalities-small.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -130103,7 +130103,7 @@
   "good/decode/parsing.json": {
     "filePath": "good/decode/parsing.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -130154,7 +130154,7 @@
   "good/deletion_policies.yaml": {
     "filePath": "good/deletion_policies.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -130339,7 +130339,7 @@
   "good/dynamodb_provisioned.yaml": {
     "filePath": "good/dynamodb_provisioned.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -130437,7 +130437,7 @@
   "good/dynamodb_valid_attributes.yaml": {
     "filePath": "good/dynamodb_valid_attributes.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -130535,7 +130535,7 @@
   "good/ecs_awsvpc_valid.yaml": {
     "filePath": "good/ecs_awsvpc_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -130621,7 +130621,7 @@
   "good/ecs_fargate.yaml": {
     "filePath": "good/ecs_fargate.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -130819,7 +130819,7 @@
   "good/ecs_fargate_valid.yaml": {
     "filePath": "good/ecs_fargate_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -130997,7 +130997,7 @@
   "good/elb_https_empty_sslcertificateid.yaml": {
     "filePath": "good/elb_https_empty_sslcertificateid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -131037,7 +131037,7 @@
   "good/enum_case_insensitive_casing.yaml": {
     "filePath": "good/enum_case_insensitive_casing.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -131145,7 +131145,7 @@
   "good/functions/dynamic_reference_embedded.yaml": {
     "filePath": "good/functions/dynamic_reference_embedded.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -131306,7 +131306,7 @@
   "good/functions/foreach.yaml": {
     "filePath": "good/functions/foreach.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -131386,7 +131386,7 @@
   "good/functions/get_stack_output.yaml": {
     "filePath": "good/functions/get_stack_output.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 10,
       "counts": {
@@ -131606,7 +131606,7 @@
   "good/functions/ref.yaml": {
     "filePath": "good/functions/ref.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -131625,7 +131625,7 @@
   "good/functions/relationship_conditions.yaml": {
     "filePath": "good/functions/relationship_conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -131776,7 +131776,7 @@
   "good/functions/relationship_conditions_sam.yaml": {
     "filePath": "good/functions/relationship_conditions_sam.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -131880,7 +131880,7 @@
   "good/functions/select_string_index.yaml": {
     "filePath": "good/functions/select_string_index.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -132118,7 +132118,7 @@
   "good/functions/sub.yaml": {
     "filePath": "good/functions/sub.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -132617,7 +132617,7 @@
   "good/functions/sub_needed.yaml": {
     "filePath": "good/functions/sub_needed.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -132969,7 +132969,7 @@
   "good/functions/sub_needed_custom_excludes.yaml": {
     "filePath": "good/functions/sub_needed_custom_excludes.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -133070,7 +133070,7 @@
   "good/functions/sub_needed_transform.yaml": {
     "filePath": "good/functions/sub_needed_transform.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -133089,7 +133089,7 @@
   "good/functions_findinmap.yaml": {
     "filePath": "good/functions_findinmap.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -133241,7 +133241,7 @@
   "good/functions_findinmap_default_value.yaml": {
     "filePath": "good/functions_findinmap_default_value.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
@@ -133729,7 +133729,7 @@
   "good/functions_findinmap_enhanced.yaml": {
     "filePath": "good/functions_findinmap_enhanced.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -134150,7 +134150,7 @@
   "good/generic.yaml": {
     "filePath": "good/generic.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -134578,7 +134578,7 @@
   "good/getatt_provisioned_product_outputs.yaml": {
     "filePath": "good/getatt_provisioned_product_outputs.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -134638,7 +134638,7 @@
   "good/getazs_resolves_current_regions.yaml": {
     "filePath": "good/getazs_resolves_current_regions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -134830,7 +134830,7 @@
   "good/good_conditions_valid_refs.yaml": {
     "filePath": "good/good_conditions_valid_refs.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -134888,7 +134888,7 @@
   "good/iam_conditional_resource_arns.yaml": {
     "filePath": "good/iam_conditional_resource_arns.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -134907,7 +134907,7 @@
   "good/iam_intrinsic_resource_arns.yaml": {
     "filePath": "good/iam_intrinsic_resource_arns.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -134947,7 +134947,7 @@
   "good/iam_valid.yaml": {
     "filePath": "good/iam_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -134987,7 +134987,7 @@
   "good/lambda_permission_source_account.yaml": {
     "filePath": "good/lambda_permission_source_account.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135132,7 +135132,7 @@
   "good/lambda_permission_sourcearn_ref_no_account.yaml": {
     "filePath": "good/lambda_permission_sourcearn_ref_no_account.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135259,7 +135259,7 @@
   "good/lambda_snapstart.yaml": {
     "filePath": "good/lambda_snapstart.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135359,7 +135359,7 @@
   "good/lambda_zipfile.yaml": {
     "filePath": "good/lambda_zipfile.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135440,7 +135440,7 @@
   "good/mappings/name.yaml": {
     "filePath": "good/mappings/name.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -135491,7 +135491,7 @@
   "good/mappings/used.yaml": {
     "filePath": "good/mappings/used.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135598,7 +135598,7 @@
   "good/mappings_valid.yaml": {
     "filePath": "good/mappings_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135656,7 +135656,7 @@
   "good/minimal.yaml": {
     "filePath": "good/minimal.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135696,7 +135696,7 @@
   "good/modules/minimal.yaml": {
     "filePath": "good/modules/minimal.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -135736,7 +135736,7 @@
   "good/neptune_valid_instanceclass.yaml": {
     "filePath": "good/neptune_valid_instanceclass.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -135821,7 +135821,7 @@
   "good/no_value.yaml": {
     "filePath": "good/no_value.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -136051,7 +136051,7 @@
   "good/no_w3010_on_unlisted_type.yaml": {
     "filePath": "good/no_w3010_on_unlisted_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -136231,7 +136231,7 @@
   "good/output_value_string.yaml": {
     "filePath": "good/output_value_string.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -136326,7 +136326,7 @@
   "good/override/complete.yaml": {
     "filePath": "good/override/complete.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -136492,7 +136492,7 @@
   "good/override/required.yaml": {
     "filePath": "good/override/required.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -136554,7 +136554,7 @@
   "good/param_constraints_valid.yaml": {
     "filePath": "good/param_constraints_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -136630,7 +136630,7 @@
   "good/parameters/default.yaml": {
     "filePath": "good/parameters/default.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -136951,7 +136951,7 @@
   "good/parameters/not_used_parameters.yaml": {
     "filePath": "good/parameters/not_used_parameters.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -137126,7 +137126,7 @@
   "good/parameters/used_transform_language_extension.json": {
     "filePath": "good/parameters/used_transform_language_extension.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -137218,7 +137218,7 @@
   "good/parameters/used_transform_removed.yaml": {
     "filePath": "good/parameters/used_transform_removed.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -137258,7 +137258,7 @@
   "good/parameters/used_transforms.yaml": {
     "filePath": "good/parameters/used_transforms.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -137433,7 +137433,7 @@
   "good/properties_ec2_vpc.yaml": {
     "filePath": "good/properties_ec2_vpc.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -137841,7 +137841,7 @@
   "good/properties_rt_association.yaml": {
     "filePath": "good/properties_rt_association.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -138153,7 +138153,7 @@
   "good/redshift_private.yaml": {
     "filePath": "good/redshift_private.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -138488,7 +138488,7 @@
   "good/redshift_valid_nodetype.yaml": {
     "filePath": "good/redshift_valid_nodetype.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -138657,7 +138657,7 @@
   "good/region_conditional_resource_type.yaml": {
     "filePath": "good/region_conditional_resource_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -138757,7 +138757,7 @@
   "good/resources/backup/test_backup_plan_lifecycle_rule.yml": {
     "filePath": "good/resources/backup/test_backup_plan_lifecycle_rule.yml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -138776,7 +138776,7 @@
   "good/resources/cloudformation/nested_stack_dynamic.yaml": {
     "filePath": "good/resources/cloudformation/nested_stack_dynamic.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -138816,7 +138816,7 @@
   "good/resources/cloudformation/stack_nested.yaml": {
     "filePath": "good/resources/cloudformation/stack_nested.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -138885,7 +138885,7 @@
   "good/resources/cloudformation/stacks.yaml": {
     "filePath": "good/resources/cloudformation/stacks.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -139242,7 +139242,7 @@
   "good/resources/cloudfront/aliases.yaml": {
     "filePath": "good/resources/cloudfront/aliases.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -139282,7 +139282,7 @@
   "good/resources/dynamodb/attributes.yaml": {
     "filePath": "good/resources/dynamodb/attributes.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -139414,7 +139414,7 @@
   "good/resources/elasticache/cache_cluster_failover.yaml": {
     "filePath": "good/resources/elasticache/cache_cluster_failover.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 10,
       "counts": {
@@ -140403,7 +140403,7 @@
   "good/resources/iam/instance_profile.yaml": {
     "filePath": "good/resources/iam/instance_profile.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -140535,7 +140535,7 @@
   "good/resources/iam/managed_policy_description.yaml": {
     "filePath": "good/resources/iam/managed_policy_description.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -140578,7 +140578,7 @@
   "good/resources/iam/policy.yaml": {
     "filePath": "good/resources/iam/policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -140621,7 +140621,7 @@
   "good/resources/iam/ref_with_path.yaml": {
     "filePath": "good/resources/iam/ref_with_path.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -140878,7 +140878,7 @@
   "good/resources/iam/resource_policy.yaml": {
     "filePath": "good/resources/iam/resource_policy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -140918,7 +140918,7 @@
   "good/resources/lambda/required_properties.yaml": {
     "filePath": "good/resources/lambda/required_properties.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -141097,7 +141097,7 @@
   "good/resources/name.yaml": {
     "filePath": "good/resources/name.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -141183,7 +141183,7 @@
   "good/resources/primary_identifiers.yaml": {
     "filePath": "good/resources/primary_identifiers.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -141573,7 +141573,7 @@
   "good/resources/properties/allowed_pattern.yaml": {
     "filePath": "good/resources/properties/allowed_pattern.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -141659,7 +141659,7 @@
   "good/resources/properties/az_cdk.yaml": {
     "filePath": "good/resources/properties/az_cdk.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -141784,7 +141784,7 @@
   "good/resources/properties/custom.yaml": {
     "filePath": "good/resources/properties/custom.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -141803,7 +141803,7 @@
   "good/resources/properties/exclusive.yaml": {
     "filePath": "good/resources/properties/exclusive.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -141981,7 +141981,7 @@
   "good/resources/properties/hard_coded_arn_properties.yaml": {
     "filePath": "good/resources/properties/hard_coded_arn_properties.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -142066,7 +142066,7 @@
   "good/resources/properties/hard_coded_arn_properties_cdk.yaml": {
     "filePath": "good/resources/properties/hard_coded_arn_properties_cdk.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -142252,7 +142252,7 @@
   "good/resources/properties/hard_coded_arn_properties_sam.yaml": {
     "filePath": "good/resources/properties/hard_coded_arn_properties_sam.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -142424,7 +142424,7 @@
   "good/resources/properties/list_duplicates.yaml": {
     "filePath": "good/resources/properties/list_duplicates.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -142564,7 +142564,7 @@
   "good/resources/properties/password.yaml": {
     "filePath": "good/resources/properties/password.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -143089,7 +143089,7 @@
   "good/resources/properties/string_size.yaml": {
     "filePath": "good/resources/properties/string_size.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -143129,7 +143129,7 @@
   "good/resources/properties/templated_code.yaml": {
     "filePath": "good/resources/properties/templated_code.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -143192,7 +143192,7 @@
   "good/resources/properties/templated_code_sam.yaml": {
     "filePath": "good/resources/properties/templated_code_sam.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -143232,7 +143232,7 @@
   "good/resources/rds/instance_sizes.yaml": {
     "filePath": "good/resources/rds/instance_sizes.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -143773,7 +143773,7 @@
   "good/resources/s3/access-control-obsolete.yaml": {
     "filePath": "good/resources/s3/access-control-obsolete.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -143878,7 +143878,7 @@
   "good/resources_codepipeline.yaml": {
     "filePath": "good/resources_codepipeline.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -143960,7 +143960,7 @@
   "good/resources_cognito_userpool_tag_is_string_map.yaml": {
     "filePath": "good/resources_cognito_userpool_tag_is_string_map.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144016,7 +144016,7 @@
   "good/resources_deletionpolicy.yaml": {
     "filePath": "good/resources_deletionpolicy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -144124,7 +144124,7 @@
   "good/resources_updatereplacepolicy.yaml": {
     "filePath": "good/resources_updatereplacepolicy.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -144232,7 +144232,7 @@
   "good/sam/api_stagename_valid.yaml": {
     "filePath": "good/sam/api_stagename_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144272,7 +144272,7 @@
   "good/sam/connector_valid.yaml": {
     "filePath": "good/sam/connector_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -144332,7 +144332,7 @@
   "good/sam/function_deploymentpreference_with_alias.yaml": {
     "filePath": "good/sam/function_deploymentpreference_with_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144372,7 +144372,7 @@
   "good/sam/function_dlq_valid.yaml": {
     "filePath": "good/sam/function_dlq_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144412,7 +144412,7 @@
   "good/sam/function_image_valid.yaml": {
     "filePath": "good/sam/function_image_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144452,7 +144452,7 @@
   "good/sam/function_provisioned_concurrency_with_alias.yaml": {
     "filePath": "good/sam/function_provisioned_concurrency_with_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144492,7 +144492,7 @@
   "good/sam/function_runtime_handler_via_globals.yaml": {
     "filePath": "good/sam/function_runtime_handler_via_globals.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144532,7 +144532,7 @@
   "good/sam/function_url_config_valid.yaml": {
     "filePath": "good/sam/function_url_config_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144572,7 +144572,7 @@
   "good/sam/function_zip_valid.yaml": {
     "filePath": "good/sam/function_zip_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144612,7 +144612,7 @@
   "good/sam/globals_all_valid_sections.yaml": {
     "filePath": "good/sam/globals_all_valid_sections.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144652,7 +144652,7 @@
   "good/sam/globals_empty.yaml": {
     "filePath": "good/sam/globals_empty.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144692,7 +144692,7 @@
   "good/sam/implicit_alias_ref.yaml": {
     "filePath": "good/sam/implicit_alias_ref.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -144752,7 +144752,7 @@
   "good/sam/implicit_httpapi_ref.yaml": {
     "filePath": "good/sam/implicit_httpapi_ref.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -144832,7 +144832,7 @@
   "good/sam/implicit_restapi_stage_ref.yaml": {
     "filePath": "good/sam/implicit_restapi_stage_ref.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -144892,7 +144892,7 @@
   "good/sam/implicit_role_getatt_dependson.yaml": {
     "filePath": "good/sam/implicit_role_getatt_dependson.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -144972,7 +144972,7 @@
   "good/sam/layerversion_valid_retention_and_arch.yaml": {
     "filePath": "good/sam/layerversion_valid_retention_and_arch.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -144991,7 +144991,7 @@
   "good/sam/simpletable_no_primarykey.yaml": {
     "filePath": "good/sam/simpletable_no_primarykey.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -145031,7 +145031,7 @@
   "good/sam/simpletable_valid.yaml": {
     "filePath": "good/sam/simpletable_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -145071,7 +145071,7 @@
   "good/sam/statemachine_definition_only.yaml": {
     "filePath": "good/sam/statemachine_definition_only.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -145129,7 +145129,7 @@
   "good/schema_resource.yaml": {
     "filePath": "good/schema_resource.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -145148,7 +145148,7 @@
   "good/schema_valid_resources.yaml": {
     "filePath": "good/schema_valid_resources.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -145230,7 +145230,7 @@
   "good/simple_sub_prefix.yaml": {
     "filePath": "good/simple_sub_prefix.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -145293,7 +145293,7 @@
   "good/some_logs_stream_lambda.yaml": {
     "filePath": "good/some_logs_stream_lambda.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -145805,7 +145805,7 @@
   "good/sqs_fifo_valid.yaml": {
     "filePath": "good/sqs_fifo_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -145946,7 +145946,7 @@
   "good/ssm_document_valid.yaml": {
     "filePath": "good/ssm_document_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146009,7 +146009,7 @@
   "good/ssm_parameter_name_type.yaml": {
     "filePath": "good/ssm_parameter_name_type.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146072,7 +146072,7 @@
   "good/stepfunctions_valid.yaml": {
     "filePath": "good/stepfunctions_valid.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146131,7 +146131,7 @@
   "good/sub_not_needed.yaml": {
     "filePath": "good/sub_not_needed.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146194,7 +146194,7 @@
   "good/transform.yaml": {
     "filePath": "good/transform.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -146254,7 +146254,7 @@
   "good/transform/applications_location.yaml": {
     "filePath": "good/transform/applications_location.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -146314,7 +146314,7 @@
   "good/transform/auto_publish_alias.yaml": {
     "filePath": "good/transform/auto_publish_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -146374,7 +146374,7 @@
   "good/transform/auto_publish_code_sha256.yaml": {
     "filePath": "good/transform/auto_publish_code_sha256.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146414,7 +146414,7 @@
   "good/transform/function_use_s3_uri.yaml": {
     "filePath": "good/transform/function_use_s3_uri.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146454,7 +146454,7 @@
   "good/transform/function_using_image.yaml": {
     "filePath": "good/transform/function_using_image.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146494,7 +146494,7 @@
   "good/transform/include_object_form.yaml": {
     "filePath": "good/transform/include_object_form.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146513,7 +146513,7 @@
   "good/transform/language_extension.yaml": {
     "filePath": "good/transform/language_extension.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -146835,7 +146835,7 @@
   "good/transform/list_transform.yaml": {
     "filePath": "good/transform/list_transform.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146875,7 +146875,7 @@
   "good/transform/list_transform_many.yaml": {
     "filePath": "good/transform/list_transform_many.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146915,7 +146915,7 @@
   "good/transform/list_transform_not_sam.yaml": {
     "filePath": "good/transform/list_transform_not_sam.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -146973,7 +146973,7 @@
   "good/transform/step_function_local_definition.yaml": {
     "filePath": "good/transform/step_function_local_definition.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -147013,7 +147013,7 @@
   "good/transform_serverless_api.yaml": {
     "filePath": "good/transform_serverless_api.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -147073,7 +147073,7 @@
   "good/transform_serverless_auto_publish_alias.yaml": {
     "filePath": "good/transform_serverless_auto_publish_alias.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -147133,7 +147133,7 @@
   "good/transform_serverless_function.yaml": {
     "filePath": "good/transform_serverless_function.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -147213,7 +147213,7 @@
   "good/transform_serverless_globals.yaml": {
     "filePath": "good/transform_serverless_globals.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -147276,7 +147276,7 @@
   "good/unknown_resource_types_ignored.yaml": {
     "filePath": "good/unknown_resource_types_ignored.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -147295,7 +147295,7 @@
   "good/vpc_subnets.yaml": {
     "filePath": "good/vpc_subnets.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -147614,7 +147614,7 @@
   "integration/availability-zones.yaml": {
     "filePath": "integration/availability-zones.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -147786,7 +147786,7 @@
   "integration/aws-dynamodb-table.yaml": {
     "filePath": "integration/aws-dynamodb-table.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -147999,7 +147999,7 @@
   "integration/aws-ec2-instance.yaml": {
     "filePath": "integration/aws-ec2-instance.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -148209,7 +148209,7 @@
   "integration/aws-ec2-launchtemplate.yaml": {
     "filePath": "integration/aws-ec2-launchtemplate.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -148359,7 +148359,7 @@
   "integration/aws-ec2-networkinterface.yaml": {
     "filePath": "integration/aws-ec2-networkinterface.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -148469,7 +148469,7 @@
   "integration/aws-ec2-subnet.yaml": {
     "filePath": "integration/aws-ec2-subnet.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -148961,7 +148961,7 @@
   "integration/aws-lambda-function.yaml": {
     "filePath": "integration/aws-lambda-function.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -149021,7 +149021,7 @@
   "integration/cfn-gather.yaml": {
     "filePath": "integration/cfn-gather.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 17,
       "counts": {
@@ -150256,7 +150256,7 @@
   "integration/custom-resources.yaml": {
     "filePath": "integration/custom-resources.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -150338,7 +150338,7 @@
   "integration/deployment-file-template.yaml": {
     "filePath": "integration/deployment-file-template.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
@@ -150564,7 +150564,7 @@
   "integration/dynamic-references.yaml": {
     "filePath": "integration/dynamic-references.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -150862,7 +150862,7 @@
   "integration/formats.yaml": {
     "filePath": "integration/formats.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -151251,7 +151251,7 @@
   "integration/getatt-types.yaml": {
     "filePath": "integration/getatt-types.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -151786,7 +151786,7 @@
   "integration/metdata.yaml": {
     "filePath": "integration/metdata.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 0,
       "counts": {
@@ -151837,7 +151837,7 @@
   "integration/ref-no-value.yaml": {
     "filePath": "integration/ref-no-value.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -152057,7 +152057,7 @@
   "integration/ref-types.yaml": {
     "filePath": "integration/ref-types.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 13,
       "counts": {
@@ -152999,7 +152999,7 @@
   "integration/resources-cloudformation-init.yaml": {
     "filePath": "integration/resources-cloudformation-init.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -153099,7 +153099,7 @@
   "issues/sam_w_conditions.yaml": {
     "filePath": "issues/sam_w_conditions.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 17,
       "counts": {
@@ -153876,7 +153876,7 @@
   "lsp/comprehensive.json": {
     "filePath": "lsp/comprehensive.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -154662,7 +154662,7 @@
   "lsp/comprehensive.yaml": {
     "filePath": "lsp/comprehensive.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -155476,7 +155476,7 @@
   "lsp/condition-usage.json": {
     "filePath": "lsp/condition-usage.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
@@ -155825,7 +155825,7 @@
   "lsp/condition-usage.yaml": {
     "filePath": "lsp/condition-usage.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
@@ -156368,7 +156368,7 @@
   "lsp/constants.json": {
     "filePath": "lsp/constants.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -156466,7 +156466,7 @@
   "lsp/constants.yaml": {
     "filePath": "lsp/constants.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -156564,7 +156564,7 @@
   "lsp/parameter_usage.json": {
     "filePath": "lsp/parameter_usage.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -156848,7 +156848,7 @@
   "lsp/parameter_usage.yaml": {
     "filePath": "lsp/parameter_usage.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
@@ -157216,7 +157216,7 @@
   "lsp/simple.json": {
     "filePath": "lsp/simple.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -157256,7 +157256,7 @@
   "lsp/simple.yaml": {
     "filePath": "lsp/simple.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -157296,7 +157296,7 @@
   "lsp/test-template.yaml": {
     "filePath": "lsp/test-template.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -157392,7 +157392,7 @@
   "public/lambda-poller.json": {
     "filePath": "public/lambda-poller.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -157631,7 +157631,7 @@
   "public/lambda-poller.yaml": {
     "filePath": "public/lambda-poller.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -157870,7 +157870,7 @@
   "public/rds-cluster.yaml": {
     "filePath": "public/rds-cluster.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
@@ -158031,7 +158031,7 @@
   "public/watchmaker.json": {
     "filePath": "public/watchmaker.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -158780,7 +158780,7 @@
   "quickstart/cis_benchmark.yaml": {
     "filePath": "quickstart/cis_benchmark.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 79,
       "counts": {
@@ -163469,7 +163469,7 @@
   "quickstart/config-rules.json": {
     "filePath": "quickstart/config-rules.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -163985,7 +163985,7 @@
   "quickstart/iam.json": {
     "filePath": "quickstart/iam.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 18,
       "counts": {
@@ -164271,7 +164271,7 @@
   "quickstart/nat-instance.json": {
     "filePath": "quickstart/nat-instance.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -164606,7 +164606,7 @@
   "quickstart/nist_application.yaml": {
     "filePath": "quickstart/nist_application.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 28,
       "counts": {
@@ -167543,7 +167543,7 @@
   "quickstart/nist_config_rules.yaml": {
     "filePath": "quickstart/nist_config_rules.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 12,
       "counts": {
@@ -168059,7 +168059,7 @@
   "quickstart/nist_high_main.yaml": {
     "filePath": "quickstart/nist_high_main.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 6,
       "counts": {
@@ -169222,7 +169222,7 @@
   "quickstart/nist_iam.yaml": {
     "filePath": "quickstart/nist_iam.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 18,
       "counts": {
@@ -169508,7 +169508,7 @@
   "quickstart/nist_logging.yaml": {
     "filePath": "quickstart/nist_logging.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 24,
       "counts": {
@@ -171108,7 +171108,7 @@
   "quickstart/nist_vpc_management.yaml": {
     "filePath": "quickstart/nist_vpc_management.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 33,
       "counts": {
@@ -173313,7 +173313,7 @@
   "quickstart/nist_vpc_production.yaml": {
     "filePath": "quickstart/nist_vpc_production.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 46,
       "counts": {
@@ -176860,7 +176860,7 @@
   "quickstart/openshift.yaml": {
     "filePath": "quickstart/openshift.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 19,
       "counts": {
@@ -178924,7 +178924,7 @@
   "quickstart/openshift_master.yaml": {
     "filePath": "quickstart/openshift_master.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
@@ -179056,7 +179056,7 @@
   "quickstart/test.yaml": {
     "filePath": "quickstart/test.yaml",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
@@ -179250,7 +179250,7 @@
   "quickstart/vpc-management.json": {
     "filePath": "quickstart/vpc-management.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 33,
       "counts": {
@@ -181473,7 +181473,7 @@
   "quickstart/vpc.json": {
     "filePath": "quickstart/vpc.json",
     "status": "OK",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "metadata": {
       "resourcesScanned": 77,
       "counts": {

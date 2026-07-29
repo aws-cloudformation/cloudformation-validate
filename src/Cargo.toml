@@ -25,7 +25,7 @@ name = "cloudformation-validate"
 uniffi = "=0.32.0"
 
 [workspace.package]
-version = "1.6.0"
+version = "1.7.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "AWS CloudFormation Validate"
