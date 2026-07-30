@@ -9,6 +9,10 @@
 META-INF/
 org.eclipse*
 .classpath
+# Eclipse JVM build output; keep src/bindings-jvm/src/bin/ tracked.
+src/bindings-jvm/bench/bin/
+src/bindings-jvm/examples/bin/
+src/bindings-jvm/tests/kotlin/bin/
 src/bindings-jvm/tests/kotlin/generated/
 src/bindings-jvm/generated/**/*
 !src/bindings-jvm/generated/*.jar
@@ -25,13 +29,24 @@ src/data-source/generated/patched_schemas/
 src/**/reports/
 **/cdk.out/
 *.pyc
+**/__pycache__/
+**/.venv/
 **/coverage/
+.coverage
+coverage.xml
+coverage.out
 
 # IDE
 **/*.iml
 **/.idea/
 **/.vscode
 pyproject.toml
+
+# Python
+src/bindings-python/generated/**/*
+!src/bindings-python/generated/dist/
+!src/bindings-python/generated/dist/*.whl
+!src/bindings-python/pyproject.toml
 
 # OS
 .DS_Store

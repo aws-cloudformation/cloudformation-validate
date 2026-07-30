@@ -1,0 +1,27 @@
+[package]
+name = "bindings-python"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "bindings_python"
+
+[dependencies]
+validation-engine = { path = "../validation-engine", features = ["uniffi-bindings"] }
+diagnostics = { path = "../diagnostics", features = ["uniffi-bindings"] }
+rules = { path = "../rules", features = ["uniffi-bindings"] }
+template-model = { path = "../template-model", features = ["uniffi-bindings"] }
+rego-engine = { path = "../rego-engine" }
+cel-engine = { path = "../cel-engine" }
+schema-validator = { path = "../schema-validator" }
+uniffi = { workspace = true }
+thiserror = "2"
+
+[lints]
+workspace = true

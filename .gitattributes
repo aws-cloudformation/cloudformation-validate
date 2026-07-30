@@ -24,6 +24,7 @@
 *.a      binary
 *.node   binary
 *.wasm   binary
+*.crate  binary
 
 # Documents
 *.pdf    binary

@@ -1,0 +1,162 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: 'Iterations per template (positive integer)'
+        required: false
+        type: number
+        default: 5
+
+  schedule:
+    # Weekly: every Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmarks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  get-configs:
+    uses: ./.github/workflows/configs.yml
+
+  benchmark:
+    needs: [ get-configs ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install Rust ${{ needs.get-configs.outputs.rust-toolchain }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ needs.get-configs.outputs.rust-toolchain }}
+        targets: wasm32-unknown-unknown
+
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ env.WORKING_DIR }}
+
+    - name: Setup Node.js ${{ needs.get-configs.outputs.node-version }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ needs.get-configs.outputs.node-version }}
+
+    - name: Install wasm-pack ${{ needs.get-configs.outputs.wasm-pack-version }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: wasm-pack@${{ needs.get-configs.outputs.wasm-pack-version }}
+
+    - name: Setup Python ${{ needs.get-configs.outputs.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ needs.get-configs.outputs.python-version }}
+
+    - name: Pin setuptools ${{ needs.get-configs.outputs.setuptools-version }}
+      run: pip install --quiet "setuptools==${{ needs.get-configs.outputs.setuptools-version }}"
+
+    - name: Setup Go ${{ needs.get-configs.outputs.go-version }}
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ needs.get-configs.outputs.go-version }}
+
+    - name: Cache uniffi-bindgen-go
+      id: cache-uniffi-bindgen-go
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/uniffi-bindgen-go*
+        key: uniffi-bindgen-go-${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}-ubuntu-latest
+
+    - name: Install uniffi-bindgen-go ${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}
+      if: steps.cache-uniffi-bindgen-go.outputs.cache-hit != 'true'
+      run: cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag '${{ needs.get-configs.outputs.uniffi-bindgen-go-tag }}'
+
+    - name: Setup JVM toolchain
+      uses: ./.github/actions/setup-jvm-toolchain
+      with:
+        java-version: ${{ needs.get-configs.outputs.java-version }}
+        java-distribution: ${{ needs.get-configs.outputs.java-distribution }}
+        kotlin-version: ${{ needs.get-configs.outputs.kotlin-version }}
+        ktlint-version: ${{ needs.get-configs.outputs.ktlint-version }}
+        gradle-version: ${{ needs.get-configs.outputs.gradle-version }}
+
+    - name: Log tool versions
+      uses: ./.github/actions/print-build-versions
+
+    - name: Run benchmarks
+      working-directory: ${{ env.WORKING_DIR }}
+      run: |
+        python3 ../scripts/compare_benchmarks.py \
+          --iterations ${{ inputs.iterations || 5 }}
+
+    - name: Validate aggregates
+      working-directory: ${{ env.WORKING_DIR }}
+      shell: bash
+      run: |
+        # Validate all 10 aggregate files (5 bindings × 2 engines) exist and
+        # contain valid JSON with expected binding/engine labels.
+        expected=(
+          "native rego cfn-validate/reports/rego/aggregate_detailed.json"
+          "native cel cfn-validate/reports/cel/aggregate_detailed.json"
+          "wasm rego bindings-wasm/reports/rego/aggregate_detailed.json"
+          "wasm cel bindings-wasm/reports/cel/aggregate_detailed.json"
+          "jvm rego bindings-jvm/reports/rego/aggregate_detailed.json"
+          "jvm cel bindings-jvm/reports/cel/aggregate_detailed.json"
+          "python rego bindings-python/reports/rego/aggregate_detailed.json"
+          "python cel bindings-python/reports/cel/aggregate_detailed.json"
+          "go rego bindings-go/reports/rego/aggregate_detailed.json"
+          "go cel bindings-go/reports/cel/aggregate_detailed.json"
+        )
+        errors=0
+        for entry in "${expected[@]}"; do
+          read -r exp_binding exp_engine fpath <<< "$entry"
+          if [ ! -f "$fpath" ]; then
+            echo "MISSING: $fpath"
+            errors=$((errors + 1))
+            continue
+          fi
+          # Parse JSON and verify binding + engine labels
+          actual_binding=$(python3 -c "import json; d=json.load(open('$fpath')); print(d.get('binding',''))")
+          actual_engine=$(python3 -c "import json; d=json.load(open('$fpath')); print(d.get('engine',''))")
+          if [ "$actual_binding" != "$exp_binding" ]; then
+            echo "INVALID $fpath: binding='$actual_binding', expected '$exp_binding'"
+            errors=$((errors + 1))
+          fi
+          if [ "$actual_engine" != "$exp_engine" ]; then
+            echo "INVALID $fpath: engine='$actual_engine', expected '$exp_engine'"
+            errors=$((errors + 1))
+          fi
+        done
+        if [ $errors -gt 0 ]; then
+          echo "::error::$errors error(s) validating aggregate files"
+          exit 1
+        fi
+        echo "All 10 aggregate files validated successfully (JSON parsed, labels verified)"
+
+    - name: Upload comparison report
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: benchmark-comparison
+        path: scripts/snapshots/benchmark_comparison.md
+        if-no-files-found: warn
+
+    - name: Upload per-binding reports
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: benchmark-reports
+        path: |
+          src/cfn-validate/reports/
+          src/bindings-wasm/reports/
+          src/bindings-jvm/reports/
+          src/bindings-python/reports/
+          src/bindings-go/reports/
+        if-no-files-found: warn

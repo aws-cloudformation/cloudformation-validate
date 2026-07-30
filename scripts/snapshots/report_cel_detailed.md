@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint — Parity Report
 
-> Generated: 2026-07-23 21:54:43  
+> Generated: 2026-07-28 16:09:46  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **573**  
+> Templates compared: **584**  
 
 ## Terminology
 
@@ -22,51 +22,51 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 2075 |
+| True Positives | 2190 |
 | False Positives (engine bugs) | 0 |
-| Engine Extra (correct, cfn-lint gap) | 5837 |
-| False Negatives (engine misses) | 323 |
+| Engine Extra (correct, cfn-lint gap) | 5925 |
+| False Negatives (engine misses) | 338 |
 | Precision | 100.00% |
-| Recall | 86.53% |
-| F1 | 92.78% |
-| Unique rules detected | 219 |
-| Perfect templates | 459/573 |
+| Recall | 86.63% |
+| F1 | 92.84% |
+| Unique rules detected | 222 |
+| Perfect templates | 465/584 |
 | Location mismatches (matched pairs) | 17 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 381 | 0 | 55 | 110 | 100.00% | 77.60% |
-| Error | 444 | 0 | 6 | 139 | 100.00% | 76.16% |
-| Warning | 748 | 0 | 346 | 55 | 100.00% | 93.15% |
-| Info | 502 | 0 | 5430 | 19 | 100.00% | 96.35% |
+| Fatal | 384 | 0 | 56 | 113 | 100.00% | 77.26% |
+| Error | 451 | 0 | 7 | 148 | 100.00% | 75.29% |
+| Warning | 748 | 0 | 360 | 55 | 100.00% | 93.15% |
+| Info | 607 | 0 | 5502 | 22 | 100.00% | 96.50% |
 
 ## Performance
 
 | Metric | Value |
 |--------|------:|
-| Total wall time | 45212.9760 ms |
-| Throughput | 64.25 validations/sec |
-| Templates | 581 ok, 8 failed |
-| Iterations per template | 5 |
-| Engine init (p99) | 37.5797 ms |
-| Engine init (max) | 37.8417 ms |
-| Schema init (p99) | 73.6252 ms |
-| Schema init (max) | 74.3067 ms |
+| Total wall time | 6477.0831 ms |
+| Throughput | 95.97 validations/sec |
+| Templates | 588 ok, 8 failed |
+| Iterations per template | 1 |
+| Engine init (p99) | 36.3532 ms |
+| Engine init (max) | 36.3532 ms |
+| Schema init (p99) | 74.2334 ms |
+| Schema init (max) | 74.2334 ms |
 
 ### Latency Distribution (ms)
 
 | Phase | Min | Avg | Median | P90 | P95 | P99 | Max |
 |-------|----:|----:|-------:|----:|----:|----:|----:|
-| Model Build | 0.0033 | 0.2531 | 0.0570 | 0.7996 | 1.1619 | 2.3183 | 3.7414 |
-| Schema Validate | 0.0004 | 0.5006 | 0.2012 | 1.4121 | 1.9807 | 3.6088 | 7.1728 |
-| Rule Evaluation | 11.0191 | 14.1252 | 13.5534 | 16.2697 | 16.9055 | 18.9960 | 23.9199 |
-| Diagnostic Finalize | 0.0029 | 0.0163 | 0.0097 | 0.0387 | 0.0501 | 0.0891 | 0.1568 |
-| Engine Internal | 11.2244 | 14.9654 | 14.2315 | 18.0716 | 19.2107 | 24.4026 | 26.1245 |
-| Wall Clock | 11.2253 | 14.9667 | 14.2327 | 18.0729 | 19.2119 | 24.4041 | 26.1260 |
+| Model Build | 0.0036 | 0.2422 | 0.0602 | 0.7517 | 1.0746 | 2.1761 | 3.9520 |
+| Schema Validate | 0.0003 | 1.0258 | 0.2113 | 1.4862 | 2.0076 | 5.2696 | 239.3290 |
+| Rule Evaluation | 7.7445 | 9.0819 | 8.8095 | 10.2345 | 10.8071 | 14.0107 | 17.6685 |
+| Diagnostic Finalize | 0.0024 | 0.0215 | 0.0093 | 0.0442 | 0.0722 | 0.1872 | 0.7658 |
+| Engine Internal | 7.7776 | 10.4184 | 9.1931 | 12.4055 | 13.6259 | 21.6794 | 253.7055 |
+| Wall Clock | 7.7786 | 10.4197 | 9.1942 | 12.4066 | 13.6442 | 21.6803 | 253.7066 |
 
-## False Negatives — 323 missed findings across 76 rules
+## False Negatives — 338 missed findings across 80 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
 
@@ -366,6 +366,23 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
   > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
 
+### E1001 — 7 missed — Basic CloudFormation Template Configuration
+
+- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
+  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
+- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
+  > Additional properties are not allowed ('NotEven' was unexpected)
+- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
+  > None is not of type 'string', 'date'
+- **E1001** L1-7 in `gh-issues_issue-201_json`
+  > 'Resources' is a required property
+
 ### W1028 — 7 missed — Check Fn::If has a path that cannot be reached
 
 - **W1028** `CloudFrontDistribution` → `Properties.DistributionConfig.Restrictions.GeoRestriction.Fn::If.1.RestrictionType.Fn::If.2` L94 in `bad_conditions_yaml`
@@ -382,6 +399,23 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > ['Fn::If', 2] is not reachable. When setting condition 'isPrimary' to False. Where existing status for condition 'isPrimaryAndProduction' is True
 - **W1028** `Stack3` → `Properties.Parameters.Fn::If.2.Fn::If.1` L48-50 in `good_resources_cloudformation_stacks_yaml`
   > ['Fn::If', 1] is not reachable. When setting condition 'IsUsEast1' to True from current status False
+
+### E0002 — 7 missed — Error processing rule on the template
+
+- **E0002** L1 in `bad_core_conditions_list_yaml`
+  > Unknown exception while processing rule W8001: "'list_node' object has no attribute 'items'"
+- **E0002** L1 in `bad_core_sections_not_objects_yaml`
+  > Unknown exception while processing rule E3007: "argument of type 'NoneType' is not iterable"
+- **E0002** L1 in `bad_core_sections_not_objects_yaml`
+  > Unknown exception while processing rule W2501: "'NoneType' object has no attribute 'keys'"
+- **E0002** L1 in `bad_core_sections_not_objects_yaml`
+  > Unknown exception while processing rule W2001: "'NoneType' object has no attribute 'keys'"
+- **E0002** L1 in `bad_core_sections_not_objects_yaml`
+  > Unknown exception while processing rule W7001: "'list_node' object has no attribute 'items'"
+- **E0002** L1 in `bad_functions_foreach_no_transform_yaml`
+  > Unknown exception while processing rule E1029: "'list_node' object has no attribute 'get'"
+- **E0002** L1 in `gh-issues_issue-235_yaml`
+  > Unknown exception while processing rule I3100: "'str_node' object has no attribute 'get'"
 
 ### W1001 — 7 missed — Ref/GetAtt to resource that is available when conditions are applied
 
@@ -448,21 +482,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 'obj' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
 - **F1020** (cfn-lint: E1020) `Bucket` → `Properties.Tags.0.Value.Ref` L21 in `lsp_constants_yaml`
   > 'foo' is not one of ['Bucket', 'PersonalS3', 'AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix']
-
-### E1001 — 6 missed — Basic CloudFormation Template Configuration
-
-- **E1001** → `Conditions.TestAndNull.Fn::And` L22 in `bad_conditions_and_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullEquals.Fn::Equals` L23 in `bad_conditions_equals_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `Conditions.NullCondition` L51 in `bad_conditions_yaml`
-  > None is not of type 'array', 'boolean', 'integer', 'number', 'object', 'string'
-- **E1001** → `NotEven` L2 in `bad_not_cloudformation_yaml`
-  > Additional properties are not allowed ('NotEven' was unexpected)
-- **E1001** → `AWSTemplateFormatVersion` L1 in `bad_templates_base_null_yaml`
-  > None is not of type 'string', 'date'
-- **E1001** L1-7 in `gh-issues_issue-201_json`
-  > 'Resources' is a required property
 
 ### E3530 — 6 missed — Validate IAM trust polices
 
@@ -537,6 +556,19 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3006** (cfn-lint: E3006) `HookShapedType` → `Resources.HookShapedType.Type` L18 in `good_unknown_resource_types_ignored_yaml`
   > Resource type 'MyCompany::Testing::MyTestHook' does not exist in 'us-east-1'
 
+### F3012 — 5 missed — Check resource properties values
+
+- **F3012** (cfn-lint: E3012) `ExampleLambda` → `Properties.Environment.Variables` L14 in `bad_resources_properties_primitive_types_map_yaml`
+  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
+- **F3012** (cfn-lint: E3012) `ExampleLambda1` → `Properties.Environment.Variables.Fn::If.1` L34-37 in `bad_resources_properties_primitive_types_map_yaml`
+  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
+- **F3012** (cfn-lint: E3012) `DynamicProperties` → `Properties` L250 in `gh-issues_issue-235_yaml`
+  > '{{resolve:ssm:/rds/properties}}' is not of type object
+- **F3012** (cfn-lint: E3012) `IamRole2` → `Properties.Ref` L26 in `integration_ref-no-value_yaml`
+  > {'Ref': 'AWS::NoValue'} is not of type object
+- **F3012** (cfn-lint: E3012) `CloudFront1` → `Properties.Ref` L39 in `integration_ref-no-value_yaml`
+  > {'Ref': 'AWS::NoValue'} is not of type object
+
 ### E3024 — 5 missed — Validate tag configuration
 
 - **E3024** `EC2Instance` → `Properties.Tags.1` L60-69 in `bad_conditions_yaml`
@@ -576,27 +608,27 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3026** `FourtReplicationGroup` → `Properties.CacheParameterGroupName.Ref.NumCacheClusters` L94 in `bad_resources_elasticache_cache_cluster_failover_yaml`
   > "NumCacheClusters" must be greater than one when creating a cluster at Resources/FourtReplicationGroup/Properties/CacheParameterGroupName/Ref/NumCacheClusters
 
-### F3012 — 4 missed — Check resource properties values
+### E3707 — 4 missed — Validate RDS DBInstance Engine matches DBCluster Engine
 
-- **F3012** (cfn-lint: E3012) `ExampleLambda` → `Properties.Environment.Variables` L14 in `bad_resources_properties_primitive_types_map_yaml`
-  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
-- **F3012** (cfn-lint: E3012) `ExampleLambda1` → `Properties.Environment.Variables.Fn::If.1` L34-37 in `bad_resources_properties_primitive_types_map_yaml`
-  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
-- **F3012** (cfn-lint: E3012) `IamRole2` → `Properties.Ref` L26 in `integration_ref-no-value_yaml`
-  > {'Ref': 'AWS::NoValue'} is not of type object
-- **F3012** (cfn-lint: E3012) `CloudFront1` → `Properties.Ref` L39 in `integration_ref-no-value_yaml`
-  > {'Ref': 'AWS::NoValue'} is not of type object
+- **E3707** `AuroraDB` → `Properties.Engine` L6 in `bad_aurora_with_allocated_storage_yaml`
+  > {'$data': '/cluster/Engine'} was expected
+- **E3707** `ConditionalClusterOrStandalone` → `Properties.Engine` L79 in `gh-issues_issue-235_yaml`
+  > 'aurora-mysql' was expected
+- **E3707** `CorrelatedClusterOrEncryptedStandalone` → `Properties.Engine` L219 in `gh-issues_issue-235_yaml`
+  > 'aurora-mysql' was expected
+- **E3707** `AuroraDB` → `Properties.Engine` L6 in `good_aurora_dbinstance_yaml`
+  > {'$data': '/cluster/Engine'} was expected
 
-### E3513 — 4 missed — Validate ECR repository policy
+### E2001 — 4 missed — Parameters have appropriate properties
 
-- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.Effect` L12 in `bad_resources_iam_resource_policy_yaml`
-  > 'NotAllow' is not one of ['Allow', 'Deny']
-- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.Principal` L13 in `bad_resources_iam_resource_policy_yaml`
-  > '*' was expected
-- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.BadProperty` L16 in `bad_resources_iam_resource_policy_yaml`
-  > Additional properties are not allowed ('BadProperty' was unexpected)
-- **E3513** `ecr2` → `Properties.RepositoryPolicyText.Statement.0.Principal` L26 in `bad_resources_iam_resource_policy_yaml`
-  > '*' was expected
+- **E2001** → `Parameters.NullParamMinValue.MinValue` L48 in `bad_parameters_configuration_yaml`
+  > None is not of type 'number'
+- **E2001** → `Parameters.NullParamMaxLength.MaxLength` L51 in `bad_parameters_configuration_yaml`
+  > None is not of type 'integer'
+- **E2001** → `Parameters.NullParamMinLength.MinLength` L54 in `bad_parameters_configuration_yaml`
+  > None is not of type 'integer'
+- **E2001** → `Parameters.NullParamNoEcho.NoEcho` L57 in `bad_parameters_configuration_yaml`
+  > None is not of type 'boolean'
 
 ### E7001 — 4 missed — Mappings are appropriately configured
 
@@ -608,6 +640,17 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > 32 does not match any of the regexes: '^[a-zA-Z0-9]+$'
 - **E7001** → `Mappings.myMap.us-east-1.64` L7 in `good_functions_findinmap_yaml`
   > 64 does not match any of the regexes: '^[a-zA-Z0-9]+$'
+
+### E3513 — 4 missed — Validate ECR repository policy
+
+- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.Effect` L12 in `bad_resources_iam_resource_policy_yaml`
+  > 'NotAllow' is not one of ['Allow', 'Deny']
+- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.Principal` L13 in `bad_resources_iam_resource_policy_yaml`
+  > '*' was expected
+- **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.BadProperty` L16 in `bad_resources_iam_resource_policy_yaml`
+  > Additional properties are not allowed ('BadProperty' was unexpected)
+- **E3513** `ecr2` → `Properties.RepositoryPolicyText.Statement.0.Principal` L26 in `bad_resources_iam_resource_policy_yaml`
+  > '*' was expected
 
 ### E3016 — 4 missed — Check the configuration of a resources UpdatePolicy
 
@@ -630,17 +673,6 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > Default should be a value within AllowedValues
 - **F2015** (cfn-lint: E2015) → `Parameters.CDLAllowedValuesWithSpaces.Default` L56 in `bad_parameters_default_yaml`
   > Default should be a value within AllowedValues
-
-### E2001 — 4 missed — Parameters have appropriate properties
-
-- **E2001** → `Parameters.NullParamMinValue.MinValue` L48 in `bad_parameters_configuration_yaml`
-  > None is not of type 'number'
-- **E2001** → `Parameters.NullParamMaxLength.MaxLength` L51 in `bad_parameters_configuration_yaml`
-  > None is not of type 'integer'
-- **E2001** → `Parameters.NullParamMinLength.MinLength` L54 in `bad_parameters_configuration_yaml`
-  > None is not of type 'integer'
-- **E2001** → `Parameters.NullParamNoEcho.NoEcho` L57 in `bad_parameters_configuration_yaml`
-  > None is not of type 'boolean'
 
 ### E3023 — 4 missed — Validate Route53 RecordSets
 
@@ -675,14 +707,14 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **W1032** `Bucket3` → `Properties.BucketName.Fn::Join` L42 in `lsp_parameter_usage_yaml`
   > {'Fn::Join': ['-', [{'Ref': 'AWS::Region'}, 'bucketName']]} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Join' is resolved
 
-### E8003 — 3 missed — Check Fn::Equals structure for validity
+### I3013 — 3 missed — Check resources with auto expiring content have explicit retention period
 
-- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.0` L24 in `bad_conditions_condition_functions_json`
-  > [{'Ref': 'AWS::Region'}] is not of type 'string'
-- **E8003** → `Conditions.TestEqualBadArgs.Fn::Equals.1` L25 in `bad_conditions_condition_functions_json`
-  > {'Bad': 'Value'} is not of type 'string'
-- **E8003** → `Conditions.TestEqualNull.Fn::Equals` L28 in `bad_conditions_condition_functions_json`
-  > None is not of type 'array'
+- **I3013** `WholePropertiesCorrelated` → `Properties.Fn::If.2` L236-239 in `gh-issues_issue-235_yaml`
+  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **I3013** `WholePropertiesFalseEncryption` → `Properties.Fn::If.1` L243-245 in `gh-issues_issue-235_yaml`
+  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **I3013** `WholePropertiesFalseEncryption` → `Properties.Fn::If.2` L245-248 in `gh-issues_issue-235_yaml`
+  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
 
 ### F0000 — 3 missed — Parsing error found when parsing the template
 
@@ -738,19 +770,19 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E3048** `taskdefinition` → `Properties` L222 in `bad_resources_circular_dependency_yaml`
   > 'Memory' is a required property
 
-### E3707 — 2 missed — Validate RDS DBInstance Engine matches DBCluster Engine
+### F3030 — 2 missed — Check if properties have a valid value
 
-- **E3707** `AuroraDB` → `Properties.Engine` L6 in `bad_aurora_with_allocated_storage_yaml`
-  > {'$data': '/cluster/Engine'} was expected
-- **E3707** `AuroraDB` → `Properties.Engine` L6 in `good_aurora_dbinstance_yaml`
-  > {'$data': '/cluster/Engine'} was expected
+- **F3030** (cfn-lint: E3030) `LB8A12904C` → `Properties.Listeners.0.Protocol` L679 in `cdk_classic-load-balancer--LoadBalancerStack.template_json`
+  > 'http' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
+- **F3030** (cfn-lint: E3030) `CLBA83A883E` → `Properties.Listeners.0.Protocol` L12 in `gh-issues_issue-186-clb_json`
+  > 'tcp' is not one of ['HTTP', 'HTTPS', 'TCP', 'SSL']
 
-### E0002 — 2 missed — Error processing rule on the template
+### E8005 — 2 missed — Check Fn::Not structure for validity
 
-- **E0002** L1 in `bad_core_conditions_list_yaml`
-  > Unknown exception while processing rule W8001: "'list_node' object has no attribute 'items'"
-- **E0002** L1 in `bad_functions_foreach_no_transform_yaml`
-  > Unknown exception while processing rule E1029: "'list_node' object has no attribute 'get'"
+- **E8005** → `Conditions.TestNotEmpty.Fn::Not` L29 in `bad_conditions_condition_functions_json`
+  > expected minimum item count: 1, found: 0
+- **E8005** → `Conditions.TestNotNull.Fn::Not` L30 in `bad_conditions_condition_functions_json`
+  > None is not of type 'array'
 
 ### W3698 — 2 missed — VirtualName is ignored when Ebs is specified
 
@@ -919,6 +951,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **E2529** `LogSubscriptionFunctionFunctionDLogGroup` → `Resources.LogSubscriptionFunctionFunctionDLogGroup` L14 in `bad_some_logs_stream_lambda_yaml`
   > You can only have 2 Subscription Filters per CloudWatch Log Group
 
+### E1005 — 1 missed — Validate Transform configuration
+
+- **E1005** → `Transform.3.Name` L7 in `bad_templates_transform_invalid_entries_yaml`
+  > ['AWS::Include'] is not of type 'string'
+
 ### E3712 — 1 missed — TargetTrackingScaling policy requires ASG MaxSize greater than MinSize
 
 - **E3712** `ASG46ED3070` → `Properties.MaxSize` L586 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
@@ -928,6 +965,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 - **W3691** `RDSE0E96D00` → `Properties` L93 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
   > Engine version '8.0.16' for engine 'mysql' is deprecated and cannot be used to create new RDS DB instances
+
+### E3720 — 1 missed — Validate StorageEncrypted is set when KmsKeyId is specified
+
+- **E3720** `KmsKeyWithoutEncryption` → `Properties` L37 in `gh-issues_issue-235_yaml`
+  > 'StorageEncrypted' is a required property
 
 ### E3698 — 1 missed — API Gateway Stage and Deployment must use the same RestApi
 
@@ -948,11 +990,11 @@ These are diagnostics cfn-lint expects but the engine does not report.
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
-## Engine Extra — 5837 correct findings across 38 rules
+## Engine Extra — 5925 correct findings across 38 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 — 3766 findings
+### I9001 — 3798 findings
 
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_E1050_dynamic_ref_malformed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -1024,6 +1066,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Protocol' is create-only; updating it will cause resource replacement
 - **I9001** `Tg` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L56 in `bad_W3010_full_coverage_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `ComputeEnvironment` (AWS::Batch::ComputeEnvironment) → `Properties.Type` L13 in `bad_W3030_enum_case_insensitive_mismatch_yaml`
+  > Property 'Type' is create-only; updating it will cause resource replacement
+- **I9001** `ComputeEnvironment` (AWS::Batch::ComputeEnvironment) → `Properties.Tags` L15 in `bad_W3030_enum_case_insensitive_mismatch_yaml`
+  > Property 'Tags' is create-only; updating it will cause resource replacement
 - **I9001** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.DBClusterIdentifier` L7 in `bad_aurora_with_allocated_storage_yaml`
   > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
 - **I9001** `EC2Instance` (AWS::EC2::Instance) → `Properties.ImageId` L56 in `bad_conditions_yaml`
@@ -6152,6 +6198,58 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Principal' is create-only; updating it will cause resource replacement
 - **I9001** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L35 in `gh-issues_issue-183_yaml`
   > Property 'SourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `CLBA83A883E` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Scheme` L15 in `gh-issues_issue-186-clb_json`
+  > Property 'Scheme' is create-only; updating it will cause resource replacement
+- **I9001** `ImagePipeline7DDDE57F` (AWS::ImageBuilder::ImagePipeline) → `Properties.Name` L24 in `gh-issues_issue-186-imagebuilder_json`
+  > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `PingSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L11 in `gh-issues_issue-226_yaml`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `InvertedRangeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L24 in `gh-issues_issue-226_yaml`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `Cluster` (AWS::RDS::DBCluster) → `Properties.StorageEncrypted` L28 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `KmsKeyWithoutEncryption` (AWS::RDS::DBInstance) → `Properties.KmsKeyId` L39 in `gh-issues_issue-235_yaml`
+  > Property 'KmsKeyId' is create-only; updating it will cause resource replacement
+- **I9001** `FalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L45 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `StringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L57 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalNoValueEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L63 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `AllowedValuesEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L69 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalClusterOrStandalone` (AWS::RDS::DBInstance) → `Properties.DBClusterIdentifier` L80 in `gh-issues_issue-235_yaml`
+  > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
+- **I9001** `CustomFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L86 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `CustomStringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L92 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `TrueEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L98 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `StringTrueEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L104 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalTrueEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L110 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `DynamicEncryptionValue` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L116 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `DynamicReferenceEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L122 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `InvalidEncryptionValue` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L128 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `ClusterMember` (AWS::RDS::DBInstance) → `Properties.DBClusterIdentifier` L149 in `gh-issues_issue-235_yaml`
+  > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
+- **I9001** `EncryptedSource` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L173 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `CustomTrueEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L208 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `CorrelatedClusterOrEncryptedStandalone` (AWS::RDS::DBInstance) → `Properties.DBClusterIdentifier` L220 in `gh-issues_issue-235_yaml`
+  > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
+- **I9001** `CorrelatedClusterOrEncryptedStandalone` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L221 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalSnapshotOrEncryptedStandalone` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L228 in `gh-issues_issue-235_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
 - **I9001** `Instance` (AWS::EC2::Instance) → `Properties.ImageId` L16 in `gh-issues_issue-34_json`
   > Property 'ImageId' is create-only; updating it will cause resource replacement
 - **I9001** `Instance2` (AWS::EC2::Instance) → `Properties.ImageId` L23 in `gh-issues_issue-34_json`
@@ -6454,6 +6552,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Memory' is create-only; updating it will cause resource replacement
 - **I9001** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L12 in `good_ecs_fargate_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `LowercaseType` (AWS::Batch::ComputeEnvironment) → `Properties.Type` L13 in `good_enum_case_insensitive_casing_yaml`
+  > Property 'Type' is create-only; updating it will cause resource replacement
+- **I9001** `LowercaseType` (AWS::Batch::ComputeEnvironment) → `Properties.Tags` L20 in `good_enum_case_insensitive_casing_yaml`
+  > Property 'Tags' is create-only; updating it will cause resource replacement
+- **I9001** `MixedCaseType` (AWS::Batch::ComputeEnvironment) → `Properties.Type` L25 in `good_enum_case_insensitive_casing_yaml`
+  > Property 'Type' is create-only; updating it will cause resource replacement
+- **I9001** `MixedCaseType` (AWS::Batch::ComputeEnvironment) → `Properties.Tags` L27 in `good_enum_case_insensitive_casing_yaml`
+  > Property 'Tags' is create-only; updating it will cause resource replacement
 - **I9001** `Sg` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L11 in `good_functions_dynamic_reference_embedded_yaml`
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
 - **I9001** `Sg` (AWS::EC2::SecurityGroup) → `Properties.GroupName` L12 in `good_functions_dynamic_reference_embedded_yaml`
@@ -8487,7 +8593,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.VpcId` L2214 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 — 1607 findings
+### I9040 — 1647 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -10565,6 +10671,86 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'Flow' of type 'AWS::MediaConnect::Flow' supports Tags but none are configured
 - **I9040** `MyLambda` (AWS::Lambda::Function) → `Properties.Tags` L12 in `gh-issues_issue-183_yaml`
   > Resource 'MyLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PingSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L10 in `gh-issues_issue-226_yaml`
+  > Resource 'PingSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `InvertedRangeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L23 in `gh-issues_issue-226_yaml`
+  > Resource 'InvertedRangeSecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
+- **I9040** `Cluster` (AWS::RDS::DBCluster) → `Properties.Tags` L26 in `gh-issues_issue-235_yaml`
+  > Resource 'Cluster' of type 'AWS::RDS::DBCluster' supports Tags but none are configured
+- **I9040** `MissingEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L32 in `gh-issues_issue-235_yaml`
+  > Resource 'MissingEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `KmsKeyWithoutEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L37 in `gh-issues_issue-235_yaml`
+  > Resource 'KmsKeyWithoutEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `FalseEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L43 in `gh-issues_issue-235_yaml`
+  > Resource 'FalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `StringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L49 in `gh-issues_issue-235_yaml`
+  > Resource 'StringFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `ConditionalFalseEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L55 in `gh-issues_issue-235_yaml`
+  > Resource 'ConditionalFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `ConditionalNoValueEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L61 in `gh-issues_issue-235_yaml`
+  > Resource 'ConditionalNoValueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `AllowedValuesEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L67 in `gh-issues_issue-235_yaml`
+  > Resource 'AllowedValuesEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `EngineAllowedValuesMissingEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L73 in `gh-issues_issue-235_yaml`
+  > Resource 'EngineAllowedValuesMissingEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `ConditionalClusterOrStandalone` (AWS::RDS::DBInstance) → `Properties.Tags` L78 in `gh-issues_issue-235_yaml`
+  > Resource 'ConditionalClusterOrStandalone' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `CustomFalseEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L84 in `gh-issues_issue-235_yaml`
+  > Resource 'CustomFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `CustomStringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L90 in `gh-issues_issue-235_yaml`
+  > Resource 'CustomStringFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `TrueEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L96 in `gh-issues_issue-235_yaml`
+  > Resource 'TrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `StringTrueEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L102 in `gh-issues_issue-235_yaml`
+  > Resource 'StringTrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `ConditionalTrueEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L108 in `gh-issues_issue-235_yaml`
+  > Resource 'ConditionalTrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DynamicEncryptionValue` (AWS::RDS::DBInstance) → `Properties.Tags` L114 in `gh-issues_issue-235_yaml`
+  > Resource 'DynamicEncryptionValue' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DynamicReferenceEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L120 in `gh-issues_issue-235_yaml`
+  > Resource 'DynamicReferenceEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `InvalidEncryptionValue` (AWS::RDS::DBInstance) → `Properties.Tags` L126 in `gh-issues_issue-235_yaml`
+  > Resource 'InvalidEncryptionValue' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DynamicEngineValue` (AWS::RDS::DBInstance) → `Properties.Tags` L132 in `gh-issues_issue-235_yaml`
+  > Resource 'DynamicEngineValue' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `AuroraEngine` (AWS::RDS::DBInstance) → `Properties.Tags` L137 in `gh-issues_issue-235_yaml`
+  > Resource 'AuroraEngine' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `AuroraAllowedValues` (AWS::RDS::DBInstance) → `Properties.Tags` L142 in `gh-issues_issue-235_yaml`
+  > Resource 'AuroraAllowedValues' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `ClusterMember` (AWS::RDS::DBInstance) → `Properties.Tags` L147 in `gh-issues_issue-235_yaml`
+  > Resource 'ClusterMember' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `SnapshotRestore` (AWS::RDS::DBInstance) → `Properties.Tags` L153 in `gh-issues_issue-235_yaml`
+  > Resource 'SnapshotRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `EmptySnapshotIdentifier` (AWS::RDS::DBInstance) → `Properties.Tags` L159 in `gh-issues_issue-235_yaml`
+  > Resource 'EmptySnapshotIdentifier' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `ClusterSnapshotRestore` (AWS::RDS::DBInstance) → `Properties.Tags` L165 in `gh-issues_issue-235_yaml`
+  > Resource 'ClusterSnapshotRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `EncryptedSource` (AWS::RDS::DBInstance) → `Properties.Tags` L171 in `gh-issues_issue-235_yaml`
+  > Resource 'EncryptedSource' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `SourceInstanceReplica` (AWS::RDS::DBInstance) → `Properties.Tags` L177 in `gh-issues_issue-235_yaml`
+  > Resource 'SourceInstanceReplica' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `SourceResourceRestore` (AWS::RDS::DBInstance) → `Properties.Tags` L183 in `gh-issues_issue-235_yaml`
+  > Resource 'SourceResourceRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `AutomatedBackupRestore` (AWS::RDS::DBInstance) → `Properties.Tags` L189 in `gh-issues_issue-235_yaml`
+  > Resource 'AutomatedBackupRestore' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `SourceClusterReplica` (AWS::RDS::DBInstance) → `Properties.Tags` L195 in `gh-issues_issue-235_yaml`
+  > Resource 'SourceClusterReplica' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `CustomImplicitEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L201 in `gh-issues_issue-235_yaml`
+  > Resource 'CustomImplicitEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `CustomTrueEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L206 in `gh-issues_issue-235_yaml`
+  > Resource 'CustomTrueEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `LegacySecurityGroups` (AWS::RDS::DBInstance) → `Properties.Tags` L212 in `gh-issues_issue-235_yaml`
+  > Resource 'LegacySecurityGroups' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `CorrelatedClusterOrEncryptedStandalone` (AWS::RDS::DBInstance) → `Properties.Tags` L218 in `gh-issues_issue-235_yaml`
+  > Resource 'CorrelatedClusterOrEncryptedStandalone' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `ConditionalSnapshotOrEncryptedStandalone` (AWS::RDS::DBInstance) → `Properties.Tags` L225 in `gh-issues_issue-235_yaml`
+  > Resource 'ConditionalSnapshotOrEncryptedStandalone' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `WholePropertiesCorrelated` (AWS::RDS::DBInstance) → `Properties.Tags` L232 in `gh-issues_issue-235_yaml`
+  > Resource 'WholePropertiesCorrelated' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `WholePropertiesFalseEncryption` (AWS::RDS::DBInstance) → `Properties.Tags` L241 in `gh-issues_issue-235_yaml`
+  > Resource 'WholePropertiesFalseEncryption' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
+- **I9040** `DynamicProperties` (AWS::RDS::DBInstance) → `Properties.Tags` L250 in `gh-issues_issue-235_yaml`
+  > Resource 'DynamicProperties' of type 'AWS::RDS::DBInstance' supports Tags but none are configured
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L15 in `gh-issues_issue-34_json`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
 - **I9040** `Instance2` (AWS::EC2::Instance) → `Properties.Tags` L22 in `gh-issues_issue-34_json`
@@ -11704,7 +11890,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9040** `S3VPCEndpoint` (AWS::EC2::VPCEndpoint) → `Properties.Tags` L2116 in `quickstart_vpc_json`
   > Resource 'S3VPCEndpoint' of type 'AWS::EC2::VPCEndpoint' supports Tags but none are configured
 
-### W9003 — 159 findings
+### W9003 — 164 findings
 
 - **W9003** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.AllocatedStorage` L9 in `bad_aurora_with_allocated_storage_yaml`
   > 100 is not of type 'string' - automatically coerced (number to string)
@@ -11766,6 +11952,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > '30' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `WebInstanceF774E10D` (AWS::EC2::Instance) → `Properties.BlockDeviceMappings.0.Ebs.DeleteOnTermination` L748 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template_json`
   > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
+- **W9003** `StringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `gh-issues_issue-235_yaml`
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
+- **W9003** `CustomStringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L92 in `gh-issues_issue-235_yaml`
+  > 'false' is not of type 'boolean' - automatically coerced (string to boolean)
+- **W9003** `StringTrueEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L104 in `gh-issues_issue-235_yaml`
+  > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
+- **W9003** `DynamicEncryptionValue` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L116 in `gh-issues_issue-235_yaml`
+  > Parameter type 'String' may not be compatible with expected type 'boolean'
+- **W9003** `DynamicReferenceEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L122 in `gh-issues_issue-235_yaml`
+  > Parameter type 'String' may not be compatible with expected type 'boolean'
 - **W9003** `myTable` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput.WriteCapacityUnits` L20 in `good_core_config_default_e3012_yaml`
   > '5' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `TimeoutInStringFunction` (AWS::Lambda::Function) → `Properties.Timeout` L36 in `good_custom_numeric-inequalities-large_yaml`
@@ -12138,7 +12334,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9003** in `quickstart_vpc_json`
   > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
 
-### W9013 — 45 findings
+### W9013 — 46 findings
 
 - **W9013** `GoodCustomResource` (AWS::CloudFormation::CustomResource) L31 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
@@ -12183,6 +12379,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9013** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) L490 in `cdk_py-url-shortener--urlshort-app.template_json`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `PermissionWithAccountId` (AWS::Lambda::Permission) L19 in `gh-issues_issue-183_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `AutomatedBackupRestore` (AWS::RDS::DBInstance) L187 in `gh-issues_issue-235_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `NotAnImageSlot` (Custom::Thing) L6 in `gh-issues_issue-34-w2506-overfire_json`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
@@ -12231,86 +12429,161 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9013** `SkillFunction` (AWS::Lambda::Function) L7 in `good_transform_list_transform_not_sam_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 
-### W9008 — 39 findings
+### W9008 — 46 findings
 
-- **W9008** `Rds` (AWS::RDS::DBInstance) L60 in `bad_W3010_full_coverage_yaml`
+- **W9008** `Rds` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L62 in `bad_W3010_full_coverage_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L3 in `bad_aurora_with_allocated_storage_yaml`
+- **W9008** `MyDB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L18 in `bad_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance` (AWS::RDS::DBInstance) L9 in `bad_previous_generation_instances_yaml`
+- **W9008** `MyNewDB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L27 in `bad_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyDB` (AWS::RDS::DBInstance) L16 in `bad_properties_password_yaml`
+- **W9008** `myThirdDb` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L36 in `bad_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyNewDB` (AWS::RDS::DBInstance) L25 in `bad_properties_password_yaml`
+- **W9008** `Db` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L7 in `bad_rds_dbinstanceclass_mixed_case_engine_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `myThirdDb` (AWS::RDS::DBInstance) L34 in `bad_properties_password_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L12 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `Db` (AWS::RDS::DBInstance) L5 in `bad_rds_dbinstanceclass_mixed_case_engine_yaml`
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L19 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L10 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L39 in `bad_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L17 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `DBInstance2` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L18 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L37 in `bad_resources_deletionpolicy_yaml`
+- **W9008** `DBInstance3` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L25 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance1` (AWS::RDS::DBInstance) L10 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance4` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L32 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance2` (AWS::RDS::DBInstance) L16 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance7` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L44 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance3` (AWS::RDS::DBInstance) L23 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance8` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance4` (AWS::RDS::DBInstance) L30 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `DBInstance9` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L58 in `bad_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance5` (AWS::RDS::DBInstance) L36 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L12 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance7` (AWS::RDS::DBInstance) L42 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L19 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance8` (AWS::RDS::DBInstance) L49 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L39 in `bad_resources_updatereplacepolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance9` (AWS::RDS::DBInstance) L56 in `bad_resources_rds_instance_sizes_yaml`
+- **W9008** `RDSE0E96D00` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L93 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L10 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `MissingEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L32 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MadeUpPolicy` (AWS::RDS::DBInstance) L17 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `KmsKeyWithoutEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L37 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `InvalidMapping` (AWS::RDS::DBInstance) L37 in `bad_resources_updatereplacepolicy_yaml`
+- **W9008** `FalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L45 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `RDSE0E96D00` (AWS::RDS::DBInstance) L91 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
+- **W9008** `StringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `AuroraDB` (AWS::RDS::DBInstance) L3 in `good_aurora_dbinstance_yaml`
+- **W9008** `ConditionalFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L57 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DB` (AWS::RDS::DBInstance) L6 in `good_deletion_policies_yaml`
+- **W9008** `ConditionalNoValueEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L63 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L26 in `good_resources_deletionpolicy_yaml`
+- **W9008** `AllowedValuesEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L69 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `MyDB` (AWS::RDS::DBInstance) L15 in `good_resources_properties_password_yaml`
+- **W9008** `EngineAllowedValuesMissingEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L73 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `myNewDb` (AWS::RDS::DBInstance) L24 in `good_resources_properties_password_yaml`
+- **W9008** `ConditionalClusterOrStandalone` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L78 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `myThirdDb` (AWS::RDS::DBInstance) L33 in `good_resources_properties_password_yaml`
+- **W9008** `CustomFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L86 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance1` (AWS::RDS::DBInstance) L10 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `CustomStringFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L92 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance2` (AWS::RDS::DBInstance) L16 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `EmptySnapshotIdentifier` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L159 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance3` (AWS::RDS::DBInstance) L22 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `WholePropertiesFalseEncryption` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L241 in `gh-issues_issue-235_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance4` (AWS::RDS::DBInstance) L29 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `DB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L9 in `good_deletion_policies_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance5` (AWS::RDS::DBInstance) L36 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L28 in `good_resources_deletionpolicy_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `DBInstance6` (AWS::RDS::DBInstance) L42 in `good_resources_rds_instance_sizes_yaml`
+- **W9008** `MyDB` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L17 in `good_resources_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L26 in `good_resources_updatereplacepolicy_yaml`
+- **W9008** `myNewDb` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L26 in `good_resources_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `PolicyList` (AWS::RDS::DBInstance) L49 in `good_transform_language_extension_yaml`
+- **W9008** `myThirdDb` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L35 in `good_resources_properties_password_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `BadEngineInstance` (AWS::RDS::DBInstance) L115 in `integration_cfn-gather_yaml`
+- **W9008** `DBInstance3` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L24 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) L90 in `lsp_condition-usage_json`
+- **W9008** `DBInstance4` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L31 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
-- **W9008** `Database` (AWS::RDS::DBInstance) L91 in `lsp_condition-usage_yaml`
+- **W9008** `DBInstance5` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L38 in `good_resources_rds_instance_sizes_yaml`
   > RDS instance should have StorageEncrypted set to true
+- **W9008** `DBInstance6` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L44 in `good_resources_rds_instance_sizes_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L28 in `good_resources_updatereplacepolicy_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `PolicyList` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L51 in `good_transform_language_extension_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L656 in `lsp_comprehensive_json`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L274 in `lsp_comprehensive_yaml`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L93 in `lsp_condition-usage_json`
+  > RDS instance should have StorageEncrypted set to true
+- **W9008** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L94 in `lsp_condition-usage_yaml`
+  > RDS instance should have StorageEncrypted set to true
+
+### W9002 — 29 findings
+
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_codepipeline_bad_artifact_counts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_codepipeline_bad_artifacts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L6 in `bad_elb_http_443_yaml`
+  > Property 'LoadBalancerArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L54 in `bad_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L73 in `bad_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Perm` (AWS::Lambda::Permission) → `Properties.SourceArn` L8 in `bad_lambda_permission_no_source_account_yaml`
+  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L7 in `bad_pipeline_no_source_first_stage_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L12 in `bad_resources_codepipeline_stages_second_stage_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.CertificateAuthorityArn` L11 in `bad_schema_property_constraints_yaml`
+  > Property 'CertificateAuthorityArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.CertificateAuthorityArn` L7 in `bad_schema_write_only_yaml`
+  > Property 'CertificateAuthorityArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L16 in `bad_stepfunctions_bad_start_at_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `StateMachine` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L6 in `bad_stepfunctions_invalid_state_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L11 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
+  > Property 'S3BucketArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L26 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
+  > Property 'S3BucketArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L499 in `cdk_py-url-shortener--urlshort-app.template_json`
+  > Property 'RegionalCertificateArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L25 in `gh-issues_issue-183_yaml`
+  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L35 in `gh-issues_issue-183_yaml`
+  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `AutomatedBackupRestore` (AWS::RDS::DBInstance) → `Properties.SourceDBInstanceAutomatedBackupsArn` L191 in `gh-issues_issue-235_yaml`
+  > Property 'SourceDBInstanceAutomatedBackupsArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L11 in `gh-issues_issue-36_yaml`
+  > Property 'ExecutionRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L6 in `gh-issues_issue-40_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `ClusterEB0386A7` (AWS::EKS::Cluster) → `Properties.RoleArn` L7 in `gh-issues_issue-46_json`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Canary` (AWS::Synthetics::Canary) → `Properties.ExecutionRoleArn` L8 in `gh-issues_issue-62_json`
+  > Property 'ExecutionRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_codepipeline_artifact_counts_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L156 in `good_functions_sub_needed_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Perm` (AWS::Lambda::Permission) → `Properties.SourceArn` L8 in `good_lambda_permission_source_account_yaml`
+  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Perm` (AWS::Lambda::Permission) → `Properties.SourceArn` L15 in `good_lambda_permission_sourcearn_ref_no_account_yaml`
+  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `Pool` (AWS::DeviceFarm::DevicePool) → `Properties.ProjectArn` L14 in `good_region_conditional_resource_type_yaml`
+  > Property 'ProjectArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L12 in `good_resources_codepipeline_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
+- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L20 in `good_stepfunctions_valid_yaml`
+  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 
 ### W9010 — 28 findings
 
@@ -12370,65 +12643,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Hardcoded AMI ID - use a parameter or mapping for portability
 - **W9010** `AnsibleConfigServer` (AWS::EC2::Instance) → `Properties.ImageId` L355 in `quickstart_openshift_yaml`
   > Hardcoded AMI ID - use a parameter or mapping for portability
-
-### W9002 — 28 findings
-
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_codepipeline_bad_artifact_counts_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `bad_codepipeline_bad_artifacts_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Listener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L6 in `bad_elb_http_443_yaml`
-  > Property 'LoadBalancerArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `TestBadStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L54 in `bad_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `TestBadStateMachine2` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L73 in `bad_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Perm` (AWS::Lambda::Permission) → `Properties.SourceArn` L8 in `bad_lambda_permission_no_source_account_yaml`
-  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L7 in `bad_pipeline_no_source_first_stage_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L12 in `bad_resources_codepipeline_stages_second_stage_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `ReadOnlyProp` (AWS::ACMPCA::Certificate) → `Properties.CertificateAuthorityArn` L11 in `bad_schema_property_constraints_yaml`
-  > Property 'CertificateAuthorityArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.CertificateAuthorityArn` L7 in `bad_schema_write_only_yaml`
-  > Property 'CertificateAuthorityArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L16 in `bad_stepfunctions_bad_start_at_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `StateMachine` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L6 in `bad_stepfunctions_invalid_state_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `DataSyncS3Location0` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L11 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
-  > Property 'S3BucketArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `DataSyncS3Location1` (AWS::DataSync::LocationS3) → `Properties.S3BucketArn` L26 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
-  > Property 'S3BucketArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `UrlShortenerApiDomain85D0CE65` (AWS::ApiGateway::DomainName) → `Properties.RegionalCertificateArn` L499 in `cdk_py-url-shortener--urlshort-app.template_json`
-  > Property 'RegionalCertificateArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `PermissionWithAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L25 in `gh-issues_issue-183_yaml`
-  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `PermissionInvalidAccountId` (AWS::Lambda::Permission) → `Properties.SourceArn` L35 in `gh-issues_issue-183_yaml`
-  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.ExecutionRoleArn` L11 in `gh-issues_issue-36_yaml`
-  > Property 'ExecutionRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `EksCluster` (AWS::EKS::Cluster) → `Properties.RoleArn` L6 in `gh-issues_issue-40_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `ClusterEB0386A7` (AWS::EKS::Cluster) → `Properties.RoleArn` L7 in `gh-issues_issue-46_json`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Canary` (AWS::Synthetics::Canary) → `Properties.ExecutionRoleArn` L8 in `gh-issues_issue-62_json`
-  > Property 'ExecutionRoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Pipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L6 in `good_codepipeline_artifact_counts_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `TestGoodStateMachine1` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L156 in `good_functions_sub_needed_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Perm` (AWS::Lambda::Permission) → `Properties.SourceArn` L8 in `good_lambda_permission_source_account_yaml`
-  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Perm` (AWS::Lambda::Permission) → `Properties.SourceArn` L15 in `good_lambda_permission_sourcearn_ref_no_account_yaml`
-  > Property 'SourceArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `Pool` (AWS::DeviceFarm::DevicePool) → `Properties.ProjectArn` L14 in `good_region_conditional_resource_type_yaml`
-  > Property 'ProjectArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.RoleArn` L12 in `good_resources_codepipeline_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
-- **W9002** `SM` (AWS::StepFunctions::StateMachine) → `Properties.RoleArn` L20 in `good_stepfunctions_valid_yaml`
-  > Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead
 
 ### F0001 — 24 findings
 
@@ -12522,7 +12736,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2508** `rSecurityGroupBastion` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L808 in `quickstart_vpc-management_json`
   > Security group allows 0.0.0.0/0 access to sensitive port 22 (range 22-22)
 
-### F3003 — 7 findings — Required Resource properties are missing
+### F3003 — 8 findings — Required Resource properties are missing
 
 - **F3003** `BadValkey` (AWS::ElastiCache::ReplicationGroup) → `Properties` L69 in `bad_cross_resource_task10_yaml`
   > 'TransitEncryptionEnabled' is a required property (from extension)
@@ -12538,6 +12752,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 'Runtime' is a required property (from extension)
 - **F3003** `DataTable` (AWS::DynamoDB::Table) → `Properties` L72 in `cdk_DemoStack.template_json`
   > 'ProvisionedThroughput' is a required property (from extension)
+- **F3003** `KmsKeyWithoutEncryption` (AWS::RDS::DBInstance) → `Properties` L37 in `gh-issues_issue-235_yaml`
+  > 'StorageEncrypted' is a required property (from extension)
 
 ### W2502 — 7 findings
 
@@ -12615,6 +12831,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W2509** → `Parameters/DBPassword` L6 in `integration_resources-cloudformation-init_yaml`
   > Parameter 'DBPassword' appears to be a password but does not have NoEcho set to true
 
+### E9002 — 3 findings
+
+- **E9002** `SG` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L7 in `bad_sg_bad_port_range_yaml`
+  > FromPort 443 is greater than ToPort 80
+- **E9002** `AppSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L96 in `cdk_DemoStack.template_json`
+  > FromPort 443 is greater than ToPort 80
+- **E9002** `InvertedRangeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L25 in `gh-issues_issue-226_yaml`
+  > FromPort 443 is greater than ToPort 80
+
 ### E9106 — 2 findings
 
 - **E9106** L6 in `bad_E9106_condition_cycle_yaml`
@@ -12670,13 +12895,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 'TTL' is ignored in this configuration (from extension)
 - **I9002** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
   > 'BackupRetentionPeriod' is ignored in this configuration (from extension)
-
-### E9002 — 2 findings
-
-- **E9002** `SG` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L7 in `bad_sg_bad_port_range_yaml`
-  > FromPort 443 is greater than ToPort 80
-- **E9002** `AppSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress` L96 in `cdk_DemoStack.template_json`
-  > FromPort 443 is greater than ToPort 80
 
 ### F8611 — 2 findings
 
@@ -12740,7 +12958,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9007** `R` (AWS::CloudFormation::WaitConditionHandle) → `Properties.AvailabilityZones` L6 in `bad_unique_items_yaml`
   > Array property 'AvailabilityZones' contains duplicate values
 
-## Per-Template Breakdown — 114 templates with mismatches
+## Per-Template Breakdown — 119 templates with mismatches
 
 ### `bad_resources_iam_iam_policy_yaml` — 18 mismatches (5 TP, 0 FP, 4 EE, 18 FN)
 
@@ -12776,6 +12994,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `E3043` ×8
 - EE: `I9040` ×2
+
+### `gh-issues_issue-235_yaml` — 8 mismatches (106 TP, 0 FP, 81 EE, 8 FN)
+
+- FN: `I3013` ×3, `E3707` ×2, `E0002`, `E3720`, `F3012`
+- EE: `I9040` ×38, `I9001` ×22, `W9008` ×13, `W9003` ×5, `F3003`, `W9002`, `W9013`
 
 ### `bad_core_conditions_yaml` — 7 mismatches (16 TP, 0 FP, 15 EE, 7 FN)
 
@@ -12851,6 +13074,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F1018` ×2, `F1020` ×2, `E3024`
 - EE: `I9001` ×2, `I9040`
 
+### `bad_core_sections_not_objects_yaml` — 4 mismatches (3 TP, 0 FP, 0 EE, 4 FN)
+
+- FN: `E0002` ×4
+
 ### `bad_functions_join_yaml` — 4 mismatches (2 TP, 0 FP, 4 EE, 4 FN)
 
 - FN: `E1021` ×4
@@ -12881,15 +13108,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `I3011` ×4
 - EE: `I9040` ×2
 
-### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 26 EE, 4 FN)
+### `lsp_comprehensive_json` — 4 mismatches (9 TP, 0 FP, 27 EE, 4 FN)
 
 - FN: `W1001` ×2, `E1701`, `F6101`
-- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W2508`, `I9003`
+- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W2508`, `W9008`, `I9003`
 
-### `lsp_comprehensive_yaml` — 4 mismatches (9 TP, 0 FP, 28 EE, 4 FN)
+### `lsp_comprehensive_yaml` — 4 mismatches (9 TP, 0 FP, 29 EE, 4 FN)
 
 - FN: `W1001` ×2, `E1701`, `F6101`
-- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W1103`, `W2508`, `W9003`, `I9003`
+- EE: `I9001` ×19, `I9040` ×4, `F8611`, `W1103`, `W2508`, `W9003`, `W9008`, `I9003`
 
 ### `quickstart_nat-instance_json` — 4 mismatches (5 TP, 0 FP, 10 EE, 4 FN)
 
@@ -12898,7 +13125,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 ### `bad_conditions_condition_functions_json` — 3 mismatches (31 TP, 0 FP, 1 EE, 3 FN)
 
-- FN: `E8003` ×3
+- FN: `E8005` ×2, `E1001`
 - EE: `I9040`
 
 ### `bad_functions_sub_needed_yaml` — 3 mismatches (9 TP, 0 FP, 10 EE, 3 FN)
@@ -12930,10 +13157,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `W1030` ×3
 - EE: `W9003` ×53, `I9001` ×36, `I9040` ×10
 
-### `bad_aurora_with_allocated_storage_yaml` — 2 mismatches (2 TP, 0 FP, 5 EE, 2 FN)
+### `bad_aurora_with_allocated_storage_yaml` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
 
 - FN: `E3682`, `E3707`
-- EE: `W9003`, `W9008`, `I9001`, `I9003`, `I9040`
+- EE: `W9003`, `I9001`, `I9003`, `I9040`
 
 ### `bad_conditions_equals_yaml` — 2 mismatches (16 TP, 0 FP, 1 EE, 2 FN)
 
@@ -13002,10 +13229,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3699`, `E3698`
 - EE: `I9001` ×7, `I9040` ×2
 
-### `good_aurora_dbinstance_yaml` — 2 mismatches (2 TP, 0 FP, 5 EE, 2 FN)
+### `good_aurora_dbinstance_yaml` — 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
 
 - FN: `E3707`, `E3719`
-- EE: `W9008`, `I9001`, `I9002`, `I9003`, `I9040`
+- EE: `I9001`, `I9002`, `I9003`, `I9040`
 
 ### `good_functions_findinmap_yaml` — 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
 
@@ -13214,6 +13441,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1001`
 - EE: `F0001`
 
+### `bad_templates_transform_invalid_entries_yaml` — 1 mismatches (3 TP, 0 FP, 0 EE, 1 FN)
+
+- FN: `E1005`
+
 ### `cdk_DemoStack.template_json` — 1 mismatches (9 TP, 0 FP, 13 EE, 1 FN)
 
 - FN: `E3639`
@@ -13224,10 +13455,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3712`
 - EE: `I9001` ×65, `I9040` ×4
 
+### `cdk_classic-load-balancer--LoadBalancerStack.template_json` — 1 mismatches (1 TP, 0 FP, 60 EE, 1 FN)
+
+- FN: `F3030`
+- EE: `I9001` ×58, `I9040` ×2
+
 ### `cdk_py-docker-app-with-asg-alb--RDSStack.template_json` — 1 mismatches (2 TP, 0 FP, 12 EE, 1 FN)
 
 - FN: `W3691`
 - EE: `I9001` ×6, `I9040` ×4, `W9008`, `I9003`
+
+### `gh-issues_issue-186-clb_json` — 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `F3030`
+- EE: `I9001`
 
 ### `gh-issues_issue-201_json` — 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
 
@@ -13325,11 +13566,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Other | 130 | 40.25% | E0002, E2001, E2529, E5001, E6001, E7001, E8003, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3031, F3037, F6101 |
-| Resource property validation | 92 | 28.48% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719 |
-| Warning-level checks | 55 | 17.03% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
-| Intrinsic function validation | 27 | 8.36% | E1001, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
-| Informational checks | 19 | 5.88% | I2530, I3010, I3011, I3510 |
+| Other | 137 | 40.53% | E0002, E2001, E2529, E5001, E6001, E7001, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3003, F3006, F3012, F3014, F3016, F3030, F3031, F3037, F6101 |
+| Resource property validation | 95 | 28.11% | E3001, E3016, E3022, E3023, E3024, E3026, E3039, E3043, E3048, E3065, E3504, E3510, E3513, E3530, E3639, E3673, E3678, E3682, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720 |
+| Warning-level checks | 55 | 16.27% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W3005, W3037, W3691, W3698, W6001 |
+| Intrinsic function validation | 29 | 8.58% | E1001, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1152, E1161, E1701 |
+| Informational checks | 22 | 6.51% | I2530, I3010, I3011, I3013, I3510 |
 
 ### False Positive Root Causes
 

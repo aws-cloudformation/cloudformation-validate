@@ -51,6 +51,9 @@ runs:
         if command -v gradle       >/dev/null 2>&1; then echo "gradle:       $(gradle --version 2>/dev/null | awk '/^Gradle/{print $2}')"; else echo "gradle:       not installed"; fi
         if command -v node         >/dev/null 2>&1; then echo "node:         $(node --version)"; else echo "node:         not installed"; fi
         if command -v npm          >/dev/null 2>&1; then echo "npm:          $(npm --version)"; else echo "npm:          not installed"; fi
+        if command -v python3      >/dev/null 2>&1; then echo "python3:      $(python3 --version 2>&1)"; else echo "python3:      not installed"; fi
+        if command -v go           >/dev/null 2>&1; then echo "go:           $(go version)"; else echo "go:           not installed"; fi
+        if command -v uniffi-bindgen-go >/dev/null 2>&1; then echo "uniffi-bindgen-go: $(uniffi-bindgen-go --version 2>/dev/null | head -1)"; else echo "uniffi-bindgen-go: not installed"; fi
         if command -v wasm-pack    >/dev/null 2>&1; then echo "wasm-pack:    $(wasm-pack --version 2>/dev/null | head -1)"; else echo "wasm-pack:    not installed"; fi
         if command -v wasm-bindgen >/dev/null 2>&1; then
           echo "wasm-bindgen: $(wasm-bindgen --version 2>/dev/null | head -1)"

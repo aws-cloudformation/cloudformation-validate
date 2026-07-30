@@ -904,33 +904,21 @@ fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
     assert_fires_on_resource(&diags, "F3031", "PermissionInvalidAccountId");
 }
 
-/// Issue #186: a lowercase Classic Load Balancer listener `Protocol` ('tcp')
-/// keeps its open-world enum Warning. The compiled provider schema declares the
-/// enum in uppercase (`HTTP`/`HTTPS`/`TCP`/`SSL`), and case-insensitive service
-/// acceptance is not schema-provable — some services do reject wrong-case
-/// values — so the mismatch stays a suppressible Warn rather than being
-/// silenced or escalated. `InstanceProtocol` carries no enum in the schema,
-/// which is why it never fires.
+/// Issue #186: The Classic Load Balancer API normalizes listener protocol names to
+/// uppercase, so lowercase `tcp` is valid for both `Protocol` and
+/// `InstanceProtocol`. The fixture covers both properties to ensure their
+/// case-insensitive schema constraints do not produce enum warnings.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
-fn issue_186_lowercase_clb_protocol_keeps_enum_warning() {
+fn issue_186_lowercase_clb_protocols_do_not_warn() {
     let diags = validate_both("issue-186-clb.json");
-    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
-    assert_count(&diags, "W3030", 1);
-    assert_fires_on_resource(&diags, "W3030", "CLBA83A883E");
-    assert_fires_on_property(&diags, "W3030", "Properties.Listeners.0.Protocol");
-    for (engine, d) in &diags {
-        let on_instance_protocol = d
-            .iter()
-            .filter(|x| x.rule_id == "W3030")
-            .any(|x| x.property_path.as_deref() == Some("Properties.Listeners.0.InstanceProtocol"));
-        assert!(!on_instance_protocol, "[{engine}] InstanceProtocol has no schema enum, so W3030 must not fire there");
-    }
+    assert_count(&diags, "W3030", 0);
 }
 
-/// Issue #186 (companion): an ImageBuilder pipeline workflow `OnFailure` of
-/// 'Abort' mismatches the schema enum (`CONTINUE`/`ABORT`) only by case and
-/// keeps the same open-world Warning treatment as the load-balancer protocol.
+/// Issue #186 (companion): case-insensitive enum matching is scoped to schema
+/// properties that opt in. ImageBuilder workflow `OnFailure` still declares
+/// exact uppercase values (`CONTINUE`/`ABORT`), so mixed-case `Abort` keeps its
+/// open-world enum warning.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
 fn issue_186_lowercase_imagebuilder_onfailure_keeps_enum_warning() {
@@ -1412,5 +1400,44 @@ fn issue_226_e9002_ignores_icmp_type_code_but_fires_on_inverted_tcp_range() {
             .filter(|d| d.rule_id == "E9002" && d.resource_logical_id() == Some("PingSecurityGroup"))
             .collect();
         assert!(on_ping.is_empty(), "[{engine}] E9002 must not fire on ICMP type/code rules, got: {on_ping:?}");
+    }
+}
+
+/// Issue #235: instance-level storage encryption is required only when the DB
+/// instance controls that setting. The fixture covers standalone instances,
+/// explicit and conditional false values, parameter AllowedValues, Aurora and
+/// cluster members, inherited restore/replica modes, RDS Custom, legacy DB
+/// security groups, unknown values, and condition-correlated properties.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/235
+#[test]
+fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
+    let diags = validate_both("issue-235.yaml");
+    let expected = vec![
+        "AllowedValuesEncryption",
+        "ConditionalClusterOrStandalone",
+        "ConditionalFalseEncryption",
+        "ConditionalNoValueEncryption",
+        "CustomFalseEncryption",
+        "CustomStringFalseEncryption",
+        "EmptySnapshotIdentifier",
+        "EngineAllowedValuesMissingEncryption",
+        "FalseEncryption",
+        "KmsKeyWithoutEncryption",
+        "MissingEncryption",
+        "StringFalseEncryption",
+        "WholePropertiesFalseEncryption",
+    ];
+
+    assert_fires_with_severity(&diags, "W9008", Severity::Warn);
+    assert_count(&diags, "W9008", expected.len());
+    assert_fires_on_property(&diags, "W9008", "Properties.StorageEncrypted");
+    for (engine, engine_diags) in &diags {
+        let mut actual: Vec<&str> = engine_diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == "W9008")
+            .filter_map(|diagnostic| diagnostic.resource_logical_id())
+            .collect();
+        actual.sort_unstable();
+        assert_eq!(actual, expected, "[{engine}] W9008 fired on the wrong RDS instances");
     }
 }

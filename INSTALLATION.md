@@ -9,21 +9,23 @@ environment drift.
 
 ## Required tools
 
-| Tool                            | Version | Required for                                              | Notes                                                           |
-|---------------------------------|---------|-----------------------------------------------------------|-----------------------------------------------------------------|
-| Rust (`cargo`, `rustc`)         | 1.96.0  | everything                                                | Pinned by `src/rust-toolchain.toml`; rustup installs it for you |
-| `rustfmt`                       | bundled | `cargo fmt` lint                                          | Declared as a component in the toolchain file                   |
-| `wasm32-unknown-unknown` target | bundled | WASM binding                                              | Added automatically by the toolchain file                       |
-| `wasm-pack`                     | 0.14.0  | WASM binding build/test                                   | `cargo install`                                                 |
-| `cargo-about`                   | 0.9.0   | third-party license generation (Build Artifacts workflow) | `cargo install`                                                 |
-| `cargo-audit`                   | 0.22.2  | dependency vulnerability audit                            | `cargo install`                                                 |
-| Node.js + npm                   | 22.x    | WASM binding build/test                                   | `npm` ships with Node                                           |
-| JDK                             | 21+     | JVM binding build/test                                    | Corretto in CI; provides `java` and `jar`                       |
-| Kotlin (`kotlinc`)              | 2.3.10  | JVM binding build                                         |                                                                 |
-| `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                 |
-| Gradle                          | 8.14    | JVM binding tests                                         | Must be on `PATH` — the JVM test runner invokes `gradle`        |
-| Python                          | 3.10+   | license generation + `scripts/` helpers                   | No third-party packages required                                |
-| `git`, `curl`, `openssl`        | —       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                            |
+| Tool                            | Version | Required for                                              | Notes                                                                                                           |
+|---------------------------------|---------|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| Rust (`cargo`, `rustc`)         | 1.96.0  | everything                                                | Pinned by `src/rust-toolchain.toml`; rustup installs it for you                                                 |
+| `rustfmt`                       | bundled | `cargo fmt` lint                                          | Declared as a component in the toolchain file                                                                   |
+| `wasm32-unknown-unknown` target | bundled | WASM binding                                              | Added automatically by the toolchain file                                                                       |
+| `wasm-pack`                     | 0.14.0  | WASM binding build/test                                   | `cargo install`                                                                                                 |
+| `cargo-about`                   | 0.9.0   | third-party license generation (Build Artifacts workflow) | `cargo install`                                                                                                 |
+| `cargo-audit`                   | 0.22.2  | dependency vulnerability audit                            | `cargo install`                                                                                                 |
+| Node.js + npm                   | 22.x    | WASM binding build/test                                   | `npm` ships with Node                                                                                           |
+| JDK                             | 21+     | JVM binding build/test                                    | Corretto in CI; provides `java` and `jar`                                                                       |
+| Kotlin (`kotlinc`)              | 2.3.10  | JVM binding build                                         |                                                                                                                 |
+| `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                                                                 |
+| Gradle                          | 8.14    | JVM binding build/test                                    | Must be on `PATH` — `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
+| Python                          | 3.12+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
+| Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
+| `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
+| `git`, `curl`, `openssl`        | —       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |
 
 JNA (`5.18.1`) and Gson (`2.14.0`) — the JVM binding's runtime dependencies — are downloaded automatically from Maven
 Central by `bindings-jvm/build.sh`; you do not install them yourself. The `uniffi-bindgen` tool used to generate the
@@ -80,10 +82,13 @@ curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint \
   && chmod +x ktlint && sudo mv ktlint /usr/local/bin/
 ```
 
-## 5. Python (license generation & helper scripts)
+## 5. Python (Python binding, license generation & helper scripts)
 
-Python 3.10+ is required for `scripts/generate_licenses.py` (invoked by the Build Artifacts workflow) and the other
-developer scripts under `scripts/`. No third-party packages are needed.
+Python 3.12+ is required for the Python binding build (`bindings-python/build.sh`, which needs `setuptools` for the
+wheel), for `scripts/generate_licenses.py` (invoked by the Build Artifacts workflow), and for the other developer
+scripts under `scripts/`. The binding build itself needs only `setuptools`; the test runner
+(`bindings-python/tests/run.sh`) additionally fetches `coverage` into a throwaway virtualenv, so running the Python
+tests needs network access.
 
 ## Build
 
@@ -95,11 +100,7 @@ cd src
 # Build the entire workspace (debug)
 cargo build
 
-# CLI binary -> target/debug/cfn-validate
-cargo build -p cfn-validate
-# add --release for an optimized binary at target/release/cfn-validate
-
-# CLI release binary -> release/cfn-validate-<os>-<arch>
+# Published CLI binary -> release-bin/cfn-validate-<os>-<arch> (repository root)
 ./cfn-validate/build.sh
 
 # WASM binding (Node.js) -> bindings-wasm/dist/
@@ -107,34 +108,12 @@ cargo build -p cfn-validate
 
 # JVM binding (Kotlin/Java) -> bindings-jvm/generated/cloudformation-validate.jar
 ./bindings-jvm/build.sh
-```
 
-Note: `THIRD-PARTY-LICENSES.txt` is generated by the Build Artifacts workflow, not by `build.sh`. To refresh it
-locally, run `python3 scripts/generate_licenses.py`.
+# Python binding -> bindings-python/generated/dist/*.whl
+./bindings-python/build.sh
 
-## Test
-
-These commands mirror CI. Run them from the `src/` directory.
-
-```bash
-cd src
-
-# Format check (must pass clean)
-cargo fmt --all --check
-
-# Rust workspace tests
-cargo test --locked --release --workspace
-
-# Dependency vulnerability audit
-cargo audit
-
-# JVM binding tests — build the JVM binding first
-./bindings-jvm/build.sh
-( cd bindings-jvm/tests && ./run.sh )
-
-# WASM binding tests — build the WASM binding first
-./bindings-wasm/build.sh
-( cd bindings-wasm/tests && ./run.sh )
+# Go binding -> bindings-go/go/ (generated FFI package + static library)
+./bindings-go/build.sh
 ```
 
 ## Download and verify release artifacts
@@ -143,6 +122,9 @@ Each GitHub release attaches the prebuilt artifacts as signed assets (`<version>
 
 - `cloudformation-validate-<version>.jar` — the JVM (Kotlin/Java) binding
 - `cloudformation-validate-wasm-<version>.zip` — the Node.js (WASM) binding
+- `cloudformation_validate-<version>-py3-none-<platform tags>.whl` — the Python binding, one wheel carrying every
+  supported platform's native library; a `-beta` release ships as `<version>b0`
+- `cloudformation-validate-go-<version>.zip` — the Go module, carrying every supported platform's static library
 - `cfn-validate-<version>-<os>-<arch>` — the CLI binary, one per supported platform (e.g.
   `cfn-validate-1.6.0-linux-x64`, `cfn-validate-1.6.0-darwin-aarch64`)
 

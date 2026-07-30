@@ -998,6 +998,41 @@ impl SemanticModel {
         self.scenario_combinations_used.fetch_add(count, Ordering::Relaxed);
     }
 
+    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        if self.scenario_budget_exhausted() {
+            return vec![];
+        }
+        let Some(resource) = self.resources.get(resource_id) else {
+            return vec![];
+        };
+        if resource.properties_dynamic {
+            return vec![];
+        }
+
+        let properties = if resource.properties.len() == 1 {
+            resource.properties.get(FN_IF).cloned().unwrap_or_else(|| ResolvedValue::Map {
+                entries: resource
+                    .properties
+                    .iter()
+                    .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
+                    .collect(),
+            })
+        } else {
+            let mut entries: Vec<MapEntry> = resource
+                .properties
+                .iter()
+                .map(|(key, value)| MapEntry { key: key.clone(), value: value.clone() })
+                .collect();
+            entries.sort_by(|left, right| left.key.cmp(&right.key));
+            ResolvedValue::Map { entries }
+        };
+
+        let mut results = Vec::new();
+        collect_scenarios(&properties, &HashMap::new(), &mut results);
+        self.scenario_combinations_used.fetch_add(results.len() as u64, Ordering::Relaxed);
+        results
+    }
+
     pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
         // Once the cumulative scenario budget for this model is spent, stop
         // materializing scenarios (the conservative truncation documented on
