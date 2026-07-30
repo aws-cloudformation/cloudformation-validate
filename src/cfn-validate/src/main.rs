@@ -8,7 +8,6 @@ use rules::{
     FilterConfig, IdRange, LogicalIdFilter, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter,
     Severity,
 };
-use schema_validator::SchemaValidator;
 use template_model::{EntityType, PseudoParameterOverrides};
 use validation_engine::{
     EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, catch_panics,
@@ -229,7 +228,13 @@ fn main() {
 
     let engine_config = EngineConfig { custom_rules, guard_rules, ..Default::default() };
 
-    let schema_validator = SchemaValidator::new();
+    let schema_validator = match validation_engine::schema_validator_from_config(&engine_config) {
+        Ok(sv) => sv,
+        Err(e) => {
+            error!("{e}");
+            process::exit(2);
+        }
+    };
 
     // Engine construction compiles user-supplied custom and Guard rules, so an
     // internal invariant violation on adversarial rule input could panic. Catch it

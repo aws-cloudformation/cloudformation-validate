@@ -14,7 +14,15 @@ use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
 // One-time setup (reuse across validations)
 let schema_validator = SchemaValidator::new();
 let engine = RegoEngine::new(EngineConfig::default())?;
+```
 
+> If your `EngineConfig` sets `additional_schemas` (overlay CloudFormation
+> resource provider schemas), build the validator with
+> `validation_engine::schema_validator_from_config(&config)?` instead of
+> `SchemaValidator::new()` — otherwise the overlays are silently dropped. All
+> language bindings construct their validator through that helper.
+
+```rust,ignore
 // Validate
 let bytes = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(

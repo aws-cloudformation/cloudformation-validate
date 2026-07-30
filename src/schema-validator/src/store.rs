@@ -83,6 +83,12 @@ impl CompiledSchemaStore {
         match self.schemas.get_mut(type_name) {
             Some(existing) => crate::overlay::merge_into(existing, overlay),
             None => {
+                if type_name.starts_with("AWS::") {
+                    log::warn!(
+                        "Overlay schema for '{type_name}' has no bundled counterpart and is being added as a new \
+                         type; if this is meant to extend an existing AWS resource type, check the typeName for a typo"
+                    );
+                }
                 self.schemas.insert(type_name.to_string(), overlay);
             }
         }

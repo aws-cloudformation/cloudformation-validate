@@ -124,13 +124,8 @@ macro_rules! wasm_engine {
             pub fn new(config: EngineConfig) -> Result<$wrapper, JsValue> {
                 catch_panics(
                     || {
-                        let overlays = config
-                            .additional_schemas
-                            .iter()
-                            .map(|s| s.resolve())
-                            .collect::<Result<Vec<_>, _>>()
-                            .map_err(to_js_err)?;
-                        let schema_validator = SchemaValidator::with_additional_schemas(overlays);
+                        let schema_validator =
+                            validation_engine::schema_validator_from_config(&config).map_err(to_js_err)?;
                         let engine = <$inner>::new(config).map_err(to_js_err)?;
                         Ok($wrapper { engine, schema_validator })
                     },

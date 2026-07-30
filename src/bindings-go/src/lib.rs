@@ -15,7 +15,9 @@ use std::sync::Arc;
 use diagnostics::DetailLevel;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
 use template_model::PseudoParameterOverrides;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path};
+use validation_engine::{
+    AdditionalSchemaSource, EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path,
+};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum ValidationError {
@@ -87,6 +89,7 @@ fn parse_engine_config(config_json: &str) -> Result<EngineConfig, ValidationErro
 struct EngineOptions {
     custom_rules: Vec<RuleSourceOptions>,
     guard_rules: Vec<RuleSourceOptions>,
+    additional_schemas: Vec<SchemaSourceOptions>,
 }
 
 /// One external rule source, mirroring the core `ExternalRuleSource`.
@@ -95,6 +98,14 @@ struct EngineOptions {
 struct RuleSourceOptions {
     name: String,
     content: String,
+}
+
+/// One additional overlay schema, mirroring the core `AdditionalSchemaSource`.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SchemaSourceOptions {
+    type_name: String,
+    schema: String,
 }
 
 impl EngineOptions {
@@ -106,6 +117,7 @@ impl EngineOptions {
         EngineConfig {
             custom_rules: self.custom_rules.into_iter().map(ExternalRuleSource::from).collect(),
             guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            additional_schemas: self.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
         }
     }
 }
@@ -113,6 +125,12 @@ impl EngineOptions {
 impl From<RuleSourceOptions> for ExternalRuleSource {
     fn from(options: RuleSourceOptions) -> Self {
         Self { name: options.name, content: options.content }
+    }
+}
+
+impl From<SchemaSourceOptions> for AdditionalSchemaSource {
+    fn from(options: SchemaSourceOptions) -> Self {
+        Self { type_name: options.type_name, schema: options.schema }
     }
 }
 
@@ -172,8 +190,10 @@ macro_rules! impl_go_engine {
                 catch_panics(
                     || {
                         let config = parse_engine_config(&config_json)?;
+                        let schema_validator =
+                            validation_engine::schema_validator_from_config(&config).map_err(ValidationError::new)?;
                         let engine = $constructor(config).map_err(ValidationError::new)?;
-                        Ok(Arc::new(Self { engine, schema_validator: schema_validator::SchemaValidator::new() }))
+                        Ok(Arc::new(Self { engine, schema_validator }))
                     },
                     panic_to_error,
                 )

@@ -130,9 +130,11 @@ macro_rules! impl_py_engine {
             pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
+                        let schema_validator = validation_engine::schema_validator_from_config(&config)
+                            .map_err(|msg| ValidationError::Engine { msg })?;
                         let engine =
                             $constructor(config).map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(Arc::new(Self { engine, schema_validator: schema_validator::SchemaValidator::new() }))
+                        Ok(Arc::new(Self { engine, schema_validator }))
                     },
                     panic_to_error,
                 )

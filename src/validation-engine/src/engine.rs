@@ -254,6 +254,19 @@ pub struct ValidateConfig {
     pub disable_builtin_rules: bool,
 }
 
+/// Build a [`SchemaValidator`] with the overlay schemas from
+/// [`EngineConfig::additional_schemas`] applied.
+///
+/// Every binding and embedder should construct its schema validator through this
+/// helper so that `additional_schemas` can never be silently ignored — building a
+/// bare `SchemaValidator::new()` alongside an engine would drop the overlays with
+/// no error. Returns an error string if any overlay is invalid.
+pub fn schema_validator_from_config(config: &EngineConfig) -> Result<SchemaValidator, String> {
+    let overlays =
+        config.additional_schemas.iter().map(AdditionalSchemaSource::resolve).collect::<Result<Vec<_>, _>>()?;
+    Ok(SchemaValidator::with_additional_schemas(overlays))
+}
+
 pub trait ValidationEngine {
     fn engine_name(&self) -> &str;
 

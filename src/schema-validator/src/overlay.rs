@@ -26,6 +26,7 @@
 //! therefore intended primarily to extend or override *already-bundled* types.
 
 use crate::compiled::{CompiledSchema, PropSchema};
+use data_source::compiled_schema;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -41,7 +42,7 @@ use std::collections::HashMap;
 /// the runtime type (`HashMap`, fast lookups); both share the same JSON shape, so
 /// the round trip is total.
 pub(crate) fn compile(type_name: &str, raw: &Value) -> CompiledSchema {
-    let compiled = data_source::compiled_schema::compile_schema(type_name, raw);
+    let compiled = compiled_schema::compile_schema(type_name, raw);
     let value = serde_json::to_value(&compiled).expect("a compiled overlay schema must serialize");
     serde_json::from_value(value).expect("a compiled overlay schema must deserialize into the runtime schema")
 }
@@ -714,5 +715,33 @@ mod tests {
         let overlay = compile("T", &json!({ "properties": { "Arr": { "type": "array", "uniqueItems": false } } }));
         merge_into(&mut base, overlay);
         assert_eq!(base.properties["Arr"].unique_items, Some(false), "an explicit false must override a bundled true");
+    }
+
+    #[test]
+    fn compile_round_trip_is_total_for_rich_schema() {
+        // `compile` serializes the build-time schema and deserializes it into the
+        // runtime schema; the two models are coupled only by convention. This test
+        // exercises many fields so that any drift fails here (via the round trip)
+        // rather than at an embedder's runtime through the internal `expect`.
+        let raw = json!({
+            "typeName": "AWS::Rich::Type",
+            "properties": {
+                "Name": { "type": "string", "pattern": "^[a-z]+$", "minLength": 1, "maxLength": 10 },
+                "Count": { "type": "integer", "minimum": 0.0, "maximum": 100.0, "enum": [1, 2, 3] },
+                "Tags": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/definitions/Tag" } },
+                "Mode": { "type": "string", "enumCaseInsensitive": ["a", "b"] }
+            },
+            "definitions": {
+                "Tag": { "type": "object", "properties": { "Key": { "type": "string" } }, "required": ["Key"] }
+            },
+            "required": ["Name"],
+            "additionalProperties": false,
+            "oneOf": [{ "required": ["Name"] }]
+        });
+        let c = compile("AWS::Rich::Type", &raw);
+        assert_eq!(c.type_name, "AWS::Rich::Type");
+        assert!(c.properties.contains_key("Tags"), "round trip must preserve properties");
+        assert!(c.definitions.contains_key("Tag"), "round trip must preserve definitions");
+        assert_eq!(c.properties["Count"].minimum, Some(0.0), "round trip must preserve numeric bounds");
     }
 }

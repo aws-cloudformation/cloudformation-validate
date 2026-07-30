@@ -130,13 +130,8 @@ macro_rules! impl_jvm_engine {
             pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
-                        let overlays = config
-                            .additional_schemas
-                            .iter()
-                            .map(|s| s.resolve())
-                            .collect::<Result<Vec<_>, _>>()
+                        let schema_validator = validation_engine::schema_validator_from_config(&config)
                             .map_err(|msg| ValidationError::Engine { msg })?;
-                        let schema_validator = schema_validator::SchemaValidator::with_additional_schemas(overlays);
                         let engine =
                             $constructor(config).map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
                         Ok(Arc::new(Self { engine, schema_validator }))
