@@ -949,6 +949,100 @@ fn issue_194_importvalue_as_parameter_default_is_an_error() {
     }
 }
 
+/// Issue #247: three `Fn::GetStackOutput` entries that read different outputs of
+/// the same stack must not be flagged as duplicates by W9007 — the same class of
+/// bug fixed for `Fn::ImportValue` in #52, which was never extended to
+/// `Fn::GetStackOutput`. Each call now carries the stack, region and output it
+/// reads, so the three values are distinct symbolic reads.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_no_w9007_on_distinct_getstackoutput() {
+    let diags = validate_both("issue-247.json");
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Issue #247 (reported probe): the issue reports that even a differing
+/// `StackName` was not enough to make two reads distinct. Each of the three
+/// identifying arguments must now distinguish on its own, so none of these
+/// three pairs fires W9007.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_each_identifying_argument_distinguishes_on_its_own() {
+    const DIFFERENT_STACK_NAME: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStackOne", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStackTwo", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    const DIFFERENT_REGION: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "us-east-1", "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    const DIFFERENT_OUTPUT_NAME: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetTwo" } }
+        ]
+      }
+    }
+  }
+}"#;
+    for template in [DIFFERENT_STACK_NAME, DIFFERENT_REGION, DIFFERENT_OUTPUT_NAME] {
+        let diags = validate_both_bytes(template);
+        assert_absent(&diags, "W9007");
+        assert_count(&diags, "W9007", 0);
+    }
+}
+
+/// Issue #247 (positive boundary): the fix that distinguishes distinct reads must
+/// not silence W9007 on two reads of the SAME output of the same stack — those
+/// resolve to one identical symbolic value and are a genuine duplicate.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_w9007_still_fires_on_repeated_getstackoutput() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
 // ---------------------------------------------------------------------------
 // Issue #36 — the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
 // partition prefix, so ADC-partition ARNs no longer false-positive and the two

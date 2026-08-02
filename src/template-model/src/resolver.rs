@@ -572,12 +572,37 @@ impl<'a> Resolver<'a> {
             }
             IntrinsicFn::GetStackOutput(args) => {
                 let saved = self.current_path.clone();
+                let mut concrete_arguments: Vec<(&str, String)> = Vec::with_capacity(args.len());
                 for (key, arg) in args {
                     self.current_path = format!("{}.{}", saved, key);
-                    let _ = self.resolve_node(*arg);
+                    if let ResolvedValue::Concrete { value } = self.resolve_node(*arg)
+                        && let Some(literal) = value.as_str()
+                    {
+                        concrete_arguments.push((key.as_str(), literal.to_string()));
+                    }
                 }
                 self.current_path = saved;
-                ResolvedValue::Dynamic { reason: "cross-stack output".into() }
+
+                // Fixed key order, not template order, so two calls that list the same
+                // arguments in a different order stay equal. RoleArn is left out: it does
+                // not change which output is read, so two calls differing only there are
+                // still the same value. Quoting keeps a separator inside a value from
+                // reading as a field boundary.
+                let identity: Vec<String> = [KEY_STACK_NAME, KEY_REGION, KEY_OUTPUT_NAME]
+                    .into_iter()
+                    .filter_map(|key| {
+                        concrete_arguments
+                            .iter()
+                            .find(|(name, _)| *name == key)
+                            .map(|(_, literal)| format!("{key}={literal:?}"))
+                    })
+                    .collect();
+                let reason = if identity.is_empty() {
+                    "cross-stack output".to_string()
+                } else {
+                    format!("cross-stack output: {}", identity.join(", "))
+                };
+                ResolvedValue::Dynamic { reason }
             }
             IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
             IntrinsicFn::GetAZs(region_ref) => {
@@ -2524,6 +2549,62 @@ mod tests {
             ) => assert_ne!(ra, rb, "distinct exports must produce distinct symbolic values"),
             other => panic!("Expected two TypedDynamic, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn resolve_get_stack_output_carries_source_identity() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::GetStackOutput":{
+            "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne"
+        }}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        match model.resolve("R", "Properties.V") {
+            Some(ResolvedValue::Dynamic { reason }) => {
+                // The source is carried so distinct outputs stay distinct.
+                for field in ["VpcStack", "ap-northeast-1", "PublicSubnetOne"] {
+                    assert!(reason.contains(field), "reason should carry {field}, got {reason:?}");
+                }
+            }
+            other => panic!("Expected Dynamic, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_get_stack_output_distinct_sources_differ() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{
+            "Baseline":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne"
+            }},
+            "OtherStack":{"Fn::GetStackOutput":{
+                "StackName":"OtherVpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne"
+            }},
+            "OtherRegion":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"us-east-1","OutputName":"PublicSubnetOne"
+            }},
+            "OtherOutput":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetTwo"
+            }},
+            "Reordered":{"Fn::GetStackOutput":{
+                "OutputName":"PublicSubnetOne","StackName":"VpcStack","Region":"ap-northeast-1"
+            }},
+            "OtherRole":{"Fn::GetStackOutput":{
+                "StackName":"VpcStack","Region":"ap-northeast-1","OutputName":"PublicSubnetOne",
+                "RoleArn":"arn:aws:iam::444455556666:role/Lookup"
+            }}
+        }}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let source_of = |property: &str| match model.resolve("R", &format!("Properties.{property}")) {
+            Some(ResolvedValue::Dynamic { reason }) => reason.clone(),
+            other => panic!("Expected Dynamic for {property}, got {other:?}"),
+        };
+
+        let baseline = source_of("Baseline");
+        for distinct in ["OtherStack", "OtherRegion", "OtherOutput"] {
+            assert_ne!(baseline, source_of(distinct), "{distinct} must not collapse onto the baseline output");
+        }
+        assert_eq!(baseline, source_of("Reordered"), "argument order must not make the same output distinct");
+        // RoleArn selects nothing about which output is read, so a call that differs
+        // only there is still the same value and must stay a duplicate.
+        assert_eq!(baseline, source_of("OtherRole"), "RoleArn must not make the same output distinct");
     }
 
     #[test]
