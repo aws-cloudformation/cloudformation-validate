@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// Definitions are stored separately and referenced by name to avoid exponential blowup.
@@ -109,7 +110,10 @@ pub struct PropSchema {
     pub min_items: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_items: Option<u64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// `None` when the schema omits `uniqueItems`; `Some(false)` when it is
+    /// explicitly relaxed. Keeping the distinction lets an overlay clear a
+    /// bundled `true`.
+    #[serde(default, skip_serializing_if = "skip_unless_true")]
     pub unique_items: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_properties: Option<u64>,
@@ -141,23 +145,139 @@ pub struct PropSchema {
     pub dependent_excluded: HashMap<String, Vec<String>>,
 }
 
+fn skip_unless_true(value: &Option<bool>) -> bool {
+    *value != Some(true)
+}
+
+/// Upper bound on the length of a `$ref` chain followed by
+/// `PropSchema::resolve`. Real provider schemas chain at most a handful of
+/// hops; the bound exists so a malformed definition graph cannot make resolution
+/// unbounded.
+pub const MAX_REF_CHAIN: usize = 64;
+
 impl PropSchema {
-    pub fn resolve<'a>(&'a self, defs: &'a HashMap<String, PropSchema>) -> &'a PropSchema {
-        // Depth-capped so a cyclic definition set — which can reach here from
-        // caller-supplied overlay schemas — cannot overflow the stack (a stack
-        // overflow aborts the process and cannot be caught by `catch_panics`).
-        self.resolve_bounded(defs, 128)
+    /// The schema that actually applies to this property: the terminal target of
+    /// its `$ref` chain, with any fields stated alongside the reference merged on
+    /// top.
+    ///
+    /// A property may carry both a `$ref` and its own constraints — that is what
+    /// an overlay extending a referenced property produces. Resolving them here,
+    /// rather than folding the referenced definition into the property when the
+    /// overlay is applied, keeps the reference live: a later overlay that changes
+    /// the definition still reaches every property pointing at it, and the result
+    /// does not depend on the order definitions happened to be merged in.
+    ///
+    /// Resolution is iterative and cycle-safe: a definition graph that loops back
+    /// on itself, or a chain longer than [`MAX_REF_CHAIN`], stops at the last
+    /// schema reached instead of recursing forever. Cyclic graphs are rejected
+    /// when an overlay is applied, so this is the second line of defence — a
+    /// caller-supplied schema must never be able to exhaust the stack and abort
+    /// the process.
+    pub fn resolve<'a>(&'a self, defs: &'a HashMap<String, PropSchema>) -> Cow<'a, PropSchema> {
+        if self.ref_name.is_none() {
+            return Cow::Borrowed(self);
+        }
+        // Every hop may state constraints of its own beside its reference, so the
+        // whole chain is collected rather than just its ends.
+        let mut chain: Vec<&PropSchema> = vec![self];
+        let mut seen: Vec<&str> = Vec::new();
+        for _ in 0..MAX_REF_CHAIN {
+            let Some(name) = chain.last().and_then(|hop| hop.ref_name.as_deref()) else {
+                break;
+            };
+            if seen.contains(&name) {
+                break;
+            }
+            seen.push(name);
+            match defs.get(name) {
+                Some(next) => chain.push(next),
+                None => break,
+            }
+        }
+        let (terminal, referrers) = chain.split_last().expect("the chain always contains at least this schema");
+        if !referrers.iter().any(|hop| hop.has_own_constraints()) {
+            return Cow::Borrowed(terminal);
+        }
+        let mut effective = (*terminal).clone();
+        effective.ref_name = None;
+        // Nearest wins: apply the innermost referrer first and this schema last.
+        for hop in referrers.iter().rev() {
+            if !hop.has_own_constraints() {
+                continue;
+            }
+            let mut own = (*hop).clone();
+            own.ref_name = None;
+            crate::overlay::merge_prop(&mut effective, own);
+        }
+        Cow::Owned(effective)
     }
 
-    fn resolve_bounded<'a>(&'a self, defs: &'a HashMap<String, PropSchema>, depth: u32) -> &'a PropSchema {
-        if depth == 0 {
-            return self;
-        }
-        if let Some(ref name) = self.ref_name {
-            defs.get(name).map(|d| d.resolve_bounded(defs, depth - 1)).unwrap_or(self)
-        } else {
-            self
-        }
+    /// Whether this property states anything of its own beside a `$ref`.
+    ///
+    /// Destructured exhaustively so a new field cannot be forgotten here and make
+    /// a property's own constraints silently disappear at resolution time.
+    fn has_own_constraints(&self) -> bool {
+        let PropSchema {
+            ref_name: _,
+            prop_type,
+            enum_values,
+            enum_case_insensitive,
+            not_enum,
+            const_value,
+            pattern,
+            minimum,
+            maximum,
+            exclusive_minimum,
+            exclusive_maximum,
+            min_length,
+            max_length,
+            min_items,
+            max_items,
+            unique_items,
+            min_properties,
+            max_properties,
+            format,
+            description,
+            properties,
+            required,
+            additional_properties,
+            pattern_properties,
+            items,
+            all_of,
+            any_of,
+            one_of,
+            dependent_required,
+            dependent_excluded,
+        } = self;
+        prop_type.is_some()
+            || !enum_values.is_empty()
+            || !enum_case_insensitive.is_empty()
+            || !not_enum.is_empty()
+            || const_value.is_some()
+            || pattern.is_some()
+            || minimum.is_some()
+            || maximum.is_some()
+            || exclusive_minimum.is_some()
+            || exclusive_maximum.is_some()
+            || min_length.is_some()
+            || max_length.is_some()
+            || min_items.is_some()
+            || max_items.is_some()
+            || unique_items.is_some()
+            || min_properties.is_some()
+            || max_properties.is_some()
+            || format.is_some()
+            || description.is_some()
+            || !properties.is_empty()
+            || !required.is_empty()
+            || additional_properties.is_some()
+            || !pattern_properties.is_empty()
+            || items.is_some()
+            || !all_of.is_empty()
+            || !any_of.is_empty()
+            || !one_of.is_empty()
+            || !dependent_required.is_empty()
+            || !dependent_excluded.is_empty()
     }
 }
 
@@ -232,7 +352,7 @@ mod tests {
         let schema = PropSchema { prop_type: Some(PropType::Single("string".into())), ..Default::default() };
         let defs = HashMap::new();
         let resolved = schema.resolve(&defs);
-        assert!(ptr::eq(resolved, &schema));
+        assert!(matches!(resolved, Cow::Borrowed(borrowed) if ptr::eq(borrowed, &schema)));
     }
 
     #[test]
@@ -264,19 +384,67 @@ mod tests {
         let schema = PropSchema { ref_name: Some("NonExistent".into()), ..Default::default() };
         let defs = HashMap::new();
         let resolved = schema.resolve(&defs);
-        assert!(ptr::eq(resolved, &schema));
+        assert!(matches!(resolved, Cow::Borrowed(borrowed) if ptr::eq(borrowed, &schema)));
+    }
+
+    /// Cyclic graphs are rejected when an overlay is applied, so these cover the
+    /// second line of defence: resolution must terminate on its own rather than
+    /// recursing until the stack is gone, because a stack overflow aborts the
+    /// host process instead of surfacing as a catchable error.
+    #[test]
+    fn resolve_terminates_on_a_self_referential_definition() {
+        let mut defs = HashMap::new();
+        defs.insert("Loop".to_string(), PropSchema { ref_name: Some("Loop".into()), ..Default::default() });
+
+        let schema = PropSchema { ref_name: Some("Loop".into()), ..Default::default() };
+        let resolved = schema.resolve(&defs);
+
+        assert_eq!(
+            resolved.ref_name.as_deref(),
+            Some("Loop"),
+            "resolution stops at the definition it has already visited"
+        );
     }
 
     #[test]
-    fn resolve_cyclic_refs_terminate_without_overflow() {
-        // A cyclic definition set (reachable from caller-supplied overlays) must
-        // not overflow the stack — the depth cap makes resolution total.
+    fn resolve_terminates_on_a_multi_node_definition_cycle() {
         let mut defs = HashMap::new();
-        defs.insert("D".to_string(), PropSchema { ref_name: Some("E".into()), ..Default::default() });
-        defs.insert("E".to_string(), PropSchema { ref_name: Some("D".into()), ..Default::default() });
-        let start = PropSchema { ref_name: Some("D".into()), ..Default::default() };
-        // The assertion is simply that this returns rather than aborting the process.
-        let _ = start.resolve(&defs);
+        defs.insert("First".to_string(), PropSchema { ref_name: Some("Second".into()), ..Default::default() });
+        defs.insert("Second".to_string(), PropSchema { ref_name: Some("First".into()), ..Default::default() });
+
+        let schema = PropSchema { ref_name: Some("First".into()), ..Default::default() };
+        let resolved = schema.resolve(&defs);
+
+        assert_eq!(resolved.ref_name.as_deref(), Some("First"), "resolution stops at the hop that closes the cycle");
+    }
+
+    #[test]
+    fn resolve_stops_at_the_chain_limit_and_keeps_the_property_own_constraints() {
+        let unreachable_hop = MAX_REF_CHAIN + 5;
+        let mut defs = HashMap::new();
+        for hop in 0..unreachable_hop {
+            defs.insert(
+                format!("Hop{hop}"),
+                PropSchema { ref_name: Some(format!("Hop{}", hop + 1)), ..Default::default() },
+            );
+        }
+        defs.insert(
+            format!("Hop{unreachable_hop}"),
+            PropSchema { pattern: Some("^unreachable$".into()), ..Default::default() },
+        );
+
+        let schema = PropSchema { ref_name: Some("Hop0".into()), max_length: Some(10), ..Default::default() };
+        let resolved = schema.resolve(&defs);
+
+        assert_eq!(
+            resolved.max_length,
+            Some(10),
+            "a chain too long to follow must not discard what the property itself states"
+        );
+        assert_eq!(
+            resolved.pattern, None,
+            "the constraint beyond the resolution limit is not reachable, which is why such a chain is rejected on input"
+        );
     }
 
     #[test]
@@ -301,7 +469,7 @@ mod tests {
         assert_eq!(deserialized.maximum, Some(100.0));
         assert_eq!(deserialized.min_length, Some(1));
         assert_eq!(deserialized.max_length, Some(256));
-        assert_eq!(deserialized.unique_items, Some(true), "unique_items should be Some(true)");
+        assert_eq!(deserialized.unique_items, Some(true), "unique_items should round trip as true");
     }
 
     #[test]

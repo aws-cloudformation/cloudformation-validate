@@ -2,6 +2,7 @@ use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, Sub
 use crate::store::CompiledSchemaStore;
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
 use rules::format_rule_for_format;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
@@ -326,35 +327,47 @@ pub fn enrich_schema_context_standalone(diagnostics: &mut [Diagnostic], model: &
     enrich_schema_context(diagnostics, &store, model);
 }
 
+/// Continues a property-path lookup into `resolved`, or returns it when the path
+/// ends here. When resolution had to build an effective schema (a `$ref` with
+/// constraints of its own), the sub-schema is cloned out of it so the result does
+/// not borrow from the temporary.
+fn descend<'a>(
+    resolved: Cow<'a, PropSchema>,
+    rest: Option<&str>,
+    defs: &'a HashMap<String, PropSchema>,
+) -> Option<Cow<'a, PropSchema>> {
+    let Some(rest) = rest else {
+        return Some(resolved);
+    };
+    match resolved {
+        Cow::Borrowed(schema) => find_prop_schema(rest, &schema.properties, defs),
+        Cow::Owned(schema) => {
+            find_prop_schema(rest, &schema.properties, defs).map(|found| Cow::Owned(found.into_owned()))
+        }
+    }
+}
+
 fn find_prop_schema<'a>(
     path: &str,
     props: &'a HashMap<String, PropSchema>,
     defs: &'a HashMap<String, PropSchema>,
-) -> Option<&'a PropSchema> {
+) -> Option<Cow<'a, PropSchema>> {
     let mut segments = path.splitn(2, '.');
     let top = segments.next()?;
     let rest = segments.next().filter(|r| !r.is_empty());
 
     if let Some(ps) = props.get(top) {
-        let resolved = ps.resolve(defs);
-        return match rest {
-            Some(r) => find_prop_schema(r, &resolved.properties, defs),
-            None => Some(resolved),
-        };
+        return descend(ps.resolve(defs), rest, defs);
     }
     for (pat, ps) in props.iter() {
         if compile_pattern(pat).is_some_and(|re| re.is_match(top)) {
-            let resolved = ps.resolve(defs);
-            return match rest {
-                Some(r) => find_prop_schema(r, &resolved.properties, defs),
-                None => Some(resolved),
-            };
+            return descend(ps.resolve(defs), rest, defs);
         }
     }
     None
 }
 
-fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<&'a PropSchema> {
+fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<Cow<'a, PropSchema>> {
     if let Some(ps) = find_prop_schema(path, &schema.properties, &schema.definitions) {
         return Some(ps);
     }
@@ -481,7 +494,6 @@ fn validate_resource(
             &schema.one_of,
             actual_keys,
             base,
-            &mut HashSet::new(),
             scenario,
         );
     }
@@ -489,7 +501,7 @@ fn validate_resource(
     for (prop_name, prop_schema) in &schema.properties {
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("{}.{}", base, prop_name);
-        validate_prop(out, store, m, rid, &res.resource_type, &prop_path, resolved, defs, &mut HashSet::new(), region);
+        validate_prop(out, store, m, rid, &res.resource_type, &prop_path, &resolved, defs, region);
     }
 
     // Also validate properties that exist only inside conditional branches —
@@ -506,7 +518,7 @@ fn validate_resource(
         };
         let resolved = prop_schema.resolve(defs);
         let prop_path = format!("{}.{}", base, prop_name);
-        validate_prop(out, store, m, rid, &res.resource_type, &prop_path, resolved, defs, &mut HashSet::new(), region);
+        validate_prop(out, store, m, rid, &res.resource_type, &prop_path, &resolved, defs, region);
     }
 
     let actual_keys: Vec<String> = res.properties.keys().cloned().collect();
@@ -538,7 +550,6 @@ fn validate_object_keys(
     one_of: &[SubSchema],
     actual_keys: &[String],
     base_path: &str,
-    _visited: &mut HashSet<String>,
 ) {
     validate_object_keys_inner(
         out,
@@ -559,7 +570,6 @@ fn validate_object_keys(
         one_of,
         actual_keys,
         base_path,
-        _visited,
         None,
     )
 }
@@ -588,7 +598,6 @@ fn validate_object_keys_inner(
     one_of: &[SubSchema],
     actual_keys: &[String],
     base_path: &str,
-    _visited: &mut HashSet<String>,
     scenario: Option<&HashMap<String, bool>>,
 ) {
     let before_len = out.len();
@@ -929,21 +938,8 @@ fn validate_prop(
     prop_path: &str,
     schema: &PropSchema,
     defs: &HashMap<String, PropSchema>,
-    visited: &mut HashSet<String>,
     region: Option<&str>,
 ) {
-    // Guard against circular $ref chains at validation time
-    if let Some(ref rn) = schema.ref_name {
-        if !visited.insert(rn.clone()) {
-            return;
-        }
-        if let Some(resolved) = defs.get(rn) {
-            validate_prop(out, store, m, rid, rtype, prop_path, resolved, defs, visited, region);
-        }
-        visited.remove(rn);
-        return;
-    }
-
     let scenarios = m.resolve_scenarios_json(rid, prop_path);
 
     let is_type_exempt = TYPE_CHECK_EXEMPT_PATHS.iter().any(|(rt, pp)| *rt == rtype && *pp == prop_path);
@@ -1364,7 +1360,6 @@ fn validate_prop(
                 &schema.one_of,
                 &nested_keys,
                 prop_path,
-                visited,
             );
         } else if !schema.required.is_empty()
             && !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. }))
@@ -1402,7 +1397,6 @@ fn validate_prop(
                         &schema.one_of,
                         &keys,
                         prop_path,
-                        visited,
                     );
                 }
             }
@@ -1412,7 +1406,7 @@ fn validate_prop(
             let sub_path = format!("{}.{}", prop_path, pn);
             let sub_scenarios = m.resolve_scenarios_json(rid, &sub_path);
             if !sub_scenarios.is_empty() || m.resolve_deep(rid, &sub_path).is_some() {
-                validate_prop(out, store, m, rid, rtype, &sub_path, resolved, defs, visited, region);
+                validate_prop(out, store, m, rid, rtype, &sub_path, &resolved, defs, region);
             }
         }
     }
@@ -1431,25 +1425,14 @@ fn validate_prop(
                 did_per_index = true;
                 for idx in 0..len {
                     let idx_path = format!("{}.{}", prop_path, idx);
-                    validate_prop(out, store, m, rid, rtype, &idx_path, resolved, defs, visited, region);
+                    validate_prop(out, store, m, rid, rtype, &idx_path, &resolved, defs, region);
                 }
             } else {
-                validate_prop(
-                    out,
-                    store,
-                    m,
-                    rid,
-                    rtype,
-                    &format!("{}.{{}}", prop_path),
-                    resolved,
-                    defs,
-                    visited,
-                    region,
-                );
+                validate_prop(out, store, m, rid, rtype, &format!("{}.{{}}", prop_path), &resolved, defs, region);
             }
         }
         if !did_per_index && (!resolved.dependent_excluded.is_empty() || !resolved.dependent_required.is_empty()) {
-            validate_array_item_constraints(out, m, rid, prop_path, resolved);
+            validate_array_item_constraints(out, m, rid, prop_path, &resolved);
         }
     }
 }

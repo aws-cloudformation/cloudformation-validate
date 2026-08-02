@@ -83,20 +83,33 @@ val engine = RegoEngine()                                          // default co
 val engine = CelEngine(EngineConfig(guardRules = listOf(myRule)))  // with Guard rules
 ```
 
-| Field         | Default       | Description                                                           |
-|---------------|---------------|-----------------------------------------------------------------------|
-| `customRules` | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)      |
-| `guardRules`  | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine |
+| Field               | Default       | Description                                                                                   |
+|---------------------|---------------|-----------------------------------------------------------------------------------------------|
+| `customRules`       | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                              |
+| `guardRules`        | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine                         |
+| `additionalSchemas` | `emptyList()` | Resource provider schemas merged over bundled schemas; may also register a new resource type |
 
-Each rule is an `ExternalRuleSource`, constructed either from a `java.io.File` — the same pattern as passing a
-template `File` to `validateStandard` — or from explicit values with `ExternalRuleSource(name, content)`, where
-`name` identifies the rule in diagnostics and `content` is the full source text. The two can be mixed freely:
+Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = "")`, or construct an
+`AdditionalSchemaSource` from schema text. `typeName` may be empty when the JSON contains its own `typeName`:
+
+```kotlin
+val engine = RegoEngine(
+    EngineConfig(
+        additionalSchemas = listOf(fileToAdditionalSchemaSource(File("schemas/aws-lambda-function.json"))),
+    ),
+)
+```
+
+Each rule is an `ExternalRuleSource`, loaded from a `java.io.File` with `fileToExternalRuleSource(file)` — the same
+pattern as passing a template `File` to `validateStandard` — or constructed from explicit values with
+`ExternalRuleSource(name, content)`, where `name` identifies the rule in diagnostics and `content` is the full source
+text. The two can be mixed freely:
 
 ```kotlin
 val engine = CelEngine(
     EngineConfig(
-        customRules = listOf(ExternalRuleSource(File("rules/s3_encryption.json"))),
-        guardRules = listOf(ExternalRuleSource(File("rules/compliance.guard"))),
+        customRules = listOf(fileToExternalRuleSource(File("rules/s3_encryption.json"))),
+        guardRules = listOf(fileToExternalRuleSource(File("rules/compliance.guard"))),
     ),
 )
 ```

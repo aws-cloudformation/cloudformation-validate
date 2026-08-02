@@ -104,6 +104,7 @@ struct RuleSourceOptions {
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct SchemaSourceOptions {
+    #[serde(default)]
     type_name: String,
     schema: String,
 }

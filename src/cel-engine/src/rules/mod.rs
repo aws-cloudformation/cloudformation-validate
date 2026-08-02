@@ -163,6 +163,16 @@ impl CachedData {
         })
     }
 
+    /// Registers additional resource types as known.
+    ///
+    /// The type catalog is compiled at build time from the published resource
+    /// providers. A caller-supplied schema overlay can describe a type that is not
+    /// in it yet, and validating a template against that overlay while
+    /// simultaneously reporting the type as nonexistent would contradict itself.
+    pub fn extend_known_types(&mut self, type_names: impl IntoIterator<Item = String>) {
+        self.known_types.extend(type_names);
+    }
+
     /// Lazy accessor — parses the 14MB `schema_metadata` JSON on first call.
     pub fn schema_metadata(&self) -> &serde_json::Value {
         self.schema_metadata_lazy.get_or_init(|| {

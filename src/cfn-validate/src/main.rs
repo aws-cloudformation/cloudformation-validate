@@ -10,8 +10,9 @@ use rules::{
 };
 use template_model::{EntityType, PseudoParameterOverrides};
 use validation_engine::{
-    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, catch_panics,
-    guard, validate_bytes_with_path, validate_catching_panics,
+    AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine,
+    ValidationError, catch_panics, guard, schema_validator_from_config, validate_bytes_with_path,
+    validate_catching_panics,
 };
 
 fn main() {
@@ -39,6 +40,7 @@ fn main() {
     let mut exclude_services: Vec<ServiceFilter> = Vec::new();
     let mut custom_rules: Vec<ExternalRuleSource> = Vec::new();
     let mut guard_rule_source_paths: Vec<String> = Vec::new();
+    let mut additional_schema_paths: Vec<String> = Vec::new();
     let mut list_rules = false;
     let mut engine_type = EngineType::default();
     let mut validate_config = ValidateConfig::default();
@@ -139,6 +141,15 @@ fn main() {
                     process::exit(2);
                 }
             }
+            "--additional-schema" => {
+                i += 1;
+                if let Some(path) = args.get(i) {
+                    additional_schema_paths.push(path.clone());
+                } else {
+                    error!("--additional-schema requires a file or directory path argument");
+                    process::exit(2);
+                }
+            }
             "--list-rules" => list_rules = true,
             "--format" => {
                 i += 1;
@@ -226,12 +237,26 @@ fn main() {
         Vec::new()
     };
 
-    let engine_config = EngineConfig { custom_rules, guard_rules, ..Default::default() };
+    let additional_schemas = if additional_schema_paths.is_empty() {
+        Vec::new()
+    } else {
+        match AdditionalSchemaSource::from_paths(&additional_schema_paths) {
+            Ok(sources) => sources,
+            Err(e) => {
+                error!("{}", e);
+                process::exit(2);
+            }
+        }
+    };
 
-    let schema_validator = match validation_engine::schema_validator_from_config(&engine_config) {
-        Ok(sv) => sv,
+    let engine_config = EngineConfig { custom_rules, guard_rules, additional_schemas };
+
+    // The validator is built from the same config the engine gets, so a configured
+    // overlay applies on the CLI exactly as it does through the language bindings.
+    let schema_validator = match schema_validator_from_config(&engine_config) {
+        Ok(validator) => validator,
         Err(e) => {
-            error!("{e}");
+            error!("{}", e);
             process::exit(2);
         }
     };
@@ -436,6 +461,8 @@ fn print_help() {
     eprintln!("  --engine rego|cel             Validation engine (default: rego)");
     eprintln!("  --rule-source <PATH>          Load custom rule from file");
     eprintln!("  --guard-rule-source <PATH>    Load Guard (.guard) rule file or directory");
+    eprintln!("  --additional-schema <PATH>    Merge a resource provider schema (.json) file or directory on top");
+    eprintln!("                                of the bundled schemas");
     eprintln!("  --region REGION               Set AWS::Region pseudo-parameter");
     eprintln!("  --parameter Key=Value         Override a template parameter value (repeatable)");
     eprintln!("  --pseudo-parameter Key=Value  Override a pseudo-parameter value (repeatable)");

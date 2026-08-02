@@ -1,4 +1,5 @@
 use data_source::embedded;
+use data_source::types::KnownResourceTypes;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
 use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use log::{debug, info, warn};
@@ -97,6 +98,27 @@ impl Drop for HolderGuard {
 /// Pre-allocated capacity for merging all embedded JSON data files into one string.
 const MERGED_DATA_INITIAL_CAPACITY: usize = 8 * 1024 * 1024;
 
+/// The [`REGORUS_DATA`] entry holding the catalog of resource types the rules
+/// treat as existing.
+const KNOWN_RESOURCE_TYPES_PATH: &str = "data/known_resource_types";
+
+/// Re-serializes the known-resource-type catalog with `extra_types` appended, or
+/// returns `None` when there is nothing to add so the embedded bytes are used
+/// verbatim.
+fn extend_known_resource_types(extra_types: &[String]) -> anyhow::Result<Option<String>> {
+    if extra_types.is_empty() {
+        return Ok(None);
+    }
+    let mut catalog: KnownResourceTypes = serde_json::from_slice(&embedded::KNOWN_RESOURCE_TYPES_BYTES)
+        .map_err(|e| anyhow::anyhow!("Failed to parse the embedded known_resource_types data: {e}"))?;
+    for type_name in extra_types {
+        if !catalog.known_resource_types.contains(type_name) {
+            catalog.known_resource_types.push(type_name.clone());
+        }
+    }
+    Ok(Some(serde_json::to_string(&catalog)?))
+}
+
 pub struct RegoEngine {
     base_rego: regorus::Engine,
     model_holder: SharedModel,
@@ -124,10 +146,21 @@ impl RegoEngine {
 
         // Single-pass merge avoids per-file JSON parsing overhead.
         {
+            // Resource types introduced by an overlay schema are legitimate
+            // targets, so the type catalog the rules consult must include them
+            // rather than reporting them as nonexistent.
+            let overlay_types = config
+                .additional_schema_type_names()
+                .map_err(|e| anyhow::anyhow!("Failed to resolve additional schemas: {e}"))?;
+            let extended_known_types = extend_known_resource_types(&overlay_types)?;
+
             let mut merged = String::with_capacity(MERGED_DATA_INITIAL_CAPACITY);
             merged.push('{');
-            for (i, (_path, json_bytes)) in REGORUS_DATA.iter().enumerate() {
-                let json_str = from_utf8(json_bytes).expect("Embedded JSON data is valid UTF-8");
+            for (i, (path, json_bytes)) in REGORUS_DATA.iter().enumerate() {
+                let json_str = match (*path, extended_known_types.as_deref()) {
+                    (KNOWN_RESOURCE_TYPES_PATH, Some(extended)) => extended,
+                    _ => from_utf8(json_bytes).expect("Embedded JSON data is valid UTF-8"),
+                };
                 let inner = json_str
                     .trim()
                     .strip_prefix('{')

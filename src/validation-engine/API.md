@@ -8,21 +8,13 @@ It requires an engine and a `SchemaValidator`, both of which should be created o
 ```rust
 use rego_engine::RegoEngine;
 // or cel_engine::CelEngine
-use schema_validator::SchemaValidator;
-use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
+use validation_engine::{schema_validator_from_config, validate_bytes_with_path, EngineConfig, ValidateConfig};
 
 // One-time setup (reuse across validations)
-let schema_validator = SchemaValidator::new();
-let engine = RegoEngine::new(EngineConfig::default())?;
-```
+let config = EngineConfig::default();
+let schema_validator = schema_validator_from_config(&config)?;
+let engine = RegoEngine::new(config)?;
 
-> If your `EngineConfig` sets `additional_schemas` (overlay CloudFormation
-> resource provider schemas), build the validator with
-> `validation_engine::schema_validator_from_config(&config)?` instead of
-> `SchemaValidator::new()` — otherwise the overlays are silently dropped. All
-> language bindings construct their validator through that helper.
-
-```rust,ignore
 // Validate
 let bytes = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(
@@ -57,7 +49,17 @@ let engine = RegoEngine::new(EngineConfig::default())?;
 let engine = CelEngine::new(EngineConfig {
     custom_rules: vec![ExternalRuleSource { name: "my_rules.cel".into(), content: cel_source }],
     guard_rules:  vec![ExternalRuleSource { name: "policy.guard".into(), content: guard_source }],
+    ..Default::default()
 })?;
+```
+
+`EngineConfig` gains fields as the engine gains options — a field is added whenever one is needed for correctness or
+ease of use. The constructor and its `with_*` methods let you name only the options you set:
+
+```rust
+let config = EngineConfig::new()
+    .with_custom_rules([ExternalRuleSource { name: "my_rules.cel".into(), content: cel_source }])
+    .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]);
 ```
 
 | Engine                                 | `custom_rules` format     | `guard_rules` handling                   |
@@ -66,6 +68,75 @@ let engine = CelEngine::new(EngineConfig {
 | [CelEngine](../cel-engine/README.md)   | JSON with CEL expressions | Parsed and translated to CEL internally  |
 
 Both engines parse and translate `guard_rules` from raw Guard DSL source text — no pre-parsing needed.
+
+## Additional Resource Provider Schemas
+
+`EngineConfig::additional_schemas` merges caller-supplied CloudFormation resource provider schemas on top of the
+bundled ones, so templates using a property or allowed value CloudFormation has not published yet validate without
+false findings. A type name with no bundled schema is registered as a new resource type.
+
+```rust
+use validation_engine::{schema_validator_from_config, AdditionalSchemaSource, EngineConfig};
+use rego_engine::RegoEngine;
+
+let config = EngineConfig {
+    additional_schemas: vec![AdditionalSchemaSource {
+        // Empty to take the type name from the schema's own `typeName`.
+        type_name: String::new(),
+        schema: std::fs::read_to_string("aws-lambda-function.json")?,
+    }],
+    ..Default::default()
+};
+
+// Both the validator and the engine must be built from the same config: the
+// validator applies the overlay, the engine learns the type names it introduces.
+let schema_validator = schema_validator_from_config(&config)?;
+let engine = RegoEngine::new(config)?;
+```
+
+`schema_validator_from_config` is the only construction path that applies overlays — building a `SchemaValidator::new()`
+alongside a configured engine silently validates against the bundled schemas alone. Every language binding and the
+`cfn-validate --additional-schema` flag route through it.
+
+Construction fails, rather than degrading quietly, when a schema is not valid JSON, is not an object, names one type
+explicitly and another in its body, nests deeper than 128 levels, defines a cyclic `$ref` graph, states nothing the
+compiler recognises, would leave a property carrying both a case-sensitive and a case-insensitive list of allowed
+values, contains a `$ref` chain too long to resolve, or uses a construct the compiled model cannot represent (a `$ref`
+outside `#/definitions/`, tuple-form `items`, a `type` that is neither a string nor an array of strings). Keywords written beside a `$ref` have no effect — draft-07, which provider schemas are written
+against, ignores them — so a published schema that documents a referenced property in place is accepted as-is; a
+constraining keyword in that position is logged. To extend a referenced shape, overlay the property rather than
+restating the reference: those fields are merged onto whatever it points at.
+
+**Merge model.** An overlay may add entries to a collection and restate a single-valued constraint or a logical group;
+it never silently drops a constraint the bundled schema carries. Adding to `required` or to a dependency list states a
+constraint, so it can legitimately produce a finding on a template that violates it.
+
+| Field kind | Rule |
+|------------|------|
+| `properties`, `definitions`, `patternProperties` | deep-merged by key |
+| `required`, `/properties/...` lifecycle metadata lists, each `dependentRequired`/`dependentExcluded` key | unioned |
+| single-valued constraints (`type`, `pattern`, bounds, lengths, `uniqueItems`, `format`, `additionalProperties`, …) | replaced when supplied |
+| `requiredOr`, `requiredXor`, `primaryIdentifier` | replaced as a whole group when supplied |
+| `allOf`/`anyOf`/`oneOf`/`if`-`then`-`else` | replaced when supplied |
+| `items` (the schema every array element must satisfy) | deep-merged, like one keyed entry |
+| `replacementStrategy`, `documentationUrl`, `sourceUrl` | replaced when supplied; these enrich reporting and constrain nothing |
+| `enum` / `enumCaseInsensitive` | one mutually exclusive field; supplying either replaces the other. A plain `enum` over a bundled case-insensitive list keeps case-insensitive comparison, so casings that validate today keep validating; supplying `enumCaseInsensitive` switches comparison to case-insensitive, which only ever accepts more |
+
+A `$ref` is never folded into the property pointing at it: overlay fields are merged beside the reference and combined
+with the whole chain at validation time. The table above decides each field within the chain too, so a hop that restates
+a single-valued constraint overrides the one further along while collections accumulate across every hop. A
+constraint-only overlay therefore applies, chains are followed to their end, and a definition changed by a later overlay
+still reaches every property referencing it. A chain longer than the resolver can follow is rejected rather than cut
+short. Overlays for one type apply in order.
+
+**Scope limits.** An overlay cannot make a bundled `required` property optional or remove a metadata entry; it cannot
+switch a case-insensitive enum to case-sensitive comparison; constraints inside composition subschemas are replaced as
+whole entries rather than deep-merged; validation keywords the compiled model has no field for (`multipleOf`,
+`propertyNames`, `contains`, `not` other than `not.enum`, …) constrain nothing and are logged rather than dropped
+silently; conditional constraints the build pipeline contributes as extension fragments are validated from a separate
+embedded artifact that overlays do not merge into, so an overlay cannot suppress a finding originating there; and
+overlays feed schema validation plus the engines' known-resource-type set only — other rule-engine data compiled at
+build time (for example regional instance-type tables) is unaffected.
 
 ## Configuring Validation
 

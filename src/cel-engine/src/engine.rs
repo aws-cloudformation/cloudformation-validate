@@ -132,7 +132,15 @@ impl CelEngine {
             registry_metadata.len(),
             external_rule_metadata.len()
         );
-        let cached_data = CachedData::load()?;
+        let mut cached_data = CachedData::load()?;
+        // Resource types introduced by an overlay schema are legitimate targets,
+        // so rules working from the build-time type catalog must treat them as
+        // known rather than reporting them as nonexistent.
+        cached_data.extend_known_types(
+            config
+                .additional_schema_type_names()
+                .map_err(|e| anyhow::anyhow!("Failed to resolve additional schemas: {e}"))?,
+        );
         let init_metric = phase_metric(start);
         Ok(CelEngine {
             native_rules,

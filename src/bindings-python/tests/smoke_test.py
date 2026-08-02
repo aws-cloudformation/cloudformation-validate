@@ -8,11 +8,13 @@ Standard library only — no test dependencies.
 
 import os
 import re
+import tempfile
 import unittest
 from unittest import mock
 
 import cloudformation_validate._native as native_loader
 from cloudformation_validate import (
+    AdditionalSchemaSource,
     CelEngine,
     EngineConfig,
     EntityType,
@@ -27,6 +29,7 @@ from cloudformation_validate import (
     TemplateModel,
     ValidateConfig,
     ValidationError,
+    file_to_additional_schema_source,
     version,
 )
 
@@ -45,6 +48,24 @@ Resources:
     Properties:
       BucketName: my-test-bucket
 """
+
+TEMPLATE_WITH_OVERLAY_PROPERTY = b"""
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => {};"
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Runtime: nodejs18.x
+      Handler: index.handler
+      TestForOverride: enabled
+"""
+
+LAMBDA_OVERLAY_SCHEMA = """{
+  "typeName": "AWS::Lambda::Function",
+  "properties": {"TestForOverride": {"type": "string"}}
+}"""
 
 
 def read_workspace_version():
@@ -158,6 +179,38 @@ class ValidateTest(unittest.TestCase):
         report = REGO.validate_standard(b"not: a: valid: yaml: [")
         self.assertEqual(ReportStatus.ERROR, report.status)
         self.assertTrue(report.diagnostics, "parse failure must surface as a diagnostic")
+
+
+class AdditionalSchemasTest(unittest.TestCase):
+    def test_additional_schemas_apply_through_the_public_config_on_both_engines(self):
+        config = EngineConfig(
+            additional_schemas=[AdditionalSchemaSource(type_name="", schema=LAMBDA_OVERLAY_SCHEMA)]
+        )
+        for name, baseline, engine_type in (
+            ("rego", REGO, RegoEngine),
+            ("cel", CEL, CelEngine),
+        ):
+            baseline_report = baseline.validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
+            self.assertTrue(
+                any(d.rule_id == "F3002" for d in baseline_report.diagnostics),
+                f"{name} baseline must report the unpublished property",
+            )
+            report = engine_type(config).validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
+            self.assertFalse(
+                any(d.rule_id == "F3002" for d in report.diagnostics),
+                f"{name} public config must apply the overlay",
+            )
+
+    def test_file_helper_loads_the_schema_and_optional_type_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            schema_path = os.path.join(directory, "schema.json")
+            with open(schema_path, "w", encoding="utf-8") as f:
+                f.write(LAMBDA_OVERLAY_SCHEMA)
+
+            source = file_to_additional_schema_source(schema_path, "AWS::Lambda::Function")
+
+        self.assertEqual("AWS::Lambda::Function", source.type_name)
+        self.assertEqual(LAMBDA_OVERLAY_SCHEMA, source.schema)
 
 
 class CustomRulesTest(unittest.TestCase):

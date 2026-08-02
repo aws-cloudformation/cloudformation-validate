@@ -1,9 +1,12 @@
 pub(crate) mod compiled;
-pub(crate) mod overlay;
+pub(crate) mod convert;
+pub mod overlay;
 pub mod store;
 pub mod validate;
 
-pub use store::CompiledSchemaStore;
+pub use compiled::MAX_REF_CHAIN;
+pub use overlay::{MAX_OVERLAY_DEPTH, SchemaOverlayError};
+pub use store::{CompiledSchemaStore, OverlayOutcome};
 
 /// Eagerly decompress all embedded data LazyLocks. Intended to be called once at
 /// process/module start in environments that benefit from front-loading cost
@@ -12,7 +15,7 @@ pub fn prewarm_embedded_data() {
 }
 
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
-use log::info;
+use log::{info, warn};
 use rules::{RuleInfo, lookup_rule};
 use std::sync::Arc;
 use template_model::SemanticModel;
@@ -37,25 +40,26 @@ impl SchemaValidator {
     pub fn new() -> Self {
         let start = web_time::Instant::now();
         let store = CompiledSchemaStore::new();
-        let init_metric = phase_metric(start);
-        info!("SchemaValidator initialized: {} schemas loaded", store.len());
-        SchemaValidator { store, init_metric }
+        Self::finish(store, 0, start)
     }
 
-    /// Construct a validator whose schema store has `additional_schemas` merged on
-    /// top of the bundled schemas.
+    /// Construct a validator whose schema store has `additional_schemas` merged
+    /// on top of the bundled schemas.
     ///
     /// Each item is a `(type_name, schema)` pair where `schema` is an
     /// already-parsed CloudFormation resource provider schema (registry JSON, the
-    /// same shape consumed by the build-time schema compiler) and `type_name` is
-    /// the resolved, non-empty resource type name. Overlays are applied in order;
-    /// see [`crate::overlay`] for the merge semantics.
+    /// same shape the build-time schema compiler consumes) and `type_name` is the
+    /// resource type it applies to. Overlays are applied in order, so a later
+    /// overlay sees the result of the earlier ones. The
+    /// [`crate::overlay`] module documents the merge model and its scope
+    /// limits.
     ///
-    /// This constructor is infallible: parsing the JSON and resolving the type
-    /// name are the caller's responsibility, so only well-formed input reaches
-    /// here. Bindings use [`validation_engine::AdditionalSchemaSource::resolve`]
-    /// to turn raw config into the pairs this method expects.
-    pub fn with_additional_schemas<I, S>(additional_schemas: I) -> Self
+    /// Fails, without building a validator, when an overlay is not a JSON object,
+    /// carries no type name, nests too deeply, defines a cyclic `$ref` graph, or
+    /// would change nothing. An overlay for a type the bundled schemas do not
+    /// contain is registered as a new type and logged, since that is also what a
+    /// misspelled type name looks like.
+    pub fn try_with_additional_schemas<I, S>(additional_schemas: I) -> Result<Self, SchemaOverlayError>
     where
         I: IntoIterator<Item = (S, serde_json::Value)>,
         S: AsRef<str>,
@@ -64,12 +68,25 @@ impl SchemaValidator {
         let mut store = CompiledSchemaStore::new();
         let mut applied = 0usize;
         for (type_name, schema) in additional_schemas {
-            store.apply_overlay(type_name.as_ref(), &schema);
+            let type_name = type_name.as_ref();
+            if store.apply_overlay(type_name, &schema)? == OverlayOutcome::Inserted {
+                warn!(
+                    "Additional schema for '{type_name}' matches no bundled resource type; registering it as a new \
+                     type. Check the type name if this was meant to extend an existing type."
+                );
+            }
             applied += 1;
         }
+        Ok(Self::finish(store, applied, start))
+    }
+
+    fn finish(store: CompiledSchemaStore, overlays_applied: usize, start: web_time::Instant) -> Self {
         let init_metric = phase_metric(start);
-        if applied > 0 {
-            info!("SchemaValidator initialized: {} schemas loaded, {applied} overlay schema(s) applied", store.len());
+        if overlays_applied > 0 {
+            info!(
+                "SchemaValidator initialized: {} schemas loaded, {overlays_applied} overlay schema(s) applied",
+                store.len()
+            );
         } else {
             info!("SchemaValidator initialized: {} schemas loaded", store.len());
         }

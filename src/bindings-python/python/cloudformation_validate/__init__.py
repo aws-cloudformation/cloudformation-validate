@@ -88,9 +88,10 @@ from .template_model import (
     ResourceDiagnostics,
     SourceSpan,
 )
-from .validation_engine import EngineConfig, EngineType, ExternalRuleSource
+from .validation_engine import AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource
 
 __all__ = [
+    "AdditionalSchemaSource",
     "CelEngine",
     "ConditionalNull",
     "ConditionalNullEntry",
@@ -156,6 +157,7 @@ __all__ = [
     "ValidateConfig",
     "ValidationError",
     "ViolationContext",
+    "file_to_additional_schema_source",
     "file_to_external_rule_source",
     "version",
 ]
@@ -173,6 +175,18 @@ def _template_bytes(template: Template) -> tuple[bytes, str]:
     path = os.fspath(template)
     with open(path, "rb") as f:
         return f.read(), str(path)
+
+
+def file_to_additional_schema_source(
+    path: typing.Union[str, os.PathLike], type_name: str = ""
+) -> AdditionalSchemaSource:
+    """Reads a resource provider schema file into an :class:`AdditionalSchemaSource`.
+
+    ``type_name`` may be empty when the schema contains its own ``typeName`` field.
+    """
+    resolved = os.fspath(path)
+    with open(resolved, encoding="utf-8") as f:
+        return AdditionalSchemaSource(type_name=type_name, schema=f.read())
 
 
 def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> ExternalRuleSource:

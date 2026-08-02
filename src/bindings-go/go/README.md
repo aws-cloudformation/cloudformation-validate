@@ -71,8 +71,9 @@ Passed to `NewRegoEngine` / `NewCelEngine`. The zero value (or `nil`) uses only 
 
 ```go
 type EngineConfig struct {
-    CustomRules []ExternalRuleSource // engine-native rules (Rego for Rego, CEL for CEL)
-    GuardRules  []ExternalRuleSource // CloudFormation Guard DSL rules — translated internally by each engine
+    CustomRules       []ExternalRuleSource     // engine-native rules (Rego for Rego, CEL for CEL)
+    GuardRules        []ExternalRuleSource     // CloudFormation Guard DSL rules — translated internally by each engine
+    AdditionalSchemas []AdditionalSchemaSource // resource provider schemas merged over the bundled schemas
 }
 
 // Name identifies the rule in diagnostics; Content is the full rule source text.
@@ -80,16 +81,24 @@ type ExternalRuleSource struct {
     Name    string
     Content string
 }
+
+// TypeName may be empty when Schema contains its own typeName field.
+type AdditionalSchemaSource struct {
+    TypeName string
+    Schema   string
+}
 ```
 
-Read the rule content yourself and mix custom and Guard rules freely:
+Read schema and rule content yourself and pass it through the typed config:
 
 ```go
+schema, _ := os.ReadFile("schemas/aws-lambda-function.json")
 guard, _ := os.ReadFile("rules/compliance.guard")
 custom, _ := os.ReadFile("rules/s3_encryption.json")
 engine, err := cfnvalidate.NewCelEngine(&cfnvalidate.EngineConfig{
-    CustomRules: []cfnvalidate.ExternalRuleSource{{Name: "s3_encryption.json", Content: string(custom)}},
-    GuardRules:  []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: string(guard)}},
+    CustomRules:       []cfnvalidate.ExternalRuleSource{{Name: "s3_encryption.json", Content: string(custom)}},
+    GuardRules:        []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: string(guard)}},
+    AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: string(schema)}},
 })
 ```
 

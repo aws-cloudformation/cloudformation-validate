@@ -1,7 +1,22 @@
 use crate::compiled::CompiledSchema;
+use crate::overlay::{self, SchemaOverlayError};
 use data_source::embedded::*;
 use std::collections::{BTreeSet, HashMap};
 use template_model::regions::AWS_REGIONS;
+
+/// What applying an overlay did to the store.
+///
+/// An overlay whose type name matches no bundled schema is registered as a new
+/// resource type — the supported way to describe a type CloudFormation has not
+/// published yet — but it is also what a misspelled type name produces, so the
+/// distinction is reported rather than swallowed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OverlayOutcome {
+    /// Merged into the bundled schema for an existing resource type.
+    Merged,
+    /// Registered as a resource type the bundled schemas do not contain.
+    Inserted,
+}
 
 pub struct CompiledSchemaStore {
     schemas: HashMap<String, CompiledSchema>,
@@ -73,23 +88,39 @@ impl CompiledSchemaStore {
     /// Merge an overlay CloudFormation resource provider schema (raw registry
     /// JSON) into the store under `type_name`.
     ///
-    /// The raw schema is compiled with the same transformation used at build
-    /// time, then deep-merged into the bundled schema for that type (properties
-    /// and definitions merged, `required` unioned, enum values replaced). When no
-    /// bundled schema exists for `type_name`, the compiled overlay is inserted as
-    /// a new schema. See [`crate::overlay`] for the full merge semantics.
-    pub fn apply_overlay(&mut self, type_name: &str, raw: &serde_json::Value) {
-        let overlay = crate::overlay::compile(type_name, raw);
-        match self.schemas.get_mut(type_name) {
-            Some(existing) => crate::overlay::merge_into(existing, overlay),
+    /// The raw schema is compiled with the same transformation used at build time
+    /// and deep-merged into the bundled schema for that type; when no bundled
+    /// schema exists, the compiled overlay is registered as a new type. The
+    /// return value says which happened, so callers can report a `type_name` that
+    /// matched nothing. See the [`crate::overlay`] module for the merge
+    /// model and its scope limits.
+    ///
+    /// Input is validated before anything is committed — an empty type name,
+    /// non-object JSON, nesting past [`MAX_OVERLAY_DEPTH`](crate::overlay::MAX_OVERLAY_DEPTH),
+    /// a cyclic definition graph, or an overlay that would change nothing is an
+    /// error and leaves the store untouched. The merge therefore runs on a copy
+    /// of the bundled schema that is only installed once it validates; a partly
+    /// merged schema is never observable.
+    pub fn apply_overlay(
+        &mut self,
+        type_name: &str,
+        raw: &serde_json::Value,
+    ) -> Result<OverlayOutcome, SchemaOverlayError> {
+        let overlay = overlay::compile(type_name, raw)?;
+        match self.schemas.get(type_name) {
+            Some(existing) => {
+                let mut merged = existing.clone();
+                overlay::merge_into(&mut merged, overlay);
+                overlay::validate_schema(&merged)?;
+                overlay::warn_dangling_refs(&merged);
+                self.schemas.insert(type_name.to_string(), merged);
+                Ok(OverlayOutcome::Merged)
+            }
             None => {
-                if type_name.starts_with("AWS::") {
-                    log::warn!(
-                        "Overlay schema for '{type_name}' has no bundled counterpart and is being added as a new \
-                         type; if this is meant to extend an existing AWS resource type, check the typeName for a typo"
-                    );
-                }
+                overlay::validate_schema(&overlay)?;
+                overlay::warn_dangling_refs(&overlay);
                 self.schemas.insert(type_name.to_string(), overlay);
+                Ok(OverlayOutcome::Inserted)
             }
         }
     }

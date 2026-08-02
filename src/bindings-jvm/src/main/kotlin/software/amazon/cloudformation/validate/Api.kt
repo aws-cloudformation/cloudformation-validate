@@ -3,6 +3,7 @@ package software.amazon.cloudformation.validate
 import software.amazon.cloudformation.validate.diagnostics.DetailedReport
 import software.amazon.cloudformation.validate.diagnostics.StandardDiagnostic
 import software.amazon.cloudformation.validate.diagnostics.StandardReport
+import software.amazon.cloudformation.validate.engine.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
 import software.amazon.cloudformation.validate.rules.RuleInfo
@@ -14,6 +15,14 @@ interface Engine {
     fun listRules(): List<RuleInfo>
     fun engineName(): String
 }
+
+/**
+ * Reads a resource provider schema file into an [AdditionalSchemaSource] for
+ * [EngineConfig.additionalSchemas]. [typeName] may be empty when the schema file
+ * contains its own `typeName` field.
+ */
+fun fileToAdditionalSchemaSource(file: File, typeName: String = ""): AdditionalSchemaSource =
+    AdditionalSchemaSource(typeName = typeName, schema = file.readText())
 
 /**
  * Reads a rule file into an [ExternalRuleSource] for [EngineConfig.customRules] or

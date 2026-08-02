@@ -21,6 +21,9 @@ JVM library (Kotlin/Java) — all backed by the same validation core.
   resource path, and an optional suggested fix — designed for IDEs, CI, and agents, not just humans.
 - **Two interchangeable engines.** A [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) engine and a
   [CEL](https://cel.dev/) engine evaluate the same rule set and produce identical results.
+- **Additional schemas.** Merge your own CloudFormation resource provider schemas on top of the bundled ones, so
+  templates using properties or values CloudFormation has not published yet validate cleanly
+  (`--additional-schema`, or `EngineConfig.additional_schemas` when embedding).
 - **Custom rules.** Extend validation with your own rules in CEL (JSON), Rego, or
   [CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) DSL.
 - **Embeddable everywhere.** Use it from the CLI, Rust, Node.js, Python, Go, or the JVM.

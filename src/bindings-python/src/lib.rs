@@ -21,7 +21,7 @@ pub use template_model::model::{
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
-pub use validation_engine::{EngineConfig, EngineType, ExternalRuleSource};
+pub use validation_engine::{AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource};
 
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ValidateConfig {
@@ -131,7 +131,7 @@ macro_rules! impl_py_engine {
                 validation_engine::catch_panics(
                     || {
                         let schema_validator = validation_engine::schema_validator_from_config(&config)
-                            .map_err(|msg| ValidationError::Engine { msg })?;
+                            .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
                         let engine =
                             $constructor(config).map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
                         Ok(Arc::new(Self { engine, schema_validator }))
