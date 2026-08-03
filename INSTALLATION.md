@@ -122,8 +122,8 @@ Each GitHub release attaches the prebuilt artifacts as signed assets (`<version>
 
 - `cloudformation-validate-<version>.jar` — the JVM (Kotlin/Java) binding
 - `cloudformation-validate-wasm-<version>.zip` — the Node.js (WASM) binding
-- `cloudformation_validate-<version>-py3-none-<platform tags>.whl` — the Python binding, one wheel carrying every
-  supported platform's native library; a `-beta` release ships as `<version>b0`
+- `cloudformation_validate-<version>-py3-none-<platform>.whl` — the Python binding, with one wheel per supported
+  native target so installers download only the compatible library; a `-beta` release ships as `<version>b0`
 - `cloudformation-validate-go-<version>.zip` — the Go module, carrying every supported platform's static library
 - `cfn-validate-<version>-<os>-<arch>` — the CLI binary, one per supported platform (e.g.
   `cfn-validate-1.6.0-linux-x64`, `cfn-validate-1.6.0-darwin-aarch64`)

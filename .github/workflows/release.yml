@@ -214,18 +214,25 @@ jobs:
           ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-$RELEASE_TAG.zip" dist )
 
           wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
-          if [ ${#wheels[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one wheel in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
+          if [ ${#wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six wheels in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          case "$(basename "${wheels[0]}")" in
-            cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
-            *)
-              echo "::error::Committed wheel $(basename "${wheels[0]}") is not version $RELEASE_VERSION. Run the Build Artifacts workflow and merge its PR first."
-              exit 1
-              ;;
-          esac
-          "$WORKING_DIR/bindings-python/stamp-wheel.py" release "${wheels[0]}" "$PYTHON_VERSION"
+          for wheel in "${wheels[@]}"; do
+            case "$(basename "$wheel")" in
+              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
+              *)
+                echo "::error::Committed wheel $(basename "$wheel") is not version $RELEASE_VERSION. Run the Build Artifacts workflow and merge its PR first."
+                exit 1
+                ;;
+            esac
+            "$WORKING_DIR/bindings-python/stamp-wheel.py" release "$wheel" "$PYTHON_VERSION"
+          done
+          release_wheels=(release/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
+          if [ ${#release_wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six stamped release wheels, found ${#release_wheels[@]}."
+            exit 1
+          fi
 
           if [ ! -f "$WORKING_DIR/bindings-go/go/go.mod" ]; then
             echo "::error::$WORKING_DIR/bindings-go/go/go.mod not found. Run the Build Artifacts workflow and merge its PR first."
@@ -397,7 +404,7 @@ jobs:
             echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          for prefix in linux-x86-64 darwin-aarch64 win32-x86-64; do
+          for prefix in linux-x86-64 linux-aarch64 darwin-x86-64 darwin-aarch64 win32-x86-64 win32-aarch64; do
             if ! unzip -Z1 "$jar" | grep -q "^$prefix/"; then
               echo "::error::native library for $prefix missing from committed jar; the all-platform merge did not run"
               exit 1
@@ -411,7 +418,7 @@ jobs:
             echo "::error::committed jar contains no .kt sources; the source bundling step did not run"
             exit 1
           fi
-          echo "Committed jar carries all three platform natives plus compiled classes and sources."
+          echo "Committed jar carries all six platform natives plus compiled classes and sources."
 
       - name: Configure AWS credentials for Maven publishing
         uses: aws-actions/configure-aws-credentials@v6.2.0
@@ -616,7 +623,7 @@ jobs:
       PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
       RELEASE_TAG: ${{ inputs.tag }}
     steps:
-      - name: Download Python wheel from GitHub release
+      - name: Download Python wheels from GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -628,8 +635,8 @@ jobs:
             --dir dist
           shopt -s nullglob
           wheels=(dist/*.whl)
-          if [ ${#wheels[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one Python wheel for $PYTHON_VERSION, found ${#wheels[@]}."
+          if [ ${#wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
             exit 1
           fi
 
@@ -674,7 +681,7 @@ jobs:
             echo "TestPyPI release $PYTHON_VERSION does not exist and will be published."
           fi
 
-      - name: Publish Python wheel to TestPyPI with Trusted Publishing
+      - name: Publish Python wheels to TestPyPI with Trusted Publishing
         if: steps.check-python-release.outputs.exists != 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -705,8 +712,8 @@ jobs:
             --dir "$expected_directory"
           shopt -s nullglob
           expected_wheels=("$expected_directory"/*.whl)
-          if [ ${#expected_wheels[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one GitHub release wheel, found ${#expected_wheels[@]}."
+          if [ ${#expected_wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six GitHub release wheels, found ${#expected_wheels[@]}."
             exit 1
           fi
 
@@ -726,12 +733,12 @@ jobs:
               shopt -s nullglob
               wheels=("$download_directory"/*.whl)
               if [ ${#wheels[@]} -eq 1 ]; then
-                if [ "$(basename "${wheels[0]}")" != "$(basename "${expected_wheels[0]}")" ] \
-                  || ! cmp -s "${wheels[0]}" "${expected_wheels[0]}"; then
-                  echo "::error::TestPyPI wheel does not byte-match the intended GitHub release wheel."
+                expected_wheel="$expected_directory/$(basename "${wheels[0]}")"
+                if [ ! -f "$expected_wheel" ] || ! cmp -s "${wheels[0]}" "$expected_wheel"; then
+                  echo "::error::TestPyPI selected wheel does not byte-match the matching GitHub release wheel."
                   exit 1
                 fi
-                echo "TestPyPI wheel byte-matches the intended GitHub release wheel."
+                echo "TestPyPI selected wheel byte-matches the matching GitHub release wheel."
                 exit 0
               fi
             fi
@@ -753,7 +760,7 @@ jobs:
       PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
       RELEASE_TAG: ${{ inputs.tag }}
     steps:
-      - name: Download Python wheel from GitHub release
+      - name: Download Python wheels from GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -765,8 +772,8 @@ jobs:
             --dir dist
           shopt -s nullglob
           wheels=(dist/*.whl)
-          if [ ${#wheels[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one Python wheel for $PYTHON_VERSION, found ${#wheels[@]}."
+          if [ ${#wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
             exit 1
           fi
 
@@ -811,7 +818,7 @@ jobs:
             echo "PyPI release $PYTHON_VERSION does not exist and will be published."
           fi
 
-      - name: Publish Python wheel to PyPI with Trusted Publishing
+      - name: Publish Python wheels to PyPI with Trusted Publishing
         if: steps.check-python-release.outputs.exists != 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -841,8 +848,8 @@ jobs:
             --dir "$expected_directory"
           shopt -s nullglob
           expected_wheels=("$expected_directory"/*.whl)
-          if [ ${#expected_wheels[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one GitHub release wheel, found ${#expected_wheels[@]}."
+          if [ ${#expected_wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six GitHub release wheels, found ${#expected_wheels[@]}."
             exit 1
           fi
 
@@ -862,12 +869,12 @@ jobs:
               shopt -s nullglob
               wheels=("$download_directory"/*.whl)
               if [ ${#wheels[@]} -eq 1 ]; then
-                if [ "$(basename "${wheels[0]}")" != "$(basename "${expected_wheels[0]}")" ] \
-                  || ! cmp -s "${wheels[0]}" "${expected_wheels[0]}"; then
-                  echo "::error::PyPI wheel does not byte-match the intended GitHub release wheel."
+                expected_wheel="$expected_directory/$(basename "${wheels[0]}")"
+                if [ ! -f "$expected_wheel" ] || ! cmp -s "${wheels[0]}" "$expected_wheel"; then
+                  echo "::error::PyPI selected wheel does not byte-match the matching GitHub release wheel."
                   exit 1
                 fi
-                echo "PyPI wheel byte-matches the intended GitHub release wheel."
+                echo "PyPI selected wheel byte-matches the matching GitHub release wheel."
                 exit 0
               fi
             fi

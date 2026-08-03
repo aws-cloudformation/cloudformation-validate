@@ -45,7 +45,7 @@ Repository = "https://github.com/aws-cloudformation/cloudformation-validate"
 packages = ["cloudformation_validate"]
 
 [tool.setuptools.package-data]
-# The all-platform wheel carries native libraries under the same resource layout
-# as the JVM jar. The README remains directly inspectable in the installed
-# package; license files are stored in the wheel's standard dist-info/licenses.
+# Every platform wheel uses the same resource layout while carrying only its
+# matching native library. The README remains directly inspectable in the
+# installed package; license files use the wheel's standard dist-info/licenses.
 cloudformation_validate = ["README.md", "natives/*/*"]

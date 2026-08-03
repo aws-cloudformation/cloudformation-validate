@@ -11,7 +11,6 @@ PACKAGE_DIR="$GENERATED_DIR/cloudformation_validate"
 WHEEL_DIR="$GENERATED_DIR/dist"
 
 ARCH="$(uname -m)"
-# Normalize to the same resource-prefix arch tokens the JVM natives use
 case "$ARCH" in
     arm64|aarch64) ARCH="aarch64" ;;
     x86_64|amd64)  ARCH="x86-64"  ;;
@@ -25,17 +24,33 @@ case "$(uname -s)" in
     *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 
-# The wheel carries a platform tag per bundled native (see merge-wheels.py), so a
-# host outside that set can only produce a mistagged wheel — refuse it here
-# rather than failing later at merge time.
 case "${OS}-${ARCH}" in
-    linux-x86-64|darwin-aarch64|win32-x86-64) ;;
+    linux-x86-64|linux-aarch64|darwin-x86-64|darwin-aarch64|win32-x86-64|win32-aarch64) ;;
     *)
         echo "Error: unsupported host platform ${OS}-${ARCH}" >&2
-        echo "Supported: linux-x86-64, darwin-aarch64, win32-x86-64" >&2
+        echo "Supported: Linux, macOS, and Windows on x86-64 and aarch64" >&2
         exit 1
         ;;
 esac
+
+MACOS_WHEEL_ARCH=""
+if [ "$OS" = "darwin" ]; then
+    case "$ARCH" in
+        aarch64)
+            MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-11.0}"
+            MACOS_WHEEL_ARCH="arm64"
+            ;;
+        x86-64)
+            MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.12}"
+            MACOS_WHEEL_ARCH="x86_64"
+            ;;
+    esac
+    if [[ ! "$MACOSX_DEPLOYMENT_TARGET" =~ ^[0-9]+\.[0-9]+$ ]]; then
+        echo "Error: MACOSX_DEPLOYMENT_TARGET must be major.minor, found '$MACOSX_DEPLOYMENT_TARGET'" >&2
+        exit 1
+    fi
+    export MACOSX_DEPLOYMENT_TARGET
+fi
 
 NATIVES_DIR="$PACKAGE_DIR/natives/${OS}-${ARCH}"
 
@@ -80,8 +95,8 @@ echo "Generating Python bindings..."
 # ── Patch native loading + normalize generated modules ───────────────────────
 # Two transforms applied to the uniffi-generated modules:
 #   1. The generated modules load the cdylib from the package root; redirect them
-#      to _native.py's per-platform natives/<os>-<arch>/ directory so a single
-#      wheel can bundle every platform. Fails loudly if the uniffi template changes.
+#      to _native.py's natives/<os>-<arch>/ directory so the wheel keeps a stable
+#      resource layout across platforms. Fails loudly if the uniffi template changes.
 #   2. uniffi emits sibling-module imports ("from . import <name>") in the order it
 #      discovers external types while walking the library's symbols — an order that
 #      is not stable across hosts. Sort each contiguous import block so the
@@ -157,8 +172,13 @@ python3 -m pip wheel --no-deps --wheel-dir "$WHEEL_DIR" . --quiet
 
 # ── Retag wheel with the host platform ───────────────────────────────────────
 case "$OS" in
-    darwin) PLATFORM_TAG="macosx_11_0_arm64" ;;
-    win32)  PLATFORM_TAG="win_amd64" ;;
+    darwin) PLATFORM_TAG="macosx_${MACOSX_DEPLOYMENT_TARGET//./_}_${MACOS_WHEEL_ARCH}" ;;
+    win32)
+        case "$ARCH" in
+            x86-64)  PLATFORM_TAG="win_amd64" ;;
+            aarch64) PLATFORM_TAG="win_arm64" ;;
+        esac
+        ;;
     linux)
         command -v readelf &>/dev/null || { echo "Error: readelf not found on PATH (required to compute the manylinux tag)" >&2; exit 1; }
         while IFS= read -r needed; do
