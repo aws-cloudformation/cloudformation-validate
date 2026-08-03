@@ -124,8 +124,11 @@ jobs:
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
         - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -300,8 +303,11 @@ jobs:
       matrix:
         include:
         - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
+        - { os: macos-15-intel, platform: darwin, arch: x64 }
         - { os: windows-latest, platform: win32, arch: x64 }
+        - { os: windows-11-arm, platform: win32, arch: aarch64 }
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -444,8 +450,8 @@ jobs:
 
         shopt -s nullglob
         jars=("$GITHUB_WORKSPACE"/incoming/jvm-*/cloudformation-validate.jar)
-        if [ ${#jars[@]} -eq 0 ]; then
-          echo "::error::No JVM jars found under incoming/jvm-*/"
+        if [ ${#jars[@]} -ne 6 ]; then
+          echo "::error::Expected six JVM jars under incoming/jvm-*/, found ${#jars[@]}"
           exit 1
         fi
 
@@ -469,19 +475,33 @@ jobs:
         cp -R "$GITHUB_WORKSPACE/incoming/wasm-dist/." bindings-wasm/dist/
         echo "Staged WASM dist:"; ls -1 bindings-wasm/dist
 
-        linux_wheels=("$GITHUB_WORKSPACE"/incoming/python-linux-x64/*.whl)
-        darwin_wheels=("$GITHUB_WORKSPACE"/incoming/python-darwin-aarch64/*.whl)
-        windows_wheels=("$GITHUB_WORKSPACE"/incoming/python-win32-x64/*.whl)
-        if [ ${#linux_wheels[@]} -ne 1 ] || [ ${#darwin_wheels[@]} -ne 1 ] || [ ${#windows_wheels[@]} -ne 1 ]; then
-          echo "::error::Expected exactly one Python wheel from each platform build"
+        python_artifacts=(
+          python-linux-x64
+          python-linux-aarch64
+          python-darwin-x64
+          python-darwin-aarch64
+          python-win32-x64
+          python-win32-aarch64
+        )
+        for artifact in "${python_artifacts[@]}"; do
+          host_wheels=("$GITHUB_WORKSPACE/incoming/$artifact"/*.whl)
+          if [ ${#host_wheels[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one Python wheel in incoming/$artifact, found ${#host_wheels[@]}"
+            exit 1
+          fi
+          wheel_name="$(basename "${host_wheels[0]}")"
+          if [ -e "bindings-python/generated/dist/$wheel_name" ]; then
+            echo "::error::Duplicate Python wheel filename: $wheel_name"
+            exit 1
+          fi
+          cp "${host_wheels[0]}" bindings-python/generated/dist/
+        done
+        staged_wheels=(bindings-python/generated/dist/*.whl)
+        if [ ${#staged_wheels[@]} -ne 6 ]; then
+          echo "::error::Expected six staged Python wheels, found ${#staged_wheels[@]}"
           exit 1
         fi
-        bindings-python/merge-wheels.py \
-          bindings-python/generated/dist \
-          "${linux_wheels[0]}" \
-          "${darwin_wheels[0]}" \
-          "${windows_wheels[0]}"
-        echo "Merged Python wheel:"; ls -1 bindings-python/generated/dist
+        echo "Staged platform-specific Python wheels:"; printf '  %s\n' "${staged_wheels[@]}"
 
         bindings-go/merge-modules.sh \
           bindings-go/go \
@@ -520,16 +540,17 @@ jobs:
 
           * **JVM** — a single multi-platform `cloudformation-validate.jar` in
             `${{ env.WORKING_DIR }}/bindings-jvm/generated/`, carrying the shared
-            Kotlin classes/sources plus every platform's native library. Each
-            platform is built by `bindings-jvm/build.sh` and the per-platform
-            natives are combined via `bindings-jvm/merge-jars.sh`.
-          * **WASM** — `${{ env.WORKING_DIR }}/bindings-wasm/dist/`, built via
-            `bindings-wasm/build.sh`.
-          * **Python** — a single all-platform wheel in
-            `${{ env.WORKING_DIR }}/bindings-python/generated/dist/`, carrying every
-            platform's native library plus README and license metadata. Each platform
-            is built by `bindings-python/build.sh`, then combined by
-            `bindings-python/merge-wheels.py`.
+            Kotlin classes/sources plus every supported native library. Each target
+            is built by `bindings-jvm/build.sh` and the per-target natives are
+            combined via `bindings-jvm/merge-jars.sh`.
+          * **WASM** — `${{ env.WORKING_DIR }}/bindings-wasm/dist/`, built once via
+            `bindings-wasm/build.sh`; the `wasm32-unknown-unknown` package is portable
+            across supported Node.js hosts.
+          * **Python** — platform-specific wheels in
+            `${{ env.WORKING_DIR }}/bindings-python/generated/dist/`, one per
+            supported native target. Every wheel carries only its matching native
+            library plus README and license metadata, and has a real platform tag so
+            installers select exactly the compatible artifact.
           * **Go** — a standalone all-platform module in
             `${{ env.WORKING_DIR }}/bindings-go/go/`, carrying generated FFI source,
             every platform's static library, README, LICENSE, and

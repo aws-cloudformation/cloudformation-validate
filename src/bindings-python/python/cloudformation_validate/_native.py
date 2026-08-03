@@ -1,10 +1,9 @@
-"""Locates the bundled native library for the running platform.
+"""Locates the native library bundled for the running platform.
 
-The package ships one wheel for all platforms, with the cdylib for each
-platform under ``natives/<os>-<arch>/`` (the same layout the JVM bindings use
-inside their jar). The uniffi-generated modules are patched at build time to
-resolve the library through :func:`native_library_dir` instead of the package
-root.
+Each platform wheel stores its cdylib under ``natives/<os>-<arch>/`` so all
+wheels share one package layout. The uniffi-generated modules are patched at
+build time to resolve the library through :func:`native_library_dir` instead of
+the package root.
 """
 
 from __future__ import annotations
