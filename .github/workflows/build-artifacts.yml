@@ -328,9 +328,6 @@ jobs:
       with:
         python-version: ${{ needs.get-configs.outputs.python-version }}
 
-    - name: Install setuptools
-      run: python3 -m pip install 'setuptools==${{ needs.get-configs.outputs.setuptools-version }}'
-
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
 
