@@ -41,6 +41,12 @@
 //! single-valued constraint overrides the one further along, while collections
 //! accumulate across every hop.
 //!
+//! An overlay that supplies a `$ref` for a property updates the reference target
+//! (`ref_name`) but preserves the base property's existing inline/additive
+//! constraints (e.g. pattern, maxLength). This means an overlay can redirect a
+//! property to a different definition without discarding constraints the bundled
+//! schema already carries.
+//!
 //! Overlays for the same type are applied in the order given; a later overlay
 //! sees the result of the earlier ones.
 //!
@@ -48,20 +54,19 @@
 //!
 //! - An overlay cannot make a bundled `required` property optional, and cannot
 //!   remove an entry from a metadata list — those collections only ever grow.
-//! - Constraints inside `if`/`then`/`else` branches and other composition
-//!   subschemas are replaced as whole list entries, never deep-merged.
+//! - Composition entries are accepted only for the subset the runtime evaluates:
+//!   plain branches may state `required`, `dependentRequired`, and
+//!   `dependentExcluded`; conditional `then`/`else` branches may state the two
+//!   dependency maps. Other composition constraints are rejected rather than
+//!   compiled into a weaker schema.
 //! - Constructs the compiled model does not represent — a `$ref` outside
-//!   `#/definitions/`, tuple-form `items`, a `type` that is neither a string nor
-//!   an array of strings — are rejected
-//!   rather than compiled into something weaker than the caller wrote.
-//! - Keywords the compiled model has no representation for at all — `not` other
-//!   than `not.enum`, `multipleOf`, `propertyNames`, `contains` — constrain
-//!   nothing, for bundled and overlay schemas alike. An overlay stating one is
-//!   logged rather than dropped silently.
-//! - Keywords written beside a `$ref` have no effect, matching draft-07 and the
-//!   bundled pipeline; a constraining one is logged rather than dropped silently.
-//!   To extend a referenced shape, overlay the *property* — those fields are
-//!   merged onto whatever the reference points at.
+//!   `#/definitions/`, tuple-form `items`, an unknown property type, malformed
+//!   keyword values, or invalid regular expressions — are rejected.
+//! - Validation keywords with no compiled representation (`multipleOf`,
+//!   `propertyNames`, `contains`, and `not` other than `not.enum`) are rejected.
+//! - Annotations beside a `$ref` are accepted, but constraining siblings are
+//!   rejected because draft-07 would ignore them. To extend a referenced shape,
+//!   apply a separate overlay to the property or referenced definition.
 //! - `enum` and `enumCaseInsensitive` are one field in two comparison modes; an
 //!   overlay cannot switch a property the service treats case-insensitively over
 //!   to case-sensitive comparison, because doing so would reject casings that
@@ -69,12 +74,11 @@
 //! - Conditional constraints the build pipeline contributes as extension
 //!   fragments are validated from a separate embedded artifact that overlays do
 //!   not merge into, so an overlay cannot suppress a finding originating there.
-//! - Overlays reach schema validation only. Rule-engine data compiled at build
-//!   time (the known-resource-type catalog aside, which construction propagates)
-//!   is not derived from overlays, so e.g. a regional instance-type table still
-//!   reflects the bundled data.
+//! - Overlay-derived resource types, GetAtt attributes and types, Ref return
+//!   types, primary identifiers, and schema metadata are propagated to both rule
+//!   engines. Region-specific availability and enum snapshots remain bundled.
 
-use crate::compiled::{CompiledSchema, MAX_REF_CHAIN, PropSchema};
+use crate::compiled::{CompiledSchema, ConditionSchema, MAX_REF_CHAIN, PropSchema};
 use data_source::compiled_schema::compile_schema;
 use log::warn;
 use serde_json::Value;
@@ -90,9 +94,10 @@ const REF_ANNOTATION_KEYWORDS: [&str; 7] =
     ["description", "markdownDescription", "title", "examples", "default", "$comment", "insertionOrder"];
 
 /// Validation keywords the compiled schema model has no field for, so nothing
-/// enforces them. Bundled schemas do not use them; an overlay author writing one
-/// would otherwise believe it applies, which is the one case worth saying out
-/// loud. `not` is handled separately because only its nested `enum` is modelled.
+/// enforces them. An overlay stating one would silently weaken the author's
+/// intent — rejected so embedders cannot accidentally rely on a constraint that
+/// nothing checks. `not` is handled separately because only its nested `enum` is
+/// modelled.
 const UNREPRESENTED_CONSTRAINT_KEYWORDS: [&str; 8] = [
     "multipleOf",
     "propertyNames",
@@ -103,6 +108,26 @@ const UNREPRESENTED_CONSTRAINT_KEYWORDS: [&str; 8] = [
     "dependencies",
     "unevaluatedProperties",
 ];
+
+/// The exact set of fields the compiled [`SubSchema`] enforces when matching a
+/// composition branch. Property schemas and `additionalProperties` are compiled
+/// but not evaluated by `validate_sub`, so accepting them would silently weaken
+/// caller input.
+const COMPOSITION_ALLOWED_FIELDS: [&str; 3] = ["required", "dependentRequired", "dependentExcluded"];
+
+/// Fields the current conditional matcher evaluates on the `if` schema itself.
+const CONDITION_ALLOWED_FIELDS: [&str; 2] = ["properties", "required"];
+
+/// Fields `condition_matches` evaluates for a property named by an `if` schema.
+const CONDITION_PROPERTY_ALLOWED_FIELDS: [&str; 7] = ["$ref", "type", "enum", "not", "const", "pattern", "required"];
+
+/// JSON/property type names enforced by `schema-validator`.
+const SUPPORTED_PROPERTY_TYPES: [&str; 9] =
+    ["string", "integer", "number", "double", "float", "boolean", "array", "object", "null"];
+
+/// Fields allowed inside `then`/`else` of conditional `allOf` entries. Mirrors
+/// what [`crate::validate`] actually checks in a conditional branch.
+const CONDITIONAL_THEN_ELSE_ALLOWED_FIELDS: [&str; 2] = ["dependentRequired", "dependentExcluded"];
 
 /// Maximum JSON nesting accepted in an overlay schema.
 ///
@@ -203,6 +228,36 @@ impl Error for SchemaOverlayError {}
 pub(crate) fn compile(type_name: &str, raw: &Value) -> Result<CompiledSchema, SchemaOverlayError> {
     if type_name.trim().is_empty() {
         return Err(SchemaOverlayError::MissingTypeName);
+    }
+    if type_name != type_name.trim() {
+        return Err(SchemaOverlayError::Unsupported {
+            type_name: type_name.to_string(),
+            path: String::new(),
+            detail: "type name has leading or trailing whitespace".to_string(),
+        });
+    }
+    if let Some(declared_type_name) = raw.get("typeName") {
+        let in_schema = declared_type_name.as_str().ok_or_else(|| SchemaOverlayError::Unsupported {
+            type_name: type_name.to_string(),
+            path: "typeName".to_string(),
+            detail: "'typeName' must be a string".to_string(),
+        })?;
+        if in_schema != in_schema.trim() {
+            return Err(SchemaOverlayError::Unsupported {
+                type_name: type_name.to_string(),
+                path: "typeName".to_string(),
+                detail: "type name has leading or trailing whitespace".to_string(),
+            });
+        }
+        if !in_schema.is_empty() && in_schema != type_name {
+            return Err(SchemaOverlayError::Unsupported {
+                type_name: type_name.to_string(),
+                path: "typeName".to_string(),
+                detail: format!(
+                    "the schema declares typeName '{in_schema}' but was submitted as '{type_name}'; remove one or make them match"
+                ),
+            });
+        }
     }
     if !raw.is_object() {
         return Err(SchemaOverlayError::NotAnObject { type_name: type_name.to_string() });
@@ -307,6 +362,13 @@ fn check_supported(type_name: &str, raw: &Value) -> Result<(), SchemaOverlayErro
     let mut stack: Vec<(String, &Value)> = Vec::new();
     push_schema_children(String::new(), raw, &mut stack);
 
+    // Also validate root-level keywords directly.
+    if let Some(root_obj) = raw.as_object() {
+        validate_keyword_types(type_name, "", root_obj)?;
+        reject_unrepresented_keywords(type_name, "", root_obj)?;
+        reject_direct_if_then_else(type_name, "", root_obj)?;
+    }
+
     while let Some((path, value)) = stack.pop() {
         let Some(members) = value.as_object() else {
             continue;
@@ -331,11 +393,13 @@ fn check_supported(type_name: &str, raw: &Value) -> Result<(), SchemaOverlayErro
                 .filter(|key| *key != "$ref" && !REF_ANNOTATION_KEYWORDS.contains(key))
                 .collect();
             if !ignored.is_empty() {
-                warn!(
-                    "Additional schema for '{type_name}': '{}' at '{path}' sits beside a '$ref' and has no effect, \
-                     because a reference resolves to its target. State it in an overlay for the property instead.",
-                    ignored.join("', '")
-                );
+                return Err(reject(
+                    &path,
+                    &format!(
+                        "'{}' sits beside a '$ref' and has no effect under draft-07; state the constraint on the referenced definition or in a separate overlay",
+                        ignored.join("', '")
+                    ),
+                ));
             }
         }
         if let Some(items) = members.get("items")
@@ -344,45 +408,424 @@ fn check_supported(type_name: &str, raw: &Value) -> Result<(), SchemaOverlayErro
             return Err(reject(&path, "'items' must be a single schema object; tuple form is not supported"));
         }
         if !members.contains_key("$ref") {
-            warn_unrepresented_keywords(type_name, &path, members);
+            reject_unrepresented_keywords(type_name, &path, members)?;
         }
         if let Some(prop_type) = members.get("type") {
-            let supported = match prop_type {
-                Value::String(_) => true,
-                Value::Array(names) => names.iter().all(Value::is_string),
-                _ => false,
+            let type_names: Vec<&str> = match prop_type {
+                Value::String(name) => vec![name.as_str()],
+                Value::Array(names) if !names.is_empty() => names
+                    .iter()
+                    .map(|name| name.as_str())
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or_else(|| reject(&path, "'type' must be a string or an array of strings"))?,
+                _ => return Err(reject(&path, "'type' must be a string or a non-empty array of strings")),
             };
-            if !supported {
-                return Err(reject(&path, "'type' must be a string or an array of strings"));
+            if let Some(unsupported) = type_names.into_iter().find(|name| {
+                !(SUPPORTED_PROPERTY_TYPES.contains(name) || (path.is_empty() && ["RESOURCE", "object"].contains(name)))
+            }) {
+                return Err(reject(&path, &format!("unsupported property type '{unsupported}'")));
             }
         }
+        // Validate keyword types for every schema position (not only root).
+        validate_keyword_types(type_name, &path, members)?;
+        // Reject direct if/then/else at property level.
+        reject_direct_if_then_else(type_name, &path, members)?;
         push_schema_children(path, value, &mut stack);
     }
     Ok(())
 }
 
-/// Logs validation keywords at `path` that nothing will enforce.
+/// Validates the type/domain of every keyword the compiler represents.
 ///
-/// The compiler was written for the curated schemas the build pipeline produces
-/// and simply ignores a keyword it has no field for. That is invisible on curated
-/// input, but an overlay author who writes one would otherwise be left believing
-/// the constraint applies.
-fn warn_unrepresented_keywords(type_name: &str, path: &str, members: &serde_json::Map<String, Value>) {
+/// The compiler silently ignores a wrongly-typed keyword (e.g. `required: 42`
+/// instead of an array of strings). That is invisible on curated input and
+/// dangerous on overlay input: the constraint is silently dropped.
+fn validate_keyword_types(
+    type_name: &str,
+    path: &str,
+    members: &serde_json::Map<String, Value>,
+) -> Result<(), SchemaOverlayError> {
+    let reject = |detail: &str| SchemaOverlayError::Unsupported {
+        type_name: type_name.to_string(),
+        path: path.to_string(),
+        detail: detail.to_string(),
+    };
+
+    // String arrays: required, enum, not.enum
+    for keyword in ["required", "requiredOr", "requiredXor"] {
+        if let Some(val) = members.get(keyword) {
+            if let Some(arr) = val.as_array() {
+                for item in arr {
+                    if !item.is_string() {
+                        return Err(reject(&format!("'{keyword}' must be an array of strings")));
+                    }
+                }
+            } else {
+                return Err(reject(&format!("'{keyword}' must be an array")));
+            }
+        }
+    }
+
+    // Metadata path arrays: these accept arrays of strings.
+    for keyword in [
+        "readOnlyProperties",
+        "writeOnlyProperties",
+        "createOnlyProperties",
+        "deprecatedProperties",
+        "conditionalCreateOnlyProperties",
+        "primaryIdentifier",
+    ] {
+        if let Some(value) = members.get(keyword) {
+            let paths = value.as_array().ok_or_else(|| reject(&format!("'{keyword}' must be an array")))?;
+            for path_value in paths {
+                let property_path =
+                    path_value.as_str().ok_or_else(|| reject(&format!("'{keyword}' must be an array of strings")))?;
+                if !property_path.starts_with("/properties/") || property_path.len() == "/properties/".len() {
+                    return Err(reject(&format!("'{keyword}' entries must be JSON pointers below '/properties/'")));
+                }
+            }
+        }
+    }
+
+    for keyword in ["enum", "enumCaseInsensitive"] {
+        if let Some(value) = members.get(keyword) {
+            let values = value.as_array().ok_or_else(|| reject(&format!("'{keyword}' must be an array")))?;
+            if values.is_empty() {
+                return Err(reject(&format!("'{keyword}' must contain at least one value")));
+            }
+        }
+    }
+    if let Some(negated) = members.get("not") {
+        let negated_members =
+            negated.as_object().ok_or_else(|| reject("'not' must be an object containing an enum"))?;
+        let unsupported: Vec<&str> = negated_members
+            .keys()
+            .map(String::as_str)
+            .filter(|key| *key != "enum" && !REF_ANNOTATION_KEYWORDS.contains(key))
+            .collect();
+        if !unsupported.is_empty() {
+            return Err(reject("'not' is only supported when it contains an enum"));
+        }
+        let values = negated_members
+            .get("enum")
+            .and_then(Value::as_array)
+            .ok_or_else(|| reject("'not.enum' must be an array"))?;
+        if values.is_empty() {
+            return Err(reject("'not.enum' must contain at least one value"));
+        }
+    }
+
+    // Dependent maps: { "trigger": ["dep1", "dep2"] }
+    for keyword in ["dependentRequired", "dependentExcluded"] {
+        if let Some(val) = members.get(keyword) {
+            if let Some(obj) = val.as_object() {
+                for (key, deps) in obj {
+                    if let Some(arr) = deps.as_array() {
+                        for item in arr {
+                            if !item.is_string() {
+                                return Err(reject(&format!("'{keyword}.{key}' must be an array of strings")));
+                            }
+                        }
+                    } else {
+                        return Err(reject(&format!("'{keyword}.{key}' must be an array")));
+                    }
+                }
+            } else {
+                return Err(reject(&format!("'{keyword}' must be an object")));
+            }
+        }
+    }
+
+    // Numeric fields (f64)
+    for keyword in ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"] {
+        if let Some(val) = members.get(keyword)
+            && !val.is_number()
+        {
+            return Err(reject(&format!("'{keyword}' must be a number")));
+        }
+    }
+
+    // u64 fields
+    for keyword in ["minLength", "maxLength", "minItems", "maxItems", "minProperties", "maxProperties"] {
+        if let Some(value) = members.get(keyword)
+            && value.as_u64().is_none()
+        {
+            return Err(reject(&format!("'{keyword}' must be a non-negative integer")));
+        }
+    }
+
+    // Boolean fields
+    for keyword in ["additionalProperties", "uniqueItems"] {
+        if let Some(val) = members.get(keyword)
+            && !val.is_boolean()
+        {
+            return Err(reject(&format!("'{keyword}' must be a boolean")));
+        }
+    }
+
+    // String fields
+    for keyword in ["pattern", "format", "description", "replacementStrategy", "documentationUrl", "sourceUrl"] {
+        if let Some(val) = members.get(keyword)
+            && !val.is_string()
+        {
+            return Err(reject(&format!("'{keyword}' must be a string")));
+        }
+    }
+
+    // Validate regex patterns using the shared template-model compiler
+    if let Some(Value::String(pattern)) = members.get("pattern")
+        && !template_model::pattern::is_service_valid(pattern)
+    {
+        return Err(reject(&format!("'pattern' contains an invalid regex: {pattern}")));
+    }
+
+    // Properties/definitions/patternProperties must be objects with object values
+    for keyword in ["properties", "definitions", "patternProperties"] {
+        if let Some(val) = members.get(keyword) {
+            if let Some(obj) = val.as_object() {
+                for (name, child) in obj {
+                    if !child.is_object() {
+                        return Err(reject(&format!("'{keyword}.{name}' must be a JSON object")));
+                    }
+                }
+            } else {
+                return Err(reject(&format!("'{keyword}' must be a JSON object")));
+            }
+        }
+    }
+
+    // Validate patternProperties keys are valid regexes
+    if let Some(Value::Object(pat_props)) = members.get("patternProperties") {
+        for key in pat_props.keys() {
+            if !template_model::pattern::is_service_valid(key) {
+                return Err(reject(&format!("'patternProperties' key '{key}' is not a valid regex")));
+            }
+        }
+    }
+
+    // Items must be an object (tuple form already checked above)
+    if let Some(val) = members.get("items")
+        && !val.is_object()
+    {
+        return Err(reject("'items' must be a single schema object; tuple form is not supported"));
+    }
+
+    // Composition arrays: entries must be objects
+    for keyword in ["allOf", "anyOf", "oneOf"] {
+        if let Some(val) = members.get(keyword) {
+            if let Some(arr) = val.as_array() {
+                for (i, entry) in arr.iter().enumerate() {
+                    if !entry.is_object() {
+                        return Err(reject(&format!("'{keyword}[{i}]' must be a JSON object")));
+                    }
+                }
+                // Validate composition entries contain only enforced fields
+                validate_composition_entries(type_name, path, keyword, arr)?;
+            } else {
+                return Err(reject(&format!("'{keyword}' must be an array")));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Rejects composition entries (`allOf`/`anyOf`/`oneOf`) that contain fields the
+/// [`SubSchema`]/[`ConditionSchema`] model cannot faithfully enforce.
+///
+/// Without this, an overlay author could write a composition branch with scalar
+/// constraints (e.g. `minLength`) or a `$ref` — the compiler would silently
+/// compile it away, and the overlay would validate less than it states.
+fn validate_composition_entries(
+    type_name: &str,
+    path: &str,
+    keyword: &str,
+    entries: &[Value],
+) -> Result<(), SchemaOverlayError> {
+    let reject = |detail: &str| SchemaOverlayError::Unsupported {
+        type_name: type_name.to_string(),
+        path: path.to_string(),
+        detail: detail.to_string(),
+    };
+
+    for (index, entry) in entries.iter().enumerate() {
+        let Some(entry_members) = entry.as_object() else {
+            continue;
+        };
+
+        if keyword == "allOf" && entry_members.contains_key("if") {
+            validate_conditional_allof_entry(type_name, path, index, entry_members)?;
+            continue;
+        }
+
+        let unsupported: Vec<&str> = entry_members
+            .keys()
+            .map(String::as_str)
+            .filter(|key| !COMPOSITION_ALLOWED_FIELDS.contains(key) && !REF_ANNOTATION_KEYWORDS.contains(key))
+            .collect();
+        if !unsupported.is_empty() {
+            return Err(reject(&format!(
+                "'{keyword}[{index}]' contains fields not enforced in composition: '{}'. Only required, \
+                 dependentRequired, and dependentExcluded are supported",
+                unsupported.join("', '")
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Validates a conditional `allOf` entry (`if`/`then`/`else`).
+///
+/// The condition (`if`) may use `properties` and `required`; property conditions
+/// are limited to fields `condition_matches` evaluates. The `then`/`else`
+/// branches are restricted to `dependentRequired`/`dependentExcluded`, the only
+/// fields conditional branch evaluation enforces.
+fn validate_conditional_allof_entry(
+    type_name: &str,
+    path: &str,
+    index: usize,
+    entry_members: &serde_json::Map<String, Value>,
+) -> Result<(), SchemaOverlayError> {
+    let reject = |detail: &str| SchemaOverlayError::Unsupported {
+        type_name: type_name.to_string(),
+        path: path.to_string(),
+        detail: detail.to_string(),
+    };
+
+    let unsupported_entry_fields: Vec<&str> = entry_members
+        .keys()
+        .map(String::as_str)
+        .filter(|key| !["if", "then", "else"].contains(key) && !REF_ANNOTATION_KEYWORDS.contains(key))
+        .collect();
+    if !unsupported_entry_fields.is_empty() {
+        return Err(reject(&format!(
+            "'allOf[{index}]' contains unsupported conditional fields: '{}'",
+            unsupported_entry_fields.join("', '")
+        )));
+    }
+
+    let condition = entry_members
+        .get("if")
+        .and_then(Value::as_object)
+        .ok_or_else(|| reject(&format!("'allOf[{index}].if' must be a JSON object")))?;
+    let unsupported_condition_fields: Vec<&str> = condition
+        .keys()
+        .map(String::as_str)
+        .filter(|key| !CONDITION_ALLOWED_FIELDS.contains(key) && !REF_ANNOTATION_KEYWORDS.contains(key))
+        .collect();
+    if !unsupported_condition_fields.is_empty() {
+        return Err(reject(&format!(
+            "'allOf[{index}].if' contains fields the conditional matcher does not enforce: '{}'",
+            unsupported_condition_fields.join("', '")
+        )));
+    }
+    if let Some(properties) = condition.get("properties").and_then(Value::as_object) {
+        for (property_name, property_schema) in properties {
+            let property_members = property_schema.as_object().ok_or_else(|| {
+                reject(&format!("'allOf[{index}].if.properties.{property_name}' must be a JSON object"))
+            })?;
+            let unsupported_property_fields: Vec<&str> = property_members
+                .keys()
+                .map(String::as_str)
+                .filter(|key| {
+                    !CONDITION_PROPERTY_ALLOWED_FIELDS.contains(key) && !REF_ANNOTATION_KEYWORDS.contains(key)
+                })
+                .collect();
+            if !unsupported_property_fields.is_empty() {
+                return Err(reject(&format!(
+                    "'allOf[{index}].if.properties.{property_name}' contains fields the conditional matcher does not enforce: '{}'",
+                    unsupported_property_fields.join("', '")
+                )));
+            }
+        }
+    }
+
+    if !entry_members.contains_key("then") && !entry_members.contains_key("else") {
+        return Err(reject(&format!("'allOf[{index}]' must contain 'then' or 'else'")));
+    }
+    for branch_name in ["then", "else"] {
+        let Some(branch_value) = entry_members.get(branch_name) else {
+            continue;
+        };
+        let branch = branch_value
+            .as_object()
+            .ok_or_else(|| reject(&format!("'allOf[{index}].{branch_name}' must be a JSON object")))?;
+        let unsupported: Vec<&str> = branch
+            .keys()
+            .map(String::as_str)
+            .filter(|key| !CONDITIONAL_THEN_ELSE_ALLOWED_FIELDS.contains(key) && !REF_ANNOTATION_KEYWORDS.contains(key))
+            .collect();
+        if !unsupported.is_empty() {
+            return Err(reject(&format!(
+                "'allOf[{index}].{branch_name}' contains fields not enforced in conditional composition: '{}'. Only dependentRequired and dependentExcluded are supported in conditional then/else branches",
+                unsupported.join("', '")
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Rejects direct `if`/`then`/`else` at root or property level.
+///
+/// Standalone `if`/`then`/`else` (outside `allOf`) is not supported in the
+/// compiled model — it is only recognized inside `allOf` entries. Accepting it
+/// silently would drop the constraint.
+fn reject_direct_if_then_else(
+    type_name: &str,
+    path: &str,
+    members: &serde_json::Map<String, Value>,
+) -> Result<(), SchemaOverlayError> {
+    for keyword in ["if", "then", "else"] {
+        if members.contains_key(keyword) && !members.contains_key("$ref") {
+            // At root level, if/then/else is only valid inside an allOf entry.
+            // A bare if/then/else at root or property level is not modelled.
+            let in_allof_entry = path.contains("allOf[");
+            if !in_allof_entry {
+                return Err(SchemaOverlayError::Unsupported {
+                    type_name: type_name.to_string(),
+                    path: path.to_string(),
+                    detail: format!(
+                        "standalone '{keyword}' is not supported outside allOf entries; \
+                         place conditional logic inside an allOf array"
+                    ),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Rejects validation keywords the compiled model has no field for.
+///
+/// Promoted from warning-only to an error so embedders cannot silently weaken
+/// schemas by stating constraints nothing enforces.
+fn reject_unrepresented_keywords(
+    type_name: &str,
+    path: &str,
+    members: &serde_json::Map<String, Value>,
+) -> Result<(), SchemaOverlayError> {
     let unrepresented: Vec<&str> =
         members.keys().map(String::as_str).filter(|key| UNREPRESENTED_CONSTRAINT_KEYWORDS.contains(key)).collect();
     if !unrepresented.is_empty() {
-        warn!(
-            "Additional schema for '{type_name}': '{}' at '{path}' has no representation in the compiled schema \
-             model, so nothing enforces it.",
-            unrepresented.join("', '")
-        );
+        return Err(SchemaOverlayError::Unsupported {
+            type_name: type_name.to_string(),
+            path: path.to_string(),
+            detail: format!(
+                "'{}' has no representation in the compiled schema model and would silently weaken the overlay",
+                unrepresented.join("', '")
+            ),
+        });
     }
     if members.get("not").is_some_and(|negated| negated.get("enum").is_none()) {
-        warn!(
-            "Additional schema for '{type_name}': 'not' at '{path}' is only enforced when it contains an 'enum', \
-             so nothing enforces this one."
-        );
+        return Err(SchemaOverlayError::Unsupported {
+            type_name: type_name.to_string(),
+            path: path.to_string(),
+            detail: "'not' is only enforced when it contains an 'enum'; this form would silently \
+                     weaken the overlay"
+                .to_string(),
+        });
     }
+    Ok(())
 }
 
 /// Pushes every child of `value` that is itself in a schema position.
@@ -435,10 +878,34 @@ pub(crate) fn validate_schema(schema: &CompiledSchema) -> Result<(), SchemaOverl
         }
         None => {}
     }
+    // Collect all conflicting-enum paths, including from composition property
+    // maps, then sort deterministically before reporting the first one.
+    let mut conflicts: Vec<String> = Vec::new();
     for (name, prop) in schema.properties.iter().chain(schema.definitions.iter()) {
-        if let Some(path) = find_conflicting_enum(name, prop) {
-            return Err(SchemaOverlayError::ConflictingEnums { type_name: schema.type_name.clone(), property: path });
+        collect_conflicting_enums(name, prop, &mut conflicts);
+    }
+    // Traverse composition/condition property maps too.
+    for sub in schema.all_of.iter().chain(schema.any_of.iter()).chain(schema.one_of.iter()) {
+        for (name, prop) in &sub.properties {
+            collect_conflicting_enums(&format!("allOf.{name}"), prop, &mut conflicts);
         }
+    }
+    for ite in &schema.if_then_else {
+        collect_conflicting_enums_in_condition("if", &ite.condition, &mut conflicts);
+        if let Some(then_sub) = &ite.then_schema {
+            for (name, prop) in &then_sub.properties {
+                collect_conflicting_enums(&format!("then.{name}"), prop, &mut conflicts);
+            }
+        }
+        if let Some(else_sub) = &ite.else_schema {
+            for (name, prop) in &else_sub.properties {
+                collect_conflicting_enums(&format!("else.{name}"), prop, &mut conflicts);
+            }
+        }
+    }
+    conflicts.sort();
+    if let Some(first) = conflicts.into_iter().next() {
+        return Err(SchemaOverlayError::ConflictingEnums { type_name: schema.type_name.clone(), property: first });
     }
     Ok(())
 }
@@ -490,17 +957,33 @@ fn find_ref_chain_defect(defs: &HashMap<String, PropSchema>) -> Option<RefChainD
 /// rejection because overlays apply in sequence, and an earlier one may reference a
 /// definition a later one supplies.
 pub(crate) fn warn_dangling_refs(schema: &CompiledSchema) {
+    let mut dangling: Vec<(String, String)> = Vec::new();
     let mut stack: Vec<(String, &PropSchema)> =
         schema.properties.iter().chain(schema.definitions.iter()).map(|(name, prop)| (name.clone(), prop)).collect();
+    // Also traverse composition/condition property maps.
+    for sub in schema.all_of.iter().chain(schema.any_of.iter()).chain(schema.one_of.iter()) {
+        for (name, prop) in &sub.properties {
+            stack.push((format!("allOf.{name}"), prop));
+        }
+    }
+    for ite in &schema.if_then_else {
+        push_condition_props("if", &ite.condition, &mut stack);
+        if let Some(then_sub) = &ite.then_schema {
+            for (name, prop) in &then_sub.properties {
+                stack.push((format!("then.{name}"), prop));
+            }
+        }
+        if let Some(else_sub) = &ite.else_schema {
+            for (name, prop) in &else_sub.properties {
+                stack.push((format!("else.{name}"), prop));
+            }
+        }
+    }
     while let Some((path, current)) = stack.pop() {
         if let Some(target) = &current.ref_name
             && !schema.definitions.contains_key(target)
         {
-            warn!(
-                "Additional schema for '{}': '{path}' references '#/definitions/{target}', which the schema does \
-                 not define, so nothing constrains it.",
-                schema.type_name
-            );
+            dangling.push((path.clone(), target.clone()));
         }
         for (name, child) in current.properties.iter().chain(current.pattern_properties.iter()) {
             stack.push((format!("{path}.{name}"), child));
@@ -509,14 +992,32 @@ pub(crate) fn warn_dangling_refs(schema: &CompiledSchema) {
             stack.push((format!("{path}[]"), items));
         }
     }
+    dangling.sort();
+    for (path, target) in dangling {
+        warn!(
+            "Additional schema for '{}': '{path}' references '#/definitions/{target}', which the schema does \
+             not define, so nothing constrains it.",
+            schema.type_name
+        );
+    }
 }
 
-/// Returns the path of the first property carrying both enum representations.
-fn find_conflicting_enum(name: &str, prop: &PropSchema) -> Option<String> {
+/// Helper: push condition schema properties onto the traversal stack.
+fn push_condition_props<'a>(prefix: &str, cond: &'a ConditionSchema, stack: &mut Vec<(String, &'a PropSchema)>) {
+    for (name, prop) in &cond.properties {
+        stack.push((format!("{prefix}.{name}"), prop));
+    }
+    for (i, sub_cond) in cond.any_of.iter().enumerate() {
+        push_condition_props(&format!("{prefix}.anyOf[{i}]"), sub_cond, stack);
+    }
+}
+
+/// Collect all conflicting-enum paths into the `out` vec (does not short-circuit).
+fn collect_conflicting_enums(name: &str, prop: &PropSchema, out: &mut Vec<String>) {
     let mut stack = vec![(name.to_string(), prop)];
     while let Some((path, current)) = stack.pop() {
         if !current.enum_values.is_empty() && !current.enum_case_insensitive.is_empty() {
-            return Some(path);
+            out.push(path.clone());
         }
         for (child_name, child) in current.properties.iter().chain(current.pattern_properties.iter()) {
             stack.push((format!("{path}.{child_name}"), child));
@@ -525,7 +1026,16 @@ fn find_conflicting_enum(name: &str, prop: &PropSchema) -> Option<String> {
             stack.push((format!("{path}[]"), items));
         }
     }
-    None
+}
+
+/// Collect conflicting enums from a condition schema.
+fn collect_conflicting_enums_in_condition(prefix: &str, cond: &ConditionSchema, out: &mut Vec<String>) {
+    for (name, prop) in &cond.properties {
+        collect_conflicting_enums(&format!("{prefix}.{name}"), prop, out);
+    }
+    for (i, sub_cond) in cond.any_of.iter().enumerate() {
+        collect_conflicting_enums_in_condition(&format!("{prefix}.anyOf[{i}]"), sub_cond, out);
+    }
 }
 
 /// Deep-merge an overlay [`CompiledSchema`] into an existing bundled schema in
@@ -594,10 +1104,12 @@ fn merge_definitions(base: &mut HashMap<String, PropSchema>, overlay: HashMap<St
 
 /// Deep-merge an overlay property schema into an existing one in place.
 pub(crate) fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
-    // An overlay that redefines the property as a `$ref` replaces it wholesale;
-    // mixing a ref with the base's inline shape would be ambiguous.
+    // An overlay that supplies a `$ref` updates the reference target but
+    // preserves the base's existing inline constraints. This lets an overlay
+    // redirect a property to a different definition without discarding the
+    // constraints the bundled schema already carries (e.g. pattern, maxLength).
     if overlay.ref_name.is_some() {
-        *base = overlay;
+        base.ref_name = overlay.ref_name;
         return;
     }
     if is_no_op(&overlay) {
@@ -792,7 +1304,6 @@ mod tests {
     #[test]
     fn compile_basic_schema() {
         let c = compiled(json!({
-            "typeName": "AWS::Foo::Bar",
             "properties": {
                 "Name": { "type": "string" },
                 "Size": { "type": "integer", "enum": [1, 2, 3] }
@@ -1254,9 +1765,9 @@ mod tests {
     }
 
     #[test]
-    fn merge_prop_ref_overlay_replaces_wholesale() {
+    fn merge_prop_ref_overlay_updates_ref_preserving_base_constraints() {
         let mut base = compiled(json!({
-            "properties": { "P": { "type": "string" } },
+            "properties": { "P": { "type": "string", "pattern": "^a", "maxLength": 10 } },
             "definitions": { "D": { "type": "object" } }
         }));
         merge_into(
@@ -1266,7 +1777,17 @@ mod tests {
                 "definitions": { "D": { "type": "object" } }
             })),
         );
-        assert_eq!(base.properties["P"].ref_name.as_deref(), Some("D"), "a $ref overlay replaces the property");
+        assert_eq!(base.properties["P"].ref_name.as_deref(), Some("D"), "a $ref overlay must update the reference");
+        assert_eq!(
+            base.properties["P"].pattern.as_deref(),
+            Some("^a"),
+            "the base pattern must be preserved when a $ref overlay is applied"
+        );
+        assert_eq!(
+            base.properties["P"].max_length,
+            Some(10),
+            "the base maxLength must be preserved when a $ref overlay is applied"
+        );
     }
 
     /// The schema that actually applies to a top-level property, i.e. what
@@ -1440,7 +1961,7 @@ mod tests {
         let mut base = compiled(json!({
             "allOf": [
                 { "required": ["Plain"] },
-                { "if": { "properties": { "A": { "enum": ["x"] } } }, "then": { "required": ["B"] } }
+                { "if": { "properties": { "A": { "enum": ["x"] } } }, "then": { "dependentRequired": { "A": ["B"] } } }
             ]
         }));
         assert_eq!(base.all_of.len(), 1);
@@ -1448,7 +1969,7 @@ mod tests {
         merge_into(
             &mut base,
             compiled(json!({
-                "allOf": [{ "if": { "properties": { "A": { "enum": ["y"] } } }, "then": { "required": ["C"] } }]
+                "allOf": [{ "if": { "properties": { "A": { "enum": ["y"] } } }, "then": { "dependentRequired": { "A": ["C"] } } }]
             })),
         );
         assert!(base.all_of.is_empty(), "the bundled plain allOf entry must not survive a replacing overlay");
@@ -1512,5 +2033,307 @@ mod tests {
             assert_eq!(p.required, vec!["Late".to_string()], "the referenced definition's update must be visible");
             assert!(p.properties.contains_key("X"), "the referencing definition's own content must be visible");
         }
+    }
+
+    // -------------------------------------------------- keyword type validation
+
+    #[test]
+    fn compile_rejects_malformed_required_array() {
+        let error = compile("AWS::Test::T", &json!({ "properties": { "P": { "type": "string" } }, "required": 42 }))
+            .expect_err("non-array required must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_required_containing_non_strings() {
+        let error =
+            compile("AWS::Test::T", &json!({ "properties": { "P": { "type": "string" } }, "required": ["A", 42] }))
+                .expect_err("required with non-string entries must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_invalid_property_pattern() {
+        let error =
+            compile("AWS::Test::T", &json!({ "properties": { "P": { "type": "string", "pattern": "^(unbalanced" } } }))
+                .expect_err("an invalid regex in pattern must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_invalid_pattern_properties_regex() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({ "properties": { "Map": { "type": "object", "patternProperties": { "^(bad": { "type": "string" } } } } }),
+        )
+        .expect_err("an invalid regex in patternProperties key must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_root_not_without_enum() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({ "properties": { "P": { "type": "string", "not": { "pattern": "^x" } } } }),
+        )
+        .expect_err("'not' without 'enum' must be rejected as unsupported");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    // ------------------------------------------ composition rejection
+
+    #[test]
+    fn compile_rejects_composition_entry_with_ref() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({
+                "definitions": { "D": { "type": "object" } },
+                "allOf": [{ "$ref": "#/definitions/D" }]
+            }),
+        )
+        .expect_err("a $ref inside an allOf entry must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_composition_entry_with_scalar_constraint() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({
+                "oneOf": [{ "required": ["A"], "minLength": 5 }]
+            }),
+        )
+        .expect_err("a scalar constraint inside a composition entry must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_conditional_allof_then_with_required() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({
+                "allOf": [{
+                    "if": { "properties": { "A": { "enum": ["x"] } } },
+                    "then": { "required": ["B"] }
+                }]
+            }),
+        )
+        .expect_err("a conditional then with 'required' must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_accepts_conditional_allof_then_with_dependent_required() {
+        compile(
+            "AWS::Test::T",
+            &json!({
+                "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
+                "allOf": [{
+                    "if": { "properties": { "A": { "enum": ["x"] } } },
+                    "then": { "dependentRequired": { "A": ["B"] } }
+                }]
+            }),
+        )
+        .expect("a conditional then with only dependentRequired must be accepted");
+    }
+
+    #[test]
+    fn compile_rejects_direct_root_if_then_else() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({
+                "properties": { "A": { "type": "string" } },
+                "if": { "properties": { "A": { "enum": ["x"] } } },
+                "then": { "required": ["B"] }
+            }),
+        )
+        .expect_err("direct root if/then/else must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_accepts_plain_composition_with_allowed_fields() {
+        compile(
+            "AWS::Test::T",
+            &json!({
+                "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
+                "oneOf": [{ "required": ["A"] }, { "required": ["B"] }]
+            }),
+        )
+        .expect("composition with only required must be accepted");
+    }
+
+    // ------------------------------------------ deterministic conflict reporting
+
+    #[test]
+    fn conflicting_enum_check_reports_alphabetically_first_path() {
+        let schema = compiled(json!({
+            "properties": {
+                "Zeta": { "type": "string", "enum": ["A"], "enumCaseInsensitive": ["a"] },
+                "Alpha": { "type": "string", "enum": ["B"], "enumCaseInsensitive": ["b"] }
+            }
+        }));
+        let error = validate_schema(&schema).expect_err("both conflicts must be detected");
+        match error {
+            SchemaOverlayError::ConflictingEnums { property, .. } => {
+                assert_eq!(property, "Alpha", "the alphabetically first path must be reported");
+            }
+            other => panic!("expected conflicting-enum error, got {other:?}"),
+        }
+    }
+
+    // ------------------------------------------ low-level compile whitespace/mismatch
+
+    #[test]
+    fn compile_rejects_leading_whitespace_in_type_name() {
+        let error = compile(" AWS::Test::T", &json!({ "properties": { "P": { "type": "string" } } }))
+            .expect_err("leading whitespace must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_trailing_whitespace_in_type_name() {
+        let error = compile("AWS::Test::T ", &json!({ "properties": { "P": { "type": "string" } } }))
+            .expect_err("trailing whitespace must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_type_name_mismatch_with_schema_typename() {
+        let error = compile(
+            "AWS::Test::A",
+            &json!({ "typeName": "AWS::Test::B", "properties": { "P": { "type": "string" } } }),
+        )
+        .expect_err("a typeName mismatch must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    // ------------------------------------------ unrepresented keywords now error
+
+    #[test]
+    fn compile_rejects_unrepresented_constraint_keywords() {
+        for keyword in ["multipleOf", "propertyNames", "contains"] {
+            let schema = json!({ "properties": { "P": { "type": "string", keyword: 42 } } });
+            let error =
+                compile("AWS::Test::T", &schema).expect_err(&format!("'{keyword}' must be rejected, not warned"));
+            assert!(
+                matches!(error, SchemaOverlayError::Unsupported { .. }),
+                "expected Unsupported for '{keyword}', got {error:?}"
+            );
+        }
+    }
+
+    // ------------------------------------------ $ref preserves base constraints
+
+    #[test]
+    fn ref_overlay_preserves_base_pattern_and_max_length() {
+        let mut base = compiled(json!({
+            "properties": { "P": { "type": "string", "pattern": "^[a-z]+$", "maxLength": 50 } },
+            "definitions": { "D": { "type": "string" } }
+        }));
+        merge_into(
+            &mut base,
+            compiled(json!({
+                "properties": { "P": { "$ref": "#/definitions/D" } },
+                "definitions": { "D": { "type": "string" } }
+            })),
+        );
+        let p = &base.properties["P"];
+        assert_eq!(p.ref_name.as_deref(), Some("D"), "the reference must be set");
+        assert_eq!(p.pattern.as_deref(), Some("^[a-z]+$"), "base pattern must be preserved");
+        assert_eq!(p.max_length, Some(50), "base maxLength must be preserved");
+    }
+
+    #[test]
+    fn compile_rejects_composition_properties_the_matcher_does_not_evaluate() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({ "oneOf": [{ "properties": { "A": { "enum": ["x"] } }, "required": ["A"] }] }),
+        )
+        .expect_err("composition property constraints must not be silently ignored");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_conditional_fields_the_matcher_does_not_evaluate() {
+        for condition in
+            [json!({ "properties": { "A": { "maxLength": 3 } } }), json!({ "anyOf": [{ "required": ["A"] }] })]
+        {
+            let error = compile(
+                "AWS::Test::T",
+                &json!({ "allOf": [{ "if": condition, "then": { "dependentRequired": { "A": ["B"] } } }] }),
+            )
+            .expect_err("unsupported conditional fields must be rejected");
+            assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+        }
+    }
+
+    #[test]
+    fn compile_accepts_condition_fields_the_matcher_evaluates() {
+        compile(
+            "AWS::Test::T",
+            &json!({
+                "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
+                "allOf": [{
+                    "if": { "properties": { "A": { "type": "string", "enum": ["x"] } }, "required": ["A"] },
+                    "then": { "dependentRequired": { "A": ["B"] } }
+                }]
+            }),
+        )
+        .expect("fully enforced conditional fields must remain supported");
+    }
+
+    #[test]
+    fn compile_rejects_unknown_or_empty_property_types() {
+        for prop_type in [json!("strng"), json!([])] {
+            let error = compile("AWS::Test::T", &json!({ "properties": { "P": { "type": prop_type } } }))
+                .expect_err("a type the validator cannot enforce must be rejected");
+            assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+        }
+    }
+
+    #[test]
+    fn compile_rejects_non_string_schema_type_name() {
+        let error = compile("AWS::Test::T", &json!({ "typeName": 42, "properties": { "P": { "type": "string" } } }))
+            .expect_err("typeName must be a string");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+    }
+
+    #[test]
+    fn compile_rejects_malformed_property_metadata_paths() {
+        for pointer in [json!("P"), json!("/properties/"), json!(42)] {
+            let error = compile(
+                "AWS::Test::T",
+                &json!({
+                    "properties": { "P": { "type": "string" } },
+                    "readOnlyProperties": [pointer]
+                }),
+            )
+            .expect_err("metadata paths must be valid property pointers");
+            assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+        }
+    }
+
+    #[test]
+    fn compile_rejects_malformed_not_enum() {
+        for negated in [json!({ "enum": "x" }), json!({ "enum": [] }), json!({ "type": "string" })] {
+            let error =
+                compile("AWS::Test::T", &json!({ "properties": { "P": { "type": "string", "not": negated } } }))
+                    .expect_err("only a non-empty not.enum array is enforceable");
+            assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
+        }
+    }
+
+    #[test]
+    fn compile_rejects_constraints_beside_a_ref() {
+        let error = compile(
+            "AWS::Test::T",
+            &json!({
+                "properties": { "P": { "$ref": "#/definitions/D", "maxLength": 3 } },
+                "definitions": { "D": { "type": "string" } }
+            }),
+        )
+        .expect_err("constraints beside a ref are ignored by draft-07 and must be rejected");
+        assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
     }
 }

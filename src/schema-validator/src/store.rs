@@ -107,18 +107,20 @@ impl CompiledSchemaStore {
         raw: &serde_json::Value,
     ) -> Result<OverlayOutcome, SchemaOverlayError> {
         let overlay = overlay::compile(type_name, raw)?;
+        overlay::validate_schema(&overlay)?;
         match self.schemas.get(type_name) {
             Some(existing) => {
                 let mut merged = existing.clone();
                 overlay::merge_into(&mut merged, overlay);
                 overlay::validate_schema(&merged)?;
                 overlay::warn_dangling_refs(&merged);
+                self.ref_types.update_from_schema(&merged);
                 self.schemas.insert(type_name.to_string(), merged);
                 Ok(OverlayOutcome::Merged)
             }
             None => {
-                overlay::validate_schema(&overlay)?;
                 overlay::warn_dangling_refs(&overlay);
+                self.ref_types.update_from_schema(&overlay);
                 self.schemas.insert(type_name.to_string(), overlay);
                 Ok(OverlayOutcome::Inserted)
             }
@@ -192,6 +194,61 @@ impl RefTypeStore {
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain format_compatible_types");
         RefTypeStore { ref_returns, getatt_returns, format_compatible_types }
+    }
+
+    /// Update Ref/GetAtt return type data from a merged overlay schema so
+    /// type-checking rules see overlay-introduced/changed sources immediately.
+    ///
+    /// Uses the same derivation semantics as the catalog: no ref entry when
+    /// primaryIdentifier is empty; "string" when multiple, readOnly, or
+    /// unresolvable; otherwise the resolved single property type. GetAtt types
+    /// include ALL top-level properties plus full-path readOnly attributes.
+    /// Stale entries for a type that an overlay changes are replaced.
+    pub fn update_from_schema(&mut self, schema: &crate::compiled::CompiledSchema) {
+        let type_name = &schema.type_name;
+        let read_only_set: std::collections::HashSet<&str> =
+            schema.read_only_properties.iter().map(|s| s.as_str()).collect();
+
+        // Ref return type: match catalog derivation semantics.
+        // Remove stale entry first in case an overlay removed or changed
+        // the primary identifier.
+        self.ref_returns.remove(type_name);
+        if !schema.primary_identifier.is_empty() {
+            let ref_type = if schema.primary_identifier.len() > 1 {
+                "string".to_string()
+            } else {
+                let id_prop = &schema.primary_identifier[0];
+                if read_only_set.contains(id_prop.as_str()) {
+                    "string".to_string()
+                } else {
+                    crate::catalog::resolve_property_type(schema, id_prop).unwrap_or_else(|| "string".to_string())
+                }
+            };
+            self.ref_returns.insert(type_name.clone(), ref_type);
+        }
+
+        // GetAtt return types: ALL top-level properties plus full-path readOnly
+        // attributes. Replace the whole entry so stale attributes from a
+        // previous overlay are removed.
+        let mut attr_map: HashMap<String, String> = HashMap::new();
+        for (name, prop) in &schema.properties {
+            let resolved = prop.resolve(&schema.definitions);
+            if let Some(pt) = resolved.prop_type.as_ref().and_then(|p| p.primary()) {
+                attr_map.insert(name.clone(), pt.to_string());
+            }
+        }
+        for attr in &schema.read_only_properties {
+            if attr.contains('.')
+                && let Some(prop_type) = crate::catalog::resolve_property_type(schema, attr)
+            {
+                attr_map.insert(attr.clone(), prop_type);
+            }
+        }
+        if !attr_map.is_empty() {
+            self.getatt_returns.insert(type_name.clone(), attr_map);
+        } else {
+            self.getatt_returns.remove(type_name);
+        }
     }
 
     pub fn ref_type_for(&self, resource_type: &str) -> Option<&str> {

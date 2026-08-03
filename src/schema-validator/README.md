@@ -24,8 +24,9 @@ merged into the schema for its type; a type name with no bundled schema is regis
 
 The merge model, its scope limits, and the input the module rejects are documented on the `overlay` module
 (`cargo doc -p schema-validator`). Library and binding callers should go through
-`validation_engine::schema_validator_from_config`, which resolves `EngineConfig::additional_schemas` and keeps the engines'
-known-resource-type set in step — see [validation-engine/API.md](../validation-engine/API.md).
+`validation_engine::schema_validator_from_config`, while each engine constructor derives the same final merged catalog
+for known types, GetAtt/Ref types, primary identifiers, and schema metadata — see
+[validation-engine/API.md](../validation-engine/API.md).
 
 `CompiledSchemaStore::apply_overlay` is the lower-level entry point. It validates its own input and reports whether the
 overlay merged into a bundled schema or registered a new type; a rejected overlay leaves the store unchanged.

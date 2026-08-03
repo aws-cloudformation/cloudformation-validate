@@ -1,9 +1,11 @@
+pub mod catalog;
 pub(crate) mod compiled;
 pub(crate) mod convert;
 pub mod overlay;
 pub mod store;
 pub mod validate;
 
+pub use catalog::OverlayCatalog;
 pub use compiled::MAX_REF_CHAIN;
 pub use overlay::{MAX_OVERLAY_DEPTH, SchemaOverlayError};
 pub use store::{CompiledSchemaStore, OverlayOutcome};

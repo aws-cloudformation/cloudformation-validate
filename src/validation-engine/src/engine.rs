@@ -7,7 +7,7 @@ use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
     rule_number,
 };
-use schema_validator::{SchemaValidationResult, SchemaValidator};
+use schema_validator::{OverlayCatalog, SchemaValidationResult, SchemaValidator};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -205,6 +205,33 @@ impl EngineConfig {
     pub fn additional_schema_type_names(&self) -> Result<Vec<String>, ValidationError> {
         self.additional_schemas.iter().map(|source| source.resolve().map(|(type_name, _)| type_name)).collect()
     }
+
+    /// Builds an [`OverlayCatalog`] by applying the configured overlays to a
+    /// fresh [`CompiledSchemaStore`] and deriving rule-engine metadata from the
+    /// final merged state.
+    ///
+    /// Returns `Ok(catalog)` where `catalog.is_empty()` when there are no
+    /// overlays to apply. Engines should call this only when
+    /// `additional_schemas` is non-empty — default construction must not pay the
+    /// schema-store cost.
+    pub fn build_overlay_catalog(&self) -> Result<OverlayCatalog, ValidationError> {
+        if self.additional_schemas.is_empty() {
+            return Ok(OverlayCatalog::default());
+        }
+        let overlays: Vec<(String, serde_json::Value)> =
+            self.additional_schemas.iter().map(|s| s.resolve()).collect::<Result<Vec<_>, _>>()?;
+        let mut store = schema_validator::CompiledSchemaStore::new();
+        let mut type_names: Vec<String> = Vec::new();
+        for (type_name, schema) in &overlays {
+            store
+                .apply_overlay(type_name, schema)
+                .map_err(|e| ValidationError::Engine(format!("Failed to apply an additional schema: {e}")))?;
+            if !type_names.contains(type_name) {
+                type_names.push(type_name.clone());
+            }
+        }
+        Ok(OverlayCatalog::from_store(&store, &type_names))
+    }
 }
 
 /// A single additional CloudFormation resource provider schema to overlay on top
@@ -239,11 +266,16 @@ impl AdditionalSchemaSource {
                 let entries = std::fs::read_dir(candidate).map_err(|e| {
                     ValidationError::Engine(format!("Failed to read additional schema directory '{path}': {e}"))
                 })?;
-                let mut files: Vec<std::path::PathBuf> = entries
-                    .filter_map(Result::ok)
-                    .map(|entry| entry.path())
-                    .filter(|file| file.extension().is_some_and(|ext| ext == "json"))
-                    .collect();
+                let mut files: Vec<std::path::PathBuf> = Vec::new();
+                for entry in entries {
+                    let entry = entry.map_err(|e| {
+                        ValidationError::Engine(format!("Failed to read directory entry in '{path}': {e}"))
+                    })?;
+                    let file_path = entry.path();
+                    if file_path.extension().is_some_and(|ext| ext == "json") {
+                        files.push(file_path);
+                    }
+                }
                 files.sort();
                 if files.is_empty() {
                     return Err(ValidationError::Engine(format!("No .json schema files found in '{path}'")));
@@ -284,7 +316,27 @@ impl AdditionalSchemaSource {
                  resource provider schema"
             )));
         }
-        let in_schema = schema.get("typeName").and_then(|v| v.as_str()).filter(|name| !name.is_empty());
+        if !self.type_name.is_empty() && self.type_name != self.type_name.trim() {
+            return Err(ValidationError::Engine(format!(
+                "Invalid additional schema for '{label}': type name has leading or trailing whitespace"
+            )));
+        }
+        let in_schema = match schema.get("typeName") {
+            Some(value) => {
+                let declared = value.as_str().ok_or_else(|| {
+                    ValidationError::Engine(format!(
+                        "Invalid additional schema for '{label}': 'typeName' must be a string"
+                    ))
+                })?;
+                if declared != declared.trim() {
+                    return Err(ValidationError::Engine(format!(
+                        "Invalid additional schema for '{label}': type name has leading or trailing whitespace"
+                    )));
+                }
+                (!declared.is_empty()).then_some(declared)
+            }
+            None => None,
+        };
         let type_name = match (self.type_name.as_str(), in_schema) {
             ("", None) => {
                 return Err(ValidationError::Engine(
@@ -303,6 +355,12 @@ impl AdditionalSchemaSource {
                 )));
             }
         };
+        // Reject leading/trailing whitespace in the resolved type name.
+        if type_name != type_name.trim() {
+            return Err(ValidationError::Engine(format!(
+                "Invalid additional schema for '{label}': type name has leading or trailing whitespace"
+            )));
+        }
         Ok((type_name, schema))
     }
 }

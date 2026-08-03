@@ -565,30 +565,23 @@ fn an_overlay_extending_a_ref_property_is_merged_onto_the_reference() {
 }
 
 #[test]
-fn a_constraining_keyword_beside_a_ref_does_not_constrain() {
-    // Draft-07 ignores keywords beside a `$ref`, so a caller cannot narrow a
-    // referenced shape this way. The value that the reference permits stays
-    // permitted — silently narrowing it here would be a false positive, and
-    // silently pretending to narrow it is what the warning is for.
-    let sv = validator(vec![(
+fn a_constraining_keyword_beside_a_ref_is_rejected() {
+    let error = rejection(vec![(
         "AWS::Test::SiblingConstraint",
         json!({
             "properties": { "Mode": { "$ref": "#/definitions/Mode", "enum": ["ONLY_THIS"], "maxLength": 2 } },
             "definitions": { "Mode": { "type": "string" } }
         }),
     )]);
-    let template =
-        "Resources:\n  R:\n    Type: AWS::Test::SiblingConstraint\n    Properties:\n      Mode: something-else\n";
-    let after = findings(&sv, template);
-    assert!(after.is_empty(), "a keyword beside a '$ref' must not constrain the value: {after:?}");
+    assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
 }
 
 #[test]
-fn a_keyword_the_model_cannot_represent_is_accepted_and_constrains_nothing() {
-    // The compiled model has no field for `multipleOf`, so it is reported at
-    // construction rather than rejected: the rest of the schema is still worth
-    // applying. What must not happen is the caller believing it applies.
-    let sv = validator(vec![(
+fn a_keyword_the_model_cannot_represent_is_rejected() {
+    // The compiled model has no field for `multipleOf`, so stating it in an
+    // overlay is rejected — the constraint would be silently dropped and the
+    // caller would believe it applies.
+    let error = rejection(vec![(
         "AWS::Test::Unrepresented",
         json!({
             "properties": {
@@ -597,27 +590,21 @@ fn a_keyword_the_model_cannot_represent_is_accepted_and_constrains_nothing() {
             }
         }),
     )]);
-    let template =
-        "Resources:\n  R:\n    Type: AWS::Test::Unrepresented\n    Properties:\n      Size: 7\n      Known: ok\n";
-
-    let after = findings(&sv, template);
-
-    assert!(after.is_empty(), "an unrepresented keyword must not be enforced: {after:?}");
+    assert!(
+        matches!(error, SchemaOverlayError::Unsupported { .. }),
+        "an unrepresented keyword must be rejected, got {error:?}"
+    );
 }
 
 #[test]
-fn a_keyword_the_model_cannot_represent_does_not_stop_the_rest_of_the_schema_applying() {
-    let sv = validator(vec![(
+fn a_keyword_the_model_cannot_represent_does_not_silently_weaken_the_overlay() {
+    let error = rejection(vec![(
         "AWS::Test::UnrepresentedSibling",
         json!({ "properties": { "Size": { "type": "integer", "multipleOf": 10, "maximum": 5 } } }),
     )]);
-    let template = "Resources:\n  R:\n    Type: AWS::Test::UnrepresentedSibling\n    Properties:\n      Size: 99\n";
-
-    let after = findings(&sv, template);
-
     assert!(
-        after.iter().any(|finding| finding.contains("99")),
-        "the represented constraint beside it must still be enforced: {after:?}"
+        matches!(error, SchemaOverlayError::Unsupported { .. }),
+        "an unrepresented keyword must be rejected even alongside represented ones, got {error:?}"
     );
 }
 

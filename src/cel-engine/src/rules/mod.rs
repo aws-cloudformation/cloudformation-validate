@@ -8,6 +8,7 @@ use rules::Category;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock, OnceLock};
 use template_model::SemanticModel;
+use validation_engine::OverlayCatalog;
 
 pub mod best_practices;
 pub mod conditions;
@@ -163,14 +164,68 @@ impl CachedData {
         })
     }
 
-    /// Registers additional resource types as known.
+    /// Merges overlay catalog data into this cached data instance.
     ///
-    /// The type catalog is compiled at build time from the published resource
-    /// providers. A caller-supplied schema overlay can describe a type that is not
-    /// in it yet, and validating a template against that overlay while
-    /// simultaneously reporting the type as nonexistent would contradict itself.
-    pub fn extend_known_types(&mut self, type_names: impl IntoIterator<Item = String>) {
-        self.known_types.extend(type_names);
+    /// Called when overlays are non-empty so GetAtt attributes, attribute types,
+    /// primary identifiers, and schema metadata from overlays are visible to rules.
+    pub fn merge_overlay_catalog(&mut self, catalog: &OverlayCatalog) -> anyhow::Result<()> {
+        if catalog.is_empty() {
+            return Ok(());
+        }
+        // Merge known types
+        self.known_types.extend(catalog.type_names.iter().cloned());
+
+        // Merge GetAtt attributes (sort/dedup after merging)
+        for (type_name, attrs) in &catalog.getatt_attributes {
+            let entry = self.getatt_attrs.entry(type_name.clone()).or_default();
+            for attr in attrs {
+                if !entry.contains(attr) {
+                    entry.push(attr.clone());
+                }
+            }
+            entry.sort();
+            entry.dedup();
+        }
+
+        // Merge GetAtt attribute types
+        for (type_name, attr_types) in &catalog.getatt_attribute_types {
+            let entry = self.getatt_attr_types.entry(type_name.clone()).or_default();
+            for (attr, atype) in attr_types {
+                entry.insert(attr.clone(), atype.clone());
+            }
+        }
+
+        // Merge primary identifiers
+        for (type_name, pids) in &catalog.primary_identifiers {
+            self.primary_identifiers.insert(type_name.clone(), pids.clone());
+        }
+
+        // Eagerly initialize schema metadata with merged overlay data.
+        let base_metadata: serde_json::Value = serde_json::from_slice(&embedded::SCHEMA_METADATA_BYTES)
+            .map_err(|e| anyhow::anyhow!("Failed to parse schema_metadata JSON: {}", e))?;
+        let mut metadata_obj = match base_metadata {
+            serde_json::Value::Object(map) => map,
+            _ => serde_json::Map::new(),
+        };
+        let inner =
+            metadata_obj.entry("schema_metadata").or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+        if let serde_json::Value::Object(inner_map) = inner {
+            for (type_name, entry) in &catalog.schema_metadata {
+                inner_map.insert(
+                    type_name.clone(),
+                    serde_json::to_value(entry)
+                        .map_err(|e| anyhow::anyhow!("Failed to serialize SchemaMetadataEntry: {}", e))?,
+                );
+            }
+        }
+        let merged = serde_json::Value::Object(metadata_obj);
+        // Construct the OnceLock with the merged value. The OnceLock is freshly
+        // created in `load()`, so this is the first and only set call.
+        self.schema_metadata_lazy = OnceLock::new();
+        self.schema_metadata_lazy
+            .set(merged)
+            .map_err(|_| anyhow::anyhow!("schema_metadata OnceLock was unexpectedly already initialized"))?;
+        Ok(())
     }
 
     /// Lazy accessor — parses the 14MB `schema_metadata` JSON on first call.

@@ -5,6 +5,8 @@ pub mod engine;
 pub mod guard;
 pub(crate) mod step_functions;
 
+pub use schema_validator::OverlayCatalog;
+
 pub use engine::{
     AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine,
     ValidationError, build_rule_list, catch_panics, extract_diagnostics, make_resource_diagnostic,

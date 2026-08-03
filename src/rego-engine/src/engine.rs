@@ -9,14 +9,14 @@ use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, extract_diagnostics,
-    semantic_model_to_input_json,
+    EngineConfig, OverlayCatalog, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
+    extract_diagnostics, semantic_model_to_input_json,
 };
 
 static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
     vec![
-        ("data/known_resource_types", &*embedded::KNOWN_RESOURCE_TYPES_BYTES),
-        ("data/primary_identifiers", &*embedded::PRIMARY_IDENTIFIERS_BYTES),
+        (KNOWN_RESOURCE_TYPES_PATH, &*embedded::KNOWN_RESOURCE_TYPES_BYTES),
+        (PRIMARY_IDENTIFIERS_PATH, &*embedded::PRIMARY_IDENTIFIERS_BYTES),
         ("data/iam_action_resource_patterns", &*embedded::IAM_ACTION_RESOURCE_PATTERNS_BYTES),
         ("data/stateful_resource_types", &*embedded::STATEFUL_RESOURCE_TYPES_BYTES),
         ("data/aws_rds_dbinstance_dbinstanceclass_enum", &*embedded::AWS_RDS_DBINSTANCE_DBINSTANCECLASS_ENUM_BYTES),
@@ -63,7 +63,7 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
             "data/aws_opensearchservice_domain_clusterconfig_instancetype_enum",
             &*embedded::AWS_OPENSEARCHSERVICE_DOMAIN_CLUSTERCONFIG_INSTANCETYPE_ENUM_BYTES,
         ),
-        ("data/getatt_attributes", &*embedded::GETATT_ATTRIBUTES_BYTES),
+        (GETATT_ATTRIBUTES_PATH, &*embedded::GETATT_ATTRIBUTES_BYTES),
         ("data/codepipeline_action_artifact_counts", &*embedded::CODEPIPELINE_ACTION_ARTIFACT_COUNTS_BYTES),
         ("data/deprecated_resource_types", &*embedded::DEPRECATED_RESOURCE_TYPES_BYTES),
         ("data/retention_period_requirements", &*embedded::RETENTION_PERIOD_REQUIREMENTS_BYTES),
@@ -102,6 +102,12 @@ const MERGED_DATA_INITIAL_CAPACITY: usize = 8 * 1024 * 1024;
 /// treat as existing.
 const KNOWN_RESOURCE_TYPES_PATH: &str = "data/known_resource_types";
 
+/// The [`REGORUS_DATA`] entry holding GetAtt attributes and attribute types.
+const GETATT_ATTRIBUTES_PATH: &str = "data/getatt_attributes";
+
+/// The [`REGORUS_DATA`] entry holding primary identifiers per type.
+const PRIMARY_IDENTIFIERS_PATH: &str = "data/primary_identifiers";
+
 /// Re-serializes the known-resource-type catalog with `extra_types` appended, or
 /// returns `None` when there is nothing to add so the embedded bytes are used
 /// verbatim.
@@ -117,6 +123,66 @@ fn extend_known_resource_types(extra_types: &[String]) -> anyhow::Result<Option<
         }
     }
     Ok(Some(serde_json::to_string(&catalog)?))
+}
+
+/// Extends the embedded getatt_attributes data with overlay catalog entries.
+/// Returns `None` when there is nothing to add.
+fn extend_getatt_data(catalog: &OverlayCatalog) -> anyhow::Result<Option<String>> {
+    if catalog.getatt_attributes.is_empty() && catalog.getatt_attribute_types.is_empty() {
+        return Ok(None);
+    }
+    let mut data: serde_json::Value = serde_json::from_slice(&embedded::GETATT_ATTRIBUTES_BYTES)
+        .map_err(|e| anyhow::anyhow!("Failed to parse the embedded getatt_attributes data: {e}"))?;
+
+    // Merge getatt_attributes (sort/dedup after merging)
+    if let Some(attrs_obj) = data.get_mut("getatt_attributes").and_then(|v| v.as_object_mut()) {
+        for (type_name, attrs) in &catalog.getatt_attributes {
+            let entry = attrs_obj.entry(type_name.clone()).or_insert_with(|| serde_json::Value::Array(Vec::new()));
+            if let Some(arr) = entry.as_array_mut() {
+                for attr in attrs {
+                    let val = serde_json::Value::String(attr.clone());
+                    if !arr.contains(&val) {
+                        arr.push(val);
+                    }
+                }
+                arr.sort_by(|a, b| a.as_str().unwrap_or("").cmp(b.as_str().unwrap_or("")));
+                arr.dedup();
+            }
+        }
+    }
+
+    // Merge getatt_attribute_types
+    if let Some(types_obj) = data.get_mut("getatt_attribute_types").and_then(|v| v.as_object_mut()) {
+        for (type_name, attr_types) in &catalog.getatt_attribute_types {
+            let entry =
+                types_obj.entry(type_name.clone()).or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+            if let Some(obj) = entry.as_object_mut() {
+                for (attr, atype) in attr_types {
+                    obj.insert(attr.clone(), serde_json::Value::String(atype.clone()));
+                }
+            }
+        }
+    }
+
+    Ok(Some(serde_json::to_string(&data)?))
+}
+
+/// Extends the embedded primary_identifiers data with overlay catalog entries.
+/// Returns `None` when there is nothing to add.
+fn extend_primary_identifiers_data(catalog: &OverlayCatalog) -> anyhow::Result<Option<String>> {
+    if catalog.primary_identifiers.is_empty() {
+        return Ok(None);
+    }
+    let mut data: serde_json::Value = serde_json::from_slice(&embedded::PRIMARY_IDENTIFIERS_BYTES)
+        .map_err(|e| anyhow::anyhow!("Failed to parse the embedded primary_identifiers data: {e}"))?;
+
+    if let Some(pids_obj) = data.get_mut("primary_identifiers").and_then(|v| v.as_object_mut()) {
+        for (type_name, pids) in &catalog.primary_identifiers {
+            pids_obj.insert(type_name.clone(), serde_json::json!(pids));
+        }
+    }
+
+    Ok(Some(serde_json::to_string(&data)?))
 }
 
 pub struct RegoEngine {
@@ -144,21 +210,39 @@ impl RegoEngine {
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
 
+        // Build the overlay catalog before the data-merge block so it is
+        // accessible for both data extension and builtin registration.
+        let overlay_catalog = if config.additional_schemas.is_empty() {
+            OverlayCatalog::default()
+        } else {
+            config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?
+        };
+
         // Single-pass merge avoids per-file JSON parsing overhead.
         {
             // Resource types introduced by an overlay schema are legitimate
             // targets, so the type catalog the rules consult must include them
             // rather than reporting them as nonexistent.
-            let overlay_types = config
-                .additional_schema_type_names()
-                .map_err(|e| anyhow::anyhow!("Failed to resolve additional schemas: {e}"))?;
+            let overlay_types: Vec<String> = overlay_catalog.type_names.clone();
             let extended_known_types = extend_known_resource_types(&overlay_types)?;
+
+            // Extend getatt_attributes data with overlay entries
+            let extended_getatt = extend_getatt_data(&overlay_catalog)?;
+            // Extend primary_identifiers data with overlay entries
+            let extended_primary_ids = extend_primary_identifiers_data(&overlay_catalog)?;
 
             let mut merged = String::with_capacity(MERGED_DATA_INITIAL_CAPACITY);
             merged.push('{');
             for (i, (path, json_bytes)) in REGORUS_DATA.iter().enumerate() {
-                let json_str = match (*path, extended_known_types.as_deref()) {
-                    (KNOWN_RESOURCE_TYPES_PATH, Some(extended)) => extended,
+                let json_str = match (
+                    *path,
+                    extended_known_types.as_deref(),
+                    extended_getatt.as_deref(),
+                    extended_primary_ids.as_deref(),
+                ) {
+                    (KNOWN_RESOURCE_TYPES_PATH, Some(extended), _, _) => extended,
+                    (GETATT_ATTRIBUTES_PATH, _, Some(extended), _) => extended,
+                    (PRIMARY_IDENTIFIERS_PATH, _, _, Some(extended)) => extended,
                     _ => from_utf8(json_bytes).expect("Embedded JSON data is valid UTF-8"),
                 };
                 let inner = json_str
@@ -237,7 +321,7 @@ impl RegoEngine {
 
         let model_holder: SharedModel = Arc::new(Mutex::new(None));
         let region_holder: SharedRegion = Arc::new(Mutex::new(None));
-        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone());
+        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone(), &overlay_catalog);
 
         let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();

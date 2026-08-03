@@ -98,14 +98,11 @@ let engine = RegoEngine::new(config)?;
 alongside a configured engine silently validates against the bundled schemas alone. Every language binding and the
 `cfn-validate --additional-schema` flag route through it.
 
-Construction fails, rather than degrading quietly, when a schema is not valid JSON, is not an object, names one type
-explicitly and another in its body, nests deeper than 128 levels, defines a cyclic `$ref` graph, states nothing the
-compiler recognises, would leave a property carrying both a case-sensitive and a case-insensitive list of allowed
-values, contains a `$ref` chain too long to resolve, or uses a construct the compiled model cannot represent (a `$ref`
-outside `#/definitions/`, tuple-form `items`, a `type` that is neither a string nor an array of strings). Keywords written beside a `$ref` have no effect — draft-07, which provider schemas are written
-against, ignores them — so a published schema that documents a referenced property in place is accepted as-is; a
-constraining keyword in that position is logged. To extend a referenced shape, overlay the property rather than
-restating the reference: those fields are merged onto whatever it points at.
+Construction fails, rather than degrading quietly, when a schema is malformed, names contradictory or non-canonical
+types, nests too deeply, defines an unsafe `$ref` graph, states nothing enforceable, contains conflicting enum
+representations, uses an invalid regular expression, or states a keyword/composition constraint the compiled model
+cannot enforce. Annotations beside a `$ref` are accepted; constraining siblings are rejected because draft-07 would
+ignore them. Apply a separate overlay to the property or referenced definition instead.
 
 **Merge model.** An overlay may add entries to a collection and restate a single-valued constraint or a logical group;
 it never silently drops a constraint the bundled schema carries. Adding to `required` or to a dependency list states a
@@ -129,14 +126,12 @@ constraint-only overlay therefore applies, chains are followed to their end, and
 still reaches every property referencing it. A chain longer than the resolver can follow is rejected rather than cut
 short. Overlays for one type apply in order.
 
-**Scope limits.** An overlay cannot make a bundled `required` property optional or remove a metadata entry; it cannot
-switch a case-insensitive enum to case-sensitive comparison; constraints inside composition subschemas are replaced as
-whole entries rather than deep-merged; validation keywords the compiled model has no field for (`multipleOf`,
-`propertyNames`, `contains`, `not` other than `not.enum`, …) constrain nothing and are logged rather than dropped
-silently; conditional constraints the build pipeline contributes as extension fragments are validated from a separate
-embedded artifact that overlays do not merge into, so an overlay cannot suppress a finding originating there; and
-overlays feed schema validation plus the engines' known-resource-type set only — other rule-engine data compiled at
-build time (for example regional instance-type tables) is unaffected.
+**Scope limits.** An overlay cannot make a bundled `required` property optional or remove a metadata entry, and cannot
+switch a case-insensitive enum to case-sensitive comparison. Runtime composition is limited to the fields the compiled
+validator faithfully enforces; unsupported branches and validation keywords are rejected. Conditional constraints from
+the separate build-time extension artifact remain independently enforced. Overlay-derived type, GetAtt, Ref, primary
+identifier, and schema metadata catalogs are propagated to both engines; regional availability and enum snapshots remain
+bundled.
 
 ## Configuring Validation
 
