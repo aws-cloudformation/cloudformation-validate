@@ -41,7 +41,7 @@ Key semantics:
 The merge model, its scope limits, and the input the module rejects are documented on the `overlay` module
 (`cargo doc -p schema-validator`). Library and binding callers construct a `SchemaValidator` via
 `SchemaValidator::new(SchemaValidatorConfig { additional_schemas: ... })`. The optional
-`EngineConfig::schema_validator` field holds the same config type, so the engine derives overlay-aware metadata
+`EngineConfig::schema_validator_config` field holds the same config type, so the engine derives overlay-aware metadata
 automatically when constructed standalone.
 See [validation-engine/API.md](../validation-engine/API.md).
 

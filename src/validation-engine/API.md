@@ -75,7 +75,7 @@ Additional schemas extend the bundled CloudFormation resource schemas, so templa
 CloudFormation has not published yet validate without false findings.
 
 Supply overlay schemas through `SchemaValidatorConfig::additional_schemas`. The optional
-`EngineConfig::schema_validator` field holds this same config type: when present, a standalone engine built via
+`EngineConfig::schema_validator_config` field holds this same config type: when present, a standalone engine built via
 `new(EngineConfig)` derives overlay-aware metadata (type names, GetAtt attributes, primary identifiers) from it.
 Language bindings and the CLI construct a `SchemaValidator` from the config once at their layer, then pass it to the
 engine so the already-built metadata is shared without redundant work.

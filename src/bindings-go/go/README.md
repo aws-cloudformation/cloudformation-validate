@@ -73,7 +73,7 @@ Passed to `NewRegoEngine` / `NewCelEngine`. The zero value (or `nil`) uses only 
 type EngineConfig struct {
     CustomRules     []ExternalRuleSource  // engine-native rules (Rego for Rego, CEL for CEL)
     GuardRules      []ExternalRuleSource  // CloudFormation Guard DSL rules — translated internally by each engine
-    SchemaValidator *SchemaValidatorConfig // optional schema validator configuration
+    SchemaValidatorConfig *SchemaValidatorConfig // optional schema validator configuration
 }
 
 // Name identifies the rule in diagnostics; Content is the full rule source text.
@@ -105,7 +105,7 @@ custom, _ := os.ReadFile("rules/s3_encryption.json")
 engine, err := cfnvalidate.NewCelEngine(&cfnvalidate.EngineConfig{
     CustomRules: []cfnvalidate.ExternalRuleSource{{Name: "s3_encryption.json", Content: string(custom)}},
     GuardRules:  []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: string(guard)}},
-    SchemaValidator: &cfnvalidate.SchemaValidatorConfig{
+    SchemaValidatorConfig: &cfnvalidate.SchemaValidatorConfig{
         AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: string(schema)}},
     },
 })
