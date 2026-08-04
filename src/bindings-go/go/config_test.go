@@ -56,7 +56,7 @@ const fullValidateConfigJSON = `{
 const fullEngineConfigJSON = `{
     "customRules": [{"name": "s3_encryption.json", "content": "{}"}],
     "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
-    "schemaValidator": {
+    "schemaValidatorConfig": {
         "additionalSchemas": [{
             "typeName": "",
             "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
@@ -135,7 +135,7 @@ func TestFullEngineConfigMarshalsToTheContractShape(t *testing.T) {
 	config := &cfnvalidate.EngineConfig{
 		CustomRules: []cfnvalidate.ExternalRuleSource{{Name: "s3_encryption.json", Content: "{}"}},
 		GuardRules:  []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: "let x = 1"}},
-		SchemaValidator: &cfnvalidate.SchemaValidatorConfig{
+		SchemaValidatorConfig: &cfnvalidate.SchemaValidatorConfig{
 			AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{
 				Schema: `{"typeName":"AWS::Test::OverlayOnly","properties":{"Name":{"type":"string"}}}`,
 			}},

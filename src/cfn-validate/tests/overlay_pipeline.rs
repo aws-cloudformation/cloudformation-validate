@@ -150,13 +150,36 @@ const TAGGABLE_OVERLAY_SCHEMA: &str = r#"{
   "required": ["Name"],
   "additionalProperties": false
 }"#;
-fn config_with(schema: &str) -> EngineConfig {
+
+const DANGLING_REFERENCE_SCHEMA: &str = r##"{
+  "typeName": "AWS::Test::Dangling",
+  "properties": { "P": { "$ref": "#/definitions/NotDefined" } }
+}"##;
+
+const FORWARD_REFERENCE_SCHEMA: &str = r##"{
+  "typeName": "AWS::Test::ForwardRef",
+  "properties": { "P": { "$ref": "#/definitions/SuppliedLater" } }
+}"##;
+
+const FORWARD_REFERENCE_DEFINITION_SCHEMA: &str = r#"{
+  "typeName": "AWS::Test::ForwardRef",
+  "definitions": { "SuppliedLater": { "type": "string" } }
+}"#;
+
+fn config_with_schemas(schemas: &[&str]) -> EngineConfig {
     EngineConfig {
         schema_validator_config: Some(schema_validator::SchemaValidatorConfig {
-            additional_schemas: vec![AdditionalSchemaSource { type_name: String::new(), schema: schema.to_string() }],
+            additional_schemas: schemas
+                .iter()
+                .map(|schema| AdditionalSchemaSource { type_name: String::new(), schema: (*schema).to_string() })
+                .collect(),
         }),
         ..Default::default()
     }
+}
+
+fn config_with(schema: &str) -> EngineConfig {
+    config_with_schemas(&[schema])
 }
 
 /// Runs the full pipeline on both engines, returning `(rego, cel)` diagnostics.
@@ -219,6 +242,24 @@ fn a_malformed_overlay_fails_construction_on_both_engines() {
     assert!(SchemaValidator::new(schema_config).is_err(), "invalid JSON must fail validator construction");
     assert!(RegoEngine::new(config.clone()).is_err(), "invalid JSON must fail rego engine construction");
     assert!(CelEngine::new(config).is_err(), "invalid JSON must fail cel engine construction");
+}
+
+#[test]
+fn a_final_dangling_reference_fails_all_constructors() {
+    let config = config_with(DANGLING_REFERENCE_SCHEMA);
+    let schema_config = config.schema_validator_config.clone().unwrap_or_default();
+    assert!(SchemaValidator::new(schema_config).is_err(), "the validator must reject a final dangling reference");
+    assert!(RegoEngine::new(config.clone()).is_err(), "the rego engine must reject a final dangling reference");
+    assert!(CelEngine::new(config).is_err(), "the cel engine must reject a final dangling reference");
+}
+
+#[test]
+fn a_forward_reference_resolved_by_a_later_overlay_reaches_all_constructors() {
+    let config = config_with_schemas(&[FORWARD_REFERENCE_SCHEMA, FORWARD_REFERENCE_DEFINITION_SCHEMA]);
+    let schema_config = config.schema_validator_config.clone().unwrap_or_default();
+    SchemaValidator::new(schema_config).expect("the validator must accept a resolved forward reference");
+    RegoEngine::new(config.clone()).expect("the rego engine must accept a resolved forward reference");
+    CelEngine::new(config).expect("the cel engine must accept a resolved forward reference");
 }
 
 /// GetAtt on an overlay-introduced readOnly attribute consumed by a resource

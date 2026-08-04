@@ -254,7 +254,7 @@ describe('additional schemas', () => {
                     `${name} baseline must report the unpublished property`,
                 ).toBe(true);
 
-                const engine = new EngineType({ schemaValidator: { additionalSchemas: [new SchemaFile(schemaPath)] } });
+                const engine = new EngineType({ schemaValidatorConfig: { additionalSchemas: [new SchemaFile(schemaPath)] } });
                 const report = engine.validateStandard(template);
                 expect(
                     report.diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),

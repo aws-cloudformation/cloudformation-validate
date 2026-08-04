@@ -90,7 +90,7 @@ fn parse_engine_config(config_json: &str) -> Result<EngineConfig, ValidationErro
 struct EngineOptions {
     custom_rules: Vec<RuleSourceOptions>,
     guard_rules: Vec<RuleSourceOptions>,
-    schema_validator: Option<SchemaValidatorOptionsInline>,
+    schema_validator_config: Option<SchemaValidatorOptionsInline>,
 }
 
 /// One external rule source, mirroring the core `ExternalRuleSource`.
@@ -127,7 +127,7 @@ impl EngineOptions {
         EngineConfig {
             custom_rules: self.custom_rules.into_iter().map(ExternalRuleSource::from).collect(),
             guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-            schema_validator_config: self.schema_validator.map(|sv| SchemaValidatorConfig {
+            schema_validator_config: self.schema_validator_config.map(|sv| SchemaValidatorConfig {
                 additional_schemas: sv.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
             }),
         }
@@ -237,7 +237,7 @@ macro_rules! impl_go_engine {
                     || {
                         let engine_options = EngineOptions::parse(&config_json)?;
                         let schema_config = engine_options
-                            .schema_validator
+                            .schema_validator_config
                             .map(|sv| SchemaValidatorConfig {
                                 additional_schemas: sv
                                     .additional_schemas

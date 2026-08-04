@@ -4,13 +4,14 @@ use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
 use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use log::{debug, info, warn};
 use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
+use schema_validator::{OverlayCatalog, SchemaValidator};
 use std::collections::HashMap;
 use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, OverlayCatalog, SchemaValidator, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
-    extract_diagnostics, semantic_model_to_input_json,
+    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, extract_diagnostics,
+    semantic_model_to_input_json,
 };
 
 static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {

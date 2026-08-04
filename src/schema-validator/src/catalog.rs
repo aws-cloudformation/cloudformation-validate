@@ -19,14 +19,14 @@ use std::sync::LazyLock;
 /// build pipeline bakes into the bundled artifacts.
 pub(crate) static GETATT_RETURN_TYPE_OVERRIDES: LazyLock<HashMap<String, HashMap<String, String>>> =
     LazyLock::new(|| {
-        serde_json::from_slice::<serde_json::Value>(&data_source::embedded::GETATT_RETURN_TYPE_OVERRIDES_BYTES)
-            .ok()
-            .and_then(|value| {
-                value
-                    .get("getatt_return_type_overrides")
-                    .and_then(|overrides| serde_json::from_value(overrides.clone()).ok())
-            })
-            .unwrap_or_default()
+        let artifact: serde_json::Value =
+            serde_json::from_slice(&data_source::embedded::GETATT_RETURN_TYPE_OVERRIDES_BYTES)
+                .expect("Embedded getatt_return_type_overrides must be valid JSON");
+        let overrides = artifact
+            .get("getatt_return_type_overrides")
+            .expect("Embedded getatt_return_type_overrides must contain getatt_return_type_overrides");
+        serde_json::from_value(overrides.clone())
+            .expect("Embedded getatt_return_type_overrides must contain a valid override map")
     });
 
 /// Applies the hand-maintained GetAtt return-type corrections for `type_name`
@@ -285,7 +285,8 @@ fn derive_ref_return_type(schema: &CompiledSchema, read_only_set: &HashSet<&str>
 }
 
 /// Resolve the type of a property along a dot-separated path, following `$ref`
-/// chains. Guards against recursive references.
+/// chains. Returns `None` for an empty path and guards against recursive
+/// references.
 pub(crate) fn resolve_property_type(schema: &CompiledSchema, path: &str) -> Option<String> {
     let parts: Vec<&str> = path.split('.').collect();
     resolve_nested_property_type(schema, &parts, &schema.properties, &mut HashSet::new())

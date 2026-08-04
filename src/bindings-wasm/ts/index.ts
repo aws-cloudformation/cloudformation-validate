@@ -130,7 +130,7 @@ export interface EngineConfig {
      * Optional schema validator configuration. When present, the engine derives
      * overlay-aware metadata from the configured additional schemas.
      */
-    schemaValidator?: SchemaValidatorConfig;
+    schemaValidatorConfig?: SchemaValidatorConfig;
 }
 
 /**
@@ -162,8 +162,8 @@ function toWasmEngineConfig(config?: EngineConfig): WasmEngineConfig {
     return {
         customRules: toExternalRuleSources(config?.customRules),
         guardRules: toExternalRuleSources(config?.guardRules),
-        schemaValidator: config?.schemaValidator
-            ? toWasmSchemaValidatorConfig(config.schemaValidator)
+        schemaValidatorConfig: config?.schemaValidatorConfig
+            ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
             : undefined,
     };
 }

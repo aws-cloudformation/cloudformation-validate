@@ -115,19 +115,31 @@ where
 {
     let mut store = CompiledSchemaStore::new();
     let mut type_names: Vec<String> = Vec::new();
-    let mut any = false;
     for (type_name, schema) in overlays {
         let type_name = type_name.as_ref();
         store.apply_overlay(type_name, &schema)?;
         if !type_names.contains(&type_name.to_string()) {
             type_names.push(type_name.to_string());
         }
-        any = true;
     }
-    if !any {
-        return Ok(OverlayCatalog::default());
+    build_validated_overlay_catalog(&store, &type_names)
+}
+
+/// Builds metadata only after validating references against the final merged
+/// store. Per-overlay application permits forward references because a later
+/// overlay may supply the target; anything still dangling here cannot resolve.
+fn build_validated_overlay_catalog(
+    store: &CompiledSchemaStore,
+    type_names: &[String],
+) -> Result<OverlayCatalog, SchemaOverlayError> {
+    for type_name in type_names {
+        if let Some(schema) = store.get(type_name)
+            && let Some((path, target)) = overlay::find_dangling_refs(schema).into_iter().next()
+        {
+            return Err(SchemaOverlayError::DanglingRef { type_name: type_name.clone(), path, target });
+        }
     }
-    Ok(OverlayCatalog::from_store(&store, &type_names))
+    Ok(OverlayCatalog::from_store(store, type_names))
 }
 
 pub struct SchemaValidator {
@@ -213,19 +225,7 @@ impl SchemaValidator {
             }
             applied += 1;
         }
-        // Forward references are tolerated while the sequence applies — an
-        // earlier overlay may reference a definition a later one supplies. A
-        // reference still dangling after the final overlay can never resolve,
-        // so the property carrying it would validate nothing: rejected rather
-        // than left as a silent no-op.
-        for type_name in &type_names {
-            if let Some(schema) = store.get(type_name)
-                && let Some((path, target)) = overlay::find_dangling_refs(schema).into_iter().next()
-            {
-                return Err(SchemaOverlayError::DanglingRef { type_name: type_name.clone(), path, target });
-            }
-        }
-        let catalog = OverlayCatalog::from_store(&store, &type_names);
+        let catalog = build_validated_overlay_catalog(&store, &type_names)?;
         Ok(Self::finish(store, catalog, applied, start))
     }
 

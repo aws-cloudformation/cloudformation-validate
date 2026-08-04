@@ -1151,11 +1151,11 @@ mod tests {
     }
 
     #[test]
-    fn default_engine_config_serializes_without_the_schema_validator_field() {
-        let json = serde_json::to_string(&EngineConfig::default()).expect("EngineConfig serializes");
+    fn default_engine_config_serializes_without_the_schema_validator_config_field() {
+        let json = serde_json::to_value(EngineConfig::default()).expect("EngineConfig serializes");
         assert!(
-            !json.contains("schemaValidator"),
-            "an empty schema_validator must not change the serialized form, got: {json}"
+            json.get("schemaValidatorConfig").is_none(),
+            "an empty schema_validator_config must not change the serialized form, got: {json}"
         );
     }
 
@@ -1167,9 +1167,10 @@ mod tests {
                 schema: r#"{"properties":{}}"#.into(),
             }],
         });
-        let json = serde_json::to_string(&config).expect("serializes");
-        assert!(json.contains("schemaValidator"), "nested config must appear in JSON: {json}");
-        let deserialized: EngineConfig = serde_json::from_str(&json).expect("deserializes");
+        let json = serde_json::to_value(&config).expect("serializes");
+        assert!(json.get("schemaValidatorConfig").is_some(), "nested config must appear in JSON: {json}");
+        assert!(json.get("schemaValidator").is_none(), "the old config field must not be serialized: {json}");
+        let deserialized: EngineConfig = serde_json::from_value(json).expect("deserializes");
         let sv = deserialized.schema_validator_config.expect("nested config must roundtrip");
         assert_eq!(sv.additional_schemas.len(), 1);
         assert_eq!(sv.additional_schemas[0].type_name, "AWS::Test::RT");

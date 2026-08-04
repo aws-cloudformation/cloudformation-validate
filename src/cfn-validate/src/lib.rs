@@ -51,7 +51,11 @@ pub fn load_additional_schema_sources(paths: &[String]) -> Result<Vec<Additional
 fn read_schema_file(path: &Path) -> Result<AdditionalSchemaSource, ValidationError> {
     let schema = fs::read_to_string(path)
         .map_err(|e| ValidationError::Engine(format!("Failed to read additional schema '{}': {e}", path.display())))?;
-    Ok(AdditionalSchemaSource { type_name: String::new(), schema })
+    let source = AdditionalSchemaSource { type_name: String::new(), schema };
+    source.resolve().map_err(|e| {
+        ValidationError::Engine(format!("Failed to resolve additional schema '{}': {e}", path.display()))
+    })?;
+    Ok(source)
 }
 
 pub fn collect_files(path: &Path) -> Vec<PathBuf> {
@@ -196,6 +200,25 @@ mod tests {
     #[test]
     fn parse_range_returns_none_for_empty_string() {
         assert!(parse_range("").is_none(), "empty string should return None");
+    }
+
+    #[test]
+    fn load_additional_schema_sources_names_file_when_type_name_is_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let schema_file = dir.path().join("missing-type-name.json");
+        fs::write(&schema_file, r#"{"properties":{"Name":{"type":"string"}}}"#).unwrap();
+
+        let error = load_additional_schema_sources(&[schema_file.to_string_lossy().into_owned()])
+            .expect_err("a schema without a type name must fail");
+        let message = error.to_string();
+        assert!(
+            message.contains(schema_file.to_string_lossy().as_ref()),
+            "the error must identify the failing schema file: {message}"
+        );
+        assert!(
+            message.contains("missing a resource type name"),
+            "the error must retain the resolution failure: {message}"
+        );
     }
 
     #[test]

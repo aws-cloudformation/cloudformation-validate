@@ -6,7 +6,8 @@
 //!
 //! The struct contains only pre-read data and pure resolution logic — no
 //! filesystem access. Host layers (CLI, language bindings) read files and
-//! populate the struct before passing it in.
+//! populate the struct before passing it in. Feature-gated derives expose the
+//! same record shape through WASM and UniFFI bindings.
 
 use crate::compiled_schema::keywords;
 use serde::{Deserialize, Serialize};

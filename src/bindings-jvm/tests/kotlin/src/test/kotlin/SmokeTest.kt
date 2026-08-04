@@ -102,7 +102,7 @@ class SmokeTest {
     @Test
     fun additionalSchemasApplyThroughThePublicConfigOnBothEngines() {
         val config = EngineConfig(
-            schemaValidator = SchemaValidatorConfig(
+            schemaValidatorConfig = SchemaValidatorConfig(
                 additionalSchemas = listOf(AdditionalSchemaSource(typeName = "", schema = lambdaOverlaySchema)),
             ),
         )

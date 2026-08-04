@@ -216,7 +216,7 @@ func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) 
 			t.Fatalf("%s baseline must report the unpublished property", name)
 		}
 
-		engine, err := build(&cfnvalidate.EngineConfig{SchemaValidator: schemaConfig})
+		engine, err := build(&cfnvalidate.EngineConfig{SchemaValidatorConfig: schemaConfig})
 		if err != nil {
 			t.Fatalf("%s engine construction with overlay failed: %v", name, err)
 		}

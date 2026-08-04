@@ -186,7 +186,7 @@ class AdditionalSchemasTest(unittest.TestCase):
         from cloudformation_validate import SchemaValidatorConfig
 
         config = EngineConfig(
-            schema_validator=SchemaValidatorConfig(
+            schema_validator_config=SchemaValidatorConfig(
                 additional_schemas=[AdditionalSchemaSource(type_name="", schema=LAMBDA_OVERLAY_SCHEMA)]
             )
         )

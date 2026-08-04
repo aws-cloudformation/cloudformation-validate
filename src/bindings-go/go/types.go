@@ -200,10 +200,10 @@ type EngineConfig struct {
 	CustomRules []ExternalRuleSource `json:"customRules,omitempty"`
 	// GuardRules are Guard DSL rules, usable with either engine.
 	GuardRules []ExternalRuleSource `json:"guardRules,omitempty"`
-	// SchemaValidator optionally configures the validator bundled by the engine.
+	// SchemaValidatorConfig optionally configures the validator bundled by the engine.
 	// When set, the engine derives overlay-aware metadata from the configured
 	// additional schemas.
-	SchemaValidator *SchemaValidatorConfig `json:"schemaValidator,omitempty"`
+	SchemaValidatorConfig *SchemaValidatorConfig `json:"schemaValidatorConfig,omitempty"`
 }
 
 // SchemaValidatorConfig holds schema validator construction options. The zero
