@@ -68,6 +68,18 @@ pub struct IfThenElse {
     pub then_schema: Option<SubSchema>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub else_schema: Option<SubSchema>,
+    /// Whether the selected branch is enforced in full (required,
+    /// additionalProperties, value constraints) rather than dependencies-only.
+    ///
+    /// Set for conditionals an overlay supplies: the overlay author states the
+    /// conditional deliberately and no dedicated rule covers it. Bundled
+    /// conditionals stay dependencies-only, because their richer semantics are
+    /// owned by dedicated resource-specific rules (with their own IDs and
+    /// severities) and enforcing them generically would double-report. Never
+    /// serialized — the committed artifact stays unchanged and deserializes to
+    /// dependencies-only.
+    #[serde(skip)]
+    pub enforce_full_branch: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -76,6 +88,12 @@ pub struct ConditionSchema {
     pub properties: HashMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
+    /// The instance type the condition requires (`if: {"type": ...}`). A
+    /// condition stating a type only matches an instance of that type; resource
+    /// roots are always objects, so `"object"` is a no-op there while any other
+    /// type makes the condition unsatisfiable at the root.
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    pub prop_type: Option<PropType>,
     /// When set, the condition matches if ANY of these sub-conditions match.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<ConditionSchema>,
@@ -244,6 +262,81 @@ impl PropSchema {
     ///
     /// Destructured exhaustively so a new field cannot be forgotten here and make
     /// a property's own constraints silently disappear at resolution time.
+    /// Whether this schema states anything `schema_value_matches` could fail a
+    /// value against. Destructured exhaustively so a newly added constraint
+    /// field cannot be omitted and silently skip branch value matching.
+    ///
+    /// `description` never constrains; a `ref_name` counts because a dangling
+    /// reference makes matching fail.
+    pub(crate) fn constrains_value(&self) -> bool {
+        let PropSchema {
+            ref_name,
+            prop_type,
+            enum_values,
+            enum_case_insensitive,
+            not_enum,
+            const_value,
+            pattern,
+            minimum,
+            maximum,
+            exclusive_minimum,
+            exclusive_maximum,
+            multiple_of,
+            min_length,
+            max_length,
+            min_items,
+            max_items,
+            unique_items,
+            min_properties,
+            max_properties,
+            format,
+            description: _,
+            properties,
+            required,
+            required_present: _,
+            additional_properties,
+            pattern_properties,
+            items,
+            all_of,
+            any_of,
+            one_of,
+            if_then_else,
+            dependent_required,
+            dependent_excluded,
+        } = self;
+        ref_name.is_some()
+            || prop_type.is_some()
+            || !enum_values.is_empty()
+            || !enum_case_insensitive.is_empty()
+            || !not_enum.is_empty()
+            || const_value.is_some()
+            || pattern.is_some()
+            || minimum.is_some()
+            || maximum.is_some()
+            || exclusive_minimum.is_some()
+            || exclusive_maximum.is_some()
+            || multiple_of.is_some()
+            || min_length.is_some()
+            || max_length.is_some()
+            || min_items.is_some()
+            || max_items.is_some()
+            || unique_items == &Some(true)
+            || min_properties.is_some()
+            || max_properties.is_some()
+            || format.is_some()
+            || !properties.is_empty()
+            || !required.is_empty()
+            || additional_properties.is_some()
+            || !pattern_properties.is_empty()
+            || items.is_some()
+            || !all_of.is_empty()
+            || !any_of.is_empty()
+            || !one_of.is_empty()
+            || !if_then_else.is_empty()
+            || !dependent_required.is_empty()
+            || !dependent_excluded.is_empty()
+    }
+
     fn has_own_constraints(&self) -> bool {
         let PropSchema {
             ref_name: _,
@@ -327,6 +420,15 @@ impl PropType {
             PropType::Single(s) => Some(s),
             PropType::Multi(v) => v.iter().find(|s| s.as_str() != "null").map(|s| s.as_str()),
         }
+    }
+
+    /// Every type name this `type` keyword admits.
+    pub fn names(&self) -> impl Iterator<Item = &str> {
+        match self {
+            PropType::Single(s) => std::slice::from_ref(s).iter(),
+            PropType::Multi(v) => v.iter(),
+        }
+        .map(String::as_str)
     }
 }
 
@@ -519,6 +621,7 @@ mod tests {
     #[test]
     fn if_then_else_roundtrip() {
         let ite = IfThenElse {
+            enforce_full_branch: false,
             condition: ConditionSchema {
                 properties: {
                     let mut m = HashMap::new();

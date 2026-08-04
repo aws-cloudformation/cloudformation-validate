@@ -250,7 +250,7 @@ pub mod keywords {
 
     /// Fields read by `compile_condition_schema`: what a conditional `if` block
     /// may contain.
-    pub const COMPILE_CONDITION_SCHEMA_FIELDS: &[&str] = &[PROPERTIES, REQUIRED, ANY_OF];
+    pub const COMPILE_CONDITION_SCHEMA_FIELDS: &[&str] = &[PROPERTIES, REQUIRED, TYPE, ANY_OF];
 }
 
 #[derive(Serialize, Deserialize)]
@@ -317,6 +317,12 @@ pub struct ConditionSchema {
     pub properties: BTreeMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
+    /// The instance type the condition requires (`if: {"type": ...}`). A
+    /// condition stating a type only matches an instance of that type; resource
+    /// roots are always objects, so `"object"` is a no-op there while any other
+    /// type makes the condition unsatisfiable at the root.
+    #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
+    pub prop_type: Option<PropType>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<ConditionSchema>,
 }
@@ -423,17 +429,50 @@ fn convert_property_paths(raw: &serde_json::Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// How to treat constraint keywords written beside a `$ref`.
+///
+/// Draft-07 — the dialect provider schemas are written against, and the one the
+/// CloudFormation registry itself validates with — ignores every keyword beside
+/// a `$ref`. The build pipeline compiles bundled schemas with [`Self::Ignore`]
+/// so the engine never enforces more than CloudFormation's own contract. Overlay
+/// schemas are compiled with [`Self::Enforce`]: the author supplied the sibling
+/// constraints deliberately, and they are merged onto the referenced definition
+/// at validation time (`PropSchema::resolve`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RefSiblings {
+    /// Compile constraint siblings beside a `$ref` and enforce them.
+    Enforce,
+    /// Drop everything beside a `$ref`, matching draft-07 evaluation.
+    Ignore,
+}
+
+/// Compiles a raw provider schema with [`RefSiblings::Enforce`] — the overlay
+/// path. The build pipeline uses [`compile_schema_with`] and
+/// [`RefSiblings::Ignore`] instead; see [`RefSiblings`].
 pub fn compile_schema(type_name: &str, raw: &serde_json::Value) -> CompiledSchema {
+    compile_schema_with(type_name, raw, RefSiblings::Enforce)
+}
+
+/// Compiles a raw CloudFormation resource provider schema into the compiled
+/// representation.
+///
+/// This transform is richer than the one that produced older committed
+/// `compiled_schemas.json` artifacts (full composition branches, property-level
+/// conditionals, `multipleOf`, draft-07 array-form `dependencies`), so
+/// **regenerating the committed artifact changes what bundled schemas enforce**.
+/// A regeneration must be validated against the full template corpus on both
+/// engines before it is committed.
+pub fn compile_schema_with(type_name: &str, raw: &serde_json::Value, ref_siblings: RefSiblings) -> CompiledSchema {
     let mut defs = BTreeMap::new();
     if let Some(d) = raw.get(keywords::DEFINITIONS).and_then(|v| v.as_object()) {
         for (k, v) in d {
-            defs.insert(k.clone(), compile_prop(v));
+            defs.insert(k.clone(), compile_prop_with(v, ref_siblings));
         }
     }
     let mut props = BTreeMap::new();
     if let Some(p) = raw.get(keywords::PROPERTIES).and_then(|v| v.as_object()) {
         for (k, v) in p {
-            props.insert(k.clone(), compile_prop(v));
+            props.insert(k.clone(), compile_prop_with(v, ref_siblings));
         }
     }
 
@@ -442,11 +481,11 @@ pub fn compile_schema(type_name: &str, raw: &serde_json::Value) -> CompiledSchem
     if let Some(arr) = raw.get(keywords::ALL_OF).and_then(|v| v.as_array()) {
         for item in arr {
             if item.get(keywords::IF).is_some() {
-                if let Some(ite) = compile_if_then_else(item) {
+                if let Some(ite) = compile_if_then_else(item, ref_siblings) {
                     if_then_else.push(ite);
                 }
             } else {
-                all_of.push(compile_sub(item));
+                all_of.push(compile_sub(item, ref_siblings));
             }
         }
     }
@@ -492,8 +531,8 @@ pub fn compile_schema(type_name: &str, raw: &serde_json::Value) -> CompiledSchem
             .filter(|s| !s.is_empty())
             .map(String::from),
         all_of,
-        any_of: compile_subs(raw.get(keywords::ANY_OF)),
-        one_of: compile_subs(raw.get(keywords::ONE_OF)),
+        any_of: compile_subs(raw.get(keywords::ANY_OF), ref_siblings),
+        one_of: compile_subs(raw.get(keywords::ONE_OF), ref_siblings),
         if_then_else,
         dependent_required: compile_dependent_required(raw),
         dependent_excluded: str_map(raw.get(keywords::DEPENDENT_EXCLUDED)),
@@ -523,18 +562,18 @@ fn compile_dependent_required(raw: &serde_json::Value) -> BTreeMap<String, Vec<S
     dep_req
 }
 
-fn compile_if_then_else(raw: &serde_json::Value) -> Option<IfThenElse> {
+fn compile_if_then_else(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Option<IfThenElse> {
     let if_val = raw.get(keywords::IF)?;
-    let condition = compile_condition_schema(if_val);
-    let then_schema = raw.get(keywords::THEN).map(compile_sub);
-    let else_schema = raw.get(keywords::ELSE).map(compile_sub);
+    let condition = compile_condition_schema(if_val, ref_siblings);
+    let then_schema = raw.get(keywords::THEN).map(|branch| compile_sub(branch, ref_siblings));
+    let else_schema = raw.get(keywords::ELSE).map(|branch| compile_sub(branch, ref_siblings));
     if then_schema.is_none() && else_schema.is_none() {
         return None;
     }
     Some(IfThenElse { condition, then_schema, else_schema })
 }
 
-fn compile_condition_schema(raw: &serde_json::Value) -> ConditionSchema {
+fn compile_condition_schema(raw: &serde_json::Value, ref_siblings: RefSiblings) -> ConditionSchema {
     let obj = match raw.as_object() {
         Some(o) => o,
         None => return ConditionSchema::default(),
@@ -542,30 +581,45 @@ fn compile_condition_schema(raw: &serde_json::Value) -> ConditionSchema {
     let mut props = BTreeMap::new();
     if let Some(p) = obj.get(keywords::PROPERTIES).and_then(|v| v.as_object()) {
         for (k, v) in p {
-            props.insert(k.clone(), compile_prop(v));
+            props.insert(k.clone(), compile_prop_with(v, ref_siblings));
         }
     }
     let any_of = obj
         .get(keywords::ANY_OF)
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().map(compile_condition_schema).collect())
+        .map(|arr| arr.iter().map(|entry| compile_condition_schema(entry, ref_siblings)).collect())
         .unwrap_or_default();
-    ConditionSchema { properties: props, required: str_arr(obj.get(keywords::REQUIRED)), any_of }
+    let prop_type = obj.get(keywords::TYPE).map(compile_prop_type);
+    ConditionSchema { properties: props, required: str_arr(obj.get(keywords::REQUIRED)), prop_type, any_of }
 }
 
-fn compile_prop(raw: &serde_json::Value) -> PropSchema {
+/// Compiles a raw `type` keyword value into the [`PropType`] representation:
+/// a single name, an array of names, or (for a malformed value the preflight
+/// rejects on overlay input) the historical `"string"` fallback.
+fn compile_prop_type(raw: &serde_json::Value) -> PropType {
+    match raw {
+        serde_json::Value::String(s) => PropType::Single(s.clone()),
+        serde_json::Value::Array(a) => PropType::Multi(a.iter().filter_map(|v| v.as_str().map(String::from)).collect()),
+        _ => PropType::Single("string".into()),
+    }
+}
+
+fn compile_prop_with(raw: &serde_json::Value, ref_siblings: RefSiblings) -> PropSchema {
     let obj = match raw.as_object() {
         Some(o) => o,
         None => return PropSchema::default(),
     };
-    // When a $ref is present, compile it as the ref_name. Additionally compile
-    // any represented sibling constraints beside the reference — they are merged
-    // at validation time via `PropSchema::resolve`. Annotations beside a $ref are
-    // still ignored (they carry no validation meaning).
-    let ref_name = obj
-        .get(keywords::REF)
-        .and_then(|v| v.as_str())
-        .and_then(|ref_str| ref_str.strip_prefix(keywords::DEFINITIONS_REF_PREFIX).map(String::from));
+    // When a $ref is present, compile it as the ref_name. Under
+    // [`RefSiblings::Enforce`], represented sibling constraints beside the
+    // reference are additionally compiled and merged at validation time via
+    // `PropSchema::resolve`. Under [`RefSiblings::Ignore`] — draft-07
+    // evaluation, used for bundled schemas — everything beside the reference is
+    // dropped. Annotations beside a $ref are ignored either way.
+    let raw_ref = obj.get(keywords::REF).and_then(|v| v.as_str());
+    let ref_name = raw_ref.and_then(|ref_str| ref_str.strip_prefix(keywords::DEFINITIONS_REF_PREFIX).map(String::from));
+    if raw_ref.is_some() && ref_siblings == RefSiblings::Ignore {
+        return PropSchema { ref_name, ..Default::default() };
+    }
     // If the property is $ref-only (no other constraint keywords), return early.
     if ref_name.is_some() {
         let has_constraint_siblings = obj.keys().any(|key| {
@@ -578,24 +632,20 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
         }
     }
 
-    let prop_type = obj.get(keywords::TYPE).map(|v| match v {
-        serde_json::Value::String(s) => PropType::Single(s.clone()),
-        serde_json::Value::Array(a) => PropType::Multi(a.iter().filter_map(|v| v.as_str().map(String::from)).collect()),
-        _ => PropType::Single("string".into()),
-    });
+    let prop_type = obj.get(keywords::TYPE).map(compile_prop_type);
     let mut sub_props = BTreeMap::new();
     if let Some(p) = obj.get(keywords::PROPERTIES).and_then(|v| v.as_object()) {
         for (k, v) in p {
-            sub_props.insert(k.clone(), compile_prop(v));
+            sub_props.insert(k.clone(), compile_prop_with(v, ref_siblings));
         }
     }
     let mut pat_props = BTreeMap::new();
     if let Some(p) = obj.get(keywords::PATTERN_PROPERTIES).and_then(|v| v.as_object()) {
         for (k, v) in p {
-            pat_props.insert(k.clone(), compile_prop(v));
+            pat_props.insert(k.clone(), compile_prop_with(v, ref_siblings));
         }
     }
-    let items = obj.get(keywords::ITEMS).map(|v| Box::new(compile_prop(v)));
+    let items = obj.get(keywords::ITEMS).map(|v| Box::new(compile_prop_with(v, ref_siblings)));
 
     // Compile draft-07 `dependencies` array-form into dependent_required.
     let mut dep_req = str_map(obj.get(keywords::DEPENDENT_REQUIRED).cloned().as_ref());
@@ -620,7 +670,7 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
     // Compile direct if/then/else at property level.
     let mut if_then_else = Vec::new();
     if obj.get(keywords::IF).is_some()
-        && let Some(ite) = compile_if_then_else(raw)
+        && let Some(ite) = compile_if_then_else(raw, ref_siblings)
     {
         if_then_else.push(ite);
     }
@@ -630,11 +680,11 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
     if let Some(arr) = obj.get(keywords::ALL_OF).and_then(|v| v.as_array()) {
         for item in arr {
             if item.get(keywords::IF).is_some() {
-                if let Some(ite) = compile_if_then_else(item) {
+                if let Some(ite) = compile_if_then_else(item, ref_siblings) {
                     if_then_else.push(ite);
                 }
             } else {
-                all_of_branches.push(compile_sub(item));
+                all_of_branches.push(compile_sub(item, ref_siblings));
             }
         }
     }
@@ -680,23 +730,23 @@ fn compile_prop(raw: &serde_json::Value) -> PropSchema {
         pattern_properties: pat_props,
         items,
         all_of: all_of_branches,
-        any_of: compile_subs(obj.get(keywords::ANY_OF).cloned().as_ref()),
-        one_of: compile_subs(obj.get(keywords::ONE_OF).cloned().as_ref()),
+        any_of: compile_subs(obj.get(keywords::ANY_OF).cloned().as_ref(), ref_siblings),
+        one_of: compile_subs(obj.get(keywords::ONE_OF).cloned().as_ref(), ref_siblings),
         if_then_else,
         dependent_required: dep_req,
         dependent_excluded: str_map(obj.get(keywords::DEPENDENT_EXCLUDED).cloned().as_ref()),
     }
 }
 
-fn compile_sub(raw: &serde_json::Value) -> SubSchema {
-    compile_prop(raw)
+fn compile_sub(raw: &serde_json::Value, ref_siblings: RefSiblings) -> SubSchema {
+    compile_prop_with(raw, ref_siblings)
 }
 
-fn compile_subs(val: Option<&serde_json::Value>) -> Vec<SubSchema> {
+fn compile_subs(val: Option<&serde_json::Value>, ref_siblings: RefSiblings) -> Vec<SubSchema> {
     let Some(arr) = val.and_then(|v| v.as_array()) else {
         return Vec::new();
     };
-    arr.iter().map(compile_sub).collect()
+    arr.iter().map(|entry| compile_sub(entry, ref_siblings)).collect()
 }
 
 fn str_arr(val: Option<&serde_json::Value>) -> Vec<String> {
@@ -875,20 +925,23 @@ mod tests {
     fn compile_sub_compiles_all_prop_schema_fields() {
         // compile_sub delegates to compile_prop, so a composition branch
         // can carry every constraint a property can.
-        let sub = compile_sub(&json!({
-            "required": ["A"],
-            "properties": { "P": { "type": "string" } },
-            "additionalProperties": false,
-            "dependentRequired": { "A": ["B"] },
-            "dependentExcluded": { "C": ["D"] },
-            "type": "object",
-            "enum": ["x"],
-            "pattern": "^a",
-            "minimum": 1.0,
-            "multipleOf": 5.0,
-            "minLength": 2,
-            "anyOf": [{ "required": ["Z"] }]
-        }));
+        let sub = compile_sub(
+            &json!({
+                "required": ["A"],
+                "properties": { "P": { "type": "string" } },
+                "additionalProperties": false,
+                "dependentRequired": { "A": ["B"] },
+                "dependentExcluded": { "C": ["D"] },
+                "type": "object",
+                "enum": ["x"],
+                "pattern": "^a",
+                "minimum": 1.0,
+                "multipleOf": 5.0,
+                "minLength": 2,
+                "anyOf": [{ "required": ["Z"] }]
+            }),
+            RefSiblings::Enforce,
+        );
         assert_eq!(sub.required, vec!["A".to_string()]);
         assert!(sub.properties.contains_key("P"));
         assert_eq!(sub.additional_properties, Some(false));
@@ -907,17 +960,22 @@ mod tests {
     fn compile_condition_schema_fields_matches_behavior() {
         // Every keyword listed in COMPILE_CONDITION_SCHEMA_FIELDS must produce a
         // non-default ConditionSchema when supplied.
-        let cond = compile_condition_schema(&json!({
-            "properties": { "A": { "enum": ["x"] } },
-            "required": ["A"],
-            "anyOf": [{ "properties": { "B": { "enum": ["y"] } } }]
-        }));
+        let cond = compile_condition_schema(
+            &json!({
+                "properties": { "A": { "enum": ["x"] } },
+                "required": ["A"],
+                "type": "object",
+                "anyOf": [{ "properties": { "B": { "enum": ["y"] } } }]
+            }),
+            RefSiblings::Enforce,
+        );
         assert!(cond.properties.contains_key("A"));
         assert_eq!(cond.required, vec!["A".to_string()]);
         assert_eq!(cond.any_of.len(), 1);
+        assert!(cond.prop_type.is_some(), "the condition's type must be compiled");
         assert_eq!(
             keywords::COMPILE_CONDITION_SCHEMA_FIELDS,
-            &[keywords::PROPERTIES, keywords::REQUIRED, keywords::ANY_OF]
+            &[keywords::PROPERTIES, keywords::REQUIRED, keywords::TYPE, keywords::ANY_OF]
         );
     }
 
@@ -1055,5 +1113,60 @@ mod tests {
             }),
         );
         assert!(compiled_prop.properties["Map"].pattern_properties.contains_key("^k$"));
+    }
+
+    #[test]
+    fn ref_siblings_enforce_keeps_constraints_beside_a_ref() {
+        let compiled = compile_schema_with(
+            "AWS::Test::T",
+            &json!({
+                "properties": { "P": { "$ref": "#/definitions/D", "maxLength": 3, "pattern": "^a" } },
+                "definitions": { "D": { "type": "string" } }
+            }),
+            RefSiblings::Enforce,
+        );
+        let prop = &compiled.properties["P"];
+        assert_eq!(prop.ref_name.as_deref(), Some("D"));
+        assert_eq!(prop.max_length, Some(3), "Enforce must keep constraint siblings");
+        assert_eq!(prop.pattern.as_deref(), Some("^a"));
+    }
+
+    #[test]
+    fn ref_siblings_ignore_drops_everything_beside_a_ref() {
+        // Draft-07 — the dialect the CloudFormation registry validates with —
+        // ignores keywords beside a `$ref`. The build pipeline compiles bundled
+        // schemas this way so the engine never enforces more than
+        // CloudFormation's own contract.
+        let compiled = compile_schema_with(
+            "AWS::Test::T",
+            &json!({
+                "properties": {
+                    "P": { "$ref": "#/definitions/D", "maxLength": 3, "pattern": "^a" },
+                    "Q": { "$ref": "not-a-definitions-ref", "maxLength": 3 }
+                },
+                "definitions": { "D": { "type": "string" } }
+            }),
+            RefSiblings::Ignore,
+        );
+        let prop = &compiled.properties["P"];
+        assert_eq!(prop.ref_name.as_deref(), Some("D"));
+        assert_eq!(prop.max_length, None, "Ignore must drop constraint siblings");
+        assert_eq!(prop.pattern, None);
+        let unresolvable = &compiled.properties["Q"];
+        assert_eq!(unresolvable.ref_name, None);
+        assert_eq!(
+            unresolvable.max_length, None,
+            "a $ref outside definitions compiles to an unconstrained property under Ignore, matching the \
+             historical bundled artifact"
+        );
+    }
+
+    #[test]
+    fn condition_schema_type_is_compiled() {
+        let cond = compile_condition_schema(&json!({ "type": "object", "required": ["A"] }), RefSiblings::Enforce);
+        match cond.prop_type.as_ref().expect("the condition's type must be compiled") {
+            PropType::Single(name) => assert_eq!(name, "object"),
+            PropType::Multi(names) => panic!("expected a single type, got {names:?}"),
+        }
     }
 }

@@ -21,7 +21,8 @@
 //! | Field kind | Rule |
 //! |------------|------|
 //! | Keyed collections — `properties`, `definitions`, `patternProperties` | deep-merged by key: new keys are added, shared keys recurse |
-//! | Independent-fact collections — `required`, the `/properties/...` lifecycle metadata lists, and each key of `dependentRequired`/`dependentExcluded` | unioned, order-preserving, deduplicated |
+//! | `required` | replaced when the overlay states the keyword (even as `[]` — that is how a requirement is cleared, and a removal is logged); unioned into the base when the keyword is omitted |
+//! | Independent-fact collections — the `/properties/...` lifecycle metadata lists, and each key of `dependentRequired`/`dependentExcluded` | unioned, order-preserving, deduplicated |
 //! | Single-valued constraints — `type`, `pattern`, `const`, numeric bounds, lengths, item and property counts, `uniqueItems`, `format`, `description`, `additionalProperties`, `not.enum` | replaced when the overlay supplies them, inherited otherwise |
 //! | Logical groups — `requiredOr`, `requiredXor`, `primaryIdentifier` | replaced as a whole when supplied. Each is *one* group ("at least one of", "exactly one of", "these properties identify the resource"), so unioning two groups would fabricate a third constraint that neither schema states |
 //! | Composition — `allOf`/`anyOf`/`oneOf`/`if`-`then`-`else` | replaced when supplied, because a complete overlay restates the whole composition and appending would duplicate branches. `allOf` splits into plain and conditional entries during compilation, so an overlay supplying `allOf` replaces both halves together |
@@ -52,13 +53,14 @@
 //!
 //! # Scope limits
 //!
-//! - An overlay cannot make a bundled `required` property optional, and cannot
-//!   remove an entry from a metadata list — those collections only ever grow.
-//! - Composition entries are accepted only for the subset the runtime evaluates:
-//!   plain branches may state `required`, `dependentRequired`, and
-//!   `dependentExcluded`; conditional `then`/`else` branches may state the two
-//!   dependency maps. Other composition constraints are rejected rather than
-//!   compiled into a weaker schema.
+//! - An overlay cannot remove an entry from a lifecycle metadata list — those
+//!   collections only ever grow. `required` is the one collection with
+//!   replacement semantics (below), and any requirement a replacement removes
+//!   is logged.
+//! - Composition entries (`allOf`/`anyOf`/`oneOf` branches) are full property
+//!   schemas: branch `required`, `additionalProperties`, dependency maps, value
+//!   constraints, and nested conditionals are all evaluated when the branch is
+//!   matched or (for a selected `then`/`else` branch) enforced.
 //! - Constructs the compiled model does not represent — a `$ref` outside
 //!   `#/definitions/`, tuple-form `items`, an unknown property type, malformed
 //!   keyword values, or invalid regular expressions — are rejected.
@@ -69,7 +71,10 @@
 //! - Constraint siblings beside a `$ref` are accepted when they have a compiled
 //!   representation (e.g. `pattern`, `maxLength`, `enum`). Only genuinely
 //!   unrepresented keywords are rejected. Annotation-only siblings
-//!   (`description`, `title`) are always accepted.
+//!   (`description`, `title`) are always accepted. Bundled schemas are compiled
+//!   with draft-07 `$ref` evaluation instead (siblings ignored), so the engine
+//!   never enforces more than CloudFormation's own contract on them; an overlay
+//!   author states siblings deliberately and gets them enforced.
 //! - `enum` and `enumCaseInsensitive` are one field in two comparison modes; an
 //!   overlay cannot switch a property the service treats case-insensitively over
 //!   to case-sensitive comparison, because doing so would reject casings that
@@ -166,15 +171,17 @@ const COMPOSITION_ALLOWED_FIELDS: &[&str] = &[
     keywords::DEPENDENCIES,
 ];
 
-/// Fields the current conditional matcher evaluates on the `if` schema itself.
+/// Fields the conditional matcher evaluates on the `if` schema itself.
 ///
-/// This is a strict subset of [`keywords::COMPILE_CONDITION_SCHEMA_FIELDS`]:
-/// `compile_condition_schema` also reads `anyOf` for nested condition schemas,
-/// but the overlay preflight rejects `anyOf` in an overlay condition because the
-/// nested-condition path is not reachable from caller-supplied schemas.
+/// `type` on the `if` schema constrains the instance type: the evaluation
+/// point is always a property object, so `"object"` is a no-op and any other
+/// type makes the condition unsatisfiable there.
 const CONDITION_ALLOWED_FIELDS: [&str; 3] = [keywords::PROPERTIES, keywords::REQUIRED, keywords::TYPE];
 
 /// Fields `condition_matches` evaluates for a property named by an `if` schema.
+/// Every listed field participates in matching: value constraints
+/// (`enum`/`not`/`const`/`pattern`/`type`), nested `required`, and the
+/// length/count bounds (each scoped to its instance type per draft-07).
 const CONDITION_PROPERTY_ALLOWED_FIELDS: [&str; 13] = [
     keywords::REF,
     keywords::TYPE,
@@ -237,6 +244,10 @@ pub enum SchemaOverlayError {
     /// A property ended up with both enum representations populated, which the
     /// compiled model forbids.
     ConflictingEnums { type_name: String, property: String },
+    /// After the whole overlay sequence was applied, a `$ref` still points at a
+    /// definition the schema does not contain, so the property it sits on
+    /// validates nothing.
+    DanglingRef { type_name: String, path: String, target: String },
 }
 
 impl fmt::Display for SchemaOverlayError {
@@ -281,6 +292,11 @@ impl fmt::Display for SchemaOverlayError {
                 f,
                 "Invalid additional schema for '{type_name}': property '{property}' would carry both a case-sensitive \
                  and a case-insensitive list of allowed values"
+            ),
+            SchemaOverlayError::DanglingRef { type_name, path, target } => write!(
+                f,
+                "Invalid additional schema for '{type_name}': after every overlay was applied, '{path}' still \
+                 references '#/definitions/{target}', which no overlay defines, so nothing would constrain it"
             ),
         }
     }
@@ -342,10 +358,51 @@ pub(crate) fn compile(type_name: &str, raw: &Value) -> Result<CompiledSchema, Sc
     // Propagate required_present into property-level and definition-level schemas
     // where `required` was explicitly stated in their source objects.
     propagate_required_present(raw, &mut compiled);
+    // Conditionals an overlay author states are enforced in full — no dedicated
+    // rule covers them, unlike bundled conditionals (see
+    // `IfThenElse::enforce_full_branch`).
+    mark_conditionals_for_full_enforcement(&mut compiled);
     if states_nothing(&compiled) {
         return Err(SchemaOverlayError::NoEffect { type_name: type_name.to_string() });
     }
     Ok(compiled)
+}
+
+/// Marks every conditional in the compiled overlay — at the schema root, on
+/// properties and definitions at any nesting depth, and inside composition
+/// branches — for full branch enforcement.
+fn mark_conditionals_for_full_enforcement(schema: &mut CompiledSchema) {
+    for ite in &mut schema.if_then_else {
+        mark_ite(ite);
+    }
+    for prop in schema.properties.values_mut().chain(schema.definitions.values_mut()) {
+        mark_prop_conditionals(prop);
+    }
+    for branch in schema.all_of.iter_mut().chain(schema.any_of.iter_mut()).chain(schema.one_of.iter_mut()) {
+        mark_prop_conditionals(branch);
+    }
+}
+
+fn mark_ite(ite: &mut crate::compiled::IfThenElse) {
+    ite.enforce_full_branch = true;
+    for branch in ite.then_schema.iter_mut().chain(ite.else_schema.iter_mut()) {
+        mark_prop_conditionals(branch);
+    }
+}
+
+fn mark_prop_conditionals(prop: &mut PropSchema) {
+    for ite in &mut prop.if_then_else {
+        mark_ite(ite);
+    }
+    for child in prop.properties.values_mut().chain(prop.pattern_properties.values_mut()) {
+        mark_prop_conditionals(child);
+    }
+    if let Some(items) = prop.items.as_mut() {
+        mark_prop_conditionals(items);
+    }
+    for branch in prop.all_of.iter_mut().chain(prop.any_of.iter_mut()).chain(prop.one_of.iter_mut()) {
+        mark_prop_conditionals(branch);
+    }
 }
 
 /// Whether a compiled overlay carries no information that would affect
@@ -424,6 +481,7 @@ fn propagate_required_present(raw: &Value, compiled: &mut CompiledSchema) {
             compiled.required_present = true;
         }
         mark_prop_map(raw.get(keywords::PROPERTIES), &mut compiled.properties);
+        mark_prop_map(raw.get(keywords::PATTERN_PROPERTIES), &mut compiled.pattern_properties);
         if let Some(raw_items) = raw.get(keywords::ITEMS)
             && let Some(compiled_items) = compiled.items.as_mut()
         {
@@ -927,23 +985,20 @@ fn reject_direct_if_then_else(
     for keyword in keywords::CONDITIONALS {
         if members.contains_key(*keyword) && !members.contains_key(keywords::REF) {
             // Direct if/then/else is supported at property level (compiled into
-            // if_then_else), and inside allOf entries. Only reject at the
-            // schema root level where it cannot be compiled into a property.
-            if path.is_empty() && !members.contains_key(keywords::ALL_OF) {
-                // Root-level standalone conditional — only valid inside an
-                // allOf entry or when allOf is also present at root (which the
-                // standard compile_schema handles).
-                let in_allof_entry = false;
-                if !in_allof_entry {
-                    return Err(SchemaOverlayError::Unsupported {
-                        type_name: type_name.to_string(),
-                        path: path.to_string(),
-                        detail: format!(
-                            "standalone '{keyword}' is not supported at the root level outside allOf entries; \
-                             place conditional logic inside an allOf array or at property level"
-                        ),
-                    });
-                }
+            // if_then_else) and inside allOf entries. At the schema root the
+            // compiler only reads conditionals from inside `allOf`, so a
+            // root-level standalone conditional would be silently dropped — a
+            // sibling `allOf` key does not move the root conditional into that
+            // array.
+            if path.is_empty() {
+                return Err(SchemaOverlayError::Unsupported {
+                    type_name: type_name.to_string(),
+                    path: path.to_string(),
+                    detail: format!(
+                        "standalone '{keyword}' is not supported at the root level; place conditional logic \
+                         inside an allOf array or at property level"
+                    ),
+                });
             }
         }
     }
@@ -1105,6 +1160,76 @@ fn find_ref_chain_defect(defs: &HashMap<String, PropSchema>) -> Option<RefChainD
     None
 }
 
+/// Logs every requirement that merging `merged` over `base` removed.
+///
+/// An overlay that states `required` replaces the base's list at that schema
+/// level; a complete provider schema does this deliberately, while a partial
+/// overlay that restates `required` does it by accident. Either way a bundled
+/// constraint disappearing is worth saying out loud — silently weakening the
+/// schema is the failure mode this module exists to prevent.
+pub(crate) fn warn_removed_required(base: &CompiledSchema, merged: &CompiledSchema) {
+    for (path, removed) in removed_required(base, merged) {
+        let location = if path.is_empty() { "the resource".to_string() } else { format!("'{path}'") };
+        warn!(
+            "Additional schema for '{}': the stated 'required' list removes {} from {location}. An overlay that \
+             states 'required' replaces the previous list; omit the keyword to keep it.",
+            merged.type_name,
+            removed.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(", "),
+        );
+    }
+}
+
+/// Every `(path, removed names)` pair where `merged` requires less than `base`
+/// at the same schema position. Paths are sorted so repeated runs report
+/// identically.
+pub(crate) fn removed_required(base: &CompiledSchema, merged: &CompiledSchema) -> Vec<(String, Vec<String>)> {
+    let mut removals: Vec<(String, Vec<String>)> = Vec::new();
+    collect_removed(String::new(), &base.required, &merged.required, &mut removals);
+
+    let mut stack: Vec<(String, &PropSchema, &PropSchema)> = Vec::new();
+    push_shared_children(String::new(), &base.properties, &merged.properties, &mut stack);
+    push_shared_children("definitions".to_string(), &base.definitions, &merged.definitions, &mut stack);
+    while let Some((path, before, after)) = stack.pop() {
+        collect_removed(path.clone(), &before.required, &after.required, &mut removals);
+        push_shared_children(path.clone(), &before.properties, &after.properties, &mut stack);
+        push_shared_children(
+            format!("{path}<patternProperties>"),
+            &before.pattern_properties,
+            &after.pattern_properties,
+            &mut stack,
+        );
+        if let (Some(before_items), Some(after_items)) = (&before.items, &after.items) {
+            stack.push((format!("{path}[]"), before_items, after_items));
+        }
+    }
+
+    removals.sort();
+    removals
+}
+
+/// Records the names present in `before` but missing from `after`.
+fn collect_removed(path: String, before: &[String], after: &[String], out: &mut Vec<(String, Vec<String>)>) {
+    let removed: Vec<String> = before.iter().filter(|name| !after.contains(name)).cloned().collect();
+    if !removed.is_empty() {
+        out.push((path, removed));
+    }
+}
+
+/// Pushes every key the base and merged maps share, pairing the two sides.
+fn push_shared_children<'a>(
+    path: String,
+    before: &'a HashMap<String, PropSchema>,
+    after: &'a HashMap<String, PropSchema>,
+    stack: &mut Vec<(String, &'a PropSchema, &'a PropSchema)>,
+) {
+    for (name, before_prop) in before {
+        if let Some(after_prop) = after.get(name) {
+            let child_path = if path.is_empty() { name.clone() } else { format!("{path}.{name}") };
+            stack.push((child_path, before_prop, after_prop));
+        }
+    }
+}
+
 /// Logs every `$ref` pointing at a definition the schema does not contain.
 ///
 /// Such a property carries no constraints at all, so a mistyped definition name
@@ -1112,6 +1237,23 @@ fn find_ref_chain_defect(defs: &HashMap<String, PropSchema>) -> Option<RefChainD
 /// rejection because overlays apply in sequence, and an earlier one may reference a
 /// definition a later one supplies.
 pub(crate) fn warn_dangling_refs(schema: &CompiledSchema) {
+    for (path, target) in find_dangling_refs(schema) {
+        warn!(
+            "Additional schema for '{}': '{path}' references '#/definitions/{target}', which the schema does \
+             not define, so nothing constrains it (a later overlay may still supply the definition).",
+            schema.type_name
+        );
+    }
+}
+
+/// Every `(path, target)` pair where a `$ref` points at a definition the schema
+/// does not contain, sorted for deterministic reporting.
+///
+/// Walked per overlay for a warning (a later overlay in the sequence may supply
+/// the definition) and again after the whole sequence, where a survivor is
+/// rejected — a property referencing nothing validates nothing, which is the
+/// silent weakening this module exists to prevent.
+pub(crate) fn find_dangling_refs(schema: &CompiledSchema) -> Vec<(String, String)> {
     let mut dangling: Vec<(String, String)> = Vec::new();
     let mut stack: Vec<(String, &PropSchema)> =
         schema.properties.iter().chain(schema.definitions.iter()).map(|(name, prop)| (name.clone(), prop)).collect();
@@ -1148,13 +1290,7 @@ pub(crate) fn warn_dangling_refs(schema: &CompiledSchema) {
         }
     }
     dangling.sort();
-    for (path, target) in dangling {
-        warn!(
-            "Additional schema for '{}': '{path}' references '#/definitions/{target}', which the schema does \
-             not define, so nothing constrains it.",
-            schema.type_name
-        );
-    }
+    dangling
 }
 
 /// Helper: push condition schema properties onto the traversal stack.
@@ -1202,6 +1338,8 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
     // An overlay that explicitly states `required` (even as `[]`) authoritatively
     // replaces the prior required list — this is how an overlay clears required
     // properties. Omitting `required` from the overlay preserves the base.
+    // `apply_overlay` reports any requirement a replacement removes, so a
+    // partial overlay that restates `required` carelessly is called out.
     if overlay.required_present {
         base.required = overlay.required;
     } else {
@@ -1214,9 +1352,12 @@ pub(crate) fn merge_into(base: &mut CompiledSchema, overlay: CompiledSchema) {
     replace_if_some(&mut base.source_url, overlay.source_url);
     replace_if_some(&mut base.description, overlay.description);
 
-    // Property-path metadata lists are sets of independent facts, each one driving
-    // its own diagnostic, so they are unioned: an overlay that names one more
-    // deprecated property must not delete the bundled deprecations.
+    // Property-path metadata lists only ever grow: an overlay that names one
+    // more deprecated property must not delete the bundled deprecations.
+    // `write_only`/`create_only`/`deprecated` drive their own diagnostics;
+    // `read_only` and the primary identifier feed the overlay catalog (GetAtt
+    // and Ref metadata for the rule engines); `conditional_create_only` is
+    // carried for completeness and has no runtime consumer today.
     union_extend(&mut base.read_only_properties, overlay.read_only_properties);
     union_extend(&mut base.write_only_properties, overlay.write_only_properties);
     union_extend(&mut base.create_only_properties, overlay.create_only_properties);
@@ -1272,13 +1413,14 @@ fn merge_definitions(base: &mut HashMap<String, PropSchema>, overlay: HashMap<St
 
 /// Deep-merge an overlay property schema into an existing one in place.
 pub(crate) fn merge_prop(base: &mut PropSchema, overlay: PropSchema) {
-    // An overlay that supplies a `$ref` updates the reference target but
-    // preserves the base's existing inline constraints. This lets an overlay
-    // redirect a property to a different definition without discarding the
-    // constraints the bundled schema already carries (e.g. pattern, maxLength).
+    let mut overlay = overlay;
+    // An overlay that supplies a `$ref` updates the reference target, and its
+    // remaining fields merge normally below — constraint siblings the overlay
+    // states beside its reference are preserved, not discarded. The base's
+    // existing inline constraints also survive, so redirecting a reference
+    // never silently weakens the property.
     if overlay.ref_name.is_some() {
-        base.ref_name = overlay.ref_name;
-        return;
+        base.ref_name = overlay.ref_name.take();
     }
     if is_no_op(&overlay) {
         return;
@@ -2630,5 +2772,84 @@ mod tests {
             "properties": { "A": { "type": "string" } }
         }));
         assert!(!overlay.required_present, "required_present must not be set when source omits 'required'");
+    }
+
+    #[test]
+    fn required_present_propagates_into_pattern_properties() {
+        // `required` stated inside a patternProperties value schema must carry
+        // the same replacement semantics as every other schema position.
+        let mut base = compiled(json!({
+            "properties": {
+                "Map": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^k$": { "type": "object", "required": ["A", "B"] }
+                    }
+                }
+            }
+        }));
+        merge_into(
+            &mut base,
+            compiled(json!({
+                "properties": {
+                    "Map": { "patternProperties": { "^k$": { "required": ["A"] } } }
+                }
+            })),
+        );
+        assert_eq!(
+            base.properties["Map"].pattern_properties["^k$"].required,
+            vec!["A".to_string()],
+            "a stated required inside patternProperties must replace, not union"
+        );
+    }
+
+    #[test]
+    fn removed_required_reports_every_position_deterministically() {
+        let base = compiled(json!({
+            "properties": {
+                "Cfg": { "type": "object", "required": ["Inner", "Kept"] },
+                "List": { "type": "array", "items": { "type": "object", "required": ["Elem"] } },
+                "Map": { "type": "object", "patternProperties": { "^k$": { "required": ["P"] } } }
+            },
+            "required": ["Cfg", "List"]
+        }));
+        let mut merged = base.clone();
+        merge_into(
+            &mut merged,
+            compiled(json!({
+                "properties": {
+                    "Cfg": { "required": ["Kept"] },
+                    "List": { "items": { "required": [] } },
+                    "Map": { "patternProperties": { "^k$": { "required": [] } } }
+                },
+                "required": ["Cfg"]
+            })),
+        );
+        let removals = removed_required(&base, &merged);
+        assert_eq!(
+            removals,
+            vec![
+                (String::new(), vec!["List".to_string()]),
+                ("Cfg".to_string(), vec!["Inner".to_string()]),
+                ("List[]".to_string(), vec!["Elem".to_string()]),
+                ("Map<patternProperties>.^k$".to_string(), vec!["P".to_string()]),
+            ],
+            "every removal must be reported with its schema position, in sorted order"
+        );
+    }
+
+    #[test]
+    fn removed_required_is_empty_when_nothing_is_removed() {
+        let base = compiled(json!({ "properties": { "A": { "type": "string" } }, "required": ["A"] }));
+        let mut merged = base.clone();
+        merge_into(
+            &mut merged,
+            compiled(json!({ "properties": { "B": { "type": "string" } }, "required": ["A", "B"] })),
+        );
+        assert!(removed_required(&base, &merged).is_empty(), "adding a requirement is not a removal");
+
+        let mut unioned = base.clone();
+        merge_into(&mut unioned, compiled(json!({ "properties": { "B": { "type": "string" } } })));
+        assert!(removed_required(&base, &unioned).is_empty(), "an omitted 'required' keeps the base list");
     }
 }

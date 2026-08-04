@@ -8,6 +8,7 @@
 //! filesystem access. Host layers (CLI, language bindings) read files and
 //! populate the struct before passing it in.
 
+use crate::compiled_schema::keywords;
 use serde::{Deserialize, Serialize};
 
 /// Error type for schema source resolution failures. Deliberately cheap to
@@ -77,7 +78,7 @@ impl AdditionalSchemaSource {
                 "Invalid additional schema for '{label}': type name has leading or trailing whitespace"
             )));
         }
-        let in_schema = match schema.get("typeName") {
+        let in_schema = match schema.get(keywords::TYPE_NAME) {
             Some(value) => {
                 let declared = value.as_str().ok_or_else(|| {
                     SchemaSourceError(format!("Invalid additional schema for '{label}': 'typeName' must be a string"))

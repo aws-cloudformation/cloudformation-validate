@@ -32,10 +32,11 @@ impl From<build::PropType> for PropType {
 
 impl From<build::ConditionSchema> for ConditionSchema {
     fn from(source: build::ConditionSchema) -> Self {
-        let build::ConditionSchema { properties, required, any_of } = source;
+        let build::ConditionSchema { properties, required, prop_type, any_of } = source;
         ConditionSchema {
             properties: props(properties),
             required,
+            prop_type: prop_type.map(Into::into),
             any_of: any_of.into_iter().map(Into::into).collect(),
         }
     }
@@ -48,6 +49,10 @@ impl From<build::IfThenElse> for IfThenElse {
             condition: condition.into(),
             then_schema: then_schema.map(Into::into),
             else_schema: else_schema.map(Into::into),
+            // The overlay layer marks its conditionals for full branch
+            // enforcement after conversion; anything else stays
+            // dependencies-only (see `IfThenElse::enforce_full_branch`).
+            enforce_full_branch: false,
         }
     }
 }

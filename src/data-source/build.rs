@@ -58,11 +58,13 @@ const GENERATED_JSON: &[(&str, &str)] = &[
 /// Handwritten JSON data files (from data-source/handwritten/). These have no
 /// faithful cfn-lint source: deprecated_resource_types and sensitive_ports are
 /// engine-specific, getatt_return_type_overrides corrects CloudFormation's
-/// GetAtt stringification (consumed at generate time, not embedded).
+/// GetAtt stringification (consumed at generate time, and embedded so runtime
+/// overlay-derived GetAtt/Ref metadata preserves the same corrections).
 const HANDWRITTEN_JSON: &[(&str, &str)] = &[
     ("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"),
     ("sensitive_ports", "SENSITIVE_PORTS"),
     ("secretsmanager_arn_fields", "SECRETSMANAGER_ARN_FIELDS"),
+    ("getatt_return_type_overrides", "GETATT_RETURN_TYPE_OVERRIDES"),
 ];
 
 fn main() {

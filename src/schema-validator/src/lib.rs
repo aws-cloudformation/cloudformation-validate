@@ -213,6 +213,18 @@ impl SchemaValidator {
             }
             applied += 1;
         }
+        // Forward references are tolerated while the sequence applies — an
+        // earlier overlay may reference a definition a later one supplies. A
+        // reference still dangling after the final overlay can never resolve,
+        // so the property carrying it would validate nothing: rejected rather
+        // than left as a silent no-op.
+        for type_name in &type_names {
+            if let Some(schema) = store.get(type_name)
+                && let Some((path, target)) = overlay::find_dangling_refs(schema).into_iter().next()
+            {
+                return Err(SchemaOverlayError::DanglingRef { type_name: type_name.clone(), path, target });
+            }
+        }
         let catalog = OverlayCatalog::from_store(&store, &type_names);
         Ok(Self::finish(store, catalog, applied, start))
     }

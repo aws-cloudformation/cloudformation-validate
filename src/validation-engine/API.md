@@ -110,13 +110,15 @@ cannot enforce. Annotations beside a `$ref` are accepted; constraining siblings 
 ignore them. Apply a separate overlay to the property or referenced definition instead.
 
 **Merge model.** An overlay may add entries to a collection and restate a single-valued constraint or a logical group;
-it never silently drops a constraint the bundled schema carries. Adding to `required` or to a dependency list states a
-constraint, so it can legitimately produce a finding on a template that violates it.
+a bundled constraint never disappears silently — the one merge that can remove entries (`required` replacement) logs
+every removal. Adding to `required` or to a dependency list states a constraint, so it can legitimately produce a
+finding on a template that violates it.
 
 | Field kind | Rule |
 |------------|------|
 | `properties`, `definitions`, `patternProperties` | deep-merged by key |
-| `required`, `/properties/...` lifecycle metadata lists, each `dependentRequired`/`dependentExcluded` key | unioned |
+| `required` | replaced when the overlay states the keyword (even as `[]`, which clears it — removals are logged); unioned when the keyword is omitted |
+| `/properties/...` lifecycle metadata lists, each `dependentRequired`/`dependentExcluded` key | unioned |
 | single-valued constraints (`type`, `pattern`, bounds, lengths, `uniqueItems`, `format`, `additionalProperties`, …) | replaced when supplied |
 | `requiredOr`, `requiredXor`, `primaryIdentifier` | replaced as a whole group when supplied |
 | `allOf`/`anyOf`/`oneOf`/`if`-`then`-`else` | replaced when supplied |
@@ -131,12 +133,14 @@ constraint-only overlay therefore applies, chains are followed to their end, and
 still reaches every property referencing it. A chain longer than the resolver can follow is rejected rather than cut
 short. Overlays for one type apply in order.
 
-**Scope limits.** An overlay cannot make a bundled `required` property optional or remove a metadata entry, and cannot
-switch a case-insensitive enum to case-sensitive comparison. Runtime composition is limited to the fields the compiled
-validator faithfully enforces; unsupported branches and validation keywords are rejected. Conditional constraints from
-the separate build-time extension artifact remain independently enforced. Overlay-derived type, GetAtt, Ref, primary
-identifier, and schema metadata catalogs are propagated to both engines; regional availability and enum snapshots remain
-bundled.
+**Scope limits.** An overlay cannot remove a lifecycle metadata entry, and cannot switch a case-insensitive enum to
+case-sensitive comparison. An overlay that states `required` replaces the prior list at that schema level (removals
+are logged); omitting the keyword preserves the base. Composition branches are full property schemas and are
+evaluated in full — branch `required`, dependency maps, value constraints, and nested `if`/`then`/`else` all
+participate in matching, and a selected conditional branch is enforced. Unrepresentable constructs and validation
+keywords are rejected. Conditional constraints from the separate build-time extension artifact remain independently
+enforced. Overlay-derived type, GetAtt, Ref, primary identifier, and schema metadata catalogs are propagated to both
+engines; regional availability and enum snapshots remain bundled.
 
 ## Configuring Validation
 

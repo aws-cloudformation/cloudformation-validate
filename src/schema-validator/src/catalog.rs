@@ -10,6 +10,36 @@
 use crate::compiled::{CompiledSchema, PropSchema};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
+
+/// Hand-maintained corrections for the type `Fn::GetAtt` actually returns
+/// where it differs from the raw schema property type (CloudFormation
+/// stringifies many GetAtt values). Applied after every runtime derivation so
+/// an overlay touching a corrected type cannot regress the correction the
+/// build pipeline bakes into the bundled artifacts.
+pub(crate) static GETATT_RETURN_TYPE_OVERRIDES: LazyLock<HashMap<String, HashMap<String, String>>> =
+    LazyLock::new(|| {
+        serde_json::from_slice::<serde_json::Value>(&data_source::embedded::GETATT_RETURN_TYPE_OVERRIDES_BYTES)
+            .ok()
+            .and_then(|value| {
+                value
+                    .get("getatt_return_type_overrides")
+                    .and_then(|overrides| serde_json::from_value(overrides.clone()).ok())
+            })
+            .unwrap_or_default()
+    });
+
+/// Applies the hand-maintained GetAtt return-type corrections for `type_name`
+/// over a freshly derived attribute-type map.
+pub(crate) fn apply_getatt_return_type_overrides(type_name: &str, attr_types: &mut HashMap<String, String>) {
+    if let Some(corrections) = GETATT_RETURN_TYPE_OVERRIDES.get(type_name) {
+        for (attribute, return_type) in corrections {
+            if attr_types.contains_key(attribute) {
+                attr_types.insert(attribute.clone(), return_type.clone());
+            }
+        }
+    }
+}
 
 /// Catalog of rule-engine metadata for overlaid resource types.
 ///
@@ -112,8 +142,11 @@ impl OverlayCatalog {
             }
 
             // GetAtt attribute types: ALL top-level properties plus full-path
-            // readOnly attributes where type is resolvable
-            let attr_types = derive_getatt_attribute_types(schema, &attrs);
+            // readOnly attributes where type is resolvable, with the
+            // hand-maintained return-type corrections applied last so an
+            // overlay cannot regress them.
+            let mut attr_types = derive_getatt_attribute_types(schema, &attrs);
+            apply_getatt_return_type_overrides(type_name, &mut attr_types);
             if !attr_types.is_empty() {
                 getatt_attribute_types.insert(type_name.clone(), attr_types);
             }

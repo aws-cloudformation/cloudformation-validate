@@ -682,45 +682,71 @@ fn a_chain_at_the_resolution_limit_is_accepted_and_enforced() {
 }
 
 #[test]
-fn a_reference_to_a_missing_definition_is_accepted_and_constrains_nothing() {
-    // Overlays apply in sequence, so a reference may point at a definition a later
-    // overlay supplies; the schema is accepted and the property is unconstrained
-    // until then. The condition is logged rather than silently ignored.
-    let sv = validator(vec![(
+fn a_reference_still_dangling_after_the_final_overlay_is_rejected() {
+    // A property referencing a definition no overlay supplies would validate
+    // nothing — a typoed definition name must fail construction, not become a
+    // silent no-op.
+    let error = rejection(vec![(
         "AWS::Test::Dangling",
         json!({ "properties": { "P": { "$ref": "#/definitions/NotDefined" } } }),
     )]);
-    let template = "Resources:\n  R:\n    Type: AWS::Test::Dangling\n    Properties:\n      P: anything\n";
+    match error {
+        SchemaOverlayError::DanglingRef { path, target, .. } => {
+            assert_eq!(path, "P");
+            assert_eq!(target, "NotDefined");
+        }
+        other => panic!("expected a dangling-reference rejection, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_forward_reference_resolved_by_a_later_overlay_is_accepted() {
+    // Within one sequence an earlier overlay may reference a definition a later
+    // overlay supplies; only a reference still dangling at the end is an error.
+    let sv = validator(vec![
+        ("AWS::Test::ForwardRef", json!({ "properties": { "P": { "$ref": "#/definitions/SuppliedLater" } } })),
+        (
+            "AWS::Test::ForwardRef",
+            json!({ "definitions": { "SuppliedLater": { "type": "string", "enum": ["only"] } } }),
+        ),
+    ]);
+    let template = "Resources:\n  R:\n    Type: AWS::Test::ForwardRef\n    Properties:\n      P: other\n";
     let after = findings(&sv, template);
-    assert!(after.is_empty(), "an unresolved reference must not invent a constraint: {after:?}");
+    assert!(
+        after.iter().any(|finding| finding.contains("'other'")),
+        "the forward-supplied definition must be enforced: {after:?}"
+    );
 }
 
 #[test]
 fn a_definition_that_also_carries_an_unresolved_reference_still_enforces_its_own_constraints() {
-    // A definition can end up holding both a reference the schema never defines
-    // and constraints an overlay stated on it. The unresolvable reference
-    // contributes nothing, but what the definition itself says must still apply.
-    let sv = validator(vec![
-        (
+    // Defensive runtime behavior, exercised at the store level (per-overlay
+    // application tolerates a dangling reference so sequences can forward-
+    // reference; construction validates the final result separately): a
+    // definition holding both an unresolvable reference and its own constraints
+    // still enforces what it states.
+    let mut store = schema_validator::CompiledSchemaStore::new();
+    store
+        .apply_overlay(
             "AWS::Test::DanglingWithConstraint",
-            json!({
+            &json!({
                 "properties": { "Cfg": { "$ref": "#/definitions/Config" } },
                 "definitions": { "Config": { "$ref": "#/definitions/NotDefined" } }
             }),
-        ),
-        (
+        )
+        .expect("per-overlay application tolerates a forward reference");
+    store
+        .apply_overlay(
             "AWS::Test::DanglingWithConstraint",
-            json!({ "definitions": { "Config": { "type": "string", "pattern": "^ok$" } } }),
-        ),
-    ]);
-    let template =
-        "Resources:\n  R:\n    Type: AWS::Test::DanglingWithConstraint\n    Properties:\n      Cfg: not-ok\n";
-
-    let after = findings(&sv, template);
-
-    assert!(
-        after.iter().any(|finding| finding.contains("not-ok")),
-        "the definition's own constraint must be enforced despite the unresolved reference: {after:?}"
+            &json!({ "definitions": { "Config": { "type": "string", "pattern": "^ok$" } } }),
+        )
+        .expect("the second overlay merges");
+    let schema = store.get("AWS::Test::DanglingWithConstraint").expect("registered");
+    let resolved = schema.properties["Cfg"].resolve(&schema.definitions);
+    assert_eq!(
+        resolved.pattern.as_deref(),
+        Some("^ok$"),
+        "the definition's own constraint must survive beside the unresolved reference"
     );
 }
 
@@ -959,5 +985,35 @@ Resources:
         !mentions(&diags2, "F3003", "Name"),
         "explicit empty required in second overlay must clear the required constraint: {:?}",
         diags2.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn a_ref_overlay_with_siblings_on_an_occupied_property_applies_both() {
+    // The occupied-entry merge path: a second overlay redirects an existing
+    // property to a `$ref` AND states a constraint sibling beside it. The
+    // reference target updates and the sibling is enforced — neither half of
+    // the overlay is discarded.
+    let sv = validator(vec![
+        (
+            "AWS::Test::RefSiblingMerge",
+            json!({
+                "properties": { "P": { "type": "string", "maxLength": 100 } },
+                "definitions": { "Name": { "type": "string" } }
+            }),
+        ),
+        (
+            "AWS::Test::RefSiblingMerge",
+            json!({
+                "properties": { "P": { "$ref": "#/definitions/Name", "minLength": 5 } },
+                "definitions": { "Name": { "type": "string" } }
+            }),
+        ),
+    ]);
+    let template = "Resources:\n  R:\n    Type: AWS::Test::RefSiblingMerge\n    Properties:\n      P: x\n";
+    let after = findings(&sv, template);
+    assert!(
+        after.iter().any(|finding| finding.contains("below minimum 5")),
+        "the overlay's minLength sibling beside its $ref must be enforced: {after:?}"
     );
 }

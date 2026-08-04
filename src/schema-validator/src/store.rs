@@ -113,6 +113,7 @@ impl CompiledSchemaStore {
                 let mut merged = existing.clone();
                 overlay::merge_into(&mut merged, overlay);
                 overlay::validate_schema(&merged)?;
+                overlay::warn_removed_required(existing, &merged);
                 overlay::warn_dangling_refs(&merged);
                 self.ref_types.update_from_schema(&merged);
                 self.schemas.insert(type_name.to_string(), merged);
@@ -244,6 +245,9 @@ impl RefTypeStore {
                 attr_map.insert(attr.clone(), prop_type);
             }
         }
+        // Hand-maintained GetAtt return-type corrections win over the derived
+        // property types, exactly as they do in the build pipeline.
+        crate::catalog::apply_getatt_return_type_overrides(type_name, &mut attr_map);
         if !attr_map.is_empty() {
             self.getatt_returns.insert(type_name.clone(), attr_map);
         } else {

@@ -609,8 +609,10 @@ fn any_of_array_items_constraint_accepts_matching_items() {
 
 #[test]
 fn any_of_with_if_then_else_branch_constraint() {
-    // if/then/else inside anyOf branch: the condition checks the Engine value,
-    // then the then-branch constrains Port.
+    // A branch that consists of a conditional participates in matching per
+    // draft-07: the branch matches when its condition selects a satisfied
+    // sub-schema. Engine "mysql" satisfies the conditional branch's then
+    // (Port required); engine "sqlite" matches neither branch.
     let sv = validator(vec![(
         "AWS::Test::AnyOfConditional",
         json!({
@@ -619,18 +621,32 @@ fn any_of_with_if_then_else_branch_constraint() {
                 "Port": { "type": "integer" }
             },
             "anyOf": [
-                { "properties": { "Engine": { "type": "string", "enum": ["mysql"] } } },
-                { "properties": { "Engine": { "type": "string", "enum": ["postgres"] } } }
+                { "properties": { "Engine": { "type": "string", "enum": ["postgres"] } }, "required": ["Engine"] },
+                {
+                    "if": { "properties": { "Engine": { "enum": ["mysql"] } }, "required": ["Engine"] },
+                    "then": { "required": ["Port"] },
+                    "else": { "required": ["Engine", "Port"] }
+                }
             ],
             "additionalProperties": false
         }),
     )]);
-    // Engine is mysql — matches first branch
-    let template = "Resources:\n  R:\n    Type: AWS::Test::AnyOfConditional\n    Properties:\n      Engine: mysql\n      Port: 3306\n";
-    let diags = validate(&sv, template);
+    // Engine mysql with Port — the conditional branch's then is satisfied.
+    let satisfied = "Resources:\n  R:\n    Type: AWS::Test::AnyOfConditional\n    Properties:\n      Engine: mysql\n      Port: 3306\n";
+    let diags = validate(&sv, satisfied);
     assert!(
         !mentions(&diags, "F3017", ""),
-        "expected no F3017 when conditional branch matches: {:?}",
+        "expected no F3017 when the conditional branch matches: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+
+    // Engine mysql WITHOUT Port — then requires Port, so the conditional branch
+    // fails; the enum branch fails too (not postgres) — anyOf reports.
+    let violating = "Resources:\n  R:\n    Type: AWS::Test::AnyOfConditional\n    Properties:\n      Engine: mysql\n";
+    let diags = validate(&sv, violating);
+    assert!(
+        mentions(&diags, "F3017", ""),
+        "a conditional branch whose then fails must not match vacuously: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }
@@ -725,13 +741,26 @@ fn any_of_all_branches_dangling_ref_fails() {
 #[test]
 fn overlay_acceptance_gate_under_threshold() {
     use std::path::Path;
+    // The provider-schema corpus is a maintainer-local input (gitignored under
+    // `data-source/upstream/`), so a clean checkout — CI included — has no
+    // directory to read. The gate runs only where the corpus exists; when it
+    // does, it must be non-empty so the test cannot pass vacuously against an
+    // empty directory.
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../data-source/upstream/schemas");
-    let mut paths: Vec<_> = std::fs::read_dir(&root)
-        .expect("schema corpus directory")
+    let Ok(entries) = std::fs::read_dir(&root) else {
+        eprintln!("skipping overlay_acceptance_gate_under_threshold: no provider-schema corpus at {}", root.display());
+        return;
+    };
+    let mut paths: Vec<_> = entries
         .map(|entry| entry.expect("schema entry").path())
         .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
         .collect();
     paths.sort();
+    assert!(
+        !paths.is_empty(),
+        "the provider-schema corpus directory exists but contains no schemas: {}",
+        root.display()
+    );
     let mut store = CompiledSchemaStore::new();
     let mut rejected_count = 0usize;
     for path in &paths {
@@ -975,7 +1004,7 @@ fn prop_object_if_then_else_rejects_failing_then_branch() {
     let template = r#"{"Resources":{"R":{"Type":"AWS::Test::PropObjConditional","Properties":{"Config":{"Mode":"strict","Threshold":50}}}}}"#;
     let diags = validate(&sv, template);
     assert!(
-        mentions(&diags, "F3017", "does not satisfy branch constraint"),
+        mentions(&diags, "F3017", "does not satisfy the composition branch constraint (maximum 10)"),
         "expected conditional constraint violation when then-branch fails: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
@@ -1341,6 +1370,119 @@ fn prop_any_of_on_array_items_accepts_valid_elements() {
     assert!(
         !mentions(&diags, "F3017", ""),
         "expected no F3017 when all array elements are in valid ranges: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+// ─── Scenario-aware group decisions ─────────────────────────────────────────
+// anyOf/oneOf are decided once per template condition scenario: a property
+// valued through Fn::If has a different concrete value in each reachable
+// scenario, and each scenario may satisfy a different branch.
+
+#[test]
+fn one_of_is_decided_per_condition_scenario() {
+    // Mode is A in one scenario and B in the other; each scenario matches
+    // exactly one oneOf branch, so the template is valid — deciding the group
+    // across scenarios would falsely report "valid under more than one".
+    let sv = validator(vec![(
+        "AWS::Test::OneOfScenario",
+        json!({
+            "properties": { "Mode": { "type": "string" } },
+            "oneOf": [
+                { "properties": { "Mode": { "enum": ["A"] } }, "required": ["Mode"] },
+                { "properties": { "Mode": { "enum": ["B"] } }, "required": ["Mode"] }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"{
+        "Conditions": { "IsA": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] } },
+        "Resources": {
+            "R": {
+                "Type": "AWS::Test::OneOfScenario",
+                "Properties": { "Mode": { "Fn::If": ["IsA", "A", "B"] } }
+            }
+        }
+    }"#;
+    let diags = validate(&sv, template);
+    assert!(
+        !mentions(&diags, "F3018", "more than one"),
+        "mutually exclusive scenarios each matching one branch must not be reported as ambiguous: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn any_of_reports_the_invalid_condition_scenario() {
+    // Mode is A in one scenario (valid) and C in the other (matches no branch):
+    // the invalid scenario must be reported even though a sibling scenario is
+    // valid, and the finding must carry that scenario's condition assignment.
+    let sv = validator(vec![(
+        "AWS::Test::AnyOfScenario",
+        json!({
+            "properties": { "Mode": { "type": "string" } },
+            "anyOf": [
+                { "properties": { "Mode": { "enum": ["A"] } }, "required": ["Mode"] },
+                { "properties": { "Mode": { "enum": ["B"] } }, "required": ["Mode"] }
+            ],
+            "additionalProperties": false
+        }),
+    )]);
+    let template = r#"{
+        "Conditions": { "IsA": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] } },
+        "Resources": {
+            "R": {
+                "Type": "AWS::Test::AnyOfScenario",
+                "Properties": { "Mode": { "Fn::If": ["IsA", "A", "C"] } }
+            }
+        }
+    }"#;
+    let diags = validate(&sv, template);
+    let finding = diags.iter().find(|d| d.rule_id == "F3017").unwrap_or_else(|| {
+        panic!(
+            "the scenario with Mode=C matches no anyOf branch and must be reported: {:?}",
+            diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+        )
+    });
+    let conds = finding
+        .condition_scenario
+        .as_ref()
+        .expect("the finding must carry the condition assignment that produces the invalid value");
+    assert_eq!(conds.get("IsA"), Some(&false), "the invalid value comes from the IsA=false branch: {conds:?}");
+}
+
+#[test]
+fn property_level_conditional_then_required_is_enforced() {
+    // A conditional stated by an overlay on an object property enforces the
+    // selected branch in full — including its `required` list.
+    let sv = validator(vec![(
+        "AWS::Test::PropCondRequired",
+        json!({
+            "properties": {
+                "Cfg": {
+                    "type": "object",
+                    "properties": { "Mode": { "type": "string" }, "Extra": { "type": "string" } },
+                    "allOf": [{
+                        "if": { "properties": { "Mode": { "enum": ["on"] } }, "required": ["Mode"] },
+                        "then": { "required": ["Extra"] }
+                    }]
+                }
+            }
+        }),
+    )]);
+    let violating =
+        "Resources:\n  R:\n    Type: AWS::Test::PropCondRequired\n    Properties:\n      Cfg:\n        Mode: on\n";
+    let diags = validate(&sv, violating);
+    assert!(
+        mentions(&diags, "F3003", "Extra"),
+        "a property-level conditional's required list must be enforced: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+    let ok = "Resources:\n  R:\n    Type: AWS::Test::PropCondRequired\n    Properties:\n      Cfg:\n        Mode: on\n        Extra: x\n";
+    let diags = validate(&sv, ok);
+    assert!(
+        diags.is_empty(),
+        "a satisfied conditional must stay clean: {:?}",
         diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
     );
 }

@@ -307,3 +307,50 @@ fn overlay_schema_metadata_reaches_both_rule_engines() {
     }
     assert_eq!(rule_ids(&rego), rule_ids(&cel), "both engines must agree on overlay schema metadata");
 }
+
+/// A DocDB cluster whose Port is surfaced through an Output GetAtt. The
+/// bundled data corrects Port's GetAtt return type from the provider-schema
+/// `integer` to the `string` CloudFormation actually returns.
+const DOCDB_PORT_OUTPUT_TEMPLATE: &[u8] = br#"
+Resources:
+  Cluster:
+    Type: AWS::DocDB::DBCluster
+    Properties:
+      MasterUsername: admin
+      MasterUserPassword: SuperSecret1
+Outputs:
+  DocDBClusterPort:
+    Value: !GetAtt Cluster.Port
+"#;
+
+/// An overlay that merely adds a property to the corrected type.
+const DOCDB_UNRELATED_OVERLAY: &str = r#"{
+  "typeName": "AWS::DocDB::DBCluster",
+  "properties": { "OverlayOnlyProbe": { "type": "string" } }
+}"#;
+
+#[test]
+fn overlay_on_a_corrected_type_preserves_getatt_return_type_overrides() {
+    // Baseline: the hand-maintained correction makes the Port output a string,
+    // so no non-string-output finding fires.
+    let (rego_baseline, cel_baseline) = validate_on_both_engines(EngineConfig::default(), DOCDB_PORT_OUTPUT_TEMPLATE);
+    for (engine, diagnostics) in [("rego", &rego_baseline), ("cel", &cel_baseline)] {
+        assert!(
+            !rule_ids(diagnostics).contains(&"F6101"),
+            "{engine}: the bundled GetAtt return-type correction must hold without overlays, got: {:?}",
+            diagnostics.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+        );
+    }
+
+    // An unrelated overlay on the same type must not clobber the correction by
+    // re-deriving Port's type from the raw provider schema.
+    let (rego, cel) = validate_on_both_engines(config_with(DOCDB_UNRELATED_OVERLAY), DOCDB_PORT_OUTPUT_TEMPLATE);
+    for (engine, diagnostics) in [("rego", &rego), ("cel", &cel)] {
+        assert!(
+            !rule_ids(diagnostics).contains(&"F6101"),
+            "{engine}: overlaying a corrected type must preserve the GetAtt return-type override, got: {:?}",
+            diagnostics.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+        );
+    }
+    assert_eq!(rule_ids(&rego), rule_ids(&cel), "both engines must agree on the corrected type");
+}

@@ -31,7 +31,8 @@ Key semantics:
 - **`$ref` siblings:** Constraint siblings beside a `$ref` are accepted when they have a compiled representation.
   They are merged at validation time via `PropSchema::resolve`, keeping the reference live.
 - **Authoritative `required` replacement:** An overlay that explicitly states `required` (even as `[]`) replaces the
-  prior required list at that schema level. Omitting `required` preserves the base unchanged.
+  prior required list at that schema level; every requirement a replacement removes is logged. Omitting `required`
+  preserves the base unchanged.
 - **Catalog/config separation:** The overlay catalog exposes overlay-aware metadata (type names, GetAtt/Ref types,
   primary identifiers) without re-merging. `SchemaValidatorConfig` can be serialized/deserialized to rebuild.
 - **Metadata alone is not sufficient:** `description`, `documentationUrl`, `sourceUrl`, and `replacementStrategy`

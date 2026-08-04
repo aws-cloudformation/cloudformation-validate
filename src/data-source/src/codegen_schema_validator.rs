@@ -1,4 +1,4 @@
-use crate::compiled_schema::{CompiledSchema, compile_schema};
+use crate::compiled_schema::{CompiledSchema, RefSiblings, compile_schema_with};
 use log::info;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -37,7 +37,10 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
 
     let mut compiled: BTreeMap<String, CompiledSchema> = BTreeMap::new();
     for (tn, schema) in &raw {
-        compiled.insert(tn.clone(), compile_schema(tn, schema));
+        // Bundled schemas compile with draft-07 `$ref` evaluation — keywords
+        // beside a reference are ignored, matching what the CloudFormation
+        // registry itself enforces. Overlay schemas opt into enforcing them.
+        compiled.insert(tn.clone(), compile_schema_with(tn, schema, RefSiblings::Ignore));
     }
 
     let json_bytes = serde_json::to_string_pretty(&compiled)?;
@@ -271,7 +274,8 @@ pub fn compile_step_functions_schema(upstream_dir: &Path, output_dir: &Path) -> 
         serde_json::Value::String("AWS::StepFunctions::StateMachine::DefinitionBody".into()),
     );
 
-    let compiled = compile_schema("AWS::StepFunctions::StateMachine::DefinitionBody", &schema);
+    let compiled =
+        compile_schema_with("AWS::StepFunctions::StateMachine::DefinitionBody", &schema, RefSiblings::Ignore);
     let json = serde_json::to_string_pretty(&compiled)?;
     fs::write(output_dir.join("step_functions_definition_schema.json"), json.as_bytes())?;
     info!("Compiled Step Functions definition schema -> step_functions_definition_schema.json");
