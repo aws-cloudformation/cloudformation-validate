@@ -1,0 +1,35 @@
+{
+  "typeName": "AWS::Test::Widget",
+  "properties": {
+    "Endpoint": {
+      "type": "string"
+    },
+    "Tags": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Tag"
+      }
+    }
+  },
+  "definitions": {
+    "Tag": {
+      "type": "object",
+      "properties": {
+        "Key": {
+          "type": "string"
+        },
+        "Value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Key",
+        "Value"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "readOnlyProperties": [
+    "/properties/Endpoint"
+  ]
+}

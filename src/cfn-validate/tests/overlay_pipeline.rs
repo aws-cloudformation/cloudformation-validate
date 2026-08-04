@@ -166,6 +166,48 @@ const FORWARD_REFERENCE_DEFINITION_SCHEMA: &str = r#"{
   "definitions": { "SuppliedLater": { "type": "string" } }
 }"#;
 
+const ADDITIONAL_SCHEMA_SOURCES_DIR: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/additional_schema_sources");
+
+const FIXTURE_SCHEMA_VALIDATION_TEMPLATE: &[u8] = br#"
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => {};"
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Runtime: nodejs20.x
+      AdditionalSchemaProperty: enabled
+  Widget:
+    Type: AWS::Test::Widget
+    Properties:
+      Name: x
+      Port: 70000
+      Tags:
+        - Key: environment
+          Value: test
+"#;
+
+const FIXTURE_ENGINE_METADATA_TEMPLATE: &[u8] = br#"
+Resources:
+  FirstWidget:
+    Type: AWS::Test::Widget
+    Properties:
+      Name: shared-name
+      Port: 443
+  SecondWidget:
+    Type: AWS::Test::Widget
+    Properties:
+      Name: shared-name
+      Port: 8443
+  Consumer:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !GetAtt FirstWidget.Endpoint
+"#;
+
 fn config_with_schemas(schemas: &[&str]) -> EngineConfig {
     EngineConfig {
         schema_validator_config: Some(schema_validator::SchemaValidatorConfig {
@@ -182,16 +224,61 @@ fn config_with(schema: &str) -> EngineConfig {
     config_with_schemas(&[schema])
 }
 
+fn config_from_fixture_directory() -> EngineConfig {
+    let sources = cfn_validate::load_additional_schema_sources(&[ADDITIONAL_SCHEMA_SOURCES_DIR.to_string()])
+        .expect("fixture schema directory must load");
+    EngineConfig {
+        schema_validator_config: Some(schema_validator::SchemaValidatorConfig { additional_schemas: sources }),
+        ..Default::default()
+    }
+}
+
 /// Runs the full pipeline on both engines, returning `(rego, cel)` diagnostics.
 fn validate_on_both_engines(config: EngineConfig, template: &[u8]) -> (Vec<Diagnostic>, Vec<Diagnostic>) {
+    let schema_config = config.schema_validator_config.clone().unwrap_or_default();
+    let validator = SchemaValidator::new(schema_config).expect("the configured overlay must build a validator");
+    let mut engine_config = config;
+    engine_config.schema_validator_config = None;
+    let rego = RegoEngine::new_with_schema_validator(engine_config.clone(), &validator).expect("rego engine builds");
+    let cel = CelEngine::new_with_schema_validator(engine_config, &validator).expect("cel engine builds");
     let run = |engine: &dyn ValidationEngine| {
-        let schema_config = config.schema_validator_config.clone().unwrap_or_default();
-        let validator = SchemaValidator::new(schema_config).expect("the configured overlay must build a validator");
         validate_bytes(engine, &validator, template, Default::default()).expect("validation must succeed").diagnostics
     };
-    let rego = RegoEngine::new(config.clone()).expect("rego engine builds");
-    let cel = CelEngine::new(config.clone()).expect("cel engine builds");
     (run(&rego), run(&cel))
+}
+
+fn assert_engine_parity(rego: &[Diagnostic], cel: &[Diagnostic]) {
+    let rego_diagnostics = serde_json::to_value(rego).expect("rego diagnostics serialize");
+    let cel_diagnostics = serde_json::to_value(cel).expect("cel diagnostics serialize");
+    assert_eq!(rego_diagnostics, cel_diagnostics, "both engines must produce identical diagnostics");
+}
+
+#[test]
+fn fixture_sources_reach_schema_validation_on_both_engines() {
+    let (rego, cel) = validate_on_both_engines(config_from_fixture_directory(), FIXTURE_SCHEMA_VALIDATION_TEMPLATE);
+
+    for (engine, diagnostics) in [("rego", &rego), ("cel", &cel)] {
+        let ids = rule_ids(diagnostics);
+        assert!(!ids.contains(&"F3002"), "{engine}: the Lambda extension and composed Tags property must be valid");
+        assert!(!ids.contains(&"F3006"), "{engine}: the source-introduced widget type must be known");
+        assert!(ids.contains(&"F3033"), "{engine}: the fixture's string constraint must be enforced");
+        assert!(ids.contains(&"F3034"), "{engine}: the fixture's numeric constraint must be enforced");
+    }
+    assert_engine_parity(&rego, &cel);
+}
+
+#[test]
+fn fixture_source_metadata_reaches_both_rule_engines() {
+    let (rego, cel) = validate_on_both_engines(config_from_fixture_directory(), FIXTURE_ENGINE_METADATA_TEMPLATE);
+
+    for (engine, diagnostics) in [("rego", &rego), ("cel", &cel)] {
+        let ids = rule_ids(diagnostics);
+        assert!(ids.contains(&"E3019"), "{engine}: the fixture's primary identifier must detect duplicates");
+        assert!(ids.contains(&"I9040"), "{engine}: the fixture's Tags metadata must reach advisory rules");
+        assert!(!ids.contains(&"E9004"), "{engine}: the fixture's read-only Endpoint attribute must be valid");
+        assert!(!ids.contains(&"F3006"), "{engine}: the source-introduced widget type must be known");
+    }
+    assert_engine_parity(&rego, &cel);
 }
 
 fn rule_ids(diagnostics: &[Diagnostic]) -> Vec<&str> {
