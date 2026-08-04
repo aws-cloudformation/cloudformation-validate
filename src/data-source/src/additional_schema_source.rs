@@ -7,7 +7,9 @@
 //! The struct contains only pre-read data and pure resolution logic — no
 //! filesystem access. Host layers (CLI, language bindings) read files and
 //! populate the struct before passing it in. Feature-gated derives expose the
-//! same record shape through WASM and UniFFI bindings.
+//! same record shape through WASM and UniFFI bindings. `type_name` intentionally
+//! uses an empty string, rather than `Option<String>`, to request the schema's
+//! own `typeName`; this keeps the shared record non-nullable in every binding.
 
 use crate::compiled_schema::keywords;
 use serde::{Deserialize, Serialize};
@@ -175,6 +177,18 @@ mod tests {
         let src = AdditionalSchemaSource { type_name: "AWS::Lambda::Function".into(), schema: "{ not json ".into() };
         let message = error_msg(src.resolve());
         assert!(message.contains("Invalid additional schema"));
+    }
+
+    #[test]
+    fn resolve_rejects_json_beyond_the_default_parser_depth_limit() {
+        const SERDE_JSON_DEFAULT_DEPTH_LIMIT: usize = 128;
+        let nesting = SERDE_JSON_DEFAULT_DEPTH_LIMIT + 1;
+        let schema = format!("{}null{}", "[".repeat(nesting), "]".repeat(nesting));
+        let src = AdditionalSchemaSource { type_name: "AWS::Test::Deep".into(), schema };
+
+        let message = error_msg(src.resolve());
+
+        assert!(message.contains("recursion limit exceeded"), "unexpected error: {message}");
     }
 
     #[test]

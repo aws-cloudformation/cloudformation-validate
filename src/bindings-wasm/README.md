@@ -53,12 +53,17 @@ diagnostics for the same template and config.
 
 ### `EngineConfig`
 
-Passed to the constructor. All fields optional, default to empty arrays.
+Passed to the constructor. All fields are optional; omitted rule arrays are empty and an omitted
+`schemaValidatorConfig` uses only the bundled schemas.
 
 ```typescript
 interface EngineConfig {
-    customRules?: RuleSource[];           // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
-    guardRules?: RuleSource[];            // CloudFormation Guard DSL rules — translated internally by each engine
+    customRules?: RuleSource[];                       // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
+    guardRules?: RuleSource[];                        // CloudFormation Guard DSL rules — translated internally
+    schemaValidatorConfig?: SchemaValidatorConfig;   // schema validation and overlay configuration
+}
+
+interface SchemaValidatorConfig {
     additionalSchemas?: SchemaSource[];   // resource provider schemas merged over the bundled schemas
 }
 
@@ -86,13 +91,20 @@ interface AdditionalSchemaSource {
 
 Pass a `RuleFile` to load a rule from disk — the same pattern as `TemplateFile` for templates — or an
 `ExternalRuleSource` when you already have the rule text in memory. `SchemaFile` does the same for an additional
-resource provider schema. Its optional `typeName` may be omitted when the schema JSON contains its own `typeName`.
+resource provider schema. Its optional constructor `typeName` may be omitted when the schema JSON contains its own
+`typeName`.
+
+The generated `AdditionalSchemaSource` record keeps `typeName` as a required, non-nullable string for compatibility
+with the shared Rust/WASM record. For an in-memory schema whose JSON contains `typeName`, pass `typeName: ""`.
+`SchemaFile` supplies this empty-string sentinel when its optional constructor argument is omitted.
 
 ```typescript
 const engine = new CelEngine({
     customRules: [new RuleFile("rules/s3_encryption.json")],
     guardRules: [new RuleFile("rules/compliance.guard")],
-    additionalSchemas: [new SchemaFile("schemas/aws-lambda-function.json")],
+    schemaValidatorConfig: {
+        additionalSchemas: [new SchemaFile("schemas/aws-lambda-function.json")],
+    },
 });
 ```
 

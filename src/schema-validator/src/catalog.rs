@@ -288,6 +288,9 @@ fn derive_ref_return_type(schema: &CompiledSchema, read_only_set: &HashSet<&str>
 /// chains. Returns `None` for an empty path and guards against recursive
 /// references.
 pub(crate) fn resolve_property_type(schema: &CompiledSchema, path: &str) -> Option<String> {
+    if path.is_empty() {
+        return None;
+    }
     let parts: Vec<&str> = path.split('.').collect();
     resolve_nested_property_type(schema, &parts, &schema.properties, &mut HashSet::new())
 }
@@ -545,8 +548,26 @@ fn build_nested_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compiled::PropType;
     use crate::store::CompiledSchemaStore;
     use serde_json::json;
+
+    #[test]
+    fn resolve_property_type_returns_none_for_empty_path() {
+        let schema = CompiledSchema {
+            properties: HashMap::from([(
+                String::new(),
+                PropSchema { prop_type: Some(PropType::Single("string".into())), ..Default::default() },
+            )]),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            resolve_property_type(&schema, ""),
+            None,
+            "an empty path must not resolve an empty-string property name"
+        );
+    }
 
     #[test]
     fn empty_overlay_produces_empty_catalog() {

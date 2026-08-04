@@ -700,6 +700,33 @@ fn a_reference_still_dangling_after_the_final_overlay_is_rejected() {
 }
 
 #[test]
+fn an_overlay_reference_to_a_bundled_definition_resolves() {
+    let sv = validator(vec![(
+        "AWS::Lambda::Function",
+        json!({ "properties": { "TestForOverride": { "$ref": "#/definitions/EphemeralStorage" } } }),
+    )]);
+    let template = r#"
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => {};"
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Runtime: nodejs18.x
+      Handler: index.handler
+      TestForOverride: {}
+"#;
+
+    let diagnostics = validate(&sv, template);
+
+    assert!(
+        mentions(&diagnostics, "F3003", "Size"),
+        "the bundled EphemeralStorage definition must constrain the overlay property: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn a_forward_reference_resolved_by_a_later_overlay_is_accepted() {
     // Within one sequence an earlier overlay may reference a definition a later
     // overlay supplies; only a reference still dangling at the end is an error.
@@ -820,6 +847,39 @@ fn a_rejected_overlay_does_not_leave_the_store_modified() {
         )
         .expect_err("a cyclic overlay must be rejected");
     assert_eq!(store.len(), before, "a rejected overlay must not register a schema");
+}
+
+#[test]
+fn a_mid_sequence_failure_builds_no_validator_and_leaves_no_shared_state() {
+    let baseline_schema_count = SchemaValidator::default().schema_count();
+    let construction = SchemaValidator::try_with_additional_schemas(vec![
+        ("AWS::Test::AtomicSequence", json!({ "properties": { "First": { "type": "string" } } })),
+        (
+            "AWS::Test::AtomicSequence",
+            json!({
+                "properties": { "Broken": { "$ref": "#/definitions/Cycle" } },
+                "definitions": { "Cycle": { "$ref": "#/definitions/Cycle" } }
+            }),
+        ),
+        ("AWS::Test::AtomicSequence", json!({ "properties": { "Third": { "type": "string" } } })),
+    ]);
+
+    let error = match construction {
+        Err(error) => error,
+        Ok(_) => panic!("the second overlay must fail the whole construction"),
+    };
+    assert!(matches!(error, SchemaOverlayError::CyclicRef { .. }), "got {error:?}");
+
+    let fresh_validator = SchemaValidator::default();
+    assert_eq!(
+        fresh_validator.schema_count(),
+        baseline_schema_count,
+        "a failed overlay sequence must not alter later validator construction"
+    );
+    assert!(
+        fresh_validator.overlay_catalog().is_empty(),
+        "a failed overlay sequence must not leave catalog state behind"
+    );
 }
 
 #[test]

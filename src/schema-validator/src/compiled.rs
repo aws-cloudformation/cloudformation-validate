@@ -13,12 +13,12 @@ pub struct CompiledSchema {
     pub definitions: HashMap<String, PropSchema>,
     #[serde(default)]
     pub required: Vec<String>,
-    /// Whether `required` was explicitly stated in the source that produced this
-    /// schema. When `true`, merging replaces the base's required list (even if
-    /// the list is empty, which clears it); when `false`, merging preserves the
-    /// base. Not serialized — existing committed artifacts deserialize with the
-    /// default (`false`), which is correct: bundled schemas are never overlay
-    /// sources.
+    /// Whether root-level `required` was explicitly stated in the source that
+    /// produced this schema. When `true`, merging replaces the base's root
+    /// required list (even if the list is empty, which clears it); when `false`,
+    /// merging preserves the base. Not serialized — existing committed artifacts
+    /// deserialize with the default (`false`), which is correct: bundled schemas
+    /// are never overlay sources.
     #[serde(default, skip_serializing, skip_deserializing)]
     pub required_present: bool,
     #[serde(default)]
@@ -155,10 +155,11 @@ pub struct PropSchema {
     pub properties: HashMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
-    /// Whether `required` was explicitly stated in the source that produced this
-    /// schema. When `true`, merging replaces the base's required list (even if
-    /// the list is empty, which clears it); when `false`, merging preserves the
-    /// base. Not serialized — existing artifacts deserialize unchanged.
+    /// Whether `required` was explicitly stated at this property, definition, or
+    /// item schema level. When `true`, merging replaces the corresponding nested
+    /// required list (even if the list is empty, which clears it); when `false`,
+    /// merging preserves the base. Not serialized — existing artifacts
+    /// deserialize unchanged.
     #[serde(default, skip_serializing, skip_deserializing)]
     pub required_present: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
