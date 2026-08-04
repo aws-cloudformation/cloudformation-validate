@@ -19,7 +19,7 @@ rules = { path = "../rules", features = ["uniffi-bindings"] }
 template-model = { path = "../template-model", features = ["uniffi-bindings"] }
 rego-engine = { path = "../rego-engine" }
 cel-engine = { path = "../cel-engine" }
-schema-validator = { path = "../schema-validator" }
+schema-validator = { path = "../schema-validator", features = ["uniffi-bindings"] }
 uniffi = { workspace = true }
 thiserror = "2"
 

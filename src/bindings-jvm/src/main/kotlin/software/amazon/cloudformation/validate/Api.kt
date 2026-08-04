@@ -6,6 +6,7 @@ import software.amazon.cloudformation.validate.diagnostics.StandardReport
 import software.amazon.cloudformation.validate.engine.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.engine.EngineConfig
 import software.amazon.cloudformation.validate.engine.ExternalRuleSource
+import software.amazon.cloudformation.validate.engine.SchemaValidatorConfig
 import software.amazon.cloudformation.validate.rules.RuleInfo
 import java.io.File
 
@@ -18,8 +19,8 @@ interface Engine {
 
 /**
  * Reads a resource provider schema file into an [AdditionalSchemaSource] for
- * [EngineConfig.additionalSchemas]. [typeName] may be empty when the schema file
- * contains its own `typeName` field.
+ * [SchemaValidatorConfig.additionalSchemas]. [typeName] may be empty when the
+ * schema file contains its own `typeName` field.
  */
 fun fileToAdditionalSchemaSource(file: File, typeName: String = ""): AdditionalSchemaSource =
     AdditionalSchemaSource(typeName = typeName, schema = file.readText())
@@ -46,8 +47,8 @@ class TemplateModel(template: File) {
     fun sourceLocation(path: String) = inner.sourceLocation(path)
 }
 
-class SchemaValidator {
-    private val inner = JvmSchemaValidator()
+class SchemaValidator(config: SchemaValidatorConfig = SchemaValidatorConfig()) {
+    private val inner = JvmSchemaValidator(config)
 
     fun listRules(): List<RuleInfo> = inner.listRules()
     fun schemaCount(): Int = inner.schemaCount().toInt()
@@ -58,7 +59,9 @@ class SchemaValidator {
     }
 }
 
-class RegoEngine(config: EngineConfig = EngineConfig()) : Engine {
+class RegoEngine(
+    config: EngineConfig = EngineConfig(),
+) : Engine {
     private val inner = JvmRegoEngine(config)
 
     override fun validateStandard(template: File, config: ValidateConfig): StandardReport =
@@ -71,7 +74,9 @@ class RegoEngine(config: EngineConfig = EngineConfig()) : Engine {
     override fun engineName(): String = inner.engineName()
 }
 
-class CelEngine(config: EngineConfig = EngineConfig()) : Engine {
+class CelEngine(
+    config: EngineConfig = EngineConfig(),
+) : Engine {
     private val inner = JvmCelEngine(config)
 
     override fun validateStandard(template: File, config: ValidateConfig): StandardReport =

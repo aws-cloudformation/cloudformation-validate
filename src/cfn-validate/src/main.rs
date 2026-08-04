@@ -8,11 +8,11 @@ use rules::{
     FilterConfig, IdRange, LogicalIdFilter, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, ServiceFilter,
     Severity,
 };
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use template_model::{EntityType, PseudoParameterOverrides};
 use validation_engine::{
-    AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine,
-    ValidationError, catch_panics, guard, schema_validator_from_config, validate_bytes_with_path,
-    validate_catching_panics,
+    EngineConfig, EngineType, ExternalRuleSource, ValidateConfig, ValidationEngine, ValidationError, catch_panics,
+    guard, validate_bytes_with_path, validate_catching_panics,
 };
 
 fn main() {
@@ -240,7 +240,7 @@ fn main() {
     let additional_schemas = if additional_schema_paths.is_empty() {
         Vec::new()
     } else {
-        match AdditionalSchemaSource::from_paths(&additional_schema_paths) {
+        match cfn_validate::load_additional_schema_sources(&additional_schema_paths) {
             Ok(sources) => sources,
             Err(e) => {
                 error!("{}", e);
@@ -249,11 +249,12 @@ fn main() {
         }
     };
 
-    let engine_config = EngineConfig { custom_rules, guard_rules, additional_schemas };
+    let engine_config = EngineConfig { custom_rules, guard_rules, schema_validator: None };
 
-    // The validator is built from the same config the engine gets, so a configured
-    // overlay applies on the CLI exactly as it does through the language bindings.
-    let schema_validator = match schema_validator_from_config(&engine_config) {
+    // The schema validator is built from its own config with the host-loaded
+    // overlay schemas. The engine reuses the validator's already-built metadata.
+    let schema_validator_config = SchemaValidatorConfig { additional_schemas };
+    let schema_validator = match SchemaValidator::new(schema_validator_config) {
         Ok(validator) => validator,
         Err(e) => {
             error!("{}", e);
@@ -268,8 +269,14 @@ fn main() {
     let engine_init: Result<Box<dyn ValidationEngine>, ValidationError> = catch_panics(
         || {
             let engine: Box<dyn ValidationEngine> = match engine_type {
-                EngineType::Cel => Box::new(CelEngine::new(engine_config).map_err(|e| e.to_string())?),
-                EngineType::Rego => Box::new(RegoEngine::new(engine_config).map_err(|e| e.to_string())?),
+                EngineType::Cel => Box::new(
+                    CelEngine::new_with_schema_validator(engine_config, &schema_validator)
+                        .map_err(|e| e.to_string())?,
+                ),
+                EngineType::Rego => Box::new(
+                    RegoEngine::new_with_schema_validator(engine_config, &schema_validator)
+                        .map_err(|e| e.to_string())?,
+                ),
             };
             Ok(engine)
         },

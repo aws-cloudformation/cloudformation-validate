@@ -8,12 +8,12 @@ It requires an engine and a `SchemaValidator`, both of which should be created o
 ```rust
 use rego_engine::RegoEngine;
 // or cel_engine::CelEngine
-use validation_engine::{schema_validator_from_config, validate_bytes_with_path, EngineConfig, ValidateConfig};
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
+use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
 
 // One-time setup (reuse across validations)
-let config = EngineConfig::default();
-let schema_validator = schema_validator_from_config(&config)?;
-let engine = RegoEngine::new(config)?;
+let schema_validator = SchemaValidator::default();
+let engine = RegoEngine::new(EngineConfig::default())?;
 
 // Validate
 let bytes = std::fs::read("template.yaml")?;
@@ -71,32 +71,37 @@ Both engines parse and translate `guard_rules` from raw Guard DSL source text â€
 
 ## Additional Resource Provider Schemas
 
-`EngineConfig::additional_schemas` merges caller-supplied CloudFormation resource provider schemas on top of the
-bundled ones, so templates using a property or allowed value CloudFormation has not published yet validate without
-false findings. A type name with no bundled schema is registered as a new resource type.
+Additional schemas extend the bundled CloudFormation resource schemas, so templates using properties or types
+CloudFormation has not published yet validate without false findings.
+
+Supply overlay schemas through `SchemaValidatorConfig::additional_schemas`. The optional
+`EngineConfig::schema_validator` field holds this same config type: when present, a standalone engine built via
+`new(EngineConfig)` derives overlay-aware metadata (type names, GetAtt attributes, primary identifiers) from it.
+Language bindings and the CLI construct a `SchemaValidator` from the config once at their layer, then pass it to the
+engine so the already-built metadata is shared without redundant work.
 
 ```rust
-use validation_engine::{schema_validator_from_config, AdditionalSchemaSource, EngineConfig};
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
+use validation_engine::{AdditionalSchemaSource, EngineConfig};
 use rego_engine::RegoEngine;
 
-let config = EngineConfig {
-    additional_schemas: vec![AdditionalSchemaSource {
-        // Empty to take the type name from the schema's own `typeName`.
-        type_name: String::new(),
-        schema: std::fs::read_to_string("aws-lambda-function.json")?,
-    }],
-    ..Default::default()
+let overlay = AdditionalSchemaSource {
+    type_name: String::new(), // take typeName from the schema itself
+    schema: std::fs::read_to_string("aws-lambda-function.json")?,
 };
 
-// Both the validator and the engine must be built from the same config: the
-// validator applies the overlay, the engine learns the type names it introduces.
-let schema_validator = schema_validator_from_config(&config)?;
-let engine = RegoEngine::new(config)?;
-```
+let schema_config = SchemaValidatorConfig {
+    additional_schemas: vec![overlay.clone()],
+};
 
-`schema_validator_from_config` is the only construction path that applies overlays â€” building a `SchemaValidator::new()`
-alongside a configured engine silently validates against the bundled schemas alone. Every language binding and the
-`cfn-validate --additional-schema` flag route through it.
+// Standalone engine: nested schema config derives metadata automatically.
+let engine = RegoEngine::new(
+    EngineConfig::new().with_schema_validator_config(schema_config.clone()),
+)?;
+
+// Or: build a SchemaValidator separately for standalone schema validation.
+let schema_validator = SchemaValidator::new(schema_config)?;
+```
 
 Construction fails, rather than degrading quietly, when a schema is malformed, names contradictory or non-canonical
 types, nests too deeply, defines an unsafe `$ref` graph, states nothing enforceable, contains conflicting enum

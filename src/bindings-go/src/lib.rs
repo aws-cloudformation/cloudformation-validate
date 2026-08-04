@@ -14,6 +14,7 @@ use std::sync::Arc;
 
 use diagnostics::DetailLevel;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
+use schema_validator::SchemaValidatorConfig;
 use template_model::PseudoParameterOverrides;
 use validation_engine::{
     AdditionalSchemaSource, EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path,
@@ -76,6 +77,7 @@ impl ValidateOptions {
     }
 }
 
+#[cfg(test)]
 fn parse_engine_config(config_json: &str) -> Result<EngineConfig, ValidationError> {
     EngineOptions::parse(config_json).map(EngineOptions::into_core)
 }
@@ -89,7 +91,7 @@ fn parse_engine_config(config_json: &str) -> Result<EngineConfig, ValidationErro
 struct EngineOptions {
     custom_rules: Vec<RuleSourceOptions>,
     guard_rules: Vec<RuleSourceOptions>,
-    additional_schemas: Vec<SchemaSourceOptions>,
+    schema_validator: Option<SchemaValidatorOptionsInline>,
 }
 
 /// One external rule source, mirroring the core `ExternalRuleSource`.
@@ -109,16 +111,26 @@ struct SchemaSourceOptions {
     schema: String,
 }
 
+/// Inline schema validator config nested inside engine options.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+struct SchemaValidatorOptionsInline {
+    additional_schemas: Vec<SchemaSourceOptions>,
+}
+
 impl EngineOptions {
     fn parse(config_json: &str) -> Result<Self, ValidationError> {
         serde_json::from_str(config_json).map_err(|e| ValidationError::new(format!("invalid engine config JSON: {e}")))
     }
 
+    #[cfg(test)]
     fn into_core(self) -> EngineConfig {
         EngineConfig {
             custom_rules: self.custom_rules.into_iter().map(ExternalRuleSource::from).collect(),
             guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-            additional_schemas: self.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
+            schema_validator: self.schema_validator.map(|sv| SchemaValidatorConfig {
+                additional_schemas: sv.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
+            }),
         }
     }
 }
@@ -135,6 +147,33 @@ impl From<SchemaSourceOptions> for AdditionalSchemaSource {
     }
 }
 
+/// Per-engine schema validator configuration, deserialized from the JSON produced
+/// by the Go wrapper. Strict mirror of the shared [`SchemaValidatorConfig`]:
+/// rejecting unknown keys turns a drifted field name into an error rather than
+/// silently ignoring additional schemas.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+struct SchemaValidatorOptions {
+    additional_schemas: Vec<SchemaSourceOptions>,
+}
+
+impl SchemaValidatorOptions {
+    fn parse(config_json: &str) -> Result<Self, ValidationError> {
+        serde_json::from_str(config_json)
+            .map_err(|e| ValidationError::new(format!("invalid schema validator config JSON: {e}")))
+    }
+
+    fn into_core(self) -> SchemaValidatorConfig {
+        SchemaValidatorConfig {
+            additional_schemas: self.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
+        }
+    }
+}
+
+fn parse_schema_config(config_json: &str) -> Result<SchemaValidatorConfig, ValidationError> {
+    SchemaValidatorOptions::parse(config_json).map(SchemaValidatorOptions::into_core)
+}
+
 fn to_json<T: serde::Serialize>(value: &T) -> Result<String, ValidationError> {
     serde_json::to_string(value).map_err(|e| ValidationError::new(format!("failed to serialize result: {e}")))
 }
@@ -147,8 +186,15 @@ pub struct GoSchemaValidator {
 #[uniffi::export]
 impl GoSchemaValidator {
     #[uniffi::constructor]
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self { inner: schema_validator::SchemaValidator::new() })
+    pub fn new(schema_config_json: String) -> Result<Arc<Self>, ValidationError> {
+        catch_panics(
+            || {
+                let schema_config = parse_schema_config(&schema_config_json)?;
+                let inner = schema_validator::SchemaValidator::new(schema_config).map_err(ValidationError::new)?;
+                Ok(Arc::new(Self { inner }))
+            },
+            panic_to_error,
+        )
     }
 
     /// Returns the schema validator's rules as a JSON array of rule infos.
@@ -190,10 +236,29 @@ macro_rules! impl_go_engine {
             pub fn new(config_json: String) -> Result<Arc<Self>, ValidationError> {
                 catch_panics(
                     || {
-                        let config = parse_engine_config(&config_json)?;
+                        let engine_options = EngineOptions::parse(&config_json)?;
+                        let schema_config = engine_options
+                            .schema_validator
+                            .map(|sv| SchemaValidatorConfig {
+                                additional_schemas: sv
+                                    .additional_schemas
+                                    .into_iter()
+                                    .map(AdditionalSchemaSource::from)
+                                    .collect(),
+                            })
+                            .unwrap_or_default();
+                        let config = EngineConfig {
+                            custom_rules: engine_options
+                                .custom_rules
+                                .into_iter()
+                                .map(ExternalRuleSource::from)
+                                .collect(),
+                            guard_rules: engine_options.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
+                            schema_validator: None,
+                        };
                         let schema_validator =
-                            validation_engine::schema_validator_from_config(&config).map_err(ValidationError::new)?;
-                        let engine = $constructor(config).map_err(ValidationError::new)?;
+                            schema_validator::SchemaValidator::new(schema_config).map_err(ValidationError::new)?;
+                        let engine = $constructor(config, &schema_validator).map_err(ValidationError::new)?;
                         Ok(Arc::new(Self { engine, schema_validator }))
                     },
                     panic_to_error,
@@ -260,8 +325,8 @@ macro_rules! impl_go_engine {
     };
 }
 
-impl_go_engine!(GoRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new);
-impl_go_engine!(GoCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new);
+impl_go_engine!(GoRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new_with_schema_validator);
+impl_go_engine!(GoCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new_with_schema_validator);
 
 #[derive(uniffi::Object)]
 pub struct GoSemanticModel {
@@ -492,6 +557,46 @@ mod tests {
 
         assert!(
             error.to_string().contains("invalid engine config JSON"),
+            "error must identify the failing input: {error}"
+        );
+    }
+
+    #[test]
+    fn schema_validator_options_parse_additional_schemas() {
+        let config = parse_schema_config(
+            r#"{
+                "additionalSchemas": [{"typeName": "AWS::Test::Type", "schema": "{}"}]
+            }"#,
+        )
+        .expect("schema config must parse");
+
+        assert_eq!(1, config.additional_schemas.len());
+        assert_eq!("AWS::Test::Type", config.additional_schemas[0].type_name);
+    }
+
+    #[test]
+    fn empty_schema_config_yields_no_overlays() {
+        let config = parse_schema_config("{}").expect("an empty object must parse");
+        assert!(config.additional_schemas.is_empty());
+    }
+
+    #[test]
+    fn unknown_schema_config_field_is_rejected() {
+        let error = match parse_schema_config(r#"{"additonalSchemas": []}"#) {
+            Err(e) => e,
+            Ok(_) => panic!("misspelled field must be rejected"),
+        };
+        assert!(error.to_string().contains("additonalSchemas"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn malformed_schema_config_json_reports_error() {
+        let error = match parse_schema_config("not json") {
+            Err(e) => e,
+            Ok(_) => panic!("invalid JSON must fail"),
+        };
+        assert!(
+            error.to_string().contains("invalid schema validator config JSON"),
             "error must identify the failing input: {error}"
         );
     }

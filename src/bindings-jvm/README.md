@@ -87,7 +87,7 @@ val engine = CelEngine(EngineConfig(guardRules = listOf(myRule)))  // with Guard
 |---------------------|---------------|-----------------------------------------------------------------------------------------------|
 | `customRules`       | `emptyList()` | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                              |
 | `guardRules`        | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine                         |
-| `additionalSchemas` | `emptyList()` | Resource provider schemas merged over bundled schemas; may also register a new resource type |
+| `schemaValidator`   | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas           |
 
 Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = "")`, or construct an
 `AdditionalSchemaSource` from schema text. `typeName` may be empty when the JSON contains its own `typeName`:
@@ -95,7 +95,9 @@ Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = ""
 ```kotlin
 val engine = RegoEngine(
     EngineConfig(
-        additionalSchemas = listOf(fileToAdditionalSchemaSource(File("schemas/aws-lambda-function.json"))),
+        schemaValidator = SchemaValidatorConfig(
+            additionalSchemas = listOf(fileToAdditionalSchemaSource(File("schemas/aws-lambda-function.json"))),
+        ),
     ),
 )
 ```

@@ -13,8 +13,8 @@ name = "validation_engine"
 path = "src/lib.rs"
 
 [features]
-wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
-uniffi-bindings = ["dep:uniffi"]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen", "schema-validator/wasm-bindings", "data-source/wasm-bindings"]
+uniffi-bindings = ["dep:uniffi", "schema-validator/uniffi-bindings", "data-source/uniffi-bindings"]
 test = []
 
 [dependencies]
@@ -22,6 +22,7 @@ diagnostics = { path = "../diagnostics" }
 rules = { path = "../rules" }
 template-model = { path = "../template-model" }
 schema-validator = { path = "../schema-validator" }
+data-source = { path = "../data-source", default-features = false }
 guard-translator = { path = "../guard-translator" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -13,6 +13,14 @@ pub struct CompiledSchema {
     pub definitions: HashMap<String, PropSchema>,
     #[serde(default)]
     pub required: Vec<String>,
+    /// Whether `required` was explicitly stated in the source that produced this
+    /// schema. When `true`, merging replaces the base's required list (even if
+    /// the list is empty, which clears it); when `false`, merging preserves the
+    /// base. Not serialized — existing committed artifacts deserialize with the
+    /// default (`false`), which is correct: bundled schemas are never overlay
+    /// sources.
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub required_present: bool,
     #[serde(default)]
     pub additional_properties: Option<bool>,
     #[serde(default)]
@@ -103,6 +111,8 @@ pub struct PropSchema {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exclusive_maximum: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multiple_of: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_length: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_length: Option<u64>,
@@ -127,6 +137,12 @@ pub struct PropSchema {
     pub properties: HashMap<String, PropSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required: Vec<String>,
+    /// Whether `required` was explicitly stated in the source that produced this
+    /// schema. When `true`, merging replaces the base's required list (even if
+    /// the list is empty, which clears it); when `false`, merging preserves the
+    /// base. Not serialized — existing artifacts deserialize unchanged.
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub required_present: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub additional_properties: Option<bool>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -139,6 +155,8 @@ pub struct PropSchema {
     pub any_of: Vec<SubSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub one_of: Vec<SubSchema>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub if_then_else: Vec<IfThenElse>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub dependent_required: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -149,11 +167,16 @@ fn skip_unless_true(value: &Option<bool>) -> bool {
     *value != Some(true)
 }
 
+/// A composition branch is now a full property schema — every constraint that
+/// can appear on a property is available in a branch and evaluated at runtime.
+/// This alias preserves naming clarity at usage sites.
+pub type SubSchema = PropSchema;
+
 /// Upper bound on the length of a `$ref` chain followed by
 /// `PropSchema::resolve`. Real provider schemas chain at most a handful of
 /// hops; the bound exists so a malformed definition graph cannot make resolution
 /// unbounded.
-pub const MAX_REF_CHAIN: usize = 64;
+pub(crate) const MAX_REF_CHAIN: usize = 64;
 
 impl PropSchema {
     /// The schema that actually applies to this property: the terminal target of
@@ -194,7 +217,12 @@ impl PropSchema {
                 None => break,
             }
         }
-        let (terminal, referrers) = chain.split_last().expect("the chain always contains at least this schema");
+        let (terminal, referrers) = match chain.split_last() {
+            Some(pair) => pair,
+            // `chain` is initialized with `self`, so it is never empty. This
+            // branch is structurally unreachable but avoids a panic path.
+            None => return Cow::Borrowed(self),
+        };
         if !referrers.iter().any(|hop| hop.has_own_constraints()) {
             return Cow::Borrowed(terminal);
         }
@@ -229,6 +257,7 @@ impl PropSchema {
             maximum,
             exclusive_minimum,
             exclusive_maximum,
+            multiple_of,
             min_length,
             max_length,
             min_items,
@@ -240,12 +269,14 @@ impl PropSchema {
             description,
             properties,
             required,
+            required_present: _,
             additional_properties,
             pattern_properties,
             items,
             all_of,
             any_of,
             one_of,
+            if_then_else,
             dependent_required,
             dependent_excluded,
         } = self;
@@ -259,6 +290,7 @@ impl PropSchema {
             || maximum.is_some()
             || exclusive_minimum.is_some()
             || exclusive_maximum.is_some()
+            || multiple_of.is_some()
             || min_length.is_some()
             || max_length.is_some()
             || min_items.is_some()
@@ -276,23 +308,10 @@ impl PropSchema {
             || !all_of.is_empty()
             || !any_of.is_empty()
             || !one_of.is_empty()
+            || !if_then_else.is_empty()
             || !dependent_required.is_empty()
             || !dependent_excluded.is_empty()
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SubSchema {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required: Vec<String>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub properties: HashMap<String, PropSchema>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub additional_properties: Option<bool>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_required: HashMap<String, Vec<String>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_excluded: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

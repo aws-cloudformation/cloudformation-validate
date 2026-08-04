@@ -16,6 +16,7 @@ use std::collections::{HashMap, HashSet};
 /// All vectors are sorted and deduplicated. The catalog is derived from the
 /// *merged* store, so it reflects the bundled schema with overlays on top —
 /// exactly what the schema validator sees.
+#[doc(hidden)]
 #[derive(Debug, Clone, Default)]
 pub struct OverlayCatalog {
     /// Sorted, deduplicated type names that had at least one overlay applied.

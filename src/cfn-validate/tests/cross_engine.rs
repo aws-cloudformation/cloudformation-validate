@@ -25,7 +25,7 @@ fn find_rule<'a>(rules: &'a [RuleInfo], id: &str) -> &'a RuleInfo {
 }
 
 fn validate_template(engine: &dyn ValidationEngine, template: &str) -> Vec<Diagnostic> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let bytes = load_template(template);
     validate_bytes(engine, &sv, &bytes, Default::default()).unwrap().diagnostics
 }
@@ -35,7 +35,7 @@ fn validate_template_with_config(
     template: &str,
     config: ValidateConfig,
 ) -> Vec<Diagnostic> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let bytes = load_template(template);
     validate_bytes(engine, &sv, &bytes, config).unwrap().diagnostics
 }
@@ -405,7 +405,7 @@ fn good_templates_produce_no_fatal_or_error_diagnostics() {
     .into_iter()
     .collect();
 
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good");
     let mut failures = Vec::new();
     for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
@@ -440,7 +440,7 @@ fn good_templates_produce_no_fatal_or_error_diagnostics() {
 /// implicit-resource handling does not false-positive on valid templates.
 #[test]
 fn good_sam_templates_are_clean_on_both_engines() {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good").join("sam");
     let mut failures = Vec::new();
     for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
@@ -467,7 +467,7 @@ fn good_sam_templates_are_clean_on_both_engines() {
 /// missing-transform rule (E3038) — the engines stay at parity on SAM handling.
 #[test]
 fn bad_sam_templates_fire_identically_on_both_engines() {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let root = common::templates_dir().join("bad").join("sam");
     for entry in walkdir(&root) {
         let bytes = std::fs::read(&entry).unwrap();
@@ -498,7 +498,7 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
     // The intrinsic/condition rules reworked to emit from the shared model must
     // produce byte-identical diagnostics on both engines. Assert full parity
     // (all severities) on the fixtures that exercise them.
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let fixtures = [
         "bad/E1050_dynamic_ref_malformed.yaml",
         "bad/W1051_secretsmanager_at_arn.yaml",

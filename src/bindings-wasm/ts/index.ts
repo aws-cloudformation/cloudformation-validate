@@ -3,6 +3,7 @@ import type {
     DiagnosticModel,
     AdditionalSchemaSource,
     EngineConfig as WasmEngineConfig,
+    SchemaValidatorConfig as WasmSchemaValidatorConfig,
     ExternalRuleSource,
     ParameterInfo,
     ResolvedOutput,
@@ -126,9 +127,21 @@ export interface EngineConfig {
     /** CloudFormation Guard DSL rules, usable with either engine. */
     guardRules?: RuleSource[];
     /**
+     * Optional schema validator configuration. When present, the engine derives
+     * overlay-aware metadata from the configured additional schemas.
+     */
+    schemaValidator?: SchemaValidatorConfig;
+}
+
+/**
+ * Configuration for the schema validator. Additional schemas are merged on top
+ * of the bundled CloudFormation provider schemas before schema validation.
+ */
+export interface SchemaValidatorConfig {
+    /**
      * Additional CloudFormation resource provider schemas to merge on top of the
-     * bundled schemas before validation. Each overlay extends or overrides the
-     * bundled schema for its resource type; this affects schema validation only.
+     * bundled schemas. Each overlay extends or overrides the bundled schema for
+     * its resource type.
      */
     additionalSchemas?: SchemaSource[];
 }
@@ -149,6 +162,14 @@ function toWasmEngineConfig(config?: EngineConfig): WasmEngineConfig {
     return {
         customRules: toExternalRuleSources(config?.customRules),
         guardRules: toExternalRuleSources(config?.guardRules),
+        schemaValidator: config?.schemaValidator
+            ? toWasmSchemaValidatorConfig(config.schemaValidator)
+            : undefined,
+    };
+}
+
+function toWasmSchemaValidatorConfig(config?: SchemaValidatorConfig): WasmSchemaValidatorConfig {
+    return {
         additionalSchemas: toAdditionalSchemas(config?.additionalSchemas),
     };
 }
@@ -194,7 +215,11 @@ export class TemplateModel {
 }
 
 export class SchemaValidator {
-    private readonly inner: InstanceType<typeof bridge.WasmSchemaValidator> = new bridge.WasmSchemaValidator();
+    private readonly inner: InstanceType<typeof bridge.WasmSchemaValidator>;
+
+    constructor(config?: SchemaValidatorConfig) {
+        this.inner = new bridge.WasmSchemaValidator(toWasmSchemaValidatorConfig(config));
+    }
 
     listRules(): RuleInfo[] {
         return this.inner.listRules();

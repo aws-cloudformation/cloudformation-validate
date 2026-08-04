@@ -2,6 +2,10 @@ pub mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_data.rs"));
 }
 
+#[cfg(feature = "uniffi-bindings")]
+uniffi::setup_scaffolding!();
+
+pub mod additional_schema_source;
 #[cfg(feature = "full")]
 pub mod additional_specs;
 #[cfg(feature = "full")]
@@ -20,6 +24,8 @@ pub mod regions;
 #[cfg(feature = "full")]
 pub mod schema;
 pub mod types;
+
+pub use additional_schema_source::{AdditionalSchemaSource, SchemaSourceError};
 
 #[cfg(feature = "full")]
 use log::{error, info};

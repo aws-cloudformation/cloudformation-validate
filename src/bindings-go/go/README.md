@@ -71,9 +71,9 @@ Passed to `NewRegoEngine` / `NewCelEngine`. The zero value (or `nil`) uses only 
 
 ```go
 type EngineConfig struct {
-    CustomRules       []ExternalRuleSource     // engine-native rules (Rego for Rego, CEL for CEL)
-    GuardRules        []ExternalRuleSource     // CloudFormation Guard DSL rules — translated internally by each engine
-    AdditionalSchemas []AdditionalSchemaSource // resource provider schemas merged over the bundled schemas
+    CustomRules     []ExternalRuleSource  // engine-native rules (Rego for Rego, CEL for CEL)
+    GuardRules      []ExternalRuleSource  // CloudFormation Guard DSL rules — translated internally by each engine
+    SchemaValidator *SchemaValidatorConfig // optional schema validator configuration
 }
 
 // Name identifies the rule in diagnostics; Content is the full rule source text.
@@ -87,6 +87,13 @@ type AdditionalSchemaSource struct {
     TypeName string
     Schema   string
 }
+
+// SchemaValidatorConfig configures the validator bundled by the engine.
+// Additional schemas extend the bundled resource provider schemas or register
+// new resource types.
+type SchemaValidatorConfig struct {
+    AdditionalSchemas []AdditionalSchemaSource
+}
 ```
 
 Read schema and rule content yourself and pass it through the typed config:
@@ -96,9 +103,11 @@ schema, _ := os.ReadFile("schemas/aws-lambda-function.json")
 guard, _ := os.ReadFile("rules/compliance.guard")
 custom, _ := os.ReadFile("rules/s3_encryption.json")
 engine, err := cfnvalidate.NewCelEngine(&cfnvalidate.EngineConfig{
-    CustomRules:       []cfnvalidate.ExternalRuleSource{{Name: "s3_encryption.json", Content: string(custom)}},
-    GuardRules:        []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: string(guard)}},
-    AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: string(schema)}},
+    CustomRules: []cfnvalidate.ExternalRuleSource{{Name: "s3_encryption.json", Content: string(custom)}},
+    GuardRules:  []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: string(guard)}},
+    SchemaValidator: &cfnvalidate.SchemaValidatorConfig{
+        AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: string(schema)}},
+    },
 })
 ```
 

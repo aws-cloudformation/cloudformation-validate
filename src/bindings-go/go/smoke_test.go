@@ -147,7 +147,10 @@ func TestListRulesSortedAndIdenticalAcrossEngines(t *testing.T) {
 }
 
 func TestSchemaValidator(t *testing.T) {
-	validator := cfnvalidate.NewSchemaValidator()
+	validator, err := cfnvalidate.NewSchemaValidator(nil)
+	if err != nil {
+		t.Fatalf("schema validator construction failed: %v", err)
+	}
 	defer validator.Destroy()
 
 	if count := validator.SchemaCount(); count == 0 {
@@ -190,7 +193,7 @@ func TestGoodTemplatePassesBothEngines(t *testing.T) {
 }
 
 func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) {
-	config := &cfnvalidate.EngineConfig{
+	schemaConfig := &cfnvalidate.SchemaValidatorConfig{
 		AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: lambdaOverlaySchema}},
 	}
 	builders := map[string]func(*cfnvalidate.EngineConfig) (*cfnvalidate.Engine, error){
@@ -213,8 +216,12 @@ func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) 
 			t.Fatalf("%s baseline must report the unpublished property", name)
 		}
 
-		overlaid := mustEngine(t, build, config)
-		report, err := overlaid.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
+		engine, err := build(&cfnvalidate.EngineConfig{SchemaValidator: schemaConfig})
+		if err != nil {
+			t.Fatalf("%s engine construction with overlay failed: %v", name, err)
+		}
+		defer engine.Destroy()
+		report, err := engine.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
 		if err != nil {
 			t.Fatalf("%s overlay validation failed: %v", name, err)
 		}

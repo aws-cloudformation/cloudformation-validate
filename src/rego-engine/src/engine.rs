@@ -9,7 +9,7 @@ use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, OverlayCatalog, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
+    EngineConfig, OverlayCatalog, SchemaValidator, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
     extract_diagnostics, semantic_model_to_input_json,
 };
 
@@ -205,18 +205,29 @@ pub struct RegoEngine {
 
 impl RegoEngine {
     pub fn new(config: EngineConfig) -> anyhow::Result<Self> {
+        let overlay_catalog =
+            config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
+        Self::new_from_catalog(config, &overlay_catalog)
+    }
+
+    /// Constructs the engine reusing metadata from an already-built
+    /// [`SchemaValidator`](schema_validator::SchemaValidator). The validator's
+    /// overlay catalog is treated as authoritative — the engine does not
+    /// re-resolve overlay schemas.
+    ///
+    /// This entry point is intended for language bindings and the CLI, which
+    /// construct a `SchemaValidator` once and share it with the engine.
+    #[doc(hidden)]
+    pub fn new_with_schema_validator(config: EngineConfig, validator: &SchemaValidator) -> anyhow::Result<Self> {
+        Self::new_from_catalog(config, validator.overlay_catalog())
+    }
+
+    /// Internal constructor that accepts a pre-built overlay catalog.
+    fn new_from_catalog(config: EngineConfig, overlay_catalog: &OverlayCatalog) -> anyhow::Result<Self> {
         let start = web_time::Instant::now();
 
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-
-        // Build the overlay catalog before the data-merge block so it is
-        // accessible for both data extension and builtin registration.
-        let overlay_catalog = if config.additional_schemas.is_empty() {
-            OverlayCatalog::default()
-        } else {
-            config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?
-        };
 
         // Single-pass merge avoids per-file JSON parsing overhead.
         {
@@ -227,9 +238,9 @@ impl RegoEngine {
             let extended_known_types = extend_known_resource_types(&overlay_types)?;
 
             // Extend getatt_attributes data with overlay entries
-            let extended_getatt = extend_getatt_data(&overlay_catalog)?;
+            let extended_getatt = extend_getatt_data(overlay_catalog)?;
             // Extend primary_identifiers data with overlay entries
-            let extended_primary_ids = extend_primary_identifiers_data(&overlay_catalog)?;
+            let extended_primary_ids = extend_primary_identifiers_data(overlay_catalog)?;
 
             let mut merged = String::with_capacity(MERGED_DATA_INITIAL_CAPACITY);
             merged.push('{');
@@ -321,7 +332,7 @@ impl RegoEngine {
 
         let model_holder: SharedModel = Arc::new(Mutex::new(None));
         let region_holder: SharedRegion = Arc::new(Mutex::new(None));
-        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone(), &overlay_catalog);
+        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone(), overlay_catalog);
 
         let registry_metadata = build_rule_metadata_map();
         let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();

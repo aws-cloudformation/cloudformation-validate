@@ -70,17 +70,20 @@ engine = CelEngine(EngineConfig(guard_rules=[my_rule]))  # with Guard rules
 |----------------------|---------|-----------------------------------------------------------------------------------------------|
 | `custom_rules`       | `[]`    | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                              |
 | `guard_rules`        | `[]`    | CloudFormation Guard DSL rules — translated internally by each engine                         |
-| `additional_schemas` | `[]`    | Resource provider schemas merged over bundled schemas; may also register a new resource type |
+| `schema_validator`   | `None`  | Optional `SchemaValidatorConfig`; configures the validator bundled by the engine              |
 
-Each additional schema is an `AdditionalSchemaSource`. Load one from a file with
+The optional `schema_validator` field accepts a `SchemaValidatorConfig` containing additional schemas. Each additional
+schema is an `AdditionalSchemaSource`. Load one from a file with
 `file_to_additional_schema_source(path, type_name="")`, or construct it from schema text. `type_name` may be empty
 when the JSON contains its own `typeName`:
 
 ```python
-from cloudformation_validate import EngineConfig, RegoEngine, file_to_additional_schema_source
+from cloudformation_validate import EngineConfig, RegoEngine, SchemaValidatorConfig, file_to_additional_schema_source
 
 engine = RegoEngine(
-    EngineConfig(additional_schemas=[file_to_additional_schema_source("schemas/aws-lambda-function.json")])
+    EngineConfig(schema_validator=SchemaValidatorConfig(
+        additional_schemas=[file_to_additional_schema_source("schemas/aws-lambda-function.json")]
+    ))
 )
 ```
 

@@ -102,7 +102,9 @@ class SmokeTest {
     @Test
     fun additionalSchemasApplyThroughThePublicConfigOnBothEngines() {
         val config = EngineConfig(
-            additionalSchemas = listOf(AdditionalSchemaSource(typeName = "", schema = lambdaOverlaySchema)),
+            schemaValidator = SchemaValidatorConfig(
+                additionalSchemas = listOf(AdditionalSchemaSource(typeName = "", schema = lambdaOverlaySchema)),
+            ),
         )
         val celBaseline = JvmCelEngine(EngineConfig()).validateStandard(
             templateWithOverlayProperty,

@@ -8,7 +8,7 @@ use validation_engine::guard::resolve_guard_config;
 use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
 static SHARED_ENGINE: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
-static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+static SHARED_SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
 fn validate_fixture(path: &str) -> ValidationReport {
     let full = format!("../resources/templates/{}", path);

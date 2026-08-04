@@ -7,7 +7,8 @@ use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map, is_valid_custom_rule_id};
 use template_model::{SemanticModel, UNKNOWN_SPAN};
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, semantic_model_to_input_json,
+    EngineConfig, OverlayCatalog, SchemaValidator, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
+    semantic_model_to_input_json,
 };
 
 use crate::rule_evaluator::GeneratedRuleRegistry;
@@ -64,6 +65,24 @@ struct CustomRule {
 
 impl CelEngine {
     pub fn new(config: EngineConfig) -> anyhow::Result<Self> {
+        let catalog =
+            config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
+        Self::new_from_catalog(config, &catalog)
+    }
+
+    /// Constructs the engine reusing metadata from an already-built
+    /// [`SchemaValidator`]. The validator's overlay catalog is treated as
+    /// authoritative — the engine does not re-resolve overlay schemas.
+    ///
+    /// This entry point is intended for language bindings and the CLI, which
+    /// construct a `SchemaValidator` once and share it with the engine.
+    #[doc(hidden)]
+    pub fn new_with_schema_validator(config: EngineConfig, validator: &SchemaValidator) -> anyhow::Result<Self> {
+        Self::new_from_catalog(config, validator.overlay_catalog())
+    }
+
+    /// Internal constructor that accepts a pre-built overlay catalog.
+    fn new_from_catalog(config: EngineConfig, overlay_catalog: &OverlayCatalog) -> anyhow::Result<Self> {
         let start = web_time::Instant::now();
 
         let native_rules = NativeRuleRegistry::new();
@@ -136,10 +155,8 @@ impl CelEngine {
         // Resource types introduced by an overlay schema are legitimate targets,
         // so rules working from the build-time type catalog must treat them as
         // known rather than reporting them as nonexistent.
-        if !config.additional_schemas.is_empty() {
-            let catalog =
-                config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
-            cached_data.merge_overlay_catalog(&catalog)?;
+        if !overlay_catalog.is_empty() {
+            cached_data.merge_overlay_catalog(overlay_catalog)?;
         }
         let init_metric = phase_metric(start);
         Ok(CelEngine {

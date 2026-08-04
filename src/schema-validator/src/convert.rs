@@ -9,7 +9,7 @@
 //! replaces an earlier serialize/deserialize round trip that both hid drift and
 //! required panicking on a `pub` path.
 
-use crate::compiled::{CompiledSchema, ConditionSchema, IfThenElse, PropSchema, PropType, SubSchema};
+use crate::compiled::{CompiledSchema, ConditionSchema, IfThenElse, PropSchema, PropType};
 use data_source::compiled_schema as build;
 use std::collections::HashMap;
 
@@ -26,20 +26,6 @@ impl From<build::PropType> for PropType {
         match source {
             build::PropType::Single(name) => PropType::Single(name),
             build::PropType::Multi(names) => PropType::Multi(names),
-        }
-    }
-}
-
-impl From<build::SubSchema> for SubSchema {
-    fn from(source: build::SubSchema) -> Self {
-        let build::SubSchema { required, properties, additional_properties, dependent_required, dependent_excluded } =
-            source;
-        SubSchema {
-            required,
-            properties: props(properties),
-            additional_properties,
-            dependent_required: map(dependent_required),
-            dependent_excluded: map(dependent_excluded),
         }
     }
 }
@@ -80,6 +66,7 @@ impl From<build::PropSchema> for PropSchema {
             maximum,
             exclusive_minimum,
             exclusive_maximum,
+            multiple_of,
             min_length,
             max_length,
             min_items,
@@ -97,6 +84,7 @@ impl From<build::PropSchema> for PropSchema {
             all_of,
             any_of,
             one_of,
+            if_then_else,
             dependent_required,
             dependent_excluded,
         } = source;
@@ -112,6 +100,7 @@ impl From<build::PropSchema> for PropSchema {
             maximum,
             exclusive_minimum,
             exclusive_maximum,
+            multiple_of,
             min_length,
             max_length,
             min_items,
@@ -123,12 +112,14 @@ impl From<build::PropSchema> for PropSchema {
             description,
             properties: props(properties),
             required,
+            required_present: false,
             additional_properties,
             pattern_properties: props(pattern_properties),
             items: items.map(|boxed| Box::new((*boxed).into())),
             all_of: all_of.into_iter().map(Into::into).collect(),
             any_of: any_of.into_iter().map(Into::into).collect(),
             one_of: one_of.into_iter().map(Into::into).collect(),
+            if_then_else: if_then_else.into_iter().map(Into::into).collect(),
             dependent_required: map(dependent_required),
             dependent_excluded: map(dependent_excluded),
         }
@@ -167,6 +158,7 @@ impl From<build::CompiledSchema> for CompiledSchema {
             properties: props(properties),
             definitions: props(definitions),
             required,
+            required_present: false,
             additional_properties,
             read_only_properties,
             write_only_properties,

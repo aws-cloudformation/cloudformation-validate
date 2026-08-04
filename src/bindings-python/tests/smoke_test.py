@@ -183,8 +183,12 @@ class ValidateTest(unittest.TestCase):
 
 class AdditionalSchemasTest(unittest.TestCase):
     def test_additional_schemas_apply_through_the_public_config_on_both_engines(self):
+        from cloudformation_validate import SchemaValidatorConfig
+
         config = EngineConfig(
-            additional_schemas=[AdditionalSchemaSource(type_name="", schema=LAMBDA_OVERLAY_SCHEMA)]
+            schema_validator=SchemaValidatorConfig(
+                additional_schemas=[AdditionalSchemaSource(type_name="", schema=LAMBDA_OVERLAY_SCHEMA)]
+            )
         )
         for name, baseline, engine_type in (
             ("rego", REGO, RegoEngine),

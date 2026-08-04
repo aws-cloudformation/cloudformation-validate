@@ -51,6 +51,13 @@ func engineConfigJSON(config *EngineConfig) (string, error) {
 	return marshalConfig(config)
 }
 
+func schemaConfigJSON(config *SchemaValidatorConfig) (string, error) {
+	if config == nil {
+		return "{}", nil
+	}
+	return marshalConfig(config)
+}
+
 func validateConfigJSON(config *ValidateConfig) (string, error) {
 	if config == nil {
 		return "{}", nil
@@ -195,9 +202,17 @@ type SchemaValidator struct {
 }
 
 // NewSchemaValidator builds a schema validator over the compiled provider
-// schemas.
-func NewSchemaValidator() *SchemaValidator {
-	return &SchemaValidator{inner: bindings.NewGoSchemaValidator()}
+// schemas. A nil config uses only the bundled schemas.
+func NewSchemaValidator(config *SchemaValidatorConfig) (*SchemaValidator, error) {
+	schemaJSON, err := schemaConfigJSON(config)
+	if err != nil {
+		return nil, err
+	}
+	inner, err := bindings.NewGoSchemaValidator(schemaJSON)
+	if err != nil {
+		return nil, err
+	}
+	return &SchemaValidator{inner: inner}, nil
 }
 
 // ListRules lists the schema validator's rules.

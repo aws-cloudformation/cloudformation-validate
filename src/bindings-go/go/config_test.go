@@ -56,10 +56,12 @@ const fullValidateConfigJSON = `{
 const fullEngineConfigJSON = `{
     "customRules": [{"name": "s3_encryption.json", "content": "{}"}],
     "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
-    "additionalSchemas": [{
-        "typeName": "",
-        "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
-    }]
+    "schemaValidator": {
+        "additionalSchemas": [{
+            "typeName": "",
+            "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
+        }]
+    }
 }`
 
 func stringPtr(value string) *string { return &value }
@@ -133,9 +135,11 @@ func TestFullEngineConfigMarshalsToTheContractShape(t *testing.T) {
 	config := &cfnvalidate.EngineConfig{
 		CustomRules: []cfnvalidate.ExternalRuleSource{{Name: "s3_encryption.json", Content: "{}"}},
 		GuardRules:  []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: "let x = 1"}},
-		AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{
-			Schema: `{"typeName":"AWS::Test::OverlayOnly","properties":{"Name":{"type":"string"}}}`,
-		}},
+		SchemaValidator: &cfnvalidate.SchemaValidatorConfig{
+			AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{
+				Schema: `{"typeName":"AWS::Test::OverlayOnly","properties":{"Name":{"type":"string"}}}`,
+			}},
+		},
 	}
 	assertMarshalsTo(t, config, fullEngineConfigJSON)
 }
@@ -153,4 +157,14 @@ func TestFullValidateConfigIsAcceptedByTheNativeLayer(t *testing.T) {
 	if report.Metadata.SeverityLevel != cfnvalidate.SeverityWarn {
 		t.Errorf("metadata.severityLevel = %s, want WARN", report.Metadata.SeverityLevel)
 	}
+}
+
+func TestFullSchemaValidatorConfigMarshalsToTheContractShape(t *testing.T) {
+	config := &cfnvalidate.SchemaValidatorConfig{
+		AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{
+			Schema: `{"typeName":"AWS::Test::OverlayOnly","properties":{"Name":{"type":"string"}}}`,
+		}},
+	}
+	expected := `{"additionalSchemas":[{"typeName":"","schema":"{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"}]}`
+	assertMarshalsTo(t, config, expected)
 }

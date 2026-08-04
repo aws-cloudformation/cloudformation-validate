@@ -2,6 +2,57 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rules::IdRange;
+use schema_validator::AdditionalSchemaSource;
+use validation_engine::ValidationError;
+
+/// Loads overlay schemas from files and directories.
+///
+/// A path may be a single `.json` schema or a directory, which is scanned
+/// (non-recursively) for `.json` files. The resource type name comes from each
+/// schema's own `typeName`, so a directory of registry schemas can be pointed
+/// at directly.
+///
+/// Returns contextual errors for directory read failures and individual file
+/// read failures (naming the failing path), and rejects an empty directory as
+/// likely user error.
+pub fn load_additional_schema_sources(paths: &[String]) -> Result<Vec<AdditionalSchemaSource>, ValidationError> {
+    let mut sources = Vec::new();
+    for path in paths {
+        let candidate = Path::new(path);
+        if candidate.is_dir() {
+            let entries = fs::read_dir(candidate).map_err(|e| {
+                ValidationError::Engine(format!("Failed to read additional schema directory '{path}': {e}"))
+            })?;
+            let mut files: Vec<PathBuf> = Vec::new();
+            for entry in entries {
+                let entry = entry
+                    .map_err(|e| ValidationError::Engine(format!("Failed to read directory entry in '{path}': {e}")))?;
+                let file_path = entry.path();
+                if file_path.extension().is_some_and(|ext| ext == "json") {
+                    files.push(file_path);
+                }
+            }
+            files.sort();
+            if files.is_empty() {
+                return Err(ValidationError::Engine(format!("No .json schema files found in '{path}'")));
+            }
+            for file in files {
+                sources.push(read_schema_file(&file)?);
+            }
+        } else if candidate.is_file() {
+            sources.push(read_schema_file(candidate)?);
+        } else {
+            return Err(ValidationError::Engine(format!("Additional schema not found: {path}")));
+        }
+    }
+    Ok(sources)
+}
+
+fn read_schema_file(path: &Path) -> Result<AdditionalSchemaSource, ValidationError> {
+    let schema = fs::read_to_string(path)
+        .map_err(|e| ValidationError::Engine(format!("Failed to read additional schema '{}': {e}", path.display())))?;
+    Ok(AdditionalSchemaSource { type_name: String::new(), schema })
+}
 
 pub fn collect_files(path: &Path) -> Vec<PathBuf> {
     if path.is_file() {

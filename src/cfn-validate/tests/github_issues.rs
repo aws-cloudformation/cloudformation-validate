@@ -31,7 +31,7 @@ static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::
 /// Validate a `gh-issues` fixture with one engine at the lowest severity gate
 /// (so INFO/DEBUG findings are visible to assertions).
 fn validate_with(engine: &dyn ValidationEngine, fixture: &str, config: ValidateConfig) -> Vec<Diagnostic> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let bytes = load_template(&format!("gh-issues/{fixture}"));
     validate_bytes(engine, &sv, &bytes, config).expect("validation should not error").diagnostics
 }
@@ -55,7 +55,7 @@ fn validate_both(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
 /// fire on a genuine violation): these adversarial templates are not golden
 /// fixtures, so they live inline rather than under `gh-issues/`.
 fn validate_both_bytes(template: &[u8]) -> Vec<(&'static str, Vec<Diagnostic>)> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     vec![
         ("rego", validate_bytes(&*REGO, &sv, template, debug_config()).unwrap().diagnostics),
         ("cel", validate_bytes(&*CEL, &sv, template, debug_config()).unwrap().diagnostics),
@@ -596,7 +596,7 @@ fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
     "Bucket": { "Type": "AWS::S3::Bucket", "Properties": { "AccessControl": { "Ref": "Acl" } } }
   }
 }"#;
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let rego = validate_bytes(&*REGO, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
     let cel = validate_bytes(&*CEL, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
 
@@ -984,7 +984,7 @@ Resources:
     Properties:
       ExecutionRoleArn: arn:aws-isob:iam::123456789012:role/my-task-role
 "#;
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let rego = validate_bytes(&*REGO, &sv, VALID, debug_config()).unwrap().diagnostics;
     let cel = validate_bytes(&*CEL, &sv, VALID, debug_config()).unwrap().diagnostics;
 

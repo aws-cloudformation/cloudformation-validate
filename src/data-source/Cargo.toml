@@ -36,6 +36,8 @@ required-features = ["bench"]
 default = []
 full = ["ureq", "zip", "chrono", "env_logger", "dep:log", "anyhow", "dep:zstd"]
 bench = ["dep:zstd", "dep:lz4_flex"]
+wasm-bindings = ["dep:tsify", "dep:wasm-bindgen"]
+uniffi-bindings = ["dep:uniffi"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -49,6 +51,9 @@ log = { version = "0.4", optional = true }
 env_logger = { version = "0.11", optional = true }
 anyhow = { version = "1", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
+tsify = { version = "0.5", optional = true, features = ["js"] }
+wasm-bindgen = { version = "0.2", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [build-dependencies]
 serde_json = { version = "1", features = ["preserve_order"] }

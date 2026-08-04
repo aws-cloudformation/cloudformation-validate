@@ -5,7 +5,7 @@ mod tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
@@ -140,7 +140,7 @@ mod nested_schema_tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
-    static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV2: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn diags(template: &str) -> Vec<(String, String)> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();
@@ -260,7 +260,7 @@ mod guard_tests {
     use validation_engine::guard::resolve_guard_config;
     use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     const GUARD_S3_VERSIONING: &str = r#"
 rule s3_versioning_check {
@@ -372,7 +372,7 @@ mod rule_category_tests {
     use std::sync::LazyLock;
     use validation_engine::{EngineConfig, ValidateConfig, validate_bytes};
 
-    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+    static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
     fn validate(template: &str) -> Vec<String> {
         let engine = CelEngine::new(EngineConfig::default()).unwrap();

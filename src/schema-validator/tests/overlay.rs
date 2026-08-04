@@ -15,10 +15,15 @@
 //! introduces a diagnostic.
 
 use diagnostics::Diagnostic;
-use schema_validator::{MAX_REF_CHAIN, SchemaOverlayError, SchemaValidator};
+use schema_validator::{SchemaOverlayError, SchemaValidator};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use template_model::SemanticModel;
+
+/// The resolution limit used by the overlay module for `$ref` chain validation.
+/// Duplicated here so boundary tests do not depend on the crate-private constant
+/// (the authoritative value lives in `compiled.rs`).
+const REF_CHAIN_LIMIT: usize = 64;
 
 /// A Lambda function that uses the synthetic unpublished `TestForOverride`
 /// property, which is not in the bundled `AWS::Lambda::Function` schema (which
@@ -114,7 +119,7 @@ fn mentions(diags: &[Diagnostic], rule_id: &str, needle: &str) -> bool {
 #[test]
 fn bundled_schema_flags_unpublished_property() {
     // Sanity check: without an overlay, the unpublished property is a false positive.
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let diags = validate(&sv, LAMBDA_WITH_OVERRIDE_PROP);
     assert!(
         mentions(&diags, "F3002", "TestForOverride"),
@@ -136,7 +141,7 @@ fn overlay_new_property_suppresses_additional_property_finding() {
 
 #[test]
 fn bundled_schema_flags_new_enum_value() {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let diags = validate(&sv, LAMBDA_WITH_NEW_PACKAGE_TYPE);
     assert!(
         mentions(&diags, "W3030", "NewUnpublishedMode"),
@@ -167,7 +172,7 @@ fn overlay_registers_a_brand_new_resource_type_and_validates_against_it() {
         }"#,
     );
     let sv = validator(vec![("AWS::Test::OverlayOnly", new_type)]);
-    assert_eq!(sv.schema_count(), SchemaValidator::new().schema_count() + 1, "a new resource type should be added");
+    assert_eq!(sv.schema_count(), SchemaValidator::default().schema_count() + 1, "a new resource type should be added");
 
     let valid = "Resources:\n  R:\n    Type: AWS::Test::OverlayOnly\n    Properties:\n      Name: n\n      Mode: A\n";
     assert!(
@@ -185,7 +190,7 @@ fn overlay_registers_a_brand_new_resource_type_and_validates_against_it() {
 #[test]
 fn no_overlays_matches_default_construction() {
     let overlaid = SchemaValidator::try_with_additional_schemas(Vec::<(String, Value)>::new()).expect("builds");
-    assert_eq!(overlaid.schema_count(), SchemaValidator::new().schema_count());
+    assert_eq!(overlaid.schema_count(), SchemaValidator::default().schema_count());
 }
 
 #[test]
@@ -222,7 +227,7 @@ Resources:
 fn overlay_logical_group_replaces_instead_of_unioning() {
     // Unioning the bundled "exactly one of" group with the overlay's group states
     // a third constraint neither schema makes, and turns a valid template invalid.
-    let baseline = findings(&SchemaValidator::new(), ALARM);
+    let baseline = findings(&SchemaValidator::default(), ALARM);
     assert!(!baseline.iter().any(|d| d.starts_with("F3014")), "baseline alarm must be clean: {baseline:?}");
     let sv = validator(vec![(
         "AWS::CloudWatch::Alarm",
@@ -244,7 +249,7 @@ Resources:
 
 #[test]
 fn overlay_dependency_entry_extends_the_bundled_list() {
-    let baseline = findings(&SchemaValidator::new(), SCALING_POLICY);
+    let baseline = findings(&SchemaValidator::default(), SCALING_POLICY);
     let sv = validator(vec![(
         "AWS::ApplicationAutoScaling::ScalingPolicy",
         json!({ "dependentRequired": { "ResourceId": ["ScalableDimension"] } }),
@@ -269,7 +274,7 @@ Resources:
 
 #[test]
 fn overlay_metadata_list_extends_the_bundled_list() {
-    let baseline = findings(&SchemaValidator::new(), DATASOURCE);
+    let baseline = findings(&SchemaValidator::default(), DATASOURCE);
     assert!(
         baseline.iter().any(|d| d.starts_with("W9009") && d.contains("ElasticsearchConfig")),
         "baseline must report the bundled deprecation: {baseline:?}"
@@ -301,7 +306,7 @@ Resources:
 
 #[test]
 fn overlay_explicit_unique_items_false_relaxes_the_bundled_constraint() {
-    let baseline = findings(&SchemaValidator::new(), REST_API_DUPES);
+    let baseline = findings(&SchemaValidator::default(), REST_API_DUPES);
     assert!(baseline.iter().any(|d| d.starts_with("F3037")), "baseline must reject duplicates: {baseline:?}");
     let sv = validator(vec![(
         "AWS::ApiGateway::RestApi",
@@ -346,7 +351,7 @@ fn batch_enum_overlay(keyword: &str) -> Value {
 #[test]
 fn overlay_enum_widens_a_case_insensitive_property() {
     let template = BATCH_TEMPLATE.replace("COMPUTE_TYPE", "test_new_mode");
-    let baseline = findings(&SchemaValidator::new(), &template);
+    let baseline = findings(&SchemaValidator::default(), &template);
     assert!(baseline.iter().any(|d| d.contains("test_new_mode")), "baseline must flag the new value: {baseline:?}");
     for keyword in ["enum", "enumCaseInsensitive"] {
         let sv = validator(vec![("AWS::Batch::ComputeEnvironment", batch_enum_overlay(keyword))]);
@@ -361,7 +366,7 @@ fn overlay_enum_widens_a_case_insensitive_property() {
 #[test]
 fn overlay_enum_does_not_reject_a_casing_that_validated_before() {
     let template = BATCH_TEMPLATE.replace("COMPUTE_TYPE", "FARGATE");
-    let baseline = findings(&SchemaValidator::new(), &template);
+    let baseline = findings(&SchemaValidator::default(), &template);
     assert!(!baseline.iter().any(|d| d.contains("FARGATE")), "baseline must accept the uppercase value: {baseline:?}");
     let sv = validator(vec![("AWS::Batch::ComputeEnvironment", batch_enum_overlay("enum"))]);
     let after = findings(&sv, &template);
@@ -411,7 +416,7 @@ Resources:
 fn constraint_only_overlay_on_a_ref_property_takes_effect() {
     // `PackagingType` is a `$ref` to a definition carrying the enum. An overlay
     // that supplies only the enum must still apply.
-    let baseline = findings(&SchemaValidator::new(), APPBLOCK);
+    let baseline = findings(&SchemaValidator::default(), APPBLOCK);
     assert!(baseline.iter().any(|d| d.contains("TEST_NEW_MODE")), "baseline must flag the value: {baseline:?}");
     let sv = validator(vec![(
         "AWS::AppStream::AppBlock",
@@ -566,26 +571,26 @@ fn an_overlay_extending_a_ref_property_is_merged_onto_the_reference() {
 
 #[test]
 fn a_constraining_keyword_beside_a_ref_is_rejected() {
-    let error = rejection(vec![(
+    // Represented constraints beside a $ref are now accepted and merged at
+    // validation time via PropSchema::resolve.
+    validator(vec![(
         "AWS::Test::SiblingConstraint",
         json!({
             "properties": { "Mode": { "$ref": "#/definitions/Mode", "enum": ["ONLY_THIS"], "maxLength": 2 } },
             "definitions": { "Mode": { "type": "string" } }
         }),
     )]);
-    assert!(matches!(error, SchemaOverlayError::Unsupported { .. }), "got {error:?}");
 }
 
 #[test]
 fn a_keyword_the_model_cannot_represent_is_rejected() {
-    // The compiled model has no field for `multipleOf`, so stating it in an
-    // overlay is rejected — the constraint would be silently dropped and the
-    // caller would believe it applies.
+    // `propertyNames` has no field in the compiled model, so stating it in an
+    // overlay is still rejected — the constraint would be silently dropped.
     let error = rejection(vec![(
         "AWS::Test::Unrepresented",
         json!({
             "properties": {
-                "Size": { "type": "integer", "multipleOf": 10 },
+                "Size": { "type": "integer", "propertyNames": { "pattern": "^x" } },
                 "Known": { "type": "string", "maxLength": 4 }
             }
         }),
@@ -600,7 +605,7 @@ fn a_keyword_the_model_cannot_represent_is_rejected() {
 fn a_keyword_the_model_cannot_represent_does_not_silently_weaken_the_overlay() {
     let error = rejection(vec![(
         "AWS::Test::UnrepresentedSibling",
-        json!({ "properties": { "Size": { "type": "integer", "multipleOf": 10, "maximum": 5 } } }),
+        json!({ "properties": { "Size": { "type": "integer", "contains": { "type": "string" }, "maximum": 5 } } }),
     )]);
     assert!(
         matches!(error, SchemaOverlayError::Unsupported { .. }),
@@ -641,7 +646,7 @@ fn a_ref_chain_too_long_to_resolve_is_rejected() {
     // Resolution follows a bounded number of hops. A chain longer than that would
     // be cut short, leaving the constraints at its end unenforced — so it is
     // rejected rather than silently truncated.
-    let hops = MAX_REF_CHAIN + 2;
+    let hops = REF_CHAIN_LIMIT + 2;
     let mut definitions = serde_json::Map::new();
     for index in 0..hops {
         definitions.insert(format!("D{index}"), json!({ "$ref": format!("#/definitions/D{}", index + 1) }));
@@ -658,7 +663,7 @@ fn a_ref_chain_too_long_to_resolve_is_rejected() {
 fn a_chain_at_the_resolution_limit_is_accepted_and_enforced() {
     // The boundary case: a chain exactly as long as resolution can follow must
     // both be accepted and have its far end enforced.
-    let hops = MAX_REF_CHAIN - 1;
+    let hops = REF_CHAIN_LIMIT - 1;
     let mut definitions = serde_json::Map::new();
     for index in 0..hops {
         definitions.insert(format!("D{index}"), json!({ "$ref": format!("#/definitions/D{}", index + 1) }));
@@ -852,7 +857,7 @@ fn corpus_overlays() -> Vec<(&'static str, Value)> {
 /// than a defect, so those belong in the targeted tests above instead of here.
 #[test]
 fn overlays_never_introduce_a_diagnostic_on_the_good_corpus() {
-    let baseline = SchemaValidator::new();
+    let baseline = SchemaValidator::default();
     let overlaid = validator(corpus_overlays());
     let good = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../resources/templates/good");
     let mut checked = 0usize;
@@ -890,4 +895,69 @@ fn overlays_never_introduce_a_diagnostic_on_the_good_corpus() {
 
     assert!(checked > 20, "expected to check the good corpus, only reached {checked} templates");
     assert!(added.is_empty(), "overlays introduced {} new diagnostic(s): {added:#?}", added.len());
+}
+
+#[test]
+fn schema_validator_new_has_empty_overlay_catalog() {
+    let validator = SchemaValidator::default();
+    assert!(validator.overlay_catalog().is_empty(), "a default-constructed SchemaValidator must have an empty catalog");
+}
+
+#[test]
+fn schema_validator_with_overlays_exposes_populated_catalog() {
+    let overlays = vec![("AWS::Lambda::Function", overlay(r#"{"properties":{"TestForOverride":{"type":"string"}}}"#))];
+    let validator = SchemaValidator::try_with_additional_schemas(overlays).expect("valid overlay");
+    let catalog = validator.overlay_catalog();
+    assert!(!catalog.is_empty(), "an overlay-bearing validator must expose a non-empty catalog");
+    assert!(
+        catalog.type_names.contains(&"AWS::Lambda::Function".to_string()),
+        "the catalog must list the overlaid type"
+    );
+}
+
+#[test]
+fn overlay_required_replacement_clears_base_required() {
+    let sv = validator(vec![(
+        "AWS::Test::RequiredClear",
+        json!({
+            "properties": {
+                "Name": { "type": "string" },
+                "Extra": { "type": "string" }
+            },
+            "required": ["Name"]
+        }),
+    )]);
+    // Verify the required constraint is enforced.
+    let template_missing = "\
+Resources:
+  R:
+    Type: AWS::Test::RequiredClear
+    Properties:
+      Extra: val
+";
+    let diags = validate(&sv, template_missing);
+    assert!(
+        mentions(&diags, "F3003", "Name"),
+        "the overlay's required must be enforced: {:?}",
+        diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
+
+    // Now apply a second overlay that clears required.
+    let sv2 = SchemaValidator::try_with_additional_schemas(vec![
+        (
+            "AWS::Test::RequiredClear",
+            json!({
+                "properties": { "Name": { "type": "string" }, "Extra": { "type": "string" } },
+                "required": ["Name"]
+            }),
+        ),
+        ("AWS::Test::RequiredClear", json!({ "properties": { "Name": { "type": "string" } }, "required": [] })),
+    ])
+    .expect("valid overlays");
+    let diags2 = validate(&sv2, template_missing);
+    assert!(
+        !mentions(&diags2, "F3003", "Name"),
+        "explicit empty required in second overlay must clear the required constraint: {:?}",
+        diags2.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+    );
 }

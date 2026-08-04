@@ -97,7 +97,7 @@ fn run() -> Result<(), String> {
     let mut engine_init_samples_ms: Vec<f64> = Vec::with_capacity(iterations);
     for _ in 0..iterations {
         let t0 = Instant::now();
-        let sv = SchemaValidator::new();
+        let sv = SchemaValidator::default();
         schema_init_samples_ms.push(t0.elapsed().as_secs_f64() * 1000.0);
 
         let t1 = Instant::now();
@@ -119,7 +119,7 @@ fn run() -> Result<(), String> {
     let warm_init_samples_ms: Vec<f64> =
         if init_samples_ms.len() > 1 { init_samples_ms[1..].to_vec() } else { init_samples_ms.clone() };
 
-    let schema_validator = SchemaValidator::new();
+    let schema_validator = SchemaValidator::default();
     let engine: Box<dyn ValidationEngine> = match engine_type {
         EngineType::Cel => {
             Box::new(CelEngine::new(config.clone()).map_err(|e| format!("CEL engine initialization failed: {e}"))?)

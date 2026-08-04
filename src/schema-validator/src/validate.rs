@@ -862,10 +862,36 @@ fn validate_sub(
     _rtype: &str,
     actual_keys: &[String],
     sub: &SubSchema,
-    _defs: &HashMap<String, PropSchema>,
+    defs: &HashMap<String, PropSchema>,
     base_path: &str,
 ) {
-    for req in &sub.required {
+    // Resolve $ref in the branch — a branch that references a definition uses
+    // the definition's constraints. A dangling ref (definition not found) makes
+    // the branch fail validation (never vacuously match).
+    let resolved;
+    let effective_sub = if sub.ref_name.is_some() {
+        resolved = sub.resolve(defs);
+        if sub.ref_name.is_some() && resolved.ref_name.is_some() {
+            // Dangling ref: definition not found → branch fails
+            out.push(build_diagnostic(
+                "F3003",
+                &format!(
+                    "Composition branch references undefined definition '{}'",
+                    sub.ref_name.as_deref().unwrap_or("")
+                ),
+                m,
+                rid,
+                base_path,
+                None,
+            ));
+            return;
+        }
+        &*resolved
+    } else {
+        sub
+    };
+
+    for req in &effective_sub.required {
         if !actual_keys.contains(req) {
             out.push(build_diagnostic(
                 "F3003",
@@ -877,7 +903,532 @@ fn validate_sub(
             ));
         }
     }
-    validate_sub_dependencies(out, m, rid, actual_keys, sub, base_path);
+
+    // additionalProperties on the branch
+    if effective_sub.additional_properties == Some(false) && !effective_sub.properties.is_empty() {
+        let known: std::collections::HashSet<&str> = effective_sub.properties.keys().map(|s| s.as_str()).collect();
+        let pattern_matchers: Vec<Option<std::sync::Arc<CompiledPattern>>> =
+            effective_sub.pattern_properties.keys().map(|p| compile_pattern(p)).collect();
+        for key in actual_keys {
+            if known.contains(key.as_str()) {
+                continue;
+            }
+            let allowed_by_pattern =
+                pattern_matchers.iter().any(|matcher| matcher.as_ref().is_none_or(|re| re.is_match(key)));
+            if allowed_by_pattern {
+                continue;
+            }
+            out.push(build_diagnostic(
+                "F3002",
+                &format!("Additional properties are not allowed ('{}' was unexpected)", key),
+                m,
+                rid,
+                &format!("{}.{}", base_path, key),
+                None,
+            ));
+        }
+    }
+
+    validate_sub_dependencies(out, m, rid, actual_keys, effective_sub, base_path);
+
+    // Value-level matching: check each property constraint in the branch against
+    // the concrete resolved values at base_path. This allows anyOf/oneOf branches
+    // to discriminate by type, enum, const, numeric bounds, pattern, etc.
+    validate_sub_value_constraints(out, m, rid, effective_sub, defs, base_path);
+}
+
+/// Maximum depth for recursive `schema_value_matches` calls through nested
+/// composition (allOf/anyOf/oneOf) and items. Prevents unbounded recursion
+/// from cyclic or deeply nested schemas.
+const MAX_MATCH_DEPTH: usize = 16;
+
+/// Returns `true` when `value` satisfies all representable constraints in
+/// `schema`. Designed for branch matching: when no satisfiable scenario
+/// produces a matching value, the branch is non-matching.
+///
+/// Conservative: returns `true` (match) when a constraint cannot be evaluated
+/// (e.g. a pattern that won't compile, an unknown format, a dynamic/opaque
+/// value). The caller must never invent a mismatch from uncertainty.
+fn schema_value_matches(
+    value: &serde_json::Value,
+    schema: &PropSchema,
+    defs: &HashMap<String, PropSchema>,
+    depth: usize,
+) -> bool {
+    if depth > MAX_MATCH_DEPTH {
+        return true; // conservative: stop recursing
+    }
+
+    // Resolve $ref — dangling ref means the schema cannot be evaluated, which
+    // is a non-match (the branch references something that doesn't exist).
+    let resolved;
+    let effective = if schema.ref_name.is_some() {
+        resolved = schema.resolve(defs);
+        if schema.ref_name.is_some() && resolved.ref_name.is_some() {
+            return false; // dangling ref
+        }
+        &*resolved
+    } else {
+        schema
+    };
+
+    // Null values are conservative — they represent AWS::NoValue or absent
+    // and should not cause a branch to mismatch.
+    if value.is_null() {
+        return true;
+    }
+
+    // Type check with CloudFormation coercion semantics
+    if let Some(ref pt) = effective.prop_type
+        && !type_matches(value, pt)
+    {
+        // Check coercion: if the value can be coerced, it's still a match
+        if let Some(expected) = pt.primary() {
+            match coerce_value(value, expected) {
+                CoerceResult::Coerced(_, _) => {} // coercible — still matches
+                _ => return false,
+            }
+        } else {
+            return false;
+        }
+    }
+
+    // Exact enum
+    if !effective.enum_values.is_empty() && !enum_matches(value, &effective.enum_values) {
+        return false;
+    }
+
+    // Case-insensitive enum
+    if !effective.enum_case_insensitive.is_empty()
+        && !enum_matches_case_insensitive(value, &effective.enum_case_insensitive)
+    {
+        return false;
+    }
+
+    // not enum
+    if !effective.not_enum.is_empty() && enum_matches(value, &effective.not_enum) {
+        return false;
+    }
+
+    // const
+    if let Some(ref cv) = effective.const_value
+        && !scalar_eq(value, cv)
+    {
+        return false;
+    }
+
+    // Pattern
+    if let Some(ref pat) = effective.pattern
+        && let Some(re) = compile_pattern(pat)
+        && let Some(s) = coerce_to_string(value)
+        && !s.contains("${")
+        && !re.is_match(&s)
+    {
+        return false;
+    }
+
+    // Format — enforce known formats as branch discriminators; unknown formats
+    // remain annotations (conservative true).
+    if let Some(ref fmt) = effective.format
+        && let Some(s) = coerce_to_string(value)
+        && !s.contains("${")
+        && !format_value_matches(&s, fmt)
+    {
+        return false;
+    }
+
+    // Numeric bounds
+    if let Some(n) = coerce_to_number(value) {
+        if let Some(max) = effective.maximum
+            && n > max
+        {
+            return false;
+        }
+        if let Some(min) = effective.minimum
+            && n < min
+        {
+            return false;
+        }
+        if let Some(emax) = effective.exclusive_maximum
+            && n >= emax
+        {
+            return false;
+        }
+        if let Some(emin) = effective.exclusive_minimum
+            && n <= emin
+        {
+            return false;
+        }
+        if let Some(mult) = effective.multiple_of
+            && mult > 0.0
+        {
+            let remainder = (n / mult).round() * mult - n;
+            let epsilon = mult * 1e-9;
+            if remainder.abs() > epsilon && (mult - remainder.abs()).abs() > epsilon {
+                return false;
+            }
+        }
+    }
+
+    // String length
+    if (effective.min_length.is_some() || effective.max_length.is_some())
+        && let Some(s) = coerce_to_string(value)
+        && !s.contains("${")
+    {
+        let len = s.len() as u64;
+        if let Some(max) = effective.max_length
+            && len > max
+        {
+            return false;
+        }
+        if let Some(min) = effective.min_length
+            && len < min
+        {
+            return false;
+        }
+    }
+
+    // Array length
+    if let Some(arr) = value.as_array() {
+        let len = arr.len() as u64;
+        if let Some(max) = effective.max_items
+            && len > max
+        {
+            return false;
+        }
+        if let Some(min) = effective.min_items
+            && len < min
+        {
+            return false;
+        }
+        // uniqueItems
+        if effective.unique_items == Some(true) {
+            let concrete: Vec<&serde_json::Value> = arr.iter().filter(|v| !v.is_null()).collect();
+            let mut seen = Vec::new();
+            for item in &concrete {
+                if seen.contains(item) {
+                    return false;
+                }
+                seen.push(*item);
+            }
+        }
+        // items schema
+        if let Some(ref item_schema) = effective.items {
+            let resolved_item = item_schema.resolve(defs);
+            for item in arr {
+                if !schema_value_matches(item, &resolved_item, defs, depth + 1) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Object constraints
+    if let Some(obj) = value.as_object() {
+        let obj_len = obj.len() as u64;
+        if let Some(max) = effective.max_properties
+            && obj_len > max
+        {
+            return false;
+        }
+        if let Some(min) = effective.min_properties
+            && obj_len < min
+        {
+            return false;
+        }
+
+        // required
+        for req in &effective.required {
+            if !obj.contains_key(req) {
+                return false;
+            }
+        }
+
+        // dependentRequired
+        for (trigger, deps) in &effective.dependent_required {
+            if obj.contains_key(trigger) {
+                for dep in deps {
+                    if !obj.contains_key(dep) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // dependentExcluded
+        for (trigger, excluded) in &effective.dependent_excluded {
+            if obj.contains_key(trigger) {
+                for dep in excluded {
+                    if obj.contains_key(dep) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // additionalProperties
+        if effective.additional_properties == Some(false) && !effective.properties.is_empty() {
+            let pattern_matchers: Vec<Option<std::sync::Arc<CompiledPattern>>> =
+                effective.pattern_properties.keys().map(|p| compile_pattern(p)).collect();
+            for key in obj.keys() {
+                if effective.properties.contains_key(key) {
+                    continue;
+                }
+                let allowed_by_pattern =
+                    pattern_matchers.iter().any(|matcher| matcher.as_ref().is_none_or(|re| re.is_match(key)));
+                if !allowed_by_pattern {
+                    return false;
+                }
+            }
+        }
+
+        // Validate property values against their schemas
+        for (prop_name, prop_schema) in &effective.properties {
+            if let Some(prop_value) = obj.get(prop_name) {
+                let resolved_prop = prop_schema.resolve(defs);
+                if !schema_value_matches(prop_value, &resolved_prop, defs, depth + 1) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Nested composition: allOf — all branches must match
+    if !effective.all_of.is_empty() {
+        for branch in &effective.all_of {
+            if !schema_value_matches(value, branch, defs, depth + 1) {
+                return false;
+            }
+        }
+    }
+
+    // Nested anyOf — at least one branch must match
+    if !effective.any_of.is_empty() {
+        let any_match = effective.any_of.iter().any(|branch| schema_value_matches(value, branch, defs, depth + 1));
+        if !any_match {
+            return false;
+        }
+    }
+
+    // Nested oneOf — exactly one branch must match
+    if !effective.one_of.is_empty() {
+        let match_count = effective.one_of.iter().filter(|b| schema_value_matches(value, b, defs, depth + 1)).count();
+        if match_count != 1 {
+            return false;
+        }
+    }
+
+    // if/then/else — evaluate condition against value
+    for ite in &effective.if_then_else {
+        if let Some(obj) = value.as_object() {
+            let obj_keys: Vec<String> = obj.keys().cloned().collect();
+            let cond_matches = condition_schema_value_matches(&ite.condition, obj, &obj_keys, defs, depth + 1);
+            let branch = if cond_matches { &ite.then_schema } else { &ite.else_schema };
+            if let Some(branch_schema) = branch
+                && !schema_value_matches(value, branch_schema, defs, depth + 1)
+            {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+/// Evaluate a `ConditionSchema` against a concrete object value for use in
+/// `schema_value_matches`. Mirrors the logic of `condition_matches` but
+/// operates on concrete JSON values rather than the semantic model.
+fn condition_schema_value_matches(
+    cond: &ConditionSchema,
+    obj: &serde_json::Map<String, serde_json::Value>,
+    obj_keys: &[String],
+    defs: &HashMap<String, PropSchema>,
+    depth: usize,
+) -> bool {
+    if depth > MAX_MATCH_DEPTH {
+        return true; // conservative
+    }
+
+    // anyOf conditions
+    if !cond.any_of.is_empty() {
+        return cond.any_of.iter().any(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1));
+    }
+
+    // required keys
+    for req in &cond.required {
+        if !obj_keys.iter().any(|k| k == req) {
+            return false;
+        }
+    }
+
+    // property constraints
+    for (prop_name, prop_schema) in &cond.properties {
+        let resolved = prop_schema.resolve(defs);
+        if let Some(prop_value) = obj.get(prop_name) {
+            if !schema_value_matches(prop_value, &resolved, defs, depth + 1) {
+                return false;
+            }
+        } else {
+            // Property not present but the condition constrains it — only fail
+            // if the constraint is a concrete value check (enum/const/pattern).
+            let has_value_constraint = !resolved.enum_values.is_empty()
+                || !resolved.enum_case_insensitive.is_empty()
+                || resolved.const_value.is_some()
+                || resolved.pattern.is_some();
+            if has_value_constraint {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+/// Check value-level constraints in a composition branch against the concrete
+/// resolved values at `base_path`. This produces a synthetic diagnostic into
+/// `out` when no satisfiable scenario matches the branch's property value
+/// constraints — making the branch non-matching for anyOf/oneOf evaluation.
+///
+/// Called after structural checks (required/additional/dependencies) so that
+/// structural failures are not duplicated: if structural checks already failed,
+/// this function still runs to add value mismatches but only emits them if the
+/// branch has property-level constraints that go beyond structure.
+fn validate_sub_value_constraints(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    sub: &SubSchema,
+    defs: &HashMap<String, PropSchema>,
+    base_path: &str,
+) {
+    // Only check if the branch has property constraints with value-level fields.
+    // Branches that only define required/additionalProperties are already fully
+    // covered by the structural checks above.
+    let has_value_constraints = sub.properties.values().any(|ps| {
+        let resolved = ps.resolve(defs);
+        resolved.prop_type.is_some()
+            || !resolved.enum_values.is_empty()
+            || !resolved.enum_case_insensitive.is_empty()
+            || !resolved.not_enum.is_empty()
+            || resolved.const_value.is_some()
+            || resolved.pattern.is_some()
+            || resolved.minimum.is_some()
+            || resolved.maximum.is_some()
+            || resolved.exclusive_minimum.is_some()
+            || resolved.exclusive_maximum.is_some()
+            || resolved.multiple_of.is_some()
+            || resolved.min_length.is_some()
+            || resolved.max_length.is_some()
+            || resolved.min_items.is_some()
+            || resolved.max_items.is_some()
+            || resolved.unique_items == Some(true)
+            || !resolved.properties.is_empty()
+            || resolved.items.is_some()
+            || !resolved.all_of.is_empty()
+            || !resolved.any_of.is_empty()
+            || !resolved.one_of.is_empty()
+            || !resolved.if_then_else.is_empty()
+    }) || sub.prop_type.is_some()
+        || !sub.enum_values.is_empty()
+        || !sub.enum_case_insensitive.is_empty()
+        || !sub.not_enum.is_empty()
+        || sub.const_value.is_some()
+        || sub.pattern.is_some()
+        || sub.minimum.is_some()
+        || sub.maximum.is_some()
+        || sub.exclusive_minimum.is_some()
+        || sub.exclusive_maximum.is_some()
+        || sub.multiple_of.is_some()
+        || sub.min_length.is_some()
+        || sub.max_length.is_some()
+        || sub.min_items.is_some()
+        || sub.max_items.is_some()
+        || sub.unique_items == Some(true)
+        || sub.items.is_some()
+        || !sub.all_of.is_empty()
+        || !sub.any_of.is_empty()
+        || !sub.one_of.is_empty()
+        || !sub.if_then_else.is_empty();
+    if !has_value_constraints {
+        return;
+    }
+
+    // Check per-property value constraints in the branch
+    for (prop_name, prop_schema) in &sub.properties {
+        let resolved = prop_schema.resolve(defs);
+        let prop_path = format!("{}.{}", base_path, prop_name);
+        let scenarios = m.resolve_scenarios_json(rid, &prop_path);
+
+        // When the property is absent from the template and not required, it
+        // does not contribute a mismatch — the constraint is vacuously true.
+        if scenarios.is_empty() {
+            continue;
+        }
+
+        // Check if ANY satisfiable scenario matches the branch constraint
+        let any_scenario_matches = scenarios.iter().any(|(val, conds)| {
+            if !is_satisfiable(m, conds) || val.is_null() {
+                return true; // conservative: unsatisfiable or null doesn't cause mismatch
+            }
+            schema_value_matches(val, &resolved, defs, 0)
+        });
+
+        if !any_scenario_matches {
+            // Emit a synthetic diagnostic that marks this branch non-matching.
+            // The diagnostic uses F3017/F3018's existing convention — it is the
+            // anyOf/oneOf wrapper that surfaces the actual user-facing message.
+            // This diagnostic is consumed by the branch-matching predicate (the
+            // tmp vec in the anyOf/oneOf loops) and never reaches the user directly.
+            out.push(build_diagnostic(
+                "F3017",
+                &format!("Value at '{}' does not satisfy branch constraint", prop_name),
+                m,
+                rid,
+                &prop_path,
+                None,
+            ));
+        }
+    }
+
+    // Also check branch-level scalar constraints (type/enum/const on the branch
+    // itself, not on a named property — used when the branch constrains the value
+    // at the composition point rather than a sub-property).
+    let branch_has_scalar_self_constraint = sub.prop_type.is_some()
+        || !sub.enum_values.is_empty()
+        || !sub.enum_case_insensitive.is_empty()
+        || !sub.not_enum.is_empty()
+        || sub.const_value.is_some()
+        || sub.minimum.is_some()
+        || sub.maximum.is_some()
+        || sub.exclusive_minimum.is_some()
+        || sub.exclusive_maximum.is_some()
+        || sub.multiple_of.is_some()
+        || sub.min_length.is_some()
+        || sub.max_length.is_some()
+        || sub.min_items.is_some()
+        || sub.max_items.is_some()
+        || sub.items.is_some();
+    if branch_has_scalar_self_constraint {
+        let scenarios = m.resolve_scenarios_json(rid, base_path);
+        if !scenarios.is_empty() {
+            let any_scenario_matches = scenarios.iter().any(|(val, conds)| {
+                if !is_satisfiable(m, conds) || val.is_null() {
+                    return true;
+                }
+                schema_value_matches(val, sub, defs, 0)
+            });
+            if !any_scenario_matches {
+                out.push(build_diagnostic(
+                    "F3017",
+                    "Value does not satisfy branch constraint",
+                    m,
+                    rid,
+                    base_path,
+                    None,
+                ));
+            }
+        }
+    }
 }
 
 /// Validates the dependentRequired/dependentExcluded constraints of a subschema.
@@ -1215,6 +1766,26 @@ fn validate_prop(
                 condition_map(conds),
             ));
         }
+        if let Some(mult) = schema.multiple_of
+            && mult > 0.0
+        {
+            // Tolerant check for floating-point multipleOf: compute the
+            // remainder and accept if it is within a small epsilon of zero
+            // or the divisor itself (handles e.g. 0.3 / 0.1 = 2.9999...).
+            let remainder = (n / mult).round() * mult - n;
+            let epsilon = mult * 1e-9;
+            if remainder.abs() > epsilon && (mult - remainder.abs()).abs() > epsilon {
+                out.push(build_diagnostic_conditional(
+                    "F3034",
+                    &format!("{} is not a multiple of {}", n, mult),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
+        }
     }
 
     if schema.min_length.is_some() || schema.max_length.is_some() {
@@ -1337,6 +1908,7 @@ fn validate_prop(
         || !schema.all_of.is_empty()
         || !schema.any_of.is_empty()
         || !schema.one_of.is_empty()
+        || !schema.if_then_else.is_empty()
         || schema.additional_properties.is_some();
     if has_nested_constraints {
         let nested_keys = collect_keys_deep(m, rid, prop_path);
@@ -1361,6 +1933,17 @@ fn validate_prop(
                 &nested_keys,
                 prop_path,
             );
+            // Property-level if/then/else on an object property: evaluate the
+            // condition against the nested keys and enforce the selected branch's
+            // value constraints.
+            for ite in &schema.if_then_else {
+                let matches = condition_matches_at(&ite.condition, &nested_keys, m, rid, defs, prop_path);
+                let sub = if matches { &ite.then_schema } else { &ite.else_schema };
+                if let Some(sub) = sub {
+                    validate_sub_dependencies(out, m, rid, &nested_keys, sub, prop_path);
+                    validate_sub_value_constraints(out, m, rid, sub, defs, prop_path);
+                }
+            }
         } else if !schema.required.is_empty()
             && !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. }))
         {
@@ -1399,6 +1982,29 @@ fn validate_prop(
                         prop_path,
                     );
                 }
+            }
+        }
+
+        // Property-level scalar composition: when the value is not an object
+        // (nested_keys is empty) but the property schema carries anyOf/oneOf/
+        // allOf/if_then_else, validate each concrete scenario against the
+        // composition branches using schema_value_matches. This covers schemas
+        // like KMS key identifiers where anyOf branches discriminate by format.
+        // Skip when any scenario has an array/object value — those are validated
+        // through the object-key or items paths instead.
+        let has_scalar_composition = !schema.all_of.is_empty()
+            || !schema.any_of.is_empty()
+            || !schema.one_of.is_empty()
+            || !schema.if_then_else.is_empty();
+        if has_scalar_composition && nested_keys.is_empty() {
+            let has_only_scalars = scenarios.iter().all(|(val, conds)| {
+                !is_satisfiable(m, conds)
+                    || val.is_null()
+                    || is_unresolved_intrinsic(val)
+                    || (!val.is_object() && !val.is_array())
+            });
+            if has_only_scalars {
+                validate_prop_composition(out, m, rid, prop_path, schema, defs, &scenarios);
             }
         }
         for (pn, ps) in &schema.properties {
@@ -1654,8 +2260,23 @@ fn condition_matches(
     rid: &str,
     defs: &HashMap<String, PropSchema>,
 ) -> bool {
+    condition_matches_at(cond, actual_keys, m, rid, defs, KEY_PROPERTIES)
+}
+
+/// Evaluates a condition schema against the actual keys present at `base_path`.
+/// `base_path` is the model path prefix for resolving property values (e.g.
+/// `"Properties"` at the resource level, or `"Properties.Config"` for a nested
+/// object property).
+fn condition_matches_at(
+    cond: &ConditionSchema,
+    actual_keys: &[String],
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    defs: &HashMap<String, PropSchema>,
+    base_path: &str,
+) -> bool {
     if !cond.any_of.is_empty() {
-        return cond.any_of.iter().any(|sub| condition_matches(sub, actual_keys, m, rid, defs));
+        return cond.any_of.iter().any(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path));
     }
     for req in &cond.required {
         if !actual_keys.iter().any(|k| k == req) {
@@ -1664,7 +2285,7 @@ fn condition_matches(
     }
     for (prop_name, prop_schema) in &cond.properties {
         let resolved = prop_schema.resolve(defs);
-        let prop_path = format!("Properties.{}", prop_name);
+        let prop_path = format!("{}.{}", base_path, prop_name);
         // Check nested required sub-properties (e.g. Code requires ZipFile)
         if !resolved.required.is_empty() {
             for sub_req in &resolved.required {
@@ -1845,6 +2466,188 @@ static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = 
     ];
     sources.into_iter().filter_map(|(fmt, pat)| compile_pattern(pat).map(|re| (fmt, re))).collect()
 });
+
+/// Additional format patterns used for composition branch discrimination.
+/// These cover formats observed in upstream schemas that appear inside
+/// anyOf/oneOf branches (e.g. KMS key identifiers, network CIDRs).
+/// Formats already in `FORMAT_PATTERNS` are reused from there.
+static BRANCH_FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
+    let sources: &[(&str, &str)] = &[
+        // KMS key ARN: arn:partition:kms:region:account:key/key-id
+        ("AWS::KMS::Key.Arn", r"^arn:(aws[a-zA-Z-]*)?:kms:[a-z0-9-]+:\d{12}:key/[a-f0-9-]{36}$"),
+        // KMS key ID: standard UUID or multi-Region mrk- prefixed UUID
+        ("AWS::KMS::Key.Id", r"^(mrk-)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
+        // KMS alias: alias/<name>
+        ("AWS::KMS::Alias.AliasName", r"^alias/[a-zA-Z0-9/_-]{1,249}$"),
+        // Security group name
+        ("AWS::EC2::SecurityGroup.Name", SECURITY_GROUP_NAME_PATTERN),
+        // IPv4 CIDR notation
+        ("ipv4-network", r"^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$"),
+        // IPv6 CIDR notation (simplified — accepts valid hex groups with prefix length)
+        ("ipv6-network", r"^[0-9a-fA-F:]+/\d{1,3}$"),
+        // ISO 8601 date-time
+        ("date-time", r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$"),
+        // Timestamp (same as date-time for validation purposes)
+        ("timestamp", r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$"),
+    ];
+    sources.iter().filter_map(|(fmt, pat)| compile_pattern(pat).map(|re| (*fmt, re))).collect()
+});
+
+/// Returns true when a string value matches the given format constraint for
+/// branch discrimination in `schema_value_matches`. Reuses `FORMAT_PATTERNS`
+/// for known diagnostic formats, falls back to `BRANCH_FORMAT_PATTERNS` for
+/// composition-specific formats. Unknown formats are treated as annotations
+/// (conservative true — no mismatch).
+///
+/// List-level formats (e.g. `.Ids`, `.Names`) are handled by matching each
+/// element against the singular form when the value is a scalar string.
+fn format_value_matches(value: &str, format: &str) -> bool {
+    // Try the main diagnostic format patterns first
+    if let Some(re) = FORMAT_PATTERNS.get(format) {
+        return re.is_match(value);
+    }
+    // Try the branch-discrimination patterns
+    if let Some(re) = BRANCH_FORMAT_PATTERNS.get(format) {
+        return re.is_match(value);
+    }
+    // List-level formats: validate individual items against the singular form
+    match format {
+        "AWS::EC2::SecurityGroup.Ids" => {
+            FORMAT_PATTERNS.get("AWS::EC2::SecurityGroup.Id").is_none_or(|re| re.is_match(value))
+        }
+        "AWS::EC2::SecurityGroup.Names" => {
+            FORMAT_PATTERNS.get("AWS::EC2::SecurityGroup.Name").is_none_or(|re| re.is_match(value))
+        }
+        // json format: value must be syntactically valid JSON
+        "json" => serde_json::from_str::<serde_json::Value>(value).is_ok(),
+        // Unknown formats are annotations — conservative true
+        _ => true,
+    }
+}
+
+/// Validates property-level composition (anyOf/oneOf/allOf/if_then_else) when
+/// the property value is a scalar (no nested object keys). Uses
+/// `schema_value_matches` to test each concrete satisfiable scenario against
+/// the composition branches, emitting F3017/F3018 diagnostics with condition
+/// scenarios. Dynamic/unresolved values are treated conservatively (no false
+/// positives).
+fn validate_prop_composition(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+    defs: &HashMap<String, PropSchema>,
+    scenarios: &[(serde_json::Value, HashMap<String, bool>)],
+) {
+    // allOf: every branch must match for every satisfiable scenario
+    for branch in &schema.all_of {
+        for (val, conds) in scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+                continue;
+            }
+            if !schema_value_matches(val, branch, defs, 0) {
+                out.push(build_diagnostic_conditional(
+                    "F3017",
+                    "Value does not satisfy allOf constraint",
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+                break;
+            }
+        }
+    }
+
+    // anyOf: at least one branch must match for each satisfiable scenario
+    if !schema.any_of.is_empty() {
+        for (val, conds) in scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+                continue;
+            }
+            let any_match = schema.any_of.iter().any(|branch| schema_value_matches(val, branch, defs, 0));
+            if !any_match {
+                out.push(build_diagnostic_conditional(
+                    "F3017",
+                    "Value is not valid under any of the given schemas",
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
+        }
+    }
+
+    // oneOf: exactly one branch must match for each satisfiable scenario
+    if !schema.one_of.is_empty() {
+        for (val, conds) in scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+                continue;
+            }
+            let match_count = schema.one_of.iter().filter(|b| schema_value_matches(val, b, defs, 0)).count();
+            if match_count == 0 {
+                out.push(build_diagnostic_conditional(
+                    "F3018",
+                    "Value is not valid under any of the given schemas",
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            } else if match_count > 1 {
+                out.push(build_diagnostic_conditional(
+                    "F3018",
+                    "Value is valid under more than one of the given schemas",
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
+        }
+    }
+
+    // if/then/else: evaluate condition and enforce the selected branch
+    for ite in &schema.if_then_else {
+        for (val, conds) in scenarios {
+            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
+                continue;
+            }
+            // For scalar if/then/else, the condition evaluates against the value
+            // itself when the value is an object, otherwise conservative (condition
+            // passes, only then-branch is checked).
+            let cond_matches = if let Some(obj) = val.as_object() {
+                let obj_keys: Vec<String> = obj.keys().cloned().collect();
+                condition_schema_value_matches(&ite.condition, obj, &obj_keys, defs, 0)
+            } else {
+                // Scalar value: condition cannot meaningfully constrain it
+                // (conditions check object keys/properties); treat as matching
+                // and validate the then-branch.
+                true
+            };
+            let branch = if cond_matches { &ite.then_schema } else { &ite.else_schema };
+            if let Some(branch_schema) = branch
+                && !schema_value_matches(val, branch_schema, defs, 0)
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3017",
+                    "Value does not satisfy conditional schema constraint",
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conds),
+                ));
+            }
+        }
+    }
+}
 
 fn validate_format(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, rid: &str, prop_path: &str, format: &str) {
     let Some(re) = FORMAT_PATTERNS.get(format) else {
