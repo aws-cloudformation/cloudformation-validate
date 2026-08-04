@@ -12,13 +12,12 @@ uniffi::setup_scaffolding!();
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use data_source::AdditionalSchemaSource;
 use diagnostics::DetailLevel;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
 use schema_validator::SchemaValidatorConfig;
 use template_model::PseudoParameterOverrides;
-use validation_engine::{
-    AdditionalSchemaSource, EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path,
-};
+use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum ValidationError {
@@ -128,7 +127,7 @@ impl EngineOptions {
         EngineConfig {
             custom_rules: self.custom_rules.into_iter().map(ExternalRuleSource::from).collect(),
             guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-            schema_validator: self.schema_validator.map(|sv| SchemaValidatorConfig {
+            schema_validator_config: self.schema_validator.map(|sv| SchemaValidatorConfig {
                 additional_schemas: sv.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
             }),
         }
@@ -254,7 +253,7 @@ macro_rules! impl_go_engine {
                                 .map(ExternalRuleSource::from)
                                 .collect(),
                             guard_rules: engine_options.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-                            schema_validator: None,
+                            schema_validator_config: None,
                         };
                         let schema_validator =
                             schema_validator::SchemaValidator::new(schema_config).map_err(ValidationError::new)?;

@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use data_source::AdditionalSchemaSource;
 use rules::IdRange;
-use schema_validator::AdditionalSchemaSource;
 use validation_engine::ValidationError;
 
 /// Loads overlay schemas from files and directories.

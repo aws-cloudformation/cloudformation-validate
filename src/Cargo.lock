@@ -241,6 +241,7 @@ name = "bindings-go"
 version = "1.7.0"
 dependencies = [
  "cel-engine",
+ "data-source",
  "diagnostics",
  "rego-engine",
  "rules",
@@ -258,6 +259,7 @@ name = "bindings-jvm"
 version = "1.7.0"
 dependencies = [
  "cel-engine",
+ "data-source",
  "diagnostics",
  "rego-engine",
  "rules",
@@ -273,6 +275,7 @@ name = "bindings-python"
 version = "1.7.0"
 dependencies = [
  "cel-engine",
+ "data-source",
  "diagnostics",
  "rego-engine",
  "rules",
@@ -505,6 +508,7 @@ version = "1.7.0"
 dependencies = [
  "cel-engine",
  "chrono",
+ "data-source",
  "diagnostics",
  "env_logger",
  "log",

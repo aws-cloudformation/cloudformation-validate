@@ -7,10 +7,11 @@
 //! overlay introduces.
 
 use cel_engine::CelEngine;
+use data_source::AdditionalSchemaSource;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use schema_validator::SchemaValidator;
-use validation_engine::{AdditionalSchemaSource, EngineConfig, ValidationEngine, validate_bytes};
+use validation_engine::{EngineConfig, ValidationEngine, validate_bytes};
 
 /// A Lambda function using a property no registry schema will ever have.
 const LAMBDA_WITH_OVERRIDE_PROP: &[u8] = br#"
@@ -151,7 +152,7 @@ const TAGGABLE_OVERLAY_SCHEMA: &str = r#"{
 }"#;
 fn config_with(schema: &str) -> EngineConfig {
     EngineConfig {
-        schema_validator: Some(schema_validator::SchemaValidatorConfig {
+        schema_validator_config: Some(schema_validator::SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource { type_name: String::new(), schema: schema.to_string() }],
         }),
         ..Default::default()
@@ -161,7 +162,7 @@ fn config_with(schema: &str) -> EngineConfig {
 /// Runs the full pipeline on both engines, returning `(rego, cel)` diagnostics.
 fn validate_on_both_engines(config: EngineConfig, template: &[u8]) -> (Vec<Diagnostic>, Vec<Diagnostic>) {
     let run = |engine: &dyn ValidationEngine| {
-        let schema_config = config.schema_validator.clone().unwrap_or_default();
+        let schema_config = config.schema_validator_config.clone().unwrap_or_default();
         let validator = SchemaValidator::new(schema_config).expect("the configured overlay must build a validator");
         validate_bytes(engine, &validator, template, Default::default()).expect("validation must succeed").diagnostics
     };
@@ -214,7 +215,7 @@ fn overlay_resource_type_is_known_to_both_engines() {
 #[test]
 fn a_malformed_overlay_fails_construction_on_both_engines() {
     let config = config_with(r#"{"typeName":"AWS::Test::T","properties":{"P":{"type":}}}"#);
-    let schema_config = config.schema_validator.clone().unwrap_or_default();
+    let schema_config = config.schema_validator_config.clone().unwrap_or_default();
     assert!(SchemaValidator::new(schema_config).is_err(), "invalid JSON must fail validator construction");
     assert!(RegoEngine::new(config.clone()).is_err(), "invalid JSON must fail rego engine construction");
     assert!(CelEngine::new(config).is_err(), "invalid JSON must fail cel engine construction");

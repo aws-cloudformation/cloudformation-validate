@@ -130,7 +130,7 @@ macro_rules! wasm_engine {
             pub fn new(config: EngineConfig) -> Result<$wrapper, JsValue> {
                 catch_panics(
                     || {
-                        let schema_config = config.schema_validator.clone().unwrap_or_default();
+                        let schema_config = config.schema_validator_config.clone().unwrap_or_default();
                         let schema_validator = SchemaValidator::new(schema_config).map_err(to_js_err)?;
                         let engine =
                             <$inner>::new_with_schema_validator(config, &schema_validator).map_err(to_js_err)?;

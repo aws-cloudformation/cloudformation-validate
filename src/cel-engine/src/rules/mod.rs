@@ -5,10 +5,10 @@ use data_source::types::{
 };
 use diagnostics::Diagnostic;
 use rules::Category;
+use schema_validator::OverlayCatalog;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock, OnceLock};
 use template_model::SemanticModel;
-use validation_engine::OverlayCatalog;
 
 pub mod best_practices;
 pub mod conditions;

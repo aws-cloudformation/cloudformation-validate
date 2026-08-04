@@ -249,7 +249,7 @@ fn main() {
         }
     };
 
-    let engine_config = EngineConfig { custom_rules, guard_rules, schema_validator: None };
+    let engine_config = EngineConfig { custom_rules, guard_rules, schema_validator_config: None };
 
     // The schema validator is built from its own config with the host-loaded
     // overlay schemas. The engine reuses the validator's already-built metadata.

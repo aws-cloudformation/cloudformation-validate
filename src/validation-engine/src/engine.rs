@@ -1,3 +1,5 @@
+#[cfg(test)]
+use data_source::AdditionalSchemaSource;
 use diagnostics::{
     DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
@@ -7,7 +9,9 @@ use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
     rule_number,
 };
-use schema_validator::{OverlayCatalog, SchemaValidationResult, SchemaValidator};
+use schema_validator::{
+    OverlayCatalog, SchemaValidationResult, SchemaValidator, SchemaValidatorConfig, build_overlay_catalog,
+};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -20,11 +24,6 @@ use template_model::{
     UNKNOWN_SPAN, entity_identity, is_sam_transform_error_message, region_enums, span_to_option,
 };
 use web_time::Instant;
-
-// Re-export the shared schema source type from data-source so downstream crates
-// that depend only on validation-engine still see it at this path.
-pub use data_source::AdditionalSchemaSource;
-pub use schema_validator::{SchemaValidatorConfig, SchemaValidatorConfigError, build_overlay_catalog};
 
 #[derive(Debug)]
 pub enum ValidationError {
@@ -142,7 +141,7 @@ pub struct EngineConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
-    pub schema_validator: Option<SchemaValidatorConfig>,
+    pub schema_validator_config: Option<SchemaValidatorConfig>,
 }
 
 impl EngineConfig {
@@ -167,7 +166,7 @@ impl EngineConfig {
     /// standalone via `new(EngineConfig)`, it derives overlay-aware metadata from
     /// the configured additional schemas.
     pub fn with_schema_validator_config(mut self, config: SchemaValidatorConfig) -> Self {
-        self.schema_validator = Some(config);
+        self.schema_validator_config = Some(config);
         self
     }
 
@@ -178,7 +177,7 @@ impl EngineConfig {
     /// This is an internal helper for standalone engine construction.
     #[doc(hidden)]
     pub fn build_overlay_catalog(&self) -> Result<OverlayCatalog, ValidationError> {
-        let additional_schemas = match &self.schema_validator {
+        let additional_schemas = match &self.schema_validator_config {
             Some(cfg) if !cfg.additional_schemas.is_empty() => &cfg.additional_schemas,
             _ => return Ok(OverlayCatalog::default()),
         };
@@ -1146,7 +1145,7 @@ mod tests {
             });
         assert_eq!(config.custom_rules.len(), 1);
         assert_eq!(config.guard_rules.len(), 1);
-        let sv_config = config.schema_validator.as_ref().expect("schema_validator config must be set");
+        let sv_config = config.schema_validator_config.as_ref().expect("schema_validator config must be set");
         assert_eq!(sv_config.additional_schemas.len(), 1);
         assert_eq!(sv_config.additional_schemas[0].type_name, "AWS::Test::One");
     }
@@ -1171,7 +1170,7 @@ mod tests {
         let json = serde_json::to_string(&config).expect("serializes");
         assert!(json.contains("schemaValidator"), "nested config must appear in JSON: {json}");
         let deserialized: EngineConfig = serde_json::from_str(&json).expect("deserializes");
-        let sv = deserialized.schema_validator.expect("nested config must roundtrip");
+        let sv = deserialized.schema_validator_config.expect("nested config must roundtrip");
         assert_eq!(sv.additional_schemas.len(), 1);
         assert_eq!(sv.additional_schemas[0].type_name, "AWS::Test::RT");
     }

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use validation_engine::ValidationEngine;
 
+pub use data_source::AdditionalSchemaSource;
 pub use diagnostics::{
     DetailLevel, DetailedDiagnostic, DetailedReport, PerformanceMetrics, PhaseMetric, RelatedResource, ReportMetadata,
     ReportStatus, ResourceRef, StandardDiagnostic, StandardReport, Summary, ViolationContext,
@@ -21,7 +22,7 @@ pub use template_model::model::{
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
-pub use validation_engine::{AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource};
+pub use validation_engine::{EngineConfig, EngineType, ExternalRuleSource};
 
 pub use schema_validator::SchemaValidatorConfig;
 
@@ -139,7 +140,7 @@ macro_rules! impl_py_engine {
             pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
-                        let schema_config = config.schema_validator.clone().unwrap_or_default();
+                        let schema_config = config.schema_validator_config.clone().unwrap_or_default();
                         let schema_validator = schema_validator::SchemaValidator::new(schema_config)
                             .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
                         let engine = $constructor(config, &schema_validator)

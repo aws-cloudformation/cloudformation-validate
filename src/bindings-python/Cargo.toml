@@ -13,6 +13,7 @@ crate-type = ["cdylib", "lib"]
 name = "bindings_python"
 
 [dependencies]
+data-source = { path = "../data-source", default-features = false, features = ["uniffi-bindings"] }
 validation-engine = { path = "../validation-engine", features = ["uniffi-bindings"] }
 diagnostics = { path = "../diagnostics", features = ["uniffi-bindings"] }
 rules = { path = "../rules", features = ["uniffi-bindings"] }

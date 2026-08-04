@@ -37,7 +37,7 @@ pub fn generate(generated_dir: &Path, upstream_dir: &Path) -> anyhow::Result<()>
 
     let mut compiled: BTreeMap<String, CompiledSchema> = BTreeMap::new();
     for (tn, schema) in &raw {
-        // Bundled schemas compile with draft-07 `$ref` evaluation — keywords
+        // Bundled schemas compile with `$ref` evaluation — keywords
         // beside a reference are ignored, matching what the CloudFormation
         // registry itself enforces. Overlay schemas opt into enforcing them.
         compiled.insert(tn.clone(), compile_schema_with(tn, schema, RefSiblings::Ignore));

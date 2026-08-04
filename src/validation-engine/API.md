@@ -81,9 +81,10 @@ Language bindings and the CLI construct a `SchemaValidator` from the config once
 engine so the already-built metadata is shared without redundant work.
 
 ```rust
-use schema_validator::{SchemaValidator, SchemaValidatorConfig};
-use validation_engine::{AdditionalSchemaSource, EngineConfig};
+use data_source::AdditionalSchemaSource;
 use rego_engine::RegoEngine;
+use schema_validator::{SchemaValidator, SchemaValidatorConfig};
+use validation_engine::EngineConfig;
 
 let overlay = AdditionalSchemaSource {
     type_name: String::new(), // take typeName from the schema itself
