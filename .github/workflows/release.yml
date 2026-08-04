@@ -1,5 +1,5 @@
 name: Release
-run-name: Release ${{ inputs.tag }} from ${{ inputs.branch }} ${{ github.actor }}
+run-name: Release ${{ inputs.tag }} from ${{ inputs.ref }} by ${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -8,8 +8,8 @@ on:
         description: "The tag to release (1.0.0 for prod, 1.0.0-beta for beta)"
         required: true
         type: string
-      branch:
-        description: "Branch to release from — main for regular releases, a hotfix branch for patch releases."
+      ref:
+        description: "Source ref: main (default), an existing Git tag, or a hotfix/* branch."
         required: false
         type: string
         default: 'main'
@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
     with:
-      ref: ${{ inputs.branch }}
+      ref: ${{ inputs.ref }}
       fail-fast: true
 
   version-and-tag:
@@ -34,70 +34,115 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      release-kind: ${{ steps.validate-release.outputs.release-kind }}
+      release-version: ${{ steps.validate-release.outputs.release-version }}
+      python-version: ${{ steps.validate-release.outputs.python-version }}
     env:
+      RELEASE_SOURCE_REF: ${{ inputs.ref }}
+      RELEASE_TAG: ${{ inputs.tag }}
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Log release commit
-        env:
-          BRANCH: ${{ inputs.branch }}
-        run: echo "Releasing from branch $BRANCH, commit $(git rev-parse HEAD)"
+      - name: Validate source ref
+        run: |
+          set -euo pipefail
+          case "$RELEASE_SOURCE_REF" in
+            main|refs/heads/main|hotfix/*|refs/heads/hotfix/*|refs/tags/*)
+              ;;
+            *)
+              if ! git show-ref --verify --quiet "refs/tags/$RELEASE_SOURCE_REF"; then
+                echo "::error::Source ref must be main, an existing Git tag, or a hotfix/* branch; received $RELEASE_SOURCE_REF."
+                exit 1
+              fi
+              ;;
+          esac
+          echo "Validated release source ref, releasing from ref $RELEASE_SOURCE_REF at commit $(git rev-parse HEAD)."
 
       - name: Get version from Cargo.toml
         id: get-version
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          VERSION=$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
+          set -euo pipefail
+          VERSION="$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')"
           echo "Cargo.toml version = $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Validate tag matches version
+      - name: Validate and classify release
+        id: validate-release
+        env:
+          VERSION: ${{ steps.get-version.outputs.version }}
         run: |
-          VERSION="${{ steps.get-version.outputs.version }}"
-          TAG="${{ inputs.tag }}"
+          set -euo pipefail
 
-          if [[ "$TAG" == "$VERSION" ]]; then
-            echo "Tag $TAG matches version $VERSION - prod release"
-          elif [[ "$TAG" == "$VERSION-beta" ]]; then
-            echo "Tag $TAG matches version $VERSION - beta release"
+          if [[ "$RELEASE_TAG" == "$VERSION" ]]; then
+            release_kind="production"
+            python_version="$VERSION"
+          elif [[ "$RELEASE_TAG" == "$VERSION-beta" ]]; then
+            release_kind="beta"
+            python_version="${VERSION}b0"
           else
-            echo "::error::Tag ($TAG) must be $VERSION (prod) or $VERSION-beta (beta)"
+            echo "::error::Tag ($RELEASE_TAG) must be $VERSION (production) or $VERSION-beta (beta)"
             exit 1
           fi
 
-      - name: Check tag does not already exist
+          {
+            echo "release-kind=$release_kind"
+            echo "release-version=$VERSION"
+            echo "python-version=$python_version"
+          } >> "$GITHUB_OUTPUT"
+          echo "Tag $RELEASE_TAG is a $release_kind release; Python version is $python_version."
+
+      - name: Check release tag
+        id: check-tag
         run: |
-          if git rev-parse -q --verify "refs/tags/${{ inputs.tag }}" >/dev/null; then
-            echo "::error::Tag ${{ inputs.tag }} already exists."
-            exit 1
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD^{commit})"
+          if git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null; then
+            tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+            if [ "$tag_commit" != "$source_commit" ]; then
+              echo "::error::Existing tag $RELEASE_TAG points to $tag_commit, not source commit $source_commit."
+              exit 1
+            fi
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Existing tag $RELEASE_TAG already points to source commit $source_commit."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Configure Git
+        if: steps.check-tag.outputs.exists != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Create and push tag
+        if: steps.check-tag.outputs.exists != 'true'
         run: |
-          git tag "${{ inputs.tag }}"
-          echo "Created tag from branch=$(git rev-parse --abbrev-ref HEAD), commit=$(git rev-parse HEAD), tag=$(git describe --tags --exact-match)"
+          set -euo pipefail
+          git tag "$RELEASE_TAG"
+          echo "Created tag from commit=$(git rev-parse HEAD), tag=$(git describe --tags --exact-match)"
 
-          git push origin "${{ inputs.tag }}"
-          echo "Pushed tag=$TAG"
+          git push origin "refs/tags/$RELEASE_TAG"
+          echo "Pushed tag=$RELEASE_TAG"
 
   release:
     needs: [ get-configs, version-and-tag ]
     runs-on: ubuntu-latest
-    environment: release
+    environment: release-github
     permissions:
       contents: write
       id-token: write
     env:
+      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
+      RELEASE_KIND: ${{ needs.version-and-tag.outputs.release-kind }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ needs.version-and-tag.outputs.release-version }}
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
       - uses: actions/checkout@v6
@@ -105,7 +150,39 @@ jobs:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
 
+      - name: Check existing GitHub release
+        id: check-github-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if ! github_status="$(curl --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --output /dev/null --write-out '%{http_code}' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG")"; then
+            echo "::error::Failed to check GitHub Releases for $RELEASE_TAG."
+            exit 1
+          fi
+
+          case "$github_status" in
+            200)
+              echo 'exists=true' >> "$GITHUB_OUTPUT"
+              echo "GitHub release $RELEASE_TAG already exists; skipping creation."
+              ;;
+            404)
+              echo 'exists=false' >> "$GITHUB_OUTPUT"
+              echo "GitHub release $RELEASE_TAG does not exist and will be created."
+              ;;
+            *)
+              echo "::error::GitHub release lookup returned HTTP $github_status; refusing to publish."
+              exit 1
+              ;;
+          esac
+
       - name: Assemble release artifacts
+        if: steps.check-github-release.outputs.exists != 'true'
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -116,7 +193,7 @@ jobs:
             echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          cp "$jar" "release/cloudformation-validate-${{ inputs.tag }}.jar"
+          cp "$jar" "release/cloudformation-validate-$RELEASE_TAG.jar"
 
           if [ ! -d "$WORKING_DIR/bindings-wasm/dist" ]; then
             echo "::error::bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
@@ -128,35 +205,34 @@ jobs:
             echo "::error::$WASM_PKG_JSON not found in committed dist."
             exit 1
           fi
-          tmp=$(mktemp)
-          jq --arg v "${{ inputs.tag }}" '.version = $v' "$WASM_PKG_JSON" > "$tmp"
+          tmp="$(mktemp)"
+          jq --arg version "$RELEASE_TAG" '.version = $version' "$WASM_PKG_JSON" > "$tmp"
           mv "$tmp" "$WASM_PKG_JSON"
-          echo "WASM package version stamped to ${{ inputs.tag }}:"
+          echo "WASM package version stamped to $RELEASE_TAG:"
           grep '"version"' "$WASM_PKG_JSON"
 
-          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-${{ inputs.tag }}.zip" dist )
+          ( cd "$WORKING_DIR/bindings-wasm" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-wasm-$RELEASE_TAG.zip" dist )
 
           wheels=("$WORKING_DIR"/bindings-python/generated/dist/*.whl)
-          if [ ${#wheels[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one wheel in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
+          if [ ${#wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six wheels in $WORKING_DIR/bindings-python/generated/dist/, found ${#wheels[@]}. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          release_version="${{ inputs.tag }}"
-          release_version="${release_version#v}"
-          release_version="${release_version%-beta}"
-          case "$(basename "${wheels[0]}")" in
-            cloudformation_validate-"$release_version"-*.whl) ;;
-            *)
-              echo "::error::Committed wheel $(basename "${wheels[0]}") is not version $release_version. Run the Build Artifacts workflow and merge its PR first."
-              exit 1
-              ;;
-          esac
-          # A beta tag ships as the pre-release <version>b0.
-          wheel_version="$release_version"
-          case "${{ inputs.tag }}" in
-            *-beta) wheel_version="${release_version}b0" ;;
-          esac
-          "$WORKING_DIR/bindings-python/stamp-wheel.py" release "${wheels[0]}" "$wheel_version"
+          for wheel in "${wheels[@]}"; do
+            case "$(basename "$wheel")" in
+              cloudformation_validate-"$RELEASE_VERSION"-*.whl) ;;
+              *)
+                echo "::error::Committed wheel $(basename "$wheel") is not version $RELEASE_VERSION. Run the Build Artifacts workflow and merge its PR first."
+                exit 1
+                ;;
+            esac
+            "$WORKING_DIR/bindings-python/stamp-wheel.py" release "$wheel" "$PYTHON_VERSION"
+          done
+          release_wheels=(release/cloudformation_validate-"$PYTHON_VERSION"-*.whl)
+          if [ ${#release_wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six stamped release wheels, found ${#release_wheels[@]}."
+            exit 1
+          fi
 
           if [ ! -f "$WORKING_DIR/bindings-go/go/go.mod" ]; then
             echo "::error::$WORKING_DIR/bindings-go/go/go.mod not found. Run the Build Artifacts workflow and merge its PR first."
@@ -167,7 +243,7 @@ jobs:
             echo "::error::No static libraries in $WORKING_DIR/bindings-go/go/libs/. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          ( cd "$WORKING_DIR/bindings-go" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-go-${{ inputs.tag }}.zip" go )
+          ( cd "$WORKING_DIR/bindings-go" && zip -r "$GITHUB_WORKSPACE/release/cloudformation-validate-go-$RELEASE_TAG.zip" go )
 
           binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
           if [ ${#binaries[@]} -eq 0 ]; then
@@ -181,29 +257,82 @@ jobs:
             case "$platform" in
               *.exe) platform="${platform%.exe}"; extension=".exe" ;;
             esac
-            cp "$bin" "release/cfn-validate-${{ inputs.tag }}-${platform}${extension}"
+            cp "$bin" "release/cfn-validate-$RELEASE_TAG-${platform}${extension}"
           done
 
           ls -lh release/
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials for GitHub release signing
+        if: steps.check-github-release.outputs.exists != 'true'
         uses: aws-actions/configure-aws-credentials@v6.2.0
         with:
-          role-to-assume: ${{ secrets.SIGNING_ROLE_ARN }}
+          role-to-assume: ${{ secrets.RELEASE_SIGNING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Add KMS public key
+        if: steps.check-github-release.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          aws kms get-public-key \
+            --region "${{ secrets.AWS_REGION }}" \
+            --key-id "${{ secrets.RELEASE_SIGNING_KMS_KEY_ID }}" \
+            --query PublicKey \
+            --output text \
+            | base64 -d > signing-key.der
+          openssl pkey \
+            -pubin \
+            -inform DER \
+            -in signing-key.der \
+            -out release/signing-key.pem
+          rm -f signing-key.der
+          fingerprint="$(openssl pkey \
+            -pubin \
+            -in release/signing-key.pem \
+            -outform DER \
+            | openssl dgst -sha256 \
+            | awk '{print $NF}')"
+          printf '%s\n' "$fingerprint" > release/signing-key.pem.sha256
+          echo "public key SHA-256: $fingerprint"
+
+      - name: Add Maven PGP public key
+        if: steps.check-github-release.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          public_key_secret="$(aws secretsmanager get-secret-value \
+            --secret-id "${{ secrets.MAVEN_GPG_PUBLIC_KEY_SECRET_ID }}" \
+            --query SecretString \
+            --output text)"
+          public_key='release/cloudformation-validate-maven-signing-key.asc'
+          fingerprint_file="$public_key.fingerprint"
+          printf '%s' "$public_key_secret" | jq -er '.publicKey' > "$public_key"
+          printf '%s' "$public_key_secret" | jq -er '.fingerprint' > "$fingerprint_file"
+          unset public_key_secret
+
+          expected_fingerprint="$(tr -d '[:space:]' < "$fingerprint_file" | tr '[:lower:]' '[:upper:]')"
+          actual_fingerprint="$(gpg --batch --show-keys --with-colons "$public_key" \
+            | awk -F: '$1 == "fpr" { print toupper($10); exit }')"
+          if [ -z "$actual_fingerprint" ] || [ "$actual_fingerprint" != "$expected_fingerprint" ]; then
+            echo "::error::Maven PGP public key fingerprint does not match its configured fingerprint."
+            exit 1
+          fi
+          echo "Maven PGP public key fingerprint: $actual_fingerprint"
+
       - name: Sign artifacts with KMS
+        if: steps.check-github-release.outputs.exists != 'true'
         run: |
           set -euo pipefail
           shopt -s nullglob
 
           for f in release/*; do
+            case "$(basename "$f")" in
+              signing-key.pem|signing-key.pem.sha256) continue ;;
+            esac
             rm -f digest.bin
             openssl dgst -sha256 -binary "$f" > digest.bin
 
             aws kms sign \
               --region "${{ secrets.AWS_REGION }}" \
-              --key-id "${{ secrets.KMS_KEY_ALIAS }}" \
+              --key-id "${{ secrets.RELEASE_SIGNING_KMS_KEY_ID }}" \
               --message fileb://digest.bin \
               --message-type DIGEST \
               --signing-algorithm RSASSA_PKCS1_V1_5_SHA_256 \
@@ -214,56 +343,30 @@ jobs:
           rm -f digest.bin
 
       - name: Verify signatures
-        env:
-          SIGNING_PUBLIC_KEY: ${{ secrets.SIGNING_PUBLIC_KEY }}
+        if: steps.check-github-release.outputs.exists != 'true'
         run: |
           set -euo pipefail
           shopt -s nullglob
-          printf '%s\n' "$SIGNING_PUBLIC_KEY" > signing-key.pem
 
           for f in release/*; do
-            case "$f" in *.sig) continue ;; esac
+            case "$(basename "$f")" in
+              *.sig|signing-key.pem|signing-key.pem.sha256) continue ;;
+            esac
             echo "Verifying: $f"
-            result=$(openssl dgst -sha256 -verify signing-key.pem -signature "$f.sig" "$f") || true
+            result=$(openssl dgst -sha256 -verify release/signing-key.pem -signature "$f.sig" "$f") || true
             echo "$result"
             if [ "$result" != "Verified OK" ]; then
               echo "::error::signature verification failed for $f"
               exit 1
             fi
           done
-          rm -f signing-key.pem
-
-      - name: Add GitHub public key
-        env:
-          SIGNING_PUBLIC_KEY: ${{ secrets.SIGNING_PUBLIC_KEY }}
-        run: |
-          set -euo pipefail
-          printf '%s\n' "$SIGNING_PUBLIC_KEY" > release/signing-key.pem
-          fingerprint=$(openssl pkey -pubin -in release/signing-key.pem -outform DER | openssl dgst -sha256 | awk '{print $NF}')
-          printf '%s\n' "$fingerprint" > release/signing-key.pem.sha256
-          echo "public key SHA-256: $fingerprint"
-
-      - name: Configure AWS credentials for Maven signing
-        uses: aws-actions/configure-aws-credentials@v6.2.0
-        with:
-          role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Add Maven PGP public key
-        run: |
-          set -euo pipefail
-          secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "${{ secrets.MAVEN_GPG_PUBLIC_ID }}" --query SecretString --output text)"
-          key="release/cloudformation-validate-maven-signing-key.asc"
-          printf '%s' "$secret_json" | jq -r '.publicKey'  > "$key"
-          printf '%s' "$secret_json" | jq -r '.fingerprint' > "$key.fingerprint"
-          echo "Maven PGP public key fingerprint: $(cat "$key.fingerprint")"
 
       - name: Create GitHub Release
+        if: steps.check-github-release.outputs.exists != 'true'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag }}
-          prerelease: ${{ contains(inputs.tag, '-beta') }}
+          prerelease: ${{ env.RELEASE_KIND == 'beta' }}
           generate_release_notes: true
           files: release/*
           fail_on_unmatched_files: true
@@ -276,6 +379,7 @@ jobs:
       contents: read
       id-token: write
     env:
+      RELEASE_TAG: ${{ inputs.tag }}
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
       - uses: actions/checkout@v6
@@ -300,7 +404,7 @@ jobs:
             echo "::error::Missing $jar. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          for prefix in linux-x86-64 darwin-aarch64 win32-x86-64; do
+          for prefix in linux-x86-64 linux-aarch64 darwin-x86-64 darwin-aarch64 win32-x86-64 win32-aarch64; do
             if ! unzip -Z1 "$jar" | grep -q "^$prefix/"; then
               echo "::error::native library for $prefix missing from committed jar; the all-platform merge did not run"
               exit 1
@@ -314,26 +418,32 @@ jobs:
             echo "::error::committed jar contains no .kt sources; the source bundling step did not run"
             exit 1
           fi
-          echo "Committed jar carries all three platform natives plus compiled classes and sources."
+          echo "Committed jar carries all six platform natives plus compiled classes and sources."
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials for Maven publishing
         uses: aws-actions/configure-aws-credentials@v6.2.0
         with:
-          role-to-assume: ${{ secrets.MAVEN_SIGNING_ROLE_ARN }}
+          role-to-assume: ${{ secrets.MAVEN_PUBLISHING_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Build signed Central Portal bundle
         working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
 
           secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "${{ secrets.MAVEN_GPG_SECRET_ID }}" --query SecretString --output text)"
-          export ORG_GRADLE_PROJECT_signingKey="$(printf '%s' "$secret_json" | jq -r '.privateKey')"
-          export ORG_GRADLE_PROJECT_signingPassword="$(printf '%s' "$secret_json" | jq -r '.passphrase')"
-          unset secret_json
+            --secret-id "${{ secrets.MAVEN_GPG_PRIVATE_KEY_SECRET_ID }}" --query SecretString --output text)"
+          signing_key="$(printf '%s' "$secret_json" | jq -er '.privateKey')"
+          signing_password="$(printf '%s' "$secret_json" | jq -er '.passphrase')"
+          while IFS= read -r private_key_line; do
+            if [ -n "$private_key_line" ]; then
+              printf '::add-mask::%s\n' "$private_key_line"
+            fi
+          done <<< "$signing_key"
+          printf '::add-mask::%s\n' "$signing_password"
+          export ORG_GRADLE_PROJECT_signingKey="$signing_key"
+          export ORG_GRADLE_PROJECT_signingPassword="$signing_password"
+          unset secret_json signing_key signing_password
 
           ./generate-version-properties.sh "$RELEASE_TAG"
           gradle --no-daemon --console=plain centralBundle
@@ -346,21 +456,34 @@ jobs:
           bundle="$(ls build/central/*-bundle.zip)"
           tmp="$(mktemp -d)"
           unzip -qo "$bundle" -d "$tmp"
-          base="$tmp/software/amazon/cloudformation/cloudformation-validate/${{ inputs.tag }}"
+          base="$tmp/software/amazon/cloudformation/cloudformation-validate/$RELEASE_TAG"
           missing=0
           for suffix in .jar -sources.jar -javadoc.jar .pom; do
-            f="cloudformation-validate-${{ inputs.tag }}${suffix}"
+            artifact="cloudformation-validate-$RELEASE_TAG${suffix}"
             for companion in asc md5 sha1; do
-              if [ ! -f "$base/$f.$companion" ]; then
-                echo "::error::missing $f.$companion in bundle"
+              if [ ! -f "$base/$artifact.$companion" ]; then
+                echo "::error::missing $artifact.$companion in bundle"
                 missing=1
               fi
             done
           done
           [ "$missing" -eq 0 ] && echo "All artifacts carry .asc/.md5/.sha1." || exit 1
 
+          for suffix in .jar -sources.jar -javadoc.jar .pom; do
+            artifact="cloudformation-validate-$RELEASE_TAG${suffix}"
+            for algorithm in md5 sha1; do
+              expected_checksum="$(tr -d '[:space:]' < "$base/$artifact.$algorithm" | tr '[:upper:]' '[:lower:]')"
+              actual_checksum="$("${algorithm}sum" "$base/$artifact" | awk '{print $1}')"
+              if [ "$expected_checksum" != "$actual_checksum" ]; then
+                echo "::error::$artifact.$algorithm does not match $artifact in the intended bundle."
+                exit 1
+              fi
+            done
+          done
+          echo "All intended Maven checksums match their artifacts."
+
           committed_sha="$(sha256sum generated/cloudformation-validate.jar | awk '{print $1}')"
-          bundle_sha="$(sha256sum "$base/cloudformation-validate-${{ inputs.tag }}.jar" | awk '{print $1}')"
+          bundle_sha="$(sha256sum "$base/cloudformation-validate-$RELEASE_TAG.jar" | awk '{print $1}')"
           if [ "$committed_sha" != "$bundle_sha" ]; then
             echo "::error::Maven bundle jar ($bundle_sha) differs from the committed jar ($committed_sha) that the GitHub release ships. They must be byte-identical."
             exit 1
@@ -371,19 +494,41 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}/bindings-jvm
         run: |
           set -euo pipefail
+
           bundle="$(ls build/central/*-bundle.zip)"
+          maven_base="https://repo1.maven.org/maven2/software/amazon/cloudformation/cloudformation-validate/$RELEASE_TAG"
+          maven_release_url="$maven_base/cloudformation-validate-$RELEASE_TAG.pom"
+          if ! http_status="$(curl --silent --show-error --location \
+            --output /dev/null --write-out '%{http_code}' "$maven_release_url")"; then
+            echo "::error::Failed to check Maven Central for release $RELEASE_TAG."
+            exit 1
+          fi
+          case "$http_status" in
+            200)
+              echo "Maven Central release $RELEASE_TAG already exists; skipping publication."
+              exit 0
+              ;;
+            404) ;;
+            *)
+              echo "::error::Maven Central existence check returned HTTP $http_status; refusing to publish."
+              exit 1
+              ;;
+          esac
 
           secret_json="$(aws secretsmanager get-secret-value \
-            --secret-id "${{ secrets.CENTRAL_PORTAL_SECRET_ID }}" --query SecretString --output text)"
+            --secret-id "${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_SECRET_ID }}" --query SecretString --output text)"
           username="$(printf '%s' "$secret_json" | jq -er '.username')"
           password="$(printf '%s' "$secret_json" | jq -er '.password')"
           token="$(printf '%s:%s' "$username" "$password" | base64 | tr -d '\n')"
+          printf '::add-mask::%s\n' "$username"
+          printf '::add-mask::%s\n' "$password"
+          printf '::add-mask::%s\n' "$token"
           unset secret_json username password
 
           deployment_id="$(curl --fail-with-body -sS -X POST \
             -H "Authorization: Bearer $token" \
             -F "bundle=@$bundle" \
-            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=cloudformation-validate-${{ inputs.tag }}")"
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=cloudformation-validate-$RELEASE_TAG")"
           echo "Central Portal deployment id: $deployment_id"
 
           max_attempts=60
@@ -416,39 +561,327 @@ jobs:
           exit 1
 
   verify-publish-maven:
-    needs: [ publish-maven ]
+    needs: [ version-and-tag, publish-maven ]
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
     steps:
-      - name: Verify artifacts resolve from Maven Central
+      - name: Verify artifacts and signatures resolve from Maven Central
         run: |
           set -euo pipefail
-          base="https://repo1.maven.org/maven2/software/amazon/cloudformation/cloudformation-validate/${{ inputs.tag }}"
+          base="https://repo1.maven.org/maven2/software/amazon/cloudformation/cloudformation-validate/$RELEASE_TAG"
           files=(
-            "cloudformation-validate-${{ inputs.tag }}.pom"
-            "cloudformation-validate-${{ inputs.tag }}.jar"
-            "cloudformation-validate-${{ inputs.tag }}-sources.jar"
-            "cloudformation-validate-${{ inputs.tag }}-javadoc.jar"
+            "cloudformation-validate-$RELEASE_TAG.pom"
+            "cloudformation-validate-$RELEASE_TAG.jar"
+            "cloudformation-validate-$RELEASE_TAG-sources.jar"
+            "cloudformation-validate-$RELEASE_TAG-javadoc.jar"
           )
+
+          verify() {
+            local download_dir
+            download_dir="$(mktemp -d)"
+            for artifact in "${files[@]}"; do
+              curl --fail --silent --show-error --location \
+                --output "$download_dir/$artifact" \
+                "$base/$artifact" || return 1
+              curl --fail --silent --show-error --location \
+                --output "$download_dir/$artifact.asc" \
+                "$base/$artifact.asc" || return 1
+              for algorithm in md5 sha1; do
+                curl --fail --silent --show-error --location \
+                  --output "$download_dir/$artifact.$algorithm" \
+                  "$base/$artifact.$algorithm" || return 1
+                expected_checksum="$(tr -d '[:space:]' < "$download_dir/$artifact.$algorithm" | tr '[:upper:]' '[:lower:]')"
+                actual_checksum="$("${algorithm}sum" "$download_dir/$artifact" | awk '{print $1}')"
+                [ "$expected_checksum" = "$actual_checksum" ] || return 1
+              done
+            done
+          }
 
           max_attempts=60
           for attempt in $(seq 1 "$max_attempts"); do
-            missing=0
-            for f in "${files[@]}"; do
-              for candidate in "$f" "$f.asc"; do
-                if ! curl -fsSIL -o /dev/null "$base/$candidate"; then
-                  echo "attempt $attempt/$max_attempts: $candidate not yet available"
-                  missing=1
-                fi
-              done
-            done
-            if [ "$missing" -eq 0 ]; then
-              echo "All artifacts and signatures resolve from Maven Central."
+            echo "attempt $attempt/$max_attempts: checking Maven Central artifacts, signatures, and checksums"
+            if verify; then
+              echo "All Maven artifacts and signatures resolve, and all checksums match."
               exit 0
             fi
             sleep 60
           done
 
-          echo "::error::Timed out waiting for artifacts to appear on repo1.maven.org"
+          echo "::error::Timed out waiting for Maven Central artifacts, signatures, and checksums"
+          exit 1
+
+  publish-python-beta:
+    if: needs.version-and-tag.outputs.release-kind == 'beta'
+    needs: [ version-and-tag, release ]
+    runs-on: ubuntu-latest
+    environment: release-python-beta
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Download Python wheels from GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir dist
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
+            --dir dist
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          if [ ${#wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
+            exit 1
+          fi
+
+      - name: Check existing TestPyPI release
+        id: check-python-release
+        run: |
+          set -euo pipefail
+          registry_response="$(mktemp)"
+          if ! http_status="$(curl --silent --show-error --location \
+            --output "$registry_response" --write-out '%{http_code}' \
+            'https://test.pypi.org/pypi/cloudformation-validate/json')"; then
+            rm -f "$registry_response"
+            echo "::error::Failed to check TestPyPI for Python version $PYTHON_VERSION."
+            exit 1
+          fi
+          case "$http_status" in
+            200)
+              if ! release_exists="$(jq -r --arg version "$PYTHON_VERSION" '
+                if (.releases | type) != "object" then error("missing releases object")
+                else (.releases | has($version)) end
+              ' "$registry_response")"; then
+                rm -f "$registry_response"
+                echo "::error::TestPyPI returned invalid project metadata; refusing to publish."
+                exit 1
+              fi
+              rm -f "$registry_response"
+              ;;
+            404)
+              rm -f "$registry_response"
+              release_exists=false
+              ;;
+            *)
+              rm -f "$registry_response"
+              echo "::error::TestPyPI existence check returned HTTP $http_status; refusing to publish."
+              exit 1
+              ;;
+          esac
+          echo "exists=$release_exists" >> "$GITHUB_OUTPUT"
+          if [ "$release_exists" = 'true' ]; then
+            echo "TestPyPI release $PYTHON_VERSION already exists; skipping publication."
+          else
+            echo "TestPyPI release $PYTHON_VERSION does not exist and will be published."
+          fi
+
+      - name: Publish Python wheels to TestPyPI with Trusted Publishing
+        if: steps.check-python-release.outputs.exists != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+
+  verify-publish-python-beta:
+    if: needs.version-and-tag.outputs.release-kind == 'beta'
+    needs: [ get-configs, version-and-tag, publish-python-beta ]
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.get-configs.outputs.python-version }}
+
+      - name: Verify Python wheel resolves from TestPyPI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          expected_directory="$(mktemp -d)"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
+            --dir "$expected_directory"
+          shopt -s nullglob
+          expected_wheels=("$expected_directory"/*.whl)
+          if [ ${#expected_wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six GitHub release wheels, found ${#expected_wheels[@]}."
+            exit 1
+          fi
+
+          download_directory="$(mktemp -d)"
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            rm -f "$download_directory"/*
+            echo "attempt $attempt/$max_attempts: downloading cloudformation-validate==$PYTHON_VERSION from TestPyPI"
+            if python3 -m pip download \
+              --disable-pip-version-check \
+              --no-cache-dir \
+              --no-deps \
+              --only-binary=:all: \
+              --index-url https://test.pypi.org/simple/ \
+              --dest "$download_directory" \
+              "cloudformation-validate==$PYTHON_VERSION"; then
+              shopt -s nullglob
+              wheels=("$download_directory"/*.whl)
+              if [ ${#wheels[@]} -eq 1 ]; then
+                expected_wheel="$expected_directory/$(basename "${wheels[0]}")"
+                if [ ! -f "$expected_wheel" ] || ! cmp -s "${wheels[0]}" "$expected_wheel"; then
+                  echo "::error::TestPyPI selected wheel does not byte-match the matching GitHub release wheel."
+                  exit 1
+                fi
+                echo "TestPyPI selected wheel byte-matches the matching GitHub release wheel."
+                exit 0
+              fi
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for cloudformation-validate==$PYTHON_VERSION on TestPyPI"
+          exit 1
+
+  publish-python-prod:
+    if: needs.version-and-tag.outputs.release-kind == 'production'
+    needs: [ version-and-tag, release ]
+    runs-on: ubuntu-latest
+    environment: release-python-prod
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Download Python wheels from GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir dist
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
+            --dir dist
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          if [ ${#wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six Python wheels for $PYTHON_VERSION, found ${#wheels[@]}."
+            exit 1
+          fi
+
+      - name: Check existing PyPI release
+        id: check-python-release
+        run: |
+          set -euo pipefail
+          registry_response="$(mktemp)"
+          if ! http_status="$(curl --silent --show-error --location \
+            --output "$registry_response" --write-out '%{http_code}' \
+            'https://pypi.org/pypi/cloudformation-validate/json')"; then
+            rm -f "$registry_response"
+            echo "::error::Failed to check PyPI for Python version $PYTHON_VERSION."
+            exit 1
+          fi
+          case "$http_status" in
+            200)
+              if ! release_exists="$(jq -r --arg version "$PYTHON_VERSION" '
+                if (.releases | type) != "object" then error("missing releases object")
+                else (.releases | has($version)) end
+              ' "$registry_response")"; then
+                rm -f "$registry_response"
+                echo "::error::PyPI returned invalid project metadata; refusing to publish."
+                exit 1
+              fi
+              rm -f "$registry_response"
+              ;;
+            404)
+              rm -f "$registry_response"
+              release_exists=false
+              ;;
+            *)
+              rm -f "$registry_response"
+              echo "::error::PyPI existence check returned HTTP $http_status; refusing to publish."
+              exit 1
+              ;;
+          esac
+          echo "exists=$release_exists" >> "$GITHUB_OUTPUT"
+          if [ "$release_exists" = 'true' ]; then
+            echo "PyPI release $PYTHON_VERSION already exists; skipping publication."
+          else
+            echo "PyPI release $PYTHON_VERSION does not exist and will be published."
+          fi
+
+      - name: Publish Python wheels to PyPI with Trusted Publishing
+        if: steps.check-python-release.outputs.exists != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  verify-publish-python-prod:
+    if: needs.version-and-tag.outputs.release-kind == 'production'
+    needs: [ get-configs, version-and-tag, publish-python-prod ]
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VERSION: ${{ needs.version-and-tag.outputs.python-version }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.get-configs.outputs.python-version }}
+
+      - name: Verify Python wheel resolves from PyPI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          expected_directory="$(mktemp -d)"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "cloudformation_validate-$PYTHON_VERSION-*.whl" \
+            --dir "$expected_directory"
+          shopt -s nullglob
+          expected_wheels=("$expected_directory"/*.whl)
+          if [ ${#expected_wheels[@]} -ne 6 ]; then
+            echo "::error::Expected six GitHub release wheels, found ${#expected_wheels[@]}."
+            exit 1
+          fi
+
+          download_directory="$(mktemp -d)"
+          max_attempts=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            rm -f "$download_directory"/*
+            echo "attempt $attempt/$max_attempts: downloading cloudformation-validate==$PYTHON_VERSION from PyPI"
+            if python3 -m pip download \
+              --disable-pip-version-check \
+              --no-cache-dir \
+              --no-deps \
+              --only-binary=:all: \
+              --index-url https://pypi.org/simple/ \
+              --dest "$download_directory" \
+              "cloudformation-validate==$PYTHON_VERSION"; then
+              shopt -s nullglob
+              wheels=("$download_directory"/*.whl)
+              if [ ${#wheels[@]} -eq 1 ]; then
+                expected_wheel="$expected_directory/$(basename "${wheels[0]}")"
+                if [ ! -f "$expected_wheel" ] || ! cmp -s "${wheels[0]}" "$expected_wheel"; then
+                  echo "::error::PyPI selected wheel does not byte-match the matching GitHub release wheel."
+                  exit 1
+                fi
+                echo "PyPI selected wheel byte-matches the matching GitHub release wheel."
+                exit 0
+              fi
+            fi
+            sleep 60
+          done
+
+          echo "::error::Timed out waiting for cloudformation-validate==$PYTHON_VERSION on PyPI"
           exit 1
 
   publish-npm:
@@ -459,6 +892,8 @@ jobs:
       contents: read
       id-token: write
     env:
+      RELEASE_KIND: ${{ needs.version-and-tag.outputs.release-kind }}
+      RELEASE_TAG: ${{ inputs.tag }}
       WORKING_DIR: ${{ needs.get-configs.outputs.working-dir }}
     steps:
       - uses: actions/checkout@v6
@@ -484,8 +919,8 @@ jobs:
             echo "::error::committed bindings-wasm/dist not found. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
-          tmp=$(mktemp)
-          jq --arg v "${{ inputs.tag }}" '.version = $v' package.json > "$tmp"
+          tmp="$(mktemp)"
+          jq --arg version "$RELEASE_TAG" '.version = $version' package.json > "$tmp"
           mv "$tmp" package.json
           grep '"version"' package.json
 
@@ -532,12 +967,41 @@ jobs:
       - name: Publish to NPM
         working-directory: ${{ env.WORKING_DIR }}/bindings-wasm/dist
         run: |
-          npm publish --access public --provenance \
-            $([[ "${{ inputs.tag }}" == *-beta ]] && echo "--tag beta")
+          set -euo pipefail
+
+          release_url="https://registry.npmjs.org/@aws%2Fcloudformation-validate/$RELEASE_TAG"
+          registry_response="$(mktemp)"
+          if ! http_status="$(curl --silent --show-error --location \
+            --output "$registry_response" --write-out '%{http_code}' "$release_url")"; then
+            rm -f "$registry_response"
+            echo "::error::Failed to check NPM for release $RELEASE_TAG."
+            exit 1
+          fi
+          case "$http_status" in
+            200)
+              rm -f "$registry_response"
+              echo "NPM release $RELEASE_TAG already exists; skipping publication."
+              exit 0
+              ;;
+            404) rm -f "$registry_response" ;;
+            *)
+              rm -f "$registry_response"
+              echo "::error::NPM existence check returned HTTP $http_status; refusing to publish."
+              exit 1
+              ;;
+          esac
+
+          publish_options=(--access public --provenance)
+          if [ "$RELEASE_KIND" = "beta" ]; then
+            publish_options+=(--tag beta)
+          fi
+          npm publish "${publish_options[@]}"
 
   verify-publish-npm:
-    needs: [ get-configs, publish-npm ]
+    needs: [ get-configs, version-and-tag, publish-npm ]
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
     steps:
       - uses: actions/setup-node@v6
         with:
@@ -555,14 +1019,14 @@ jobs:
             (
               cd "$tmp" \
                 && npm init -y >/dev/null \
-                && npm install "@aws/cloudformation-validate@${{ inputs.tag }}" --ignore-scripts \
+                && npm install "@aws/cloudformation-validate@$RELEASE_TAG" --ignore-scripts \
                 && npm audit signatures
             ) || return 1
 
             local predicate
-            predicate=$(npm view "@aws/cloudformation-validate@${{ inputs.tag }}" dist.attestations.provenance.predicateType 2>/dev/null || true)
+            predicate=$(npm view "@aws/cloudformation-validate@$RELEASE_TAG" dist.attestations.provenance.predicateType 2>/dev/null || true)
             if [ -z "$predicate" ]; then
-              echo "no provenance attestation found for @aws/cloudformation-validate@${{ inputs.tag }}"
+              echo "no provenance attestation found for @aws/cloudformation-validate@$RELEASE_TAG"
               return 1
             fi
             echo "provenance attestation predicateType: $predicate"
@@ -570,7 +1034,7 @@ jobs:
 
           max_attempts=60
           for attempt in $(seq 1 "$max_attempts"); do
-            echo "attempt $attempt/$max_attempts: verifying @aws/cloudformation-validate@${{ inputs.tag }}"
+            echo "attempt $attempt/$max_attempts: verifying @aws/cloudformation-validate@$RELEASE_TAG"
             if verify; then
               echo "Published package installed, signatures audited, and provenance verified."
               exit 0
@@ -578,5 +1042,5 @@ jobs:
             sleep 60
           done
 
-          echo "::error::Timed out waiting for @aws/cloudformation-validate@${{ inputs.tag }} to verify against the npm registry"
+          echo "::error::Timed out waiting for @aws/cloudformation-validate@$RELEASE_TAG to verify against the npm registry"
           exit 1

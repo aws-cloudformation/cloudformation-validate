@@ -5,7 +5,7 @@ findings before deployment — in your editor, build, or CI.
 
 - **Offline** — all rules and resource schemas are bundled.
 - **Fast** — sub-second validation per template.
-- **Self-contained** — native libraries for all supported platforms ship inside the wheel.
+- **Self-contained** — each platform wheel bundles its matching native library.
 
 All types are importable from the top-level `cloudformation_validate` package.
 
@@ -17,9 +17,9 @@ Available on [PyPI](https://pypi.org/project/cloudformation-validate/) as `cloud
 pip install cloudformation-validate
 ```
 
-Requires Python 3.12+ and has no runtime dependencies. The wheel carries a platform tag for each supported platform
-(Linux x86-64 glibc, macOS aarch64, Windows x86-64) and bundles all three native libraries; pip installs it only on
-supported platforms, and the right library is selected at import time.
+Requires Python 3.12+ and has no runtime dependencies. PyPI publishes a separate wheel for every supported native
+target. Each wheel carries exactly one native library and an accurate platform tag, so pip downloads only the
+artifact compatible with the installer host.
 
 ## Quick start
 

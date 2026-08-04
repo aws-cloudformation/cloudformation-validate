@@ -18,9 +18,6 @@ on:
       python-version:
         description: "Python version"
         value: ${{ jobs.get-configs.outputs.python-version }}
-      setuptools-version:
-        description: "setuptools version for Python wheel builds"
-        value: ${{ jobs.get-configs.outputs.setuptools-version }}
       go-version:
         description: "Go version"
         value: ${{ jobs.get-configs.outputs.go-version }}
@@ -79,7 +76,6 @@ jobs:
       RUST_TOOLCHAIN: '1.96.0'        # keep in sync with src/rust-toolchain.toml
       NODE_VERSION: '22.x'
       PYTHON_VERSION: '3.12'
-      SETUPTOOLS_VERSION: '80.9.0'    # keep in sync with bindings-python/pyproject.toml
       GO_VERSION: '1.26'
       UNIFFI_BINDGEN_GO_TAG: 'v0.7.1+v0.31.0'  # keep in sync with bindings-go/README.md and the uniffi pin in bindings-go/Cargo.toml
       JAVA_VERSION: '21'
@@ -101,7 +97,6 @@ jobs:
       rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
       node-version: ${{ env.NODE_VERSION }}
       python-version: ${{ env.PYTHON_VERSION }}
-      setuptools-version: ${{ env.SETUPTOOLS_VERSION }}
       go-version: ${{ env.GO_VERSION }}
       uniffi-bindgen-go-tag: ${{ env.UNIFFI_BINDGEN_GO_TAG }}
       java-version: ${{ env.JAVA_VERSION }}
@@ -125,7 +120,6 @@ jobs:
           echo "rust-toolchain      = ${{ env.RUST_TOOLCHAIN }}"
           echo "node-version        = ${{ env.NODE_VERSION }}"
           echo "python-version      = ${{ env.PYTHON_VERSION }}"
-          echo "setuptools-version  = ${{ env.SETUPTOOLS_VERSION }}"
           echo "go-version          = ${{ env.GO_VERSION }}"
           echo "uniffi-bindgen-go   = ${{ env.UNIFFI_BINDGEN_GO_TAG }}"
           echo "java-version        = ${{ env.JAVA_VERSION }}"
