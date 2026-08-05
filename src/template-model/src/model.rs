@@ -196,7 +196,7 @@ pub struct SemanticModel {
     pub resolution_sources: HashMap<(String, String), String>,
     /// (resource_id, property_path) → the authored expression behind a value that
     /// stayed opaque. Consulted by [`SemanticModel::value_identity`].
-    pub value_nodes: HashMap<(String, String), NodeRef>,
+    value_nodes: HashMap<(String, String), NodeRef>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
     scenario_memo: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -956,7 +956,8 @@ impl SemanticModel {
         let resolved = self.resolve_deep(resource_id, path).or_else(|| self.resolve(resource_id, path).cloned())?;
         let as_json = crate::serialization::resolved_value_to_json(&resolved);
         if !json_contains_markers(&as_json) {
-            return Some(format!("value:{}", as_json));
+            let fingerprint = crate::value_identity::concrete_value_fingerprint(&as_json);
+            return Some(format!("value:{fingerprint}"));
         }
         let node = *self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
         crate::value_identity::expression_fingerprint(&self.arena, node)
@@ -1380,12 +1381,6 @@ fn collect_refs_in_subtree(
     }
 }
 
-/// Some intrinsic nodes stand in for a whole object — most notably
-/// `Properties: {Fn::If: [...]}` which the parser folds into an
-/// `IntrinsicFn::If` node. Return the CloudFormation function-name key
-/// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
-/// object-wrapping intrinsics, so downstream resolution can address the
-/// conditional by a synthetic path.
 /// The parameter name inside a `resolution_sources` entry that records a value
 /// taken from a parameter declaration, such as `Parameters/InstanceType/Default`.
 /// A logical id never contains a separator, so the first segment is the whole name.
@@ -1395,6 +1390,12 @@ fn parameter_name_from_source(source: &str) -> Option<&str> {
     if name.is_empty() { None } else { Some(name) }
 }
 
+/// Some intrinsic nodes stand in for a whole object — most notably
+/// `Properties: {Fn::If: [...]}` which the parser folds into an
+/// `IntrinsicFn::If` node. Return the CloudFormation function-name key
+/// (`Fn::If`, `Fn::ForEach::*`, etc.) when the node is one of these
+/// object-wrapping intrinsics, so downstream resolution can address the
+/// conditional by a synthetic path.
 fn intrinsic_synthetic_key(arena: &Arena, node_ref: NodeRef) -> Option<String> {
     let Node::Intrinsic(func) = arena.node(node_ref) else {
         return None;

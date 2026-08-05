@@ -2641,6 +2641,143 @@
       }
     ]
   },
+  "bad/W9007_duplicate_objects_different_key_order.yaml": {
+    "filePath": "bad/W9007_duplicate_objects_different_key_order.yaml",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3037",
+        "severity": "FATAL",
+        "message": "Array items are not unique",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "category": "Schema",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Array items not unique",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": [
+            {
+              "Type": "memberOf",
+              "Expression": "attribute:ecs.instance-type =~ t3.*"
+            },
+            {
+              "Expression": "attribute:ecs.instance-type =~ t3.*",
+              "Type": "memberOf"
+            }
+          ]
+        }
+      },
+      {
+        "ruleId": "W9007",
+        "severity": "WARN",
+        "message": "Array property 'PlacementConstraints' contains duplicate values",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 27,
+        "ruleDescription": "Array items must be unique when required",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'PlacementConstraints' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Task' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/W9053_equivalent_conditions.yaml": {
     "filePath": "bad/W9053_equivalent_conditions.yaml",
     "status": "OK",
@@ -146284,12 +146421,12 @@
     "status": "OK",
     "version": "1.7.0",
     "metadata": {
-      "resourcesScanned": 4,
+      "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 7,
+        "informational": 9,
         "debug": 0
       },
       "suppressed": 0,
@@ -146326,7 +146463,7 @@
         "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
         "source": "ENGINE",
         "entity": {
-          "logicalId": "SubstitutedFromAParameter",
+          "logicalId": "JoinedFromAParameter",
           "entityType": "Resource",
           "resourceType": "AWS::S3::Bucket"
         },
@@ -146335,6 +146472,29 @@
         "startLine": 24,
         "startColumn": 9,
         "endLine": 24,
+        "endColumn": 20,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Join:{dynamic}-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SubstitutedFromAParameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 38,
+        "startColumn": 9,
+        "endLine": 38,
         "endColumn": 20,
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
@@ -146355,9 +146515,9 @@
         },
         "propertyPath": "Properties.BucketName",
         "category": "Best Practice",
-        "startLine": 30,
+        "startLine": 44,
         "startColumn": 9,
-        "endLine": 30,
+        "endLine": 44,
         "endColumn": 20,
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
@@ -146409,6 +146569,26 @@
       {
         "ruleId": "I9040",
         "severity": "INFO",
+        "message": "Resource 'JoinedFromAParameter' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "JoinedFromAParameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
         "message": "Resource 'SubstitutedFromAParameter' of type 'AWS::S3::Bucket' supports Tags but none are configured",
         "source": "ENGINE",
         "entity": {
@@ -146419,9 +146599,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 23,
+        "startLine": 37,
         "startColumn": 7,
-        "endLine": 23,
+        "endLine": 37,
         "endColumn": 18,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -146439,9 +146619,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 29,
+        "startLine": 43,
         "startColumn": 7,
-        "endLine": 29,
+        "endLine": 43,
         "endColumn": 18,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

@@ -84,6 +84,18 @@ fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
     }
 }
 
+#[test]
+fn duplicate_objects_are_compared_by_contents_in_both_engines() {
+    let template = "bad/W9007_duplicate_objects_different_key_order.yaml";
+    for (engine_name, diags) in
+        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
+    {
+        let findings: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == "W9007").collect();
+        assert_eq!(findings.len(), 1, "[{engine_name}] equal object items must remain a duplicate");
+        assert_eq!(findings[0].property_path.as_deref(), Some("Properties.PlacementConstraints"));
+    }
+}
+
 fn custom_config(engine: &str) -> EngineConfig {
     let (name, content) = if engine == "rego" {
         ("rego_custom.rego", load_rule("rego_custom.rego"))

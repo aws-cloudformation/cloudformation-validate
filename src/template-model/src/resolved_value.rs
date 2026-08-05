@@ -277,18 +277,14 @@ pub fn estimate_resolved_string_length_bounds(val: &ResolvedValue) -> Option<(us
 }
 
 fn partial_length_bounds(partial: &str) -> Option<(usize, usize)> {
-    if has_interpolation_variable(partial) || has_unresolved_reference(partial) {
+    if has_interpolation_variable(partial)
+        || partial.contains(UNRESOLVED_REF_PLACEHOLDER_PREFIX)
+        || partial.contains(UNRESOLVED_DYNAMIC_PLACEHOLDER)
+    {
         None
     } else {
         Some((partial.len(), partial.len()))
     }
-}
-
-/// Whether `template` still contains a placeholder standing in for a reference
-/// the resolver could not work out, whose width is internal text rather than any
-/// part of the deployed value.
-fn has_unresolved_reference(template: &str) -> bool {
-    template.contains(UNRESOLVED_REF_PLACEHOLDER_PREFIX)
 }
 
 fn has_interpolation_variable(template: &str) -> bool {
@@ -844,8 +840,22 @@ mod tests {
         // known at deployment. Measuring it reported the width of the placeholder
         // as the length of the value, which produced length violations citing a
         // number the template never produces.
-        let val = ResolvedValue::Dynamic { reason: "Join:prefix-{ref:Other}-suffix".into() };
+        let val = ResolvedValue::Dynamic {
+            reason: format!("{JOIN_PARTIAL_PREFIX}prefix-{UNRESOLVED_REF_PLACEHOLDER_PREFIX}Other}}-suffix"),
+        };
         assert_eq!(estimate_resolved_string_length_bounds(&val), None, "a placeholder has no measurable length");
+    }
+
+    #[test]
+    fn bounds_of_a_join_with_an_opaque_deploy_time_value_are_absent() {
+        let val = ResolvedValue::Dynamic {
+            reason: format!("{JOIN_PARTIAL_PREFIX}prefix-{UNRESOLVED_DYNAMIC_PLACEHOLDER}-suffix"),
+        };
+        assert_eq!(
+            estimate_resolved_string_length_bounds(&val),
+            None,
+            "a deploy-time placeholder has no measurable length"
+        );
     }
 
     #[test]

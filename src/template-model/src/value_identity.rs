@@ -29,9 +29,59 @@ const MAX_FINGERPRINT_DEPTH: u32 = 64;
 ///
 /// Object keys are ordered, so the same call written with its arguments in a
 /// different order keeps one fingerprint.
-pub fn expression_fingerprint(arena: &Arena, node: NodeRef) -> Option<String> {
+pub(crate) fn expression_fingerprint(arena: &Arena, node: NodeRef) -> Option<String> {
     let mut fingerprint = String::new();
     if write_node(arena, node, 0, &mut fingerprint) { Some(fingerprint) } else { None }
+}
+
+/// A canonical fingerprint of a resolved JSON value. Object keys are sorted so
+/// identity follows JSON object equality rather than source insertion order.
+pub(crate) fn concrete_value_fingerprint(value: &serde_json::Value) -> String {
+    let mut fingerprint = String::new();
+    write_json_value(value, &mut fingerprint);
+    fingerprint
+}
+
+fn write_json_value(value: &serde_json::Value, out: &mut String) {
+    match value {
+        serde_json::Value::Null => out.push_str("null"),
+        serde_json::Value::Bool(value) => {
+            out.push_str("bool:");
+            out.push_str(if *value { "true" } else { "false" });
+        }
+        serde_json::Value::Number(value) => {
+            out.push_str("number:");
+            out.push_str(&value.to_string());
+        }
+        serde_json::Value::String(value) => {
+            out.push_str("str:");
+            write_literal(value, out);
+        }
+        serde_json::Value::Array(items) => {
+            out.push('[');
+            for (index, item) in items.iter().enumerate() {
+                if index > 0 {
+                    out.push(',');
+                }
+                write_json_value(item, out);
+            }
+            out.push(']');
+        }
+        serde_json::Value::Object(entries) => {
+            out.push('{');
+            let mut ordered: Vec<_> = entries.iter().collect();
+            ordered.sort_by_key(|(left, _)| *left);
+            for (index, (key, item)) in ordered.into_iter().enumerate() {
+                if index > 0 {
+                    out.push(',');
+                }
+                write_literal(key, out);
+                out.push('=');
+                write_json_value(item, out);
+            }
+            out.push('}');
+        }
+    }
 }
 
 fn write_node(arena: &Arena, node: NodeRef, depth: u32, out: &mut String) -> bool {
@@ -239,6 +289,14 @@ mod tests {
     #[test]
     fn different_literals_have_distinct_identities() {
         assert!(!entries_share_identity(r#""subnet-a""#, r#""subnet-b""#));
+    }
+
+    #[test]
+    fn equal_objects_with_different_key_order_share_an_identity() {
+        assert!(entries_share_identity(
+            r#"{"Type":"memberOf","Expression":"attribute:ecs.instance-type =~ t3.*"}"#,
+            r#"{"Expression":"attribute:ecs.instance-type =~ t3.*","Type":"memberOf"}"#
+        ));
     }
 
     #[test]

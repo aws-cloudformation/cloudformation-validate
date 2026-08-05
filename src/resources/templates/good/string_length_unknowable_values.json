@@ -18,6 +18,20 @@
         }
       }
     },
+    "JoinedFromAParameter": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Join": [
+            "-",
+            [
+              { "Ref": "NamePrefix" },
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          ]
+        }
+      }
+    },
     "SubstitutedFromAParameter": {
       "Type": "AWS::S3::Bucket",
       "Properties": {

@@ -454,7 +454,7 @@ impl<'a> Resolver<'a> {
                                     ResolvedValue::Reference { target, .. } => {
                                         format!("{}{}}}", UNRESOLVED_REF_PLACEHOLDER_PREFIX, target)
                                     }
-                                    _ => "{dynamic}".to_string(),
+                                    _ => UNRESOLVED_DYNAMIC_PLACEHOLDER.to_string(),
                                 })
                                 .collect();
                             self.collect_extra_condition_refs(&values);
