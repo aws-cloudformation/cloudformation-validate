@@ -88,8 +88,9 @@ from .template_model import (
     ResourceDiagnostics,
     SourceSpan,
 )
-from .validation_engine import AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource
-from .bindings_python import SchemaValidatorConfig as SchemaValidatorConfig
+from .data_source import AdditionalSchemaSource
+from .schema_validator import SchemaValidatorConfig
+from .validation_engine import EngineConfig, EngineType, ExternalRuleSource
 
 __all__ = [
     "AdditionalSchemaSource",
