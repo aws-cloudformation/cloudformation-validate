@@ -193,9 +193,15 @@ class WasmSchemaValidator {
         }
         return takeFromExternrefTable0(ret[0]);
     }
-    constructor() {
-        const ret = wasm.wasmschemavalidator_new();
-        this.__wbg_ptr = ret;
+    /**
+     * @param {SchemaValidatorConfig} config
+     */
+    constructor(config) {
+        const ret = wasm.wasmschemavalidator_new(config);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
         WasmSchemaValidatorFinalization.register(this, this.__wbg_ptr, this);
         return this;
     }

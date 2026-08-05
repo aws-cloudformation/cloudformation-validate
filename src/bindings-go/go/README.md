@@ -71,8 +71,8 @@ Passed to `NewRegoEngine` / `NewCelEngine`. The zero value (or `nil`) uses only 
 
 ```go
 type EngineConfig struct {
-    CustomRules     []ExternalRuleSource  // engine-native rules (Rego for Rego, CEL for CEL)
-    GuardRules      []ExternalRuleSource  // CloudFormation Guard DSL rules — translated internally by each engine
+    CustomRules     []ExternalRuleSource   // engine-native rules (Rego for Rego, CEL for CEL)
+    GuardRules      []ExternalRuleSource   // CloudFormation Guard DSL rules — translated internally by each engine
     SchemaValidatorConfig *SchemaValidatorConfig // optional schema validator configuration
 }
 
