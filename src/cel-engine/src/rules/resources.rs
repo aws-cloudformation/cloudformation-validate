@@ -254,7 +254,7 @@ fn fargate_task_requirements(m: &SemanticModel) -> Vec<Diagnostic> {
         }
 
         for property in ["NetworkMode", "Cpu", "Memory"] {
-            if !has_property(m, name, property) {
+            if !has_property(m, name, property) || fargate_required_resolves_to_no_value(m, name, property) {
                 out.push(make_resource_diagnostic(
                     "E3048",
                     &format!("{} is a required property for a Fargate task", quote(property)),
@@ -387,27 +387,65 @@ const HALF_GB: &str = "0.5";
 
 const MIB_PER_GB: i64 = 1024;
 
-/// Whether the task pins placement in a way that survives to deployment.
-///
-/// A `PlacementConstraints` written as an `Fn::If` that resolves to
-/// `AWS::NoValue` is removed by CloudFormation before the task is created, so the
-/// task does not pin placement and the key's presence in the source is not a
-/// violation. The property counts only when some reachable scenario keeps a
-/// value. A value that cannot be resolved statically is treated as declared, so
-/// a genuine constraint behind a deploy-time value is still reported.
+/// Raw conditional alternatives are inspected without satisfiability filtering
+/// because this rule validates every placement constraint authored in the
+/// template, including one in a branch static analysis currently considers unreachable.
 fn declares_fargate_placement_constraints(m: &SemanticModel, name: &str) -> bool {
     if !has_property(m, name, "PlacementConstraints") {
         return false;
     }
-    let scenarios = m.resolve_scenarios_json(name, "Properties.PlacementConstraints");
-    if scenarios.is_empty() {
-        return true;
+    let resolved = m.resolve_deep(name, "Properties.PlacementConstraints");
+    match resolved {
+        Some(val) => resolved_value_has_non_null_alternative(&val),
+        None => m
+            .resolve(name, "Properties.PlacementConstraints")
+            .map(resolved_value_has_non_null_alternative)
+            .unwrap_or(true),
     }
-    scenarios.iter().any(|(value, conditions)| {
-        !value.is_null()
-            && (conditions.is_empty()
-                || m.conditions.is_satisfiable(&conditions.iter().map(|(k, v)| (k.clone(), *v)).collect::<Vec<_>>()))
-    })
+}
+
+fn resolved_value_has_non_null_alternative(rv: &ResolvedValue) -> bool {
+    match rv {
+        ResolvedValue::Concrete { value } => !value.is_null(),
+        ResolvedValue::List { .. } | ResolvedValue::Map { .. } => true,
+        ResolvedValue::Enum { variants } => variants.iter().any(resolved_value_has_non_null_alternative),
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            resolved_value_has_non_null_alternative(if_true) || resolved_value_has_non_null_alternative(if_false)
+        }
+        // Unresolved references and dynamic values are treated as declared: a
+        // genuine constraint behind a deploy-time value is still reported.
+        ResolvedValue::Reference { .. } | ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => true,
+    }
+}
+
+/// Whether a required Fargate property is authored but any alternative resolves to
+/// null (AWS::NoValue). A property written as `!Ref AWS::NoValue` is removed by
+/// CloudFormation before the task is created, so its presence in the source does
+/// not satisfy the requirement. Unresolved dynamic values are skipped since their
+/// deploy-time value cannot be known.
+fn fargate_required_resolves_to_no_value(m: &SemanticModel, name: &str, property: &str) -> bool {
+    let path = format!("Properties.{}", property);
+    let resolved = m.resolve_deep(name, &path).or_else(|| m.resolve(name, &path).cloned());
+    match resolved {
+        Some(val) => resolved_value_has_null_alternative(&val),
+        None => false,
+    }
+}
+
+/// Recursively checks whether any alternative in a resolved value tree contains a
+/// null/NoValue concrete value. Conditionals are walked without satisfiability
+/// filtering. Dynamic/Reference values are not considered null since their
+/// deploy-time value is unknown.
+fn resolved_value_has_null_alternative(rv: &ResolvedValue) -> bool {
+    match rv {
+        ResolvedValue::Concrete { value } => value.is_null(),
+        ResolvedValue::List { .. } | ResolvedValue::Map { .. } => false,
+        ResolvedValue::Enum { variants } => variants.iter().any(resolved_value_has_null_alternative),
+        ResolvedValue::Conditional { if_true, if_false, .. } => {
+            resolved_value_has_null_alternative(if_true) || resolved_value_has_null_alternative(if_false)
+        }
+        ResolvedValue::Reference { .. } | ResolvedValue::Dynamic { .. } | ResolvedValue::TypedDynamic { .. } => false,
+    }
 }
 
 /// Whether the declared task size is one Fargate offers. Cpu may be written in
@@ -449,7 +487,7 @@ fn fargate_memory_mib(memory: &str) -> Option<i64> {
     if size == HALF_GB {
         return Some(MIB_PER_GB / 2);
     }
-    digits_as_number(&size).map(|gigabytes| gigabytes * MIB_PER_GB)
+    digits_as_number(&size).and_then(|gigabytes| gigabytes.checked_mul(MIB_PER_GB))
 }
 
 /// Whether the text is written as digits only — the shape of the CPU-unit and
@@ -602,6 +640,13 @@ mod tests {
     fn memory_rejects_forms_fargate_does_not_accept() {
         assert_eq!(fargate_memory_mib("2 TB"), None);
         assert_eq!(fargate_memory_mib("half a gb"), None);
+    }
+
+    #[test]
+    fn memory_gb_overflow_returns_none() {
+        // A value whose GB-to-MiB conversion overflows i64 must not panic.
+        assert_eq!(fargate_memory_mib("9999999999999999GB"), None);
+        assert_eq!(fargate_memory_mib("9223372036854775807GB"), None);
     }
 
     #[test]

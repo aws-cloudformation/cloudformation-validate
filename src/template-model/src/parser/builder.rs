@@ -822,16 +822,6 @@ impl TemplateSections {
     pub fn into_ir(self, mut builder: Builder) -> TemplateIR {
         let shape_defects = validate_section_shapes(&builder.arena, self.root, &builder.span_index);
         builder.diagnostics.extend(shape_defects);
-        builder.diagnostics.extend(crate::parser::resource_shape::validate_resource_attributes(
-            &builder.arena,
-            self.resources,
-            &builder.span_index,
-        ));
-        builder.diagnostics.extend(crate::parser::condition_shape::validate_condition_bodies(
-            &builder.arena,
-            self.conditions,
-            &builder.span_index,
-        ));
         TemplateIR {
             arena: builder.arena,
             global_index: builder.global_index,

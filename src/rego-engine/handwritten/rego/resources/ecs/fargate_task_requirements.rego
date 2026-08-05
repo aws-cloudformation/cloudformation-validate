@@ -2,7 +2,7 @@ package resources
 
 import rego.v1
 
-# E3048: A Fargate task definition must declare awsvpc networking, a task-level
+# A Fargate task definition must declare awsvpc networking, a task-level
 # Cpu and Memory size drawn from the sizes Fargate offers, must not pin
 # placement (Fargate chooses the infrastructure), and may only use the log
 # drivers Fargate supports.
@@ -27,6 +27,17 @@ violation contains make_diag_at("E3048", "ERROR", name, "Properties",
     some name in _fargate_tasks
     some property in _required_property
     not has_property(name, property)
+}
+
+# A required property that is authored but resolves to null (AWS::NoValue) is
+# effectively absent: CloudFormation removes it before the task is created.
+violation contains make_diag_at("E3048", "ERROR", name, "Properties",
+    sprintf("'%s' is a required property for a Fargate task", [property])) if {
+    some name in _fargate_tasks
+    some property in _required_property
+    has_property(name, property)
+    some value in resolve_all(name, sprintf("Properties.%s", [property]))
+    value == null
 }
 
 violation contains make_diag_full("E3048", "ERROR", name, "Properties.NetworkMode",

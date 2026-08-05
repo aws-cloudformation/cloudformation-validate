@@ -25,7 +25,7 @@ const RESOURCE_CONFIGURATION_RULE: &str = "E3001";
 /// malformed logical ID is reported by its own check, and the `Resources` map
 /// also carries `Fn::ForEach::…` loop keys before expansion, which are not
 /// resources at all.
-pub(super) fn validate_resource_attributes(
+pub(crate) fn validate_resource_attributes(
     arena: &Arena,
     resources: NodeRef,
     span_index: &SourceSpanIndex,

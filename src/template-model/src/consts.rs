@@ -49,6 +49,10 @@ pub const KEY_UPDATE_POLICY: &str = "UpdatePolicy";
 pub const KEY_CREATION_POLICY: &str = "CreationPolicy";
 /// Resource attribute naming the provider version of a custom resource.
 pub const KEY_VERSION: &str = "Version";
+/// SAM resource attribute declaring connectors to other resources.
+pub const KEY_CONNECTORS: &str = "Connectors";
+/// SAM resource attribute listing global properties the resource opts out of.
+pub const KEY_IGNORE_GLOBALS: &str = "IgnoreGlobals";
 
 /// Every attribute CloudFormation accepts alongside a resource's `Type`.
 pub const RESOURCE_ATTRIBUTES: &[&str] = &[
@@ -62,6 +66,8 @@ pub const RESOURCE_ATTRIBUTES: &[&str] = &[
     KEY_CREATION_POLICY,
     SECTION_METADATA,
     KEY_VERSION,
+    KEY_CONNECTORS,
+    KEY_IGNORE_GLOBALS,
 ];
 
 /// The generic custom resource type. Together with [`CUSTOM_RESOURCE_TYPE_PREFIX`]

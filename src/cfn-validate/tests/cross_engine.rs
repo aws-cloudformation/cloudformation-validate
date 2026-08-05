@@ -509,6 +509,8 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
         "bad/W1019_sub_unused_key.yaml",
         "bad/W1053_dynref_spaces.yaml",
         "good/good_conditions_valid_refs.yaml",
+        "bad/foreach_resource_attribute.yaml",
+        "bad/foreach_condition_body.yaml",
     ];
     for name in fixtures {
         let bytes = load_template(name);
@@ -519,7 +521,31 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
             out.sort();
             out
         };
-        assert_eq!(ids(&*CEL), ids(&*REGO), "{name}: engines diverge");
+        let cel_ids = ids(&*CEL);
+        let rego_ids = ids(&*REGO);
+        assert_eq!(cel_ids, rego_ids, "{name}: engines diverge");
+        match name {
+            "bad/foreach_resource_attribute.yaml" => assert!(
+                cel_ids.iter().any(|d| d.starts_with("E3001|") && d.contains("BadAttribute")),
+                "{name}: generated resource attribute must be rejected, got {cel_ids:?}"
+            ),
+            "bad/foreach_condition_body.yaml" => assert!(
+                cel_ids.iter().any(|d| d.starts_with("F0013|") && d.contains("BadOne")),
+                "{name}: generated condition body must be rejected, got {cel_ids:?}"
+            ),
+            _ => {}
+        }
+    }
+}
+
+#[test]
+fn sam_resource_attributes_are_accepted_by_both_engines() {
+    for engine in [&*CEL as &dyn ValidationEngine, &*REGO as &dyn ValidationEngine] {
+        let diagnostics = validate_template(engine, "good/sam/resource_attributes.yaml");
+        assert!(
+            diagnostics.iter().all(|d| d.rule_id != "E3001"),
+            "valid SAM resource attributes must not be rejected: {diagnostics:?}"
+        );
     }
 }
 
@@ -528,13 +554,16 @@ fn fargate_task_size_and_placement_fixtures_fire_identically_on_both_engines() {
     // The Fargate task-size and placement rules read the written size and the
     // resolved property in each engine, so both must classify a padded spelling,
     // a non-scalar value, and a removed placement constraint the same way.
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let fixtures = [
         "bad/ecs_fargate_task_requirements.yaml",
         "good/ecs_fargate_task_requirements.yaml",
         "bad/fargate_bad_cpu_memory.yaml",
         "good/ecs_fargate_valid.yaml",
         "bad/conditions.yaml",
+        "bad/ecs_fargate_unreachable_placement.yaml",
+        "bad/ecs_fargate_required_no_value.yaml",
+        "bad/ecs_fargate_memory_overflow.yaml",
     ];
     for name in fixtures {
         let bytes = load_template(name);
@@ -545,7 +574,27 @@ fn fargate_task_size_and_placement_fixtures_fire_identically_on_both_engines() {
             out.sort();
             out
         };
-        assert_eq!(ids(&*CEL), ids(&*REGO), "{name}: engines diverge");
+        let cel_ids = ids(&*CEL);
+        let rego_ids = ids(&*REGO);
+        assert_eq!(cel_ids, rego_ids, "{name}: engines diverge");
+        match name {
+            "bad/ecs_fargate_unreachable_placement.yaml" => assert!(
+                cel_ids.iter().any(|d| d.starts_with("E3048|") && d.contains("PlacementConstraints")),
+                "{name}: authored placement constraint must be rejected, got {cel_ids:?}"
+            ),
+            "bad/ecs_fargate_required_no_value.yaml" => {
+                let required_count = cel_ids
+                    .iter()
+                    .filter(|d| d.starts_with("E3048|") && d.contains("required property for a Fargate task"))
+                    .count();
+                assert_eq!(required_count, 4, "{name}: all removed required properties must be reported");
+            }
+            "bad/ecs_fargate_memory_overflow.yaml" => assert!(
+                cel_ids.iter().any(|d| d.starts_with("E3047|")),
+                "{name}: overflowing memory text must produce a diagnostic without panicking, got {cel_ids:?}"
+            ),
+            _ => {}
+        }
     }
 }
 

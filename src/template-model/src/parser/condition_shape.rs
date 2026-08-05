@@ -15,7 +15,7 @@ use crate::parser::builder::node_shape_name;
 /// Rule reporting a condition whose body is not a boolean-valued condition.
 const CONDITION_BODY_RULE: &str = "F0013";
 
-pub(super) fn validate_condition_bodies(
+pub(crate) fn validate_condition_bodies(
     arena: &Arena,
     conditions: NodeRef,
     span_index: &SourceSpanIndex,

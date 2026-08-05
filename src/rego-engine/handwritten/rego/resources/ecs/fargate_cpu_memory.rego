@@ -2,9 +2,9 @@ package resources
 
 import rego.v1
 
-# E3047: A Fargate task must use one of the task sizes Fargate offers — a Cpu
-# size paired with a Memory size drawn from the range that size supports. Cpu may
-# be written in CPU units or vCPU, and Memory in MiB or GB.
+# A Fargate task must use one of the task sizes Fargate offers — a Cpu size
+# paired with a Memory size drawn from the range that size supports. Cpu may be
+# written in CPU units or vCPU, and Memory in MiB or GB.
 
 _vcpu_to_cpu_units := {".25": 256, ".5": 512, "1": 1024, "2": 2048, "4": 4096, "8": 8192, "16": 16384}
 
