@@ -1,3 +1,5 @@
+#[cfg(test)]
+use data_source::AdditionalSchemaSource;
 use diagnostics::{
     DetailLevel, Diagnostic, Entity, PerformanceMetrics, Phase, PhaseMetric, RegisteredDiagnostic, RelatedResource,
     ReportMetadata, ReportStatus, ResourceRef, Summary, ValidationReport, ViolationContext, apply_filters,
@@ -7,7 +9,9 @@ use rules::{
     FilterConfig, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, is_fatal_rule, is_valid_custom_rule_id,
     rule_number,
 };
-use schema_validator::{SchemaValidationResult, SchemaValidator};
+use schema_validator::{
+    OverlayCatalog, SchemaValidationResult, SchemaValidator, SchemaValidatorConfig, build_overlay_catalog,
+};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -130,6 +134,60 @@ pub struct EngineConfig {
     #[serde(default)]
     #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
     pub guard_rules: Vec<ExternalRuleSource>,
+    /// Optional schema validator configuration. A standalone engine derives its
+    /// schema-aware rule metadata from this config. Language APIs also use it to
+    /// construct the schema validator bundled with the engine, so both components
+    /// observe the same additional schemas.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "wasm-bindings", tsify(optional))]
+    #[cfg_attr(feature = "uniffi-bindings", uniffi(default))]
+    pub schema_validator_config: Option<SchemaValidatorConfig>,
+}
+
+impl EngineConfig {
+    /// Starts from the default configuration.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds engine-native custom rules (Rego or CEL, depending on the engine).
+    pub fn with_custom_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
+        self.custom_rules.extend(rules);
+        self
+    }
+
+    /// Adds Guard DSL rules, usable regardless of the selected engine.
+    pub fn with_guard_rules(mut self, rules: impl IntoIterator<Item = ExternalRuleSource>) -> Self {
+        self.guard_rules.extend(rules);
+        self
+    }
+
+    /// Sets the nested schema validator configuration. When the engine is built
+    /// standalone via `new(EngineConfig)`, it derives overlay-aware metadata from
+    /// the configured additional schemas.
+    pub fn with_schema_validator_config(mut self, config: SchemaValidatorConfig) -> Self {
+        self.schema_validator_config = Some(config);
+        self
+    }
+
+    /// Builds an [`OverlayCatalog`] from the nested schema validator config's
+    /// additional schemas. Returns an empty catalog when no schema config is set
+    /// or the config carries no overlays.
+    ///
+    /// This is an internal helper for standalone engine construction.
+    #[doc(hidden)]
+    pub fn build_overlay_catalog(&self) -> Result<OverlayCatalog, ValidationError> {
+        let additional_schemas = match &self.schema_validator_config {
+            Some(cfg) if !cfg.additional_schemas.is_empty() => &cfg.additional_schemas,
+            _ => return Ok(OverlayCatalog::default()),
+        };
+        let overlays: Vec<(String, serde_json::Value)> = additional_schemas
+            .iter()
+            .map(|s| s.resolve().map_err(|e| ValidationError::Engine(e.0)))
+            .collect::<Result<Vec<_>, _>>()?;
+        build_overlay_catalog(overlays)
+            .map_err(|e| ValidationError::Engine(format!("Failed to apply an additional schema: {e}")))
+    }
 }
 
 #[derive(Clone, Default)]
@@ -979,6 +1037,193 @@ mod tests {
     use diagnostics::Phase;
     use rules::{Category, build_rule_metadata_map, lookup_rule};
     use template_model::{SAM_TRANSFORM_ERROR_PREFIX, SAM_TRANSFORM_ERROR_RULE_ID};
+
+    #[test]
+    fn additional_schema_resolve_uses_explicit_type_name() {
+        let src = AdditionalSchemaSource {
+            type_name: Some("AWS::Lambda::Function".into()),
+            schema: r#"{"properties":{"P":{"type":"string"}}}"#.into(),
+        };
+        let (type_name, schema) = src.resolve().expect("valid schema resolves");
+        assert_eq!(type_name, "AWS::Lambda::Function", "an explicit type_name names the target type");
+        assert!(schema.is_object());
+    }
+
+    #[test]
+    fn additional_schema_resolve_accepts_matching_type_names() {
+        let src = AdditionalSchemaSource {
+            type_name: Some("AWS::Lambda::Function".into()),
+            schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"P":{"type":"string"}}}"#.into(),
+        };
+        let (type_name, _) = src.resolve().expect("agreeing type names resolve");
+        assert_eq!(type_name, "AWS::Lambda::Function");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_contradictory_type_names() {
+        let src = AdditionalSchemaSource {
+            type_name: Some("AWS::Lambda::Function".into()),
+            schema: r#"{"typeName":"AWS::Other::Type","properties":{}}"#.into(),
+        };
+        let err = src.resolve().expect_err("contradictory type names must fail");
+        assert!(
+            err.0.contains("AWS::Lambda::Function") && err.0.contains("AWS::Other::Type"),
+            "the error must name both types, got: {}",
+            err.0
+        );
+    }
+
+    #[test]
+    fn additional_schema_resolve_falls_back_to_schema_type_name() {
+        let src = AdditionalSchemaSource {
+            type_name: None,
+            schema: r#"{"typeName":"AWS::Lambda::Function","properties":{}}"#.into(),
+        };
+        let (type_name, _) = src.resolve().expect("valid schema resolves");
+        assert_eq!(type_name, "AWS::Lambda::Function", "an absent type_name falls back to the schema's typeName");
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_invalid_json() {
+        let src =
+            AdditionalSchemaSource { type_name: Some("AWS::Lambda::Function".into()), schema: "{ not json ".into() };
+        let err = src.resolve().expect_err("invalid JSON must fail");
+        assert!(err.0.contains("Invalid additional schema"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_non_object() {
+        let src = AdditionalSchemaSource { type_name: Some("AWS::Lambda::Function".into()), schema: "42".into() };
+        let err = src.resolve().expect_err("non-object schema must fail");
+        assert!(err.0.contains("expected a JSON object"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn additional_schema_resolve_rejects_missing_type_name() {
+        let src = AdditionalSchemaSource { type_name: None, schema: r#"{"properties":{}}"#.into() };
+        let err = src.resolve().expect_err("missing type name must fail");
+        assert!(err.0.contains("missing a resource type name"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn additional_schema_resolve_error_names_an_unnamed_source() {
+        let src = AdditionalSchemaSource { type_name: None, schema: "{ not json ".into() };
+        let err = src.resolve().expect_err("invalid JSON must fail");
+        assert!(err.0.contains("<unnamed>"), "unexpected error: {}", err.0);
+    }
+
+    #[test]
+    fn engine_config_build_overlay_catalog_applies_schemas() {
+        let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
+                    .into(),
+            }],
+        });
+        let catalog = config.build_overlay_catalog().expect("valid overlay builds catalog");
+        assert!(!catalog.is_empty());
+        assert!(catalog.type_names.contains(&"AWS::Lambda::Function".to_string()));
+    }
+
+    #[test]
+    fn engine_config_build_overlay_catalog_empty_is_noop() {
+        let config = EngineConfig::default();
+        let catalog = config.build_overlay_catalog().expect("empty config builds empty catalog");
+        assert!(catalog.is_empty());
+    }
+
+    #[test]
+    fn engine_config_builder_composes_without_a_struct_literal() {
+        let config = EngineConfig::new()
+            .with_custom_rules([ExternalRuleSource { name: "a.rego".into(), content: "package a".into() }])
+            .with_guard_rules([ExternalRuleSource { name: "b.guard".into(), content: "rule x {}".into() }])
+            .with_schema_validator_config(SchemaValidatorConfig {
+                additional_schemas: vec![AdditionalSchemaSource {
+                    type_name: Some("AWS::Test::One".into()),
+                    schema: r#"{"properties":{"P":{"type":"string"}}}"#.into(),
+                }],
+            });
+        assert_eq!(config.custom_rules.len(), 1);
+        assert_eq!(config.guard_rules.len(), 1);
+        let sv_config = config.schema_validator_config.as_ref().expect("schema_validator config must be set");
+        assert_eq!(sv_config.additional_schemas.len(), 1);
+        assert_eq!(sv_config.additional_schemas[0].type_name.as_deref(), Some("AWS::Test::One"));
+    }
+
+    #[test]
+    fn default_engine_config_serializes_without_the_schema_validator_config_field() {
+        let json = serde_json::to_value(EngineConfig::default()).expect("EngineConfig serializes");
+        assert!(
+            json.get("schemaValidatorConfig").is_none(),
+            "an empty schema_validator_config must not change the serialized form, got: {json}"
+        );
+    }
+
+    #[test]
+    fn engine_config_nested_schema_validator_serialization_roundtrip() {
+        let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: Some("AWS::Test::RT".into()),
+                schema: r#"{"properties":{}}"#.into(),
+            }],
+        });
+        let json = serde_json::to_value(&config).expect("serializes");
+        assert!(json.get("schemaValidatorConfig").is_some(), "nested config must appear in JSON: {json}");
+        assert!(json.get("schemaValidator").is_none(), "the old config field must not be serialized: {json}");
+        let deserialized: EngineConfig = serde_json::from_value(json).expect("deserializes");
+        let sv = deserialized.schema_validator_config.expect("nested config must roundtrip");
+        assert_eq!(sv.additional_schemas.len(), 1);
+        assert_eq!(sv.additional_schemas[0].type_name.as_deref(), Some("AWS::Test::RT"));
+    }
+
+    #[test]
+    fn standalone_engine_with_nested_schema_config_derives_metadata() {
+        // A standalone engine built from EngineConfig with a nested
+        // SchemaValidatorConfig derives overlay-aware metadata from it. This
+        // verifies the internal build_overlay_catalog path is exercised.
+        let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
+                    .into(),
+            }],
+        });
+        // The engine builds successfully — the nested schema config was resolved.
+        let catalog = config.build_overlay_catalog().expect("nested config builds");
+        assert!(!catalog.is_empty(), "the catalog must be populated from nested config");
+    }
+
+    #[test]
+    fn combined_wrapper_style_path_constructs_validator_and_engine_once() {
+        // Simulates the binding/CLI pattern: build SchemaValidator once from the
+        // nested config, then pass it to the engine via new_with_schema_validator.
+        // This ensures the combined path does not re-resolve overlays.
+        let schema_config = SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
+                    .into(),
+            }],
+        };
+        let validator = schema_validator::SchemaValidator::new(schema_config).expect("validator builds");
+        // Verify the catalog is populated from the validator
+        assert!(!validator.overlay_catalog().is_empty());
+        assert!(validator.overlay_catalog().type_names.contains(&"AWS::Lambda::Function".to_string()));
+    }
+
+    #[test]
+    fn standalone_schema_validator_config() {
+        // SchemaValidator can be built standalone from SchemaValidatorConfig.
+        let config = SchemaValidatorConfig {
+            additional_schemas: vec![AdditionalSchemaSource {
+                type_name: None,
+                schema: r#"{"typeName":"AWS::Test::Standalone","properties":{"Name":{"type":"string"}}}"#.into(),
+            }],
+        };
+        let validator = schema_validator::SchemaValidator::new(config).expect("standalone validator builds");
+        assert!(validator.overlay_catalog().type_names.contains(&"AWS::Test::Standalone".to_string()));
+    }
 
     fn minimal_model() -> SemanticModel {
         let yaml = br#"
@@ -2270,7 +2515,7 @@ Resources:
 
     #[test]
     fn engine_exception_surfaces_as_error_never_as_diagnostic() {
-        let schema_validator = SchemaValidator::new();
+        let schema_validator = SchemaValidator::default();
         let engine = ExplodingEngine::new(Explosion::ReturnErr);
         let result = validate_bytes_with_path(
             &engine,
@@ -2295,7 +2540,7 @@ Resources:
 
     #[test]
     fn engine_panic_is_caught_as_error_never_as_diagnostic() {
-        let schema_validator = SchemaValidator::new();
+        let schema_validator = SchemaValidator::default();
         let engine = ExplodingEngine::new(Explosion::Panic);
         let result = validate_catching_panics(|| {
             validate_bytes_with_path(

@@ -13,6 +13,7 @@ crate-type = ["cdylib", "staticlib"]
 name = "bindings_go"
 
 [dependencies]
+data-source = { path = "../data-source", default-features = false }
 validation-engine = { path = "../validation-engine" }
 diagnostics = { path = "../diagnostics" }
 rules = { path = "../rules" }

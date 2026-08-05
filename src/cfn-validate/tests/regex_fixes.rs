@@ -9,7 +9,7 @@ use validation_engine::{EngineConfig, ValidationEngine, validate_bytes};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
-static SCHEMA_VALIDATOR: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+static SCHEMA_VALIDATOR: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
 /// Rule IDs (with severity) emitted for `template`, sorted, for one engine.
 fn diagnostics_for(engine: &dyn ValidationEngine, template: &str) -> Vec<(String, Severity)> {

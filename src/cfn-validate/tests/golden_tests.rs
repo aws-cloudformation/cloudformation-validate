@@ -14,7 +14,7 @@ fn validate_to_json(
     relative_path: &str,
     detail_level: DetailLevel,
 ) -> serde_json::Value {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let config =
         ValidateConfig { detail_level: detail_level.clone(), severity_level: Severity::Debug, ..Default::default() };
     let report = validate_bytes_with_path(engine, &sv, bytes, config, relative_path.to_string()).expect("validate");

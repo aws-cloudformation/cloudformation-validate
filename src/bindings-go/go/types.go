@@ -185,6 +185,14 @@ type ExternalRuleSource struct {
 	Content string `json:"content"`
 }
 
+// AdditionalSchemaSource is a CloudFormation resource provider schema merged on
+// top of the bundled schemas. TypeName is optional: leave it nil to take the
+// resource type name from the Schema's own typeName field.
+type AdditionalSchemaSource struct {
+	TypeName *string `json:"typeName,omitempty"`
+	Schema   string  `json:"schema"`
+}
+
 // EngineConfig holds engine construction options. The zero value uses only the
 // built-in rules.
 type EngineConfig struct {
@@ -192,6 +200,18 @@ type EngineConfig struct {
 	CustomRules []ExternalRuleSource `json:"customRules,omitempty"`
 	// GuardRules are Guard DSL rules, usable with either engine.
 	GuardRules []ExternalRuleSource `json:"guardRules,omitempty"`
+	// SchemaValidatorConfig optionally configures the validator bundled by the engine.
+	// When set, the engine derives overlay-aware metadata from the configured
+	// additional schemas.
+	SchemaValidatorConfig *SchemaValidatorConfig `json:"schemaValidatorConfig,omitempty"`
+}
+
+// SchemaValidatorConfig holds schema validator construction options. The zero
+// value builds a validator over only the bundled schemas.
+type SchemaValidatorConfig struct {
+	// AdditionalSchemas extend bundled resource provider schemas or register new
+	// resource types before schema validation.
+	AdditionalSchemas []AdditionalSchemaSource `json:"additionalSchemas,omitempty"`
 }
 
 // IdRange matches rule IDs with the given letter prefix and an inclusive

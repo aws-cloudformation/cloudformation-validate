@@ -59,17 +59,33 @@ the same template and config.
 
 ### EngineConfig
 
-Passed to the constructor. Both fields default to empty lists.
+Passed to the constructor. All fields default to empty lists.
 
 ```python
 engine = RegoEngine()  # default config
 engine = CelEngine(EngineConfig(guard_rules=[my_rule]))  # with Guard rules
 ```
 
-| Field          | Default | Description                                                           |
-|----------------|---------|-----------------------------------------------------------------------|
-| `custom_rules` | `[]`    | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)      |
-| `guard_rules`  | `[]`    | CloudFormation Guard DSL rules — translated internally by each engine |
+| Field                | Default | Description                                                                                   |
+|----------------------|---------|-----------------------------------------------------------------------------------------------|
+| `custom_rules`       | `[]`    | Engine-native rules (Rego for `RegoEngine`, CEL for `CelEngine`)                              |
+| `guard_rules`        | `[]`    | CloudFormation Guard DSL rules — translated internally by each engine                         |
+| `schema_validator_config`   | `None`  | Optional `SchemaValidatorConfig`; configures the validator bundled by the engine              |
+
+The optional `schema_validator_config` field accepts a `SchemaValidatorConfig` containing additional schemas. Each additional
+schema is an `AdditionalSchemaSource`. Load one from a file with
+`file_to_additional_schema_source(path, type_name=None)`, or construct it from schema text. `type_name` may be omitted
+when the JSON contains its own `typeName`:
+
+```python
+from cloudformation_validate import EngineConfig, RegoEngine, SchemaValidatorConfig, file_to_additional_schema_source
+
+engine = RegoEngine(
+    EngineConfig(schema_validator_config=SchemaValidatorConfig(
+        additional_schemas=[file_to_additional_schema_source("schemas/aws-lambda-function.json")]
+    ))
+)
+```
 
 Each rule is an `ExternalRuleSource`. Load one from a file with `file_to_external_rule_source(path)` — the same
 pattern as passing a template path to `validate_standard` — or construct it from explicit values with

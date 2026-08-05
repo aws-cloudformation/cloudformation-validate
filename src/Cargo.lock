@@ -241,6 +241,7 @@ name = "bindings-go"
 version = "1.7.0"
 dependencies = [
  "cel-engine",
+ "data-source",
  "diagnostics",
  "rego-engine",
  "rules",
@@ -258,6 +259,7 @@ name = "bindings-jvm"
 version = "1.7.0"
 dependencies = [
  "cel-engine",
+ "data-source",
  "diagnostics",
  "rego-engine",
  "rules",
@@ -273,6 +275,7 @@ name = "bindings-python"
 version = "1.7.0"
 dependencies = [
  "cel-engine",
+ "data-source",
  "diagnostics",
  "rego-engine",
  "rules",
@@ -505,6 +508,7 @@ version = "1.7.0"
 dependencies = [
  "cel-engine",
  "chrono",
+ "data-source",
  "diagnostics",
  "env_logger",
  "log",
@@ -674,7 +678,10 @@ dependencies = [
  "ruzstd",
  "serde",
  "serde_json",
+ "tsify",
+ "uniffi 0.32.0",
  "ureq",
+ "wasm-bindgen",
  "zip",
  "zstd",
 ]
@@ -1688,6 +1695,9 @@ dependencies = [
  "serde",
  "serde_json",
  "template-model",
+ "tsify",
+ "uniffi 0.32.0",
+ "wasm-bindgen",
  "web-time",
 ]
 
@@ -2423,6 +2433,7 @@ dependencies = [
 name = "validation-engine"
 version = "1.7.0"
 dependencies = [
+ "data-source",
  "diagnostics",
  "guard-translator",
  "log",

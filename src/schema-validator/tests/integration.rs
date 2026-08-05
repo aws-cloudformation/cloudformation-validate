@@ -9,7 +9,7 @@ use template_model::SemanticModel;
 
 const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templates");
 
-static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::new);
+static SV: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
 fn validate_fixture(path: &str) -> Vec<Diagnostic> {
     let full = format!("{}/{}", TEMPLATES, path);

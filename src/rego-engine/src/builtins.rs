@@ -2,6 +2,7 @@ use crate::engine::{SharedModel, SharedRegion};
 use data_source::embedded::{GETATT_ATTRIBUTES_BYTES, SCHEMA_METADATA_BYTES};
 use data_source::types::GetattData;
 use regorus::Value;
+use schema_validator::OverlayCatalog;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use template_model::SemanticModel;
@@ -26,7 +27,12 @@ fn get_model(holder: &SharedModel) -> Option<Arc<SemanticModel>> {
     holder.lock().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
-pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, region_holder: SharedRegion) {
+pub(crate) fn register_all(
+    rego: &mut regorus::Engine,
+    holder: SharedModel,
+    region_holder: SharedRegion,
+    overlay_catalog: &OverlayCatalog,
+) {
     register_resolve(rego, holder.clone());
     register_resolve_preserving_conditionals(rego, holder.clone());
     register_resolve_all(rego, holder.clone());
@@ -64,8 +70,8 @@ pub(crate) fn register_all(rego: &mut regorus::Engine, holder: SharedModel, regi
     register_pipeline_artifacts(rego, holder.clone());
     register_pipeline_artifact_count_issues(rego, holder.clone());
     register_resolve_type(rego, holder.clone());
-    let schema_registry: LazySchemaRegistry = Arc::new(OnceLock::new());
-    let getatt_registry: LazyGetattRegistry = Arc::new(OnceLock::new());
+    let schema_registry: LazySchemaRegistry = build_schema_registry(overlay_catalog);
+    let getatt_registry: LazyGetattRegistry = build_getatt_registry(overlay_catalog);
     register_schema_properties(rego, schema_registry.clone());
     register_schema_required(rego, schema_registry.clone());
     register_schema_type(rego, schema_registry.clone());
@@ -1585,6 +1591,46 @@ fn getatt_reg(reg: &LazyGetattRegistry) -> &HashMap<String, HashMap<String, Stri
     reg.get_or_init(load_getatt_type_registry)
 }
 
+/// Build a schema registry, eagerly merging overlay entries if present.
+fn build_schema_registry(catalog: &OverlayCatalog) -> LazySchemaRegistry {
+    if catalog.is_empty() {
+        return Arc::new(OnceLock::new());
+    }
+    let mut base = load_schema_registry();
+    for (type_name, entry) in &catalog.schema_metadata {
+        let info = SchemaInfo {
+            properties: entry.properties.clone(),
+            required: entry.required.clone(),
+            property_types: entry.property_types.clone(),
+            property_enums: entry.property_enums.clone(),
+            property_constraints: entry.property_constraints.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+        };
+        base.insert(type_name.clone(), info);
+    }
+    let lock = Arc::new(OnceLock::new());
+    // The lock is freshly constructed above so this set cannot fail.
+    lock.get_or_init(|| base);
+    lock
+}
+
+/// Build a getatt type registry, eagerly merging overlay entries if present.
+fn build_getatt_registry(catalog: &OverlayCatalog) -> LazyGetattRegistry {
+    if catalog.is_empty() {
+        return Arc::new(OnceLock::new());
+    }
+    let mut base = load_getatt_type_registry();
+    for (type_name, attr_types) in &catalog.getatt_attribute_types {
+        let entry = base.entry(type_name.clone()).or_default();
+        for (attr, atype) in attr_types {
+            entry.insert(attr.clone(), atype.clone());
+        }
+    }
+    let lock = Arc::new(OnceLock::new());
+    // The lock is freshly constructed above so this set cannot fail.
+    lock.get_or_init(|| base);
+    lock
+}
+
 fn register_schema_properties(rego: &mut regorus::Engine, registry: LazySchemaRegistry) {
     let _ = rego.add_extension(
         "schema_properties".into(),
@@ -2466,7 +2512,7 @@ mod tests {
         let region: SharedRegion = Arc::new(Mutex::new(None));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region);
+        register_all(&mut rego, holder, region, &OverlayCatalog::default());
         let policy = format!("package test\nimport rego.v1\nresult := {}", expr);
         rego.add_policy("test.rego".into(), policy).unwrap();
         rego.set_input(Value::new_object());
@@ -2670,7 +2716,7 @@ mod tests {
         let region: SharedRegion = Arc::new(Mutex::new(Some("us-west-2".to_string())));
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
-        register_all(&mut rego, holder, region);
+        register_all(&mut rego, holder, region, &OverlayCatalog::default());
         rego.add_policy("test.rego".into(), "package test\nimport rego.v1\nresult := input_region()".into()).unwrap();
         rego.set_input(Value::new_object());
         let v = rego.eval_rule("data.test.result".into()).unwrap();

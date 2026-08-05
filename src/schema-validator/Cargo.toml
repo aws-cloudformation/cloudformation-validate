@@ -12,6 +12,11 @@ categories.workspace = true
 name = "schema_validator"
 path = "src/lib.rs"
 
+[features]
+default = []
+wasm-bindings = ["data-source/wasm-bindings", "dep:tsify", "dep:wasm-bindgen"]
+uniffi-bindings = ["data-source/uniffi-bindings", "dep:uniffi"]
+
 [dependencies]
 template-model = { path = "../template-model" }
 diagnostics = { path = "../diagnostics" }
@@ -22,6 +27,9 @@ serde_json = { version = "1", features = ["preserve_order"] }
 log = "0.4"
 regex = "1"
 web-time = "1"
+tsify = { version = "0.5", optional = true, features = ["js"] }
+wasm-bindgen = { version = "0.2", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [dev-dependencies]
 

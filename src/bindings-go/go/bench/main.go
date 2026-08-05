@@ -103,9 +103,12 @@ func run() error {
 	engineInitSamples := make([]float64, 0, iterations)
 	for i := 0; i < iterations; i++ {
 		t0 := time.Now()
-		sv := cfnvalidate.NewSchemaValidator()
+		schemaValidator, schemaError := cfnvalidate.NewSchemaValidator(nil)
+		if schemaError != nil {
+			return fmt.Errorf("schema validator init failed on iteration %d: %w", i, schemaError)
+		}
 		schemaInitSamples = append(schemaInitSamples, elapsed(t0))
-		sv.Destroy()
+		schemaValidator.Destroy()
 
 		t1 := time.Now()
 		eng, err := newEngine(engineFlag)

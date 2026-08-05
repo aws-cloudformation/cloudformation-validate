@@ -152,7 +152,7 @@ fn push_indent(out: &mut String, indent: usize) {
 /// object with its source-location fields removed, and the collection is sorted so
 /// two runs can be compared directly.
 fn diagnostic_multiset(engine: &dyn ValidationEngine, bytes: &[u8], path: &str) -> Vec<Value> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let config =
         ValidateConfig { detail_level: DetailLevel::Detailed, severity_level: Severity::Debug, ..Default::default() };
     let report = validate_bytes_with_path(engine, &sv, bytes, config, path.to_string()).expect("validate");

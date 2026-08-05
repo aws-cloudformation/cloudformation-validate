@@ -1,7 +1,9 @@
 import type {
     DetailedReport,
     DiagnosticModel,
+    AdditionalSchemaSource,
     EngineConfig as WasmEngineConfig,
+    SchemaValidatorConfig as WasmSchemaValidatorConfig,
     ExternalRuleSource,
     ParameterInfo,
     ResolvedOutput,
@@ -42,6 +44,7 @@ export type {
     PseudoParameterOverrides,
     ValidateConfig,
     ExternalRuleSource,
+    AdditionalSchemaSource,
     ResolvedValue,
     RefKind,
     ParameterInfo,
@@ -101,11 +104,46 @@ export class RuleFile {
 
 export type RuleSource = ExternalRuleSource | RuleFile;
 
+/**
+ * A CloudFormation resource provider schema loaded from a file, for use as an
+ * overlay. `typeName` may be omitted to use the `typeName` inside the file.
+ */
+export class SchemaFile {
+    constructor(
+        public readonly path: string,
+        public readonly typeName?: string,
+    ) {}
+
+    readContent(): string {
+        return readFileSync(this.path, 'utf8');
+    }
+}
+
+export type SchemaSource = AdditionalSchemaSource | SchemaFile;
+
 export interface EngineConfig {
     /** Engine-native rules (Rego for RegoEngine, CEL for CelEngine). */
     customRules?: RuleSource[];
     /** CloudFormation Guard DSL rules, usable with either engine. */
     guardRules?: RuleSource[];
+    /**
+     * Optional schema validator configuration. When present, the engine derives
+     * overlay-aware metadata from the configured additional schemas.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
+}
+
+/**
+ * Configuration for the schema validator. Additional schemas are merged on top
+ * of the bundled CloudFormation provider schemas before schema validation.
+ */
+export interface SchemaValidatorConfig {
+    /**
+     * Additional CloudFormation resource provider schemas to merge on top of the
+     * bundled schemas. Each overlay extends or overrides the bundled schema for
+     * its resource type.
+     */
+    additionalSchemas?: SchemaSource[];
 }
 
 function toExternalRuleSources(sources?: RuleSource[]): ExternalRuleSource[] {
@@ -114,10 +152,25 @@ function toExternalRuleSources(sources?: RuleSource[]): ExternalRuleSource[] {
     );
 }
 
+function toAdditionalSchemas(sources?: SchemaSource[]): AdditionalSchemaSource[] {
+    return (sources ?? []).map((source) =>
+        source instanceof SchemaFile ? { typeName: source.typeName, schema: source.readContent() } : source,
+    );
+}
+
 function toWasmEngineConfig(config?: EngineConfig): WasmEngineConfig {
     return {
         customRules: toExternalRuleSources(config?.customRules),
         guardRules: toExternalRuleSources(config?.guardRules),
+        schemaValidatorConfig: config?.schemaValidatorConfig
+            ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
+            : undefined,
+    };
+}
+
+function toWasmSchemaValidatorConfig(config?: SchemaValidatorConfig): WasmSchemaValidatorConfig {
+    return {
+        additionalSchemas: toAdditionalSchemas(config?.additionalSchemas),
     };
 }
 
@@ -162,7 +215,11 @@ export class TemplateModel {
 }
 
 export class SchemaValidator {
-    private readonly inner: InstanceType<typeof bridge.WasmSchemaValidator> = new bridge.WasmSchemaValidator();
+    private readonly inner: InstanceType<typeof bridge.WasmSchemaValidator>;
+
+    constructor(config?: SchemaValidatorConfig) {
+        this.inner = new bridge.WasmSchemaValidator(toWasmSchemaValidatorConfig(config));
+    }
 
     listRules(): RuleInfo[] {
         return this.inner.listRules();

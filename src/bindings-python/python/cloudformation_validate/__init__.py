@@ -88,9 +88,11 @@ from .template_model import (
     ResourceDiagnostics,
     SourceSpan,
 )
-from .validation_engine import EngineConfig, EngineType, ExternalRuleSource
+from .validation_engine import AdditionalSchemaSource, EngineConfig, EngineType, ExternalRuleSource
+from .bindings_python import SchemaValidatorConfig as SchemaValidatorConfig
 
 __all__ = [
+    "AdditionalSchemaSource",
     "CelEngine",
     "ConditionalNull",
     "ConditionalNullEntry",
@@ -146,6 +148,7 @@ __all__ = [
     "RuleInfo",
     "RuleOrigin",
     "SchemaValidator",
+    "SchemaValidatorConfig",
     "ServiceFilter",
     "Severity",
     "SourceSpan",
@@ -156,6 +159,7 @@ __all__ = [
     "ValidateConfig",
     "ValidationError",
     "ViolationContext",
+    "file_to_additional_schema_source",
     "file_to_external_rule_source",
     "version",
 ]
@@ -173,6 +177,18 @@ def _template_bytes(template: Template) -> tuple[bytes, str]:
     path = os.fspath(template)
     with open(path, "rb") as f:
         return f.read(), str(path)
+
+
+def file_to_additional_schema_source(
+    path: typing.Union[str, os.PathLike], type_name: typing.Optional[str] = None
+) -> AdditionalSchemaSource:
+    """Reads a resource provider schema file into an :class:`AdditionalSchemaSource`.
+
+    ``type_name`` may be omitted when the schema contains its own ``typeName`` field.
+    """
+    resolved = os.fspath(path)
+    with open(resolved, encoding="utf-8") as f:
+        return AdditionalSchemaSource(type_name=type_name, schema=f.read())
 
 
 def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> ExternalRuleSource:
@@ -195,10 +211,15 @@ class Engine:
 
     _inner_cls: typing.ClassVar[typing.Optional[type]] = None
 
-    def __init__(self, config: typing.Optional[EngineConfig] = None):
+    def __init__(
+        self,
+        config: typing.Optional[EngineConfig] = None,
+    ):
         if self._inner_cls is None:
             raise TypeError(f"{type(self).__name__} has no engine; construct RegoEngine or CelEngine instead")
-        self._inner = self._inner_cls(config if config is not None else EngineConfig())
+        self._inner = self._inner_cls(
+            config if config is not None else EngineConfig(),
+        )
 
     def validate_standard(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> StandardReport:
         """Validates a template and returns a standard-detail report."""
@@ -270,8 +291,10 @@ class TemplateModel:
 class SchemaValidator:
     """Validates resources against the compiled CloudFormation provider schemas."""
 
-    def __init__(self):
-        self._inner = _PySchemaValidator()
+    def __init__(self, schema_config: typing.Optional[SchemaValidatorConfig] = None):
+        self._inner = _PySchemaValidator(
+            schema_config if schema_config is not None else SchemaValidatorConfig()
+        )
 
     def list_rules(self) -> typing.List[RuleInfo]:
         return self._inner.list_rules()

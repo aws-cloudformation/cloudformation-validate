@@ -27,6 +27,24 @@ Resources:
       BucketName: my-test-bucket
 `
 
+const templateWithOverlayProperty = `
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => {};"
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Runtime: nodejs18.x
+      Handler: index.handler
+      TestForOverride: enabled
+`
+
+const lambdaOverlaySchema = `{
+  "typeName": "AWS::Lambda::Function",
+  "properties": {"TestForOverride": {"type": "string"}}
+}`
+
 var (
 	workspaceDir = filepath.Join("..", "..")
 	goodTemplate = filepath.Join(workspaceDir, "resources", "templates", "good", "aurora_dbinstance.yaml")
@@ -129,7 +147,10 @@ func TestListRulesSortedAndIdenticalAcrossEngines(t *testing.T) {
 }
 
 func TestSchemaValidator(t *testing.T) {
-	validator := cfnvalidate.NewSchemaValidator()
+	validator, err := cfnvalidate.NewSchemaValidator(nil)
+	if err != nil {
+		t.Fatalf("schema validator construction failed: %v", err)
+	}
 	defer validator.Destroy()
 
 	if count := validator.SchemaCount(); count == 0 {
@@ -166,6 +187,47 @@ func TestGoodTemplatePassesBothEngines(t *testing.T) {
 		for _, d := range report.Diagnostics {
 			if d.Severity == cfnvalidate.SeverityError || d.Severity == cfnvalidate.SeverityFatal {
 				t.Errorf("%s: good template must have no errors, got [%s] %s", name, d.RuleID, d.Message)
+			}
+		}
+	}
+}
+
+func TestAdditionalSchemasApplyThroughTheTypedConfigOnBothEngines(t *testing.T) {
+	schemaConfig := &cfnvalidate.SchemaValidatorConfig{
+		AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{Schema: lambdaOverlaySchema}},
+	}
+	builders := map[string]func(*cfnvalidate.EngineConfig) (*cfnvalidate.Engine, error){
+		"rego": cfnvalidate.NewRegoEngine,
+		"cel":  cfnvalidate.NewCelEngine,
+	}
+	for name, build := range builders {
+		baseline := mustEngine(t, build, nil)
+		baselineReport, err := baseline.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
+		if err != nil {
+			t.Fatalf("%s baseline validation failed: %v", name, err)
+		}
+		baselineHasUnexpectedProperty := false
+		for _, diagnostic := range baselineReport.Diagnostics {
+			if diagnostic.RuleID == "F3002" {
+				baselineHasUnexpectedProperty = true
+			}
+		}
+		if !baselineHasUnexpectedProperty {
+			t.Fatalf("%s baseline must report the unpublished property", name)
+		}
+
+		engine, err := build(&cfnvalidate.EngineConfig{SchemaValidatorConfig: schemaConfig})
+		if err != nil {
+			t.Fatalf("%s engine construction with overlay failed: %v", name, err)
+		}
+		defer engine.Destroy()
+		report, err := engine.ValidateStandard([]byte(templateWithOverlayProperty), nil, "overlay.yaml")
+		if err != nil {
+			t.Fatalf("%s overlay validation failed: %v", name, err)
+		}
+		for _, diagnostic := range report.Diagnostics {
+			if diagnostic.RuleID == "F3002" {
+				t.Errorf("%s typed config did not apply the overlay: %s", name, diagnostic.Message)
 			}
 		}
 	}

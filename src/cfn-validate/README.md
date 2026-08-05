@@ -74,6 +74,16 @@ touching a same-named entity of another type.
 | `--engine rego\|cel`         | Validation engine (default: rego)                         |
 | `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable)             |
 | `--guard-rule-source <PATH>` | Load Guard (`.guard`) rule file or directory (repeatable) |
+| `--additional-schema <PATH>` | Merge a CloudFormation resource provider schema (`.json`) file, or every `.json` in a directory, on top of the bundled schemas (repeatable) |
+
+`--additional-schema` is for templates that use a property or allowed value CloudFormation has not published to the
+registry yet: the supplied schema is merged into the bundled schema for its `typeName`, and a `typeName` with no bundled
+schema is registered as a new resource type. An overlay never silently drops a bundled constraint, though stating an
+extra `required` or dependency entry does add one. Anything that cannot be applied exits `2` rather than being ignored —
+a malformed or unreadable schema, a path that does not exist, a directory containing no `.json` file, or a schema using a
+construct the validator cannot represent. Directories are scanned one level deep. See
+[validation-engine/API.md](../validation-engine/API.md#additional-resource-provider-schemas) for the merge model and its
+scope limits.
 
 **Parameter options:**
 
