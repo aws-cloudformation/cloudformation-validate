@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: PlacementConstraints in a statically unreachable Fn::If branch still fires.
+
+Conditions:
+  Never: !Equals [a, b]
+
+Resources:
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: unreachable-placement
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      PlacementConstraints: !If
+      - Never
+      - - Type: memberOf
+          Expression: attribute:ecs.instance-type =~ t2.*
+      - !Ref AWS::NoValue
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true

@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: A memory value whose GB-to-MiB conversion overflows must not panic.
+
+Resources:
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: overflow-memory
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "9999999999999999GB"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true

@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Required Fargate properties removed by AWS::NoValue must be reported as missing.
+
+Parameters:
+  UseDynamicCpu:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  DynamicCpu:
+    Type: String
+
+Conditions:
+  UseDynamicCpuValue: !Equals [!Ref UseDynamicCpu, "true"]
+
+Resources:
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: null-required
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: !Ref AWS::NoValue
+      Cpu: !Ref AWS::NoValue
+      Memory: !Ref AWS::NoValue
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true
+
+  ConditionalTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditional-null-required
+      RequiresCompatibilities:
+      - FARGATE
+      NetworkMode: awsvpc
+      Cpu: !If [UseDynamicCpuValue, !Ref DynamicCpu, !Ref AWS::NoValue]
+      Memory: "512"
+      ContainerDefinitions:
+      - Name: app
+        Image: nginx
+        Essential: true

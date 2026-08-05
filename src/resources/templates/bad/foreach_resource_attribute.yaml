@@ -1,0 +1,8 @@
+Transform: AWS::LanguageExtensions
+Resources:
+  Fn::ForEach::Buckets:
+  - Identifier
+  - [One]
+  - Bucket${Identifier}:
+      Type: AWS::S3::Bucket
+      BadAttribute: invalid

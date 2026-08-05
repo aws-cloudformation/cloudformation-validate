@@ -1,0 +1,9 @@
+Transform: AWS::LanguageExtensions
+Conditions:
+  Fn::ForEach::Conditions:
+  - Identifier
+  - [One]
+  - Bad${Identifier}: not-a-condition
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
