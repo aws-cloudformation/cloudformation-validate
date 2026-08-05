@@ -271,6 +271,16 @@ pub const FORMAT_VERSION: &str = "2010-09-09";
 
 pub const MARKER_DYNAMIC: &str = "__dynamic";
 pub const MARKER_REF: &str = "__ref";
+
+/// Prefixes of the `ResolvedValue::Dynamic` reason produced by a partially
+/// resolved `Fn::Sub` or `Fn::Join`, and the placeholder standing in for a
+/// reference the partial could not resolve. Defined once because the resolver
+/// writes them and length estimation reads them back: a partial that still
+/// carries a placeholder has no known length, and only a shared spelling keeps
+/// the reader and the writer from drifting apart.
+pub const SUB_PARTIAL_PREFIX: &str = "Sub:";
+pub const JOIN_PARTIAL_PREFIX: &str = "Join:";
+pub const UNRESOLVED_REF_PLACEHOLDER_PREFIX: &str = "{ref:";
 pub const MARKER_CONDITIONAL: &str = "__conditional";
 pub const MARKER_INTRINSIC: &str = "__intrinsic";
 pub const MARKER_ENUM: &str = "__enum";

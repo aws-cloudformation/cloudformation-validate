@@ -257,6 +257,44 @@ fn enrich_context_adds_allowed_values_for_enum() {
     }
 }
 
+/// A value that is unknown until deployment is described by what actually
+/// produced it. Only a parameter is called a parameter, and it is named — the
+/// explanation of why the value is unknown never stands in for a name.
+#[test]
+fn enrich_context_describes_a_deploy_time_value_by_its_real_source() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "SubnetParam": { "Type": "AWS::EC2::Subnet::Id" } },
+  "Resources": {
+    "FromParameter": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": { "SubnetId": { "Ref": "SubnetParam" }, "PrivateIpAddress": 10 }
+    },
+    "FromImport": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": { "SubnetId": { "Fn::ImportValue": "SharedSubnet" }, "PrivateIpAddress": 10 }
+    }
+  }
+}"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).unwrap());
+    let mut result = SV.validate(&model, Some("us-east-1"));
+    SV.enrich_context(&mut result.diagnostics, &model);
+
+    let source_for = |logical_id: &str| -> String {
+        result
+            .diagnostics
+            .iter()
+            .filter(|d| d.entity.as_ref().is_some_and(|e| e.logical_id == logical_id))
+            .find_map(|d| d.context.as_ref().and_then(|c| c.resolution_source.clone()))
+            .unwrap_or_else(|| panic!("expected a resolution source for {logical_id}"))
+    };
+
+    assert_eq!(source_for("FromParameter"), "parameter 'SubnetParam' (type AWS::EC2::Subnet::Id)");
+
+    let import_source = source_for("FromImport");
+    assert!(!import_source.starts_with("parameter "), "a cross-stack import is not a parameter, got {import_source:?}");
+    assert!(import_source.contains("cross-stack import"), "expected the import to be named, got {import_source:?}");
+}
+
 #[test]
 fn lifecycle_e3710_shutdown_service() {
     let diags = validate_fixture("bad/schema_lifecycle.yaml");

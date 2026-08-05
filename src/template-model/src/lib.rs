@@ -30,6 +30,7 @@ pub(crate) mod serialization;
 pub mod span;
 pub mod template_section;
 pub(crate) mod transform_expansion;
+pub mod value_identity;
 pub mod value_patterns;
 
 pub use consts::PSEUDO_PARAMETERS;
@@ -53,6 +54,7 @@ pub use regions::{
 pub use schedule::schedule_expression_errors;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};
 pub use template_section::{EntityType, TopLevelSection, entity_identity};
+pub use value_identity::expression_fingerprint;
 pub use value_patterns::{
     AMI_ID_PATTERN, AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_PATTERN, IAM_ROLE_ARN_RULE_PATTERN,
     MX_RECORD_PATTERN, SECURITY_GROUP_NAME_PATTERN,

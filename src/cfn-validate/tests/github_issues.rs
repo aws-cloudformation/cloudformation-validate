@@ -1043,6 +1043,119 @@ fn issue_247_w9007_still_fires_on_repeated_getstackoutput() {
     assert_count(&diags, "W9007", 1);
 }
 
+/// Issue #247 (generalised): two reads whose identifying argument is itself only
+/// known at deploy time must not be reported as duplicates either. Carrying just
+/// the *concrete* arguments into the resolved value left these two reads sharing
+/// one description, so W9007 still claimed a duplicate. Each read is now settled
+/// by the expression that produces it, and these two are written differently.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_no_w9007_when_stack_names_come_from_different_parameters() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": {
+    "FirstStack": { "Type": "String" },
+    "SecondStack": { "Type": "String" }
+  },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::GetStackOutput": { "StackName": { "Ref": "FirstStack" }, "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": { "Ref": "SecondStack" }, "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Issue #52 (same class, `Fn::ImportValue`): two imports whose export name comes
+/// from different parameters read two different exports as far as anything here
+/// can tell, so they must not be reported as duplicates. Folding only a concrete
+/// export name into the resolved value left this case collapsing.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/52
+#[test]
+fn issue_52_no_w9007_when_export_names_come_from_different_parameters() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": {
+    "FirstExport": { "Type": "String" },
+    "SecondExport": { "Type": "String" }
+  },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Ref": "FirstExport" } },
+          { "Fn::ImportValue": { "Ref": "SecondExport" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Two entries reading different positions of one deploy-time list are different
+/// values, so W9007 must stay silent. Every intrinsic that cannot resolve its
+/// arguments once shared a single description with all other calls of the same
+/// intrinsic, which made unrelated entries look identical.
+#[test]
+fn no_w9007_on_distinct_selects_of_one_deploy_time_list() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "SubnetList": { "Type": "CommaDelimitedList" } },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::Select": ["0", { "Ref": "SubnetList" }] },
+          { "Fn::Select": ["1", { "Ref": "SubnetList" }] }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Positive boundary for the whole class: when two entries are written as the
+/// same expression they read the same value however unknowable that value is, so
+/// W9007 must still report the duplicate. This is what keeps the fix from being a
+/// blanket exemption for deploy-time values.
+#[test]
+fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
+    const TEMPLATE: &[u8] = br#"{
+  "Parameters": { "ExportName": { "Type": "String" } },
+  "Resources": {
+    "Subnets": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "d",
+        "SubnetIds": [
+          { "Fn::ImportValue": { "Ref": "ExportName" } },
+          { "Fn::ImportValue": { "Ref": "ExportName" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
+}
+
 // ---------------------------------------------------------------------------
 // Issue #36 — the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
 // partition prefix, so ADC-partition ARNs no longer false-positive and the two

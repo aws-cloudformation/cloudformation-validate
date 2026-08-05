@@ -40,6 +40,50 @@ fn validate_template_with_config(
     validate_bytes(engine, &sv, &bytes, config).unwrap().diagnostics
 }
 
+/// A length constraint is only reported broken when it is broken whichever value
+/// the deployment picks, and both engines must reach that conclusion from the same
+/// evidence. Before both engines shared one estimate they disagreed here: one
+/// reported a length taken from an internal placeholder while the other stayed
+/// silent, and neither outcome came from what the template would actually deploy.
+#[test]
+fn string_length_findings_are_identical_between_engines() {
+    for template in ["bad/W9006_every_allowed_value_too_long.json", "good/string_length_unknowable_values.json"] {
+        let rego = validate_template(&*REGO, template);
+        let cel = validate_template(&*CEL, template);
+        let findings = |diags: &[Diagnostic]| -> Vec<String> {
+            let mut messages: Vec<String> =
+                diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.clone()).collect();
+            messages.sort();
+            messages
+        };
+        assert_eq!(findings(&rego), findings(&cel), "{template}: engines disagree on W9006");
+    }
+}
+
+/// The estimate may only cite a length some deployment actually produces.
+#[test]
+fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
+    let expected = "String length 78 exceeds maximum 63 for property 'BucketName'";
+    for (engine_name, diags) in [
+        ("rego", validate_template(&*REGO, "bad/W9006_every_allowed_value_too_long.json")),
+        ("cel", validate_template(&*CEL, "bad/W9006_every_allowed_value_too_long.json")),
+    ] {
+        let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
+        assert_eq!(messages, vec![expected], "[{engine_name}] every allowed value is too long, so W9006 stands");
+    }
+
+    for (engine_name, diags) in [
+        ("rego", validate_template(&*REGO, "good/string_length_unknowable_values.json")),
+        ("cel", validate_template(&*CEL, "good/string_length_unknowable_values.json")),
+    ] {
+        let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
+        assert!(
+            messages.is_empty(),
+            "[{engine_name}] no length is known for every possible value, so nothing may be reported: {messages:?}"
+        );
+    }
+}
+
 fn custom_config(engine: &str) -> EngineConfig {
     let (name, content) = if engine == "rego" {
         ("rego_custom.rego", load_rule("rego_custom.rego"))

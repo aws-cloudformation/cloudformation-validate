@@ -75,7 +75,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/my/param:notanum}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/my/param:notanum}})"
         }
       }
     ]
@@ -675,7 +675,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter ApiIdParam value unknown' (type String)"
+          "resolutionSource": "parameter 'ApiIdParam' (type String)"
         }
       },
       {
@@ -1150,7 +1150,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter BadType value unknown' (type AWS::SSM::Parameter::Type)"
+          "resolutionSource": "parameter 'BadType' (type AWS::SSM::Parameter::Type)"
         }
       },
       {
@@ -2550,6 +2550,94 @@
         "context": {
           "lifecycle": "create-only"
         }
+      }
+    ]
+  },
+  "bad/W9006_every_allowed_value_too_long.json": {
+    "filePath": "bad/W9006_every_allowed_value_too_long.json",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9006",
+        "severity": "WARN",
+        "message": "String length 78 exceeds maximum 63 for property 'BucketName'",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 23,
+        "endLine": 14,
+        "endColumn": 34,
+        "ruleDescription": "String length estimation through Fn::Sub",
+        "phase": "LINT",
+        "context": {
+          "actualValue": "this-allowed-value-is-deliberately-longer-than-the-sixty-three-character-limit",
+          "extra": {
+            "actual_length": 78
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 23,
+        "endLine": 14,
+        "endColumn": 34,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter with AllowedValues"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
       }
     ]
   },
@@ -11086,7 +11174,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "dynamic (cross-stack import)"
         }
       },
       {
@@ -11109,7 +11197,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import' (type String)"
+          "resolutionSource": "dynamic (cross-stack import)"
         }
       },
       {
@@ -13170,7 +13258,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter myVpcId value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -13215,7 +13303,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter myVpcId value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -22143,7 +22231,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22170,7 +22258,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicSubnet01 value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicSubnet01' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22197,7 +22285,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PrivateRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PrivateRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22224,7 +22312,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicSubnet01 value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicSubnet01' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22251,7 +22339,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22278,7 +22366,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicSubnet01 value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicSubnet01' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22305,7 +22393,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22381,7 +22469,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -22435,7 +22523,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -23010,7 +23098,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter myVpcId value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -23127,7 +23215,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:mysubnet}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:mysubnet}})"
         }
       },
       {
@@ -23269,7 +23357,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter mySecurity3Group value unknown' (type String)"
+          "resolutionSource": "parameter 'mySecurity3Group' (type String)"
         }
       },
       {
@@ -30358,7 +30446,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter myVpcId value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -30403,7 +30491,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter myVpcId value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -30448,7 +30536,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter myVpcId value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'myVpcId' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -30472,7 +30560,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter Ec2ImageId value unknown' (type AWS::EC2::Image::Id)"
+          "resolutionSource": "parameter 'Ec2ImageId' (type AWS::EC2::Image::Id)"
         }
       },
       {
@@ -30518,7 +30606,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter myBucketName value unknown' (type String)"
+          "resolutionSource": "parameter 'myBucketName' (type String)"
         }
       },
       {
@@ -66784,7 +66872,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A)"
         }
       },
       {
@@ -67049,7 +67137,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefClusterEB0386A796A0E3FE' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefClusterEB0386A796A0E3FE)"
         }
       },
       {
@@ -67094,7 +67182,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A)"
         }
       },
       {
@@ -67188,7 +67276,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: SplitAtListener-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: SplitAtListener-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A)"
         }
       },
       {
@@ -67282,7 +67370,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: SplitAtListener-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: SplitAtListener-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A)"
         }
       },
       {
@@ -67352,7 +67440,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: SplitAtListener-LBStack:ExportsOutputRefLoadBalancerBE9EEC3A2EF8C31C' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: SplitAtListener-LBStack:ExportsOutputRefLoadBalancerBE9EEC3A2EF8C31C)"
         }
       },
       {
@@ -67441,7 +67529,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A)"
         }
       },
       {
@@ -67672,7 +67760,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A)"
         }
       },
       {
@@ -67785,7 +67873,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A)"
         }
       },
       {
@@ -68070,7 +68158,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefClusterEB0386A796A0E3FE' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefClusterEB0386A796A0E3FE)"
         }
       },
       {
@@ -68115,7 +68203,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: CrossStackLBInfra:ExportsOutputRefVpc8378EB38272D6E3A)"
         }
       },
       {
@@ -68209,7 +68297,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: SplitAtTargetGroup-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: SplitAtTargetGroup-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A)"
         }
       },
       {
@@ -68303,7 +68391,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: SplitAtTargetGroup-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: SplitAtTargetGroup-LBStack:ExportsOutputFnGetAttLoadBalancerSecurityGroupA28D6DD7GroupId44BDE65A)"
         }
       },
       {
@@ -78236,7 +78324,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter email value unknown' (type String)"
+          "resolutionSource": "parameter 'email' (type String)"
         }
       },
       {
@@ -96392,7 +96480,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -96439,7 +96527,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -96694,7 +96782,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -96741,7 +96829,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -97074,7 +97162,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -97121,7 +97209,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -97502,7 +97590,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -97549,7 +97637,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: TheXrayTracerStack:ExportsOutputRefTheXRayTracerSnsFanOutTopicDE7E70F8D479F0D6)"
         }
       },
       {
@@ -101694,7 +101782,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70)"
         }
       },
       {
@@ -102017,7 +102105,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70)"
         }
       },
       {
@@ -102201,7 +102289,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70)"
         }
       },
       {
@@ -102360,7 +102448,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70)"
         }
       },
       {
@@ -103488,7 +103576,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70)"
         }
       },
       {
@@ -103794,7 +103882,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70' (type String)"
+          "resolutionSource": "dynamic (cross-stack import: NetworkStack:ExportsOutputRefTheVPC92636AB00B2A4A70)"
         }
       },
       {
@@ -107121,7 +107209,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef value unknown' (type String)"
+          "resolutionSource": "parameter 'referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef' (type String)"
         }
       },
       {
@@ -107190,7 +107278,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef value unknown' (type String)"
+          "resolutionSource": "parameter 'referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef' (type String)"
         }
       },
       {
@@ -107814,7 +107902,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef value unknown' (type String)"
+          "resolutionSource": "parameter 'referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef' (type String)"
         }
       },
       {
@@ -107925,7 +108013,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef value unknown' (type String)"
+          "resolutionSource": "parameter 'referencetoCdkExamplesServiceConnectStackServiceConnectVPCE46B65DFRef' (type String)"
         }
       },
       {
@@ -117780,7 +117868,7 @@
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "context": {
-          "resolutionSource": "parameter 'parameter DynamicEncryption value unknown' (type String)"
+          "resolutionSource": "parameter 'DynamicEncryption' (type String)"
         }
       },
       {
@@ -117803,7 +117891,7 @@
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA",
         "context": {
-          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/rds/storage-encrypted}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/rds/storage-encrypted}})"
         }
       },
       {
@@ -120328,7 +120416,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter DynamicEncryption value unknown' (type String)"
+          "resolutionSource": "parameter 'DynamicEncryption' (type String)"
         }
       },
       {
@@ -120352,7 +120440,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/rds/storage-encrypted}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/rds/storage-encrypted}})"
         }
       },
       {
@@ -131265,7 +131353,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: prefix-{{resolve:ssm:/network/sg-name}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: prefix-{{resolve:ssm:/network/sg-name}})"
         }
       },
       {
@@ -131288,7 +131376,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/config/bucket-name}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/config/bucket-name}})"
         }
       },
       {
@@ -131312,7 +131400,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: prefix-{{resolve:ssm:/ec2/ami-id}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: prefix-{{resolve:ssm:/ec2/ami-id}})"
         }
       },
       {
@@ -136015,7 +136103,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pDBParameterGroupFamily value unknown' (type String)"
+          "resolutionSource": "parameter 'pDBParameterGroupFamily' (type String)"
         }
       },
       {
@@ -136063,7 +136151,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pDBMasterUsername value unknown' (type String)"
+          "resolutionSource": "parameter 'pDBMasterUsername' (type String)"
         }
       },
       {
@@ -137575,7 +137663,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter cidrBlockAllowedPattern value unknown' (type String)"
+          "resolutionSource": "parameter 'cidrBlockAllowedPattern' (type String)"
         }
       },
       {
@@ -137598,7 +137686,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter cidrBlockAllowedPattern value unknown' (type String)"
+          "resolutionSource": "parameter 'cidrBlockAllowedPattern' (type String)"
         }
       },
       {
@@ -137734,7 +137822,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter cidrBlockAllowedPattern value unknown' (type String)"
+          "resolutionSource": "parameter 'cidrBlockAllowedPattern' (type String)"
         }
       },
       {
@@ -137940,7 +138028,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -137967,7 +138055,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter AppSubnet01 value unknown' (type String)",
+          "resolutionSource": "parameter 'AppSubnet01' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -137994,7 +138082,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PrivateRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PrivateRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -138021,7 +138109,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter AppSubnet01 value unknown' (type String)",
+          "resolutionSource": "parameter 'AppSubnet01' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -138048,7 +138136,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -138102,7 +138190,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -138129,7 +138217,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicSubnet01 value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicSubnet01' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -138178,7 +138266,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter PublicRouteTable value unknown' (type String)",
+          "resolutionSource": "parameter 'PublicRouteTable' (type String)",
           "extra": {
             "replacement_strategy": "delete_then_create"
           }
@@ -143055,7 +143143,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: Dev-{{resolve:ssm:MyUsername:1}}' (type String)"
+          "resolutionSource": "parameter 'Environment' (type String)"
         }
       },
       {
@@ -146107,7 +146195,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter SsmParamName value unknown' (type AWS::SSM::Parameter::Name)"
+          "resolutionSource": "parameter 'SsmParamName' (type AWS::SSM::Parameter::Name)"
         }
       },
       {
@@ -146186,6 +146274,175 @@
         "startColumn": 5,
         "endLine": 5,
         "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/string_length_unknowable_values.json": {
+    "filePath": "good/string_length_unknowable_values.json",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 7,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "JoinedFromAReference",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 9,
+        "endLine": 16,
+        "endColumn": 20,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Join:{ref:NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest}-data)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SubstitutedFromAParameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 9,
+        "endLine": 24,
+        "endColumn": 20,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (Sub:${NamePrefix}-data)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "OnlySomeChoicesTooLong",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 9,
+        "endLine": 30,
+        "endColumn": 20,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter with AllowedValues"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 67,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'JoinedFromAReference' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "JoinedFromAReference",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SubstitutedFromAParameter' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SubstitutedFromAParameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 7,
+        "endLine": 23,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'OnlySomeChoicesTooLong' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "OnlySomeChoicesTooLong",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 29,
+        "startColumn": 7,
+        "endLine": 29,
+        "endColumn": 18,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
@@ -146737,7 +146994,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter MyVpc value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'MyVpc' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -147331,6 +147588,86 @@
         "startColumn": 5,
         "endLine": 12,
         "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/unique_items_deploy_time_values.json": {
+    "filePath": "good/unique_items_deploy_time_values.json",
+    "status": "OK",
+    "version": "1.7.0",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'StackOutputSubnets' of type 'AWS::RDS::DBSubnetGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StackOutputSubnets",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBSubnetGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ImportedSubnets' of type 'AWS::RDS::DBSubnetGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ImportedSubnets",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBSubnetGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SelectedSubnets' of type 'AWS::RDS::DBSubnetGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SelectedSubnets",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBSubnetGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 44,
+        "startColumn": 7,
+        "endLine": 44,
+        "endColumn": 18,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
@@ -148504,7 +148841,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter SubnetId value unknown' (type AWS::EC2::Subnet::Id)"
+          "resolutionSource": "parameter 'SubnetId' (type AWS::EC2::Subnet::Id)"
         }
       },
       {
@@ -148670,7 +149007,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter Vpc value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'Vpc' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -148737,7 +149074,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter Vpc value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'Vpc' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -148760,7 +149097,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter Vpc value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'Vpc' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -148805,7 +149142,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter Vpc value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'Vpc' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -148850,7 +149187,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter Vpc value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'Vpc' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -150526,7 +150863,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter ImageId value unknown' (type AWS::EC2::Image::Id)"
+          "resolutionSource": "parameter 'ImageId' (type AWS::EC2::Image::Id)"
         }
       },
       {
@@ -150705,7 +151042,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'dynamic reference: {{resolve:ssm:/SQS_Queue/SQS_ARN}}' (type String)"
+          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/SQS_Queue/SQS_ARN}})"
         }
       },
       {
@@ -153646,7 +153983,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter VmdEventsSourceArn value unknown' (type String)"
+          "resolutionSource": "parameter 'VmdEventsSourceArn' (type String)"
         }
       },
       {
@@ -153811,7 +154148,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter DmdEventsSourceArn value unknown' (type String)"
+          "resolutionSource": "parameter 'DmdEventsSourceArn' (type String)"
         }
       },
       {
@@ -158063,7 +158400,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter DatabaseName value unknown' (type String)"
+          "resolutionSource": "parameter 'DatabaseName' (type String)"
         }
       },
       {
@@ -158736,7 +159073,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter AmiId value unknown' (type AWS::EC2::Image::Id)"
+          "resolutionSource": "parameter 'AmiId' (type AWS::EC2::Image::Id)"
         }
       },
       {
@@ -158760,7 +159097,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter KeyPairName value unknown' (type AWS::EC2::KeyPair::KeyName)"
+          "resolutionSource": "parameter 'KeyPairName' (type AWS::EC2::KeyPair::KeyName)"
         }
       },
       {
@@ -166613,7 +166950,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pAppInstanceType value unknown' (type String)"
+          "resolutionSource": "parameter 'pAppInstanceType' (type String)"
         }
       },
       {
@@ -166752,7 +167089,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pWebInstanceType value unknown' (type String)"
+          "resolutionSource": "parameter 'pWebInstanceType' (type String)"
         }
       },
       {
@@ -166987,7 +167324,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pAppPrivateSubnetA value unknown' (type AWS::EC2::Subnet::Id)"
+          "resolutionSource": "parameter 'pAppPrivateSubnetA' (type AWS::EC2::Subnet::Id)"
         }
       },
       {
@@ -167056,7 +167393,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pDBName value unknown' (type String)"
+          "resolutionSource": "parameter 'pDBName' (type String)"
         }
       },
       {
@@ -167104,7 +167441,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pDBUser value unknown' (type String)"
+          "resolutionSource": "parameter 'pDBUser' (type String)"
         }
       },
       {
@@ -167195,7 +167532,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pProductionVPC value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -167240,7 +167577,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pProductionVPC value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -167285,7 +167622,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pProductionVPC value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -167330,7 +167667,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pProductionVPC value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -167375,7 +167712,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pProductionVPC value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -174655,7 +174992,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pRegionAZ1Name value unknown' (type AWS::EC2::AvailabilityZone::Name)"
+          "resolutionSource": "parameter 'pRegionAZ1Name' (type AWS::EC2::AvailabilityZone::Name)"
         }
       },
       {
@@ -174831,7 +175168,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pRegionAZ2Name value unknown' (type AWS::EC2::AvailabilityZone::Name)"
+          "resolutionSource": "parameter 'pRegionAZ2Name' (type AWS::EC2::AvailabilityZone::Name)"
         }
       },
       {
@@ -174899,7 +175236,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pRegionAZ1Name value unknown' (type AWS::EC2::AvailabilityZone::Name)"
+          "resolutionSource": "parameter 'pRegionAZ1Name' (type AWS::EC2::AvailabilityZone::Name)"
         }
       },
       {
@@ -174967,7 +175304,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pRegionAZ2Name value unknown' (type AWS::EC2::AvailabilityZone::Name)"
+          "resolutionSource": "parameter 'pRegionAZ2Name' (type AWS::EC2::AvailabilityZone::Name)"
         }
       },
       {
@@ -175133,7 +175470,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pRegionAZ1Name value unknown' (type AWS::EC2::AvailabilityZone::Name)"
+          "resolutionSource": "parameter 'pRegionAZ1Name' (type AWS::EC2::AvailabilityZone::Name)"
         }
       },
       {
@@ -175201,7 +175538,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pRegionAZ2Name value unknown' (type AWS::EC2::AvailabilityZone::Name)"
+          "resolutionSource": "parameter 'pRegionAZ2Name' (type AWS::EC2::AvailabilityZone::Name)"
         }
       },
       {
@@ -177934,7 +178271,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter KeyPairName value unknown' (type AWS::EC2::KeyPair::KeyName)"
+          "resolutionSource": "parameter 'KeyPairName' (type AWS::EC2::KeyPair::KeyName)"
         }
       },
       {
@@ -178121,7 +178458,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter KeyPairName value unknown' (type AWS::EC2::KeyPair::KeyName)"
+          "resolutionSource": "parameter 'KeyPairName' (type AWS::EC2::KeyPair::KeyName)"
         }
       },
       {
@@ -178213,7 +178550,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter VPCID value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'VPCID' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -178354,7 +178691,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter KeyPairName value unknown' (type AWS::EC2::KeyPair::KeyName)"
+          "resolutionSource": "parameter 'KeyPairName' (type AWS::EC2::KeyPair::KeyName)"
         }
       },
       {
@@ -178492,7 +178829,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter VPCID value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'VPCID' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -178633,7 +178970,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter KeyPairName value unknown' (type AWS::EC2::KeyPair::KeyName)"
+          "resolutionSource": "parameter 'KeyPairName' (type AWS::EC2::KeyPair::KeyName)"
         }
       },
       {
@@ -178725,7 +179062,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter VPCID value unknown' (type AWS::EC2::VPC::Id)"
+          "resolutionSource": "parameter 'VPCID' (type AWS::EC2::VPC::Id)"
         }
       },
       {
@@ -179214,7 +179551,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pDBParameterGroupFamily value unknown' (type String)"
+          "resolutionSource": "parameter 'pDBParameterGroupFamily' (type String)"
         }
       },
       {
@@ -179262,7 +179599,7 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only",
-          "resolutionSource": "parameter 'parameter pDBMasterUsername value unknown' (type String)"
+          "resolutionSource": "parameter 'pDBMasterUsername' (type String)"
         }
       },
       {
