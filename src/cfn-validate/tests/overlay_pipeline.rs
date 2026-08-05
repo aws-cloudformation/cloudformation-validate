@@ -213,7 +213,7 @@ fn config_with_schemas(schemas: &[&str]) -> EngineConfig {
         schema_validator_config: Some(schema_validator::SchemaValidatorConfig {
             additional_schemas: schemas
                 .iter()
-                .map(|schema| AdditionalSchemaSource { type_name: String::new(), schema: (*schema).to_string() })
+                .map(|schema| AdditionalSchemaSource { type_name: None, schema: (*schema).to_string() })
                 .collect(),
         }),
         ..Default::default()

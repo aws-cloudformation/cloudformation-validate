@@ -58,7 +58,6 @@ const fullEngineConfigJSON = `{
     "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
     "schemaValidatorConfig": {
         "additionalSchemas": [{
-            "typeName": "",
             "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
         }]
     }
@@ -165,6 +164,17 @@ func TestFullSchemaValidatorConfigMarshalsToTheContractShape(t *testing.T) {
 			Schema: `{"typeName":"AWS::Test::OverlayOnly","properties":{"Name":{"type":"string"}}}`,
 		}},
 	}
-	expected := `{"additionalSchemas":[{"typeName":"","schema":"{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"}]}`
+	expected := `{"additionalSchemas":[{"schema":"{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"}]}`
+	assertMarshalsTo(t, config, expected)
+}
+
+func TestAdditionalSchemaSourceWithExplicitTypeNameMarshalsTheKey(t *testing.T) {
+	config := &cfnvalidate.SchemaValidatorConfig{
+		AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{
+			TypeName: stringPtr("AWS::Test::OverlayOnly"),
+			Schema:   `{"properties":{"Name":{"type":"string"}}}`,
+		}},
+	}
+	expected := `{"additionalSchemas":[{"typeName":"AWS::Test::OverlayOnly","schema":"{\"properties\":{\"Name\":{\"type\":\"string\"}}}"}]}`
 	assertMarshalsTo(t, config, expected)
 }

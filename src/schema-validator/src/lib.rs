@@ -313,7 +313,7 @@ mod tests {
     fn new_applies_configured_overlays() {
         let config = SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: String::new(),
+                type_name: None,
                 schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
                     .into(),
             }],
@@ -344,7 +344,7 @@ Resources:
     fn new_reports_a_malformed_overlay() {
         let config = SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: "AWS::Test::Cycle".into(),
+                type_name: Some("AWS::Test::Cycle".into()),
                 schema: r##"{"properties":{"P":{"$ref":"#/definitions/D"}},"definitions":{"D":{"$ref":"#/definitions/D"}}}"##
                     .into(),
             }],
@@ -360,7 +360,7 @@ Resources:
     fn config_builds_validator_with_overlays() {
         let config = SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: String::new(),
+                type_name: None,
                 schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
                     .into(),
             }],

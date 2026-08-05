@@ -187,7 +187,7 @@ class AdditionalSchemasTest(unittest.TestCase):
 
         config = EngineConfig(
             schema_validator_config=SchemaValidatorConfig(
-                additional_schemas=[AdditionalSchemaSource(type_name="", schema=LAMBDA_OVERLAY_SCHEMA)]
+                additional_schemas=[AdditionalSchemaSource(type_name=None, schema=LAMBDA_OVERLAY_SCHEMA)]
             )
         )
         for name, baseline, engine_type in (

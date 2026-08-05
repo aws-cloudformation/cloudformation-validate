@@ -186,11 +186,11 @@ type ExternalRuleSource struct {
 }
 
 // AdditionalSchemaSource is a CloudFormation resource provider schema merged on
-// top of the bundled schemas. TypeName may be empty when Schema includes its own
-// typeName field.
+// top of the bundled schemas. TypeName is optional: leave it nil to take the
+// resource type name from the Schema's own typeName field.
 type AdditionalSchemaSource struct {
-	TypeName string `json:"typeName"`
-	Schema   string `json:"schema"`
+	TypeName *string `json:"typeName,omitempty"`
+	Schema   string  `json:"schema"`
 }
 
 // EngineConfig holds engine construction options. The zero value uses only the

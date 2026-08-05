@@ -180,11 +180,11 @@ def _template_bytes(template: Template) -> tuple[bytes, str]:
 
 
 def file_to_additional_schema_source(
-    path: typing.Union[str, os.PathLike], type_name: str = ""
+    path: typing.Union[str, os.PathLike], type_name: typing.Optional[str] = None
 ) -> AdditionalSchemaSource:
     """Reads a resource provider schema file into an :class:`AdditionalSchemaSource`.
 
-    ``type_name`` may be empty when the schema contains its own ``typeName`` field.
+    ``type_name`` may be omitted when the schema contains its own ``typeName`` field.
     """
     resolved = os.fspath(path)
     with open(resolved, encoding="utf-8") as f:

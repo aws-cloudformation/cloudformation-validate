@@ -106,7 +106,7 @@ struct RuleSourceOptions {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct SchemaSourceOptions {
     #[serde(default)]
-    type_name: String,
+    type_name: Option<String>,
     schema: String,
 }
 
@@ -570,7 +570,24 @@ mod tests {
         .expect("schema config must parse");
 
         assert_eq!(1, config.additional_schemas.len());
-        assert_eq!("AWS::Test::Type", config.additional_schemas[0].type_name);
+        assert_eq!(Some("AWS::Test::Type"), config.additional_schemas[0].type_name.as_deref());
+    }
+
+    #[test]
+    fn schema_validator_options_default_the_type_name_when_the_key_is_omitted() {
+        let config = parse_schema_config(
+            r#"{
+                "additionalSchemas": [{"schema": "{\"typeName\":\"AWS::Test::Type\"}"}]
+            }"#,
+        )
+        .expect("a schema source without an explicit typeName must parse");
+
+        assert_eq!(1, config.additional_schemas.len());
+        assert_eq!(
+            None,
+            config.additional_schemas[0].type_name.as_deref(),
+            "an omitted typeName key deserializes to an absent type name, not an empty string"
+        );
     }
 
     #[test]

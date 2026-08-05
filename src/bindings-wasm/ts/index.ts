@@ -106,12 +106,12 @@ export type RuleSource = ExternalRuleSource | RuleFile;
 
 /**
  * A CloudFormation resource provider schema loaded from a file, for use as an
- * overlay. `typeName` may be left empty to use the `typeName` inside the file.
+ * overlay. `typeName` may be omitted to use the `typeName` inside the file.
  */
 export class SchemaFile {
     constructor(
         public readonly path: string,
-        public readonly typeName: string = '',
+        public readonly typeName?: string,
     ) {}
 
     readContent(): string {

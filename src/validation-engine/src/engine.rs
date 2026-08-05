@@ -1041,7 +1041,7 @@ mod tests {
     #[test]
     fn additional_schema_resolve_uses_explicit_type_name() {
         let src = AdditionalSchemaSource {
-            type_name: "AWS::Lambda::Function".into(),
+            type_name: Some("AWS::Lambda::Function".into()),
             schema: r#"{"properties":{"P":{"type":"string"}}}"#.into(),
         };
         let (type_name, schema) = src.resolve().expect("valid schema resolves");
@@ -1052,7 +1052,7 @@ mod tests {
     #[test]
     fn additional_schema_resolve_accepts_matching_type_names() {
         let src = AdditionalSchemaSource {
-            type_name: "AWS::Lambda::Function".into(),
+            type_name: Some("AWS::Lambda::Function".into()),
             schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"P":{"type":"string"}}}"#.into(),
         };
         let (type_name, _) = src.resolve().expect("agreeing type names resolve");
@@ -1062,7 +1062,7 @@ mod tests {
     #[test]
     fn additional_schema_resolve_rejects_contradictory_type_names() {
         let src = AdditionalSchemaSource {
-            type_name: "AWS::Lambda::Function".into(),
+            type_name: Some("AWS::Lambda::Function".into()),
             schema: r#"{"typeName":"AWS::Other::Type","properties":{}}"#.into(),
         };
         let err = src.resolve().expect_err("contradictory type names must fail");
@@ -1076,37 +1076,38 @@ mod tests {
     #[test]
     fn additional_schema_resolve_falls_back_to_schema_type_name() {
         let src = AdditionalSchemaSource {
-            type_name: String::new(),
+            type_name: None,
             schema: r#"{"typeName":"AWS::Lambda::Function","properties":{}}"#.into(),
         };
         let (type_name, _) = src.resolve().expect("valid schema resolves");
-        assert_eq!(type_name, "AWS::Lambda::Function", "empty type_name falls back to the schema's typeName");
+        assert_eq!(type_name, "AWS::Lambda::Function", "an absent type_name falls back to the schema's typeName");
     }
 
     #[test]
     fn additional_schema_resolve_rejects_invalid_json() {
-        let src = AdditionalSchemaSource { type_name: "AWS::Lambda::Function".into(), schema: "{ not json ".into() };
+        let src =
+            AdditionalSchemaSource { type_name: Some("AWS::Lambda::Function".into()), schema: "{ not json ".into() };
         let err = src.resolve().expect_err("invalid JSON must fail");
         assert!(err.0.contains("Invalid additional schema"), "unexpected error: {}", err.0);
     }
 
     #[test]
     fn additional_schema_resolve_rejects_non_object() {
-        let src = AdditionalSchemaSource { type_name: "AWS::Lambda::Function".into(), schema: "42".into() };
+        let src = AdditionalSchemaSource { type_name: Some("AWS::Lambda::Function".into()), schema: "42".into() };
         let err = src.resolve().expect_err("non-object schema must fail");
         assert!(err.0.contains("expected a JSON object"), "unexpected error: {}", err.0);
     }
 
     #[test]
     fn additional_schema_resolve_rejects_missing_type_name() {
-        let src = AdditionalSchemaSource { type_name: String::new(), schema: r#"{"properties":{}}"#.into() };
+        let src = AdditionalSchemaSource { type_name: None, schema: r#"{"properties":{}}"#.into() };
         let err = src.resolve().expect_err("missing type name must fail");
         assert!(err.0.contains("missing a resource type name"), "unexpected error: {}", err.0);
     }
 
     #[test]
     fn additional_schema_resolve_error_names_an_unnamed_source() {
-        let src = AdditionalSchemaSource { type_name: String::new(), schema: "{ not json ".into() };
+        let src = AdditionalSchemaSource { type_name: None, schema: "{ not json ".into() };
         let err = src.resolve().expect_err("invalid JSON must fail");
         assert!(err.0.contains("<unnamed>"), "unexpected error: {}", err.0);
     }
@@ -1115,7 +1116,7 @@ mod tests {
     fn engine_config_build_overlay_catalog_applies_schemas() {
         let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: String::new(),
+                type_name: None,
                 schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
                     .into(),
             }],
@@ -1139,7 +1140,7 @@ mod tests {
             .with_guard_rules([ExternalRuleSource { name: "b.guard".into(), content: "rule x {}".into() }])
             .with_schema_validator_config(SchemaValidatorConfig {
                 additional_schemas: vec![AdditionalSchemaSource {
-                    type_name: "AWS::Test::One".into(),
+                    type_name: Some("AWS::Test::One".into()),
                     schema: r#"{"properties":{"P":{"type":"string"}}}"#.into(),
                 }],
             });
@@ -1147,7 +1148,7 @@ mod tests {
         assert_eq!(config.guard_rules.len(), 1);
         let sv_config = config.schema_validator_config.as_ref().expect("schema_validator config must be set");
         assert_eq!(sv_config.additional_schemas.len(), 1);
-        assert_eq!(sv_config.additional_schemas[0].type_name, "AWS::Test::One");
+        assert_eq!(sv_config.additional_schemas[0].type_name.as_deref(), Some("AWS::Test::One"));
     }
 
     #[test]
@@ -1163,7 +1164,7 @@ mod tests {
     fn engine_config_nested_schema_validator_serialization_roundtrip() {
         let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: "AWS::Test::RT".into(),
+                type_name: Some("AWS::Test::RT".into()),
                 schema: r#"{"properties":{}}"#.into(),
             }],
         });
@@ -1173,7 +1174,7 @@ mod tests {
         let deserialized: EngineConfig = serde_json::from_value(json).expect("deserializes");
         let sv = deserialized.schema_validator_config.expect("nested config must roundtrip");
         assert_eq!(sv.additional_schemas.len(), 1);
-        assert_eq!(sv.additional_schemas[0].type_name, "AWS::Test::RT");
+        assert_eq!(sv.additional_schemas[0].type_name.as_deref(), Some("AWS::Test::RT"));
     }
 
     #[test]
@@ -1183,7 +1184,7 @@ mod tests {
         // verifies the internal build_overlay_catalog path is exercised.
         let config = EngineConfig::new().with_schema_validator_config(SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: String::new(),
+                type_name: None,
                 schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
                     .into(),
             }],
@@ -1200,7 +1201,7 @@ mod tests {
         // This ensures the combined path does not re-resolve overlays.
         let schema_config = SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: String::new(),
+                type_name: None,
                 schema: r#"{"typeName":"AWS::Lambda::Function","properties":{"TestForOverride":{"type":"string"}}}"#
                     .into(),
             }],
@@ -1216,7 +1217,7 @@ mod tests {
         // SchemaValidator can be built standalone from SchemaValidatorConfig.
         let config = SchemaValidatorConfig {
             additional_schemas: vec![AdditionalSchemaSource {
-                type_name: String::new(),
+                type_name: None,
                 schema: r#"{"typeName":"AWS::Test::Standalone","properties":{"Name":{"type":"string"}}}"#.into(),
             }],
         };

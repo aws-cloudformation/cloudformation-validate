@@ -51,7 +51,7 @@ pub fn load_additional_schema_sources(paths: &[String]) -> Result<Vec<Additional
 fn read_schema_file(path: &Path) -> Result<AdditionalSchemaSource, ValidationError> {
     let schema = fs::read_to_string(path)
         .map_err(|e| ValidationError::Engine(format!("Failed to read additional schema '{}': {e}", path.display())))?;
-    let source = AdditionalSchemaSource { type_name: String::new(), schema };
+    let source = AdditionalSchemaSource { type_name: None, schema };
     source.resolve().map_err(|e| {
         ValidationError::Engine(format!("Failed to resolve additional schema '{}': {e}", path.display()))
     })?;

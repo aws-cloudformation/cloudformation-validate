@@ -84,8 +84,8 @@ interface ExternalRuleSource {
 }
 
 interface AdditionalSchemaSource {
-    typeName: string; // may be empty when schema contains its own typeName
-    schema: string;   // complete resource provider schema JSON
+    typeName?: string; // omit to use the typeName inside the schema JSON
+    schema: string;    // complete resource provider schema JSON
 }
 ```
 
@@ -94,9 +94,8 @@ Pass a `RuleFile` to load a rule from disk — the same pattern as `TemplateFile
 resource provider schema. Its optional constructor `typeName` may be omitted when the schema JSON contains its own
 `typeName`.
 
-The generated `AdditionalSchemaSource` record keeps `typeName` as a required, non-nullable string for compatibility
-with the shared Rust/WASM record. For an in-memory schema whose JSON contains `typeName`, pass `typeName: ""`.
-`SchemaFile` supplies this empty-string sentinel when its optional constructor argument is omitted.
+The generated `AdditionalSchemaSource` record exposes `typeName` as an optional field. Omit it (or leave the
+`SchemaFile` constructor argument unset) for an in-memory schema whose JSON already contains its own `typeName`.
 
 ```typescript
 const engine = new CelEngine({

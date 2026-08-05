@@ -87,7 +87,7 @@ use schema_validator::{SchemaValidator, SchemaValidatorConfig};
 use validation_engine::EngineConfig;
 
 let overlay = AdditionalSchemaSource {
-    type_name: String::new(), // take typeName from the schema itself
+    type_name: None, // take typeName from the schema itself
     schema: std::fs::read_to_string("aws-lambda-function.json")?,
 };
 

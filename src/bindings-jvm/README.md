@@ -89,8 +89,8 @@ val engine = CelEngine(EngineConfig(guardRules = listOf(myRule)))  // with Guard
 | `guardRules`        | `emptyList()` | CloudFormation Guard DSL rules — translated internally by each engine                         |
 | `schemaValidatorConfig`   | `null`        | Optional `SchemaValidatorConfig` with additional schemas merged over bundled schemas           |
 
-Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = "")`, or construct an
-`AdditionalSchemaSource` from schema text. `typeName` may be empty when the JSON contains its own `typeName`:
+Load an additional schema with `fileToAdditionalSchemaSource(file, typeName = null)`, or construct an
+`AdditionalSchemaSource` from schema text. `typeName` may be omitted when the JSON contains its own `typeName`:
 
 ```kotlin
 val engine = RegoEngine(

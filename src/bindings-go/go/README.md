@@ -82,9 +82,9 @@ type ExternalRuleSource struct {
     Content string
 }
 
-// TypeName may be empty when Schema contains its own typeName field.
+// TypeName is optional; leave it nil to use the typeName inside Schema.
 type AdditionalSchemaSource struct {
-    TypeName string
+    TypeName *string
     Schema   string
 }
 

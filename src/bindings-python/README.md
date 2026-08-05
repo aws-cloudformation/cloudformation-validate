@@ -74,7 +74,7 @@ engine = CelEngine(EngineConfig(guard_rules=[my_rule]))  # with Guard rules
 
 The optional `schema_validator_config` field accepts a `SchemaValidatorConfig` containing additional schemas. Each additional
 schema is an `AdditionalSchemaSource`. Load one from a file with
-`file_to_additional_schema_source(path, type_name="")`, or construct it from schema text. `type_name` may be empty
+`file_to_additional_schema_source(path, type_name=None)`, or construct it from schema text. `type_name` may be omitted
 when the JSON contains its own `typeName`:
 
 ```python

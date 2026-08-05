@@ -13,7 +13,7 @@ const WIDGET_ATTRIBUTES_SCHEMA: &str = "aws-test-widget-attributes.json";
 fn schema_source(file_name: &str) -> AdditionalSchemaSource {
     let path = Path::new(ADDITIONAL_SCHEMA_SOURCES).join(file_name);
     let schema = fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
-    AdditionalSchemaSource { type_name: String::new(), schema }
+    AdditionalSchemaSource { type_name: None, schema }
 }
 
 fn validator_with_sources(file_names: &[&str]) -> SchemaValidator {
@@ -124,7 +124,7 @@ Resources:
 #[test]
 fn invalid_additional_schema_source_is_reported_as_a_source_error() {
     let config = SchemaValidatorConfig::new().with_additional_schemas([AdditionalSchemaSource {
-        type_name: "AWS::Test::Invalid".to_string(),
+        type_name: Some("AWS::Test::Invalid".to_string()),
         schema: "{ invalid json".to_string(),
     }]);
 

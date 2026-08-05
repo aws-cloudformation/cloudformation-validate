@@ -19,10 +19,10 @@ interface Engine {
 
 /**
  * Reads a resource provider schema file into an [AdditionalSchemaSource] for
- * [SchemaValidatorConfig.additionalSchemas]. [typeName] may be empty when the
+ * [SchemaValidatorConfig.additionalSchemas]. [typeName] may be omitted when the
  * schema file contains its own `typeName` field.
  */
-fun fileToAdditionalSchemaSource(file: File, typeName: String = ""): AdditionalSchemaSource =
+fun fileToAdditionalSchemaSource(file: File, typeName: String? = null): AdditionalSchemaSource =
     AdditionalSchemaSource(typeName = typeName, schema = file.readText())
 
 /**
