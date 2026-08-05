@@ -53,33 +53,57 @@ diagnostics for the same template and config.
 
 ### `EngineConfig`
 
-Passed to the constructor. All fields optional, default to empty arrays.
+Passed to the constructor. All fields are optional; omitted rule arrays are empty and an omitted
+`schemaValidatorConfig` uses only the bundled schemas.
 
 ```typescript
 interface EngineConfig {
-    customRules?: RuleSource[];  // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
-    guardRules?: RuleSource[];   // CloudFormation Guard DSL rules — translated internally by each engine
+    customRules?: RuleSource[];                       // engine-native rules (Rego for RegoEngine, CEL for CelEngine)
+    guardRules?: RuleSource[];                        // CloudFormation Guard DSL rules — translated internally
+    schemaValidatorConfig?: SchemaValidatorConfig;   // schema validation and overlay configuration
+}
+
+interface SchemaValidatorConfig {
+    additionalSchemas?: SchemaSource[];   // resource provider schemas merged over the bundled schemas
 }
 
 type RuleSource = ExternalRuleSource | RuleFile;
+type SchemaSource = AdditionalSchemaSource | SchemaFile;
 
 class RuleFile {
     constructor(path: string);   // rule file read from disk; the path becomes the rule source name
+}
+
+class SchemaFile {
+    constructor(path: string, typeName?: string); // schema file; typeName defaults to the value inside the JSON
 }
 
 interface ExternalRuleSource {
     name: string;     // identifier shown in diagnostics (e.g. file path)
     content: string;  // full rule source text
 }
+
+interface AdditionalSchemaSource {
+    typeName?: string; // omit to use the typeName inside the schema JSON
+    schema: string;    // complete resource provider schema JSON
+}
 ```
 
 Pass a `RuleFile` to load a rule from disk — the same pattern as `TemplateFile` for templates — or an
-`ExternalRuleSource` when you already have the rule text in memory. The two can be mixed freely:
+`ExternalRuleSource` when you already have the rule text in memory. `SchemaFile` does the same for an additional
+resource provider schema. Its optional constructor `typeName` may be omitted when the schema JSON contains its own
+`typeName`.
+
+The generated `AdditionalSchemaSource` record exposes `typeName` as an optional field. Omit it (or leave the
+`SchemaFile` constructor argument unset) for an in-memory schema whose JSON already contains its own `typeName`.
 
 ```typescript
 const engine = new CelEngine({
     customRules: [new RuleFile("rules/s3_encryption.json")],
     guardRules: [new RuleFile("rules/compliance.guard")],
+    schemaValidatorConfig: {
+        additionalSchemas: [new SchemaFile("schemas/aws-lambda-function.json")],
+    },
 });
 ```
 

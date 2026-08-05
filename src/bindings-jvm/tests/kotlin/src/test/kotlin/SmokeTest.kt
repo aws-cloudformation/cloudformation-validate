@@ -1,19 +1,39 @@
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertThrows
 import software.amazon.cloudformation.validate.*
+import software.amazon.cloudformation.validate.datasource.AdditionalSchemaSource
 import software.amazon.cloudformation.validate.diagnostics.*
 import software.amazon.cloudformation.validate.engine.*
 import software.amazon.cloudformation.validate.gson.buildBindingsGson
 import software.amazon.cloudformation.validate.rules.*
+import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
 import java.io.File
 
 class SmokeTest {
     private fun templateFile(rel: String): File = File(templatesRoot, rel)
     private fun templateBytes(rel: String): ByteArray = templateFile(rel).readBytes()
     private fun loadRule(filename: String): String = File(rulesDir, filename).readText()
+
+    private val templateWithOverlayProperty = """
+        Resources:
+          Function:
+            Type: AWS::Lambda::Function
+            Properties:
+              Code:
+                ZipFile: "exports.handler = async () => {};"
+              Role: arn:aws:iam::123456789012:role/lambda-role
+              Runtime: nodejs18.x
+              Handler: index.handler
+              TestForOverride: enabled
+    """.trimIndent().toByteArray()
+
+    private val lambdaOverlaySchema = """{
+        "typeName": "AWS::Lambda::Function",
+        "properties": {"TestForOverride": {"type": "string"}}
+    }""".trimIndent()
 
     private fun defaultConfig() = ValidateConfig(severityLevel = Severity.DEBUG)
 
@@ -81,11 +101,50 @@ class SmokeTest {
         assertEquals("rego", JvmRegoEngine(EngineConfig()).engineName())
     }
 
+    @Test
+    fun additionalSchemasApplyThroughThePublicConfigOnBothEngines() {
+        val config = EngineConfig(
+            schemaValidatorConfig = SchemaValidatorConfig(
+                additionalSchemas = listOf(AdditionalSchemaSource(typeName = null, schema = lambdaOverlaySchema)),
+            ),
+        )
+        val celBaseline = JvmCelEngine(EngineConfig()).validateStandard(
+            templateWithOverlayProperty,
+            defaultConfig(),
+            "overlay.yaml",
+        )
+        val regoBaseline = JvmRegoEngine(EngineConfig()).validateStandard(
+            templateWithOverlayProperty,
+            defaultConfig(),
+            "overlay.yaml",
+        )
+        assertTrue(celBaseline.diagnostics.any { it.ruleId == "F3002" }, "CEL baseline must report the property")
+        assertTrue(regoBaseline.diagnostics.any { it.ruleId == "F3002" }, "Rego baseline must report the property")
+
+        val cel = JvmCelEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        val rego = JvmRegoEngine(config).validateStandard(templateWithOverlayProperty, defaultConfig(), "overlay.yaml")
+        assertFalse(cel.diagnostics.any { it.ruleId == "F3002" }, "CEL config must apply the overlay")
+        assertFalse(rego.diagnostics.any { it.ruleId == "F3002" }, "Rego config must apply the overlay")
+    }
+
+    @Test
+    fun additionalSchemaFileHelperLoadsTheSchemaAndOptionalTypeName() {
+        val schemaFile = File.createTempFile("cloudformation-validate-overlay", ".json")
+        try {
+            schemaFile.writeText(lambdaOverlaySchema)
+            val source = fileToAdditionalSchemaSource(schemaFile, "AWS::Lambda::Function")
+            assertEquals("AWS::Lambda::Function", source.typeName)
+            assertEquals(lambdaOverlaySchema, source.schema)
+        } finally {
+            schemaFile.delete()
+        }
+    }
+
     // ── SchemaValidator ──────────────────────────────────────────────────────
 
     @Test
     fun schemaValidatorExposesSchemasAndRules() {
-        val sv = JvmSchemaValidator()
+        val sv = JvmSchemaValidator(SchemaValidatorConfig())
         assertTrue(sv.schemaCount() > 0u, "schema count must be positive")
         val rules = sv.listRules()
         assertTrue(rules.isNotEmpty(), "schema validator must have rules")

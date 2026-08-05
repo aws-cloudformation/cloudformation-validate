@@ -61,3 +61,7 @@ runs:
       uses: gradle/actions/setup-gradle@v6
       with:
         gradle-version: ${{ inputs.gradle-version }}
+
+    - name: Put configured JDK first on PATH
+      shell: bash
+      run: printf '%s\n' "$JAVA_HOME/bin" >> "$GITHUB_PATH"

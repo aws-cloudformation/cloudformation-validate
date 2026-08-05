@@ -1,7 +1,22 @@
 use crate::compiled::CompiledSchema;
+use crate::overlay::{self, SchemaOverlayError};
 use data_source::embedded::*;
 use std::collections::{BTreeSet, HashMap};
 use template_model::regions::AWS_REGIONS;
+
+/// What applying an overlay did to the store.
+///
+/// An overlay whose type name matches no bundled schema is registered as a new
+/// resource type — the supported way to describe a type CloudFormation has not
+/// published yet — but it is also what a misspelled type name produces, so the
+/// distinction is reported rather than swallowed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OverlayOutcome {
+    /// Merged into the bundled schema for an existing resource type.
+    Merged,
+    /// Registered as a resource type the bundled schemas do not contain.
+    Inserted,
+}
 
 pub struct CompiledSchemaStore {
     schemas: HashMap<String, CompiledSchema>,
@@ -68,6 +83,49 @@ impl CompiledSchemaStore {
 
     pub fn get(&self, type_name: &str) -> Option<&CompiledSchema> {
         self.schemas.get(type_name)
+    }
+
+    /// Merge an overlay CloudFormation resource provider schema (raw registry
+    /// JSON) into the store under `type_name`.
+    ///
+    /// The raw schema is compiled with the same transformation used at build time
+    /// and deep-merged into the bundled schema for that type; when no bundled
+    /// schema exists, the compiled overlay is registered as a new type. The
+    /// return value says which happened, so callers can report a `type_name` that
+    /// matched nothing. See the [`crate::overlay`] module for the merge
+    /// model and its scope limits.
+    ///
+    /// Input is validated before anything is committed — an empty type name,
+    /// non-object JSON, nesting past [`MAX_OVERLAY_DEPTH`](crate::overlay::MAX_OVERLAY_DEPTH),
+    /// a cyclic definition graph, or an overlay that would change nothing is an
+    /// error and leaves the store untouched. The merge therefore runs on a copy
+    /// of the bundled schema that is only installed once it validates; a partly
+    /// merged schema is never observable.
+    pub fn apply_overlay(
+        &mut self,
+        type_name: &str,
+        raw: &serde_json::Value,
+    ) -> Result<OverlayOutcome, SchemaOverlayError> {
+        let overlay = overlay::compile(type_name, raw)?;
+        overlay::validate_schema(&overlay)?;
+        match self.schemas.get(type_name) {
+            Some(existing) => {
+                let mut merged = existing.clone();
+                overlay::merge_into(&mut merged, overlay);
+                overlay::validate_schema(&merged)?;
+                overlay::warn_removed_required(existing, &merged);
+                overlay::warn_dangling_refs(&merged);
+                self.ref_types.update_from_schema(&merged);
+                self.schemas.insert(type_name.to_string(), merged);
+                Ok(OverlayOutcome::Merged)
+            }
+            None => {
+                overlay::warn_dangling_refs(&overlay);
+                self.ref_types.update_from_schema(&overlay);
+                self.schemas.insert(type_name.to_string(), overlay);
+                Ok(OverlayOutcome::Inserted)
+            }
+        }
     }
 
     /// Registers a schema directly, bypassing the embedded artifacts — lets
@@ -137,6 +195,64 @@ impl RefTypeStore {
             .and_then(|v| serde_json::from_value(v.clone()).ok())
             .expect("Embedded ref_types must contain format_compatible_types");
         RefTypeStore { ref_returns, getatt_returns, format_compatible_types }
+    }
+
+    /// Update Ref/GetAtt return type data from a merged overlay schema so
+    /// type-checking rules see overlay-introduced/changed sources immediately.
+    ///
+    /// Uses the same derivation semantics as the catalog: no ref entry when
+    /// primaryIdentifier is empty; "string" when multiple, readOnly, or
+    /// unresolvable; otherwise the resolved single property type. GetAtt types
+    /// include ALL top-level properties plus full-path readOnly attributes.
+    /// Stale entries for a type that an overlay changes are replaced.
+    pub fn update_from_schema(&mut self, schema: &crate::compiled::CompiledSchema) {
+        let type_name = &schema.type_name;
+        let read_only_set: std::collections::HashSet<&str> =
+            schema.read_only_properties.iter().map(|s| s.as_str()).collect();
+
+        // Ref return type: match catalog derivation semantics.
+        // Remove stale entry first in case an overlay removed or changed
+        // the primary identifier.
+        self.ref_returns.remove(type_name);
+        if !schema.primary_identifier.is_empty() {
+            let ref_type = if schema.primary_identifier.len() > 1 {
+                "string".to_string()
+            } else {
+                let id_prop = &schema.primary_identifier[0];
+                if read_only_set.contains(id_prop.as_str()) {
+                    "string".to_string()
+                } else {
+                    crate::catalog::resolve_property_type(schema, id_prop).unwrap_or_else(|| "string".to_string())
+                }
+            };
+            self.ref_returns.insert(type_name.clone(), ref_type);
+        }
+
+        // GetAtt return types: ALL top-level properties plus full-path readOnly
+        // attributes. Replace the whole entry so stale attributes from a
+        // previous overlay are removed.
+        let mut attr_map: HashMap<String, String> = HashMap::new();
+        for (name, prop) in &schema.properties {
+            let resolved = prop.resolve(&schema.definitions);
+            if let Some(pt) = resolved.prop_type.as_ref().and_then(|p| p.primary()) {
+                attr_map.insert(name.clone(), pt.to_string());
+            }
+        }
+        for attr in &schema.read_only_properties {
+            if attr.contains('.')
+                && let Some(prop_type) = crate::catalog::resolve_property_type(schema, attr)
+            {
+                attr_map.insert(attr.clone(), prop_type);
+            }
+        }
+        // Hand-maintained GetAtt return-type corrections win over the derived
+        // property types, exactly as they do in the build pipeline.
+        crate::catalog::apply_getatt_return_type_overrides(type_name, &mut attr_map);
+        if !attr_map.is_empty() {
+            self.getatt_returns.insert(type_name.clone(), attr_map);
+        } else {
+            self.getatt_returns.remove(type_name);
+        }
     }
 
     pub fn ref_type_for(&self, resource_type: &str) -> Option<&str> {

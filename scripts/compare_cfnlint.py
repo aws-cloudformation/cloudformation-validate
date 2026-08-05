@@ -42,7 +42,7 @@ SKIP_BUILD = False
 
 ALL_ENGINES = ["rego", "cel"]
 OUTPUT_FORMAT = "detailed"
-ITERATIONS = 5
+ITERATIONS = 1
 
 # Rules that are correct engine-only findings — cfn-lint does not implement them.
 # These are NOT false positives; they are intentional engine-extra coverage.

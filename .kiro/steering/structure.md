@@ -41,7 +41,15 @@ src/
 │   ├── generated/              # Built jar (cloudformation-validate.jar)
 │   ├── tests/                  # Kotlin test suite (run.sh)
 │   └── examples/               # Usage examples
-├── release/                    # Prebuilt per-platform `cfn-validate` CLI binaries (committed)
+├── bindings-python/            # Python bindings (UniFFI) — wheel with per-platform natives
+│   ├── python/                 # Hand-maintained public API (wrappers, re-exports, native dispatch)
+│   ├── generated/              # Build output: assembled package + dist/*.whl (only the wheel is committed)
+│   └── tests/                  # Python test suite (run.sh)
+├── bindings-go/                # Go bindings (UniFFI via uniffi-bindgen-go) — JSON-over-FFI, cgo static linking
+│   ├── go/                     # The published Go module: hand-maintained API + types, generated
+│   │                           # internal/bindings_go, and per-platform libs/ static libraries (committed)
+│   ├── native/                 # Hand-maintained cgo link directives copied into the generated package
+│   └── tests/                  # Go test runner (run.sh)
 └── resources/                  # Test-fixture CRATE (workspace member)
     ├── src/                    # Corpus discovery API (templates_dir, golden_file, GOLDEN_DIRS, …)
     ├── examples/               # generate_golden.rs — golden-file regeneration
@@ -63,7 +71,10 @@ src/
 ## Top-level directories
 
 - `scripts/` — Python comparison/audit scripts and their `snapshots/` data (see `tech.md` for usage)
-- `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM test jobs
+- `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM +
+  Python + Go test jobs
+- `release-bin/` — prebuilt per-platform `cfn-validate` CLI binaries (committed); written by `cfn-validate/build.sh`
+  and read by the release workflow
 - `tmp/` — scratch files, debug output, tool artifacts (gitignored)
 
 ## Conventions — follow these exactly
@@ -116,8 +127,9 @@ src/
   are reserved for problems in the template under validation — a parse error is the only failure that surfaces as a
   diagnostic instead of an `Err`.
 - **No panics, no hard crashes.** Errors are propagated as `Result`s through the language boundary layers and surface
-  to embedders as catchable errors (Kotlin/Java `ValidationError` exceptions via UniFFI, thrown JS errors via
-  wasm-bindgen) — never a process abort. Every fallible FFI entry point in `bindings-jvm` and `bindings-wasm` is
-  wrapped in `validation_engine::catch_panics` with a panic-to-error mapper as a last-resort backstop; new entry
-  points must follow the same pattern.
+  to embedders as catchable errors (Kotlin/Java `ValidationError` exceptions and Python `ValidationError` via UniFFI,
+  returned Go `error` values, thrown JS errors via wasm-bindgen) — never a process abort. Every fallible FFI entry
+  point in `bindings-jvm`, `bindings-python`, `bindings-go`, and `bindings-wasm` is wrapped in
+  `validation_engine::catch_panics` with a panic-to-error mapper as a last-resort backstop; new entry points must
+  follow the same pattern.
 - `unwrap()`/`expect()`/`panic!` are not error handling — on any reachable failure path, return an `Err` instead.

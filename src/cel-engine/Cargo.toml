@@ -19,6 +19,7 @@ rules = { path = "../rules" }
 template-model = { path = "../template-model" }
 guard-translator = { path = "../guard-translator" }
 data-source = { path = "../data-source", default-features = false }
+schema-validator = { path = "../schema-validator" }
 cel-interpreter = { version = "0.10", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -29,7 +30,6 @@ web-time = "1"
 regex = "1"
 
 [dev-dependencies]
-schema-validator = { path = "../schema-validator" }
 validation-engine = { path = "../validation-engine", features = ["test"] }
 
 [lints]

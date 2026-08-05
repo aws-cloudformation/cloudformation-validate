@@ -1,0 +1,51 @@
+# Python package metadata for the cloudformation-validate bindings.
+# The version is a placeholder: build.sh stamps the workspace version from
+# src/Cargo.toml when assembling the build context in generated/.
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cloudformation-validate"
+version = "0.0.0"
+description = "AWS CloudFormation Validate"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "THIRD-PARTY-LICENSES.txt"]
+requires-python = ">=3.12"
+authors = [{ name = "Amazon Web Services", email = "aws-cloudformation-validate@amazon.com" }]
+keywords = [
+    "aws",
+    "amazon",
+    "aws-cloudformation",
+    "cloudformation",
+    "iac",
+    "infrastructure-as-code",
+    "lint",
+    "template",
+    "validate",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Homepage = "https://github.com/aws-cloudformation/cloudformation-validate#readme"
+Repository = "https://github.com/aws-cloudformation/cloudformation-validate"
+
+[tool.setuptools]
+packages = ["cloudformation_validate"]
+
+[tool.setuptools.package-data]
+# Every platform wheel uses the same resource layout while carrying only its
+# matching native library. The README remains directly inspectable in the
+# installed package; license files use the wheel's standard dist-info/licenses.
+cloudformation_validate = ["README.md", "natives/*/*"]

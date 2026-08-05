@@ -31,7 +31,7 @@ static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::
 /// Validate a `gh-issues` fixture with one engine at the lowest severity gate
 /// (so INFO/DEBUG findings are visible to assertions).
 fn validate_with(engine: &dyn ValidationEngine, fixture: &str, config: ValidateConfig) -> Vec<Diagnostic> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let bytes = load_template(&format!("gh-issues/{fixture}"));
     validate_bytes(engine, &sv, &bytes, config).expect("validation should not error").diagnostics
 }
@@ -55,7 +55,7 @@ fn validate_both(fixture: &str) -> Vec<(&'static str, Vec<Diagnostic>)> {
 /// fire on a genuine violation): these adversarial templates are not golden
 /// fixtures, so they live inline rather than under `gh-issues/`.
 fn validate_both_bytes(template: &[u8]) -> Vec<(&'static str, Vec<Diagnostic>)> {
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     vec![
         ("rego", validate_bytes(&*REGO, &sv, template, debug_config()).unwrap().diagnostics),
         ("cel", validate_bytes(&*CEL, &sv, template, debug_config()).unwrap().diagnostics),
@@ -596,7 +596,7 @@ fn issue_54_w3045_diverges_on_symbolic_accesscontrol_ref() {
     "Bucket": { "Type": "AWS::S3::Bucket", "Properties": { "AccessControl": { "Ref": "Acl" } } }
   }
 }"#;
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let rego = validate_bytes(&*REGO, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
     let cel = validate_bytes(&*CEL, &sv, TEMPLATE, debug_config()).unwrap().diagnostics;
 
@@ -904,33 +904,21 @@ fn issue_183_w3663_fires_only_for_source_arn_without_valid_account_id() {
     assert_fires_on_resource(&diags, "F3031", "PermissionInvalidAccountId");
 }
 
-/// Issue #186: a lowercase Classic Load Balancer listener `Protocol` ('tcp')
-/// keeps its open-world enum Warning. The compiled provider schema declares the
-/// enum in uppercase (`HTTP`/`HTTPS`/`TCP`/`SSL`), and case-insensitive service
-/// acceptance is not schema-provable — some services do reject wrong-case
-/// values — so the mismatch stays a suppressible Warn rather than being
-/// silenced or escalated. `InstanceProtocol` carries no enum in the schema,
-/// which is why it never fires.
+/// Issue #186: The Classic Load Balancer API normalizes listener protocol names to
+/// uppercase, so lowercase `tcp` is valid for both `Protocol` and
+/// `InstanceProtocol`. The fixture covers both properties to ensure their
+/// case-insensitive schema constraints do not produce enum warnings.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
-fn issue_186_lowercase_clb_protocol_keeps_enum_warning() {
+fn issue_186_lowercase_clb_protocols_do_not_warn() {
     let diags = validate_both("issue-186-clb.json");
-    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
-    assert_count(&diags, "W3030", 1);
-    assert_fires_on_resource(&diags, "W3030", "CLBA83A883E");
-    assert_fires_on_property(&diags, "W3030", "Properties.Listeners.0.Protocol");
-    for (engine, d) in &diags {
-        let on_instance_protocol = d
-            .iter()
-            .filter(|x| x.rule_id == "W3030")
-            .any(|x| x.property_path.as_deref() == Some("Properties.Listeners.0.InstanceProtocol"));
-        assert!(!on_instance_protocol, "[{engine}] InstanceProtocol has no schema enum, so W3030 must not fire there");
-    }
+    assert_count(&diags, "W3030", 0);
 }
 
-/// Issue #186 (companion): an ImageBuilder pipeline workflow `OnFailure` of
-/// 'Abort' mismatches the schema enum (`CONTINUE`/`ABORT`) only by case and
-/// keeps the same open-world Warning treatment as the load-balancer protocol.
+/// Issue #186 (companion): case-insensitive enum matching is scoped to schema
+/// properties that opt in. ImageBuilder workflow `OnFailure` still declares
+/// exact uppercase values (`CONTINUE`/`ABORT`), so mixed-case `Abort` keeps its
+/// open-world enum warning.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/186
 #[test]
 fn issue_186_lowercase_imagebuilder_onfailure_keeps_enum_warning() {
@@ -959,6 +947,100 @@ fn issue_194_importvalue_as_parameter_default_is_an_error() {
         assert_eq!(entity.logical_id, "SomeParameter", "[{engine}] E2001 must identify the parameter");
         assert_eq!(entity.entity_type, EntityType::Parameter, "[{engine}] E2001 targets a parameter");
     }
+}
+
+/// Issue #247: three `Fn::GetStackOutput` entries that read different outputs of
+/// the same stack must not be flagged as duplicates by W9007 — the same class of
+/// bug fixed for `Fn::ImportValue` in #52, which was never extended to
+/// `Fn::GetStackOutput`. Each call now carries the stack, region and output it
+/// reads, so the three values are distinct symbolic reads.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_no_w9007_on_distinct_getstackoutput() {
+    let diags = validate_both("issue-247.json");
+    assert_absent(&diags, "W9007");
+    assert_count(&diags, "W9007", 0);
+}
+
+/// Issue #247 (reported probe): the issue reports that even a differing
+/// `StackName` was not enough to make two reads distinct. Each of the three
+/// identifying arguments must now distinguish on its own, so none of these
+/// three pairs fires W9007.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_each_identifying_argument_distinguishes_on_its_own() {
+    const DIFFERENT_STACK_NAME: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStackOne", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStackTwo", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    const DIFFERENT_REGION: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnet" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "us-east-1", "OutputName": "PublicSubnet" } }
+        ]
+      }
+    }
+  }
+}"#;
+    const DIFFERENT_OUTPUT_NAME: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetTwo" } }
+        ]
+      }
+    }
+  }
+}"#;
+    for template in [DIFFERENT_STACK_NAME, DIFFERENT_REGION, DIFFERENT_OUTPUT_NAME] {
+        let diags = validate_both_bytes(template);
+        assert_absent(&diags, "W9007");
+        assert_count(&diags, "W9007", 0);
+    }
+}
+
+/// Issue #247 (positive boundary): the fix that distinguishes distinct reads must
+/// not silence W9007 on two reads of the SAME output of the same stack — those
+/// resolve to one identical symbolic value and are a genuine duplicate.
+/// https://github.com/aws-cloudformation/cloudformation-validate/issues/247
+#[test]
+fn issue_247_w9007_still_fires_on_repeated_getstackoutput() {
+    const TEMPLATE: &[u8] = br#"{
+  "Resources": {
+    "ALB": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Subnets": [
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } },
+          { "Fn::GetStackOutput": { "StackName": "VpcStack", "Region": "ap-northeast-1", "OutputName": "PublicSubnetOne" } }
+        ]
+      }
+    }
+  }
+}"#;
+    let diags = validate_both_bytes(TEMPLATE);
+    assert_fires_with_severity(&diags, "W9007", Severity::Warn);
+    assert_count(&diags, "W9007", 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -996,7 +1078,7 @@ Resources:
     Properties:
       ExecutionRoleArn: arn:aws-isob:iam::123456789012:role/my-task-role
 "#;
-    let sv = SchemaValidator::new();
+    let sv = SchemaValidator::default();
     let rego = validate_bytes(&*REGO, &sv, VALID, debug_config()).unwrap().diagnostics;
     let cel = validate_bytes(&*CEL, &sv, VALID, debug_config()).unwrap().diagnostics;
 

@@ -22,6 +22,7 @@ name = "cfn-benchmark"
 path = "src/benchmark.rs"
 
 [dependencies]
+data-source = { path = "../data-source", default-features = false }
 template-model = { path = "../template-model" }
 diagnostics = { path = "../diagnostics" }
 validation-engine = { path = "../validation-engine" }
